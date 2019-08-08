@@ -1,3 +1,7 @@
 pytest
 sklearn
-setuptools
+pandas
+numpy
+matplotlib
+seaborn
+
