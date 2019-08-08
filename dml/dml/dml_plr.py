@@ -1,4 +1,6 @@
-from sklear.utils import check_X_y
+import numpy as np
+from sklearn.utils import check_X_y
+
 
 class DoubleMLPLR(object):
     """
@@ -28,11 +30,16 @@ class DoubleMLPLR(object):
         """
         
         dml_procedure = self.dml_procedure
+        inf_model = self.inf_model
+        ml_m = self.ml_learners['ml_m']
+        ml_g = self.ml_learners['ml_g']
+        resampling = self.resampling
+        
         X, y = check_X_y(X, y)
         
         if dml_procedure == 'dml1':
-            thetas = np.zeros(smpl_splitter.get_n_splits())
-            for idx, (train_index, test_index) in enumerate(smpl_splitter.split(X)):
+            thetas = np.zeros(resampling.get_n_splits())
+            for idx, (train_index, test_index) in enumerate(resampling.split(X)):
                 
                 # nuisance g
                 g_hat = ml_g.fit(X[train_index],
@@ -44,12 +51,24 @@ class DoubleMLPLR(object):
                                  d[train_index]).predict(X[test_index])
                 v_hat = d[test_index] - m_hat
                 
-                thetas[idx] = np.mean(np.dot(vhat, (Y[test_index] - ghat)))/np.mean(np.dot(vhat, D[test_index]))
+                v_hatd = np.dot(v_hat, d[test_index])
+                
+                thetas[idx] = _orth_dml_plr(u_hat, v_hat, v_hatd, inf_model)
             theta_hat = np.mean(thetas)
+        else:
+            raise ValueError('invalid dml_procedure')
         
+        self.coef_ = theta_hat
         return self
     
-    def _orth_dml_plr(u_hat, v_hat, v_hatd, inf_model):
-        
-        return theta
+def _orth_dml_plr(u_hat, v_hat, v_hatd, inf_model):
+    if inf_model == 'IV-type':
+        theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
+    elif inf_model == 'DML2018':
+        ols = LinearRegression(fit_intercept=False)
+        results = ols.fit(u_hat, v_hat.reshape(-1, 1))
+        theta = results.coef_
+    else:
+        raise ValueError('invalid inf_model')
+    return theta
     
