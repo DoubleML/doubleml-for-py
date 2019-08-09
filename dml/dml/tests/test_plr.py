@@ -74,12 +74,19 @@ def test_dml_plr(generate_data1, idx, learner):
 
 def dml_cross_fitting(Y, X, D, ml_m, ml_g, resampling):
     thetas = np.zeros(resampling.get_n_splits())
-    for idx, (train_index, test_index) in enumerate(resampling.split(X)):
-        ghat = ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index])
-        mhat = ml_m.fit(X[train_index],D[train_index]).predict(X[test_index])
-        
-        vhat = D[test_index] - mhat
-        thetas[idx] = np.mean(np.dot(vhat, (Y[test_index] - ghat)))/np.mean(np.dot(vhat, D[test_index]))
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    
+    ghat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        ghat.append(ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index]))
+    
+    mhat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        mhat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
+    
+    for idx, (train_index, test_index) in enumerate(smpls):
+        vhat = D[test_index] - mhat[idx]
+        thetas[idx] = np.mean(np.dot(vhat, (Y[test_index] - ghat[idx])))/np.mean(np.dot(vhat, D[test_index]))
     theta_hat = np.mean(thetas)
     
     return theta_hat
