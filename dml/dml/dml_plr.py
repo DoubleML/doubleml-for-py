@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
+from sklearn.model_selection import cross_val_predict
 
 
 class DoubleMLPLR(object):
@@ -37,27 +38,23 @@ class DoubleMLPLR(object):
         
         orth_dml_plr_obj = OrthDmlPlr(inf_model)
         
+        smpls = [(train, test) for train, test in resampling.split(X)]
+        
         X, y = check_X_y(X, y)
         X, d = check_X_y(X, d)
         
         if dml_procedure == 'dml1':
             thetas = np.zeros(resampling.get_n_splits())
-            for idx, (train_index, test_index) in enumerate(resampling.split(X)):
-                
-                # nuisance g
-                g_hat = ml_g.fit(X[train_index],
-                                 y[train_index]).predict(X[test_index])
-                u_hat = y[test_index] - g_hat
-                
-                # nuisance m
-                m_hat = ml_m.fit(X[train_index],
-                                 d[train_index]).predict(X[test_index])
-                v_hat = d[test_index] - m_hat
-                
-                v_hatd = np.dot(v_hat, d[test_index])
-                
+            
+            # nuisance g
+            g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+            
+            # nuisance m
+            m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
+            
+            for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = orth_dml_plr_obj.fit(y[test_index], d[test_index],
-                                                   g_hat, m_hat).coef_
+                                                   g_hat[test_index], m_hat[test_index]).coef_
             theta_hat = np.mean(thetas)
         else:
             raise ValueError('invalid dml_procedure')
