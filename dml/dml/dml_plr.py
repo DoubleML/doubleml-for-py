@@ -36,6 +36,7 @@ class DoubleMLPLR(object):
         resampling = self.resampling
         
         X, y = check_X_y(X, y)
+        X, d = check_X_y(X, d)
         
         if dml_procedure == 'dml1':
             thetas = np.zeros(resampling.get_n_splits())
