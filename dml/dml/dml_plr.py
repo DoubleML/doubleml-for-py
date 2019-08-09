@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
+from sklearn.linear_model import LinearRegression
 
 
 class DoubleMLPLR(object):
@@ -94,7 +95,7 @@ class OrthDmlPlr(object):
             theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
         elif inf_model == 'DML2018':
             ols = LinearRegression(fit_intercept=False)
-            results = ols.fit(u_hat, v_hat.reshape(-1, 1))
+            results = ols.fit(v_hat.reshape(-1, 1), u_hat)
             theta = results.coef_
         else:
             raise ValueError('invalid inf_model')

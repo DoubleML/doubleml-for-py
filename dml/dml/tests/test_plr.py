@@ -48,7 +48,8 @@ def generate_data1():
 @pytest.mark.parametrize('learner', [RandomForestRegressor(max_depth=2, n_estimators=10),
                                      LinearRegression(),
                                      Lasso(alpha=0.1)])
-def test_dml_plr(generate_data1, idx, learner):
+@pytest.mark.parametrize('inf_model', ['IV-type'])
+def test_dml_plr(generate_data1, idx, learner, inf_model):
     resampling = KFold(n_splits=2, shuffle=False)
     
     # Set machine learning methods for m & g
@@ -58,7 +59,7 @@ def test_dml_plr(generate_data1, idx, learner):
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
                               'dml1',
-                              'IV-type')
+                              inf_model)
     data = generate_data1[idx]
     np.random.seed(3141)
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
