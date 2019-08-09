@@ -43,19 +43,20 @@ class DoubleMLPLR(object):
         X, y = check_X_y(X, y)
         X, d = check_X_y(X, d)
         
+        # nuisance g
+        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        
+        # nuisance m
+        m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
+        
         if dml_procedure == 'dml1':
-            thetas = np.zeros(resampling.get_n_splits())
-            
-            # nuisance g
-            g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
-            
-            # nuisance m
-            m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
-            
+            thetas = np.zeros(resampling.get_n_splits())        
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = orth_dml_plr_obj.fit(y[test_index], d[test_index],
                                                    g_hat[test_index], m_hat[test_index]).coef_
             theta_hat = np.mean(thetas)
+        elif dml_procedure == 'dml2':
+            theta_hat = orth_dml_plr_obj.fit(y, d, g_hat, m_hat).coef_
         else:
             raise ValueError('invalid dml_procedure')
         
