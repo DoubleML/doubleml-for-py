@@ -35,6 +35,8 @@ class DoubleMLPLR(object):
         ml_g = self.ml_learners['ml_g']
         resampling = self.resampling
         
+        orth_dml_plr_obj = OrthDmlPlr(inf_model)
+        
         X, y = check_X_y(X, y)
         X, d = check_X_y(X, d)
         
@@ -54,27 +56,50 @@ class DoubleMLPLR(object):
                 
                 v_hatd = np.dot(v_hat, d[test_index])
                 
-                thetas[idx] = _orth_dml_plr(y[test_index], d[test_index],
-                                            g_hat, m_hat, inf_model)
+                thetas[idx] = orth_dml_plr_obj.fit(y[test_index], d[test_index],
+                                                   g_hat, m_hat).coef_
             theta_hat = np.mean(thetas)
         else:
             raise ValueError('invalid dml_procedure')
         
         self.coef_ = theta_hat
         return self
+
+class OrthDmlPlr(object):
+    """
+    Orthogonalized Estimation of Coefficient in PLR
+    """
+    def __init__(self,
+                 inf_model):
+        self.inf_model = inf_model
     
-def _orth_dml_plr(y, d, g_hat, m_hat, inf_model):
-    u_hat = y - g_hat
-    v_hat = d - m_hat
-    v_hatd = np.dot(v_hat, d)
-    
-    if inf_model == 'IV-type':
-        theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
-    elif inf_model == 'DML2018':
-        ols = LinearRegression(fit_intercept=False)
-        results = ols.fit(u_hat, v_hat.reshape(-1, 1))
-        theta = results.coef_
-    else:
-        raise ValueError('invalid inf_model')
-    return theta
-    
+    def fit(self, y, d, g_hat, m_hat):
+        """
+        Estimate the structural parameter in a partially linear regression model (PLR).
+        Parameters
+        ----------
+        y : 
+        d : 
+        g_hat : 
+        m_hat : 
+        Returns
+        -------
+        self: resturns an instance of OrthDmlPlr
+        """
+        inf_model = self.inf_model
+        
+        u_hat = y - g_hat
+        v_hat = d - m_hat
+        v_hatd = np.dot(v_hat, d)
+        
+        if inf_model == 'IV-type':
+            theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
+        elif inf_model == 'DML2018':
+            ols = LinearRegression(fit_intercept=False)
+            results = ols.fit(u_hat, v_hat.reshape(-1, 1))
+            theta = results.coef_
+        else:
+            raise ValueError('invalid inf_model')
+        
+        self.coef_ = theta
+        return self
