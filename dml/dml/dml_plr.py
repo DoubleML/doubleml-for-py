@@ -54,7 +54,8 @@ class DoubleMLPLR(object):
                 
                 v_hatd = np.dot(v_hat, d[test_index])
                 
-                thetas[idx] = _orth_dml_plr(u_hat, v_hat, v_hatd, inf_model)
+                thetas[idx] = _orth_dml_plr(y[test_index], d[test_index],
+                                            g_hat, m_hat, inf_model)
             theta_hat = np.mean(thetas)
         else:
             raise ValueError('invalid dml_procedure')
@@ -62,7 +63,11 @@ class DoubleMLPLR(object):
         self.coef_ = theta_hat
         return self
     
-def _orth_dml_plr(u_hat, v_hat, v_hatd, inf_model):
+def _orth_dml_plr(y, d, g_hat, m_hat, inf_model):
+    u_hat = y - g_hat
+    v_hat = d - m_hat
+    v_hatd = np.dot(v_hat, d)
+    
     if inf_model == 'IV-type':
         theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
     elif inf_model == 'DML2018':
