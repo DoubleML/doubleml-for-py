@@ -48,7 +48,7 @@ def generate_data1():
 @pytest.mark.parametrize('learner', [RandomForestRegressor(max_depth=2, n_estimators=10),
                                      LinearRegression(),
                                      Lasso(alpha=0.1)])
-@pytest.mark.parametrize('inf_model', ['IV-type'])
+@pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
 @pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
 def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=False)
@@ -68,10 +68,12 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     np.random.seed(3141)
     if dml_procedure == 'dml1':
         res_manual = plr_dml1(data['y'], data['X'], data['d'],
-                              clone(learner), clone(learner), resampling)
+                              clone(learner), clone(learner),
+                              resampling, inf_model)
     elif dml_procedure == 'dml2':
         res_manual = plr_dml2(data['y'], data['X'], data['d'],
-                              clone(learner), clone(learner), resampling)
+                              clone(learner), clone(learner),
+                              resampling, inf_model)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
     
@@ -89,7 +91,7 @@ def fit_nuisance(Y, X, D, ml_m, ml_g, smpls):
     return g_hat, m_hat
 
 
-def plr_dml1(Y, X, D, ml_m, ml_g, resampling):
+def plr_dml1(Y, X, D, ml_m, ml_g, resampling, inf_model):
     thetas = np.zeros(resampling.get_n_splits())
     smpls = [(train, test) for train, test in resampling.split(X)]
     
@@ -97,12 +99,13 @@ def plr_dml1(Y, X, D, ml_m, ml_g, resampling):
     
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat = D[test_index] - m_hat[idx]
-        thetas[idx] = np.mean(np.dot(v_hat, (Y[test_index] - g_hat[idx])))/np.mean(np.dot(v_hat, D[test_index]))
+        u_hat = Y[test_index] - g_hat[idx]
+        thetas[idx] = plr_orth(v_hat, u_hat, D[test_index], inf_model)
     theta_hat = np.mean(thetas)
     
     return theta_hat
 
-def plr_dml2(Y, X, D, ml_m, ml_g, resampling):
+def plr_dml2(Y, X, D, ml_m, ml_g, resampling, inf_model):
     thetas = np.zeros(resampling.get_n_splits())
     smpls = [(train, test) for train, test in resampling.split(X)]
     
@@ -113,7 +116,16 @@ def plr_dml2(Y, X, D, ml_m, ml_g, resampling):
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
-    
-    theta_hat = np.mean(np.dot(v_hat, u_hat))/np.mean(np.dot(v_hat, D))
+    theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
     
     return theta_hat
+
+def plr_orth(v_hat, u_hat, D, inf_model):
+    if inf_model == 'IV-type':
+        res = np.mean(np.dot(v_hat, u_hat))/np.mean(np.dot(v_hat, D))
+    elif inf_model == 'DML2018':
+        res = np.linalg.lstsq(v_hat.reshape(-1, 1), u_hat,
+                              rcond=None)[0]
+    
+    return res
+    
