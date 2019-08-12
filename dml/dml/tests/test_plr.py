@@ -49,7 +49,8 @@ def generate_data1():
                                      LinearRegression(),
                                      Lasso(alpha=0.1)])
 @pytest.mark.parametrize('inf_model', ['IV-type'])
-def test_dml_plr(generate_data1, idx, learner, inf_model):
+@pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
+def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=False)
     
     # Set machine learning methods for m & g
@@ -58,36 +59,61 @@ def test_dml_plr(generate_data1, idx, learner, inf_model):
     
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
-                              'dml1',
+                              dml_procedure,
                               inf_model)
     data = generate_data1[idx]
     np.random.seed(3141)
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
     
     np.random.seed(3141)
-    res_manual = dml_cross_fitting(data['y'], data['X'], data['d'],
-                                   clone(learner), clone(learner), resampling)
+    if dml_procedure == 'dml1':
+        res_manual = plr_dml1(data['y'], data['X'], data['d'],
+                              clone(learner), clone(learner), resampling)
+    elif dml_procedure == 'dml2':
+        res_manual = plr_dml2(data['y'], data['X'], data['d'],
+                              clone(learner), clone(learner), resampling)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
     
     return
     
+def fit_nuisance(Y, X, D, ml_m, ml_g, smpls):
+    g_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        g_hat.append(ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index]))
+    
+    m_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        m_hat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
+    
+    return g_hat, m_hat
 
-def dml_cross_fitting(Y, X, D, ml_m, ml_g, resampling):
+
+def plr_dml1(Y, X, D, ml_m, ml_g, resampling):
     thetas = np.zeros(resampling.get_n_splits())
     smpls = [(train, test) for train, test in resampling.split(X)]
     
-    ghat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        ghat.append(ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index]))
-    
-    mhat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        mhat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
+    g_hat, m_hat = fit_nuisance(Y, X, D, ml_m, ml_g, smpls)
     
     for idx, (train_index, test_index) in enumerate(smpls):
-        vhat = D[test_index] - mhat[idx]
-        thetas[idx] = np.mean(np.dot(vhat, (Y[test_index] - ghat[idx])))/np.mean(np.dot(vhat, D[test_index]))
+        v_hat = D[test_index] - m_hat[idx]
+        thetas[idx] = np.mean(np.dot(v_hat, (Y[test_index] - g_hat[idx])))/np.mean(np.dot(v_hat, D[test_index]))
     theta_hat = np.mean(thetas)
+    
+    return theta_hat
+
+def plr_dml2(Y, X, D, ml_m, ml_g, resampling):
+    thetas = np.zeros(resampling.get_n_splits())
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    
+    g_hat, m_hat = fit_nuisance(Y, X, D, ml_m, ml_g, smpls)
+    u_hat = np.zeros_like(Y)
+    v_hat = np.zeros_like(D)
+    
+    for idx, (train_index, test_index) in enumerate(smpls):
+        v_hat[test_index] = D[test_index] - m_hat[idx]
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
+    
+    theta_hat = np.mean(np.dot(v_hat, u_hat))/np.mean(np.dot(v_hat, D))
     
     return theta_hat
