@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import math
+import scipy
 
 from sklearn.datasets import make_spd_matrix
 from sklearn.model_selection import KFold
@@ -22,6 +23,7 @@ n_datasets = 10
 
 @pytest.fixture(scope="module")
 def generate_data1():
+    np.random.seed(1111)
     # setting parameters
     N = 500
     k=10
@@ -30,7 +32,6 @@ def generate_data1():
     sigma = make_spd_matrix(k)
     
     # generating data
-    np.random.seed(1111)
     datasets = []
     for i in range(n_datasets):
         X = np.random.multivariate_normal(np.ones(k),sigma,size=[N,])
@@ -66,14 +67,69 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
     
     np.random.seed(3141)
+    smpls = [(train, test) for train, test in resampling.split(data['X'])]
+    
+    g_hat, m_hat = fit_nuisance(data['y'], data['X'], data['d'],
+                                clone(learner), clone(learner), smpls)
     if dml_procedure == 'dml1':
         res_manual = plr_dml1(data['y'], data['X'], data['d'],
-                              clone(learner), clone(learner),
-                              resampling, inf_model)
+                              g_hat, m_hat,
+                              smpls, inf_model)
     elif dml_procedure == 'dml2':
         res_manual = plr_dml2(data['y'], data['X'], data['d'],
-                              clone(learner), clone(learner),
-                              resampling, inf_model)
+                              g_hat, m_hat,
+                              smpls, inf_model)
+    
+    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
+    
+    return
+
+@pytest.mark.parametrize('idx', range(n_datasets))
+@pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
+@pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
+def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
+    learner = LinearRegression()
+    resampling = KFold(n_splits=2, shuffle=False)
+    
+    # Set machine learning methods for m & g
+    ml_learners = {'ml_m': clone(clone(learner)),
+                   'ml_g': clone(clone(learner))}
+    
+    dml_plr_obj = DoubleMLPLR(resampling,
+                              ml_learners,
+                              dml_procedure,
+                              inf_model)
+    data = generate_data1[idx]
+    res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
+    
+    N = len(data['y'])
+    smpls = []
+    xx = int(N/2)
+    smpls.append((np.arange(0, xx), np.arange(xx, N)))
+    smpls.append((np.arange(xx, N), np.arange(0, xx)))
+    
+    # add column of ones for intercept
+    o = np.ones((N,1))
+    X = np.append(data['X'], o, axis=1)
+    
+    g_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        ols_est = scipy.linalg.lstsq(X[train_index], data['y'][train_index])[0]
+        g_hat.append(np.dot(X[test_index], ols_est))
+    
+    m_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        ols_est = scipy.linalg.lstsq(X[train_index], data['d'][train_index])[0]
+        m_hat.append(np.dot(X[test_index], ols_est))
+    
+    if dml_procedure == 'dml1':
+        res_manual = plr_dml1(data['y'], data['X'], data['d'],
+                              g_hat, m_hat,
+                              smpls, inf_model)
+    elif dml_procedure == 'dml2':
+        res_manual = plr_dml2(data['y'], data['X'], data['d'],
+                              g_hat, m_hat,
+                              smpls, inf_model)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
     
@@ -91,11 +147,8 @@ def fit_nuisance(Y, X, D, ml_m, ml_g, smpls):
     return g_hat, m_hat
 
 
-def plr_dml1(Y, X, D, ml_m, ml_g, resampling, inf_model):
-    thetas = np.zeros(resampling.get_n_splits())
-    smpls = [(train, test) for train, test in resampling.split(X)]
-    
-    g_hat, m_hat = fit_nuisance(Y, X, D, ml_m, ml_g, smpls)
+def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
+    thetas = np.zeros(len(smpls))
     
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat = D[test_index] - m_hat[idx]
@@ -105,14 +158,10 @@ def plr_dml1(Y, X, D, ml_m, ml_g, resampling, inf_model):
     
     return theta_hat
 
-def plr_dml2(Y, X, D, ml_m, ml_g, resampling, inf_model):
-    thetas = np.zeros(resampling.get_n_splits())
-    smpls = [(train, test) for train, test in resampling.split(X)]
-    
-    g_hat, m_hat = fit_nuisance(Y, X, D, ml_m, ml_g, smpls)
+def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
+    thetas = np.zeros(len(smpls))
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
-    
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
@@ -124,8 +173,7 @@ def plr_orth(v_hat, u_hat, D, inf_model):
     if inf_model == 'IV-type':
         res = np.mean(np.dot(v_hat, u_hat))/np.mean(np.dot(v_hat, D))
     elif inf_model == 'DML2018':
-        res = np.linalg.lstsq(v_hat.reshape(-1, 1), u_hat,
-                              rcond=None)[0]
+        res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
     
     return res
     
