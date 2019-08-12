@@ -51,7 +51,7 @@ def generate_data1():
 @pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
 @pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
 def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
-    resampling = KFold(n_splits=2, shuffle=False)
+    resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(clone(learner)),
