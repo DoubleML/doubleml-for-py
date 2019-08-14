@@ -21,24 +21,28 @@ def m(x,nu=0.,gamma=1.):
 # number of datasets per dgp
 n_datasets = 10
 
-@pytest.fixture(scope="module")
-def generate_data1():
+@pytest.fixture(scope="module",
+                params = [(500, 10),
+                          (1000, 20),
+                          (1000, 100)])
+def generate_data1(request):
+    N_p = request.param
     np.random.seed(1111)
     # setting parameters
-    N = 500
-    k=10
+    N = N_p[0]
+    p = N_p[1]
     theta=0.5
-    b= [1/k for k in range(1,11)]
-    sigma = make_spd_matrix(k)
+    b= [1/k for k in range(1,p+1)]
+    sigma = make_spd_matrix(p)
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(k),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         M = m(np.dot(X,b))
-        D = M+np.random.standard_normal(size=[500,])
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[500,])
+        D = M+np.random.standard_normal(size=[N,])
+        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
         datasets.append(xx)
     
