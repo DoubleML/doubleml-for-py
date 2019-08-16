@@ -3,6 +3,8 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
 from sklearn.linear_model import LinearRegression
 
+from scipy.stats import norm
+
 
 class DoubleMLPLR(object):
     """
@@ -37,6 +39,9 @@ class DoubleMLPLR(object):
         ml_g = self.ml_learners['ml_g']
         resampling = self.resampling
         
+        # TODO: se_type hard-coded to match inf_model
+        se_type = inf_model
+        
         orth_dml_plr_obj = OrthDmlPlr(inf_model)
         
         smpls = [(train, test) for train, test in resampling.split(X)]
@@ -56,12 +61,28 @@ class DoubleMLPLR(object):
                 thetas[idx] = orth_dml_plr_obj.fit(y[test_index], d[test_index],
                                                    g_hat[test_index], m_hat[test_index]).coef_
             theta_hat = np.mean(thetas)
+            
+            se = np.nan 
+            t = np.nan 
+            pval = np.nan 
+            
         elif dml_procedure == 'dml2':
             theta_hat = orth_dml_plr_obj.fit(y, d, g_hat, m_hat).coef_
+            
+            # comute standard errors
+            u_hat = y - g_hat
+            v_hat = d - m_hat
+            se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, se_type))
+            
+            t = theta_hat / se
+            pval = 2 * norm.cdf(-np.abs(t))
         else:
             raise ValueError('invalid dml_procedure')
         
         self.coef_ = theta_hat
+        self.se_ = se
+        self.t_ = t
+        self.pval_ = pval
         return self
 
 class OrthDmlPlr(object):
@@ -102,3 +123,21 @@ class OrthDmlPlr(object):
         
         self.coef_ = theta
         return self
+
+
+def var_plr(theta, d, u_hat, v_hat, se_type):
+    v_hatd = np.dot(v_hat, d)
+    n_obs = len(u_hat)
+    
+    if se_type == 'DML2018':
+        var = 1/n_obs * 1/np.power(np.mean(np.dot(v_hat, v_hat)), 2) * \
+              np.mean(np.power(np.dot(u_hat - v_hat*theta, v_hat), 2))
+    elif se_type == 'IV-type':
+        var = 1/n_obs * 1/np.power(np.mean(v_hatd), 2) * \
+              np.mean(np.power(np.dot(u_hat - d*theta, v_hat), 2))
+    else:
+        raise ValueError('invalid se_type')
+    
+    return var
+     
+    
