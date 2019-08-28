@@ -55,29 +55,39 @@ class DoubleMLPLR(object):
         # nuisance m
         m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
         
+        # compute residuals
+        u_hat = y - g_hat
+        v_hat = d - m_hat
+        v_hatd = np.multiply(v_hat, d)
+        
         if dml_procedure == 'dml1':
-            thetas = np.zeros(resampling.get_n_splits())        
+            thetas = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                thetas[idx] = orth_dml_plr_obj.fit(y[test_index], d[test_index],
-                                                   g_hat[test_index], m_hat[test_index]).coef_
+                thetas[idx] = orth_dml_plr_obj.fit(u_hat[test_index], v_hat[test_index],
+                                                   v_hatd[test_index]).coef_
             theta_hat = np.mean(thetas)
             
-            se = np.nan 
-            t = np.nan 
-            pval = np.nan 
+            ses = np.zeros(resampling.get_n_splits())
+            for idx, (train_index, test_index) in enumerate(smpls):
+                ses[idx] = var_plr(theta_hat, d[test_index],
+                                   u_hat[test_index], v_hat[test_index],
+                                   v_hatd[test_index],
+                                   se_type)
+            se = np.sqrt(np.mean(ses))
             
         elif dml_procedure == 'dml2':
-            theta_hat = orth_dml_plr_obj.fit(y, d, g_hat, m_hat).coef_
+            theta_hat = orth_dml_plr_obj.fit(u_hat, v_hat, v_hatd).coef_
             
             # comute standard errors
             u_hat = y - g_hat
             v_hat = d - m_hat
-            se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, se_type))
+            se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, v_hatd, se_type))
             
-            t = theta_hat / se
-            pval = 2 * norm.cdf(-np.abs(t))
         else:
             raise ValueError('invalid dml_procedure')
+        
+        t = theta_hat / se
+        pval = 2 * norm.cdf(-np.abs(t))
         
         self.coef_ = theta_hat
         self.se_ = se
@@ -93,7 +103,7 @@ class OrthDmlPlr(object):
                  inf_model):
         self.inf_model = inf_model
     
-    def fit(self, y, d, g_hat, m_hat):
+    def fit(self, u_hat, v_hat, v_hatd):
         """
         Estimate the structural parameter in a partially linear regression model (PLR).
         Parameters
@@ -108,12 +118,8 @@ class OrthDmlPlr(object):
         """
         inf_model = self.inf_model
         
-        u_hat = y - g_hat
-        v_hat = d - m_hat
-        v_hatd = np.dot(v_hat, d)
-        
         if inf_model == 'IV-type':
-            theta = np.mean(np.dot(v_hat,u_hat))/np.mean(v_hatd)
+            theta = np.mean(np.multiply(v_hat,u_hat))/np.mean(v_hatd)
         elif inf_model == 'DML2018':
             ols = LinearRegression(fit_intercept=False)
             results = ols.fit(v_hat.reshape(-1, 1), u_hat)
@@ -125,16 +131,15 @@ class OrthDmlPlr(object):
         return self
 
 
-def var_plr(theta, d, u_hat, v_hat, se_type):
-    v_hatd = np.dot(v_hat, d)
+def var_plr(theta, d, u_hat, v_hat, v_hatd, se_type):
     n_obs = len(u_hat)
     
     if se_type == 'DML2018':
-        var = 1/n_obs * 1/np.power(np.mean(np.dot(v_hat, v_hat)), 2) * \
-              np.mean(np.power(np.dot(u_hat - v_hat*theta, v_hat), 2))
+        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
+              np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
     elif se_type == 'IV-type':
         var = 1/n_obs * 1/np.power(np.mean(v_hatd), 2) * \
-              np.mean(np.power(np.dot(u_hat - d*theta, v_hat), 2))
+              np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
     else:
         raise ValueError('invalid se_type')
     

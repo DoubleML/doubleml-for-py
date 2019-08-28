@@ -175,7 +175,7 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
 
 def plr_orth(v_hat, u_hat, D, inf_model):
     if inf_model == 'IV-type':
-        res = np.mean(np.dot(v_hat, u_hat))/np.mean(np.dot(v_hat, D))
+        res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, D))
     elif inf_model == 'DML2018':
         res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
     
