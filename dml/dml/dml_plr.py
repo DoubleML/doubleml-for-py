@@ -134,21 +134,12 @@ class DoubleMLPLR(DoubleML):
         # TODO: se_type hard-coded to match inf_model
         se_type = inf_model
         
-        #orth_dml_plr_obj = OrthDmlPlr(inf_model)
-        
         smpls = [(train, test) for train, test in resampling.split(X)]
         self._smpls = smpls
         
         # ml estimation of nuisance models 
         self._ml_nuisance(X, y, d)
         self._compute_score_elements()
-        
-        m_hat = self.m_hat
-        g_hat = self.g_hat
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        v_hatd = self._v_hatd
-        
         
         if dml_procedure == 'dml1':
             thetas = np.zeros(resampling.get_n_splits())
@@ -168,9 +159,6 @@ class DoubleMLPLR(DoubleML):
             self.coef_ = theta_hat
             self._compute_score()
             
-            # comute standard errors
-            u_hat = y - g_hat
-            v_hat = d - m_hat
             se = np.sqrt(self._var_est())
             
         else:
@@ -183,20 +171,4 @@ class DoubleMLPLR(DoubleML):
         self.t_ = t
         self.pval_ = pval
         return self
-
-
-def var_plr(theta, d, u_hat, v_hat, v_hatd, se_type):
-    n_obs = len(u_hat)
-    
-    if se_type == 'DML2018':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
-    elif se_type == 'IV-type':
-        var = 1/n_obs * 1/np.power(np.mean(v_hatd), 2) * \
-              np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
-    else:
-        raise ValueError('invalid se_type')
-    
-    return var
-     
     
