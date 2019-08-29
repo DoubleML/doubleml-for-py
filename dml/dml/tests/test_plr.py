@@ -75,16 +75,18 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     
     g_hat, m_hat = fit_nuisance(data['y'], data['X'], data['d'],
                                 clone(learner), clone(learner), smpls)
-    if dml_procedure == 'dml1':
-        res_manual = plr_dml1(data['y'], data['X'], data['d'],
-                              g_hat, m_hat,
-                              smpls, inf_model)
-    elif dml_procedure == 'dml2':
-        res_manual = plr_dml2(data['y'], data['X'], data['d'],
-                              g_hat, m_hat,
-                              smpls, inf_model)
     
-    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
+    if dml_procedure == 'dml1':
+        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
+    elif dml_procedure == 'dml2':
+        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
+    
+    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     return
 
@@ -127,15 +129,16 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
         m_hat.append(np.dot(X[test_index], ols_est))
     
     if dml_procedure == 'dml1':
-        res_manual = plr_dml1(data['y'], data['X'], data['d'],
-                              g_hat, m_hat,
-                              smpls, inf_model)
+        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual = plr_dml2(data['y'], data['X'], data['d'],
-                              g_hat, m_hat,
-                              smpls, inf_model)
+        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
     
-    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=0.0)
+    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     return
     
@@ -160,7 +163,16 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
         thetas[idx] = plr_orth(v_hat, u_hat, D[test_index], inf_model)
     theta_hat = np.mean(thetas)
     
-    return theta_hat
+    ses = np.zeros(len(smpls))
+    for idx, (train_index, test_index) in enumerate(smpls):
+        v_hat = D[test_index] - m_hat[idx]
+        u_hat = Y[test_index] - g_hat[idx]
+        ses[idx] = var_plr(theta_hat, D[test_index],
+                           u_hat, v_hat,
+                           inf_model)
+    se = np.sqrt(np.mean(ses))
+    
+    return theta_hat, se
 
 def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
@@ -170,8 +182,23 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
     theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
+    se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model))
     
-    return theta_hat
+    return theta_hat, se
+    
+def var_plr(theta, d, u_hat, v_hat, se_type):
+    n_obs = len(u_hat)
+    
+    if se_type == 'DML2018':
+        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
+              np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
+    elif se_type == 'IV-type':
+        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
+              np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
+    else:
+        raise ValueError('invalid se_type')
+    
+    return var
 
 def plr_orth(v_hat, u_hat, D, inf_model):
     if inf_model == 'IV-type':
