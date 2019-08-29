@@ -46,13 +46,13 @@ class DoubleMLPLIV(DoubleMLPL):
         w_hat = self._w_hat
         v_hatd = self._v_hatd
         
-        if inf_model == 'IV-type':
-            #self._score_a = -v_hatd
-            # have to check equation (4.7) and the comment in the following paragraph of CCDHNR first
-            raise ValueError('not implemented yet')
-        elif inf_model == 'DML2018':
+        if inf_model == 'DML2018':
             self._score_a = -np.multiply(w_hat,v_hat)
         else:
+            # check whether its worth implementing the IV_type here as well
+            # In CCDHNR equation (4.7) a score of this type is provided;
+            # however in the following paragraph it is explained that one might
+            # still need to estimate the DML2018 type first
             raise ValueError('invalid inf_model')
         self._score_b = np.multiply(v_hat,u_hat)
     
