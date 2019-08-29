@@ -5,8 +5,29 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
-
-class DoubleMLPLR(object):
+class DoubleML:
+    """
+    Double Machine Learning
+    """
+    def __init__(self,
+                 resampling,
+                 ml_learners,
+                 dml_procedure,
+                 inf_model):
+        self.resampling = resampling
+        self.ml_learners = ml_learners
+        self.dml_procedure = dml_procedure
+        self.inf_model = inf_model
+    
+    #@abstractmethod
+    #def fit(self, X, y, d):
+    #    pass
+    #
+    #def inference(self, X, y, d):
+        
+    
+    
+class DoubleMLPLR(DoubleML):
     """
     Double Machine Learning for Partially Linear Regression
     """
