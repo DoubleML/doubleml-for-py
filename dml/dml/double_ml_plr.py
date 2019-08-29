@@ -53,12 +53,6 @@ class DoubleML:
             
         else:
             raise ValueError('invalid dml_procedure')
-        
-    #@abstractmethod
-    #def fit(self, X, y, d):
-    #    pass
-    #
-    #def inference(self, X, y, d):
 
 
 class DoubleMLPL(DoubleML):
