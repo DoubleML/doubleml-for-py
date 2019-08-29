@@ -41,6 +41,54 @@ class DoubleMLPLR(DoubleML):
         self.dml_procedure = dml_procedure
         self.inf_model = inf_model
     
+    def _ml_nuisance(self, X, y, d):
+        ml_m = self.ml_learners['ml_m']
+        ml_g = self.ml_learners['ml_g']
+        
+        X, y = check_X_y(X, y)
+        X, d = check_X_y(X, d)
+        
+        smpls = self._smpls
+        
+        # nuisance g
+        self.g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        
+        # nuisance m
+        self.m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
+        
+        # compute residuals
+        self._u_hat = y - self.g_hat
+        self._v_hat = d - self.m_hat
+        self._v_hatd = np.multiply(self._v_hat, d)
+    
+    def _orth_est(self, inds = None):
+        """
+        Estimate the structural parameter in a partially linear regression model (PLR).
+        Parameters
+        """
+        u_hat = self._u_hat
+        v_hat = self._v_hat
+        v_hatd = self._v_hatd
+        
+        if inds is not None:
+            u_hat = u_hat[inds]
+            v_hat = v_hat[inds]
+            v_hatd = v_hatd[inds]
+        
+        inf_model = self.inf_model
+        
+        if inf_model == 'IV-type':
+            theta = np.mean(np.multiply(v_hat,u_hat))/np.mean(v_hatd)
+        elif inf_model == 'DML2018':
+            ols = LinearRegression(fit_intercept=False)
+            results = ols.fit(v_hat.reshape(-1, 1), u_hat)
+            theta = results.coef_
+        else:
+            raise ValueError('invalid inf_model')
+        
+        return theta
+        
+    
     def fit(self, X, y, d):
         """
         Fit doubleML model for PLR
@@ -56,36 +104,30 @@ class DoubleMLPLR(DoubleML):
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
-        ml_m = self.ml_learners['ml_m']
-        ml_g = self.ml_learners['ml_g']
         resampling = self.resampling
         
         # TODO: se_type hard-coded to match inf_model
         se_type = inf_model
         
-        orth_dml_plr_obj = OrthDmlPlr(inf_model)
+        #orth_dml_plr_obj = OrthDmlPlr(inf_model)
         
         smpls = [(train, test) for train, test in resampling.split(X)]
+        self._smpls = smpls
         
-        X, y = check_X_y(X, y)
-        X, d = check_X_y(X, d)
+        # ml estimation of nuisance models 
+        self._ml_nuisance(X, y, d)
         
-        # nuisance g
-        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        m_hat = self.m_hat
+        g_hat = self.g_hat
+        u_hat = self._u_hat
+        v_hat = self._v_hat
+        v_hatd = self._v_hatd
         
-        # nuisance m
-        m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
-        
-        # compute residuals
-        u_hat = y - g_hat
-        v_hat = d - m_hat
-        v_hatd = np.multiply(v_hat, d)
         
         if dml_procedure == 'dml1':
             thetas = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                thetas[idx] = orth_dml_plr_obj.fit(u_hat[test_index], v_hat[test_index],
-                                                   v_hatd[test_index]).coef_
+                thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
             
             ses = np.zeros(resampling.get_n_splits())
@@ -97,7 +139,7 @@ class DoubleMLPLR(DoubleML):
             se = np.sqrt(np.mean(ses))
             
         elif dml_procedure == 'dml2':
-            theta_hat = orth_dml_plr_obj.fit(u_hat, v_hat, v_hatd).coef_
+            theta_hat = self._orth_est()
             
             # comute standard errors
             u_hat = y - g_hat
@@ -114,41 +156,6 @@ class DoubleMLPLR(DoubleML):
         self.se_ = se
         self.t_ = t
         self.pval_ = pval
-        return self
-
-class OrthDmlPlr(object):
-    """
-    Orthogonalized Estimation of Coefficient in PLR
-    """
-    def __init__(self,
-                 inf_model):
-        self.inf_model = inf_model
-    
-    def fit(self, u_hat, v_hat, v_hatd):
-        """
-        Estimate the structural parameter in a partially linear regression model (PLR).
-        Parameters
-        ----------
-        y : 
-        d : 
-        g_hat : 
-        m_hat : 
-        Returns
-        -------
-        self: resturns an instance of OrthDmlPlr
-        """
-        inf_model = self.inf_model
-        
-        if inf_model == 'IV-type':
-            theta = np.mean(np.multiply(v_hat,u_hat))/np.mean(v_hatd)
-        elif inf_model == 'DML2018':
-            ols = LinearRegression(fit_intercept=False)
-            results = ols.fit(v_hat.reshape(-1, 1), u_hat)
-            theta = results.coef_
-        else:
-            raise ValueError('invalid inf_model')
-        
-        self.coef_ = theta
         return self
 
 
