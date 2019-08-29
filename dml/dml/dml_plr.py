@@ -19,6 +19,15 @@ class DoubleML:
         self.dml_procedure = dml_procedure
         self.inf_model = inf_model
     
+    def _split_samples(self, X):
+        resampling = self.resampling
+        
+        # TODO: se_type hard-coded to match inf_model
+        se_type = inf_model
+        
+        smpls = [(train, test) for train, test in resampling.split(X)]
+        self._smpls = smpls
+        
     #@abstractmethod
     #def fit(self, X, y, d):
     #    pass
@@ -129,13 +138,12 @@ class DoubleMLPLR(DoubleML):
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
-        resampling = self.resampling
         
         # TODO: se_type hard-coded to match inf_model
         se_type = inf_model
         
-        smpls = [(train, test) for train, test in resampling.split(X)]
-        self._smpls = smpls
+        # perform sample splitting
+        self._split_samples(X)
         
         # ml estimation of nuisance models 
         self._ml_nuisance(X, y, d)
