@@ -61,30 +61,37 @@ class DoubleMLPLR(DoubleML):
         self._v_hat = d - self.m_hat
         self._v_hatd = np.multiply(self._v_hat, d)
     
+    def _compute_score_elements(self):
+        inf_model = self.inf_model
+        
+        u_hat = self._u_hat
+        v_hat = self._v_hat
+        v_hatd = self._v_hatd
+        
+        if inf_model == 'IV-type':
+            self._score_a = -v_hatd
+        elif inf_model == 'DML2018':
+            self._score_a = -np.multiply(v_hat,v_hat)
+        else:
+            raise ValueError('invalid inf_model')
+        self._score_b = np.multiply(v_hat,u_hat)
+    
+    def _compute_score(self):
+        self._score = self._score_a * self.coef_ + self._score_b
+    
     def _orth_est(self, inds = None):
         """
         Estimate the structural parameter in a partially linear regression model (PLR).
         Parameters
         """
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        v_hatd = self._v_hatd
+        score_a = self._score_a
+        score_b = self._score_b
         
         if inds is not None:
-            u_hat = u_hat[inds]
-            v_hat = v_hat[inds]
-            v_hatd = v_hatd[inds]
+            score_a = score_a[inds]
+            score_b = score_b[inds]
         
-        inf_model = self.inf_model
-        
-        if inf_model == 'IV-type':
-            theta = np.mean(np.multiply(v_hat,u_hat))/np.mean(v_hatd)
-        elif inf_model == 'DML2018':
-            ols = LinearRegression(fit_intercept=False)
-            results = ols.fit(v_hat.reshape(-1, 1), u_hat)
-            theta = results.coef_
-        else:
-            raise ValueError('invalid inf_model')
+        theta = -np.mean(score_b)/np.mean(score_a)
         
         return theta
         
@@ -116,6 +123,7 @@ class DoubleMLPLR(DoubleML):
         
         # ml estimation of nuisance models 
         self._ml_nuisance(X, y, d)
+        self._compute_score_elements()
         
         m_hat = self.m_hat
         g_hat = self.g_hat
@@ -129,6 +137,8 @@ class DoubleMLPLR(DoubleML):
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
+            self.coef_ = theta_hat
+            self._compute_score()
             
             ses = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
@@ -140,6 +150,8 @@ class DoubleMLPLR(DoubleML):
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
+            self.coef_ = theta_hat
+            self._compute_score()
             
             # comute standard errors
             u_hat = y - g_hat
@@ -152,7 +164,6 @@ class DoubleMLPLR(DoubleML):
         t = theta_hat / se
         pval = 2 * norm.cdf(-np.abs(t))
         
-        self.coef_ = theta_hat
         self.se_ = se
         self.t_ = t
         self.pval_ = pval
