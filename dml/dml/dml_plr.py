@@ -94,7 +94,25 @@ class DoubleMLPLR(DoubleML):
         theta = -np.mean(score_b)/np.mean(score_a)
         
         return theta
+    
+    def _var_est(self, inds = None):
+        """
+        Estimate the structural parameter in a partially linear regression model (PLR).
+        Parameters
+        """
+        score_a = self._score_a
+        score = self._score
         
+        if inds is not None:
+            score_a = score_a[inds]
+            score = score[inds]
+        
+        # don't understand yet the additional 1/n_obs
+        n_obs = len(score)
+        J = np.mean(score_a)
+        sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
+        
+        return sigma2_hat
     
     def fit(self, X, y, d):
         """
@@ -140,13 +158,10 @@ class DoubleMLPLR(DoubleML):
             self.coef_ = theta_hat
             self._compute_score()
             
-            ses = np.zeros(resampling.get_n_splits())
+            vars = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                ses[idx] = var_plr(theta_hat, d[test_index],
-                                   u_hat[test_index], v_hat[test_index],
-                                   v_hatd[test_index],
-                                   se_type)
-            se = np.sqrt(np.mean(ses))
+                vars[idx] = self._var_est(test_index)
+            se = np.sqrt(np.mean(vars))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
@@ -156,7 +171,7 @@ class DoubleMLPLR(DoubleML):
             # comute standard errors
             u_hat = y - g_hat
             v_hat = d - m_hat
-            se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, v_hatd, se_type))
+            se = np.sqrt(self._var_est())
             
         else:
             raise ValueError('invalid dml_procedure')
