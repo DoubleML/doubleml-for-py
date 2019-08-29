@@ -10,7 +10,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from dml.dml_plr import DoubleMLPLR
+from dml.double_ml_plr import DoubleMLPLR
 
 def g(x):
     return np.power(np.sin(x),2)
