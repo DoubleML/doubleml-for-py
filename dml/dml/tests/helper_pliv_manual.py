@@ -46,7 +46,8 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
 def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
     u_hat = np.zeros_like(Y)
-    v_hat = np.zeros_like(D)
+    v_hat = np.zeros_like(Z)
+    w_hat = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
