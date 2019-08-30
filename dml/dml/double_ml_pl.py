@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
-from dml.double_ml import DoubleML
+from .double_ml import DoubleML
 
 class DoubleMLPL(DoubleML):
     """
