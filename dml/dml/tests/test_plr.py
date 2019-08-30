@@ -3,79 +3,20 @@ import pytest
 import math
 import scipy
 
-from sklearn.datasets import make_spd_matrix
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from ..double_ml_plr import DoubleMLPLR
+from dml.double_ml_plr import DoubleMLPLR
 
-def g(x):
-    return np.power(np.sin(x),2)
+from dml.tests.helper_general import get_n_datasets
+from dml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr
 
-def m(x,nu=0.,gamma=1.):
-    return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 # number of datasets per dgp
-n_datasets = 10
-
-@pytest.fixture(scope="module",
-                params = [(500, 10),
-                          (1000, 20),
-                          (1000, 100)])
-def generate_data1(request):
-    N_p = request.param
-    np.random.seed(1111)
-    # setting parameters
-    N = N_p[0]
-    p = N_p[1]
-    theta=0.5
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
-    
-    # generating data
-    datasets = []
-    for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        M = m(np.dot(X,b))
-        D = M+np.random.standard_normal(size=[N,])
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D}
-        datasets.append(xx)
-    
-    return datasets
-    
-@pytest.fixture(scope="module",
-                params = [(1000, 20)])
-def generate_data_iv(request):
-    N_p = request.param
-    np.random.seed(1111)
-    # setting parameters
-    N = N_p[0]
-    p = N_p[1]
-    theta=0.5
-    gamma_z=0.4
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
-    
-    # generating data
-    datasets = []
-    for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        # instrument 
-        Z = m(np.dot(X,b)) + np.random.standard_normal(size=[N,])
-        M = m(gamma_z * Z + np.dot(X,b))
-        # treatment
-        D = M + np.random.standard_normal(size=[N,])
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
-        datasets.append(xx)
-    
-    return datasets
+n_datasets = get_n_datasets()
 
 
 @pytest.mark.parametrize('idx', range(n_datasets))
@@ -102,8 +43,8 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     np.random.seed(3141)
     smpls = [(train, test) for train, test in resampling.split(data['X'])]
     
-    g_hat, m_hat = fit_nuisance(data['y'], data['X'], data['d'],
-                                clone(learner), clone(learner), smpls)
+    g_hat, m_hat = fit_nuisance_plr(data['y'], data['X'], data['d'],
+                                    clone(learner), clone(learner), smpls)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
@@ -170,70 +111,7 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     return
-    
-def fit_nuisance(Y, X, D, ml_m, ml_g, smpls):
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        g_hat.append(ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index]))
-    
-    m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        m_hat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
-    
-    return g_hat, m_hat
 
 
-def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
-    thetas = np.zeros(len(smpls))
-    
-    for idx, (train_index, test_index) in enumerate(smpls):
-        v_hat = D[test_index] - m_hat[idx]
-        u_hat = Y[test_index] - g_hat[idx]
-        thetas[idx] = plr_orth(v_hat, u_hat, D[test_index], inf_model)
-    theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
-    for idx, (train_index, test_index) in enumerate(smpls):
-        v_hat = D[test_index] - m_hat[idx]
-        u_hat = Y[test_index] - g_hat[idx]
-        ses[idx] = var_plr(theta_hat, D[test_index],
-                           u_hat, v_hat,
-                           inf_model)
-    se = np.sqrt(np.mean(ses))
-    
-    return theta_hat, se
 
-def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
-    thetas = np.zeros(len(smpls))
-    u_hat = np.zeros_like(Y)
-    v_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
-        v_hat[test_index] = D[test_index] - m_hat[idx]
-        u_hat[test_index] = Y[test_index] - g_hat[idx]
-    theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
-    se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model))
-    
-    return theta_hat, se
-    
-def var_plr(theta, d, u_hat, v_hat, se_type):
-    n_obs = len(u_hat)
-    
-    if se_type == 'DML2018':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
-    elif se_type == 'IV-type':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
-    else:
-        raise ValueError('invalid se_type')
-    
-    return var
-
-def plr_orth(v_hat, u_hat, D, inf_model):
-    if inf_model == 'IV-type':
-        res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, D))
-    elif inf_model == 'DML2018':
-        res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
-    
-    return res
     
