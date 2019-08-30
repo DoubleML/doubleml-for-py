@@ -12,7 +12,7 @@ class DoubleMLPLIV(DoubleMLPL):
     Double Machine Learning for Partially Linear IV regression model
     """
     
-    def _ml_nuisance(self, X, y, d):
+    def _ml_nuisance(self, X, y, d, z):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
