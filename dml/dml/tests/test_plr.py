@@ -35,7 +35,8 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
                               dml_procedure,
-                              inf_model)
+                              inf_model,
+                              boot = None)
     data = generate_data1[idx]
     np.random.seed(3141)
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
@@ -74,7 +75,8 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
                               dml_procedure,
-                              inf_model)
+                              inf_model,
+                              boot = None)
     data = generate_data1[idx]
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
     

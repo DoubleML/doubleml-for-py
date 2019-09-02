@@ -36,7 +36,8 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
     dml_pliv_obj = DoubleMLPLIV(resampling,
                                 ml_learners,
                                 dml_procedure,
-                                inf_model)
+                                inf_model,
+                                boot = None)
     data = generate_data_iv[idx]
     np.random.seed(3141)
     res = dml_pliv_obj.fit(data['X'], data['y'], data['d'], data['z'])
