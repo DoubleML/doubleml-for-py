@@ -63,8 +63,7 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
 @pytest.mark.parametrize('idx', range(n_datasets))
 @pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
 @pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
-@pytest.mark.parametrize('bootstrap', ['Bayes', 'normal', 'wild'])
-def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, bootstrap):
+def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
     learner = LinearRegression()
     resampling = KFold(n_splits=2, shuffle=False)
     
@@ -78,9 +77,7 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, boots
                               inf_model)
     data = generate_data1[idx]
     
-    np.random.seed(3141)
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
-    res = dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
     
     N = len(data['y'])
     smpls = []
@@ -102,7 +99,6 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, boots
         ols_est = scipy.linalg.lstsq(X[train_index], data['d'][train_index])[0]
         m_hat.append(np.dot(X[test_index], ols_est))
     
-    np.random.seed(3141)
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
                                          g_hat, m_hat,
@@ -112,16 +108,21 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, boots
                                          g_hat, m_hat,
                                          smpls, inf_model)
     
-    boot_theta = boot_plr(res_manual,
-                          data['y'], data['d'],
-                          g_hat, m_hat,
-                          smpls, inf_model,
-                          se_manual,
-                          bootstrap, 500)
-    
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert np.allclose(res.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+    
+    for bootstrap in ['Bayes', 'normal', 'wild']:
+        np.random.seed(3141)
+        boot_theta = boot_plr(res_manual,
+                              data['y'], data['d'],
+                              g_hat, m_hat,
+                              smpls, inf_model,
+                              se_manual,
+                              bootstrap, 500)
+        
+        np.random.seed(3141)
+        res = dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
+        assert np.allclose(res.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
 
