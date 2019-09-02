@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 from dml.double_ml_plr import DoubleMLPLR
 
 from dml.tests.helper_general import get_n_datasets
-from dml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr
+from dml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
 # number of datasets per dgp
@@ -47,15 +47,13 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
                                     clone(learner), clone(learner), smpls)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual, boot_theta = plr_dml1(data['y'], data['X'], data['d'],
-                                                     g_hat, m_hat,
-                                                     smpls, inf_model,
-                                                     bootstrap=None)
+        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual, boot_theta = plr_dml2(data['y'], data['X'], data['d'],
-                                                     g_hat, m_hat,
-                                                     smpls, inf_model,
-                                                     bootstrap=None)
+        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
@@ -106,15 +104,20 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, boots
     
     np.random.seed(3141)
     if dml_procedure == 'dml1':
-        res_manual, se_manual, boot_theta = plr_dml1(data['y'], data['X'], data['d'],
-                                                     g_hat, m_hat,
-                                                     smpls, inf_model,
-                                                     bootstrap=bootstrap)
+        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual, boot_theta = plr_dml2(data['y'], data['X'], data['d'],
-                                                     g_hat, m_hat,
-                                                     smpls, inf_model,
-                                                     bootstrap=bootstrap)
+        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+                                         g_hat, m_hat,
+                                         smpls, inf_model)
+    
+    boot_theta = boot_plr(res_manual,
+                          data['y'], data['d'],
+                          g_hat, m_hat,
+                          smpls, inf_model,
+                          se_manual,
+                          bootstrap, 500)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)

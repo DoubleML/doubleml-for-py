@@ -17,7 +17,7 @@ def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
     
     return g_hat, m_hat
 
-def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
+def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
     
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -35,22 +35,9 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
                            inf_model)
     se = np.sqrt(np.mean(ses))
     
-    
-    if bootstrap is not None:
-        u_hat = np.zeros_like(D)
-        v_hat = np.zeros_like(D)
-        for idx, (train_index, test_index) in enumerate(smpls):
-            v_hat[test_index] = D[test_index] - m_hat[idx]
-            u_hat[test_index] = Y[test_index] - g_hat[idx]
-        boot_theta = boot_plr(theta_hat,
-                              u_hat, v_hat, D,
-                              inf_model, se, bootstrap, 500)
-    else:
-        boot_theta = None
-    
-    return theta_hat, se, boot_theta
+    return theta_hat, se
 
-def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
+def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
@@ -60,14 +47,7 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
     theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
     se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model))
     
-    if bootstrap is not None:
-        boot_theta = boot_plr(theta_hat,
-                              u_hat, v_hat, D,
-                              inf_model, se, bootstrap, 500)
-    else:
-        boot_theta = None
-    
-    return theta_hat, se, boot_theta
+    return theta_hat, se
     
 def var_plr(theta, d, u_hat, v_hat, se_type):
     n_obs = len(u_hat)
@@ -91,8 +71,12 @@ def plr_orth(v_hat, u_hat, D, inf_model):
     
     return res
 
-def boot_plr(theta, u_hat, v_hat, D, inf_model, se, bootstrap, n_rep):
-    n_obs = len(u_hat)
+def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep):
+    u_hat = np.zeros_like(Y)
+    v_hat = np.zeros_like(D)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        v_hat[test_index] = D[test_index] - m_hat[idx]
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
     
     if inf_model == 'DML2018':
         score = np.multiply(u_hat - v_hat*theta, v_hat)
@@ -103,6 +87,7 @@ def boot_plr(theta, u_hat, v_hat, D, inf_model, se, bootstrap, n_rep):
     else:
         raise ValueError('invalid se_type')
     
+    n_obs = len(score)
     boot_theta = np.zeros(n_rep)
     for i_rep in range(n_rep):
         if bootstrap == 'Bayes':
