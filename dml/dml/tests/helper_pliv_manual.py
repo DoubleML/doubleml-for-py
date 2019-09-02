@@ -75,3 +75,37 @@ def pliv_orth(u_hat, v_hat, w_hat, D, inf_model):
       raise ValueError('invalid se_type')
     
     return res
+
+def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstrap, n_rep):
+    u_hat = np.zeros_like(Y)
+    v_hat = np.zeros_like(Z)
+    w_hat = np.zeros_like(D)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
+        v_hat[test_index] = Z[test_index] - m_hat[idx]
+        w_hat[test_index] = D[test_index] - r_hat[idx]
+    
+    if inf_model == 'DML2018':
+        score = np.multiply(u_hat - w_hat*theta, v_hat)
+        J = np.mean(-np.multiply(v_hat, w_hat))
+    else:
+        raise ValueError('invalid se_type')
+    
+    n_obs = len(score)
+    boot_theta = np.zeros(n_rep)
+    for i_rep in range(n_rep):
+        if bootstrap == 'Bayes':
+            weights = np.random.exponential(scale=1.0, size=n_obs) - 1.
+        elif bootstrap == 'normal':
+            weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+        elif bootstrap == 'wild':
+            xx = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+        else:
+            raise ValueError('invalid bootstrap method')
+        
+        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                               score / J))
+    
+    return boot_theta

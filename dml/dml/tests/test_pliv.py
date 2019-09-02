@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 from dml.double_ml_pliv import DoubleMLPLIV
 
 from dml.tests.helper_general import get_n_datasets
-from dml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv
+from dml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
 
 
 # number of datasets per dgp
@@ -61,6 +61,20 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    
+    for bootstrap in ['Bayes', 'normal', 'wild']:
+        np.random.seed(3141)
+        boot_theta = boot_pliv(res_manual,
+                               data['y'], data['d'],
+                               data['z'],
+                               g_hat, m_hat, r_hat,
+                               smpls, inf_model,
+                               se_manual,
+                               bootstrap, 500)
+        
+        np.random.seed(3141)
+        res = dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
+        assert np.allclose(res.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
     
