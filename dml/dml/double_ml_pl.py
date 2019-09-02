@@ -14,8 +14,8 @@ class DoubleMLPL(DoubleML):
 
     def _orth_est(self, inds = None):
         """
-        Estimate the structural parameter in a partially linear regression model (PLR).
-        Parameters
+        Estimate the structural parameter in a partially linear model (PLR &
+        PLIV)
         """
         score_a = self._score_a
         score_b = self._score_b
@@ -33,8 +33,8 @@ class DoubleMLPL(DoubleML):
     
     def _var_est(self, inds = None):
         """
-        Estimate the structural parameter in a partially linear regression model (PLR).
-        Parameters
+        Estimate the standard errors of the structural parameter in a partially
+        linear model (PLR & PLIV)
         """
         score_a = self._score_a
         score = self._score
@@ -50,22 +50,23 @@ class DoubleMLPL(DoubleML):
         
         return sigma2_hat
         
-    def _est_boot_pars(self):
-        boot = self.boot
+    def bootstrap(self, method = 'normal', n_rep = 500):
+        if self.coef_ is None:
+            raise ValueError('apply fit() before bootstrap()')
         
         score = self._score
         J = np.mean(self._score_a)
         se = self.se_
         
         n_obs = len(score)
-        boot_coef = np.zeros(self.n_rep)
+        boot_coef = np.zeros(n_rep)
         
-        for i_rep in range(self.n_rep):
-            if boot == 'Bayes':
+        for i_rep in range(n_rep):
+            if method == 'Bayes':
                 weights = np.random.exponential(scale=1.0, size=n_obs) - 1.
-            elif boot == 'normal':
+            elif method == 'normal':
                 weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
-            elif boot == 'wild':
+            elif method == 'wild':
                 xx = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
                 yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
                 weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
@@ -74,7 +75,10 @@ class DoubleMLPL(DoubleML):
             
             boot_coef[i_rep] = np.mean(np.multiply(np.divide(weights, se),
                                                    score / J))
-        return boot_coef
+        
+        self.boot_coef_ = boot_coef
+        
+        return self
         
         
         
