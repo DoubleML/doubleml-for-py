@@ -70,7 +70,7 @@ class DoubleMLPL(DoubleML):
                 yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
                 weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
             else:
-                raise ValueError('invalid inf_model')
+                raise ValueError('invalid boot method')
             
             boot_coef[i_rep] = np.mean(np.multiply(np.divide(weights, se),
                                                    score / J))

@@ -48,13 +48,15 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
                                     clone(learner), clone(learner), smpls)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
-                                         g_hat, m_hat,
-                                         smpls, inf_model)
+        res_manual, se_manual, boot_theta = plr_dml1(data['y'], data['X'], data['d'],
+                                                     g_hat, m_hat,
+                                                     smpls, inf_model,
+                                                     bootstrap=None)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
-                                         g_hat, m_hat,
-                                         smpls, inf_model)
+        res_manual, se_manual, boot_theta = plr_dml2(data['y'], data['X'], data['d'],
+                                                     g_hat, m_hat,
+                                                     smpls, inf_model,
+                                                     bootstrap=None)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
@@ -64,7 +66,8 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
 @pytest.mark.parametrize('idx', range(n_datasets))
 @pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
 @pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
-def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
+@pytest.mark.parametrize('bootstrap', ['Bayes', 'normal', 'wild'])
+def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure, bootstrap):
     learner = LinearRegression()
     resampling = KFold(n_splits=2, shuffle=False)
     
@@ -76,8 +79,10 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
                               ml_learners,
                               dml_procedure,
                               inf_model,
-                              boot = None)
+                              boot = bootstrap)
     data = generate_data1[idx]
+    
+    np.random.seed(3141)
     res = dml_plr_obj.fit(data['X'], data['y'], data['d'])
     
     N = len(data['y'])
@@ -100,17 +105,21 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
         ols_est = scipy.linalg.lstsq(X[train_index], data['d'][train_index])[0]
         m_hat.append(np.dot(X[test_index], ols_est))
     
+    np.random.seed(3141)
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
-                                         g_hat, m_hat,
-                                         smpls, inf_model)
+        res_manual, se_manual, boot_theta = plr_dml1(data['y'], data['X'], data['d'],
+                                                     g_hat, m_hat,
+                                                     smpls, inf_model,
+                                                     bootstrap=bootstrap)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
-                                         g_hat, m_hat,
-                                         smpls, inf_model)
+        res_manual, se_manual, boot_theta = plr_dml2(data['y'], data['X'], data['d'],
+                                                     g_hat, m_hat,
+                                                     smpls, inf_model,
+                                                     bootstrap=bootstrap)
     
     assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert np.allclose(res.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
 

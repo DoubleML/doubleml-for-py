@@ -17,7 +17,7 @@ def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
     
     return g_hat, m_hat
 
-def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
+def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
     thetas = np.zeros(len(smpls))
     
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -35,9 +35,22 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
                            inf_model)
     se = np.sqrt(np.mean(ses))
     
-    return theta_hat, se
+    
+    if bootstrap is not None:
+        u_hat = np.zeros_like(D)
+        v_hat = np.zeros_like(D)
+        for idx, (train_index, test_index) in enumerate(smpls):
+            v_hat[test_index] = D[test_index] - m_hat[idx]
+            u_hat[test_index] = Y[test_index] - g_hat[idx]
+        boot_theta = boot_plr(theta_hat,
+                              u_hat, v_hat, D,
+                              inf_model, se, bootstrap, 500)
+    else:
+        boot_theta = None
+    
+    return theta_hat, se, boot_theta
 
-def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
+def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model, bootstrap):
     thetas = np.zeros(len(smpls))
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
@@ -47,7 +60,14 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
     theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
     se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model))
     
-    return theta_hat, se
+    if bootstrap is not None:
+        boot_theta = boot_plr(theta_hat,
+                              u_hat, v_hat, D,
+                              inf_model, se, bootstrap, 500)
+    else:
+        boot_theta = None
+    
+    return theta_hat, se, boot_theta
     
 def var_plr(theta, d, u_hat, v_hat, se_type):
     n_obs = len(u_hat)
@@ -70,3 +90,33 @@ def plr_orth(v_hat, u_hat, D, inf_model):
         res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
     
     return res
+
+def boot_plr(theta, u_hat, v_hat, D, inf_model, se, bootstrap, n_rep):
+    n_obs = len(u_hat)
+    
+    if inf_model == 'DML2018':
+        score = np.multiply(u_hat - v_hat*theta, v_hat)
+        J = np.mean(-np.multiply(v_hat, v_hat))
+    elif inf_model == 'IV-type':
+        score = np.multiply(u_hat - D*theta, v_hat)
+        J = np.mean(-np.multiply(v_hat, D))
+    else:
+        raise ValueError('invalid se_type')
+    
+    boot_theta = np.zeros(n_rep)
+    for i_rep in range(n_rep):
+        if bootstrap == 'Bayes':
+            weights = np.random.exponential(scale=1.0, size=n_obs) - 1.
+        elif bootstrap == 'normal':
+            weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+        elif bootstrap == 'wild':
+            xx = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+        else:
+            raise ValueError('invalid bootstrap method')
+        
+        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                               score / J))
+    
+    return boot_theta
