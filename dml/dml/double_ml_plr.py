@@ -82,5 +82,8 @@ class DoubleMLPLR(DoubleMLPL):
         self.t_ = t
         self.pval_ = pval
         
+        if self.boot is not None:
+            self.boot_coef_ = self._est_boot_pars()
+        
         return self
     

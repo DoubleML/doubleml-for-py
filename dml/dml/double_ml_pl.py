@@ -49,3 +49,32 @@ class DoubleMLPL(DoubleML):
         sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
         
         return sigma2_hat
+        
+    def _est_boot_pars(self):
+        boot = self.boot
+        
+        score = self._score
+        J = np.mean(self._score_a)
+        se = self.se_
+        
+        n_obs = len(score)
+        boot_coef = np.zeros(self.n_rep)
+        
+        for i_rep in range(self.n_rep):
+            if boot == 'Bayes':
+                weights = np.random.exponential(scale=1.0, size=n_obs) - 1.
+            elif boot == 'normal':
+                weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            elif boot == 'wild':
+                xx = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+                yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+                weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+            else:
+                raise ValueError('invalid inf_model')
+            
+            boot_coef[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                   score / J))
+        return boot_coef
+        
+        
+        

@@ -13,11 +13,15 @@ class DoubleML:
                  resampling,
                  ml_learners,
                  dml_procedure,
-                 inf_model):
+                 inf_model,
+                 boot = 'normal',
+                 n_rep = 500):
         self.resampling = resampling
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = inf_model
+        self.boot = boot
+        self.n_rep = n_rep
     
     def _split_samples(self, X):
         resampling = self.resampling
