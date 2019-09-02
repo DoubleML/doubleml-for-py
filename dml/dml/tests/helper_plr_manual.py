@@ -89,14 +89,19 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep):
     
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)
+    if bootstrap == 'wild':
+        # if method wild for unit test comparability draw all rv at one step
+        xx_sample = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
+        yy_sample = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
+    
     for i_rep in range(n_rep):
         if bootstrap == 'Bayes':
             weights = np.random.exponential(scale=1.0, size=n_obs) - 1.
         elif bootstrap == 'normal':
             weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
         elif bootstrap == 'wild':
-            xx = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
-            yy = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
+            xx = xx_sample[i_rep,:]
+            yy = yy_sample[i_rep,:]
             weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
         else:
             raise ValueError('invalid bootstrap method')
