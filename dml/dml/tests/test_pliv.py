@@ -39,7 +39,7 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                 inf_model)
     data = generate_data_iv[idx]
     np.random.seed(3141)
-    res = dml_pliv_obj.fit(data['X'], data['y'], data['d'], data['z'])
+    dml_pliv_obj.fit(data['X'], data['y'], data['d'], data['z'])
     
     np.random.seed(3141)
     smpls = [(train, test) for train, test in resampling.split(data['X'])]
@@ -59,8 +59,8 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     
-    assert math.isclose(res.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(res.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     for bootstrap in ['Bayes', 'normal', 'wild']:
         np.random.seed(3141)
@@ -73,8 +73,8 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                bootstrap, 500)
         
         np.random.seed(3141)
-        res = dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(res.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
+        assert np.allclose(dml_pliv_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
     

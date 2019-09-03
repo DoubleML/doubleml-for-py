@@ -80,7 +80,7 @@ class DoubleMLPL(DoubleML):
         
         self.boot_coef_ = boot_coef
         
-        return self
+        return
         
         
         

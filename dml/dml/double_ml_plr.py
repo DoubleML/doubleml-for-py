@@ -82,5 +82,5 @@ class DoubleMLPLR(DoubleMLPL):
         self.t_ = t
         self.pval_ = pval
         
-        return self
+        return
     
