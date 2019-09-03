@@ -49,6 +49,46 @@ class DoubleMLPL(DoubleML):
         sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
         
         return sigma2_hat
+    
+    def _fit(self, X, y, d, z=None):
+        """
+        Fit doubleML model for PLR & PLIV
+        Parameters
+        ----------
+        X : 
+        y : 
+        d : 
+        z : 
+        Returns
+        -------
+        self: resturns an instance of DoubleMLPLR
+        """
+        
+        dml_procedure = self.dml_procedure
+        inf_model = self.inf_model
+        
+        # TODO: se_type hard-coded to match inf_model
+        se_type = inf_model
+        
+        # perform sample splitting
+        self._split_samples(X)
+        
+        # ml estimation of nuisance models
+        if z is None:
+            self._ml_nuisance(X, y, d)
+        else:
+            self._ml_nuisance(X, y, d, z)
+        self._compute_score_elements()
+        
+        # estimate the causal parameter(s)
+        self._est_causal_pars()
+        
+        t = self.coef_ / self.se_
+        pval = 2 * norm.cdf(-np.abs(t))
+        self.t_ = t
+        self.pval_ = pval
+        
+        return
         
     def bootstrap(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:

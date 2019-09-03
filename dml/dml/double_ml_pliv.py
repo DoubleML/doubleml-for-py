@@ -65,31 +65,12 @@ class DoubleMLPLIV(DoubleMLPL):
         X : 
         y : 
         d : 
+        z : 
         Returns
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        
-        dml_procedure = self.dml_procedure
-        inf_model = self.inf_model
-        
-        # TODO: se_type hard-coded to match inf_model
-        se_type = inf_model
-        
-        # perform sample splitting
-        self._split_samples(X)
-        
-        # ml estimation of nuisance models 
-        self._ml_nuisance(X, y, d, z)
-        self._compute_score_elements()
-        
-        # estimate the causal parameter(s)
-        self._est_causal_pars()
-        
-        t = self.coef_ / self.se_
-        pval = 2 * norm.cdf(-np.abs(t))
-        self.t_ = t
-        self.pval_ = pval
+        self._fit(X, y, d, z)
         
         return
     
