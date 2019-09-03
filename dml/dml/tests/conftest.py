@@ -14,6 +14,9 @@ def g(x):
 def m(x,nu=0.,gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
+def m2(x):
+    return np.power(x,2)
+
 
 # number of datasets per dgp
 n_datasets = get_n_datasets()
@@ -40,6 +43,34 @@ def generate_data1(request):
         M = m(np.dot(X,b))
         D = M+np.random.standard_normal(size=[N,])
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
+        xx = {'X': X, 'y': Y, 'd': D}
+        datasets.append(xx)
+    
+    return datasets
+
+@pytest.fixture(scope="module",
+                params = [(1000, 20)])
+def generate_data_bivariate(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p[0]
+    p = N_p[1]
+    theta=np.array([0.5, 0.9])
+    b= [1/k for k in range(1,p+1)]
+    sigma = make_spd_matrix(p)
+    
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        G = g(np.dot(X,b))
+        M0 = m(np.dot(X,b))
+        M1 = m2(np.dot(X,b))
+        D0 = M0 + np.random.standard_normal(size=[N,])
+        D1 = M1 + np.random.standard_normal(size=[N,])
+        Y = theta[0]*D0 + theta[1]*D1 +G+np.random.standard_normal(size=[N,])
+        D = np.column_stack((D0, D1))
         xx = {'X': X, 'y': Y, 'd': D}
         datasets.append(xx)
     
