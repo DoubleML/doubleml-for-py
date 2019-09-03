@@ -55,8 +55,8 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
                                          g_hat, m_hat,
                                          smpls, inf_model)
     
-    assert math.isclose(dml_pliv_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_pliv_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     for bootstrap in ['normal']:
         np.random.seed(3141)
@@ -69,7 +69,7 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(dml_pliv_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
 
@@ -121,8 +121,8 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
                                          g_hat, m_hat,
                                          smpls, inf_model)
     
-    assert math.isclose(dml_pliv_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_pliv_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     for bootstrap in ['Bayes', 'normal', 'wild']:
         np.random.seed(3141)
@@ -135,7 +135,7 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(dml_pliv_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
 
