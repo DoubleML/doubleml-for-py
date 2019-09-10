@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import math
 import scipy
+from scipy.linalg import toeplitz
 
 from sklearn.datasets import make_spd_matrix
 
@@ -76,6 +77,35 @@ def generate_data_bivariate(request):
     
     return datasets
     
+@pytest.fixture(scope="module",
+                params = [(1000, 20)])
+def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, noisevar = 10):
+    N_p = request.param
+    np.random.seed(3141)
+    # setting parameters
+    N = N_p[0]
+    p = N_p[1]
+    
+    beta = [betamax * np.power(j, -decay) for j in range(p)]
+    beta[beta < threshold] = 0
+    
+    cols_treatment = [0, 4, 9]
+    
+    sigma = toeplitz([np.power(0.9, k) for k in range(p)])
+    mu = np.zeros(p)
+    
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        X = np.random.multivariate_normal(mu,sigma,size=[N,])
+        Y = np.dot(X, beta) + np.random.standard_normal(loc=0.0, scale=np.sqrt(noisevar), size=[N,])
+        D = X[:, cols_treatment]
+        X = np.delete(X, cols_treatment, axis=1)
+        xx = {'X': X, 'y': Y, 'd': D}
+        datasets.append(xx)
+    
+    return datasets
+
 @pytest.fixture(scope="module",
                 params = [(1000, 20)])
 def generate_data_iv(request):
