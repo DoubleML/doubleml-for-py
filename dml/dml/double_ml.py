@@ -25,7 +25,7 @@ class DoubleML:
         smpls = [(train, test) for train, test in resampling.split(X)]
         self._smpls = smpls
     
-    def _est_causal_pars(self):
+    def _est_causal_pars(self, ind_d):
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
         resampling = self.resampling
@@ -34,22 +34,22 @@ class DoubleML:
         if dml_procedure == 'dml1':
             thetas = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                thetas[idx] = self._orth_est(test_index)
+                thetas[idx] = self._orth_est(ind_d, test_index)
             theta_hat = np.mean(thetas)
-            self.coef_ = theta_hat
-            self._compute_score()
+            self.coef_[ind_d] = theta_hat
+            self._compute_score(ind_d)
             
             vars = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                vars[idx] = self._var_est(test_index)
-            self.se_ = np.sqrt(np.mean(vars))
+                vars[idx] = self._var_est(ind_d, test_index)
+            self.se_[ind_d] = np.sqrt(np.mean(vars))
             
         elif dml_procedure == 'dml2':
-            theta_hat = self._orth_est()
-            self.coef_ = theta_hat
-            self._compute_score()
+            theta_hat = self._orth_est(ind_d)
+            self.coef_[ind_d] = theta_hat
+            self._compute_score(ind_d)
             
-            self.se_ = np.sqrt(self._var_est())
+            self.se_[ind_d] = np.sqrt(self._var_est(ind_d))
             
         else:
             raise ValueError('invalid dml_procedure')

@@ -59,8 +59,8 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     
-    assert math.isclose(dml_pliv_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_pliv_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_obj.coef_[0], res_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_obj.se_[0], se_manual, rel_tol=1e-9, abs_tol=1e-4)
     
     for bootstrap in ['Bayes', 'normal', 'wild']:
         np.random.seed(3141)
