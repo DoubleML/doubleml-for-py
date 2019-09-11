@@ -64,6 +64,13 @@ class DoubleMLPL(DoubleML):
         self: resturns an instance of DoubleMLPLR
         """
         
+        X = assure_2d_array(X)
+        d = assure_2d_array(d)
+        Xd = np.hstack((X,d))
+        
+        n_cols_X = X.shape[1]
+        n_cols_d = d.shape[1]
+        
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
         
@@ -71,22 +78,24 @@ class DoubleMLPL(DoubleML):
         se_type = inf_model
         
         # perform sample splitting
-        self._split_samples(X)
+        self._split_samples(Xd)
         
-        # ml estimation of nuisance models
-        if z is None:
-            self._ml_nuisance(X, y, d)
-        else:
-            self._ml_nuisance(X, y, d, z)
-        self._compute_score_elements()
-        
-        # estimate the causal parameter(s)
-        self._est_causal_pars()
-        
-        t = self.coef_ / self.se_
-        pval = 2 * norm.cdf(-np.abs(t))
-        self.t_ = t
-        self.pval_ = pval
+        for i_d in range(n_cols_d):
+            this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
+            # ml estimation of nuisance models
+            if z is None:
+                self._ml_nuisance(X, y, d[:, i_d])
+            else:
+                self._ml_nuisance(X, y, d[:, i_d], z)
+            self._compute_score_elements()
+            
+            # estimate the causal parameter(s)
+            self._est_causal_pars()
+            
+            t = self.coef_ / self.se_
+            pval = 2 * norm.cdf(-np.abs(t))
+            self.t_ = t
+            self.pval_ = pval
         
         return
         
@@ -123,4 +132,10 @@ class DoubleMLPL(DoubleML):
         return
         
         
-        
+def assure_2d_array(x):
+    if x.ndim == 1:
+        x = x.reshape(-1,1)
+    elif x.ndim > 2:
+        raise ValueError('Only one- or two-dimensional arrays are allowed')
+    return x
+
