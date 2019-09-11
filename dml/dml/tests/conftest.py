@@ -86,7 +86,7 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
     N = N_p[0]
     p = N_p[1]
     
-    beta = [betamax * np.power(j, -decay) for j in range(p)]
+    beta = np.array([betamax * np.power(j+1, -decay) for j in range(p)])
     beta[beta < threshold] = 0
     
     cols_treatment = [0, 4, 9]
@@ -98,7 +98,7 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
     datasets = []
     for i in range(n_datasets):
         X = np.random.multivariate_normal(mu,sigma,size=[N,])
-        Y = np.dot(X, beta) + np.random.standard_normal(loc=0.0, scale=np.sqrt(noisevar), size=[N,])
+        Y = np.dot(X, beta) + np.random.normal(loc=0.0, scale=np.sqrt(noisevar), size=[N,])
         D = X[:, cols_treatment]
         X = np.delete(X, cols_treatment, axis=1)
         xx = {'X': X, 'y': Y, 'd': D}
