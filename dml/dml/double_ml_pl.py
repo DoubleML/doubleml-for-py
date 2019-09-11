@@ -84,18 +84,18 @@ class DoubleMLPL(DoubleML):
             this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
             # ml estimation of nuisance models
             if z is None:
-                self._ml_nuisance(X, y, d[:, i_d])
+                self._ml_nuisance(this_Xd, y, d[:, i_d])
             else:
-                self._ml_nuisance(X, y, d[:, i_d], z)
+                self._ml_nuisance(this_Xd, y, d[:, i_d], z)
             self._compute_score_elements()
             
             # estimate the causal parameter(s)
             self._est_causal_pars()
             
-            t = self.coef_ / self.se_
-            pval = 2 * norm.cdf(-np.abs(t))
-            self.t_ = t
-            self.pval_ = pval
+        t = self.coef_ / self.se_
+        pval = 2 * norm.cdf(-np.abs(t))
+        self.t_ = t
+        self.pval_ = pval
         
         return
         
