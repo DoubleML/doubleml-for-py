@@ -12,14 +12,14 @@ class DoubleMLPLR(DoubleMLPL):
     Double Machine Learning for Partially Linear Regression
     """
     
-    def _initialize_arrays_nuisance(self, n_obs, n_cols_d):
-        self.g_hat = np.full((n_obs, n_cols_d), np.nan)
-        self.m_hat = np.full((n_obs, n_cols_d), np.nan)
-        self._u_hat = np.full((n_obs, n_cols_d), np.nan)
-        self._v_hat = np.full((n_obs, n_cols_d), np.nan)
-        self._v_hatd = np.full((n_obs, n_cols_d), np.nan)
+    def _initialize_arrays_nuisance(self):
+        self.g_hat = np.full((self.n_obs, self.n_treat), np.nan)
+        self.m_hat = np.full((self.n_obs, self.n_treat), np.nan)
+        self._u_hat = np.full((self.n_obs, self.n_treat), np.nan)
+        self._v_hat = np.full((self.n_obs, self.n_treat), np.nan)
+        self._v_hatd = np.full((self.n_obs, self.n_treat), np.nan)
     
-    def _ml_nuisance(self, X, y, d, ind_d):
+    def _ml_nuisance(self, X, y, d):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
@@ -29,30 +29,30 @@ class DoubleMLPLR(DoubleMLPL):
         smpls = self._smpls
         
         # nuisance g
-        self.g_hat[:, ind_d] = cross_val_predict(ml_g, X, y, cv = smpls)
+        self.g_hat[:, self.ind_d] = cross_val_predict(ml_g, X, y, cv = smpls)
         
         # nuisance m
-        self.m_hat[:, ind_d] = cross_val_predict(ml_m, X, d, cv = smpls)
+        self.m_hat[:, self.ind_d] = cross_val_predict(ml_m, X, d, cv = smpls)
         
         # compute residuals
-        self._u_hat[:, ind_d] = y - self.g_hat[:, ind_d]
-        self._v_hat[:, ind_d] = d - self.m_hat[:, ind_d]
-        self._v_hatd[:, ind_d] = np.multiply(self._v_hat[:, ind_d], d)
+        self._u_hat[:, self.ind_d] = y - self.g_hat[:, self.ind_d]
+        self._v_hat[:, self.ind_d] = d - self.m_hat[:, self.ind_d]
+        self._v_hatd[:, self.ind_d] = np.multiply(self._v_hat[:, self.ind_d], d)
     
-    def _compute_score_elements(self, ind_d):
+    def _compute_score_elements(self):
         inf_model = self.inf_model
         
-        u_hat = self._u_hat[:, ind_d]
-        v_hat = self._v_hat[:, ind_d]
-        v_hatd = self._v_hatd[:, ind_d]
+        u_hat = self._u_hat[:, self.ind_d]
+        v_hat = self._v_hat[:, self.ind_d]
+        v_hatd = self._v_hatd[:, self.ind_d]
         
         if inf_model == 'IV-type':
-            self._score_a[:, ind_d] = -v_hatd
+            self._score_a[:, self.ind_d] = -v_hatd
         elif inf_model == 'DML2018':
-            self._score_a[:, ind_d] = -np.multiply(v_hat,v_hat)
+            self._score_a[:, self.ind_d] = -np.multiply(v_hat,v_hat)
         else:
             raise ValueError('invalid inf_model')
-        self._score_b[:, ind_d] = np.multiply(v_hat,u_hat)
+        self._score_b[:, self.ind_d] = np.multiply(v_hat,u_hat)
     
     
     def fit(self, X, y, d):

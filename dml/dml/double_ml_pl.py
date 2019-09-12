@@ -13,23 +13,23 @@ class DoubleMLPL(DoubleML):
     """
 
 
-    def _initialize_arrays(self, n_obs, n_cols_d):
-        self.coef_ = np.full(n_cols_d, np.nan)
-        self.se_ = np.full(n_cols_d, np.nan)
+    def _initialize_arrays(self):
+        self.coef_ = np.full(self.n_treat, np.nan)
+        self.se_ = np.full(self.n_treat, np.nan)
 
-        self._score = np.full((n_obs, n_cols_d), np.nan)
-        self._score_a = np.full((n_obs, n_cols_d), np.nan)
-        self._score_b = np.full((n_obs, n_cols_d), np.nan)
-        self._initialize_arrays_nuisance(n_obs, n_cols_d)
+        self._score = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
+        self._initialize_arrays_nuisance()
         
     
-    def _orth_est(self, ind_d, inds = None):
+    def _orth_est(self, inds = None):
         """
         Estimate the structural parameter in a partially linear model (PLR &
         PLIV)
         """
-        score_a = self._score_a[:, ind_d]
-        score_b = self._score_b[:, ind_d]
+        score_a = self._score_a[:, self.ind_d]
+        score_b = self._score_b[:, self.ind_d]
         
         if inds is not None:
             score_a = score_a[inds]
@@ -39,25 +39,25 @@ class DoubleMLPL(DoubleML):
         
         return theta
 
-    def _compute_score(self, ind_d):
-        self._score[:, ind_d] = self._score_a[:, ind_d] * self.coef_[ind_d] + self._score_b[:, ind_d]
+    def _compute_score(self):
+        self._score[:, self.ind_d] = self._score_a[:, self.ind_d] * self.coef_[self.ind_d] + self._score_b[:, self.ind_d]
     
-    def _var_est(self, ind_d, inds = None):
+    def _var_est(self, inds = None):
         """
         Estimate the standard errors of the structural parameter in a partially
         linear model (PLR & PLIV)
         """
-        score_a = self._score_a[:, ind_d]
-        score = self._score[:, ind_d]
+        score_a = self._score_a[:, self.ind_d]
+        score = self._score[:, self.ind_d]
         
         if inds is not None:
             score_a = score_a[inds]
             score = score[inds]
         
         # don't understand yet the additional 1/n_obs
-        n_obs = len(score)
+        n_obs_sample = len(score)
         J = np.mean(score_a)
-        sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
+        sigma2_hat = 1/n_obs_sample * np.mean(np.power(score, 2)) / np.power(J, 2)
         
         return sigma2_hat
     
@@ -79,11 +79,12 @@ class DoubleMLPL(DoubleML):
         d = assure_2d_array(d)
         Xd = np.hstack((X,d))
         
-        n_cols_X = X.shape[1]
-        n_cols_d = d.shape[1]
-        n_obs = X.shape[0]
+        self.n_treat = d.shape[1]
+        self.n_obs = X.shape[0]
         
-        self._initialize_arrays(n_obs, n_cols_d)
+        n_cols_X = X.shape[1]
+        
+        self._initialize_arrays()
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
@@ -94,17 +95,19 @@ class DoubleMLPL(DoubleML):
         # perform sample splitting
         self._split_samples(Xd)
         
-        for i_d in range(n_cols_d):
+        for i_d in range(self.n_treat):
+            self.ind_d = i_d
             this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
             # ml estimation of nuisance models
             if z is None:
-                self._ml_nuisance(this_Xd, y, d[:, i_d], i_d)
+                self._ml_nuisance(this_Xd, y, d[:, i_d])
             else:
-                self._ml_nuisance(this_Xd, y, d[:, i_d], i_d, z)
-            self._compute_score_elements(i_d)
+                self._ml_nuisance(this_Xd, y, d[:, i_d], z)
+            self._compute_score_elements()
             
             # estimate the causal parameter(s)
-            self._est_causal_pars(i_d)
+            self._est_causal_pars()
+        self.i_d = None
             
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))
@@ -117,29 +120,30 @@ class DoubleMLPL(DoubleML):
         if self.coef_ is None:
             raise ValueError('apply fit() before bootstrap()')
         
-        n_cols_d = len(self.coef_)
-        n_obs = self._score.shape[0]
+        # can be asserted here 
+        #n_cols_d = len(self.coef_)
+        #n_obs = self._score.shape[0]
         
-        boot_coef = np.full((n_cols_d, n_rep), np.nan)
+        boot_coef = np.full((self.n_treat, n_rep), np.nan)
         
-        for i_d in range(n_cols_d):
+        for i_d in range(self.n_treat):
             
             score = self._score[:, i_d]
             J = np.mean(self._score_a[:, i_d])
             se = self.se_[i_d]
             
             if method == 'Bayes':
-                weights = np.random.exponential(scale=1.0, size=(n_rep, n_obs)) - 1.
+                weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
             elif method == 'normal':
-                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
+                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
             elif method == 'wild':
-                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
-                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
+                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
                 weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
             else:
                 raise ValueError('invalid boot method')
             
-            boot_coef[i_d, :] = np.matmul(weights, score) / (n_obs * se * J)
+            boot_coef[i_d, :] = np.matmul(weights, score) / (self.n_obs * se * J)
             
             # alternatives (profiling not clear yet)
             # boot_coef = np.mean(np.multiply(weights, score),1) / (se * J)
