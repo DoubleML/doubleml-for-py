@@ -13,51 +13,6 @@ class DoubleMLIM(DoubleML):
     Double Machine Learning for Interactive Models (IRM & IIVM)
     """
 
-        # no need for initialization; assume a single treatment variable
-        #self._score = np.full((self.n_obs, self.n_treat), np.nan)
-        #self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
-        #self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
-        #self._initialize_arrays_nuisance()
-        
-    
-#    def _orth_est(self, inds = None):
-#        """
-#        Estimate the structural parameter in a partially linear model (PLR &
-#        PLIV)
-#        """
-#        score_a = self._score_a[:, self.ind_d]
-#        score_b = self._score_b[:, self.ind_d]
-#        
-#        if inds is not None:
-#            score_a = score_a[inds]
-#            score_b = score_b[inds]
-#        
-#        theta = -np.mean(score_b)/np.mean(score_a)
-#        
-#        return theta
-
-#    def _compute_score(self):
-#        self._score[:, self.ind_d] = self._score_a[:, self.ind_d] * self.coef_[self.ind_d] + self._score_b[:, self.ind_d]
-    
-    def _var_est(self, inds = None):
-        """
-        Estimate the standard errors of the structural parameter in a partially
-        linear model (PLR & PLIV)
-        """
-        score_a = self._score_a[:, self.ind_d]
-        score = self._score[:, self.ind_d]
-        
-        if inds is not None:
-            score_a = score_a[inds]
-            score = score[inds]
-        
-        # don't understand yet the additional 1/n_obs
-        n_obs_sample = len(score)
-        J = np.mean(score_a)
-        sigma2_hat = 1/n_obs_sample * np.mean(np.power(score, 2)) / np.power(J, 2)
-        
-        return sigma2_hat
-    
     def _fit(self, X, y, d, z=None):
         """
         Fit doubleML model for PLR & PLIV
@@ -75,7 +30,6 @@ class DoubleMLIM(DoubleML):
         self.n_treat = d.shape[1]
         self.n_obs = X.shape[0]
         assert self.n_treat == 1
-        self.ind_d = 0
         
         # assure D binary
         assert type_of_target(d) == 'binary', 'variable d must be binary'
