@@ -9,8 +9,15 @@ from .double_ml_im import DoubleMLIM
 
 class DoubleMLPIRM(DoubleMLIM):
     """
-    Double Machine Learning for Partially Linear Regression
+    Double Machine Learning for Interactive Regression Model
     """
+    
+    def _get_cond_smpls(self, d):
+        smpls = self._smpls
+        self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
+                           test) for train, test in smpls]
+        self._smpls_d1 = [(np.intersect1d(np.where(d==1)[0], train),
+                           test) for train, test in smpls]
     
     def _ml_nuisance(self, X, y, d):
         ml_m = self.ml_learners['ml_m']
@@ -72,7 +79,7 @@ class DoubleMLPIRM(DoubleMLIM):
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        self._fit(X, y, d)
+        self._fit_double_ml_im(X, y, d)
         
         return
     

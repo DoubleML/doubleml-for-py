@@ -13,7 +13,7 @@ class DoubleMLIM(DoubleML):
     Double Machine Learning for Interactive Models (IRM & IIVM)
     """
     
-    def _fit(self, X, y, d, z=None):
+    def _fit_double_ml_im(self, X, y, d, z=None):
         """
         Fit doubleML model for PLR & PLIV
         Parameters
@@ -46,14 +46,17 @@ class DoubleMLIM(DoubleML):
         # perform sample splitting
         self._split_samples(X)
         
-        # get train indices for d==0 and d==1
-        self._get_cond_smpls(d)
         
         if z is None:
+            # get train indices for d==0 and d==1
+            self._get_cond_smpls(d)
             self._ml_nuisance(X, y, d)
+            self._compute_score_elements(d)
         else:
+            # get train indices for d==0 and d==1
+            self._get_cond_smpls(z)
             self._ml_nuisance(X, y, d, z)
-        self._compute_score_elements(d)
+            self._compute_score_elements(z)
             
         # estimate the causal parameter(s)
         self._est_causal_pars()
@@ -64,13 +67,6 @@ class DoubleMLIM(DoubleML):
         self.pval_ = pval
         
         return
-    
-    def _get_cond_smpls(self, d):
-        smpls = self._smpls
-        self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
-                           test) for train, test in smpls]
-        self._smpls_d1 = [(np.intersect1d(np.where(d==1)[0], train),
-                           test) for train, test in smpls]
     
     def bootstrap(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
