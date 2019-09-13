@@ -12,7 +12,7 @@ class DoubleMLIM(DoubleML):
     """
     Double Machine Learning for Interactive Models (IRM & IIVM)
     """
-
+    
     def _fit(self, X, y, d, z=None):
         """
         Fit doubleML model for PLR & PLIV
@@ -27,9 +27,9 @@ class DoubleMLIM(DoubleML):
         self: resturns an instance of DoubleMLPLR
         """
         
-        self.n_treat = d.shape[1]
         self.n_obs = X.shape[0]
-        assert self.n_treat == 1
+        assert d.ndim == 1
+        self.n_treat = 1
         
         # assure D binary
         assert type_of_target(d) == 'binary', 'variable d must be binary'
@@ -57,8 +57,6 @@ class DoubleMLIM(DoubleML):
             
         # estimate the causal parameter(s)
         self._est_causal_pars()
-        
-        self.i_d = None
             
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))

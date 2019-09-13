@@ -11,8 +11,7 @@ class DoubleMLPL(DoubleML):
     """
     Double Machine Learning for Partially Linear Models (PLR & PLIV)
     """
-
-
+    
     def _initialize_arrays(self):
         par_dict = dict()
         par_dict['_score'] = np.full((self.n_obs, self.n_treat), np.nan)
