@@ -20,7 +20,7 @@ class DoubleMLPL(DoubleML):
         
         return par_dict
     
-    def _fit(self, X, y, d, z=None, export_scores=True):
+    def _fit_double_ml_pl(self, X, y, d, z=None, export_scores=True):
         """
         Fit doubleML model for PLR & PLIV
         Parameters
