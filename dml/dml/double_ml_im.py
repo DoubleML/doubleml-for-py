@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
 from sklearn.linear_model import LinearRegression
+from sklearn.utils.multiclass import type_of_target
 
 from scipy.stats import norm
 
@@ -11,11 +12,6 @@ class DoubleMLIM(DoubleML):
     """
     Double Machine Learning for Interactive Models (IRM & IIVM)
     """
-
-
-    def _initialize_arrays(self):
-        self.coef_ = np.full(1, np.nan)
-        self.se_ = np.full(1, np.nan)
 
         # no need for initialization; assume a single treatment variable
         #self._score = np.full((self.n_obs, self.n_treat), np.nan)
@@ -80,9 +76,12 @@ class DoubleMLIM(DoubleML):
         self.n_obs = X.shape[0]
         assert self.n_treat == 1
         self.ind_d = 0
-        # TODO: assure D binary
         
-        self._initialize_arrays()
+        # assure D binary
+        assert type_of_target(d) == 'binary', 'variable d must be binary'
+        
+        if np.all(np.power(d,2) - d) == 0:
+            raise ValueError('variable d must be binary with values 0 and 1')
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
@@ -92,11 +91,15 @@ class DoubleMLIM(DoubleML):
         
         # perform sample splitting
         self._split_samples(X)
+        
+        # get train indices for d==0 and d==1
+        self._get_cond_smpls(d)
+        
         if z is None:
             self._ml_nuisance(X, y, d)
         else:
             self._ml_nuisance(X, y, d, z)
-        self._compute_score_elements()
+        self._compute_score_elements(d)
             
         # estimate the causal parameter(s)
         self._est_causal_pars()
@@ -109,7 +112,14 @@ class DoubleMLIM(DoubleML):
         self.pval_ = pval
         
         return
-        
+    
+    def _get_cond_smpls(self, d):
+        smpls = self._smpls
+        self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
+                           test) for train, test in smpls]
+        self._smpls_d1 = [(np.intersect1d(np.where(d==1)[0], train),
+                           test) for train, test in smpls]
+    
     def bootstrap(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
             raise ValueError('apply fit() before bootstrap()')
@@ -138,4 +148,3 @@ class DoubleMLIM(DoubleML):
         self.boot_coef_ = boot_coef
         
         return
-
