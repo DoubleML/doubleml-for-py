@@ -14,13 +14,12 @@ class DoubleMLPL(DoubleML):
 
 
     def _initialize_arrays(self):
-        self.coef_ = np.full(self.n_treat, np.nan)
-        self.se_ = np.full(self.n_treat, np.nan)
-
-        self._score = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
-        self._initialize_arrays_nuisance()
+        par_dict = dict()
+        par_dict['_score'] = np.full((self.n_obs, self.n_treat), np.nan)
+        par_dict['_score_a'] = np.full((self.n_obs, self.n_treat), np.nan)
+        par_dict['_score_b'] = np.full((self.n_obs, self.n_treat), np.nan)
+        
+        return par_dict
         
     
     def _orth_est(self, inds = None):
@@ -28,8 +27,8 @@ class DoubleMLPL(DoubleML):
         Estimate the structural parameter in a partially linear model (PLR &
         PLIV)
         """
-        score_a = self._score_a[:, self.ind_d]
-        score_b = self._score_b[:, self.ind_d]
+        score_a = self._score_a
+        score_b = self._score_b
         
         if inds is not None:
             score_a = score_a[inds]
@@ -40,15 +39,15 @@ class DoubleMLPL(DoubleML):
         return theta
 
     def _compute_score(self):
-        self._score[:, self.ind_d] = self._score_a[:, self.ind_d] * self.coef_[self.ind_d] + self._score_b[:, self.ind_d]
+        self._score = self._score_a * self.coef_ + self._score_b
     
     def _var_est(self, inds = None):
         """
         Estimate the standard errors of the structural parameter in a partially
         linear model (PLR & PLIV)
         """
-        score_a = self._score_a[:, self.ind_d]
-        score = self._score[:, self.ind_d]
+        score_a = self._score_a
+        score = self._score
         
         if inds is not None:
             score_a = score_a[inds]
@@ -61,7 +60,7 @@ class DoubleMLPL(DoubleML):
         
         return sigma2_hat
     
-    def _fit(self, X, y, d, z=None):
+    def _fit(self, X, y, d, z=None, export_scores=True):
         """
         Fit doubleML model for PLR & PLIV
         Parameters
@@ -84,7 +83,10 @@ class DoubleMLPL(DoubleML):
         
         n_cols_X = X.shape[1]
         
-        self._initialize_arrays()
+        coef_ = np.full(self.n_treat, np.nan)
+        se_ = np.full(self.n_treat, np.nan)
+        if export_scores:
+            par_dict = self._initialize_arrays()
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
@@ -96,7 +98,6 @@ class DoubleMLPL(DoubleML):
         self._split_samples(Xd)
         
         for i_d in range(self.n_treat):
-            self.ind_d = i_d
             this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
             # ml estimation of nuisance models
             if z is None:
@@ -107,8 +108,26 @@ class DoubleMLPL(DoubleML):
             
             # estimate the causal parameter(s)
             self._est_causal_pars()
-        self.i_d = None
             
+            coef_[i_d] =self.coef_
+            se_[i_d] =self.se_
+            if export_scores:
+                par_dict['_score'][:, i_d] = self._score
+                par_dict['_score_a'][:, i_d] = self._score_a
+                par_dict['_score_b'][:, i_d] = self._score_b
+        
+        # setting final estimates and scores
+        self.coef_ = coef_
+        self.se_ = se_
+        if export_scores:
+            self._score = par_dict['_score']
+            self._score_a = par_dict['_score_a']
+            self._score_b = par_dict['_score_b']
+        else:
+            self._score = None
+            self._score_a = None
+            self._score_b = None
+        
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))
         self.t_ = t

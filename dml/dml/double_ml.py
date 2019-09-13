@@ -36,20 +36,20 @@ class DoubleML:
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
-            self.coef_[self.ind_d] = theta_hat
+            self.coef_ = theta_hat
             self._compute_score()
             
             vars = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
                 vars[idx] = self._var_est(test_index)
-            self.se_[self.ind_d] = np.sqrt(np.mean(vars))
+            self.se_ = np.sqrt(np.mean(vars))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
-            self.coef_[self.ind_d] = theta_hat
+            self.coef_ = theta_hat
             self._compute_score()
             
-            self.se_[self.ind_d] = np.sqrt(self._var_est())
+            self.se_ = np.sqrt(self._var_est())
             
         else:
             raise ValueError('invalid dml_procedure')
