@@ -20,26 +20,6 @@ class DoubleMLPL(DoubleML):
         par_dict['_score_b'] = np.full((self.n_obs, self.n_treat), np.nan)
         
         return par_dict
-        
-    
-    def _orth_est(self, inds = None):
-        """
-        Estimate the structural parameter in a partially linear model (PLR &
-        PLIV)
-        """
-        score_a = self._score_a
-        score_b = self._score_b
-        
-        if inds is not None:
-            score_a = score_a[inds]
-            score_b = score_b[inds]
-        
-        theta = -np.mean(score_b)/np.mean(score_a)
-        
-        return theta
-
-    def _compute_score(self):
-        self._score = self._score_a * self.coef_ + self._score_b
     
     def _var_est(self, inds = None):
         """
