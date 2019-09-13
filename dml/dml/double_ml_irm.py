@@ -24,15 +24,18 @@ class DoubleMLPIRM(DoubleMLIM):
         smpls_d1 = self._smpls_d1
         
         # nuisance g
+        inf_model = self.inf_model
         self.g_hat0 = cross_val_predict(ml_g, X, y, cv = smpls_d0)
-        self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_d1)
+        if inf_model == 'ATE':
+            self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_d1)
         
         # nuisance m
         self.m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba')
         
         # compute residuals
         self._u_hat0 = y - self.g_hat0
-        self._u_hat1 = y - self.g_hat1
+        if inf_model == 'ATE':
+            self._u_hat1 = y - self.g_hat1
         self._v_hat = d - self.m_hat
     
     def _compute_score_elements(self, d):
