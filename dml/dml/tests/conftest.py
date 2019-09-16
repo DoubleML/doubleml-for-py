@@ -18,6 +18,9 @@ def m(x,nu=0.,gamma=1.):
 def m2(x):
     return np.power(x,2)
 
+def m3(x,nu=0.,gamma=1.):
+    return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
+
 
 # number of datasets per dgp
 n_datasets = get_n_datasets()
@@ -131,6 +134,35 @@ def generate_data_iv(request):
         D = M + np.random.standard_normal(size=[N,])
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
+        datasets.append(xx)
+    
+    return datasets
+
+@pytest.fixture(scope="module",
+                params = [(500, 10),
+                          (1000, 20),
+                          (1000, 100)])
+def generate_data_irm(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p[0]
+    p = N_p[1]
+    theta=0.5
+    b= [1/k for k in range(1,p+1)]
+    sigma = make_spd_matrix(p)
+    
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        G = g(np.dot(X,b))
+        M = m3(np.dot(X,b))
+        MM = M+np.random.standard_normal(size=[N,])
+        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
+        D = np.random.binomial(p=MMM, n=1)
+        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
+        xx = {'X': X, 'y': Y, 'd': D}
         datasets.append(xx)
     
     return datasets
