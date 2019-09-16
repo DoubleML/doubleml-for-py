@@ -39,12 +39,12 @@ class DoubleMLPIIVM(DoubleMLIM):
         self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_z1)
         
         # nuisance m
-        self.m_hat = cross_val_predict(ml_m, X, z, cv = smpls, method='predict_proba')
+        self.m_hat = cross_val_predict(ml_m, X, z, cv = smpls, method='predict_proba')[:, 1]
         
         # nuisance r
         inf_model = self.inf_model
-        self.r_hat0 = cross_val_predict(ml_r, X, d, cv = smpls_z0, method='predict_proba')
-        self.r_hat1 = cross_val_predict(ml_r, X, d, cv = smpls_z1, method='predict_proba')
+        self.r_hat0 = cross_val_predict(ml_r, X, d, cv = smpls_z0, method='predict_proba')[:, 1]
+        self.r_hat1 = cross_val_predict(ml_r, X, d, cv = smpls_z1, method='predict_proba')[:, 1]
         
         # compute residuals
         self._u_hat0 = y - self.g_hat0
@@ -55,10 +55,6 @@ class DoubleMLPIIVM(DoubleMLIM):
     
     def _compute_score_elements(self, z):
         inf_model = self.inf_model
-        
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        v_hatd = self._v_hatd
         
         if inf_model == 'LATE':
             self._score_b = self.g_hat1 - self.g_hat0 \

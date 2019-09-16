@@ -34,7 +34,7 @@ class DoubleMLIM(DoubleML):
         # assure D binary
         assert type_of_target(d) == 'binary', 'variable d must be binary'
         
-        if np.all(np.power(d,2) - d) == 0:
+        if np.any(np.power(d,2) - d != 0):
             raise ValueError('variable d must be binary with values 0 and 1')
         
         dml_procedure = self.dml_procedure

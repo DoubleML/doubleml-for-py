@@ -37,7 +37,7 @@ class DoubleMLPIRM(DoubleMLIM):
             self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_d1)
         
         # nuisance m
-        self.m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba')
+        self.m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba')[:, 1]
         
         # compute residuals
         self._u_hat0 = y - self.g_hat0
@@ -48,20 +48,16 @@ class DoubleMLPIRM(DoubleMLIM):
     def _compute_score_elements(self, d):
         inf_model = self.inf_model
         
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        v_hatd = self._v_hatd
-        
         if inf_model == 'ATE':
             self._score_b = self.g_hat1 - self.g_hat0 \
                             + np.divide(np.multiply(d, self._u_hat1), self.m_hat) \
                             + np.divide(np.multiply(1.0-d, self._u_hat0), 1.0 - self.m_hat)
-            self._score_a = -1.0
+            self._score_a = np.full_like(self._score_b, -1.0)
         elif inf_model == 'ATTE':
+            p = np.mean(d)
             self._score_b = np.multiply(d, self._u_hat0) / p \
                             + np.divide(np.multiply(self.m_hat, np.multiply(1.0-d, self._u_hat0)),
                                         p*(1.0 - self.m_hat))
-            p = np.mean(d)
             self._score_a = - d / p
         else:
             raise ValueError('invalid inf_model')
