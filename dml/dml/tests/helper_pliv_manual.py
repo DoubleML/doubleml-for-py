@@ -3,8 +3,6 @@ import pytest
 import math
 import scipy
 
-from dml.double_ml_plr import DoubleMLPLR
-
 
 def fit_nuisance_pliv(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     g_hat = []

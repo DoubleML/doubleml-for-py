@@ -3,8 +3,6 @@ import pytest
 import math
 import scipy
 
-from dml.double_ml_plr import DoubleMLPLR
-
 
 def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
     g_hat = []
