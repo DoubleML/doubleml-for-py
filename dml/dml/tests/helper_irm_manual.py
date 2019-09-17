@@ -106,21 +106,34 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, inf_model):
     
     return res
 
-def boot_irm(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep):
-    u_hat = np.zeros_like(Y)
-    v_hat = np.zeros_like(D)
+def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bootstrap, n_rep):
+    u_hat0 = np.zeros_like(Y)
+    u_hat1 = np.zeros_like(Y)
+    g_hat0_all = np.zeros_like(Y)
+    g_hat1_all = np.zeros_like(Y)
+    m_hat_all = np.zeros_like(Y)
+    p_hat_all = np.zeros_like(Y)
     for idx, (train_index, test_index) in enumerate(smpls):
-        v_hat[test_index] = D[test_index] - m_hat[idx]
-        u_hat[test_index] = Y[test_index] - g_hat[idx]
+        u_hat0[test_index] = Y[test_index] - g_hat0[idx]
+        u_hat1[test_index] = Y[test_index] - g_hat1[idx]
+        g_hat0_all[test_index] = g_hat0[idx]
+        g_hat1_all[test_index] = g_hat1[idx]
+        m_hat_all[test_index] = m_hat[idx]
+        p_hat_all[test_index] = p_hat[idx]
     
-    if inf_model == 'DML2018':
-        score = np.multiply(u_hat - v_hat*theta, v_hat)
-        J = np.mean(-np.multiply(v_hat, v_hat))
-    elif inf_model == 'IV-type':
-        score = np.multiply(u_hat - D*theta, v_hat)
-        J = np.mean(-np.multiply(v_hat, D))
+    if inf_model == 'ATE':
+        score = g_hat1_all - g_hat0_all \
+                + np.divide(np.multiply(D, u_hat1), m_hat_all) \
+                - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat_all) - theta
+        J = -1.0
+    elif inf_model == 'ATTE':
+        score = np.divide(np.multiply(D, u_hat0), p_hat_all) \
+                - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
+                            np.multiply(p_hat_all, (1.-m_hat_all))) \
+                - theta * np.divide(D, p_hat_all)
+        J = np.mean(-np.divide(D, p_hat_all))
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid inf_model')
     
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)

@@ -58,19 +58,19 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
     
     assert math.isclose(dml_irm_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(dml_irm_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
-    #
-    #for bootstrap in ['normal']:
-    #    np.random.seed(3141)
-    #    boot_theta = boot_irm(res_manual,
-    #                          data['y'], data['d'],
-    #                          g_hat, m_hat,
-    #                          smpls, inf_model,
-    #                          se_manual,
-    #                          bootstrap, 500)
-    #    
-    #    np.random.seed(3141)
-    #    dml_irm_obj.bootstrap(method = bootstrap, n_rep=500)
-    #    assert np.allclose(dml_irm_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+    
+    for bootstrap in ['normal']:
+        np.random.seed(3141)
+        boot_theta = boot_irm(res_manual,
+                              data['y'], data['d'],
+                              g_hat0, g_hat1, m_hat, p_hat,
+                              smpls, inf_model,
+                              se_manual,
+                              bootstrap, 500)
+        
+        np.random.seed(3141)
+        dml_irm_obj.bootstrap(method = bootstrap, n_rep=500)
+        assert np.allclose(dml_irm_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
     
     return
-    
+
