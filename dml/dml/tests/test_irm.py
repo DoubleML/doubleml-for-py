@@ -18,9 +18,8 @@ from dml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, bo
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
-
 @pytest.mark.parametrize('idx', range(n_datasets))
-@pytest.mark.parametrize('learner', [[LogisticRegression(solver='lbfgs'),
+@pytest.mark.parametrize('learner', [[LogisticRegression(solver='lbfgs', max_iter=250),
                                       LinearRegression()],
                                      [RandomForestClassifier(max_depth=2, n_estimators=10),
                                       RandomForestRegressor(max_depth=2, n_estimators=10)]])
