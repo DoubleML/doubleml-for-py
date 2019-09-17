@@ -43,7 +43,6 @@ class DoubleMLPIRM(DoubleMLIM):
         self._u_hat0 = y - self.g_hat0
         if inf_model == 'ATE':
             self._u_hat1 = y - self.g_hat1
-        self._v_hat = d - self.m_hat
     
     def _compute_score_elements(self, d):
         inf_model = self.inf_model
