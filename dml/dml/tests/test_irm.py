@@ -57,7 +57,7 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
                                          smpls, inf_model)
     
     assert math.isclose(dml_irm_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    #assert math.isclose(dml_irm_obj.se_[0], se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
     #
     #for bootstrap in ['normal']:
     #    np.random.seed(3141)

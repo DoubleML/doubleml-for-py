@@ -67,18 +67,22 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
     
     return theta_hat, se
     
-def var_irm(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, inf_model):
+def var_irm(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, se_type):
     n_obs = len(D)
     
-    #if se_type == 'ATE':
-    #    var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
-    #          np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
-    #elif se_type == 'ATTE':
-    #    var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
-    #          np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
-    #else:
-    #    raise ValueError('invalid se_type')
-    var = 1.0
+    if se_type == 'ATE':
+        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
+                      + np.divide(np.multiply(D, u_hat1), m_hat) \
+                      - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat) - theta, 2))
+    elif se_type == 'ATTE':
+        Ep = np.mean(D)
+        
+        var = 1/n_obs * np.mean(np.power(np.multiply(D, u_hat0)/Ep \
+                      - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
+                                  Ep*(1.-m_hat)) - theta, 2)) \
+              / np.power(np.mean(D/Ep), 2)
+    else:
+        raise ValueError('invalid se_type')
     
     return var
 
@@ -91,7 +95,8 @@ def irm_orth(g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, inf_model):
         Ep = np.mean(D)
         
         res = np.mean(np.multiply(D, u_hat0)/Ep \
-                      - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)), Ep*(1.-m_hat))) \
+                      - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
+                                  Ep*(1.-m_hat))) \
               / np.mean(D/Ep)
     
     return res
