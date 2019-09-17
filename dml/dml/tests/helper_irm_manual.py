@@ -85,7 +85,8 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, se_type):
     elif se_type == 'ATTE':
         var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(D, u_hat0), p_hat) \
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
-                                  np.multiply(p_hat, (1.-m_hat))) - theta, 2)) \
+                                  np.multiply(p_hat, (1.-m_hat))) \
+                      - theta * np.divide(D, p_hat), 2)) \
               / np.power(np.mean(np.divide(D, p_hat)), 2)
     else:
         raise ValueError('invalid se_type')
