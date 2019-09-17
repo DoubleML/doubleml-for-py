@@ -45,7 +45,8 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
     smpls = [(train, test) for train, test in resampling.split(data['X'])]
     
     g_hat0, g_hat1, m_hat = fit_nuisance_irm(data['y'], data['X'], data['d'],
-                                             clone(learner[0]), clone(learner[1]), smpls)
+                                             clone(learner[0]), clone(learner[1]), smpls,
+                                             inf_model)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(data['y'], data['X'], data['d'],

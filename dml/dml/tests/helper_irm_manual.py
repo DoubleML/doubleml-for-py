@@ -4,17 +4,21 @@ import math
 import scipy
 
 
-def fit_nuisance_irm(Y, X, D, ml_m, ml_g, smpls):
+def fit_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, inf_model):
     g_hat0 = []
     g_hat1 = []
     for idx, (train_index, test_index) in enumerate(smpls):
         train_index0 =np.intersect1d(np.where(D==0)[0], train_index)
         g_hat0.append(ml_g.fit(X[train_index0],Y[train_index0]).predict(X[test_index]))
     
-    for idx, (train_index, test_index) in enumerate(smpls):
-        train_index0 =np.intersect1d(np.where(D==0)[0], train_index)
-        train_index1 =np.setdiff1d(train_index, train_index0)
-        g_hat1.append(ml_g.fit(X[train_index1],Y[train_index1]).predict(X[test_index]))
+    if inf_model == 'ATE':
+        for idx, (train_index, test_index) in enumerate(smpls):
+            train_index1 =np.intersect1d(np.where(D==1)[0], train_index)
+            g_hat1.append(ml_g.fit(X[train_index1],Y[train_index1]).predict(X[test_index]))
+    else:
+        for idx, (train_index, test_index) in enumerate(smpls):
+            # fill it up, but its not further used
+            g_hat1.append(np.zeros_like(g_hat0[idx]))
     
     m_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -26,7 +30,6 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
     
     for idx, (train_index, test_index) in enumerate(smpls):
-        v_hat = D[test_index] - m_hat[idx]
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
         thetas[idx] = irm_orth(g_hat0[idx], g_hat1[idx],
@@ -46,10 +49,8 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
     return theta_hat, se
 
 def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
-    thetas = np.zeros(len(smpls))
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
-    v_hat = np.zeros_like(D)
     g_hat0_all = np.zeros_like(Y)
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(D)
@@ -59,7 +60,7 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
         g_hat0_all[test_index] = g_hat0[idx]
         g_hat1_all[test_index] = g_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
-    theta_hat = irm_orth(g_hat0_all, g_hat1_all, m_hat_all, u_hat0, u_hat0, D, inf_model)
+    theta_hat = irm_orth(g_hat0_all, g_hat1_all, m_hat_all, u_hat0, u_hat1, D, inf_model)
     se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
                          m_hat_all, u_hat0, u_hat1,
                          D, inf_model))
@@ -85,7 +86,7 @@ def irm_orth(g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, inf_model):
     if inf_model == 'ATE':
         res = np.mean(g_hat1 - g_hat0 \
                       + np.divide(np.multiply(D, u_hat1), m_hat) \
-                      + np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat))
+                      - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat))
     elif inf_model == 'ATTE':
         Ep = np.mean(D)
         
