@@ -20,6 +20,8 @@ class DoubleMLPIRM(DoubleMLIM):
                            test) for train, test in smpls]
     
     def _ml_nuisance(self, X, y, d):
+        inf_model = self.inf_model
+        
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
@@ -30,8 +32,14 @@ class DoubleMLPIRM(DoubleMLIM):
         smpls_d0 = self._smpls_d0
         smpls_d1 = self._smpls_d1
         
+        # fraction of treated for ATTE
+        if inf_model == 'ATTE':
+            self._p_hat = np.zeros_like(d, dtype='float64')
+            for _, test_index in smpls:
+                self._p_hat[test_index] = np.mean(d[test_index])
+        
+        
         # nuisance g
-        inf_model = self.inf_model
         self.g_hat0 = cross_val_predict(ml_g, X, y, cv = smpls_d0)
         if inf_model == 'ATE':
             self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_d1)
@@ -53,11 +61,10 @@ class DoubleMLPIRM(DoubleMLIM):
                             - np.divide(np.multiply(1.0-d, self._u_hat0), 1.0 - self.m_hat)
             self._score_a = np.full_like(self._score_b, -1.0)
         elif inf_model == 'ATTE':
-            p = np.mean(d)
-            self._score_b = np.multiply(d, self._u_hat0) / p \
+            self._score_b = np.divide(np.multiply(d, self._u_hat0), self._p_hat) \
                             - np.divide(np.multiply(self.m_hat, np.multiply(1.0-d, self._u_hat0)),
-                                        p*(1.0 - self.m_hat))
-            self._score_a = - d / p
+                                        np.multiply(self._p_hat, (1.0 - self.m_hat)))
+            self._score_a = - np.divide(d, self._p_hat)
         else:
             raise ValueError('invalid inf_model')
     

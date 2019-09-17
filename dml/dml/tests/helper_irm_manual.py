@@ -21,19 +21,22 @@ def fit_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, inf_model):
             g_hat1.append(np.zeros_like(g_hat0[idx]))
     
     m_hat = []
+    p_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
         m_hat.append(ml_m.fit(X[train_index],D[train_index]).predict_proba(X[test_index])[:, 1])
+        p_hat.append(np.mean(D[test_index]))
     
-    return g_hat0, g_hat1, m_hat
+    return g_hat0, g_hat1, m_hat, p_hat
 
-def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
+def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
     
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
         thetas[idx] = irm_orth(g_hat0[idx], g_hat1[idx],
-                               m_hat[idx], u_hat0, u_hat1,
+                               m_hat[idx], p_hat[idx],
+                               u_hat0, u_hat1,
                                D[test_index], inf_model)
     theta_hat = np.mean(thetas)
     
@@ -42,32 +45,37 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
         ses[idx] = var_irm(theta_hat, g_hat0[idx], g_hat1[idx],
-                           m_hat[idx], u_hat0, u_hat1,
+                           m_hat[idx], p_hat[idx],
+                           u_hat0, u_hat1,
                            D[test_index], inf_model)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
-def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
+def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     g_hat0_all = np.zeros_like(Y)
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
+    p_hat_all = np.zeros_like(Y)
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         g_hat0_all[test_index] = g_hat0[idx]
         g_hat1_all[test_index] = g_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
-    theta_hat = irm_orth(g_hat0_all, g_hat1_all, m_hat_all, u_hat0, u_hat1, D, inf_model)
+        p_hat_all[test_index] = p_hat[idx]
+    theta_hat = irm_orth(g_hat0_all, g_hat1_all, m_hat_all, p_hat_all,
+                         u_hat0, u_hat1, D, inf_model)
     se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
-                         m_hat_all, u_hat0, u_hat1,
+                         m_hat_all, p_hat_all,
+                         u_hat0, u_hat1,
                          D, inf_model))
     
     return theta_hat, se
     
-def var_irm(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, se_type):
+def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, se_type):
     n_obs = len(D)
     
     if se_type == 'ATE':
@@ -75,29 +83,25 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, se_type):
                       + np.divide(np.multiply(D, u_hat1), m_hat) \
                       - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat) - theta, 2))
     elif se_type == 'ATTE':
-        Ep = np.mean(D)
-        
-        var = 1/n_obs * np.mean(np.power(np.multiply(D, u_hat0)/Ep \
+        var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(D, u_hat0), p_hat) \
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
-                                  Ep*(1.-m_hat)) - theta, 2)) \
-              / np.power(np.mean(D/Ep), 2)
+                                  np.multiply(p_hat, (1.-m_hat))) - theta, 2)) \
+              / np.power(np.mean(np.divide(D, p_hat)), 2)
     else:
         raise ValueError('invalid se_type')
     
     return var
 
-def irm_orth(g_hat0, g_hat1, m_hat, u_hat0, u_hat1, D, inf_model):
+def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, inf_model):
     if inf_model == 'ATE':
         res = np.mean(g_hat1 - g_hat0 \
                       + np.divide(np.multiply(D, u_hat1), m_hat) \
                       - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat))
     elif inf_model == 'ATTE':
-        Ep = np.mean(D)
-        
-        res = np.mean(np.multiply(D, u_hat0)/Ep \
+        res = np.mean(np.divide(np.multiply(D, u_hat0), p_hat) \
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
-                                  Ep*(1.-m_hat))) \
-              / np.mean(D/Ep)
+                                  np.multiply(p_hat, (1.-m_hat)))) \
+              / np.mean(np.divide(D, p_hat))
     
     return res
 
