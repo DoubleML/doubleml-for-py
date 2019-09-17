@@ -53,7 +53,7 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, smpls, inf_model):
     u_hat1 = np.zeros_like(Y)
     g_hat0_all = np.zeros_like(Y)
     g_hat1_all = np.zeros_like(Y)
-    m_hat_all = np.zeros_like(D)
+    m_hat_all = np.zeros_like(Y)
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
