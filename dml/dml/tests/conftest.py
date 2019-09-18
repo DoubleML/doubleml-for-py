@@ -129,8 +129,8 @@ def generate_data_iv(request):
         G = g(np.dot(X,b))
         # instrument 
         Z = m(np.dot(X,b)) + np.random.standard_normal(size=[N,])
-        M = m(gamma_z * Z + np.dot(X,b))
         # treatment
+        M = m(gamma_z * Z + np.dot(X,b))
         D = M + np.random.standard_normal(size=[N,])
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
@@ -163,6 +163,43 @@ def generate_data_irm(request):
         D = np.random.binomial(p=MMM, n=1)
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
+        datasets.append(xx)
+    
+    return datasets
+
+
+@pytest.fixture(scope="module",
+                params = [(1000, 30)])
+def generate_data_iivm(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p[0]
+    p = N_p[1]
+    theta=0.5
+    gamma_z=0.4
+    b= [1/k for k in range(1,p+1)]
+    sigma = make_spd_matrix(p)
+    
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        G = g(np.dot(X,b))
+        # instrument 
+        M1 = m3(np.dot(X,b))
+        MM = M1+np.random.standard_normal(size=[N,])
+        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
+        Z = np.random.binomial(p=MMM, n=1)
+        
+        # treatment
+        M = m3(gamma_z * Z + np.dot(X,b))
+        MM = M+np.random.standard_normal(size=[N,])
+        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
+        D = np.random.binomial(p=MMM, n=1)
+        
+        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
+        xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
         datasets.append(xx)
     
     return datasets
