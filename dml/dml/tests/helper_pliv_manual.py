@@ -70,7 +70,7 @@ def pliv_orth(u_hat, v_hat, w_hat, D, inf_model):
     if inf_model == 'DML2018':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, w_hat))
     else:
-      raise ValueError('invalid se_type')
+      raise ValueError('invalid inf_model')
     
     return res
 
