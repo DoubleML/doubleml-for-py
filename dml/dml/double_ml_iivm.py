@@ -20,7 +20,7 @@ class DoubleMLPIIVM(DoubleMLIM):
         self._smpls_z1 = [(np.intersect1d(np.where(z==1)[0], train),
                            test) for train, test in smpls]
     
-    def _ml_nuisance(self, X, y, d):
+    def _ml_nuisance(self, X, y, d, z):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
@@ -55,19 +55,18 @@ class DoubleMLPIIVM(DoubleMLIM):
     
     def _compute_score_elements(self, z):
         inf_model = self.inf_model
-        
         if inf_model == 'LATE':
             self._score_b = self.g_hat1 - self.g_hat0 \
                             + np.divide(np.multiply(z, self._u_hat1), self.m_hat) \
                             - np.divide(np.multiply(1.0-z, self._u_hat1), 1.0 - self.m_hat)
-            self._score_a = -1*(self.w_hat1 - self.w_hat0 \
+            self._score_a = -1*(self.r_hat1 - self.r_hat0 \
                                 + np.divide(np.multiply(z, self._w_hat1), self.m_hat) \
                                 - np.divide(np.multiply(1.0-z, self._w_hat0), 1.0 - self.m_hat))
         else:
             raise ValueError('invalid inf_model')
     
     
-    def fit(self, X, y, d):
+    def fit(self, X, y, d, z):
         """
         Fit doubleML model for PLR
         Parameters
@@ -75,11 +74,12 @@ class DoubleMLPIIVM(DoubleMLIM):
         X : 
         y : 
         d : 
+        z : 
         Returns
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        self._fit_double_ml_im(X, y, d)
+        self._fit_double_ml_im(X, y, d, z)
         
         return
     
