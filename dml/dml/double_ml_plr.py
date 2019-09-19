@@ -40,12 +40,12 @@ class DoubleMLPLR(DoubleMLPL):
         v_hatd = self._v_hatd
         
         if inf_model == 'IV-type':
-            self._score_a = -v_hatd
+            self.score_a = -v_hatd
         elif inf_model == 'DML2018':
-            self._score_a = -np.multiply(v_hat,v_hat)
+            self.score_a = -np.multiply(v_hat,v_hat)
         else:
             raise ValueError('invalid inf_model')
-        self._score_b = np.multiply(v_hat,u_hat)
+        self.score_b = np.multiply(v_hat,u_hat)
     
     
     def fit(self, X, y, d):

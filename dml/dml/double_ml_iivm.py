@@ -56,10 +56,10 @@ class DoubleMLPIIVM(DoubleMLIM):
     def _compute_score_elements(self, z):
         inf_model = self.inf_model
         if inf_model == 'LATE':
-            self._score_b = self.g_hat1 - self.g_hat0 \
+            self.score_b = self.g_hat1 - self.g_hat0 \
                             + np.divide(np.multiply(z, self._u_hat1), self.m_hat) \
                             - np.divide(np.multiply(1.0-z, self._u_hat1), 1.0 - self.m_hat)
-            self._score_a = -1*(self.r_hat1 - self.r_hat0 \
+            self.score_a = -1*(self.r_hat1 - self.r_hat0 \
                                 + np.divide(np.multiply(z, self._w_hat1), self.m_hat) \
                                 - np.divide(np.multiply(1.0-z, self._w_hat0), 1.0 - self.m_hat))
         else:

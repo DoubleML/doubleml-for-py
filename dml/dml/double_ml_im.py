@@ -74,7 +74,7 @@ class DoubleMLIM(DoubleML):
         
         # can be asserted here 
         #n_cols_d = len(self.coef_)
-        #n_obs = self._score.shape[0]
+        #n_obs = self.score.shape[0]
         
         self.boot_coef_ = self._bootstrap_single_treat(method, n_rep)
         

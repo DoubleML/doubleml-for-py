@@ -72,21 +72,21 @@ class DoubleMLPL(DoubleML):
             coef_[i_d] =self.coef_
             se_[i_d] =self.se_
             if export_scores:
-                par_dict['_score'][:, i_d] = self._score
-                par_dict['_score_a'][:, i_d] = self._score_a
-                par_dict['_score_b'][:, i_d] = self._score_b
+                par_dict['_score'][:, i_d] = self.score
+                par_dict['_score_a'][:, i_d] = self.score_a
+                par_dict['_score_b'][:, i_d] = self.score_b
         
         # setting final estimates and scores
         self.coef_ = coef_
         self.se_ = se_
         if export_scores:
-            self._score = par_dict['_score']
-            self._score_a = par_dict['_score_a']
-            self._score_b = par_dict['_score_b']
+            self.score = par_dict['_score']
+            self.score_a = par_dict['_score_a']
+            self.score_b = par_dict['_score_b']
         else:
-            self._score = None
-            self._score_a = None
-            self._score_b = None
+            self.score = None
+            self.score_a = None
+            self.score_b = None
         
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))
@@ -101,24 +101,24 @@ class DoubleMLPL(DoubleML):
         
         # can be asserted here 
         #n_cols_d = len(self.coef_)
-        #n_obs = self._score.shape[0]
+        #n_obs = self.score.shape[0]
         
         boot_coef = np.full((self.n_treat, n_rep), np.nan)
-        score = self._score
-        score_a = self._score_a
+        score = self.score
+        score_a = self.score_a
         se = self.se_
         
         for i_d in range(self.n_treat):
             
-            self._score = score[:, i_d]
-            self._score_a = score_a[:, i_d]
+            self.score = score[:, i_d]
+            self.score_a = score_a[:, i_d]
             self.se_ = se[i_d]
             
             boot_coef[i_d, :] = self._bootstrap_single_treat(method, n_rep)
             
         self.boot_coef_ = boot_coef
-        self._score = score
-        self._score_a = score_a
+        self.score = score
+        self.score_a = score_a
         self.se_ = se
         
         return

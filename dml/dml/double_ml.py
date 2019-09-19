@@ -19,6 +19,46 @@ class DoubleML:
         self.dml_procedure = dml_procedure
         self.inf_model = inf_model
     
+    @property 
+    def score(self):
+        return self._score
+    
+    @score.setter
+    def score(self, score):
+        self._score = score
+    
+    @property 
+    def score_a(self):
+        return self._score_a
+    
+    @score_a.setter
+    def score_a(self, score_a):
+        self._score_a = score_a
+    
+    @property 
+    def score_b(self):
+        return self._score_b
+    
+    @score_b.setter
+    def score_b(self, score_b):
+        self._score_b = score_b
+    
+    @property 
+    def coef_(self):
+        return self._coef_
+    
+    @coef_.setter
+    def coef_(self, coef_):
+        self._coef_ = coef_
+    
+    @property 
+    def se_(self):
+        return self._se_
+    
+    @se_.setter
+    def se_(self, se_):
+        self._se_ = se_
+    
     def _split_samples(self, X):
         resampling = self.resampling
         
