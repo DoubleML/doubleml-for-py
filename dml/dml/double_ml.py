@@ -89,4 +89,27 @@ class DoubleML:
     
     def _compute_score(self):
         self._score = self._score_a * self.coef_ + self._score_b
+    
+    def _bootstrap_single_treat(self, method = 'normal', n_rep = 500):
+        if self.coef_ is None:
+            raise ValueError('apply fit() before bootstrap()')
+        
+        score = self._score
+        J = np.mean(self._score_a)
+        se = self.se_
+        
+        if method == 'Bayes':
+            weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
+        elif method == 'normal':
+            weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+        elif method == 'wild':
+            xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+            yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+            weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+        else:
+            raise ValueError('invalid boot method')
+        
+        boot_coef = np.matmul(weights, score) / (self.n_obs * se * J)
+        
+        return boot_coef
 

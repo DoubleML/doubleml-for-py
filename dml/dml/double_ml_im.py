@@ -76,23 +76,6 @@ class DoubleMLIM(DoubleML):
         #n_cols_d = len(self.coef_)
         #n_obs = self._score.shape[0]
         
-        score = self._score
-        J = np.mean(self._score_a)
-        se = self.se_
-        
-        if method == 'Bayes':
-            weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
-        elif method == 'normal':
-            weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-        elif method == 'wild':
-            xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
-        else:
-            raise ValueError('invalid boot method')
-        
-        boot_coef = np.matmul(weights, score) / (self.n_obs * se * J)
-        
-        self.boot_coef_ = boot_coef
+        self.boot_coef_ = self._bootstrap_single_treat(method, n_rep)
         
         return

@@ -104,32 +104,22 @@ class DoubleMLPL(DoubleML):
         #n_obs = self._score.shape[0]
         
         boot_coef = np.full((self.n_treat, n_rep), np.nan)
+        score = self._score
+        score_a = self._score_a
+        se = self.se_
         
         for i_d in range(self.n_treat):
             
-            score = self._score[:, i_d]
-            J = np.mean(self._score_a[:, i_d])
-            se = self.se_[i_d]
+            self._score = score[:, i_d]
+            self._score_a = score_a[:, i_d]
+            self.se_ = se[i_d]
             
-            if method == 'Bayes':
-                weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
-            elif method == 'normal':
-                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            elif method == 'wild':
-                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
-            else:
-                raise ValueError('invalid boot method')
+            boot_coef[i_d, :] = self._bootstrap_single_treat(method, n_rep)
             
-            boot_coef[i_d, :] = np.matmul(weights, score) / (self.n_obs * se * J)
-            
-            # alternatives (profiling not clear yet)
-            # boot_coef = np.mean(np.multiply(weights, score),1) / (se * J)
-            # boot_coef = np.dot(weights, score) / (n_obs * se * J)
-            # boot_coef = np.linalg.multi_dot(weights, score) / (n_obs * se * J)
-        
         self.boot_coef_ = boot_coef
+        self._score = score
+        self._score_a = score_a
+        self.se_ = se
         
         return
         
