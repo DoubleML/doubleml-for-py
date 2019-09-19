@@ -59,7 +59,7 @@ class DoubleMLPIRM(DoubleMLIM):
             self.score_b = self.g_hat1 - self.g_hat0 \
                             + np.divide(np.multiply(d, self._u_hat1), self.m_hat) \
                             - np.divide(np.multiply(1.0-d, self._u_hat0), 1.0 - self.m_hat)
-            self.score_a = np.full_like(self.score_b, -1.0)
+            self.score_a = np.full_like(self.m_hat, -1.0)
         elif inf_model == 'ATTE':
             self.score_b = np.divide(np.multiply(d, self._u_hat0), self._p_hat) \
                             - np.divide(np.multiply(self.m_hat, np.multiply(1.0-d, self._u_hat0)),

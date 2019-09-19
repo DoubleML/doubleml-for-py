@@ -25,6 +25,7 @@ class DoubleML:
     
     @score.setter
     def score(self, score):
+        print(score.shape)
         self._score = score
     
     @property 
@@ -33,7 +34,7 @@ class DoubleML:
     
     @score_a.setter
     def score_a(self, score_a):
-        self._score_a = score_a
+        self._score_a[:, self._i_d] = score_a
     
     @property 
     def score_b(self):
@@ -41,7 +42,7 @@ class DoubleML:
     
     @score_b.setter
     def score_b(self, score_b):
-        self._score_b = score_b
+        self._score_b[:, self._i_d] = score_b
     
     @property 
     def coef_(self):
@@ -49,7 +50,7 @@ class DoubleML:
     
     @coef_.setter
     def coef_(self, coef_):
-        self._coef_ = coef_
+        self._coef_[self._i_d] = coef_
     
     @property 
     def se_(self):
@@ -57,7 +58,37 @@ class DoubleML:
     
     @se_.setter
     def se_(self, se_):
-        self._se_ = se_
+        self._se_[self._i_d] = se_
+    
+    # the private properties with __ always deliver the single treatment subselection
+    @property 
+    def __score(self):
+        print(self._score.shape)
+        return self._score[:, self._i_d]
+    
+    @property 
+    def __score_a(self):
+        return self._score_a[:, self._i_d]
+    
+    @property 
+    def __score_b(self):
+        return self._score_b[:, self._i_d]
+    
+    @property 
+    def __coef_(self):
+        return self._coef_[self._i_d]
+    
+    @property 
+    def __se_(self):
+        return self._se_[self._i_d]
+    
+    def _initialize_arrays(self):
+        self._score = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
+        
+        self._coef_ = np.full(self.n_treat, np.nan)
+        self._se_ = np.full(self.n_treat, np.nan)
     
     def _split_samples(self, X):
         resampling = self.resampling
@@ -98,8 +129,8 @@ class DoubleML:
         """
         Estimate the standard errors of the structural parameter
         """
-        score_a = self._score_a
-        score = self._score
+        score_a = self.__score_a
+        score = self.__score
         
         if inds is not None:
             score_a = score_a[inds]
@@ -116,8 +147,8 @@ class DoubleML:
         """
         Estimate the structural parameter
         """
-        score_a = self._score_a
-        score_b = self._score_b
+        score_a = self.__score_a
+        score_b = self.__score_b
         
         if inds is not None:
             score_a = score_a[inds]
@@ -128,15 +159,15 @@ class DoubleML:
         return theta
     
     def _compute_score(self):
-        self._score = self._score_a * self.coef_ + self._score_b
+        self.score = self.score_a * self.coef_ + self.score_b
     
     def _bootstrap_single_treat(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
             raise ValueError('apply fit() before bootstrap()')
         
-        score = self._score
-        J = np.mean(self._score_a)
-        se = self.se_
+        score = self.__score
+        J = np.mean(self.__score_a)
+        se = self.__se_
         
         if method == 'Bayes':
             weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.

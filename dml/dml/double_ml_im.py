@@ -30,6 +30,9 @@ class DoubleMLIM(DoubleML):
         self.n_obs = X.shape[0]
         assert d.ndim == 1
         self.n_treat = 1
+        self._i_d = 0
+        
+        self._initialize_arrays()
         
         # assure D binary
         assert type_of_target(d) == 'binary', 'variable d must be binary'
