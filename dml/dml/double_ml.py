@@ -231,10 +231,6 @@ class DoubleML(ABC):
         if (not hasattr(self, 'coef_')) or (self.coef_ is None):
             raise ValueError('apply fit() before bootstrap()')
         
-        # can be asserted here 
-        #n_cols_d = len(self.coef_)
-        #n_obs = self.score.shape[0]
-        
         self._initialize_boot_arrays(n_rep)
         
         for i_d in range(self.n_treat):
