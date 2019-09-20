@@ -25,7 +25,6 @@ class DoubleML:
     
     @score.setter
     def score(self, score):
-        print(score.shape)
         self._score = score
     
     @property 
@@ -60,10 +59,17 @@ class DoubleML:
     def se_(self, se_):
         self._se_[self._i_d] = se_
     
+    @property 
+    def boot_coef_(self):
+        return self._boot_coef_
+    
+    @boot_coef_.setter
+    def boot_coef_(self, boot_coef_):
+        self._boot_coef_[self._i_d, :] = boot_coef_
+    
     # the private properties with __ always deliver the single treatment subselection
     @property 
     def __score(self):
-        print(self._score.shape)
         return self._score[:, self._i_d]
     
     @property 
@@ -89,6 +95,9 @@ class DoubleML:
         
         self._coef_ = np.full(self.n_treat, np.nan)
         self._se_ = np.full(self.n_treat, np.nan)
+    
+    def _initialize_boot_arrays(self, n_rep):
+        self._boot_coef_ = np.full((self.n_treat, n_rep), np.nan)
     
     def _split_samples(self, X):
         resampling = self.resampling
@@ -199,6 +208,22 @@ class DoubleML:
     def _compute_score(self):
         self.score = self.score_a * self.coef_ + self.score_b
     
+    def bootstrap(self, method = 'normal', n_rep = 500):
+        if self.coef_ is None:
+            raise ValueError('apply fit() before bootstrap()')
+        
+        # can be asserted here 
+        #n_cols_d = len(self.coef_)
+        #n_obs = self.score.shape[0]
+        
+        self._initialize_boot_arrays(n_rep)
+        
+        for i_d in range(self.n_treat):
+            self._i_d = i_d
+            self._bootstrap_single_treat(method, n_rep)
+            
+        return
+    
     def _bootstrap_single_treat(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
             raise ValueError('apply fit() before bootstrap()')
@@ -218,9 +243,7 @@ class DoubleML:
         else:
             raise ValueError('invalid boot method')
         
-        boot_coef = np.matmul(weights, score) / (self.n_obs * se * J)
-        
-        return boot_coef
+        self.boot_coef_ = np.matmul(weights, score) / (self.n_obs * se * J)
 
 def assure_2d_array(x):
     if x.ndim == 1:

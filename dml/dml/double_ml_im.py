@@ -14,7 +14,7 @@ class DoubleMLIM(DoubleML):
     """
     
     def _fit_nuisance_and_causal(self, X, y, d, z=None):
-        # only applicable for a single treatment variable
+        # only a single treatment variable is allowed
         assert self.n_treat == 1
         self._i_d = 0
         D = d[:, 0]
@@ -38,16 +38,4 @@ class DoubleMLIM(DoubleML):
             
         # estimate the causal parameter(s)
         self._est_causal_pars()
-    
-    def bootstrap(self, method = 'normal', n_rep = 500):
-        if self.coef_ is None:
-            raise ValueError('apply fit() before bootstrap()')
-        
-        # can be asserted here 
-        #n_cols_d = len(self.coef_)
-        #n_obs = self.score.shape[0]
-        
-        self.boot_coef_ = self._bootstrap_single_treat(method, n_rep)
-        
-        return
 

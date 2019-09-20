@@ -12,14 +12,6 @@ class DoubleMLPL(DoubleML):
     Double Machine Learning for Partially Linear Models (PLR & PLIV)
     """
     
-    #def _initialize_arrays(self):
-    #    par_dict = dict()
-    #    par_dict['_score'] = np.full((self.n_obs, self.n_treat), np.nan)
-    #    par_dict['_score_a'] = np.full((self.n_obs, self.n_treat), np.nan)
-    #    par_dict['_score_b'] = np.full((self.n_obs, self.n_treat), np.nan)
-    #    
-    #    return par_dict
-    
     def _fit_nuisance_and_causal(self, X, y, d, z=None):
         Xd = np.hstack((X,d))
         n_cols_X = X.shape[1]
@@ -37,18 +29,4 @@ class DoubleMLPL(DoubleML):
             
             # estimate the causal parameter(s)
             self._est_causal_pars()
-        
-    def bootstrap(self, method = 'normal', n_rep = 500):
-        if self.coef_ is None:
-            raise ValueError('apply fit() before bootstrap()')
-        
-        boot_coef = np.full((self.n_treat, n_rep), np.nan)
-        
-        for i_d in range(self.n_treat):
-            self._i_d = i_d
-            boot_coef[i_d, :] = self._bootstrap_single_treat(method, n_rep)
-        
-        self.boot_coef_ = boot_coef
-        
-        return
 
