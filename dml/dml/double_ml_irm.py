@@ -94,4 +94,4 @@ class DoubleMLPIRM(DoubleML):
         self._fit_double_ml(X, y, d)
         
         return
-    
+

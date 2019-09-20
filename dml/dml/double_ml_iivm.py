@@ -90,4 +90,4 @@ class DoubleMLPIIVM(DoubleML):
         self._fit_double_ml(X, y, d, z)
         
         return
-    
+
