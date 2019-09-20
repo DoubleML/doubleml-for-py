@@ -37,46 +37,6 @@ class DoubleMLPL(DoubleML):
             
             # estimate the causal parameter(s)
             self._est_causal_pars()
-    
-    def _fit_double_ml_pl(self, X, y, d, z=None):
-        """
-        Fit doubleML model for PLR & PLIV
-        Parameters
-        ----------
-        X : 
-        y : 
-        d : 
-        z : 
-        Returns
-        -------
-        self: resturns an instance of DoubleMLPLR
-        """
-        
-        X = assure_2d_array(X)
-        d = assure_2d_array(d)
-        
-        self.n_treat = d.shape[1]
-        self.n_obs = X.shape[0]
-        
-        self._initialize_arrays()
-        
-        dml_procedure = self.dml_procedure
-        inf_model = self.inf_model
-        
-        # TODO: se_type hard-coded to match inf_model
-        se_type = inf_model
-        
-        # perform sample splitting
-        self._split_samples(X)
-        
-        self._fit_nuisance_and_causal(X, y, d, z)
-        
-        t = self.coef_ / self.se_
-        pval = 2 * norm.cdf(-np.abs(t))
-        self.t_ = t
-        self.pval_ = pval
-        
-        return
         
     def bootstrap(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
@@ -91,12 +51,4 @@ class DoubleMLPL(DoubleML):
         self.boot_coef_ = boot_coef
         
         return
-        
-        
-def assure_2d_array(x):
-    if x.ndim == 1:
-        x = x.reshape(-1,1)
-    elif x.ndim > 2:
-        raise ValueError('Only one- or two-dimensional arrays are allowed')
-    return x
 

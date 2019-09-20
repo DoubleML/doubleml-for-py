@@ -79,7 +79,7 @@ class DoubleMLPIIVM(DoubleMLIM):
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        self._fit_double_ml_im(X, y, d, z)
+        self._fit_double_ml(X, y, d, z)
         
         return
     

@@ -96,6 +96,44 @@ class DoubleML:
         smpls = [(train, test) for train, test in resampling.split(X)]
         self._smpls = smpls
     
+    def _fit_double_ml(self, X, y, d, z=None):
+        """
+        Fit doubleML model for PLR & PLIV
+        Parameters
+        ----------
+        X : 
+        y : 
+        d : 
+        z : 
+        Returns
+        -------
+        self: resturns an instance of DoubleMLPLR
+        """
+        
+        X = assure_2d_array(X)
+        d = assure_2d_array(d)
+        
+        self.n_treat = d.shape[1]
+        self.n_obs = X.shape[0]
+        
+        self._initialize_arrays()
+        
+        dml_procedure = self.dml_procedure
+        inf_model = self.inf_model
+        
+        # TODO: se_type hard-coded to match inf_model
+        se_type = inf_model
+        
+        # perform sample splitting
+        self._split_samples(X)
+        
+        self._fit_nuisance_and_causal(X, y, d, z)
+            
+        t = self.coef_ / self.se_
+        pval = 2 * norm.cdf(-np.abs(t))
+        self.t_ = t
+        self.pval_ = pval
+    
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
@@ -184,3 +222,9 @@ class DoubleML:
         
         return boot_coef
 
+def assure_2d_array(x):
+    if x.ndim == 1:
+        x = x.reshape(-1,1)
+    elif x.ndim > 2:
+        raise ValueError('Only one- or two-dimensional arrays are allowed')
+    return x

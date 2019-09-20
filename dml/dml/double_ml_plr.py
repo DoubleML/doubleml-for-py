@@ -60,7 +60,7 @@ class DoubleMLPLR(DoubleMLPL):
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        self._fit_double_ml_pl(X, y, d)
+        self._fit_double_ml(X, y, d)
         
         return
     
