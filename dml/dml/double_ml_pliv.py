@@ -5,13 +5,17 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
-from .double_ml_pl import DoubleMLPL
+from .double_ml import DoubleML
 
-class DoubleMLPLIV(DoubleMLPL):
+class DoubleMLPLIV(DoubleML):
     """
     Double Machine Learning for Partially Linear IV regression model
     """
     
+    def _est_nuisance(self, X, y, d, z):
+        self._ml_nuisance(X, y, d, z)
+        self._compute_score_elements()
+        
     def _ml_nuisance(self, X, y, d, z):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']

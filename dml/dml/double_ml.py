@@ -5,6 +5,8 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
+from .helper import assure_2d_array
+
 class DoubleML:
     """
     Double Machine Learning
@@ -136,7 +138,18 @@ class DoubleML:
         # perform sample splitting
         self._split_samples(X)
         
-        self._fit_nuisance_and_causal(X, y, d, z)
+        Xd = np.hstack((X,d))
+        n_cols_X = X.shape[1]
+        
+        for i_d in range(self.n_treat):
+            self._i_d = i_d
+            this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
+            
+            # ml estimation of nuisance models
+            self._est_nuisance(this_Xd, y, d[:, i_d], z)
+                
+            # estimate the causal parameter(s)
+            self._est_causal_pars()
             
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))
@@ -245,9 +258,3 @@ class DoubleML:
         
         self.boot_coef_ = np.matmul(weights, score) / (self.n_obs * se * J)
 
-def assure_2d_array(x):
-    if x.ndim == 1:
-        x = x.reshape(-1,1)
-    elif x.ndim > 2:
-        raise ValueError('Only one- or two-dimensional arrays are allowed')
-    return x

@@ -5,13 +5,22 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
-from .double_ml_im import DoubleMLIM
+from .double_ml import DoubleML
+from .helper import check_binary_vector
 
-class DoubleMLPIRM(DoubleMLIM):
+class DoubleMLPIRM(DoubleML):
     """
     Double Machine Learning for Interactive Regression Model
     """
     
+    def _est_nuisance(self, X, y, d, z):
+        assert z is None
+        # get train indices for d==0 and d==1
+        self._get_cond_smpls(d)
+        self._ml_nuisance(X, y, d)
+        self._compute_score_elements(d)
+        
+        
     def _get_cond_smpls(self, d):
         smpls = self._smpls
         self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
@@ -81,6 +90,7 @@ class DoubleMLPIRM(DoubleMLIM):
         -------
         self: resturns an instance of DoubleMLPLR
         """
+        check_binary_vector(d, variable_name='d')
         self._fit_double_ml(X, y, d)
         
         return
