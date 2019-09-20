@@ -80,7 +80,11 @@ def generate_data_bivariate(request):
         Y = theta[0]*D0 + theta[1]*D1 +G+np.random.standard_normal(size=[N,])
         D = np.column_stack((D0, D1))
         xx = {'X': X, 'y': Y, 'd': D}
-        datasets.append(xx)
+        column_names = [f'X{i}' for i in np.arange(p)] \
+                       + ['y'] + [f'd{i}' for i in np.arange(2)]
+        data = pd.DataFrame(np.column_stack((X, Y, D)),
+                            columns = column_names)
+        datasets.append(data)
     
     return datasets
     
@@ -109,7 +113,11 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
         D = X[:, cols_treatment]
         X = np.delete(X, cols_treatment, axis=1)
         xx = {'X': X, 'y': Y, 'd': D}
-        datasets.append(xx)
+        column_names = [f'X{i}' for i in np.arange(X.shape[1])] \
+                       + ['y'] + [f'd{i}' for i in np.arange(len(cols_treatment))]
+        data = pd.DataFrame(np.column_stack((X, Y, D)),
+                            columns = column_names)
+        datasets.append(data)
     
     return datasets
 
@@ -138,7 +146,9 @@ def generate_data_iv(request):
         D = M + np.random.standard_normal(size=[N,])
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
-        datasets.append(xx)
+        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd', 'z'])
+        datasets.append(data)
     
     return datasets
 
@@ -167,7 +177,9 @@ def generate_data_irm(request):
         D = np.random.binomial(p=MMM, n=1)
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
-        datasets.append(xx)
+        data = pd.DataFrame(np.column_stack((X, Y, D)),
+                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd'])
+        datasets.append(data)
     
     return datasets
 
@@ -204,7 +216,9 @@ def generate_data_iivm(request):
         
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
-        datasets.append(xx)
+        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd', 'z'])
+        datasets.append(data)
     
     return datasets
 

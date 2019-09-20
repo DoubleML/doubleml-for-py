@@ -39,23 +39,29 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                 inf_model)
     data = generate_data_iv[idx]
     np.random.seed(3141)
-    dml_pliv_obj.fit(data['X'], data['y'], data['d'], data['z'])
+    dml_pliv_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+                    data['y'].values, data['d'].values, data['z'].values)
     
     np.random.seed(3141)
-    smpls = [(train, test) for train, test in resampling.split(data['X'])]
+    y = data['y'].values
+    X = data.loc[:, data.columns.str.startswith('X')].values
+    d = data['d'].values
+    z = data['z'].values
     
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(data['y'], data['X'], data['d'], data['z'],
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    
+    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,
                                             clone(learner), clone(learner), clone(learner),
                                             smpls)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_dml1(data['y'], data['X'], data['d'],
-                                          data['z'],
+        res_manual, se_manual = pliv_dml1(y, X, d,
+                                          z,
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = pliv_dml2(data['y'], data['X'], data['d'],
-                                          data['z'],
+        res_manual, se_manual = pliv_dml2(y, X, d,
+                                          z,
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     
@@ -65,8 +71,8 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
     for bootstrap in ['Bayes', 'normal', 'wild']:
         np.random.seed(3141)
         boot_theta = boot_pliv(res_manual,
-                               data['y'], data['d'],
-                               data['z'],
+                               y, d,
+                               z,
                                g_hat, m_hat, r_hat,
                                smpls, inf_model,
                                se_manual,

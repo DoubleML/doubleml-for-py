@@ -40,12 +40,18 @@ def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, 
         data = generate_data_toeplitz[idx-n_datasets]
         
     np.random.seed(3141)
-    dml_plr_obj.fit(data['X'], data['y'], data['d'])
+    dml_plr_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+                    data['y'].values,
+                    data.loc[:, data.columns.str.startswith('d')].values)
     
     np.random.seed(3141)
-    smpls = [(train, test) for train, test in resampling.split(data['X'])]
+    y = data['y'].values
+    X = data.loc[:, data.columns.str.startswith('X')].values
+    d = data.loc[:, data.columns.str.startswith('d')].values
     
-    n_d = data['d'].shape[1]
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    
+    n_d = d.shape[1]
     
     coef_manual = np.full(n_d, np.nan)
     se_manual = np.full(n_d, np.nan)
@@ -55,20 +61,20 @@ def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, 
     
     for i_d in range(n_d):
         
-        Xd = np.hstack((data['X'], np.delete(data['d'], i_d , axis=1)))
+        Xd = np.hstack((X, np.delete(d, i_d , axis=1)))
         
-        g_hat, m_hat = fit_nuisance_plr(data['y'], Xd, data['d'][:, i_d],
+        g_hat, m_hat = fit_nuisance_plr(y, Xd, d[:, i_d],
                                         clone(learner), clone(learner), smpls)
         
         all_g_hat.append(g_hat)
         all_m_hat.append(m_hat)
         
         if dml_procedure == 'dml1':
-            coef_manual[i_d], se_manual[i_d] = plr_dml1(data['y'], Xd, data['d'][:, i_d],
+            coef_manual[i_d], se_manual[i_d] = plr_dml1(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, inf_model)
         elif dml_procedure == 'dml2':
-            coef_manual[i_d], se_manual[i_d] = plr_dml2(data['y'], Xd, data['d'][:, i_d],
+            coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, inf_model)
     
@@ -80,7 +86,7 @@ def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, 
         boot_theta = np.full((n_d, 500), np.nan)
         for i_d in range(n_d):
             boot_theta[i_d, :] = boot_plr(coef_manual[i_d],
-                                          data['y'], data['d'][:, i_d],
+                                          y, d[:, i_d],
                                           all_g_hat[i_d], all_m_hat[i_d],
                                           smpls, inf_model,
                                           se_manual[i_d],

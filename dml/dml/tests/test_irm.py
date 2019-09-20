@@ -38,21 +38,25 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
                                inf_model)
     data = generate_data_irm[idx]
     np.random.seed(3141)
-    dml_irm_obj.fit(data['X'], data['y'], data['d'])
+    dml_irm_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+                    data['y'].values, data['d'].values)
     
     np.random.seed(3141)
-    smpls = [(train, test) for train, test in resampling.split(data['X'])]
+    y = data['y'].values
+    X = data.loc[:, data.columns.str.startswith('X')].values
+    d = data['d'].values
+    smpls = [(train, test) for train, test in resampling.split(X)]
     
-    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(data['y'], data['X'], data['d'],
+    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
                                                     clone(learner[0]), clone(learner[1]), smpls,
                                                     inf_model)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = irm_dml1(data['y'], data['X'], data['d'],
+        res_manual, se_manual = irm_dml1(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = irm_dml2(data['y'], data['X'], data['d'],
+        res_manual, se_manual = irm_dml2(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, inf_model)
     
@@ -62,7 +66,7 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
     for bootstrap in ['normal']:
         np.random.seed(3141)
         boot_theta = boot_irm(res_manual,
-                              data['y'], data['d'],
+                              y, d,
                               g_hat0, g_hat1, m_hat, p_hat,
                               smpls, inf_model,
                               se_manual,
