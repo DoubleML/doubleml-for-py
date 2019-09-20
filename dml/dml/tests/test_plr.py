@@ -38,20 +38,25 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
                               inf_model)
     data = generate_data1[idx]
     np.random.seed(3141)
-    dml_plr_obj.fit(data['X'], data['y'], data['d'])
+    dml_plr_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+                    data['y'].values, data['d'].values)
     
     np.random.seed(3141)
-    smpls = [(train, test) for train, test in resampling.split(data['X'])]
+    y = data['y'].values
+    X = data.loc[:, data.columns.str.startswith('X')].values
+    d = data['d'].values
     
-    g_hat, m_hat = fit_nuisance_plr(data['y'], data['X'], data['d'],
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    
+    g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                     clone(learner), clone(learner), smpls)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+        res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
                                          smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+        res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
                                          smpls, inf_model)
     
@@ -61,7 +66,7 @@ def test_dml_plr(generate_data1, idx, learner, inf_model, dml_procedure):
     for bootstrap in ['normal']:
         np.random.seed(3141)
         boot_theta = boot_plr(res_manual,
-                              data['y'], data['d'],
+                              y, d,
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,
@@ -90,9 +95,13 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
                               inf_model)
     data = generate_data1[idx]
     
-    dml_plr_obj.fit(data['X'], data['y'], data['d'])
+    dml_plr_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+                    data['y'].values, data['d'].values)
     
-    N = len(data['y'])
+    y = data['y'].values
+    X = data.loc[:, data.columns.str.startswith('X')].values
+    d = data['d'].values
+    N = len(y)
     smpls = []
     xx = int(N/2)
     smpls.append((np.arange(0, xx), np.arange(xx, N)))
@@ -100,24 +109,24 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
     
     # add column of ones for intercept
     o = np.ones((N,1))
-    X = np.append(data['X'], o, axis=1)
+    X = np.append(X, o, axis=1)
     
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        ols_est = scipy.linalg.lstsq(X[train_index], data['y'][train_index])[0]
+        ols_est = scipy.linalg.lstsq(X[train_index], y[train_index])[0]
         g_hat.append(np.dot(X[test_index], ols_est))
     
     m_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        ols_est = scipy.linalg.lstsq(X[train_index], data['d'][train_index])[0]
+        ols_est = scipy.linalg.lstsq(X[train_index], d[train_index])[0]
         m_hat.append(np.dot(X[test_index], ols_est))
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(data['y'], data['X'], data['d'],
+        res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
                                          smpls, inf_model)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(data['y'], data['X'], data['d'],
+        res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
                                          smpls, inf_model)
     
@@ -127,7 +136,7 @@ def test_dml_plr_ols_manual(generate_data1, idx, inf_model, dml_procedure):
     for bootstrap in ['Bayes', 'normal', 'wild']:
         np.random.seed(3141)
         boot_theta = boot_plr(res_manual,
-                              data['y'], data['d'],
+                              y, d,
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,

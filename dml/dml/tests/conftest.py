@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+
 import pytest
 import math
 import scipy
@@ -48,7 +50,9 @@ def generate_data1(request):
         D = M+np.random.standard_normal(size=[N,])
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
-        datasets.append(xx)
+        data = pd.DataFrame(np.column_stack((X, Y, D)),
+                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd'])
+        datasets.append(data)
     
     return datasets
 
