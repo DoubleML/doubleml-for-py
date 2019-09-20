@@ -5,9 +5,11 @@ from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
+from abc import ABC, abstractmethod
+
 from .helper import assure_2d_array
 
-class DoubleML:
+class DoubleML(ABC):
     """
     Double Machine Learning
     """
@@ -221,8 +223,12 @@ class DoubleML:
     def _compute_score(self):
         self.score = self.score_a * self.coef_ + self.score_b
     
-    def bootstrap(self, method = 'normal', n_rep = 500):
-        if self.coef_ is None:
+    @abstractmethod
+    def fit(self):
+        pass
+    
+    def bootstrap(self, method, n_rep):
+        if (not hasattr(self, 'coef_')) or (self.coef_ is None):
             raise ValueError('apply fit() before bootstrap()')
         
         # can be asserted here 
