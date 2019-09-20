@@ -20,6 +20,24 @@ class DoubleMLPL(DoubleML):
     #    
     #    return par_dict
     
+    def _fit_nuisance_and_causal(self, X, y, d, z=None):
+        Xd = np.hstack((X,d))
+        n_cols_X = X.shape[1]
+        
+        for i_d in range(self.n_treat):
+            self._i_d = i_d
+            
+            this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
+            # ml estimation of nuisance models
+            if z is None:
+                self._ml_nuisance(this_Xd, y, d[:, i_d])
+            else:
+                self._ml_nuisance(this_Xd, y, d[:, i_d], z)
+            self._compute_score_elements()
+            
+            # estimate the causal parameter(s)
+            self._est_causal_pars()
+    
     def _fit_double_ml_pl(self, X, y, d, z=None):
         """
         Fit doubleML model for PLR & PLIV
@@ -51,23 +69,7 @@ class DoubleMLPL(DoubleML):
         # perform sample splitting
         self._split_samples(X)
         
-        Xd = np.hstack((X,d))
-        n_cols_X = X.shape[1]
-        
-        for i_d in range(self.n_treat):
-            self._i_d = i_d
-            
-            this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
-            # ml estimation of nuisance models
-            if z is None:
-                self._ml_nuisance(this_Xd, y, d[:, i_d])
-            else:
-                self._ml_nuisance(this_Xd, y, d[:, i_d], z)
-            self._compute_score_elements()
-            
-            # estimate the causal parameter(s)
-            self._est_causal_pars()
-            
+        self._fit_nuisance_and_causal(X, y, d, z)
         
         t = self.coef_ / self.se_
         pval = 2 * norm.cdf(-np.abs(t))
