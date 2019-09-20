@@ -27,18 +27,13 @@ class DoubleMLIM(DoubleML):
         self: resturns an instance of DoubleMLPLR
         """
         
+        X = assure_2d_array(X)
+        d = assure_2d_array(d)
+        
+        self.n_treat = d.shape[1]
         self.n_obs = X.shape[0]
-        assert d.ndim == 1
-        self.n_treat = 1
-        self._i_d = 0
         
         self._initialize_arrays()
-        
-        # assure D binary
-        assert type_of_target(d) == 'binary', 'variable d must be binary'
-        
-        if np.any(np.power(d,2) - d != 0):
-            raise ValueError('variable d must be binary with values 0 and 1')
         
         dml_procedure = self.dml_procedure
         inf_model = self.inf_model
@@ -49,16 +44,26 @@ class DoubleMLIM(DoubleML):
         # perform sample splitting
         self._split_samples(X)
         
+        # only applicable for a single treatment variable
+        assert self.n_treat == 1
+        self._i_d = 0
+        D = d[:, 0]
+        
+        # assure D binary
+        assert type_of_target(D) == 'binary', 'variable d must be binary'
+        
+        if np.any(np.power(D,2) - D != 0):
+            raise ValueError('variable d must be binary with values 0 and 1')
         
         if z is None:
             # get train indices for d==0 and d==1
-            self._get_cond_smpls(d)
-            self._ml_nuisance(X, y, d)
-            self._compute_score_elements(d)
+            self._get_cond_smpls(D)
+            self._ml_nuisance(X, y, D)
+            self._compute_score_elements(D)
         else:
             # get train indices for d==0 and d==1
             self._get_cond_smpls(z)
-            self._ml_nuisance(X, y, d, z)
+            self._ml_nuisance(X, y, D, z)
             self._compute_score_elements(z)
             
         # estimate the causal parameter(s)
@@ -82,3 +87,10 @@ class DoubleMLIM(DoubleML):
         self.boot_coef_ = self._bootstrap_single_treat(method, n_rep)
         
         return
+
+def assure_2d_array(x):
+    if x.ndim == 1:
+        x = x.reshape(-1,1)
+    elif x.ndim > 2:
+        raise ValueError('Only one- or two-dimensional arrays are allowed')
+    return x

@@ -36,12 +36,9 @@ class DoubleMLPL(DoubleML):
         
         X = assure_2d_array(X)
         d = assure_2d_array(d)
-        Xd = np.hstack((X,d))
         
         self.n_treat = d.shape[1]
         self.n_obs = X.shape[0]
-        
-        n_cols_X = X.shape[1]
         
         self._initialize_arrays()
         
@@ -52,7 +49,10 @@ class DoubleMLPL(DoubleML):
         se_type = inf_model
         
         # perform sample splitting
-        self._split_samples(Xd)
+        self._split_samples(X)
+        
+        Xd = np.hstack((X,d))
+        n_cols_X = X.shape[1]
         
         for i_d in range(self.n_treat):
             self._i_d = i_d
