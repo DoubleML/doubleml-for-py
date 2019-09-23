@@ -18,12 +18,29 @@ from dml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, bo
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+@pytest.fixture(scope='module',
+                params = range(2*n_datasets))
+def idx(request):
+    return request.param
 
-@pytest.mark.parametrize('idx', range(2*n_datasets))
-@pytest.mark.parametrize('learner', [Lasso(alpha=0.1)])
-@pytest.mark.parametrize('inf_model', ['IV-type', 'DML2018'])
-@pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
-def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
+@pytest.fixture(scope='module',
+                params = [Lasso(alpha=0.1)])
+def learner(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['IV-type', 'DML2018'])
+def inf_model(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['dml1', 'dml2'])
+def dml_procedure(request):
+    return request.param
+
+@pytest.fixture(scope='module')
+def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
+    boot_methods = ['normal']
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
@@ -77,11 +94,15 @@ def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, 
             coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, inf_model)
+                   
+    res_dict = {'coef': dml_plr_obj.coef_,
+                'coef_manual': coef_manual,
+                'se': dml_plr_obj.se_,
+                'se_manual': se_manual,
+                'boot_methods': boot_methods}
     
-    assert np.allclose(dml_plr_obj.coef_, coef_manual, rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_plr_obj.se_, se_manual, rtol=1e-9, atol=1e-4)
     
-    for bootstrap in ['normal']:
+    for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta = np.full((n_d, 500), np.nan)
         for i_d in range(n_d):
@@ -94,7 +115,24 @@ def test_dml_plr(generate_data_bivariate, generate_data_toeplitz, idx, learner, 
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(dml_plr_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
-    return
+    return res_dict
+
+def test_dml_plr_multitreat_coef(dml_plr_multitreat_fixture):
+    assert np.allclose(dml_plr_multitreat_fixture['coef'],
+                       dml_plr_multitreat_fixture['coef_manual'],
+                       rtol=1e-9, atol=1e-4)
+
+def test_dml_plr_multitreat_se(dml_plr_multitreat_fixture):
+    assert np.allclose(dml_plr_multitreat_fixture['se'],
+                       dml_plr_multitreat_fixture['se_manual'],
+                       rtol=1e-9, atol=1e-4)
+
+def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
+    for bootstrap in dml_plr_multitreat_fixture['boot_methods']:
+        assert np.allclose(dml_plr_multitreat_fixture['boot_coef' + bootstrap],
+                           dml_plr_multitreat_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
 

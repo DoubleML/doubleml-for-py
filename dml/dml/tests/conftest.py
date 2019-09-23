@@ -27,7 +27,7 @@ def m3(x,nu=0.,gamma=1.):
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(500, 10),
                           (1000, 20),
                           (1000, 100)])
@@ -56,7 +56,7 @@ def generate_data1(request):
     
     return datasets
 
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(1000, 20)])
 def generate_data_bivariate(request):
     N_p = request.param
@@ -88,7 +88,7 @@ def generate_data_bivariate(request):
     
     return datasets
     
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(1000, 20)])
 def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, noisevar = 10):
     N_p = request.param
@@ -121,7 +121,7 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
     
     return datasets
 
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(1000, 20)])
 def generate_data_iv(request):
     N_p = request.param
@@ -152,7 +152,7 @@ def generate_data_iv(request):
     
     return datasets
 
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(500, 10),
                           (1000, 20),
                           (1000, 100)])
@@ -184,7 +184,7 @@ def generate_data_irm(request):
     return datasets
 
 
-@pytest.fixture(scope="module",
+@pytest.fixture(scope='session',
                 params = [(1000, 30)])
 def generate_data_iivm(request):
     N_p = request.param

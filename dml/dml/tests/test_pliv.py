@@ -18,14 +18,32 @@ from dml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+@pytest.fixture(scope='module',
+                params = range(n_datasets))
+def idx(request):
+    return request.param
 
-@pytest.mark.parametrize('idx', range(n_datasets))
-@pytest.mark.parametrize('learner', [RandomForestRegressor(max_depth=2, n_estimators=10),
-                                     LinearRegression(),
-                                     Lasso(alpha=0.1)])
-@pytest.mark.parametrize('inf_model', ['DML2018'])
-@pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
-def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
+@pytest.fixture(scope='module',
+                params = [RandomForestRegressor(max_depth=2, n_estimators=10),
+                          LinearRegression(),
+                          Lasso(alpha=0.1)])
+def learner(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['DML2018'])
+def inf_model(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['dml1', 'dml2'])
+def dml_procedure(request):
+    return request.param
+
+@pytest.fixture(scope='module')
+def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
+    boot_methods = ['Bayes', 'normal', 'wild']
+    
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
@@ -65,10 +83,13 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     
-    assert math.isclose(dml_pliv_obj.coef_[0], res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_pliv_obj.se_[0], se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    res_dict = {'coef': dml_pliv_obj.coef_,
+                'coef_manual': res_manual,
+                'se': dml_pliv_obj.se_,
+                'se_manual': se_manual,
+                'boot_methods': boot_methods}
     
-    for bootstrap in ['Bayes', 'normal', 'wild']:
+    for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta = boot_pliv(res_manual,
                                y, d,
@@ -80,7 +101,24 @@ def test_dml_pliv(generate_data_iv, idx, learner, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(dml_pliv_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
-    return
+    return res_dict
+
+def test_dml_pliv_coef(dml_pliv_fixture):
+    assert math.isclose(dml_pliv_fixture['coef'],
+                        dml_pliv_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+def test_dml_pliv_se(dml_pliv_fixture):
+    assert math.isclose(dml_pliv_fixture['se'],
+                        dml_pliv_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+def test_dml_pliv_boot(dml_pliv_fixture):
+    for bootstrap in dml_pliv_fixture['boot_methods']:
+        assert np.allclose(dml_pliv_fixture['boot_coef' + bootstrap],
+                           dml_pliv_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
     

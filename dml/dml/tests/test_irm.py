@@ -18,14 +18,33 @@ from dml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, bo
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
-@pytest.mark.parametrize('idx', range(n_datasets))
-@pytest.mark.parametrize('learner', [[LogisticRegression(solver='lbfgs', max_iter=250),
-                                      LinearRegression()],
-                                     [RandomForestClassifier(max_depth=2, n_estimators=10),
-                                      RandomForestRegressor(max_depth=2, n_estimators=10)]])
-@pytest.mark.parametrize('inf_model', ['ATE', 'ATTE'])
-@pytest.mark.parametrize('dml_procedure', ['dml1', 'dml2'])
-def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
+@pytest.fixture(scope='module',
+                params = range(n_datasets))
+def idx(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = [[LogisticRegression(solver='lbfgs', max_iter=250),
+                           LinearRegression()],
+                          [RandomForestClassifier(max_depth=2, n_estimators=10),
+                           RandomForestRegressor(max_depth=2, n_estimators=10)]])
+def learner(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['ATE', 'ATTE'])
+def inf_model(request):
+    return request.param
+
+@pytest.fixture(scope='module',
+                params = ['dml1', 'dml2'])
+def dml_procedure(request):
+    return request.param
+
+@pytest.fixture(scope='module')
+def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
+    boot_methods = ['normal']
+    
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
@@ -60,10 +79,13 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, inf_model)
     
-    assert math.isclose(dml_irm_obj.coef_, res_manual, rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_irm_obj.se_, se_manual, rel_tol=1e-9, abs_tol=1e-4)
+    res_dict = {'coef': dml_irm_obj.coef_,
+                'coef_manual': res_manual,
+                'se': dml_irm_obj.se_,
+                'se_manual': se_manual,
+                'boot_methods': boot_methods}
     
-    for bootstrap in ['normal']:
+    for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta = boot_irm(res_manual,
                               y, d,
@@ -74,7 +96,24 @@ def test_dml_irm(generate_data_irm, idx, learner, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method = bootstrap, n_rep=500)
-        assert np.allclose(dml_irm_obj.boot_coef_, boot_theta, rtol=1e-9, atol=1e-4)
+        res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
-    return
+    return res_dict
+
+def test_dml_irm_coef(dml_irm_fixture):
+    assert math.isclose(dml_irm_fixture['coef'],
+                        dml_irm_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+def test_dml_irm_se(dml_irm_fixture):
+    assert math.isclose(dml_irm_fixture['se'],
+                        dml_irm_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+def test_dml_irm_boot(dml_irm_fixture):
+    for bootstrap in dml_irm_fixture['boot_methods']:
+        assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
+                           dml_irm_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
 
