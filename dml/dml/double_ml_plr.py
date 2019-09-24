@@ -11,12 +11,15 @@ class DoubleMLPLR(DoubleML):
     """
     Double Machine Learning for Partially Linear Regression
     """
-        
+    
+    def _check_data(self, obj_dml_data):
+        assert obj_dml_data.z_col is None
+        return
+    
     def _ml_nuisance(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
-        assert obj_dml_data.z_col is None
         X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
         
@@ -50,21 +53,4 @@ class DoubleMLPLR(DoubleML):
         else:
             raise ValueError('invalid inf_model')
         self.score_b = np.multiply(v_hat,u_hat)
-    
-    
-    def fit(self, obj_dml_data):
-        """
-        Fit doubleML model for PLR
-        Parameters
-        ----------
-        X : 
-        y : 
-        d : 
-        Returns
-        -------
-        self: resturns an instance of DoubleMLPLR
-        """
-        self._fit_double_ml(obj_dml_data)
-        
-        return
     

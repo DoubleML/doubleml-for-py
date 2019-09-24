@@ -12,7 +12,13 @@ class DoubleMLPIRM(DoubleML):
     """
     Double Machine Learning for Interactive Regression Model
     """
-        
+    
+    def _check_data(self, obj_dml_data):
+        assert obj_dml_data.z_col is None
+        assert obj_dml_data.n_treat == 1
+        check_binary_vector(obj_dml_data.d, variable_name='d')
+        return
+    
     def _get_cond_smpls(self, d):
         smpls = self._smpls
         self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
@@ -26,7 +32,6 @@ class DoubleMLPIRM(DoubleML):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
-        assert obj_dml_data.z_col is None
         X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
         
@@ -75,22 +80,4 @@ class DoubleMLPIRM(DoubleML):
             self.score_a = - np.divide(d, self._p_hat)
         else:
             raise ValueError('invalid inf_model')
-    
-    
-    def fit(self, obj_dml_data):
-        """
-        Fit doubleML model for PLR
-        Parameters
-        ----------
-        X : 
-        y : 
-        d : 
-        Returns
-        -------
-        self: resturns an instance of DoubleMLPLR
-        """
-        check_binary_vector(obj_dml_data.d, variable_name='d')
-        self._fit_double_ml(obj_dml_data)
-        
-        return
 

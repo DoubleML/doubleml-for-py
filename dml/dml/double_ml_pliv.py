@@ -11,7 +11,10 @@ class DoubleMLPLIV(DoubleML):
     """
     Double Machine Learning for Partially Linear IV regression model
     """
-        
+    
+    def _check_data(self, obj_dml_data):
+        return
+    
     def _ml_nuisance(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
@@ -58,22 +61,4 @@ class DoubleMLPLIV(DoubleML):
             # still need to estimate the DML2018 type first
             raise ValueError('invalid inf_model')
         self.score_b = np.multiply(v_hat,u_hat)
-    
-    
-    def fit(self, obj_dml_data):
-        """
-        Fit doubleML model for PLR
-        Parameters
-        ----------
-        X : 
-        y : 
-        d : 
-        z : 
-        Returns
-        -------
-        self: resturns an instance of DoubleMLPLR
-        """
-        self._fit_double_ml(obj_dml_data)
-        
-        return
     

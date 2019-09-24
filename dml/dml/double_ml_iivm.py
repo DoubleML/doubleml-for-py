@@ -12,7 +12,13 @@ class DoubleMLPIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
     """
-        
+    
+    def _check_data(self, obj_dml_data):
+        assert obj_dml_data.n_treat == 1
+        check_binary_vector(obj_dml_data.d, variable_name='d')
+        check_binary_vector(obj_dml_data.z, variable_name='z')
+        return
+    
     def _get_cond_smpls(self, z):
         smpls = self._smpls
         self._smpls_z0 = [(np.intersect1d(np.where(z==0)[0], train),
@@ -71,24 +77,4 @@ class DoubleMLPIIVM(DoubleML):
                                 - np.divide(np.multiply(1.0-z, self._w_hat0), 1.0 - self.m_hat))
         else:
             raise ValueError('invalid inf_model')
-    
-    
-    def fit(self, obj_dml_data):
-        """
-        Fit doubleML model for PLR
-        Parameters
-        ----------
-        X : 
-        y : 
-        d : 
-        z : 
-        Returns
-        -------
-        self: resturns an instance of DoubleMLPLR
-        """
-        check_binary_vector(obj_dml_data.d, variable_name='d')
-        check_binary_vector(obj_dml_data.z, variable_name='z')
-        self._fit_double_ml(obj_dml_data)
-        
-        return
 

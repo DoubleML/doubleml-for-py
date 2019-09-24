@@ -110,21 +110,19 @@ class DoubleML(ABC):
         smpls = [(train, test) for train, test in resampling.split(X)]
         self._smpls = smpls
     
-    def _fit_double_ml(self, obj_dml_data):
+    def fit(self, obj_dml_data):
         """
-        Fit doubleML model for PLR & PLIV
+        Fit doubleML model
         Parameters
         ----------
-        X : 
-        y : 
-        d : 
-        z : 
+        obj_dml_data : 
         Returns
         -------
-        self: resturns an instance of DoubleMLPLR
+        
         """
         
         assert isinstance(obj_dml_data, DoubleMLData)
+        self._check_data(obj_dml_data)
         
         self.n_treat = obj_dml_data.n_treat
         self.n_obs = obj_dml_data.n_obs
@@ -222,10 +220,6 @@ class DoubleML(ABC):
     
     def _compute_score(self):
         self.score = self.score_a * self.coef_ + self.score_b
-    
-    @abstractmethod
-    def fit(self):
-        pass
     
     def bootstrap(self, method, n_rep):
         if (not hasattr(self, 'coef_')) or (self.coef_ is None):

@@ -9,9 +9,6 @@ def assure_2d_array(x):
     return x
 
 def check_binary_vector(x, variable_name=''):
-    # only a single treatment variable is allowed
-    assert x.ndim == 1
-    
     # assure D binary
     assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
     
