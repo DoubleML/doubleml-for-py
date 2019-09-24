@@ -7,7 +7,8 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-from .helper import assure_2d_array, double_ml_data_from_arrays
+from .helper import assure_2d_array
+from .double_ml_data import DoubleMLData
 
 class DoubleML(ABC):
     """
@@ -109,7 +110,7 @@ class DoubleML(ABC):
         smpls = [(train, test) for train, test in resampling.split(X)]
         self._smpls = smpls
     
-    def _fit_double_ml(self, X, y, d, z=None):
+    def _fit_double_ml(self, obj_dml_data):
         """
         Fit doubleML model for PLR & PLIV
         Parameters
@@ -123,7 +124,8 @@ class DoubleML(ABC):
         self: resturns an instance of DoubleMLPLR
         """
         
-        obj_dml_data = double_ml_data_from_arrays(X, y, d, z)
+        assert isinstance(obj_dml_data, DoubleMLData)
+        
         self.n_treat = obj_dml_data.n_treat
         self.n_obs = obj_dml_data.n_obs
         

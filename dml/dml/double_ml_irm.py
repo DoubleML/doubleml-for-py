@@ -77,7 +77,7 @@ class DoubleMLPIRM(DoubleML):
             raise ValueError('invalid inf_model')
     
     
-    def fit(self, X, y, d):
+    def fit(self, obj_dml_data):
         """
         Fit doubleML model for PLR
         Parameters
@@ -89,8 +89,8 @@ class DoubleMLPIRM(DoubleML):
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        check_binary_vector(d, variable_name='d')
-        self._fit_double_ml(X, y, d)
+        check_binary_vector(obj_dml_data.d, variable_name='d')
+        self._fit_double_ml(obj_dml_data)
         
         return
 

@@ -9,6 +9,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
+from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
 from dml.double_ml_irm import DoubleMLPIRM
 
 from dml.tests.helper_general import get_n_datasets
@@ -57,8 +58,9 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
                                inf_model)
     data = generate_data_irm[idx]
     np.random.seed(3141)
-    dml_irm_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
-                    data['y'].values, data['d'].values)
+    obj_dml_data = double_ml_data_from_arrays(data.loc[:, data.columns.str.startswith('X')].values,
+                                data['y'].values, data['d'].values)
+    dml_irm_obj.fit(obj_dml_data)
     
     np.random.seed(3141)
     y = data['y'].values

@@ -52,7 +52,7 @@ class DoubleMLPLR(DoubleML):
         self.score_b = np.multiply(v_hat,u_hat)
     
     
-    def fit(self, X, y, d):
+    def fit(self, obj_dml_data):
         """
         Fit doubleML model for PLR
         Parameters
@@ -64,7 +64,7 @@ class DoubleMLPLR(DoubleML):
         -------
         self: resturns an instance of DoubleMLPLR
         """
-        self._fit_double_ml(X, y, d)
+        self._fit_double_ml(obj_dml_data)
         
         return
     

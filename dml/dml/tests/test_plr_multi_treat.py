@@ -9,6 +9,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
+from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
 from dml.double_ml_plr import DoubleMLPLR
 
 from dml.tests.helper_general import get_n_datasets
@@ -57,9 +58,10 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         data = generate_data_toeplitz[idx-n_datasets]
         
     np.random.seed(3141)
-    dml_plr_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
+    obj_dml_data = double_ml_data_from_arrays(data.loc[:, data.columns.str.startswith('X')].values,
                     data['y'].values,
                     data.loc[:, data.columns.str.startswith('d')].values)
+    dml_plr_obj.fit(obj_dml_data)
     
     np.random.seed(3141)
     y = data['y'].values

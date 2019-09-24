@@ -9,6 +9,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
+from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
 from dml.double_ml_pliv import DoubleMLPLIV
 
 from dml.tests.helper_general import get_n_datasets
@@ -57,8 +58,9 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                 inf_model)
     data = generate_data_iv[idx]
     np.random.seed(3141)
-    dml_pliv_obj.fit(data.loc[:, data.columns.str.startswith('X')].values,
-                    data['y'].values, data['d'].values, data['z'].values)
+    obj_dml_data = double_ml_data_from_arrays(data.loc[:, data.columns.str.startswith('X')].values,
+                                data['y'].values, data['d'].values, data['z'].values)
+    dml_pliv_obj.fit(obj_dml_data)
     
     np.random.seed(3141)
     y = data['y'].values
