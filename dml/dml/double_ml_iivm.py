@@ -12,13 +12,6 @@ class DoubleMLPIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
     """
-    
-    def _est_nuisance(self, obj_dml_data):
-        # get train indices for z==0 and z==1
-        self._get_cond_smpls(obj_dml_data.z)
-        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
-                          obj_dml_data.d, obj_dml_data.z)
-        self._compute_score_elements(obj_dml_data.z)
         
     def _get_cond_smpls(self, z):
         smpls = self._smpls
@@ -27,14 +20,18 @@ class DoubleMLPIIVM(DoubleML):
         self._smpls_z1 = [(np.intersect1d(np.where(z==1)[0], train),
                            test) for train, test in smpls]
     
-    def _ml_nuisance(self, X, y, d, z):
+    def _ml_nuisance(self, obj_dml_data):
+        
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
         
-        X, y = check_X_y(X, y)
-        X, z = check_X_y(X, z)
-        X, d = check_X_y(X, d)
+        X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
+        X, z = check_X_y(X, obj_dml_data.z)
+        X, d = check_X_y(X, obj_dml_data.d)
+        
+        # get train indices for z==0 and z==1
+        self._get_cond_smpls(z)
         
         smpls = self._smpls
         smpls_z0 = self._smpls_z0
@@ -59,6 +56,9 @@ class DoubleMLPIIVM(DoubleML):
         self._v_hat = z - self.m_hat
         self._w_hat0 = d - self.r_hat0
         self._w_hat1 = d - self.r_hat1
+        
+        # compute score elements
+        self._compute_score_elements(z)
     
     def _compute_score_elements(self, z):
         inf_model = self.inf_model

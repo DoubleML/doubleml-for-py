@@ -11,18 +11,14 @@ class DoubleMLPLR(DoubleML):
     """
     Double Machine Learning for Partially Linear Regression
     """
-    
-    def _est_nuisance(self, obj_dml_data):
-        assert obj_dml_data.z_col is None
-        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y, obj_dml_data.d)
-        self._compute_score_elements()
         
-    def _ml_nuisance(self, X, y, d):
+    def _ml_nuisance(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
-        X, y = check_X_y(X, y)
-        X, d = check_X_y(X, d)
+        assert obj_dml_data.z_col is None
+        X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
+        X, d = check_X_y(X, obj_dml_data.d)
         
         smpls = self._smpls
         
@@ -36,6 +32,9 @@ class DoubleMLPLR(DoubleML):
         self._u_hat = y - self.g_hat
         self._v_hat = d - self.m_hat
         self._v_hatd = np.multiply(self._v_hat, d)
+        
+        # compute score elements
+        self._compute_score_elements()
     
     def _compute_score_elements(self):
         inf_model = self.inf_model

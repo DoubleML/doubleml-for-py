@@ -145,8 +145,8 @@ class DoubleML(ABC):
             if self.n_treat > 1:
                 obj_dml_data.extract_X_d(obj_dml_data.d_cols[i_d])
             
-            # ml estimation of nuisance models
-            self._est_nuisance(obj_dml_data)
+            # ml estimation of nuisance models and computation of score elements
+            self._ml_nuisance(obj_dml_data)
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()

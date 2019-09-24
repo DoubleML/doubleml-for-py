@@ -12,15 +12,6 @@ class DoubleMLPIRM(DoubleML):
     """
     Double Machine Learning for Interactive Regression Model
     """
-    
-    def _est_nuisance(self, obj_dml_data):
-        assert obj_dml_data.z is None
-        # get train indices for d==0 and d==1
-        self._get_cond_smpls(obj_dml_data.d)
-        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
-                          obj_dml_data.d)
-        self._compute_score_elements(obj_dml_data.d)
-        
         
     def _get_cond_smpls(self, d):
         smpls = self._smpls
@@ -29,14 +20,18 @@ class DoubleMLPIRM(DoubleML):
         self._smpls_d1 = [(np.intersect1d(np.where(d==1)[0], train),
                            test) for train, test in smpls]
     
-    def _ml_nuisance(self, X, y, d):
+    def _ml_nuisance(self, obj_dml_data):
         inf_model = self.inf_model
         
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
-        X, y = check_X_y(X, y)
-        X, d = check_X_y(X, d)
+        assert obj_dml_data.z_col is None
+        X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
+        X, d = check_X_y(X, obj_dml_data.d)
+        
+        # get train indices for d==0 and d==1
+        self._get_cond_smpls(d)
         
         smpls = self._smpls
         smpls_d0 = self._smpls_d0
@@ -61,6 +56,9 @@ class DoubleMLPIRM(DoubleML):
         self._u_hat0 = y - self.g_hat0
         if inf_model == 'ATE':
             self._u_hat1 = y - self.g_hat1
+            
+        # compute score elements
+        self._compute_score_elements(d)
     
     def _compute_score_elements(self, d):
         inf_model = self.inf_model

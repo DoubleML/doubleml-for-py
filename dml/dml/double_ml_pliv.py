@@ -11,20 +11,15 @@ class DoubleMLPLIV(DoubleML):
     """
     Double Machine Learning for Partially Linear IV regression model
     """
-    
-    def _est_nuisance(self, obj_dml_data):
-        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
-                          obj_dml_data.d, obj_dml_data.z)
-        self._compute_score_elements()
         
-    def _ml_nuisance(self, X, y, d, z):
+    def _ml_nuisance(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
         
-        X, y = check_X_y(X, y)
-        X, z = check_X_y(X, z)
-        X, d = check_X_y(X, d)
+        X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
+        X, z = check_X_y(X, obj_dml_data.z)
+        X, d = check_X_y(X, obj_dml_data.d)
         
         smpls = self._smpls
         
@@ -42,6 +37,9 @@ class DoubleMLPLIV(DoubleML):
         self._v_hat = z - self.m_hat
         self._w_hat = d - self.r_hat
         self._v_hatd = np.multiply(self._v_hat, d)
+        
+        # compute score elements
+        self._compute_score_elements()
     
     def _compute_score_elements(self):
         inf_model = self.inf_model
