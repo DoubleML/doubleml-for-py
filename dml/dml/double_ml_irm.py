@@ -13,12 +13,13 @@ class DoubleMLPIRM(DoubleML):
     Double Machine Learning for Interactive Regression Model
     """
     
-    def _est_nuisance(self, X, y, d, z):
-        assert z is None
+    def _est_nuisance(self, obj_dml_data):
+        assert obj_dml_data.z is None
         # get train indices for d==0 and d==1
-        self._get_cond_smpls(d)
-        self._ml_nuisance(X, y, d)
-        self._compute_score_elements(d)
+        self._get_cond_smpls(obj_dml_data.d)
+        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
+                          obj_dml_data.d)
+        self._compute_score_elements(obj_dml_data.d)
         
         
     def _get_cond_smpls(self, d):

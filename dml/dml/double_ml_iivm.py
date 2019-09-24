@@ -13,11 +13,12 @@ class DoubleMLPIIVM(DoubleML):
     Double Machine Learning for Interactive IV Model
     """
     
-    def _est_nuisance(self, X, y, d, z):
+    def _est_nuisance(self, obj_dml_data):
         # get train indices for z==0 and z==1
-        self._get_cond_smpls(z)
-        self._ml_nuisance(X, y, d, z)
-        self._compute_score_elements(z)
+        self._get_cond_smpls(obj_dml_data.z)
+        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
+                          obj_dml_data.d, obj_dml_data.z)
+        self._compute_score_elements(obj_dml_data.z)
         
     def _get_cond_smpls(self, z):
         smpls = self._smpls

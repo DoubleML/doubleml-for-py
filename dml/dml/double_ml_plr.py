@@ -12,9 +12,9 @@ class DoubleMLPLR(DoubleML):
     Double Machine Learning for Partially Linear Regression
     """
     
-    def _est_nuisance(self, X, y, d, z):
-        assert z is None
-        self._ml_nuisance(X, y, d)
+    def _est_nuisance(self, obj_dml_data):
+        assert obj_dml_data.z_col is None
+        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y, obj_dml_data.d)
         self._compute_score_elements()
         
     def _ml_nuisance(self, X, y, d):

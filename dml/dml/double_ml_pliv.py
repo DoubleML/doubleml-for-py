@@ -12,8 +12,9 @@ class DoubleMLPLIV(DoubleML):
     Double Machine Learning for Partially Linear IV regression model
     """
     
-    def _est_nuisance(self, X, y, d, z):
-        self._ml_nuisance(X, y, d, z)
+    def _est_nuisance(self, obj_dml_data):
+        self._ml_nuisance(obj_dml_data.X, obj_dml_data.y,
+                          obj_dml_data.d, obj_dml_data.z)
         self._compute_score_elements()
         
     def _ml_nuisance(self, X, y, d, z):

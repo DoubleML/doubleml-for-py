@@ -7,7 +7,7 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-from .helper import assure_2d_array
+from .helper import assure_2d_array, double_ml_data_from_arrays
 
 class DoubleML(ABC):
     """
@@ -123,11 +123,9 @@ class DoubleML(ABC):
         self: resturns an instance of DoubleMLPLR
         """
         
-        X = assure_2d_array(X)
-        d = assure_2d_array(d)
-        
-        self.n_treat = d.shape[1]
-        self.n_obs = X.shape[0]
+        obj_dml_data = double_ml_data_from_arrays(X, y, d, z)
+        self.n_treat = obj_dml_data.n_treat
+        self.n_obs = obj_dml_data.n_obs
         
         self._initialize_arrays()
         
@@ -138,17 +136,17 @@ class DoubleML(ABC):
         se_type = inf_model
         
         # perform sample splitting
-        self._split_samples(X)
-        
-        Xd = np.hstack((X,d))
-        n_cols_X = X.shape[1]
+        self._split_samples(obj_dml_data.X)
         
         for i_d in range(self.n_treat):
             self._i_d = i_d
-            this_Xd = np.delete(Xd, n_cols_X + i_d, axis=1)
+            
+            # this step could be skipped for the single treatment variable case
+            if self.n_treat > 1:
+                obj_dml_data.extract_X_d(obj_dml_data.d_cols[i_d])
             
             # ml estimation of nuisance models
-            self._est_nuisance(this_Xd, y, d[:, i_d], z)
+            self._est_nuisance(obj_dml_data)
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()
@@ -236,9 +234,7 @@ class DoubleML(ABC):
         for i_d in range(self.n_treat):
             self._i_d = i_d
             self._bootstrap_single_treat(method, n_rep)
-            
-        return
-    
+
     def _bootstrap_single_treat(self, method = 'normal', n_rep = 500):
         if self.coef_ is None:
             raise ValueError('apply fit() before bootstrap()')
