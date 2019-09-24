@@ -51,7 +51,7 @@ def generate_data1(request):
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
         data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd'])
+                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd'])
         datasets.append(data)
     
     return datasets
@@ -80,8 +80,8 @@ def generate_data_bivariate(request):
         Y = theta[0]*D0 + theta[1]*D1 +G+np.random.standard_normal(size=[N,])
         D = np.column_stack((D0, D1))
         xx = {'X': X, 'y': Y, 'd': D}
-        column_names = [f'X{i}' for i in np.arange(p)] \
-                       + ['y'] + [f'd{i}' for i in np.arange(2)]
+        column_names = [f'X{i+1}' for i in np.arange(p)] \
+                       + ['y'] + [f'd{i+1}' for i in np.arange(2)]
         data = pd.DataFrame(np.column_stack((X, Y, D)),
                             columns = column_names)
         datasets.append(data)
@@ -113,8 +113,8 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
         D = X[:, cols_treatment]
         X = np.delete(X, cols_treatment, axis=1)
         xx = {'X': X, 'y': Y, 'd': D}
-        column_names = [f'X{i}' for i in np.arange(X.shape[1])] \
-                       + ['y'] + [f'd{i}' for i in np.arange(len(cols_treatment))]
+        column_names = [f'X{i+1}' for i in np.arange(X.shape[1])] \
+                       + ['y'] + [f'd{i+1}' for i in np.arange(len(cols_treatment))]
         data = pd.DataFrame(np.column_stack((X, Y, D)),
                             columns = column_names)
         datasets.append(data)
@@ -147,7 +147,7 @@ def generate_data_iv(request):
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
         data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
-                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd', 'z'])
+                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd', 'z'])
         datasets.append(data)
     
     return datasets
@@ -178,7 +178,7 @@ def generate_data_irm(request):
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D}
         data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd'])
+                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd'])
         datasets.append(data)
     
     return datasets
@@ -217,7 +217,7 @@ def generate_data_iivm(request):
         Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
         xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
         data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
-                            columns = [f'X{i}' for i in np.arange(p)] + ['y', 'd', 'z'])
+                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd', 'z'])
         datasets.append(data)
     
     return datasets

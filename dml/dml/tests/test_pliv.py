@@ -58,13 +58,13 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                 inf_model)
     data = generate_data_iv[idx]
     np.random.seed(3141)
-    obj_dml_data = double_ml_data_from_arrays(data.loc[:, data.columns.str.startswith('X')].values,
-                                data['y'].values, data['d'].values, data['z'].values)
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'], 'z')
     dml_pliv_obj.fit(obj_dml_data)
     
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, data.columns.str.startswith('X')].values
+    X = data.loc[:, X_cols].values
     d = data['d'].values
     z = data['z'].values
     

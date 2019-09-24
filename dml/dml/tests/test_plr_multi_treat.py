@@ -58,15 +58,15 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         data = generate_data_toeplitz[idx-n_datasets]
         
     np.random.seed(3141)
-    obj_dml_data = double_ml_data_from_arrays(data.loc[:, data.columns.str.startswith('X')].values,
-                    data['y'].values,
-                    data.loc[:, data.columns.str.startswith('d')].values)
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    d_cols = data.columns[data.columns.str.startswith('d')].tolist()
+    obj_dml_data = DoubleMLData(data, X_cols, 'y', d_cols)
     dml_plr_obj.fit(obj_dml_data)
     
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, data.columns.str.startswith('X')].values
-    d = data.loc[:, data.columns.str.startswith('d')].values
+    X = data.loc[:, X_cols].values
+    d = data.loc[:, d_cols].values
     
     smpls = [(train, test) for train, test in resampling.split(X)]
     
