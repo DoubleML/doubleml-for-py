@@ -31,8 +31,8 @@ def dml_data_fixture(generate_data1, idx):
             'obj_from_pd': obj_from_pd}
 
 def test_dml_data_X(dml_data_fixture):
-    assert np.allclose(dml_data_fixture['obj_from_np'].X,
-                       dml_data_fixture['obj_from_pd'].X,
+    assert np.allclose(dml_data_fixture['obj_from_np'].x,
+                       dml_data_fixture['obj_from_pd'].x,
                        rtol=1e-9, atol=1e-4)
 
 def test_dml_data_y(dml_data_fixture):

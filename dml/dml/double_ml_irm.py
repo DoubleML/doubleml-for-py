@@ -30,7 +30,7 @@ class DoubleMLPIRM(DoubleML):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
-        X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
+        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
         
         # get train indices for d == 0 and d == 1

@@ -15,12 +15,12 @@ class DoubleMLData:
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_col = z_col
-        self.extract_y_z()
+        self._set_y_z()
         # by default, we initialize to the first treatment variable
-        self.extract_X_d(d_cols[0])
+        self._set_x_d(d_cols[0])
     
     @property
-    def X(self):
+    def x(self):
         return self._X.values
     
     @property
@@ -93,14 +93,14 @@ class DoubleMLData:
         else:
             self._z_col = None
     
-    def extract_y_z(self):
+    def _set_y_z(self):
         self._y = self.data.loc[:, self.y_col]
         if self.z_col is None:
             self._z = None
         else:
             self._z = self.data.loc[:, self.z_col]
     
-    def extract_X_d(self, treatment_var):
+    def _set_x_d(self, treatment_var):
         assert treatment_var in self.d_cols
         xd_list = self.x_cols + self.d_cols
         xd_list.remove(treatment_var)

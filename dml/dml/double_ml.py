@@ -60,6 +60,17 @@ class DoubleML(ABC):
     @se_.setter
     def se_(self, value):
         self._se_[self._i_d] = value
+
+    @property
+    def t_(self):
+        t = self.coef_ / self.se_
+        self.t_ = t
+        return t
+
+    @property
+    def pval_(self):
+        pval = 2 * norm.cdf(-np.abs(self.t_))
+        return pval
     
     @property 
     def boot_coef_(self):
@@ -110,25 +121,20 @@ class DoubleML(ABC):
         self._initialize_arrays()
         
         # perform sample splitting
-        self._split_samples(obj_dml_data.X)
+        self._split_samples(obj_dml_data.x)
         
         for i_d in range(self.n_treat):
             self._i_d = i_d
             
             # this step could be skipped for the single treatment variable case
             if self.n_treat > 1:
-                obj_dml_data.extract_X_d(obj_dml_data.d_cols[i_d])
+                obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
             
             # ml estimation of nuisance models and computation of score elements
             self._ml_nuisance(obj_dml_data)
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()
-            
-        t = self.coef_ / self.se_
-        pval = 2 * norm.cdf(-np.abs(t))
-        self.t_ = t
-        self.pval_ = pval
 
     def bootstrap(self, method = 'normal', n_rep = 500):
         """
