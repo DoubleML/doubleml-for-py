@@ -1,9 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
-from sklearn.linear_model import LinearRegression
-
-from scipy.stats import norm
 
 from .double_ml import DoubleML
 from .helper import check_binary_vector

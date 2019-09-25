@@ -1,13 +1,9 @@
 import numpy as np
-from sklearn.utils import check_X_y
-from sklearn.model_selection import cross_val_predict
-from sklearn.linear_model import LinearRegression
 
 from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-from .helper import assure_2d_array
 from .double_ml_data import DoubleMLData
 
 class DoubleML(ABC):
