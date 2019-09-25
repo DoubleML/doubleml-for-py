@@ -9,7 +9,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from dml.double_ml_data import DoubleMLData
 from dml.double_ml_plr import DoubleMLPLR
 
 from dml.tests.helper_general import get_n_datasets
@@ -24,6 +24,7 @@ n_datasets = get_n_datasets()
 def idx(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = [RandomForestRegressor(max_depth=2, n_estimators=10),
                           LinearRegression(),
@@ -31,15 +32,18 @@ def idx(request):
 def learner(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['IV-type', 'DML2018'])
 def inf_model(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope="module")
 def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
@@ -102,21 +106,25 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     
     return res_dict
 
+
 def test_dml_plr_coef(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['coef'],
                         dml_plr_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 def test_dml_plr_se(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['se'],
                         dml_plr_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
         assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
                            dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
 
 @pytest.fixture(scope="module")
 def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
@@ -193,15 +201,18 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     
     return res_dict
 
+
 def test_dml_plr_ols_manual_coef(dml_plr_ols_manual_fixture):
     assert math.isclose(dml_plr_ols_manual_fixture['coef'],
                         dml_plr_ols_manual_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 def test_dml_plr_ols_manual_se(dml_plr_ols_manual_fixture):
     assert math.isclose(dml_plr_ols_manual_fixture['se'],
                         dml_plr_ols_manual_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
     for bootstrap in dml_plr_ols_manual_fixture['boot_methods']:

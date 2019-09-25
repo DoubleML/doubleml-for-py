@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
@@ -9,7 +8,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from dml.double_ml_data import DoubleMLData
 from dml.double_ml_iivm import DoubleMLPIIVM
 
 from dml.tests.helper_general import get_n_datasets
@@ -24,6 +23,7 @@ n_datasets = get_n_datasets()
 def idx(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = [[LogisticRegression(solver='lbfgs', max_iter=250),
                            LinearRegression()],
@@ -32,15 +32,18 @@ def idx(request):
 def learner(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['LATE'])
 def inf_model(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope="module")
 def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure):
@@ -105,15 +108,18 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
     
     return res_dict
 
+
 def test_dml_iivm_coef(dml_iivm_fixture):
     assert math.isclose(dml_iivm_fixture['coef'],
                         dml_iivm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 def test_dml_iivm_se(dml_iivm_fixture):
     assert math.isclose(dml_iivm_fixture['se'],
                         dml_iivm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 def test_dml_iivm_boot(dml_iivm_fixture):
     for bootstrap in dml_iivm_fixture['boot_methods']:

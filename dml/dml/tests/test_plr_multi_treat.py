@@ -1,15 +1,12 @@
 import numpy as np
 import pytest
-import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from dml.double_ml_data import DoubleMLData
 from dml.double_ml_plr import DoubleMLPLR
 
 from dml.tests.helper_general import get_n_datasets
@@ -24,20 +21,24 @@ n_datasets = get_n_datasets()
 def idx(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = [Lasso(alpha=0.1)])
 def learner(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params = ['IV-type', 'DML2018'])
 def inf_model(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope='module')
 def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
@@ -122,15 +123,18 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     
     return res_dict
 
+
 def test_dml_plr_multitreat_coef(dml_plr_multitreat_fixture):
     assert np.allclose(dml_plr_multitreat_fixture['coef'],
                        dml_plr_multitreat_fixture['coef_manual'],
                        rtol=1e-9, atol=1e-4)
 
+
 def test_dml_plr_multitreat_se(dml_plr_multitreat_fixture):
     assert np.allclose(dml_plr_multitreat_fixture['se'],
                        dml_plr_multitreat_fixture['se_manual'],
                        rtol=1e-9, atol=1e-4)
+
 
 def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
     for bootstrap in dml_plr_multitreat_fixture['boot_methods']:

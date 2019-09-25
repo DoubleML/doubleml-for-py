@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
@@ -9,7 +8,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from dml.double_ml_data import DoubleMLData
 from dml.double_ml_pliv import DoubleMLPLIV
 
 from dml.tests.helper_general import get_n_datasets
@@ -24,6 +23,7 @@ n_datasets = get_n_datasets()
 def idx(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = [RandomForestRegressor(max_depth=2, n_estimators=10),
                           LinearRegression(),
@@ -31,15 +31,18 @@ def idx(request):
 def learner(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['DML2018'])
 def inf_model(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope='module')
 def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
@@ -108,19 +111,22 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
     
     return res_dict
 
+
 def test_dml_pliv_coef(dml_pliv_fixture):
     assert math.isclose(dml_pliv_fixture['coef'],
                         dml_pliv_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 def test_dml_pliv_se(dml_pliv_fixture):
     assert math.isclose(dml_pliv_fixture['se'],
                         dml_pliv_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 def test_dml_pliv_boot(dml_pliv_fixture):
     for bootstrap in dml_pliv_fixture['boot_methods']:
         assert np.allclose(dml_pliv_fixture['boot_coef' + bootstrap],
                            dml_pliv_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-    
+

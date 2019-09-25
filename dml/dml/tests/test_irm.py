@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
@@ -9,7 +8,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from dml.double_ml_data import DoubleMLData
 from dml.double_ml_irm import DoubleMLPIRM
 
 from dml.tests.helper_general import get_n_datasets
@@ -19,10 +18,12 @@ from dml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, bo
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
                 params = range(n_datasets))
 def idx(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params = [[LogisticRegression(solver='lbfgs', max_iter=250),
@@ -32,15 +33,18 @@ def idx(request):
 def learner(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['ATE', 'ATTE'])
 def inf_model(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = ['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope='module')
 def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
@@ -103,15 +107,18 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     
     return res_dict
 
+
 def test_dml_irm_coef(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['coef'],
                         dml_irm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 def test_dml_irm_se(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['se'],
                         dml_irm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 def test_dml_irm_boot(dml_irm_fixture):
     for bootstrap in dml_irm_fixture['boot_methods']:
