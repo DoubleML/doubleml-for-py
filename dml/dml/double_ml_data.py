@@ -56,8 +56,6 @@ class DoubleMLData():
     
     @X_cols.setter
     def X_cols(self, X_cols):
-        print(X_cols)
-        print(self.all_variables)
         assert isinstance(X_cols, list)
         assert set(X_cols).issubset(set(self.all_variables))
         self._X_cols = X_cols
