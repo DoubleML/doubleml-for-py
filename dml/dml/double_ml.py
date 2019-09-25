@@ -24,6 +24,14 @@ class DoubleML(ABC):
     @property 
     def score(self):
         return self._score
+
+    @property
+    def n_obs(self):
+        return self.score.shape[0]
+
+    @property
+    def n_treat(self):
+        return self.score.shape[0]
     
     @score.setter
     def score(self, value):
@@ -115,10 +123,8 @@ class DoubleML(ABC):
         assert isinstance(obj_dml_data, DoubleMLData)
         self._check_data(obj_dml_data)
         
-        self.n_treat = obj_dml_data.n_treat
-        self.n_obs = obj_dml_data.n_obs
-        
-        self._initialize_arrays()
+        self._initialize_arrays(obj_dml_data.n_obs,
+                                obj_dml_data.n_treat)
         
         # perform sample splitting
         self._split_samples(obj_dml_data.x)
@@ -177,21 +183,21 @@ class DoubleML(ABC):
     def _ml_nuisance(self, obj_dml_data):
         pass
 
-    def _initialize_arrays(self):
-        self._score = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
+    def _initialize_arrays(self, n_obs, n_treat):
+        self._score = np.full((n_obs, n_treat), np.nan)
+        self._score_a = np.full((n_obs, n_treat), np.nan)
+        self._score_b = np.full((n_obs, n_treat), np.nan)
         
-        self._coef_ = np.full(self.n_treat, np.nan)
-        self._se_ = np.full(self.n_treat, np.nan)
+        self._coef_ = np.full(n_treat, np.nan)
+        self._se_ = np.full(n_treat, np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self._boot_coef_ = np.full((self.n_treat, n_rep), np.nan)
 
-    def _split_samples(self, X):
+    def _split_samples(self, x):
         resampling = self.resampling
         
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         self._smpls = smpls
     
     def _est_causal_pars(self):
