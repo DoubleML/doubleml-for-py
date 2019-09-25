@@ -3,15 +3,15 @@ import pandas as pd
 from .helper import assure_2d_array
 
 
-class DoubleMLData():
+class DoubleMLData:
     def __init__(self,
                  data,
-                 X_cols,
+                 x_cols,
                  y_col,
                  d_cols,
                  z_col=None):
         self.data = data
-        self.X_cols = X_cols
+        self.x_cols = x_cols
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_col = z_col
@@ -51,45 +51,45 @@ class DoubleMLData():
         return self.data.shape[0]
     
     @property
-    def X_cols(self):
-        return self._X_cols
+    def x_cols(self):
+        return self._x_cols
     
-    @X_cols.setter
-    def X_cols(self, X_cols):
-        assert isinstance(X_cols, list)
-        assert set(X_cols).issubset(set(self.all_variables))
-        self._X_cols = X_cols
+    @x_cols.setter
+    def x_cols(self, value):
+        assert isinstance(value, list)
+        assert set(value).issubset(set(self.all_variables))
+        self._x_cols = value
     
     @property
     def d_cols(self):
         return self._d_cols
     
     @d_cols.setter
-    def d_cols(self, d_cols):
-        assert isinstance(d_cols, list)
-        assert set(d_cols).issubset(set(self.all_variables))
-        self._d_cols = d_cols
+    def d_cols(self, value):
+        assert isinstance(value, list)
+        assert set(value).issubset(set(self.all_variables))
+        self._d_cols = value
     
     @property
     def y_col(self):
         return self._y_col
     
     @y_col.setter
-    def y_col(self, y_col):
-        assert isinstance(y_col, str)
-        assert y_col in self.all_variables
-        self._y_col = y_col
+    def y_col(self, value):
+        assert isinstance(value, str)
+        assert value in self.all_variables
+        self._y_col = value
     
     @property
     def z_col(self):
         return self._z_col
     
     @z_col.setter
-    def z_col(self, z_col):
-        if z_col is not None:
-            assert isinstance(z_col, str)
-            assert z_col in self.all_variables
-            self._z_col = z_col
+    def z_col(self, value):
+        if value is not None:
+            assert isinstance(value, str)
+            assert value in self.all_variables
+            self._z_col = value
         else:
             self._z_col = None
     
@@ -102,7 +102,7 @@ class DoubleMLData():
     
     def extract_X_d(self, treatment_var):
         assert treatment_var in self.d_cols
-        xd_list = self.X_cols + self.d_cols
+        xd_list = self.x_cols + self.d_cols
         xd_list.remove(treatment_var)
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
@@ -124,13 +124,13 @@ def double_ml_data_from_arrays(X, y, d, z=None):
     else:
         d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
     
-    X_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
+    x_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
 
     if z is None:
         data = pd.DataFrame(np.column_stack((X, y, d)),
-                            columns=X_cols + [y_col] + d_cols)
+                            columns=x_cols + [y_col] + d_cols)
     else:
         data = pd.DataFrame(np.column_stack((X, y, d, z)),
-                            columns=X_cols + [y_col] + d_cols + [z_col])
-    return DoubleMLData(data, X_cols, y_col, d_cols, z_col)
+                            columns=x_cols + [y_col] + d_cols + [z_col])
+    return DoubleMLData(data, x_cols, y_col, d_cols, z_col)
 

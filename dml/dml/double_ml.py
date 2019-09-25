@@ -26,48 +26,48 @@ class DoubleML(ABC):
         return self._score
     
     @score.setter
-    def score(self, score):
-        self._score = score
+    def score(self, value):
+        self._score = value
     
     @property 
     def score_a(self):
         return self._score_a
     
     @score_a.setter
-    def score_a(self, score_a):
-        self._score_a[:, self._i_d] = score_a
+    def score_a(self, value):
+        self._score_a[:, self._i_d] = value
     
     @property 
     def score_b(self):
         return self._score_b
     
     @score_b.setter
-    def score_b(self, score_b):
-        self._score_b[:, self._i_d] = score_b
+    def score_b(self, value):
+        self._score_b[:, self._i_d] = value
     
     @property 
     def coef_(self):
         return self._coef_
     
     @coef_.setter
-    def coef_(self, coef_):
-        self._coef_[self._i_d] = coef_
+    def coef_(self, value):
+        self._coef_[self._i_d] = value
     
     @property 
     def se_(self):
         return self._se_
     
     @se_.setter
-    def se_(self, se_):
-        self._se_[self._i_d] = se_
+    def se_(self, value):
+        self._se_[self._i_d] = value
     
     @property 
     def boot_coef_(self):
         return self._boot_coef_
     
     @boot_coef_.setter
-    def boot_coef_(self, boot_coef_):
-        self._boot_coef_[self._i_d, :] = boot_coef_
+    def boot_coef_(self, value):
+        self._boot_coef_[self._i_d, :] = value
     
     # the private properties with __ always deliver the single treatment subselection
     @property 
