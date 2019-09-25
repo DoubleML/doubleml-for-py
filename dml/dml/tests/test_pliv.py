@@ -88,9 +88,9 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                           g_hat, m_hat, r_hat,
                                           smpls, inf_model)
     
-    res_dict = {'coef': dml_pliv_obj.coef_,
+    res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual,
-                'se': dml_pliv_obj.se_,
+                'se': dml_pliv_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
     
@@ -106,7 +106,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
-        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
     return res_dict

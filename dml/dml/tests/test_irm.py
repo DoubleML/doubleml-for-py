@@ -85,9 +85,9 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, inf_model)
     
-    res_dict = {'coef': dml_irm_obj.coef_,
+    res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual,
-                'se': dml_irm_obj.se_,
+                'se': dml_irm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
     
@@ -102,7 +102,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
         
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method = bootstrap, n_rep=500)
-        res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
     return res_dict

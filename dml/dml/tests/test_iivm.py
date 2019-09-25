@@ -86,9 +86,9 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                          smpls, inf_model)
     
-    res_dict = {'coef': dml_iivm_obj.coef_,
+    res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual,
-                'se': dml_iivm_obj.se_,
+                'se': dml_iivm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
     
@@ -103,7 +103,7 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
         
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method = bootstrap, n_rep=500)
-        res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef_
+        res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
     return res_dict

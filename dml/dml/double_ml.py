@@ -31,7 +31,7 @@ class DoubleML(ABC):
 
     @property
     def n_treat(self):
-        return self.score.shape[0]
+        return self.score.shape[1]
     
     @score.setter
     def score(self, value):
@@ -152,7 +152,7 @@ class DoubleML(ABC):
         -------
         
         """
-        if (not hasattr(self, 'coef_')) or (self.coef is None):
+        if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
         
         self._initialize_boot_arrays(n_rep)
