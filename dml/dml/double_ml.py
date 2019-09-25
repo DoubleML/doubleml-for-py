@@ -93,23 +93,6 @@ class DoubleML(ABC):
     def __se_(self):
         return self._se_[self._i_d]
     
-    def _initialize_arrays(self):
-        self._score = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
-        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
-        
-        self._coef_ = np.full(self.n_treat, np.nan)
-        self._se_ = np.full(self.n_treat, np.nan)
-    
-    def _initialize_boot_arrays(self, n_rep):
-        self._boot_coef_ = np.full((self.n_treat, n_rep), np.nan)
-    
-    def _split_samples(self, X):
-        resampling = self.resampling
-        
-        smpls = [(train, test) for train, test in resampling.split(X)]
-        self._smpls = smpls
-    
     def fit(self, obj_dml_data):
         """
         Fit doubleML model
@@ -155,6 +138,56 @@ class DoubleML(ABC):
         pval = 2 * norm.cdf(-np.abs(t))
         self.t_ = t
         self.pval_ = pval
+
+    def bootstrap(self, method = 'normal', n_rep = 500):
+        """
+        Bootstrap doubleML model
+        Parameters
+        ----------
+        method : 
+        n_rep : 
+        Returns
+        -------
+        
+        """
+        if (not hasattr(self, 'coef_')) or (self.coef_ is None):
+            raise ValueError('apply fit() before bootstrap()')
+        
+        self._initialize_boot_arrays(n_rep)
+        
+        for i_d in range(self.n_treat):
+            self._i_d = i_d
+            
+            if method == 'Bayes':
+                weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
+            elif method == 'normal':
+                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+            elif method == 'wild':
+                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+            else:
+                raise ValueError('invalid boot method')
+            
+            J = np.mean(self.__score_a)
+            self.boot_coef_ = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+
+    def _initialize_arrays(self):
+        self._score = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
+        self._score_b = np.full((self.n_obs, self.n_treat), np.nan)
+        
+        self._coef_ = np.full(self.n_treat, np.nan)
+        self._se_ = np.full(self.n_treat, np.nan)
+
+    def _initialize_boot_arrays(self, n_rep):
+        self._boot_coef_ = np.full((self.n_treat, n_rep), np.nan)
+
+    def _split_samples(self, X):
+        resampling = self.resampling
+        
+        smpls = [(train, test) for train, test in resampling.split(X)]
+        self._smpls = smpls
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
@@ -220,27 +253,4 @@ class DoubleML(ABC):
     
     def _compute_score(self):
         self.score = self.score_a * self.coef_ + self.score_b
-    
-    def bootstrap(self, method = 'normal', n_rep = 500):
-        if (not hasattr(self, 'coef_')) or (self.coef_ is None):
-            raise ValueError('apply fit() before bootstrap()')
-        
-        self._initialize_boot_arrays(n_rep)
-        
-        for i_d in range(self.n_treat):
-            self._i_d = i_d
-            
-            if method == 'Bayes':
-                weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
-            elif method == 'normal':
-                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            elif method == 'wild':
-                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
-            else:
-                raise ValueError('invalid boot method')
-            
-            J = np.mean(self.__score_a)
-            self.boot_coef_ = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
 
