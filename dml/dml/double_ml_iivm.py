@@ -5,6 +5,7 @@ from sklearn.model_selection import cross_val_predict
 from .double_ml import DoubleML
 from .helper import check_binary_vector
 
+
 class DoubleMLPIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
@@ -18,9 +19,9 @@ class DoubleMLPIIVM(DoubleML):
     
     def _get_cond_smpls(self, z):
         smpls = self._smpls
-        self._smpls_z0 = [(np.intersect1d(np.where(z==0)[0], train),
+        self._smpls_z0 = [(np.intersect1d(np.where(z == 0)[0], train),
                            test) for train, test in smpls]
-        self._smpls_z1 = [(np.intersect1d(np.where(z==1)[0], train),
+        self._smpls_z1 = [(np.intersect1d(np.where(z == 1)[0], train),
                            test) for train, test in smpls]
     
     def _ml_nuisance(self, obj_dml_data):
@@ -33,7 +34,7 @@ class DoubleMLPIIVM(DoubleML):
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
         
-        # get train indices for z==0 and z==1
+        # get train indices for z == 0 and z == 1
         self._get_cond_smpls(z)
         
         smpls = self._smpls
@@ -41,7 +42,6 @@ class DoubleMLPIIVM(DoubleML):
         smpls_z1 = self._smpls_z1
         
         # nuisance g
-        inf_model = self.inf_model
         self.g_hat0 = cross_val_predict(ml_g, X, y, cv = smpls_z0)
         self.g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_z1)
         
@@ -49,7 +49,6 @@ class DoubleMLPIIVM(DoubleML):
         self.m_hat = cross_val_predict(ml_m, X, z, cv = smpls, method='predict_proba')[:, 1]
         
         # nuisance r
-        inf_model = self.inf_model
         self.r_hat0 = cross_val_predict(ml_r, X, d, cv = smpls_z0, method='predict_proba')[:, 1]
         self.r_hat1 = cross_val_predict(ml_r, X, d, cv = smpls_z1, method='predict_proba')[:, 1]
         

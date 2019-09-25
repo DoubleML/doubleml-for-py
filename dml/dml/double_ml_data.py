@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from .helper import assure_2d_array
 
+
 class DoubleMLData():
     def __init__(self,
                  data,
@@ -15,7 +16,7 @@ class DoubleMLData():
         self.d_cols = d_cols
         self.z_col = z_col
         self.extract_y_z()
-        # by default, we intialize to the first treatment variable
+        # by default, we initialize to the first treatment variable
         self.extract_X_d(d_cols[0])
     
     @property
@@ -126,13 +127,12 @@ def double_ml_data_from_arrays(X, y, d, z=None):
         d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
     
     X_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
-    
-    print(X_cols)
+
     if z is None:
         data = pd.DataFrame(np.column_stack((X, y, d)),
-                            columns = X_cols + [y_col] + d_cols)
+                            columns=X_cols + [y_col] + d_cols)
     else:
         data = pd.DataFrame(np.column_stack((X, y, d, z)),
-                            columns = X_cols + [y_col] + d_cols + [z_col])
+                            columns=X_cols + [y_col] + d_cols + [z_col])
     return DoubleMLData(data, X_cols, y_col, d_cols, z_col)
-    
+

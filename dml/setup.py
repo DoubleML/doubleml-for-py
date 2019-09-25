@@ -16,6 +16,7 @@ setup(
     install_requires=[
         'numpy',
         'pandas',
+        'scipy',
         'sklearn',
     ],
     classifiers=[

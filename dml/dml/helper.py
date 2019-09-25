@@ -1,12 +1,14 @@
 import numpy as np
 from sklearn.utils.multiclass import type_of_target
 
+
 def assure_2d_array(x):
     if x.ndim == 1:
         x = x.reshape(-1,1)
     elif x.ndim > 2:
         raise ValueError('Only one- or two-dimensional arrays are allowed')
     return x
+
 
 def check_binary_vector(x, variable_name=''):
     # assure D binary

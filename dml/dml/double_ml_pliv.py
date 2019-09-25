@@ -4,6 +4,7 @@ from sklearn.model_selection import cross_val_predict
 
 from .double_ml import DoubleML
 
+
 class DoubleMLPLIV(DoubleML):
     """
     Double Machine Learning for Partially Linear IV regression model
@@ -47,15 +48,14 @@ class DoubleMLPLIV(DoubleML):
         u_hat = self._u_hat
         v_hat = self._v_hat
         w_hat = self._w_hat
-        v_hatd = self._v_hatd
         
         if inf_model == 'DML2018':
-            self.score_a = -np.multiply(w_hat,v_hat)
+            self.score_a = -np.multiply(w_hat, v_hat)
         else:
             # check whether its worth implementing the IV_type here as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
             # still need to estimate the DML2018 type first
             raise ValueError('invalid inf_model')
-        self.score_b = np.multiply(v_hat,u_hat)
-    
+        self.score_b = np.multiply(v_hat, u_hat)
+

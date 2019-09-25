@@ -5,6 +5,7 @@ from sklearn.model_selection import cross_val_predict
 from .double_ml import DoubleML
 from .helper import check_binary_vector
 
+
 class DoubleMLPIRM(DoubleML):
     """
     Double Machine Learning for Interactive Regression Model
@@ -18,9 +19,9 @@ class DoubleMLPIRM(DoubleML):
     
     def _get_cond_smpls(self, d):
         smpls = self._smpls
-        self._smpls_d0 = [(np.intersect1d(np.where(d==0)[0], train),
+        self._smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train),
                            test) for train, test in smpls]
-        self._smpls_d1 = [(np.intersect1d(np.where(d==1)[0], train),
+        self._smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train),
                            test) for train, test in smpls]
     
     def _ml_nuisance(self, obj_dml_data):
@@ -32,7 +33,7 @@ class DoubleMLPIRM(DoubleML):
         X, y = check_X_y(obj_dml_data.X, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
         
-        # get train indices for d==0 and d==1
+        # get train indices for d == 0 and d == 1
         self._get_cond_smpls(d)
         
         smpls = self._smpls
@@ -44,8 +45,7 @@ class DoubleMLPIRM(DoubleML):
             self._p_hat = np.zeros_like(d, dtype='float64')
             for _, test_index in smpls:
                 self._p_hat[test_index] = np.mean(d[test_index])
-        
-        
+
         # nuisance g
         self.g_hat0 = cross_val_predict(ml_g, X, y, cv = smpls_d0)
         if inf_model == 'ATE':

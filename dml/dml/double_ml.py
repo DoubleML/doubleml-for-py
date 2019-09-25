@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 
+
 class DoubleML(ABC):
     """
     Double Machine Learning
@@ -108,12 +109,6 @@ class DoubleML(ABC):
         
         self._initialize_arrays()
         
-        dml_procedure = self.dml_procedure
-        inf_model = self.inf_model
-        
-        # TODO: se_type hard-coded to match inf_model
-        se_type = inf_model
-        
         # perform sample splitting
         self._split_samples(obj_dml_data.X)
         
@@ -168,6 +163,14 @@ class DoubleML(ABC):
             J = np.mean(self.__score_a)
             self.boot_coef_ = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
 
+    @abstractmethod
+    def _check_data(self, obj_dml_data):
+        pass
+
+    @abstractmethod
+    def _ml_nuisance(self, obj_dml_data):
+        pass
+
     def _initialize_arrays(self):
         self._score = np.full((self.n_obs, self.n_treat), np.nan)
         self._score_a = np.full((self.n_obs, self.n_treat), np.nan)
@@ -187,7 +190,6 @@ class DoubleML(ABC):
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
-        inf_model = self.inf_model
         resampling = self.resampling
         smpls = self._smpls
         
@@ -199,10 +201,10 @@ class DoubleML(ABC):
             self.coef_ = theta_hat
             self._compute_score()
             
-            vars = np.zeros(resampling.get_n_splits())
+            variances = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
-                vars[idx] = self._var_est(test_index)
-            self.se_ = np.sqrt(np.mean(vars))
+                variances[idx] = self._var_est(test_index)
+            self.se_ = np.sqrt(np.mean(variances))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()

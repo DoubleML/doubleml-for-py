@@ -4,6 +4,7 @@ from sklearn.model_selection import cross_val_predict
 
 from .double_ml import DoubleML
 
+
 class DoubleMLPLR(DoubleML):
     """
     Double Machine Learning for Partially Linear Regression
@@ -50,4 +51,4 @@ class DoubleMLPLR(DoubleML):
         else:
             raise ValueError('invalid inf_model')
         self.score_b = np.multiply(v_hat,u_hat)
-    
+
