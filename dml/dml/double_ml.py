@@ -54,39 +54,38 @@ class DoubleML(ABC):
         self._score_b[:, self._i_d] = value
     
     @property 
-    def coef_(self):
-        return self._coef_
+    def coef(self):
+        return self._coef
     
-    @coef_.setter
-    def coef_(self, value):
-        self._coef_[self._i_d] = value
+    @coef.setter
+    def coef(self, value):
+        self._coef[self._i_d] = value
     
     @property 
-    def se_(self):
-        return self._se_
+    def se(self):
+        return self.se_
     
-    @se_.setter
-    def se_(self, value):
-        self._se_[self._i_d] = value
+    @se.setter
+    def se(self, value):
+        self.se_[self._i_d] = value
 
     @property
-    def t_(self):
-        t = self.coef_ / self.se_
-        self.t_ = t
-        return t
+    def t_stat(self):
+        t_stat = self.coef / self.se
+        return t_stat
 
     @property
-    def pval_(self):
-        pval = 2 * norm.cdf(-np.abs(self.t_))
+    def pval(self):
+        pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
     
     @property 
-    def boot_coef_(self):
-        return self._boot_coef_
+    def boot_coef(self):
+        return self._boot_coef
     
-    @boot_coef_.setter
-    def boot_coef_(self, value):
-        self._boot_coef_[self._i_d, :] = value
+    @boot_coef.setter
+    def boot_coef(self, value):
+        self._boot_coef[self._i_d, :] = value
     
     # the private properties with __ always deliver the single treatment subselection
     @property 
@@ -103,11 +102,11 @@ class DoubleML(ABC):
     
     @property 
     def __coef_(self):
-        return self._coef_[self._i_d]
+        return self._coef[self._i_d]
     
     @property 
     def __se_(self):
-        return self._se_[self._i_d]
+        return self.se_[self._i_d]
     
     def fit(self, obj_dml_data):
         """
@@ -153,7 +152,7 @@ class DoubleML(ABC):
         -------
         
         """
-        if (not hasattr(self, 'coef_')) or (self.coef_ is None):
+        if (not hasattr(self, 'coef_')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
         
         self._initialize_boot_arrays(n_rep)
@@ -173,7 +172,7 @@ class DoubleML(ABC):
                 raise ValueError('invalid boot method')
             
             J = np.mean(self.__score_a)
-            self.boot_coef_ = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+            self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
 
     @abstractmethod
     def _check_data(self, obj_dml_data):
@@ -188,11 +187,11 @@ class DoubleML(ABC):
         self._score_a = np.full((n_obs, n_treat), np.nan)
         self._score_b = np.full((n_obs, n_treat), np.nan)
         
-        self._coef_ = np.full(n_treat, np.nan)
-        self._se_ = np.full(n_treat, np.nan)
+        self._coef = np.full(n_treat, np.nan)
+        self.se_ = np.full(n_treat, np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
-        self._boot_coef_ = np.full((self.n_treat, n_rep), np.nan)
+        self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
 
     def _split_samples(self, x):
         resampling = self.resampling
@@ -210,20 +209,20 @@ class DoubleML(ABC):
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
-            self.coef_ = theta_hat
+            self.coef = theta_hat
             self._compute_score()
             
             variances = np.zeros(resampling.get_n_splits())
             for idx, (train_index, test_index) in enumerate(smpls):
                 variances[idx] = self._var_est(test_index)
-            self.se_ = np.sqrt(np.mean(variances))
+            self.se = np.sqrt(np.mean(variances))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
-            self.coef_ = theta_hat
+            self.coef = theta_hat
             self._compute_score()
             
-            self.se_ = np.sqrt(self._var_est())
+            self.se = np.sqrt(self._var_est())
             
         else:
             raise ValueError('invalid dml_procedure')
@@ -262,5 +261,5 @@ class DoubleML(ABC):
         return theta
     
     def _compute_score(self):
-        self.score = self.score_a * self.coef_ + self.score_b
+        self.score = self.score_a * self.coef + self.score_b
 
