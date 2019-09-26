@@ -44,7 +44,7 @@ def generate_data1(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         M = m(np.dot(X,b))
         D = M+np.random.standard_normal(size=[N,])
@@ -71,7 +71,7 @@ def generate_data_bivariate(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         M0 = m(np.dot(X,b))
         M1 = m2(np.dot(X,b))
@@ -137,7 +137,7 @@ def generate_data_iv(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         # instrument 
         Z = m(np.dot(X,b)) + np.random.standard_normal(size=[N,])
@@ -169,7 +169,7 @@ def generate_data_irm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         M = m3(np.dot(X,b))
         MM = M+np.random.standard_normal(size=[N,])
@@ -200,7 +200,7 @@ def generate_data_iivm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.ones(p),sigma,size=[N,])
+        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
         G = g(np.dot(X,b))
         # instrument 
         M1 = m3(np.dot(X,b))
