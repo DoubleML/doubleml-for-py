@@ -6,7 +6,7 @@ from .double_ml import DoubleML
 from .helper import check_binary_vector
 
 
-class DoubleMLPIRM(DoubleML):
+class DoubleMLIRM(DoubleML):
     """
     Double Machine Learning for Interactive Regression Model
     """

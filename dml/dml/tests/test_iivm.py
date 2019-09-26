@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from dml.double_ml_data import DoubleMLData
-from dml.double_ml_iivm import DoubleMLPIIVM
+from dml.double_ml_iivm import DoubleMLIIVM
 
 from dml.tests.helper_general import get_n_datasets
 from dml.tests.helper_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm
@@ -56,10 +56,10 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
                    'ml_g': clone(clone(learner[1])),
                    'ml_r': clone(clone(learner[0]))}
     
-    dml_iivm_obj = DoubleMLPIIVM(resampling,
-                                 ml_learners,
-                                 dml_procedure,
-                                 inf_model)
+    dml_iivm_obj = DoubleMLIIVM(resampling,
+                                ml_learners,
+                                dml_procedure,
+                                inf_model)
     data = generate_data_iivm[idx]
     np.random.seed(3141)
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()

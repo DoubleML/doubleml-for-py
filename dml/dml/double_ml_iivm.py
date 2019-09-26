@@ -6,7 +6,7 @@ from .double_ml import DoubleML
 from .helper import check_binary_vector
 
 
-class DoubleMLPIIVM(DoubleML):
+class DoubleMLIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
     """
