@@ -58,19 +58,19 @@ class DoubleMLIIVM(DoubleML):
         self._v_hat = z - self.m_hat
         self._w_hat0 = d - self.r_hat0
         self._w_hat1 = d - self.r_hat1
-        
-        # compute score elements
-        self._compute_score_elements(z)
-    
-    def _compute_score_elements(self, z):
+
+        # add z to class for score computations
+        self._z = z
+
+    def _compute_score_elements(self):
         inf_model = self.inf_model
         if inf_model == 'LATE':
             self.score_b = self.g_hat1 - self.g_hat0 \
-                            + np.divide(np.multiply(z, self._u_hat1), self.m_hat) \
-                            - np.divide(np.multiply(1.0-z, self._u_hat1), 1.0 - self.m_hat)
+                            + np.divide(np.multiply(self._z, self._u_hat1), self.m_hat) \
+                            - np.divide(np.multiply(1.0-self._z, self._u_hat1), 1.0 - self.m_hat)
             self.score_a = -1*(self.r_hat1 - self.r_hat0 \
-                                + np.divide(np.multiply(z, self._w_hat1), self.m_hat) \
-                                - np.divide(np.multiply(1.0-z, self._w_hat0), 1.0 - self.m_hat))
+                                + np.divide(np.multiply(self._z, self._w_hat1), self.m_hat) \
+                                - np.divide(np.multiply(1.0-self._z, self._w_hat0), 1.0 - self.m_hat))
         else:
             raise ValueError('invalid inf_model')
 

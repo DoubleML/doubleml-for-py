@@ -58,23 +58,23 @@ class DoubleMLIRM(DoubleML):
         self._u_hat0 = y - self.g_hat0
         if inf_model == 'ATE':
             self._u_hat1 = y - self.g_hat1
-            
-        # compute score elements
-        self._compute_score_elements(d)
-    
-    def _compute_score_elements(self, d):
+
+        # add d to class for score computations
+        self._d = d
+
+    def _compute_score_elements(self):
         inf_model = self.inf_model
         
         if inf_model == 'ATE':
             self.score_b = self.g_hat1 - self.g_hat0 \
-                            + np.divide(np.multiply(d, self._u_hat1), self.m_hat) \
-                            - np.divide(np.multiply(1.0-d, self._u_hat0), 1.0 - self.m_hat)
+                            + np.divide(np.multiply(self._d, self._u_hat1), self.m_hat) \
+                            - np.divide(np.multiply(1.0-self._d, self._u_hat0), 1.0 - self.m_hat)
             self.score_a = np.full_like(self.m_hat, -1.0)
         elif inf_model == 'ATTE':
-            self.score_b = np.divide(np.multiply(d, self._u_hat0), self._p_hat) \
-                            - np.divide(np.multiply(self.m_hat, np.multiply(1.0-d, self._u_hat0)),
+            self.score_b = np.divide(np.multiply(self._d, self._u_hat0), self._p_hat) \
+                            - np.divide(np.multiply(self.m_hat, np.multiply(1.0-self._d, self._u_hat0)),
                                         np.multiply(self._p_hat, (1.0 - self.m_hat)))
-            self.score_a = - np.divide(d, self._p_hat)
+            self.score_a = - np.divide(self._d, self._p_hat)
         else:
             raise ValueError('invalid inf_model')
 

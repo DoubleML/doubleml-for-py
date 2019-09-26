@@ -137,6 +137,9 @@ class DoubleML(ABC):
             
             # ml estimation of nuisance models and computation of score elements
             self._ml_nuisance(obj_dml_data)
+
+            # compute score elements
+            self._compute_score_elements()
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()
@@ -180,6 +183,10 @@ class DoubleML(ABC):
 
     @abstractmethod
     def _ml_nuisance(self, obj_dml_data):
+        pass
+
+    @abstractmethod
+    def _compute_score_elements(self):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat):
