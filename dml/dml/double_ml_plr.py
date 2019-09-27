@@ -21,7 +21,7 @@ class DoubleMLPLR(DoubleML):
         assert obj_dml_data.z_col is None
         return
     
-    def _ml_nuisance(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
@@ -31,38 +31,22 @@ class DoubleMLPLR(DoubleML):
         smpls = self._smpls
         
         # nuisance g
-        self.g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
         
         # nuisance m
-        self.m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
+        m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
         
         # compute residuals
-        self._u_hat = y - self.g_hat
-        self._v_hat = d - self.m_hat
-        self._v_hatd = np.multiply(self._v_hat, d)
-        
-        # compute score elements
-        self._compute_score_elements()
-    
-    def _compute_score_elements(self):
+        u_hat = y - g_hat
+        v_hat = d - m_hat
+        v_hatd = np.multiply(v_hat, d)
+
         inf_model = self.inf_model
-        
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        v_hatd = self._v_hatd
-        
         if inf_model == 'IV-type':
             self.score_a = -v_hatd
         elif inf_model == 'DML2018':
-            self.score_a = -np.multiply(v_hat,v_hat)
+            self.score_a = -np.multiply(v_hat, v_hat)
         else:
             raise ValueError('invalid inf_model')
-        self.score_b = np.multiply(v_hat,u_hat)
-
-    def _clean_ml_nuisance(self):
-        del self.g_hat
-        del self.m_hat
-        del self._u_hat
-        del self._v_hat
-        del self._v_hatd
+        self.score_b = np.multiply(v_hat, u_hat)
 

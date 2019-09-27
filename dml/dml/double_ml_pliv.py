@@ -20,7 +20,7 @@ class DoubleMLPLIV(DoubleML):
     def _check_data(self, obj_dml_data):
         return
     
-    def _ml_nuisance(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
@@ -32,30 +32,20 @@ class DoubleMLPLIV(DoubleML):
         smpls = self._smpls
         
         # nuisance g
-        self.g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
         
         # nuisance m
-        self.m_hat = cross_val_predict(ml_m, X, z, cv = smpls)
+        m_hat = cross_val_predict(ml_m, X, z, cv = smpls)
         
         # nuisance r
-        self.r_hat = cross_val_predict(ml_r, X, d, cv = smpls)
+        r_hat = cross_val_predict(ml_r, X, d, cv = smpls)
         
         # compute residuals
-        self._u_hat = y - self.g_hat
-        self._v_hat = z - self.m_hat
-        self._w_hat = d - self.r_hat
-        self._v_hatd = np.multiply(self._v_hat, d)
-        
-        # compute score elements
-        self._compute_score_elements()
-    
-    def _compute_score_elements(self):
+        u_hat = y - g_hat
+        v_hat = z - m_hat
+        w_hat = d - r_hat
+
         inf_model = self.inf_model
-        
-        u_hat = self._u_hat
-        v_hat = self._v_hat
-        w_hat = self._w_hat
-        
         if inf_model == 'DML2018':
             self.score_a = -np.multiply(w_hat, v_hat)
         else:
@@ -65,13 +55,4 @@ class DoubleMLPLIV(DoubleML):
             # still need to estimate the DML2018 type first
             raise ValueError('invalid inf_model')
         self.score_b = np.multiply(v_hat, u_hat)
-
-    def _clean_ml_nuisance(self):
-        del self.g_hat
-        del self.m_hat
-        del self.r_hat
-        del self._u_hat
-        del self._v_hat
-        del self._w_hat
-        del self._v_hatd
 

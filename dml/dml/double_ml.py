@@ -136,19 +136,15 @@ class DoubleML(ABC):
                 obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
             
             # ml estimation of nuisance models and computation of score elements
-            self._ml_nuisance(obj_dml_data)
-
-            # compute score elements
-            self._compute_score_elements()
+            self._ml_nuisance_and_score_elements(obj_dml_data)
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()
+        
         if not keep_scores:
-            self._clean_ml_nuisance()
             self._clean_scores()
 
-
-    def bootstrap(self, method = 'normal', n_rep = 500):
+    def bootstrap(self, method='normal', n_rep=500):
         """
         Bootstrap doubleML model
         Parameters
@@ -190,14 +186,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance(self, obj_dml_data):
-        pass
-
-    @abstractmethod
-    def _compute_score_elements(self):
-        pass
-
-    def _clean_ml_nuisance(self):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat):
