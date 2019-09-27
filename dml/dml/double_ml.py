@@ -63,11 +63,11 @@ class DoubleML(ABC):
     
     @property 
     def se(self):
-        return self.se_
+        return self._se
     
     @se.setter
     def se(self, value):
-        self.se_[self._i_d] = value
+        self._se[self._i_d] = value
 
     @property
     def t_stat(self):
@@ -106,7 +106,7 @@ class DoubleML(ABC):
     
     @property 
     def __se_(self):
-        return self.se_[self._i_d]
+        return self._se[self._i_d]
     
     def fit(self, obj_dml_data):
         """
@@ -199,7 +199,7 @@ class DoubleML(ABC):
         self._score_b = np.full((n_obs, n_treat), np.nan)
         
         self._coef = np.full(n_treat, np.nan)
-        self.se_ = np.full(n_treat, np.nan)
+        self._se = np.full(n_treat, np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
