@@ -15,11 +15,13 @@ class DoubleML(ABC):
                  resampling,
                  ml_learners,
                  dml_procedure,
-                 inf_model):
+                 inf_model,
+                 n_rep_cross_fit=1):
         self.resampling = resampling
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
+        self.n_rep_cross_fit = n_rep_cross_fit
     
     @property 
     def score(self):
@@ -124,23 +126,37 @@ class DoubleML(ABC):
         
         self._initialize_arrays(obj_dml_data.n_obs,
                                 obj_dml_data.n_treat)
-        
-        # perform sample splitting
-        self._split_samples(obj_dml_data.x)
-        
-        for i_d in range(self.n_treat):
-            self._i_d = i_d
-            
-            # this step could be skipped for the single treatment variable case
-            if self.n_treat > 1:
-                obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
-            
-            # ml estimation of nuisance models and computation of score elements
-            self._ml_nuisance_and_score_elements(obj_dml_data)
-                
-            # estimate the causal parameter(s)
-            self._est_causal_pars()
-        
+
+        all_coef = np.full((obj_dml_data.n_treat,
+                            self.n_rep_cross_fit),
+                           np.nan)
+
+        all_se = np.full((obj_dml_data.n_treat,
+                          self.n_rep_cross_fit),
+                         np.nan)
+
+        for i_rep in range(self.n_rep_cross_fit):
+            # perform sample splitting
+            self._split_samples(obj_dml_data.x)
+
+            for i_d in range(self.n_treat):
+                self._i_d = i_d
+
+                # this step could be skipped for the single treatment variable case
+                if self.n_treat > 1:
+                    obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
+
+                # ml estimation of nuisance models and computation of score elements
+                self._ml_nuisance_and_score_elements(obj_dml_data)
+
+                # estimate the causal parameter(s)
+                self._est_causal_pars()
+            all_coef[:, i_rep] = self.coef
+            all_se[:, i_rep] = self.se
+
+        # don't use the setter (always for one treatment variable), but the private variable
+        self._coef = np.median(all_coef, 1)
+        self._se = np.median(all_se, 1)
         if not keep_scores:
             self._clean_scores()
 
