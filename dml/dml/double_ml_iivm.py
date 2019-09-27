@@ -10,7 +10,14 @@ class DoubleMLIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
     """
-    
+
+    def _check_inf_method(self, inf_model):
+        valid_inf_model = ['LATE']
+        if inf_model not in valid_inf_model:
+            raise ValueError('invalid inf_model ' + inf_model +
+                             '\n valid inf_model ' + valid_inf_model)
+        return inf_model
+
     def _check_data(self, obj_dml_data):
         assert obj_dml_data.n_treat == 1
         check_binary_vector(obj_dml_data.d, variable_name='d')

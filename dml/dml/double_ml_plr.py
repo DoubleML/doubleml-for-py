@@ -9,7 +9,14 @@ class DoubleMLPLR(DoubleML):
     """
     Double Machine Learning for Partially Linear Regression
     """
-    
+
+    def _check_inf_method(self, inf_model):
+        valid_inf_model = ['IV-type', 'DML2018']
+        if inf_model not in valid_inf_model:
+            raise ValueError('invalid inf_model ' + inf_model +
+                             '\n valid inf_model ' + ' or '.join(valid_inf_model))
+        return inf_model
+
     def _check_data(self, obj_dml_data):
         assert obj_dml_data.z_col is None
         return

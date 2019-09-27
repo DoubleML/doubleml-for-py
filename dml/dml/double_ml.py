@@ -19,7 +19,7 @@ class DoubleML(ABC):
         self.resampling = resampling
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
-        self.inf_model = inf_model
+        self.inf_model = self._check_inf_method(inf_model)
     
     @property 
     def score(self):
@@ -176,6 +176,10 @@ class DoubleML(ABC):
             
             J = np.mean(self.__score_a)
             self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+
+    @abstractmethod
+    def _check_inf_method(self, inf_method):
+        pass
 
     @abstractmethod
     def _check_data(self, obj_dml_data):
