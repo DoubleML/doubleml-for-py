@@ -81,3 +81,18 @@ class DoubleMLIIVM(DoubleML):
         else:
             raise ValueError('invalid inf_model')
 
+    def _clean_ml_nuisance(self):
+        del self._smpls_z0
+        del self._smpls_z1
+        del self.g_hat0
+        del self.g_hat1
+        del self.m_hat
+        del self.r_hat0
+        del self.r_hat1
+        del self._u_hat0
+        del self._u_hat1
+        del self._v_hat
+        del self._w_hat0
+        del self._w_hat1
+        del self._z
+

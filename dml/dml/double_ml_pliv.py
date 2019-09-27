@@ -66,3 +66,12 @@ class DoubleMLPLIV(DoubleML):
             raise ValueError('invalid inf_model')
         self.score_b = np.multiply(v_hat, u_hat)
 
+    def _clean_ml_nuisance(self):
+        del self.g_hat
+        del self.m_hat
+        del self.r_hat
+        del self._u_hat
+        del self._v_hat
+        del self._w_hat
+        del self._v_hatd
+

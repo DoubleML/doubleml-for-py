@@ -85,3 +85,19 @@ class DoubleMLIRM(DoubleML):
         else:
             raise ValueError('invalid inf_model')
 
+    def _clean_ml_nuisance(self):
+        del self._smpls_d0
+        del self._smpls_d1
+        del self.g_hat0
+        del self.m_hat
+        del self._u_hat0
+        del self._d
+
+        inf_model = self.inf_model
+        if inf_model == 'ATTE':
+            del self._p_hat
+        elif inf_model == 'ATE':
+            del self.g_hat1
+            del self._u_hat1
+
+

@@ -108,7 +108,7 @@ class DoubleML(ABC):
     def __se_(self):
         return self._se[self._i_d]
     
-    def fit(self, obj_dml_data):
+    def fit(self, obj_dml_data, keep_scores=True):
         """
         Fit doubleML model
         Parameters
@@ -143,6 +143,10 @@ class DoubleML(ABC):
                 
             # estimate the causal parameter(s)
             self._est_causal_pars()
+        if not keep_scores:
+            self._clean_ml_nuisance()
+            self._clean_scores()
+
 
     def bootstrap(self, method = 'normal', n_rep = 500):
         """
@@ -191,6 +195,9 @@ class DoubleML(ABC):
 
     @abstractmethod
     def _compute_score_elements(self):
+        pass
+
+    def _clean_ml_nuisance(self):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat):
@@ -273,4 +280,9 @@ class DoubleML(ABC):
     
     def _compute_score(self):
         self.score = self.score_a * self.coef + self.score_b
+
+    def _clean_scores(self):
+        del self._score
+        del self._score_a
+        del self._score_b
 
