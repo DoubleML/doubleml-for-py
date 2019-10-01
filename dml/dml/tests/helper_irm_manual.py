@@ -30,6 +30,7 @@ def fit_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, inf_model):
 
 def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
+    n_obs = len(Y)
     
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
@@ -47,12 +48,13 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
         ses[idx] = var_irm(theta_hat, g_hat0[idx], g_hat1[idx],
                            m_hat[idx], p_hat[idx],
                            u_hat0, u_hat1,
-                           D[test_index], inf_model)
+                           D[test_index], inf_model, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
 def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
+    n_obs = len(Y)
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     g_hat0_all = np.zeros_like(Y)
@@ -71,13 +73,11 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model):
     se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
                          m_hat_all, p_hat_all,
                          u_hat0, u_hat1,
-                         D, inf_model))
+                         D, inf_model, n_obs))
     
     return theta_hat, se
     
-def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, se_type):
-    n_obs = len(D)
-    
+def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, se_type, n_obs):
     if se_type == 'ATE':
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
                       + np.divide(np.multiply(D, u_hat1), m_hat) \

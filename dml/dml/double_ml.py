@@ -262,9 +262,9 @@ class DoubleML(ABC):
             score = score[inds]
         
         # don't understand yet the additional 1/n_obs
-        n_obs_sample = len(score)
+        n_obs = self.n_obs
         J = np.mean(score_a)
-        sigma2_hat = 1/n_obs_sample * np.mean(np.power(score, 2)) / np.power(J, 2)
+        sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
         
         return sigma2_hat    
         

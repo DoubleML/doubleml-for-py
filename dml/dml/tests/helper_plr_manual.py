@@ -17,6 +17,7 @@ def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
 
 def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
+    n_obs = len(Y)
     
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat = D[test_index] - m_hat[idx]
@@ -30,26 +31,25 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, inf_model):
         u_hat = Y[test_index] - g_hat[idx]
         ses[idx] = var_plr(theta_hat, D[test_index],
                            u_hat, v_hat,
-                           inf_model)
+                           inf_model, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
 def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
     thetas = np.zeros(len(smpls))
+    n_obs = len(Y)
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
     theta_hat = plr_orth(v_hat, u_hat, D, inf_model)
-    se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model))
+    se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, inf_model, n_obs))
     
     return theta_hat, se
     
-def var_plr(theta, d, u_hat, v_hat, se_type):
-    n_obs = len(u_hat)
-    
+def var_plr(theta, d, u_hat, v_hat, se_type, n_obs):
     if se_type == 'DML2018':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
               np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))

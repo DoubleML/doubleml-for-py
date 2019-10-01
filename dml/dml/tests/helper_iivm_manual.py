@@ -34,6 +34,7 @@ def fit_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
 
 def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model):
     thetas = np.zeros(len(smpls))
+    n_obs = len(Y)
     
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
@@ -59,12 +60,13 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
                             r_hat0[idx], r_hat1[idx],
                             u_hat0, u_hat1,
                             w_hat0, w_hat1,
-                            Z[test_index], inf_model)
+                            Z[test_index], inf_model, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
 def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model):
+    n_obs = len(Y)
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     w_hat0 = np.zeros_like(Y)
@@ -89,13 +91,11 @@ def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
     se = np.sqrt(var_iivm(theta_hat, g_hat0_all, g_hat1_all,
                           m_hat_all, r_hat0_all, r_hat1_all,
                           u_hat0, u_hat1, w_hat0, w_hat1,
-                          Z, inf_model))
+                          Z, inf_model, n_obs))
     
     return theta_hat, se
     
-def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, se_type):
-    n_obs = len(Z)
-    
+def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, se_type, n_obs):
     if se_type == 'LATE':
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
                             + np.divide(np.multiply(Z, u_hat1), m_hat) \
