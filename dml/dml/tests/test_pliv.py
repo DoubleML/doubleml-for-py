@@ -51,9 +51,9 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(clone(learner)),
-                   'ml_g': clone(clone(learner)),
-                   'ml_r': clone(clone(learner))}
+    ml_learners = {'ml_m': clone(learner),
+                   'ml_g': clone(learner),
+                   'ml_r': clone(learner)}
     
     dml_pliv_obj = DoubleMLPLIV(resampling,
                                 ml_learners,
