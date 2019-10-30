@@ -58,6 +58,7 @@ class DoubleMLIIVM(DoubleML):
         r_hat1 = cross_val_predict(ml_r, X, d, cv=smpls_z1, method='predict_proba')[:, 1]
         
         # compute residuals
+        u_hat0 = y - g_hat0
         u_hat1 = y - g_hat1
         w_hat0 = d - r_hat0
         w_hat1 = d - r_hat1
@@ -66,7 +67,7 @@ class DoubleMLIIVM(DoubleML):
         if inf_model == 'LATE':
             self.score_b = g_hat1 - g_hat0 \
                             + np.divide(np.multiply(z, u_hat1), m_hat) \
-                            - np.divide(np.multiply(1.0-z, u_hat1), 1.0 - m_hat)
+                            - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
             self.score_a = -1*(r_hat1 - r_hat0 \
                                 + np.divide(np.multiply(z, w_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))

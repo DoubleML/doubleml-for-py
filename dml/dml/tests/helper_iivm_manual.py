@@ -99,7 +99,7 @@ def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat
     if se_type == 'LATE':
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
                             + np.divide(np.multiply(Z, u_hat1), m_hat) \
-                            - np.divide(np.multiply(1.-Z, u_hat1), 1.-m_hat) \
+                            - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat) \
                         -theta*(r_hat1 - r_hat0 \
                             + np.divide(np.multiply(Z, w_hat1), m_hat) \
                             - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)) \
@@ -116,7 +116,7 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
     if inf_model == 'LATE':
         res = np.mean(g_hat1 - g_hat0 \
                       + np.divide(np.multiply(Z, u_hat1), m_hat) \
-                      - np.divide(np.multiply(1.-Z, u_hat1), 1.-m_hat)) \
+                      - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat)) \
               / np.mean(r_hat1 - r_hat0 \
                         + np.divide(np.multiply(Z, w_hat1), m_hat) \
                         - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat))
@@ -149,7 +149,7 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
     if inf_model == 'LATE':
         score = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
-                - np.divide(np.multiply(1.-Z, u_hat1), 1.-m_hat_all) \
+                - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat_all) \
                 -theta*(r_hat1_all - r_hat0_all \
                     + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
                     - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all))
