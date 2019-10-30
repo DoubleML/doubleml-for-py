@@ -5,3 +5,4 @@ numpy
 matplotlib
 seaborn
 jupyter
+rpy2
