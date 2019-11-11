@@ -12,7 +12,7 @@ from dml.double_ml_plr import DoubleMLPLR
 from dml.tests.helper_general import get_n_datasets
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import r_dml
+from dml.tests.helper_pyvsr import r_MLPLR
 
 # number of datasets per dgp
 n_datasets = get_n_datasets()
@@ -36,7 +36,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
+def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
 
     resampling = KFold(n_splits=2, shuffle=False)
     
@@ -57,7 +57,7 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
 
     # fit the DML model in R
     r_dataframe = pandas2ri.py2rpy(data)
-    res_r = r_dml(r_dataframe, inf_model, dml_procedure)
+    res_r = r_MLPLR(r_dataframe, inf_model, dml_procedure)
 
     
     res_dict = {'coef_py': dml_plr_obj.coef,
@@ -69,13 +69,13 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
     return res_dict
 
 
-def test_dml_plr_pyvsr_coef(dml_plr_fixture):
-    assert math.isclose(dml_plr_fixture['coef_py'],
-                        dml_plr_fixture['coef_r'],
+def test_dml_plr_pyvsr_coef(dml_plr_pyvsr_fixture):
+    assert math.isclose(dml_plr_pyvsr_fixture['coef_py'],
+                        dml_plr_pyvsr_fixture['coef_r'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_plr_pyvsr_se(dml_plr_fixture):
-    assert math.isclose(dml_plr_fixture['se_py'],
-                        dml_plr_fixture['se_r'],
+def test_dml_plr_pyvsr_se(dml_plr_pyvsr_fixture):
+    assert math.isclose(dml_plr_pyvsr_fixture['se_py'],
+                        dml_plr_pyvsr_fixture['se_r'],
                         rel_tol=1e-9, abs_tol=1e-4)
