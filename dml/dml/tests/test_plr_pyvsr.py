@@ -42,8 +42,8 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     
     # Set machine learning methods for m & g
     learner = LinearRegression()
-    ml_learners = {'ml_m': clone(clone(learner)),
-                   'ml_g': clone(clone(learner))}
+    ml_learners = {'ml_m': clone(learner),
+                   'ml_g': clone(learner)}
     
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
@@ -58,7 +58,6 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     # fit the DML model in R
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLR(r_dataframe, inf_model, dml_procedure)
-
     
     res_dict = {'coef_py': dml_plr_obj.coef,
                 'coef_r': res_r[0],

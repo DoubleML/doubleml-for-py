@@ -46,8 +46,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(clone(learner)),
-                   'ml_g': clone(clone(learner))}
+    ml_learners = {'ml_m': clone(learner),
+                   'ml_g': clone(learner)}
     
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,

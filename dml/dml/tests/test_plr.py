@@ -52,8 +52,8 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(clone(learner)),
-                   'ml_g': clone(clone(learner))}
+    ml_learners = {'ml_m': clone(learner),
+                   'ml_g': clone(learner)}
     
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
@@ -134,8 +134,8 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=False)
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(clone(learner)),
-                   'ml_g': clone(clone(learner))}
+    ml_learners = {'ml_m': clone(learner),
+                   'ml_g': clone(learner)}
     
     dml_plr_obj = DoubleMLPLR(resampling,
                               ml_learners,
