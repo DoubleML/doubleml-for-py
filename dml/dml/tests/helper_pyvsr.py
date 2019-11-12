@@ -51,4 +51,29 @@ r_MLPLIV = robjects.r('''
         }
         ''')
 
+r_IRM = robjects.r('''
+        library('dml')
+        library('mlr3learners')
+        library('data.table')
+        library('mlr3')
+
+        f <- function(data, inf_model, dml_procedure) {
+            data = data.table(data)
+            mlmethod <- list(mlmethod_m = 'classif.log_reg',
+                             mlmethod_g0 = 'regr.lm',
+                             mlmethod_g1 = 'regr.lm')
+            params <- list(params_m = list(),
+                           params_g0 = list(),
+                           params_g1 = list())
+
+            double_mlirm_obj = DoubleMLIRM$new(n_folds = 2,
+                                     ml_learners = mlmethod,
+                                     params = params,
+                                     dml_procedure = dml_procedure, inf_model = inf_model)
+            double_mlirm_obj$fit(data, y = 'y', d = 'd')
+            return(list(coef = double_mlirm_obj$coef,
+                        se = double_mlirm_obj$se))
+        }
+        ''')
+
 
