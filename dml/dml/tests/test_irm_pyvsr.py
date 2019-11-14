@@ -44,7 +44,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=False)
     
     # Set machine learning methods for m & g
-    learner_classif = LogisticRegression(solver='lbfgs', max_iter=250)
+    learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
     learner_reg = LinearRegression()
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg)}
@@ -76,11 +76,11 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
 def test_dml_irm_pyvsr_coef(dml_irm_pyvsr_fixture):
     assert math.isclose(dml_irm_pyvsr_fixture['coef_py'],
                         dml_irm_pyvsr_fixture['coef_r'],
-                        rel_tol=1e-4, abs_tol=1e-1)
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 def test_dml_irm_pyvsr_se(dml_irm_pyvsr_fixture):
     assert math.isclose(dml_irm_pyvsr_fixture['se_py'],
                         dml_irm_pyvsr_fixture['se_r'],
-                        rel_tol=1e-4, abs_tol=1e-1)
+                        rel_tol=1e-9, abs_tol=1e-4)
 
