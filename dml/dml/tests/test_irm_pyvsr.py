@@ -13,7 +13,8 @@ from dml.double_ml_irm import DoubleMLIRM
 from dml.tests.helper_general import get_n_datasets
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import r_IRM
+from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_IRM
+pandas2ri.activate()
 
 # number of datasets per dgp
 n_datasets = get_n_datasets()
@@ -60,10 +61,13 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     dml_irm_obj.fit(obj_dml_data)
 
     # fit the DML model in R
+    all_train, all_test = export_smpl_split_to_r(dml_irm_obj._smpls)
+
     r_dataframe = pandas2ri.py2rpy(data)
     if inf_model == 'ATTE':
         inf_model = 'ATET'
-    res_r = r_IRM(r_dataframe, inf_model, dml_procedure)
+    res_r = r_IRM(r_dataframe, inf_model, dml_procedure,
+                  all_train, all_test)
 
     res_dict = {'coef_py': dml_irm_obj.coef,
                 'coef_r': res_r[0],

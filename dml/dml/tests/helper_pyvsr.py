@@ -1,6 +1,19 @@
-from rpy2.robjects import pandas2ri
 from rpy2 import robjects
-pandas2ri.activate()
+from rpy2.robjects import ListVector
+from rpy2.robjects.vectors import IntVector
+
+
+def export_smpl_split_to_r(smpls):
+    n_smpls = len(smpls)
+    all_train = ListVector.from_length(n_smpls)
+    all_test = ListVector.from_length(n_smpls)
+
+    for idx, (train, test) in enumerate(smpls):
+        all_train[idx] = IntVector(train + 1)
+        all_test[idx] = IntVector(test + 1)
+
+    return all_train, all_test
+
 
 # The R code to fit the DML model
 r_MLPLR = robjects.r('''
@@ -9,7 +22,7 @@ r_MLPLR = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure) {
+        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'regr.lm',
                              mlmethod_g = 'regr.lm')
@@ -20,11 +33,15 @@ r_MLPLR = robjects.r('''
                                      ml_learners = mlmethod,
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            double_mlplr_obj$set_samples(train_ids, test_ids)
+            
             double_mlplr_obj$fit(data, y = 'y', d = 'd')
             return(list(coef = double_mlplr_obj$coef,
                         se = double_mlplr_obj$se))
         }
         ''')
+
 
 r_MLPLIV = robjects.r('''
         library('dml')
@@ -32,7 +49,7 @@ r_MLPLIV = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure) {
+        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'regr.lm',
                              mlmethod_g = 'regr.lm',
@@ -45,11 +62,15 @@ r_MLPLIV = robjects.r('''
                                      ml_learners = mlmethod,
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            double_mlpliv_obj$set_samples(train_ids, test_ids)
+            
             double_mlpliv_obj$fit(data, y = 'y', d = 'd', z = 'z')
             return(list(coef = double_mlpliv_obj$coef,
                         se = double_mlpliv_obj$se))
         }
         ''')
+
 
 r_IRM = robjects.r('''
         library('dml')
@@ -57,7 +78,7 @@ r_IRM = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure) {
+        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'classif.log_reg',
                              mlmethod_g0 = 'regr.lm',
@@ -70,11 +91,15 @@ r_IRM = robjects.r('''
                                      ml_learners = mlmethod,
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            double_mlirm_obj$set_samples(train_ids, test_ids)
+            
             double_mlirm_obj$fit(data, y = 'y', d = 'd')
             return(list(coef = double_mlirm_obj$coef,
                         se = double_mlirm_obj$se))
         }
         ''')
+
 
 r_IIVM = robjects.r('''
         library('dml')
@@ -82,7 +107,7 @@ r_IIVM = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure) {
+        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_p = 'classif.log_reg',
                              mlmethod_mu0 = 'regr.lm',
@@ -99,6 +124,9 @@ r_IIVM = robjects.r('''
                                      ml_learners = mlmethod,
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            double_mliivm_obj$set_samples(train_ids, test_ids)
+            
             double_mliivm_obj$fit(data, y = 'y', d = 'd', z = 'z')
             return(list(coef = double_mliivm_obj$coef,
                         se = double_mliivm_obj$se))

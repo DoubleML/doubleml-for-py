@@ -13,7 +13,8 @@ from dml.double_ml_iivm import DoubleMLIIVM
 from dml.tests.helper_general import get_n_datasets
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import r_IIVM
+from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_IIVM
+pandas2ri.activate()
 
 # number of datasets per dgp
 n_datasets = get_n_datasets()
@@ -60,8 +61,11 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
     dml_iivm_obj.fit(obj_dml_data)
 
     # fit the DML model in R
+    all_train, all_test = export_smpl_split_to_r(dml_iivm_obj._smpls)
+
     r_dataframe = pandas2ri.py2rpy(data)
-    res_r = r_IIVM(r_dataframe, inf_model, dml_procedure)
+    res_r = r_IIVM(r_dataframe, inf_model, dml_procedure,
+                   all_train, all_test)
 
     res_dict = {'coef_py': dml_iivm_obj.coef,
                 'coef_r': res_r[0],

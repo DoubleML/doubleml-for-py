@@ -13,7 +13,8 @@ from dml.double_ml_pliv import DoubleMLPLIV
 from dml.tests.helper_general import get_n_datasets
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import r_MLPLIV
+from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLIV
+pandas2ri.activate()
 
 
 # number of datasets per dgp
@@ -61,9 +62,12 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
     
 
     # fit the DML model in R
+    all_train, all_test = export_smpl_split_to_r(dml_pliv_obj._smpls)
+
     r_dataframe = pandas2ri.py2rpy(data)
     assert inf_model == 'DML2018'
-    res_r = r_MLPLIV(r_dataframe, 'partialling-out', dml_procedure)
+    res_r = r_MLPLIV(r_dataframe, 'partialling-out', dml_procedure,
+                     all_train, all_test)
     print(res_r)
 
     res_dict = {'coef_py': dml_pliv_obj.coef,
