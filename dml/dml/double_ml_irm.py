@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
+from sklearn.base import clone
 
 from .double_ml import DoubleML
 from .helper import check_binary_vector
@@ -36,7 +37,8 @@ class DoubleMLIRM(DoubleML):
         inf_model = self.inf_model
         
         ml_m = self.ml_learners['ml_m']
-        ml_g = self.ml_learners['ml_g']
+        ml_g0 = clone(self.ml_learners['ml_g'])
+        ml_g1 = clone(self.ml_learners['ml_g'])
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
@@ -52,9 +54,9 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = cross_val_predict(ml_g, X, y, cv = smpls_d0)
+        g_hat0 = cross_val_predict(ml_g0, X, y, cv = smpls_d0)
         if inf_model == 'ATE':
-            g_hat1 = cross_val_predict(ml_g, X, y, cv = smpls_d1)
+            g_hat1 = cross_val_predict(ml_g1, X, y, cv = smpls_d1)
         
         # nuisance m
         m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba')[:, 1]

@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
+from sklearn.base import clone
 
 from .double_ml import DoubleML
 from .helper import check_binary_vector
@@ -35,8 +36,10 @@ class DoubleMLIIVM(DoubleML):
     def _ml_nuisance_and_score_elements(self, obj_dml_data):
         
         ml_m = self.ml_learners['ml_m']
-        ml_g = self.ml_learners['ml_g']
-        ml_r = self.ml_learners['ml_r']
+        ml_g0 = clone(self.ml_learners['ml_g'])
+        ml_g1 = clone(self.ml_learners['ml_g'])
+        ml_r0 = clone(self.ml_learners['ml_r'])
+        ml_r1 = clone(self.ml_learners['ml_r'])
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
@@ -47,15 +50,15 @@ class DoubleMLIIVM(DoubleML):
         smpls_z0, smpls_z1 = self._get_cond_smpls(z)
         
         # nuisance g
-        g_hat0 = cross_val_predict(ml_g, X, y, cv=smpls_z0)
-        g_hat1 = cross_val_predict(ml_g, X, y, cv=smpls_z1)
+        g_hat0 = cross_val_predict(ml_g0, X, y, cv=smpls_z0)
+        g_hat1 = cross_val_predict(ml_g1, X, y, cv=smpls_z1)
         
         # nuisance m
         m_hat = cross_val_predict(ml_m, X, z, cv=smpls, method='predict_proba')[:, 1]
         
         # nuisance r
-        r_hat0 = cross_val_predict(ml_r, X, d, cv=smpls_z0, method='predict_proba')[:, 1]
-        r_hat1 = cross_val_predict(ml_r, X, d, cv=smpls_z1, method='predict_proba')[:, 1]
+        r_hat0 = cross_val_predict(ml_r0, X, d, cv=smpls_z0, method='predict_proba')[:, 1]
+        r_hat1 = cross_val_predict(ml_r1, X, d, cv=smpls_z1, method='predict_proba')[:, 1]
         
         # compute residuals
         u_hat0 = y - g_hat0
