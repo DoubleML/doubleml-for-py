@@ -43,7 +43,7 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & gg
-    learner_classif = LogisticRegression(solver='lbfgs', max_iter=250)
+    learner_classif = LogisticRegression(solver='newton-cg', fit_intercept=True)
     learner_reg = LinearRegression()
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg),
