@@ -18,6 +18,7 @@ class DoubleML(ABC):
                  inf_model,
                  n_rep_cross_fit=1):
         self.resampling = resampling
+        self._smpls = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
@@ -137,7 +138,8 @@ class DoubleML(ABC):
 
         for i_rep in range(self.n_rep_cross_fit):
             # perform sample splitting
-            self._split_samples(obj_dml_data.x)
+            if (self._smpls is None) or (self.n_rep_cross_fit > 1):
+                self._split_samples(obj_dml_data.x)
 
             for i_d in range(self.n_treat):
                 self._i_d = i_d
@@ -220,6 +222,15 @@ class DoubleML(ABC):
         resampling = self.resampling
         
         smpls = [(train, test) for train, test in resampling.split(x)]
+        self._smpls = smpls
+
+    def set_samples(self, all_train, all_test):
+        assert len(all_train) == len(all_test)
+        n_smpls = len(all_train)
+        smpls = list()
+        for i in range(n_smpls):
+            smpls.append((all_train[i],
+                          all_test[i]))
         self._smpls = smpls
     
     def _est_causal_pars(self):
