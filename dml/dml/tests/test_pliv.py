@@ -47,15 +47,14 @@ def dml_procedure(request):
 @pytest.fixture(scope='module')
 def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
-    
-    resampling = KFold(n_splits=2, shuffle=True)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner),
                    'ml_r': clone(learner)}
     
-    dml_pliv_obj = DoubleMLPLIV(resampling,
+    dml_pliv_obj = DoubleMLPLIV(n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
@@ -70,7 +69,8 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
     X = data.loc[:, X_cols].values
     d = data['d'].values
     z = data['z'].values
-    
+    resampling = KFold(n_splits=n_folds,
+                       shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,

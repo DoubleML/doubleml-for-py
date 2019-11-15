@@ -43,13 +43,13 @@ def dml_procedure(request):
 @pytest.fixture(scope='module')
 def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
-    resampling = KFold(n_splits=2, shuffle=True)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(resampling,
+    dml_plr_obj = DoubleMLPLR(n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
@@ -68,7 +68,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data.loc[:, d_cols].values
-    
+    resampling = KFold(n_splits=n_folds,
+                       shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     n_d = d.shape[1]

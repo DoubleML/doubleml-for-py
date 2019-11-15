@@ -40,9 +40,7 @@ def dml_procedure(request):
 
 @pytest.fixture(scope='module')
 def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
-    boot_methods = ['normal']
-    
-    resampling = KFold(n_splits=2, shuffle=False)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
@@ -50,7 +48,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg)}
     
-    dml_irm_obj = DoubleMLIRM(resampling,
+    dml_irm_obj = DoubleMLIRM(n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)

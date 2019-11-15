@@ -4,6 +4,8 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
+from sklearn.model_selection import KFold
+
 from .double_ml_data import DoubleMLData
 
 
@@ -12,12 +14,12 @@ class DoubleML(ABC):
     Double Machine Learning
     """
     def __init__(self,
-                 resampling,
+                 n_folds,
                  ml_learners,
                  dml_procedure,
                  inf_model,
                  n_rep_cross_fit=1):
-        self.resampling = resampling
+        self.n_folds = n_folds
         self._smpls = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
@@ -219,7 +221,8 @@ class DoubleML(ABC):
         self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
 
     def _split_samples(self, x):
-        resampling = self.resampling
+        resampling = KFold(n_splits=self.n_folds,
+                           shuffle=True)
         
         smpls = [(train, test) for train, test in resampling.split(x)]
         self._smpls = smpls
@@ -235,18 +238,17 @@ class DoubleML(ABC):
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
-        resampling = self.resampling
         smpls = self._smpls
         
         if dml_procedure == 'dml1':
-            thetas = np.zeros(resampling.get_n_splits())
+            thetas = np.zeros(self.n_folds)
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
             self.coef = theta_hat
             self._compute_score()
             
-            variances = np.zeros(resampling.get_n_splits())
+            variances = np.zeros(self.n_folds)
             for idx, (train_index, test_index) in enumerate(smpls):
                 variances[idx] = self._var_est(test_index)
             self.se = np.sqrt(np.mean(variances))

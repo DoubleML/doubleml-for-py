@@ -48,14 +48,13 @@ def dml_procedure(request):
 @pytest.fixture(scope="module")
 def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
-    
-    resampling = KFold(n_splits=2, shuffle=True)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(resampling,
+    dml_plr_obj = DoubleMLPLR(n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
@@ -69,7 +68,8 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    
+    resampling = KFold(n_splits=n_folds,
+                       shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat, m_hat = fit_nuisance_plr(y, X, d,
@@ -130,18 +130,24 @@ def test_dml_plr_boot(dml_plr_fixture):
 def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     learner = LinearRegression()
     boot_methods = ['Bayes', 'normal', 'wild']
-    
-    resampling = KFold(n_splits=2, shuffle=False)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
-    
-    dml_plr_obj = DoubleMLPLR(resampling,
+
+
+    dml_plr_obj = DoubleMLPLR(n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
     data = generate_data1[idx]
+    N = data.shape[0]
+    smpls = []
+    xx = int(N/2)
+    all_train = [np.arange(xx, N), np.arange(0, xx)]
+    all_test = [np.arange(0, xx), np.arange(xx, N)]
+    dml_plr_obj.set_samples(all_train, all_test)
     
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
@@ -150,15 +156,12 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    N = len(y)
-    smpls = []
-    xx = int(N/2)
-    smpls.append((np.arange(0, xx), np.arange(xx, N)))
-    smpls.append((np.arange(xx, N), np.arange(0, xx)))
     
     # add column of ones for intercept
     o = np.ones((N,1))
     X = np.append(X, o, axis=1)
+
+    smpls = dml_plr_obj._smpls
     
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):

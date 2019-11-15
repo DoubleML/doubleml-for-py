@@ -40,9 +40,7 @@ def dml_procedure(request):
 
 @pytest.fixture(scope='module')
 def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
-    boot_methods = ['Bayes', 'normal', 'wild']
-    
-    resampling = KFold(n_splits=2, shuffle=False)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     learner = LinearRegression()
@@ -50,7 +48,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner),
                    'ml_r': clone(learner)}
     
-    dml_pliv_obj = DoubleMLPLIV(resampling,
+    dml_pliv_obj = DoubleMLPLIV(n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)

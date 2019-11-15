@@ -48,15 +48,14 @@ def dml_procedure(request):
 @pytest.fixture(scope="module")
 def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
-    
-    resampling = KFold(n_splits=2, shuffle=True)
+    n_folds = 2
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
                    'ml_g': clone(learner[1]),
                    'ml_r': clone(learner[0])}
     
-    dml_iivm_obj = DoubleMLIIVM(resampling,
+    dml_iivm_obj = DoubleMLIIVM(n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
@@ -71,6 +70,8 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
     X = data.loc[:, X_cols].values
     d = data['d'].values
     z = data['z'].values
+    resampling = KFold(n_splits=n_folds,
+                       shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(y, X, d, z,

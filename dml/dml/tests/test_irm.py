@@ -49,14 +49,13 @@ def dml_procedure(request):
 @pytest.fixture(scope='module')
 def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
-    
-    resampling = KFold(n_splits=2, shuffle=True)
-    
+    n_folds = 2
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
                    'ml_g': clone(learner[1])}
     
-    dml_irm_obj = DoubleMLIRM(resampling,
+    dml_irm_obj = DoubleMLIRM(n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
@@ -70,6 +69,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
+    resampling = KFold(n_splits=n_folds,
+                       shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
