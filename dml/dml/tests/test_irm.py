@@ -53,8 +53,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     resampling = KFold(n_splits=2, shuffle=True)
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(clone(learner[0])),
-                   'ml_g': clone(clone(learner[1]))}
+    ml_learners = {'ml_m': clone(learner[0]),
+                   'ml_g': clone(learner[1])}
     
     dml_irm_obj = DoubleMLIRM(resampling,
                               ml_learners,
