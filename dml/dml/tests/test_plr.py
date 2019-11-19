@@ -97,7 +97,8 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500)
+                              bootstrap, 500,
+                              dml_procedure)
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
@@ -195,7 +196,8 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500)
+                              bootstrap, 500,
+                              dml_procedure)
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)

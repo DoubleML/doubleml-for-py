@@ -177,6 +177,9 @@ class DoubleML(ABC):
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
+
+        dml_procedure = self.dml_procedure
+        smpls = self._smpls
         
         self._initialize_boot_arrays(n_rep)
         
@@ -193,9 +196,20 @@ class DoubleML(ABC):
                 weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
             else:
                 raise ValueError('invalid boot method')
-            
-            J = np.mean(self.__score_a)
-            self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+
+            if dml_procedure == 'dml1':
+                boot_coefs = np.full((n_rep, self.n_folds), np.nan)
+                for idx, (_, test_index) in enumerate(smpls):
+                    J = np.mean(self.__score_a[test_index])
+                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__se_ * J)
+                self.boot_coef = np.mean(boot_coefs, axis=1)
+
+            elif dml_procedure == 'dml2':
+                J = np.mean(self.__score_a)
+                self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+
+            else:
+                raise ValueError('invalid dml_procedure')
 
     @abstractmethod
     def _check_inf_method(self, inf_method):

@@ -69,22 +69,35 @@ def plr_orth(v_hat, u_hat, D, inf_model):
     
     return res
 
-def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep):
+def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
+
+    n_folds = len(smpls)
+    J = np.zeros(n_folds)
+
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
-    
+        if dml_procedure == 'dml1':
+            if inf_model == 'DML2018':
+                J[idx] = np.mean(-np.multiply(v_hat[test_index], v_hat[test_index]))
+            elif inf_model == 'IV-type':
+                J[idx] = np.mean(-np.multiply(v_hat[test_index], D[test_index]))
+
+    if dml_procedure == 'dml2':
+        if inf_model == 'DML2018':
+            J = np.mean(-np.multiply(v_hat, v_hat))
+        elif inf_model == 'IV-type':
+            J = np.mean(-np.multiply(v_hat, D))
+
     if inf_model == 'DML2018':
-        score = np.multiply(u_hat - v_hat*theta, v_hat)
-        J = np.mean(-np.multiply(v_hat, v_hat))
+        score = np.multiply(u_hat - v_hat * theta, v_hat)
     elif inf_model == 'IV-type':
-        score = np.multiply(u_hat - D*theta, v_hat)
-        J = np.mean(-np.multiply(v_hat, D))
+        score = np.multiply(u_hat - D * theta, v_hat)
     else:
         raise ValueError('invalid se_type')
-    
+
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)
     if bootstrap == 'wild':
@@ -98,13 +111,20 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep):
         elif bootstrap == 'normal':
             weights = np.random.normal(loc=0.0, scale=1.0, size=n_obs)
         elif bootstrap == 'wild':
-            xx = xx_sample[i_rep,:]
-            yy = yy_sample[i_rep,:]
-            weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+            xx = xx_sample[i_rep, :]
+            yy = yy_sample[i_rep, :]
+            weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1)/2
         else:
             raise ValueError('invalid bootstrap method')
-        
-        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                               score / J))
+
+        if dml_procedure == 'dml1':
+            this_boot_theta = np.zeros(n_folds)
+            for idx, (train_index, test_index) in enumerate(smpls):
+                this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
+                                               score[test_index] / J[idx]))
+            boot_theta[i_rep] = np.mean(this_boot_theta)
+        elif dml_procedure == 'dml2':
+            boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                    score / J))
     
     return boot_theta
