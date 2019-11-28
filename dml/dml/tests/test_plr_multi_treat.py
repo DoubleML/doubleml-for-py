@@ -115,7 +115,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
                                           all_g_hat[i_d], all_m_hat[i_d],
                                           smpls, inf_model,
                                           se_manual[i_d],
-                                          bootstrap, 500)
+                                          bootstrap, 500,
+                                          dml_procedure)
         
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
