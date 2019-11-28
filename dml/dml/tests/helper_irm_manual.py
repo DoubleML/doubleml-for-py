@@ -106,13 +106,17 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, inf_model):
     
     return res
 
-def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bootstrap, n_rep):
+def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     g_hat0_all = np.zeros_like(Y)
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
     p_hat_all = np.zeros_like(Y)
+
+    n_folds = len(smpls)
+    J = np.zeros(n_folds)
+
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
@@ -120,18 +124,27 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bo
         g_hat1_all[test_index] = g_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
         p_hat_all[test_index] = p_hat[idx]
+        if dml_procedure == 'dml1':
+            if inf_model == 'ATE':
+                J[idx] = -1.0
+            elif inf_model == 'ATTE':
+                J[idx] = np.mean(-np.divide(D[test_index], p_hat_all[test_index]))
+
+    if dml_procedure == 'dml2':
+        if inf_model == 'ATE':
+            J = -1.0
+        elif inf_model == 'ATTE':
+            J = np.mean(-np.divide(D, p_hat_all))
     
     if inf_model == 'ATE':
         score = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(D, u_hat1), m_hat_all) \
                 - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat_all) - theta
-        J = -1.0
     elif inf_model == 'ATTE':
         score = np.divide(np.multiply(D, u_hat0), p_hat_all) \
                 - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
                             np.multiply(p_hat_all, (1.-m_hat_all))) \
                 - theta * np.divide(D, p_hat_all)
-        J = np.mean(-np.divide(D, p_hat_all))
     else:
         raise ValueError('invalid inf_model')
     
@@ -153,8 +166,15 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bo
             weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
         else:
             raise ValueError('invalid bootstrap method')
-        
-        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                               score / J))
+
+        if dml_procedure == 'dml1':
+            this_boot_theta = np.zeros(n_folds)
+            for idx, (train_index, test_index) in enumerate(smpls):
+                this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
+                                                           score[test_index] / J[idx]))
+            boot_theta[i_rep] = np.mean(this_boot_theta)
+        elif dml_procedure == 'dml2':
+            boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                    score / J))
     
     return boot_theta
