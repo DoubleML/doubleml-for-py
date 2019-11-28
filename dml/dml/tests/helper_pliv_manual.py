@@ -74,18 +74,27 @@ def pliv_orth(u_hat, v_hat, w_hat, D, inf_model):
     
     return res
 
-def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstrap, n_rep):
+def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(Z)
     w_hat = np.zeros_like(D)
+
+    n_folds = len(smpls)
+    J = np.zeros(n_folds)
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
-    
+        if dml_procedure == 'dml1':
+            if inf_model == 'DML2018':
+                J[idx] = np.mean(-np.multiply(v_hat[test_index], w_hat[test_index]))
+
+    if dml_procedure == 'dml2':
+        if inf_model == 'DML2018':
+            J = np.mean(-np.multiply(v_hat, w_hat))
+
     if inf_model == 'DML2018':
         score = np.multiply(u_hat - w_hat*theta, v_hat)
-        J = np.mean(-np.multiply(v_hat, w_hat))
     else:
         raise ValueError('invalid se_type')
     
@@ -107,8 +116,15 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstr
             weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
         else:
             raise ValueError('invalid bootstrap method')
-        
-        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                               score / J))
+
+        if dml_procedure == 'dml1':
+            this_boot_theta = np.zeros(n_folds)
+            for idx, (train_index, test_index) in enumerate(smpls):
+                this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
+                                                           score[test_index] / J[idx]))
+            boot_theta[i_rep] = np.mean(this_boot_theta)
+        elif dml_procedure == 'dml2':
+            boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                    score / J))
     
     return boot_theta

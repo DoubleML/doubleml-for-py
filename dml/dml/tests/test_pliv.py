@@ -102,7 +102,8 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                g_hat, m_hat, r_hat,
                                smpls, inf_model,
                                se_manual,
-                               bootstrap, 500)
+                               bootstrap, 500,
+                               dml_procedure)
         
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method = bootstrap, n_rep=500)
