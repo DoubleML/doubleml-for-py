@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-import math
-import scipy
 
 
 def fit_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, inf_model):
@@ -113,10 +110,8 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, inf_model, se, bo
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
     p_hat_all = np.zeros_like(Y)
-
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]

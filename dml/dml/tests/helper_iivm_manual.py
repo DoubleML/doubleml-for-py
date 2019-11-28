@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-import math
-import scipy
 
 
 def fit_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
@@ -125,7 +122,7 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
     
     return res
 
-def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model, se, bootstrap, n_rep):
+def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     w_hat0 = np.zeros_like(Y)
@@ -135,6 +132,8 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
     r_hat0_all = np.zeros_like(Y)
     r_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
+    n_folds = len(smpls)
+    J = np.zeros(n_folds)
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
@@ -145,7 +144,18 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
         r_hat0_all[test_index] = r_hat0[idx]
         r_hat1_all[test_index] = r_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
-    
+        if dml_procedure == 'dml1':
+            if inf_model == 'LATE':
+                J[idx] = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index] \
+                              + np.divide(np.multiply(Z[test_index], w_hat1[test_index]), m_hat_all[test_index]) \
+                              - np.divide(np.multiply(1. - Z[test_index], w_hat0[test_index]), 1. - m_hat_all[test_index])))
+
+    if dml_procedure == 'dml2':
+        if inf_model == 'LATE':
+            J = np.mean(-(r_hat1_all - r_hat0_all \
+                          + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
+                          - np.divide(np.multiply(1. - Z, w_hat0), 1. - m_hat_all)))
+
     if inf_model == 'LATE':
         score = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
@@ -153,9 +163,6 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
                 -theta*(r_hat1_all - r_hat0_all \
                     + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
                     - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all))
-        J = np.mean(-(r_hat1_all - r_hat0_all \
-                      + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
-                      - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all)))
     else:
         raise ValueError('invalid inf_model')
     
@@ -177,8 +184,15 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
             weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
         else:
             raise ValueError('invalid bootstrap method')
-        
-        boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                               score / J))
+
+        if dml_procedure == 'dml1':
+            this_boot_theta = np.zeros(n_folds)
+            for idx, (train_index, test_index) in enumerate(smpls):
+                this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
+                                                           score[test_index] / J[idx]))
+            boot_theta[i_rep] = np.mean(this_boot_theta)
+        elif dml_procedure == 'dml2':
+            boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                    score / J))
     
     return boot_theta

@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-import math
-import scipy
 
 
 def fit_nuisance_pliv(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
@@ -78,7 +75,6 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstr
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(Z)
     w_hat = np.zeros_like(D)
-
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (train_index, test_index) in enumerate(smpls):

@@ -100,7 +100,8 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500)
+                              bootstrap, 500,
+                              dml_procedure)
         
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method = bootstrap, n_rep=500)

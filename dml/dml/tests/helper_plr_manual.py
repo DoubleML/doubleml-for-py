@@ -72,10 +72,8 @@ def plr_orth(v_hat, u_hat, D, inf_model):
 def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
-
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
