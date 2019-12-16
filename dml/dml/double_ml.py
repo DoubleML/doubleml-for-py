@@ -138,6 +138,10 @@ class DoubleML(ABC):
                           self.n_rep_cross_fit),
                          np.nan)
 
+        if self.n_rep_cross_fit > 1:
+            # externally transferred samples not supported for repeated cross-fitting
+            assert self._smpls is None
+
         for i_rep in range(self.n_rep_cross_fit):
             # perform sample splitting
             if (self._smpls is None) or (self.n_rep_cross_fit > 1):
