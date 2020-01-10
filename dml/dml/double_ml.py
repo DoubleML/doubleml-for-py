@@ -143,11 +143,12 @@ class DoubleML(ABC):
             # externally transferred samples not supported for repeated cross-fitting
             assert self._smpls is None
 
-        for i_rep in range(self.n_rep_cross_fit):
-            # perform sample splitting
-            if (self._smpls is None) or (self.n_rep_cross_fit > 1):
-                self._split_samples(obj_dml_data.x)
+        # perform sample splitting
+        if self._smpls is None:
+            self._split_samples(obj_dml_data.x)
 
+        for i_rep in range(self.n_rep_cross_fit):
+            self._smpls = self._all_smpls[i_rep]
             for i_d in range(self.n_treat):
                 self._i_d = i_d
 
@@ -241,11 +242,9 @@ class DoubleML(ABC):
 
     def _split_samples(self, x):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep_cross_fit=1,
-                                                #n_rep_cross_fit=self.n_rep_cross_fit,
+                                                n_rep_cross_fit=self.n_rep_cross_fit,
                                                 n_obs=self.n_obs)
-        smpls = obj_dml_resampling.split_samples()
-        self._smpls = smpls[0]
+        self._all_smpls = obj_dml_resampling.split_samples()
 
     def set_samples(self, all_train, all_test):
         assert len(all_train) == len(all_test)
@@ -254,7 +253,7 @@ class DoubleML(ABC):
         for i in range(n_smpls):
             smpls.append((all_train[i],
                           all_test[i]))
-        self._smpls = smpls
+        self._all_smpls = smpls
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
