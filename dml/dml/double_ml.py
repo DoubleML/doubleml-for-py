@@ -21,7 +21,7 @@ class DoubleML(ABC):
                  inf_model,
                  n_rep_cross_fit=1):
         self.n_folds = n_folds
-        self._smpls = None
+        self._all_smpls = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
@@ -141,10 +141,10 @@ class DoubleML(ABC):
 
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
-            assert self._smpls is None
+            assert self._all_smpls is None
 
         # perform sample splitting
-        if self._smpls is None:
+        if self._all_smpls is None:
             self._split_samples(obj_dml_data.x)
 
         for i_rep in range(self.n_rep_cross_fit):
@@ -253,7 +253,7 @@ class DoubleML(ABC):
         for i in range(n_smpls):
             smpls.append((all_train[i],
                           all_test[i]))
-        self._all_smpls = smpls
+        self._all_smpls = [smpls]
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
