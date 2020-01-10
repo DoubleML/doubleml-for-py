@@ -241,7 +241,8 @@ class DoubleML(ABC):
 
     def _split_samples(self, x):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep_cross_fit=self.n_rep_cross_fit,
+                                                n_rep_cross_fit=1,
+                                                #n_rep_cross_fit=self.n_rep_cross_fit,
                                                 n_obs=self.n_obs)
         smpls = obj_dml_resampling.split_samples()
         self._smpls = smpls[0]

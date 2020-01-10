@@ -44,7 +44,7 @@ def dml_procedure(request):
     return request.param
 
 @pytest.fixture(scope='module',
-                params = [2, 5])
+                params = [3])
 def n_rep_cross_fit(request):
     return request.param
 
