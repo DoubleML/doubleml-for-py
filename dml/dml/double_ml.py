@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from sklearn.model_selection import KFold
 
 from .double_ml_data import DoubleMLData
+from .double_ml_resampling import DoubleMLResampling
 
 
 class DoubleML(ABC):
@@ -239,11 +240,11 @@ class DoubleML(ABC):
         self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
 
     def _split_samples(self, x):
-        resampling = KFold(n_splits=self.n_folds,
-                           shuffle=True)
-        
-        smpls = [(train, test) for train, test in resampling.split(x)]
-        self._smpls = smpls
+        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                n_rep_cross_fit=self.n_rep_cross_fit,
+                                                n_obs=self.n_obs)
+        smpls = obj_dml_resampling.split_samples()
+        self._smpls = smpls[0]
 
     def set_samples(self, all_train, all_test):
         assert len(all_train) == len(all_test)
