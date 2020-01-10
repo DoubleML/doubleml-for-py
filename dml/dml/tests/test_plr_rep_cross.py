@@ -72,13 +72,17 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-
-    thetas = np.zeros(n_rep_cross_fit)
-    ses = np.zeros(n_rep_cross_fit)
+    all_smpls = []
     for i_rep in range(n_rep_cross_fit):
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
         smpls = [(train, test) for train, test in resampling.split(X)]
+        all_smpls.append(smpls)
+
+    thetas = np.zeros(n_rep_cross_fit)
+    ses = np.zeros(n_rep_cross_fit)
+    for i_rep in range(n_rep_cross_fit):
+        smpls = all_smpls[i_rep]
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                         clone(learner), clone(learner), smpls)
