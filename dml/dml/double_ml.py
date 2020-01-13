@@ -246,7 +246,10 @@ class DoubleML(ABC):
                                                 n_obs=self.n_obs)
         self._all_smpls = obj_dml_resampling.split_samples()
 
-    def set_samples(self, all_train, all_test):
+    def set_samples(self, all_smpls):
+        self._all_smpls = all_smpls
+
+    def depreciated_set_samples(self, all_train, all_test):
         assert len(all_train) == len(all_test)
         n_smpls = len(all_train)
         smpls = list()

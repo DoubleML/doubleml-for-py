@@ -70,7 +70,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
                                ml_learners,
                                dml_procedure,
                                inf_model)
-    dml_plr_obj2.set_samples(all_train, all_test)
+    dml_plr_obj2.depreciated_set_samples(all_train, all_test)
     dml_plr_obj2.fit(obj_dml_data)
     
     res_dict = {'coef': dml_plr_obj.coef,
