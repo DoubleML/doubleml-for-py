@@ -247,6 +247,10 @@ class DoubleML(ABC):
         self._all_smpls = obj_dml_resampling.split_samples()
 
     def set_samples(self, all_smpls):
+        self.n_rep_cross_fit = len(all_smpls)
+        n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
+        assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
+        self.n_folds = n_folds_each_smpl[0]
         self._all_smpls = all_smpls
 
     def depreciated_set_samples(self, all_train, all_test):
