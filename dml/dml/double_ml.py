@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from scipy.stats import norm
 
@@ -22,6 +23,7 @@ class DoubleML(ABC):
                  n_rep_cross_fit=1):
         self.n_folds = n_folds
         self._all_smpls = None
+        self._d_cols = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
@@ -38,6 +40,10 @@ class DoubleML(ABC):
     @property
     def n_treat(self):
         return self.score.shape[1]
+
+    @property
+    def d_cols(self):
+        return self._d_cols
     
     @score.setter
     def score(self, value):
@@ -92,6 +98,21 @@ class DoubleML(ABC):
     @boot_coef.setter
     def boot_coef(self, value):
         self._boot_coef[self._i_d, :] = value
+
+    @property
+    def summary(self):
+        col_names = ['coef', 'std err', 't', 'P>|t|']
+        if self.d_cols is None:
+            df_summary = pd.DataFrame(columns=col_names)
+        else:
+            summary_stats = np.hstack([self.coef,
+                                       self.se,
+                                       self.t_stat,
+                                       self.pval])
+            df_summary = pd.DataFrame([summary_stats],
+                                      columns=col_names,
+                                      index=self.d_cols)
+        return df_summary
     
     # the private properties with __ always deliver the single treatment subselection
     @property 
@@ -130,6 +151,8 @@ class DoubleML(ABC):
         
         self._initialize_arrays(obj_dml_data.n_obs,
                                 obj_dml_data.n_treat)
+
+        self._d_cols = obj_dml_data.d_cols
 
         all_coef = np.full((obj_dml_data.n_treat,
                             self.n_rep_cross_fit),
