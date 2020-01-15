@@ -105,11 +105,10 @@ class DoubleML(ABC):
         if self.d_cols is None:
             df_summary = pd.DataFrame(columns=col_names)
         else:
-            summary_stats = np.hstack([self.coef,
-                                       self.se,
-                                       self.t_stat,
-                                       self.pval])
-            df_summary = pd.DataFrame([summary_stats],
+            summary_stats = np.transpose(np.vstack(
+                [self.coef, self.se,
+                 self.t_stat, self.pval]))
+            df_summary = pd.DataFrame(summary_stats,
                                       columns=col_names,
                                       index=self.d_cols)
         return df_summary
