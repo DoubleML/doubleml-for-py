@@ -111,6 +111,8 @@ class DoubleML(ABC):
             df_summary = pd.DataFrame(summary_stats,
                                       columns=col_names,
                                       index=self.d_cols)
+            ci = self.confint()
+            df_summary = df_summary.join(ci)
         return df_summary
     
     # the private properties with __ always deliver the single treatment subselection
@@ -238,6 +240,21 @@ class DoubleML(ABC):
 
             else:
                 raise ValueError('invalid dml_procedure')
+
+    def confint(self, joint=False, level=0.95):
+        if joint:
+            raise ValueError('Not implemented yet')
+        else:
+            a = (1 - level) / 2
+            ab = np.array([a, 1. - a])
+
+            fac = norm.ppf(ab)
+            ci = self.coef + self.se * fac
+            df_ci = pd.DataFrame([ci],
+                                 columns=['{:.1f} %'.format(i * 100) for i in ab],
+                                 index=self.d_cols)
+
+        return df_ci
 
     @abstractmethod
     def _check_inf_method(self, inf_method):
