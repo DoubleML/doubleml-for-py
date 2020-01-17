@@ -61,7 +61,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
                               ml_learners,
                               dml_procedure,
                               inf_model,
-                              n_rep_cross_fit)
+                              n_rep_cross_fit=n_rep_cross_fit)
     data = generate_data1[idx]
     np.random.seed(3141)
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()

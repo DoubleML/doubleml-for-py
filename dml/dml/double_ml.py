@@ -20,6 +20,7 @@ class DoubleML(ABC):
                  ml_learners,
                  dml_procedure,
                  inf_model,
+                 se_reestimate=False,
                  n_rep_cross_fit=1):
         self.n_folds = n_folds
         self._all_smpls = None
@@ -27,6 +28,7 @@ class DoubleML(ABC):
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
+        self.se_reestimate = se_reestimate
         self.n_rep_cross_fit = n_rep_cross_fit
     
     @property 
@@ -312,11 +314,14 @@ class DoubleML(ABC):
             theta_hat = np.mean(thetas)
             self.coef = theta_hat
             self._compute_score()
-            
-            variances = np.zeros(self.n_folds)
-            for idx, (train_index, test_index) in enumerate(smpls):
-                variances[idx] = self._var_est(test_index)
-            self.se = np.sqrt(np.mean(variances))
+
+            if self.se_reestimate:
+                self.se = np.sqrt(self._var_est())
+            else:
+                variances = np.zeros(self.n_folds)
+                for idx, (train_index, test_index) in enumerate(smpls):
+                    variances[idx] = self._var_est(test_index)
+                self.se = np.sqrt(np.mean(variances))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
