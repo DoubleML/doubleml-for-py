@@ -98,7 +98,7 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
                               ml_learners,
                               dml_procedure,
                               inf_model,
-                              se_reestimate=False)
+                              se_reestimate=True)
     dml_plr_obj.fit(obj_dml_data)
 
     np.random.seed(3141)
@@ -117,18 +117,10 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
                                      smpls, inf_model,
                                      se_reestimate=True)
 
-    res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': res_manual,
-                'se': dml_plr_obj.se,
+    res_dict = {'se': dml_plr_obj.se,
                 'se_manual': se_manual}
 
     return res_dict
-
-
-def test_dml1_plr_coef(dml1_plr_fixture):
-    assert math.isclose(dml1_plr_fixture['coef'],
-                        dml1_plr_fixture['coef_manual'],
-                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 def test_dml1_plr_se(dml1_plr_fixture):
