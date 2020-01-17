@@ -244,18 +244,20 @@ class DoubleML(ABC):
                 raise ValueError('invalid dml_procedure')
 
     def confint(self, joint=False, level=0.95):
+        a = (1 - level)
+        ab = np.array([a/2, 1. - a/2])
         if joint:
-            raise ValueError('Not implemented yet')
+            sim = np.amax(np.abs(self.boot_coef), 0)
+            hatc = np.quantile(sim, 1-a)
+            hatc_two_sided = np.array([-hatc, hatc])
+            ci = self.coef + self.se * hatc_two_sided
         else:
-            a = (1 - level) / 2
-            ab = np.array([a, 1. - a])
-
             fac = norm.ppf(ab)
             ci = self.coef + self.se * fac
-            df_ci = pd.DataFrame([ci],
-                                 columns=['{:.1f} %'.format(i * 100) for i in ab],
-                                 index=self.d_cols)
 
+        df_ci = pd.DataFrame([ci],
+                             columns=['{:.1f} %'.format(i * 100) for i in ab],
+                             index=self.d_cols)
         return df_ci
 
     @abstractmethod
