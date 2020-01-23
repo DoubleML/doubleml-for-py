@@ -37,7 +37,7 @@ class DoubleML(ABC):
 
     @property
     def n_treat(self):
-        return self.score.shape[1]
+        return self.score.shape[2]
 
     @property
     def d_cols(self):
@@ -54,10 +54,6 @@ class DoubleML(ABC):
     @property
     def score(self):
         return self._score
-
-    @score.setter
-    def score(self, value):
-        self._score = value
     
     @property 
     def score_a(self):
@@ -124,30 +120,34 @@ class DoubleML(ABC):
 
     @property 
     def __score(self):
-        return self._score[:, self._i_treat]
-    
-    @property 
+        return self._score[:, self._i_rep, self._i_treat]
+
+    @__score.setter
+    def __score(self, value):
+        self._score[:, self._i_rep, self._i_treat] = value
+
+    @property
     def __score_a(self):
-        return self._score_a[:, self._i_treat]
+        return self._score_a[:, self._i_rep, self._i_treat]
 
     @__score_a.setter
     def __score_a(self, value):
-        self._score_a[:, self._i_treat] = value
+        self._score_a[:, self._i_rep, self._i_treat] = value
     
     @property 
     def __score_b(self):
-        return self._score_b[:, self._i_treat]
+        return self._score_b[:, self._i_rep, self._i_treat]
 
     @__score_b.setter
     def __score_b(self, value):
-        self._score_b[:, self._i_treat] = value
+        self._score_b[:, self._i_rep, self._i_treat] = value
     
     @property 
-    def __coef_(self):
+    def __coef(self):
         return self._coef[self._i_treat]
     
     @property 
-    def __se_(self):
+    def __se(self):
         return self._se[self._i_treat]
     
     def fit(self, obj_dml_data, keep_scores=True):
@@ -165,7 +165,8 @@ class DoubleML(ABC):
         self._check_data(obj_dml_data)
         
         self._initialize_arrays(obj_dml_data.n_obs,
-                                obj_dml_data.n_treat)
+                                obj_dml_data.n_treat,
+                                self.n_rep_cross_fit)
 
         self._d_cols = obj_dml_data.d_cols
 
@@ -192,6 +193,7 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
+                    print(self._d_cols)
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
@@ -246,12 +248,12 @@ class DoubleML(ABC):
                 boot_coefs = np.full((n_rep, self.n_folds), np.nan)
                 for idx, (_, test_index) in enumerate(smpls):
                     J = np.mean(self.__score_a[test_index])
-                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__se_ * J)
+                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__se * J)
                 self.boot_coef = np.mean(boot_coefs, axis=1)
 
             elif dml_procedure == 'dml2':
                 J = np.mean(self.__score_a)
-                self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se_ * J)
+                self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se * J)
 
             else:
                 raise ValueError('invalid dml_procedure')
@@ -285,10 +287,10 @@ class DoubleML(ABC):
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
         pass
 
-    def _initialize_arrays(self, n_obs, n_treat):
-        self._score = np.full((n_obs, n_treat), np.nan)
-        self._score_a = np.full((n_obs, n_treat), np.nan)
-        self._score_b = np.full((n_obs, n_treat), np.nan)
+    def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):
+        self._score = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
+        self._score_a = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
+        self._score_b = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
         
         self._coef = np.full(n_treat, np.nan)
         self._se = np.full(n_treat, np.nan)
@@ -382,7 +384,7 @@ class DoubleML(ABC):
         return theta
     
     def _compute_score(self):
-        self.score = self.score_a * self.coef + self.score_b
+        self.__score = self.__score_a * self.__coef + self.__score_b
 
     def _clean_scores(self):
         del self._score
