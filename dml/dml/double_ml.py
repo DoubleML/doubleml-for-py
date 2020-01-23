@@ -30,10 +30,6 @@ class DoubleML(ABC):
         self.inf_model = self._check_inf_method(inf_model)
         self.se_reestimate = se_reestimate
         self.n_rep_cross_fit = n_rep_cross_fit
-    
-    @property 
-    def score(self):
-        return self._score
 
     @property
     def n_obs(self):
@@ -46,7 +42,11 @@ class DoubleML(ABC):
     @property
     def d_cols(self):
         return self._d_cols
-    
+
+    @property
+    def score(self):
+        return self._score
+
     @score.setter
     def score(self, value):
         self._score = value
@@ -171,7 +171,7 @@ class DoubleML(ABC):
 
         # perform sample splitting
         if self._all_smpls is None:
-            self._split_samples(obj_dml_data.x)
+            self._split_samples()
 
         for i_rep in range(self.n_rep_cross_fit):
             self._smpls = self._all_smpls[i_rep]
@@ -283,7 +283,7 @@ class DoubleML(ABC):
     def _initialize_boot_arrays(self, n_rep):
         self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
 
-    def _split_samples(self, x):
+    def _split_samples(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep_cross_fit=self.n_rep_cross_fit,
                                                 n_obs=self.n_obs)
