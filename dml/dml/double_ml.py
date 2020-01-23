@@ -92,10 +92,6 @@ class DoubleML(ABC):
     @property 
     def boot_coef(self):
         return self._boot_coef
-    
-    @boot_coef.setter
-    def boot_coef(self, value):
-        self._boot_coef[self._i_treat, :] = value
 
     @property
     def summary(self):
@@ -143,6 +139,18 @@ class DoubleML(ABC):
         self._score_b[:, self._i_rep, self._i_treat] = value
 
     @property
+    def __boot_coef(self):
+        ind_start = self._i_rep * self.n_rep_boot
+        ind_end = (self._i_rep + 1) * self.n_rep_boot
+        return self._boot_coef[self._i_treat, ind_start:ind_end]
+
+    @__boot_coef.setter
+    def __boot_coef(self, value):
+        ind_start = self._i_rep * self.n_rep_boot
+        ind_end = (self._i_rep + 1) * self.n_rep_boot
+        self._boot_coef[self._i_treat, ind_start:ind_end] = value
+
+    @property
     def __all_coef(self):
         return self._all_coef[self._i_treat, self._i_rep]
 
@@ -157,10 +165,6 @@ class DoubleML(ABC):
     @__all_se.setter
     def __all_se(self, value):
         self._all_se[self._i_treat, self._i_rep] = value
-    
-    @property 
-    def __se(self):
-        return self._se[self._i_treat]
     
     def fit(self, obj_dml_data, keep_scores=True):
         """
@@ -231,35 +235,37 @@ class DoubleML(ABC):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
         
-        self._initialize_boot_arrays(n_rep)
-        
-        for i_d in range(self.n_treat):
-            self._i_treat = i_d
-            
-            if method == 'Bayes':
-                weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
-            elif method == 'normal':
-                weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            elif method == 'wild':
-                xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-                weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
-            else:
-                raise ValueError('invalid boot method')
+        self._initialize_boot_arrays(n_rep, self.n_rep_cross_fit)
 
-            if dml_procedure == 'dml1':
-                boot_coefs = np.full((n_rep, self.n_folds), np.nan)
-                for idx, (_, test_index) in enumerate(smpls):
-                    J = np.mean(self.__score_a[test_index])
-                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__se * J)
-                self.boot_coef = np.mean(boot_coefs, axis=1)
+        for i_rep in range(self.n_rep_cross_fit):
+            self._i_rep = i_rep
+            for i_d in range(self.n_treat):
+                self._i_treat = i_d
 
-            elif dml_procedure == 'dml2':
-                J = np.mean(self.__score_a)
-                self.boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__se * J)
+                if method == 'Bayes':
+                    weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
+                elif method == 'normal':
+                    weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                elif method == 'wild':
+                    xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                    yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+                    weights = xx / np.sqrt(2) + (np.power(yy,2) - 1)/2
+                else:
+                    raise ValueError('invalid boot method')
 
-            else:
-                raise ValueError('invalid dml_procedure')
+                if dml_procedure == 'dml1':
+                    boot_coefs = np.full((n_rep, self.n_folds), np.nan)
+                    for idx, (_, test_index) in enumerate(smpls):
+                        J = np.mean(self.__score_a[test_index])
+                        boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__all_se * J)
+                    self.__boot_coef = np.mean(boot_coefs, axis=1)
+
+                elif dml_procedure == 'dml2':
+                    J = np.mean(self.__score_a)
+                    self.__boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__all_se * J)
+
+                else:
+                    raise ValueError('invalid dml_procedure')
 
     def confint(self, joint=False, level=0.95):
         a = (1 - level)
@@ -301,8 +307,9 @@ class DoubleML(ABC):
         self._all_coef = np.full((n_treat, n_rep_cross_fit), np.nan)
         self._all_se = np.full((n_treat, n_rep_cross_fit), np.nan)
 
-    def _initialize_boot_arrays(self, n_rep):
-        self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
+    def _initialize_boot_arrays(self, n_rep, n_rep_cross_fit):
+        self.n_rep_boot = n_rep
+        self._boot_coef = np.full((self.n_treat, n_rep * n_rep_cross_fit), np.nan)
 
     def _split_samples(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
