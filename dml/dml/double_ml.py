@@ -77,7 +77,7 @@ class DoubleML(ABC):
     
     @se.setter
     def se(self, value):
-        self._se[self._i_treat] = value
+        self._se = value
 
     @property
     def t_stat(self):
@@ -212,8 +212,8 @@ class DoubleML(ABC):
 
         # aggregate parameters from the repeated cross-fitting
         # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self._coef = np.median(self._all_coef, 1)
-        self._se = np.median(self._all_se, 1)
+        self.coef = np.median(self._all_coef, 1)
+        self.se = np.median(self._all_se, 1)
 
         if not keep_scores:
             self._clean_scores()
