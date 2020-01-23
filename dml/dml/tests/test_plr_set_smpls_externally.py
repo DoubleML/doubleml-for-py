@@ -61,7 +61,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
 
     all_train = list()
     all_test = list()
-    for (train, test) in dml_plr_obj._all_smpls[0]:
+    for (train, test) in dml_plr_obj.smpls[0]:
         all_train.append(train)
         all_test.append(test)
 

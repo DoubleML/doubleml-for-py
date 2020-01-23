@@ -23,7 +23,7 @@ class DoubleML(ABC):
                  se_reestimate=False,
                  n_rep_cross_fit=1):
         self.n_folds = n_folds
-        self._all_smpls = None
+        self.smpls = None
         self._d_cols = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
@@ -42,6 +42,14 @@ class DoubleML(ABC):
     @property
     def d_cols(self):
         return self._d_cols
+
+    @property
+    def smpls(self):
+        return self._smpls
+
+    @smpls.setter
+    def smpls(self, value):
+        self._smpls = value
 
     @property
     def score(self):
@@ -112,7 +120,7 @@ class DoubleML(ABC):
     # the private properties with __ always deliver the single treatment subselection
     @property
     def __smpls(self):
-        return self._all_smpls[self._i_rep]
+        return self.smpls[self._i_rep]
 
     @property 
     def __score(self):
@@ -171,10 +179,10 @@ class DoubleML(ABC):
 
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
-            assert self._all_smpls is None
+            assert self.smpls is None
 
         # perform sample splitting
-        if self._all_smpls is None:
+        if self.smpls is None:
             self._split_samples()
 
         for i_rep in range(self.n_rep_cross_fit):
@@ -292,14 +300,14 @@ class DoubleML(ABC):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep_cross_fit=self.n_rep_cross_fit,
                                                 n_obs=self.n_obs)
-        self._all_smpls = obj_dml_resampling.split_samples()
+        self.smpls = obj_dml_resampling.split_samples()
 
     def set_samples(self, all_smpls):
         self.n_rep_cross_fit = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
         self.n_folds = n_folds_each_smpl[0]
-        self._all_smpls = all_smpls
+        self.smpls = all_smpls
 
     def depreciated_set_samples(self, all_train, all_test):
         assert len(all_train) == len(all_test)
@@ -308,7 +316,7 @@ class DoubleML(ABC):
         for i in range(n_smpls):
             smpls.append((all_train[i],
                           all_test[i]))
-        self._all_smpls = [smpls]
+        self.smpls = [smpls]
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure

@@ -60,7 +60,7 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
     dml_iivm_obj.fit(obj_dml_data)
 
     # fit the DML model in R
-    all_train, all_test = export_smpl_split_to_r(dml_iivm_obj._all_smpls[0])
+    all_train, all_test = export_smpl_split_to_r(dml_iivm_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_IIVM(r_dataframe, inf_model, dml_procedure,
