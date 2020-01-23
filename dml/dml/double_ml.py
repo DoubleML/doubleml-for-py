@@ -187,8 +187,9 @@ class DoubleML(ABC):
 
                 # estimate the causal parameter(s)
                 self._est_causal_pars()
-            all_coef[:, i_rep] = self.coef
-            all_se[:, i_rep] = self.se
+                
+                all_coef[self._i_d, i_rep] = self.coef[self._i_d]
+                all_se[self._i_d, i_rep] = self.se[self._i_d]
 
         # don't use the setter (always for one treatment variable), but the private variable
         self._coef = np.median(all_coef, 1)
