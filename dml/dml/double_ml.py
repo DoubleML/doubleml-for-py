@@ -110,6 +110,10 @@ class DoubleML(ABC):
         return df_summary
     
     # the private properties with __ always deliver the single treatment subselection
+    @property
+    def __smpls(self):
+        return self._all_smpls[self._i_rep]
+
     @property 
     def __score(self):
         return self._score[:, self._i_treat]
@@ -174,7 +178,7 @@ class DoubleML(ABC):
             self._split_samples()
 
         for i_rep in range(self.n_rep_cross_fit):
-            self._smpls = self._all_smpls[i_rep]
+            self._i_rep = i_rep
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
 
@@ -183,7 +187,7 @@ class DoubleML(ABC):
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data)
+                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data, self.__smpls)
 
                 # estimate the causal parameter(s)
                 self._est_causal_pars()
@@ -212,7 +216,7 @@ class DoubleML(ABC):
             raise ValueError('apply fit() before bootstrap()')
 
         dml_procedure = self.dml_procedure
-        smpls = self._smpls
+        smpls = self.__smpls
         
         self._initialize_boot_arrays(n_rep)
         
@@ -270,7 +274,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_and_score_elements(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat):
@@ -308,7 +312,7 @@ class DoubleML(ABC):
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
-        smpls = self._smpls
+        smpls = self.__smpls
         
         if dml_procedure == 'dml1':
             thetas = np.zeros(self.n_folds)

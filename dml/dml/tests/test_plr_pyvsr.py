@@ -55,7 +55,7 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     dml_plr_obj.fit(obj_dml_data)
 
     # fit the DML model in R
-    all_train, all_test = export_smpl_split_to_r(dml_plr_obj._smpls)
+    all_train, all_test = export_smpl_split_to_r(dml_plr_obj._all_smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLR(r_dataframe, inf_model, dml_procedure,

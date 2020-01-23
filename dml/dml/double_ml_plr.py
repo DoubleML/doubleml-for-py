@@ -21,14 +21,12 @@ class DoubleMLPLR(DoubleML):
         assert obj_dml_data.z_col is None
         return
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
-        
-        smpls = self._smpls
         
         # nuisance g
         g_hat = cross_val_predict(ml_g, X, y, cv = smpls)

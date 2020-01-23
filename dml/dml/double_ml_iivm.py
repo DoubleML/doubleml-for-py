@@ -25,15 +25,14 @@ class DoubleMLIIVM(DoubleML):
         check_binary_vector(obj_dml_data.z, variable_name='z')
         return
     
-    def _get_cond_smpls(self, z):
-        smpls = self._smpls
+    def _get_cond_smpls(self, smpls, z):
         smpls_z0 = [(np.intersect1d(np.where(z == 0)[0], train),
                      test) for train, test in smpls]
         smpls_z1 = [(np.intersect1d(np.where(z == 1)[0], train),
                      test) for train, test in smpls]
         return smpls_z0, smpls_z1
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
         
         ml_m = self.ml_learners['ml_m']
         ml_g0 = clone(self.ml_learners['ml_g'])
@@ -45,9 +44,8 @@ class DoubleMLIIVM(DoubleML):
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
 
-        smpls = self._smpls
         # get train indices for z == 0 and z == 1
-        smpls_z0, smpls_z1 = self._get_cond_smpls(z)
+        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
         
         # nuisance g
         g_hat0 = cross_val_predict(ml_g0, X, y, cv=smpls_z0)

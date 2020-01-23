@@ -162,7 +162,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     o = np.ones((N,1))
     X = np.append(X, o, axis=1)
 
-    smpls = dml_plr_obj._smpls
+    smpls = dml_plr_obj._all_smpls[0]
     
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):

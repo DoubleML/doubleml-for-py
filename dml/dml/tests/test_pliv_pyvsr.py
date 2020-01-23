@@ -60,7 +60,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
     
 
     # fit the DML model in R
-    all_train, all_test = export_smpl_split_to_r(dml_pliv_obj._smpls)
+    all_train, all_test = export_smpl_split_to_r(dml_pliv_obj._all_smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
     assert inf_model == 'DML2018'

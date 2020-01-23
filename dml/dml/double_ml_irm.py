@@ -25,15 +25,14 @@ class DoubleMLIRM(DoubleML):
         check_binary_vector(obj_dml_data.d, variable_name='d')
         return
     
-    def _get_cond_smpls(self, d):
-        smpls = self._smpls
+    def _get_cond_smpls(self, smpls, d):
         smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train),
                       test) for train, test in smpls]
         smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train),
                       test) for train, test in smpls]
         return smpls_d0, smpls_d1
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
         inf_model = self.inf_model
         
         ml_m = self.ml_learners['ml_m']
@@ -42,10 +41,8 @@ class DoubleMLIRM(DoubleML):
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
-
-        smpls = self._smpls
         # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = self._get_cond_smpls(d)
+        smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
         # fraction of treated for ATTE
         if inf_model == 'ATTE':

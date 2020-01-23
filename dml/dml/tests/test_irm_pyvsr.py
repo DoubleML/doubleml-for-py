@@ -59,7 +59,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     dml_irm_obj.fit(obj_dml_data)
 
     # fit the DML model in R
-    all_train, all_test = export_smpl_split_to_r(dml_irm_obj._smpls)
+    all_train, all_test = export_smpl_split_to_r(dml_irm_obj._all_smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
     if inf_model == 'ATTE':
