@@ -69,7 +69,7 @@ class DoubleML(ABC):
     
     @coef.setter
     def coef(self, value):
-        self._coef[self._i_treat] = value
+        self._coef = value
     
     @property 
     def se(self):
@@ -141,10 +141,22 @@ class DoubleML(ABC):
     @__score_b.setter
     def __score_b(self, value):
         self._score_b[:, self._i_rep, self._i_treat] = value
-    
-    @property 
-    def __coef(self):
-        return self._coef[self._i_treat]
+
+    @property
+    def __all_coef(self):
+        return self._all_coef[self._i_treat, self._i_rep]
+
+    @__all_coef.setter
+    def __all_coef(self, value):
+        self._all_coef[self._i_treat, self._i_rep] = value
+
+    @property
+    def __all_se(self):
+        return self._all_se[self._i_treat, self._i_rep]
+
+    @__all_se.setter
+    def __all_se(self, value):
+        self._all_se[self._i_treat, self._i_rep] = value
     
     @property 
     def __se(self):
@@ -170,14 +182,6 @@ class DoubleML(ABC):
 
         self._d_cols = obj_dml_data.d_cols
 
-        all_coef = np.full((obj_dml_data.n_treat,
-                            self.n_rep_cross_fit),
-                           np.nan)
-
-        all_se = np.full((obj_dml_data.n_treat,
-                          self.n_rep_cross_fit),
-                         np.nan)
-
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
             assert self.smpls is None
@@ -202,12 +206,11 @@ class DoubleML(ABC):
                 # estimate the causal parameter(s)
                 self._est_causal_pars()
 
-                all_coef[self._i_treat, i_rep] = self.coef[self._i_treat]
-                all_se[self._i_treat, i_rep] = self.se[self._i_treat]
+        # aggregate parameters from the repeated cross-fitting
+        # don't use the getter (always for one treatment variable and one sample), but the private variable
+        self._coef = np.median(self._all_coef, 1)
+        self._se = np.median(self._all_se, 1)
 
-        # don't use the setter (always for one treatment variable), but the private variable
-        self._coef = np.median(all_coef, 1)
-        self._se = np.median(all_se, 1)
         if not keep_scores:
             self._clean_scores()
 
@@ -295,6 +298,9 @@ class DoubleML(ABC):
         self._coef = np.full(n_treat, np.nan)
         self._se = np.full(n_treat, np.nan)
 
+        self._all_coef = np.full((n_treat, n_rep_cross_fit), np.nan)
+        self._all_se = np.full((n_treat, n_rep_cross_fit), np.nan)
+
     def _initialize_boot_arrays(self, n_rep):
         self._boot_coef = np.full((self.n_treat, n_rep), np.nan)
 
@@ -329,23 +335,23 @@ class DoubleML(ABC):
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
-            self.coef = theta_hat
+            self.__all_coef = theta_hat
             self._compute_score()
 
             if self.se_reestimate:
-                self.se = np.sqrt(self._var_est())
+                self.__all_se = np.sqrt(self._var_est())
             else:
                 variances = np.zeros(self.n_folds)
                 for idx, (train_index, test_index) in enumerate(smpls):
                     variances[idx] = self._var_est(test_index)
-                self.se = np.sqrt(np.mean(variances))
+                self.__all_se = np.sqrt(np.mean(variances))
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
-            self.coef = theta_hat
+            self.__all_coef = theta_hat
             self._compute_score()
             
-            self.se = np.sqrt(self._var_est())
+            self.__all_se = np.sqrt(self._var_est())
             
         else:
             raise ValueError('invalid dml_procedure')
@@ -384,7 +390,7 @@ class DoubleML(ABC):
         return theta
     
     def _compute_score(self):
-        self.__score = self.__score_a * self.__coef + self.__score_b
+        self.__score = self.__score_a * self.__all_coef + self.__score_b
 
     def _clean_scores(self):
         del self._score
