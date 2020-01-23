@@ -233,7 +233,6 @@ class DoubleML(ABC):
             raise ValueError('apply fit() before bootstrap()')
 
         dml_procedure = self.dml_procedure
-        smpls = self.__smpls
         
         self._initialize_boot_arrays(n_rep, self.n_rep_cross_fit)
 
@@ -255,7 +254,7 @@ class DoubleML(ABC):
 
                 if dml_procedure == 'dml1':
                     boot_coefs = np.full((n_rep, self.n_folds), np.nan)
-                    for idx, (_, test_index) in enumerate(smpls):
+                    for idx, (_, test_index) in enumerate(self.__smpls):
                         J = np.mean(self.__score_a[test_index])
                         boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (len(test_index) * self.__all_se * J)
                     self.__boot_coef = np.mean(boot_coefs, axis=1)
