@@ -57,7 +57,7 @@ class DoubleML(ABC):
     
     @score_a.setter
     def score_a(self, value):
-        self._score_a[:, self._i_d] = value
+        self._score_a[:, self._i_treat] = value
     
     @property 
     def score_b(self):
@@ -65,7 +65,7 @@ class DoubleML(ABC):
     
     @score_b.setter
     def score_b(self, value):
-        self._score_b[:, self._i_d] = value
+        self._score_b[:, self._i_treat] = value
     
     @property 
     def coef(self):
@@ -73,7 +73,7 @@ class DoubleML(ABC):
     
     @coef.setter
     def coef(self, value):
-        self._coef[self._i_d] = value
+        self._coef[self._i_treat] = value
     
     @property 
     def se(self):
@@ -81,7 +81,7 @@ class DoubleML(ABC):
     
     @se.setter
     def se(self, value):
-        self._se[self._i_d] = value
+        self._se[self._i_treat] = value
 
     @property
     def t_stat(self):
@@ -99,7 +99,7 @@ class DoubleML(ABC):
     
     @boot_coef.setter
     def boot_coef(self, value):
-        self._boot_coef[self._i_d, :] = value
+        self._boot_coef[self._i_treat, :] = value
 
     @property
     def summary(self):
@@ -120,23 +120,23 @@ class DoubleML(ABC):
     # the private properties with __ always deliver the single treatment subselection
     @property 
     def __score(self):
-        return self._score[:, self._i_d]
+        return self._score[:, self._i_treat]
     
     @property 
     def __score_a(self):
-        return self._score_a[:, self._i_d]
+        return self._score_a[:, self._i_treat]
     
     @property 
     def __score_b(self):
-        return self._score_b[:, self._i_d]
+        return self._score_b[:, self._i_treat]
     
     @property 
     def __coef_(self):
-        return self._coef[self._i_d]
+        return self._coef[self._i_treat]
     
     @property 
     def __se_(self):
-        return self._se[self._i_d]
+        return self._se[self._i_treat]
     
     def fit(self, obj_dml_data, keep_scores=True):
         """
@@ -176,7 +176,7 @@ class DoubleML(ABC):
         for i_rep in range(self.n_rep_cross_fit):
             self._smpls = self._all_smpls[i_rep]
             for i_d in range(self.n_treat):
-                self._i_d = i_d
+                self._i_treat = i_d
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -187,9 +187,9 @@ class DoubleML(ABC):
 
                 # estimate the causal parameter(s)
                 self._est_causal_pars()
-                
-                all_coef[self._i_d, i_rep] = self.coef[self._i_d]
-                all_se[self._i_d, i_rep] = self.se[self._i_d]
+
+                all_coef[self._i_treat, i_rep] = self.coef[self._i_treat]
+                all_se[self._i_treat, i_rep] = self.se[self._i_treat]
 
         # don't use the setter (always for one treatment variable), but the private variable
         self._coef = np.median(all_coef, 1)
@@ -217,7 +217,7 @@ class DoubleML(ABC):
         self._initialize_boot_arrays(n_rep)
         
         for i_d in range(self.n_treat):
-            self._i_d = i_d
+            self._i_treat = i_d
             
             if method == 'Bayes':
                 weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
