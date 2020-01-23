@@ -44,6 +44,7 @@ def dml_procedure(request):
 @pytest.fixture(scope="module")
 def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     n_folds = 3
+    n_rep_boot = 371
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),

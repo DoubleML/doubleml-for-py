@@ -49,6 +49,7 @@ def dml_procedure(request):
 def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
+    n_rep_boot = 491
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
@@ -100,11 +101,11 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500,
+                              bootstrap, n_rep_boot,
                               dml_procedure)
         
         np.random.seed(3141)
-        dml_iivm_obj.bootstrap(method = bootstrap, n_rep=500)
+        dml_iivm_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     

@@ -38,6 +38,7 @@ def dml_procedure(request):
 @pytest.fixture(scope="module")
 def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     n_folds = 2
+    n_rep_boot = 483
     
     # Set machine learning methods for m & g
     learner = LinearRegression()

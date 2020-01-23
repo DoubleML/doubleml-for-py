@@ -49,6 +49,7 @@ def dml_procedure(request):
 def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
+    n_rep_boot = 502
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
@@ -97,11 +98,11 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500,
+                              bootstrap, n_rep_boot,
                               dml_procedure)
         
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
+        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
@@ -132,6 +133,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     learner = LinearRegression()
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
+    n_rep_boot = 501
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
@@ -196,11 +198,11 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
                               g_hat, m_hat,
                               smpls, inf_model,
                               se_manual,
-                              bootstrap, 500,
+                              bootstrap, n_rep_boot,
                               dml_procedure)
         
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
+        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     

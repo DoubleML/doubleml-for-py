@@ -44,6 +44,7 @@ def dml_procedure(request):
 def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
+    n_rep_boot = 483
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
@@ -108,18 +109,18 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = np.full((n_d, 500), np.nan)
+        boot_theta = np.full((n_d, n_rep_boot), np.nan)
         for i_d in range(n_d):
             boot_theta[i_d, :] = boot_plr(coef_manual[i_d],
                                           y, d[:, i_d],
                                           all_g_hat[i_d], all_m_hat[i_d],
                                           smpls, inf_model,
                                           se_manual[i_d],
-                                          bootstrap, 500,
+                                          bootstrap, n_rep_boot,
                                           dml_procedure)
         
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
+        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     

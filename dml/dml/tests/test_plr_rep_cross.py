@@ -53,6 +53,7 @@ def n_rep_cross_fit(request):
 def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_rep_cross_fit):
     boot_methods = ['normal']
     n_folds = 2
+    n_rep_boot = 498
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
@@ -122,14 +123,14 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
                                   all_g_hat[i_rep], all_m_hat[i_rep],
                                   smpls, inf_model,
                                   ses[i_rep],
-                                  bootstrap, 500,
+                                  bootstrap, n_rep_boot,
                                   dml_procedure)
             all_boot_theta.append(boot_theta)
 
         boot_theta = np.hstack(all_boot_theta)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=500)
+        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
