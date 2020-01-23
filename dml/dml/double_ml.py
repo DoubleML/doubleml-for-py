@@ -207,13 +207,17 @@ class DoubleML(ABC):
                 # ml estimation of nuisance models and computation of score elements
                 self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data, self.__smpls)
 
-                # estimate the causal parameter(s)
-                self._est_causal_pars()
+                # estimate the causal parameter
+                self.__all_coef = self._est_causal_pars()
 
-        # aggregate parameters from the repeated cross-fitting
-        # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self.coef = np.median(self._all_coef, 1)
-        self.se = np.median(self._all_se, 1)
+                # compute score (depends on estimated causal parameter)
+                self._compute_score()
+
+                # compute standard errors for causal parameter
+                self.__all_se = self._se_causal_pars()
+
+        # aggregated parameter estimates and standard errors from repeated cross-fitting
+        self._agg_cross_fit()
 
         if not keep_scores:
             self._clean_scores()
@@ -341,26 +345,44 @@ class DoubleML(ABC):
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
-            self.__all_coef = theta_hat
-            self._compute_score()
+            coef = theta_hat
+            
+        elif dml_procedure == 'dml2':
+            theta_hat = self._orth_est()
+            coef = theta_hat
+            
+        else:
+            raise ValueError('invalid dml_procedure')
 
+        return coef
+
+    def _se_causal_pars(self):
+        dml_procedure = self.dml_procedure
+        smpls = self.__smpls
+
+        if dml_procedure == 'dml1':
             if self.se_reestimate:
-                self.__all_se = np.sqrt(self._var_est())
+                se = np.sqrt(self._var_est())
             else:
                 variances = np.zeros(self.n_folds)
                 for idx, (train_index, test_index) in enumerate(smpls):
                     variances[idx] = self._var_est(test_index)
-                self.__all_se = np.sqrt(np.mean(variances))
-            
+                se = np.sqrt(np.mean(variances))
+
         elif dml_procedure == 'dml2':
-            theta_hat = self._orth_est()
-            self.__all_coef = theta_hat
-            self._compute_score()
-            
-            self.__all_se = np.sqrt(self._var_est())
-            
+            se = np.sqrt(self._var_est())
+
         else:
             raise ValueError('invalid dml_procedure')
+
+        return se
+
+    def _agg_cross_fit(self):
+        # aggregate parameters from the repeated cross-fitting
+        # don't use the getter (always for one treatment variable and one sample), but the private variable
+        self.coef = np.median(self._all_coef, 1)
+        self.se = np.median(self._all_se, 1)
+
     
     def _var_est(self, inds = None):
         """
