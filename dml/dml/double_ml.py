@@ -55,17 +55,9 @@ class DoubleML(ABC):
     def score_a(self):
         return self._score_a
     
-    @score_a.setter
-    def score_a(self, value):
-        self._score_a[:, self._i_treat] = value
-    
     @property 
     def score_b(self):
         return self._score_b
-    
-    @score_b.setter
-    def score_b(self, value):
-        self._score_b[:, self._i_treat] = value
     
     @property 
     def coef(self):
@@ -125,10 +117,18 @@ class DoubleML(ABC):
     @property 
     def __score_a(self):
         return self._score_a[:, self._i_treat]
+
+    @__score_a.setter
+    def __score_a(self, value):
+        self._score_a[:, self._i_treat] = value
     
     @property 
     def __score_b(self):
         return self._score_b[:, self._i_treat]
+
+    @__score_b.setter
+    def __score_b(self, value):
+        self._score_b[:, self._i_treat] = value
     
     @property 
     def __coef_(self):
@@ -183,7 +183,7 @@ class DoubleML(ABC):
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self._ml_nuisance_and_score_elements(obj_dml_data)
+                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data)
 
                 # estimate the causal parameter(s)
                 self._est_causal_pars()

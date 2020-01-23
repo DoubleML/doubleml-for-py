@@ -43,10 +43,12 @@ class DoubleMLPLR(DoubleML):
 
         inf_model = self.inf_model
         if inf_model == 'IV-type':
-            self.score_a = -v_hatd
+            score_a = -v_hatd
         elif inf_model == 'DML2018':
-            self.score_a = -np.multiply(v_hat, v_hat)
+            score_a = -np.multiply(v_hat, v_hat)
         else:
             raise ValueError('invalid inf_model')
-        self.score_b = np.multiply(v_hat, u_hat)
+        score_b = np.multiply(v_hat, u_hat)
+
+        return score_a, score_b
 

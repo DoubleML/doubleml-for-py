@@ -67,15 +67,17 @@ class DoubleMLIRM(DoubleML):
             u_hat1 = y - g_hat1
 
         if inf_model == 'ATE':
-            self.score_b = g_hat1 - g_hat0 \
+            score_b = g_hat1 - g_hat0 \
                             + np.divide(np.multiply(d, u_hat1), m_hat) \
                             - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
-            self.score_a = np.full_like(m_hat, -1.0)
+            score_a = np.full_like(m_hat, -1.0)
         elif inf_model == 'ATTE':
-            self.score_b = np.divide(np.multiply(d, u_hat0), p_hat) \
+            score_b = np.divide(np.multiply(d, u_hat0), p_hat) \
                             - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
                                         np.multiply(p_hat, (1.0 - m_hat)))
-            self.score_a = - np.divide(d, p_hat)
+            score_a = - np.divide(d, p_hat)
         else:
             raise ValueError('invalid inf_model')
+
+        return score_a, score_b
 

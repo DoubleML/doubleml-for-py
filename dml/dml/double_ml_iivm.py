@@ -68,12 +68,14 @@ class DoubleMLIIVM(DoubleML):
 
         inf_model = self.inf_model
         if inf_model == 'LATE':
-            self.score_b = g_hat1 - g_hat0 \
+            score_b = g_hat1 - g_hat0 \
                             + np.divide(np.multiply(z, u_hat1), m_hat) \
                             - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
-            self.score_a = -1*(r_hat1 - r_hat0 \
+            score_a = -1*(r_hat1 - r_hat0 \
                                 + np.divide(np.multiply(z, w_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
         else:
             raise ValueError('invalid inf_model')
+
+        return score_a, score_b
 
