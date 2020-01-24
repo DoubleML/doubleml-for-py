@@ -146,11 +146,12 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
                               inf_model)
     data = generate_data1[idx]
     N = data.shape[0]
-    smpls = []
+    this_smpl = list()
     xx = int(N/2)
-    all_train = [np.arange(xx, N), np.arange(0, xx)]
-    all_test = [np.arange(0, xx), np.arange(xx, N)]
-    dml_plr_obj.depreciated_set_samples(all_train, all_test)
+    this_smpl.append((np.arange(xx, N), np.arange(0, xx)))
+    this_smpl.append((np.arange(0, xx), np.arange(xx, N)))
+    smpls = [this_smpl]
+    dml_plr_obj.set_samples(smpls)
     
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])

@@ -60,18 +60,14 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
     obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
     dml_plr_obj.fit(obj_dml_data)
 
-    all_train = list()
-    all_test = list()
-    for (train, test) in dml_plr_obj.smpls[0]:
-        all_train.append(train)
-        all_test.append(test)
+    smpls = dml_plr_obj.smpls
 
     n_folds = 3
     dml_plr_obj2 = DoubleMLPLR(n_folds,
                                ml_learners,
                                dml_procedure,
                                inf_model)
-    dml_plr_obj2.depreciated_set_samples(all_train, all_test)
+    dml_plr_obj2.set_samples(smpls)
     dml_plr_obj2.fit(obj_dml_data)
     
     res_dict = {'coef': dml_plr_obj.coef,

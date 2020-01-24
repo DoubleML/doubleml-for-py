@@ -304,15 +304,6 @@ class DoubleML(ABC):
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
         self.n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
-
-    def depreciated_set_samples(self, all_train, all_test):
-        assert len(all_train) == len(all_test)
-        n_smpls = len(all_train)
-        smpls = list()
-        for i in range(n_smpls):
-            smpls.append((all_train[i],
-                          all_test[i]))
-        self.smpls = [smpls]
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
