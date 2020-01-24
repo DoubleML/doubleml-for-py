@@ -203,7 +203,6 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    print(self._d_cols)
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
