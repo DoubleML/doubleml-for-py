@@ -188,7 +188,7 @@ class DoubleML(ABC):
 
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
-            assert self.smpls is None
+            assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
 
         # perform sample splitting
         if self.smpls is None:
@@ -392,7 +392,7 @@ class DoubleML(ABC):
             raise ValueError('invalid dml_procedure')
 
         return boot_coef
-    
+
     
     def _var_est(self, inds = None):
         """
