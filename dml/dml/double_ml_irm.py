@@ -32,7 +32,7 @@ class DoubleMLIRM(DoubleML):
                       test) for train, test in smpls]
         return smpls_d0, smpls_d1
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         inf_model = self.inf_model
         
         ml_m = self.ml_learners['ml_m']
@@ -51,12 +51,12 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = cross_val_predict(ml_g0, X, y, cv = smpls_d0)
+        g_hat0 = cross_val_predict(ml_g0, X, y, cv = smpls_d0, n_jobs=n_jobs_cv)
         if inf_model == 'ATE':
-            g_hat1 = cross_val_predict(ml_g1, X, y, cv = smpls_d1)
+            g_hat1 = cross_val_predict(ml_g1, X, y, cv = smpls_d1, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba')[:, 1]
+        m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         
         # compute residuals
         u_hat0 = y - g_hat0

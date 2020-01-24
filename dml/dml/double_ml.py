@@ -166,7 +166,7 @@ class DoubleML(ABC):
     def __all_se(self, value):
         self._all_se[self._i_treat, self._i_rep] = value
     
-    def fit(self, obj_dml_data, keep_scores=True):
+    def fit(self, obj_dml_data, n_jobs_cv=None, keep_scores=True):
         """
         Fit doubleML model
         Parameters
@@ -205,7 +205,7 @@ class DoubleML(ABC):
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data, self.__smpls)
+                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data, self.__smpls, n_jobs_cv)
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()
@@ -274,7 +274,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):

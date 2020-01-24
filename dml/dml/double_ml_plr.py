@@ -21,7 +21,7 @@ class DoubleMLPLR(DoubleML):
         assert obj_dml_data.z_col is None
         return
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         
@@ -29,10 +29,10 @@ class DoubleMLPLR(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        g_hat = cross_val_predict(ml_g, X, y, cv = smpls, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, d, cv = smpls)
+        m_hat = cross_val_predict(ml_m, X, d, cv = smpls, n_jobs=n_jobs_cv)
         
         # compute residuals
         u_hat = y - g_hat

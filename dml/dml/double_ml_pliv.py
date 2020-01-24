@@ -20,7 +20,7 @@ class DoubleMLPLIV(DoubleML):
     def _check_data(self, obj_dml_data):
         return
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls):
+    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
         ml_r = self.ml_learners['ml_r']
@@ -30,13 +30,13 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = cross_val_predict(ml_g, X, y, cv = smpls)
+        g_hat = cross_val_predict(ml_g, X, y, cv = smpls, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, z, cv = smpls)
+        m_hat = cross_val_predict(ml_m, X, z, cv = smpls, n_jobs=n_jobs_cv)
         
         # nuisance r
-        r_hat = cross_val_predict(ml_r, X, d, cv = smpls)
+        r_hat = cross_val_predict(ml_r, X, d, cv = smpls, n_jobs=n_jobs_cv)
         
         # compute residuals
         u_hat = y - g_hat
