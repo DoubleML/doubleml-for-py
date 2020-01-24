@@ -109,7 +109,9 @@ class DoubleML(ABC):
             df_summary = df_summary.join(ci)
         return df_summary
     
-    # the private properties with __ always deliver the single treatment subselection
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
+    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
+    # self._i_rep, the index of the cross-fitting sample.
     @property
     def __smpls(self):
         return self.smpls[self._i_rep]
@@ -201,7 +203,6 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    print(self._d_cols)
                     obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
