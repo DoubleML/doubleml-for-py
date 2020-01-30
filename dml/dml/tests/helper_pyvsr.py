@@ -34,7 +34,8 @@ r_MLPLR = robjects.r('''
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
             
-            double_mlplr_obj$set_samples(train_ids, test_ids)
+            smpls = list(list(train_ids=train_ids, test_ids=test_ids))
+            double_mlplr_obj$set_samples(smpls)
             
             double_mlplr_obj$fit(data, y = 'y', d = 'd')
             return(list(coef = double_mlplr_obj$coef,
@@ -63,7 +64,8 @@ r_MLPLIV = robjects.r('''
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
             
-            double_mlpliv_obj$set_samples(train_ids, test_ids)
+            smpls = list(list(train_ids=train_ids, test_ids=test_ids))
+            double_mlpliv_obj$set_samples(smpls)
             
             double_mlpliv_obj$fit(data, y = 'y', d = 'd', z = 'z')
             return(list(coef = double_mlpliv_obj$coef,
@@ -90,7 +92,8 @@ r_IRM = robjects.r('''
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
             
-            double_mlirm_obj$set_samples(train_ids, test_ids)
+            smpls = list(list(train_ids=train_ids, test_ids=test_ids))
+            double_mlirm_obj$set_samples(smpls)
             
             double_mlirm_obj$fit(data, y = 'y', d = 'd')
             return(list(coef = double_mlirm_obj$coef,
@@ -119,7 +122,8 @@ r_IIVM = robjects.r('''
                                      params = params,
                                      dml_procedure = dml_procedure, inf_model = inf_model)
             
-            double_mliivm_obj$set_samples(train_ids, test_ids)
+            smpls = list(list(train_ids=train_ids, test_ids=test_ids))
+            double_mliivm_obj$set_samples(smpls)
             
             double_mliivm_obj$fit(data, y = 'y', d = 'd', z = 'z')
             return(list(coef = double_mliivm_obj$coef,
