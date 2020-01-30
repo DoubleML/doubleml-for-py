@@ -104,7 +104,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
                                                  smpls, inf_model)
 
     res_manual = np.median(thetas)
-    se_manual = np.median(ses)
+    se_manual = np.median(np.power(ses, 2) - np.power(thetas - res_manual, 2))
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,

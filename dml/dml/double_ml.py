@@ -350,8 +350,14 @@ class DoubleML(ABC):
     def _agg_cross_fit(self):
         # aggregate parameters from the repeated cross-fitting
         # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self.coef = np.median(self._all_coef, 1)
-        self.se = np.median(self._all_se, 1)
+        if self.n_rep_cross_fit > 1:
+            self.coef = np.median(self._all_coef, 1)
+            xx = np.tile(self.coef.reshape(-1, 1), self.n_rep_cross_fit)
+            self.se = np.median(np.power(self._all_se, 2) - np.power(self._all_coef - xx, 2), 1)
+        else:
+            # no cross fitting but squeeze matrix to vector
+            self.coef = self._all_coef.squeeze()
+            self.se = self._all_se.squeeze()
 
     def _compute_bootstrap(self, method, n_rep):
         dml_procedure = self.dml_procedure
