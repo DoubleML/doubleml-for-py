@@ -5,7 +5,7 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-from sklearn.model_selection import KFold
+import warnings
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
@@ -204,7 +204,7 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 if self._ml_nuiscance_params is not None:
-                    self.__set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
+                    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -321,6 +321,15 @@ class DoubleML(ABC):
 
         return tuning_res
 
+    def set_ml_nuisance_params(self, params):
+        if isinstance(params, dict):
+            warnings.warn("Using the same (hyper-)parameters for all repeated cross-fits and treatment variables")
+            self._ml_nuiscance_params = [[params] * self.n_treat] * self.n_rep_cross_fit
+        else:
+            assert len(params) == self.n_rep_cross_fit
+            assert np.all(np.array([len(x) for x in params]) == self.n_treat)
+            self._ml_nuiscance_params = params
+
     @abstractmethod
     def _check_inf_method(self, inf_method):
         pass
@@ -338,7 +347,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def __set_ml_nuisance_params(self, params):
+    def _set_ml_nuisance_params(self, params):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):

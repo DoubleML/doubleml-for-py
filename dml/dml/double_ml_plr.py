@@ -112,6 +112,6 @@ class DoubleMLPLR(DoubleML):
 
         return(res)
 
-    def __set_ml_nuisance_params(self, params):
+    def _set_ml_nuisance_params(self, params):
         self._g_params = params['g_params']
         self._m_params = params['m_params']

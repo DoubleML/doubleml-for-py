@@ -188,7 +188,7 @@ class DoubleMLIIVM(DoubleML):
 
         return(res)
 
-    def __set_ml_nuisance_params(self, params):
+    def _set_ml_nuisance_params(self, params):
         self._g0_params = params['g0_params']
         self._g1_params = params['g1_params']
         self._m_params = params['m_params']

@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import cross_val_predict
 
+import warnings
+
 import scipy.sparse as sp
 from joblib import Parallel, delayed
 
@@ -30,12 +32,12 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
                            n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
-
     if (est_params is None):
         # if there are no parameters set we redirect to the standard method
         return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
     elif isinstance(est_params, dict):
         # if no fold-specific parameters we redirect to the standard method
+        warnings.warn("Using the same (hyper-)parameters for all folds")
         return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs, method=method)
 
     # set some defaults aligned with cross_val_predict
