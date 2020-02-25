@@ -24,8 +24,8 @@ class DoubleMLPLR(DoubleML):
                          inf_model,
                          se_reestimate,
                          n_rep_cross_fit)
-        self.g_params = None
-        self.m_params = None
+        self._g_params = None
+        self._m_params = None
 
     def _check_inf_method(self, inf_model):
         valid_inf_model = ['IV-type', 'DML2018']
@@ -47,11 +47,11 @@ class DoubleMLPLR(DoubleML):
         
         # nuisance g
         g_hat = _dml_cross_val_predict(ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.g_params)
+                                       est_params=self._g_params)
         
         # nuisance m
         m_hat = _dml_cross_val_predict(ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.m_params)
+                                       est_params=self._m_params)
         
         # compute residuals
         u_hat = y - g_hat
@@ -113,5 +113,5 @@ class DoubleMLPLR(DoubleML):
         return(res)
 
     def set_ml_nuisance_params(self, params):
-        self.g_params = params['g_params']
-        self.m_params = params['m_params']
+        self._g_params = params['g_params']
+        self._m_params = params['m_params']

@@ -26,9 +26,9 @@ class DoubleMLIRM(DoubleML):
                          inf_model,
                          se_reestimate,
                          n_rep_cross_fit)
-        self.g0_params = None
-        self.g1_params = None
-        self.m_params = None
+        self._g0_params = None
+        self._g1_params = None
+        self._m_params = None
 
     def _check_inf_method(self, inf_model):
         valid_inf_model = ['ATE', 'ATTE']
@@ -164,7 +164,7 @@ class DoubleMLIRM(DoubleML):
         return(res)
 
     def set_ml_nuisance_params(self, params):
-        self.g0_params = params['g0_params']
-        self.g1_params = params['g1_params']
-        self.m_params = params['m_params']
+        self._g0_params = params['g0_params']
+        self._g1_params = params['g1_params']
+        self._m_params = params['m_params']
 

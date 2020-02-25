@@ -24,9 +24,9 @@ class DoubleMLPLIV(DoubleML):
                          inf_model,
                          se_reestimate,
                          n_rep_cross_fit)
-        self.g_params = None
-        self.m_params = None
-        self.r_params = None
+        self._g_params = None
+        self._m_params = None
+        self._r_params = None
 
     def _check_inf_method(self, inf_model):
         valid_inf_model = ['DML2018']
@@ -132,7 +132,7 @@ class DoubleMLPLIV(DoubleML):
         return(res)
 
     def set_ml_nuisance_params(self, params):
-        self.g_params = params['g_params']
-        self.m_params = params['m_params']
-        self.r_params = params['r_params']
+        self._g_params = params['g_params']
+        self._m_params = params['m_params']
+        self._r_params = params['r_params']
 
