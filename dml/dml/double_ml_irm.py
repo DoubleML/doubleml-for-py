@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 
 from .double_ml import DoubleML
+from .helper import _dml_cross_val_predict
 from .helper import check_binary_vector
 
 
@@ -51,12 +51,12 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = cross_val_predict(ml_g0, X, y, cv = smpls_d0, n_jobs=n_jobs_cv)
+        g_hat0 = _dml_cross_val_predict(ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv)
         if inf_model == 'ATE':
-            g_hat1 = cross_val_predict(ml_g1, X, y, cv = smpls_d1, n_jobs=n_jobs_cv)
+            g_hat1 = _dml_cross_val_predict(ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, d, cv = smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        m_hat = _dml_cross_val_predict(ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         
         # compute residuals
         u_hat0 = y - g_hat0

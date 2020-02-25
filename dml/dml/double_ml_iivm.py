@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 
 from .double_ml import DoubleML
 from .helper import check_binary_vector
+from .helper import _dml_cross_val_predict
 
 
 class DoubleMLIIVM(DoubleML):
@@ -48,15 +48,15 @@ class DoubleMLIIVM(DoubleML):
         smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
         
         # nuisance g
-        g_hat0 = cross_val_predict(ml_g0, X, y, cv=smpls_z0, n_jobs=n_jobs_cv)
-        g_hat1 = cross_val_predict(ml_g1, X, y, cv=smpls_z1, n_jobs=n_jobs_cv)
+        g_hat0 = _dml_cross_val_predict(ml_g0, X, y, smpls=smpls_z0, n_jobs=n_jobs_cv)
+        g_hat1 = _dml_cross_val_predict(ml_g1, X, y, smpls=smpls_z1, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, z, cv=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        m_hat = _dml_cross_val_predict(ml_m, X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         
         # nuisance r
-        r_hat0 = cross_val_predict(ml_r0, X, d, cv=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
-        r_hat1 = cross_val_predict(ml_r1, X, d, cv=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        r_hat0 = _dml_cross_val_predict(ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        r_hat1 = _dml_cross_val_predict(ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         
         # compute residuals
         u_hat0 = y - g_hat0

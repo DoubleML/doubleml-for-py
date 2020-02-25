@@ -3,6 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import cross_val_predict
 
 from .double_ml import DoubleML
+from .helper import _dml_cross_val_predict
 
 
 class DoubleMLPLIV(DoubleML):
@@ -30,13 +31,13 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = cross_val_predict(ml_g, X, y, cv = smpls, n_jobs=n_jobs_cv)
+        g_hat = _dml_cross_val_predict(ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = cross_val_predict(ml_m, X, z, cv = smpls, n_jobs=n_jobs_cv)
+        m_hat = _dml_cross_val_predict(ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
         
         # nuisance r
-        r_hat = cross_val_predict(ml_r, X, d, cv = smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
         
         # compute residuals
         u_hat = y - g_hat
