@@ -204,7 +204,7 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 if self._ml_nuiscance_params is not None:
-                    self.set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
+                    self.__set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -338,7 +338,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def set_ml_nuisance_params(self, params):
+    def __set_ml_nuisance_params(self, params):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):
