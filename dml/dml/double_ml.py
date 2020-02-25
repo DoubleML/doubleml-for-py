@@ -30,6 +30,7 @@ class DoubleML(ABC):
         self.inf_model = self._check_inf_method(inf_model)
         self.se_reestimate = se_reestimate
         self.n_rep_cross_fit = n_rep_cross_fit
+        self._ml_nuiscance_params = None
 
     @property
     def n_obs(self):
@@ -188,6 +189,7 @@ class DoubleML(ABC):
 
         self._d_cols = obj_dml_data.d_cols
 
+        # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
             assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
@@ -200,6 +202,9 @@ class DoubleML(ABC):
             self._i_rep = i_rep
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
+
+                if self._ml_nuiscance_params is not None:
+                    self.set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -273,17 +278,21 @@ class DoubleML(ABC):
              n_jobs_cv=None,
              set_as_params=True):
 
-        ### TODO: copy-paste from fit START ###
-
         assert isinstance(obj_dml_data, DoubleMLData)
         self._check_data(obj_dml_data)
 
-        self._initialize_arrays(obj_dml_data.n_obs,
-                                obj_dml_data.n_treat,
-                                self.n_rep_cross_fit)
+        # initialize score, as there are dependent properties
+        # TODO: check whether we can get rid of this indirect dependencies
+        self._score = np.full((obj_dml_data.n_obs,
+                               self.n_rep_cross_fit,
+                               obj_dml_data.n_treat), np.nan)
+
+        self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
+        tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
 
         self._d_cols = obj_dml_data.d_cols
 
+        # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
             assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
@@ -291,8 +300,6 @@ class DoubleML(ABC):
         # perform sample splitting
         if self.smpls is None:
             self._split_samples()
-
-        ### TODO: copy-paste from fit END ###
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
@@ -309,7 +316,10 @@ class DoubleML(ABC):
                                                n_folds_tune,
                                                n_jobs_cv)
 
-        return res
+                tuning_res[i_rep][i_d] = res
+                self._ml_nuiscance_params[i_rep][i_d] = res['params']
+
+        return tuning_res
 
     @abstractmethod
     def _check_inf_method(self, inf_method):
