@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.model_selection import KFold, RepeatedKFold
+from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
@@ -39,8 +39,8 @@ class DoubleMLPLR(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
+        ml_m = self.ml_learners['ml_m']
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
@@ -70,8 +70,8 @@ class DoubleMLPLR(DoubleML):
         return score_a, score_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
+        ml_m = self.ml_learners['ml_m']
 
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)

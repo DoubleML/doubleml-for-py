@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.base import clone
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
 from .helper import check_binary_vector
@@ -11,6 +13,24 @@ class DoubleMLIIVM(DoubleML):
     """
     Double Machine Learning for Interactive IV Model
     """
+    def __init__(self,
+                 n_folds,
+                 ml_learners,
+                 dml_procedure,
+                 inf_model,
+                 se_reestimate=False,
+                 n_rep_cross_fit=1):
+        super().__init__(n_folds,
+                         ml_learners,
+                         dml_procedure,
+                         inf_model,
+                         se_reestimate,
+                         n_rep_cross_fit)
+        self.g0_params = None
+        self.g1_params = None
+        self.m_params = None
+        self.r0_params = None
+        self.r1_params = None
 
     def _check_inf_method(self, inf_model):
         valid_inf_model = ['LATE']
@@ -33,10 +53,10 @@ class DoubleMLIIVM(DoubleML):
         return smpls_z0, smpls_z1
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        
-        ml_m = self.ml_learners['ml_m']
+
         ml_g0 = clone(self.ml_learners['ml_g'])
         ml_g1 = clone(self.ml_learners['ml_g'])
+        ml_m = self.ml_learners['ml_m']
         ml_r0 = clone(self.ml_learners['ml_r'])
         ml_r1 = clone(self.ml_learners['ml_r'])
         
@@ -76,4 +96,102 @@ class DoubleMLIIVM(DoubleML):
             raise ValueError('invalid inf_model')
 
         return score_a, score_b
+
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+
+        ml_g0 = clone(self.ml_learners['ml_g'])
+        ml_g1 = clone(self.ml_learners['ml_g'])
+        ml_m = self.ml_learners['ml_m']
+        ml_r0 = clone(self.ml_learners['ml_r'])
+        ml_r1 = clone(self.ml_learners['ml_r'])
+
+        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
+        X, z = check_X_y(X, obj_dml_data.z)
+        X, d = check_X_y(X, obj_dml_data.d)
+
+        # get train indices for z == 0 and z == 1
+        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
+
+        if scoring_methods is None:
+            scoring_methods = {'scoring_methods_g0': None,
+                               'scoring_methods_g1': None,
+                               'scoring_methods_m': None,
+                               'scoring_methods_r0': None,
+                               'scoring_methods_r1': None}
+
+        g0_tune_res = [None] * len(smpls)
+        g1_tune_res = [None] * len(smpls)
+        m_tune_res = [None] * len(smpls)
+        r0_tune_res = [None] * len(smpls)
+        r1_tune_res = [None] * len(smpls)
+
+        for idx, (train_index, test_index) in enumerate(smpls):
+            # cv for ml_g0
+            g0_tune_resampling = KFold(n_splits=n_folds_tune)
+            g0_grid_search = GridSearchCV(ml_g0, param_grids['param_grid_g0'],
+                                         scoring=scoring_methods['scoring_methods_g0'],
+                                         cv=g0_tune_resampling)
+            train_index_z0 = smpls_z0[idx][0]
+            g0_tune_res[idx] = g0_grid_search.fit(X[train_index_z0, :], y[train_index_z0])
+
+            # cv for ml_g1
+            g1_tune_resampling = KFold(n_splits=n_folds_tune)
+            g1_grid_search = GridSearchCV(ml_g1, param_grids['param_grid_g1'],
+                                         scoring=scoring_methods['scoring_methods_g1'],
+                                         cv=g1_tune_resampling)
+            train_index_z1 = smpls_z1[idx][0]
+            g1_tune_res[idx] = g1_grid_search.fit(X[train_index_z1, :], y[train_index_z1])
+
+            # cv for ml_m
+            m_tune_resampling = KFold(n_splits=n_folds_tune)
+            m_grid_search = GridSearchCV(ml_m, param_grids['param_grid_m'],
+                                         scoring=scoring_methods['scoring_methods_m'],
+                                         cv=m_tune_resampling)
+            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
+
+            # cv for ml_r0
+            r0_tune_resampling = KFold(n_splits=n_folds_tune)
+            r0_grid_search = GridSearchCV(ml_r0, param_grids['param_grid_r0'],
+                                         scoring=scoring_methods['scoring_methods_r0'],
+                                         cv=r0_tune_resampling)
+            train_index_z0 = smpls_z0[idx][0]
+            r0_tune_res[idx] = r0_grid_search.fit(X[train_index_z0, :], d[train_index_z0])
+
+            # cv for ml_g1
+            r1_tune_resampling = KFold(n_splits=n_folds_tune)
+            r1_grid_search = GridSearchCV(ml_r1, param_grids['param_grid_r1'],
+                                         scoring=scoring_methods['scoring_methods_r1'],
+                                         cv=r1_tune_resampling)
+            train_index_z1 = smpls_z1[idx][0]
+            r1_tune_res[idx] = r1_grid_search.fit(X[train_index_z1, :], d[train_index_z1])
+
+        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        r0_best_params = [xx.best_params_ for xx in r0_tune_res]
+        r1_best_params = [xx.best_params_ for xx in r1_tune_res]
+
+        params = {'g0_params': g0_best_params,
+                  'g1_params': g1_best_params,
+                  'm_params': m_best_params,
+                  'r0_params': r0_best_params,
+                  'r1_params': r1_best_params}
+
+        tune_res = {'g0_tune': g0_tune_res,
+                    'g1_tune': g1_tune_res,
+                    'm_tune': m_tune_res,
+                    'r0_tune': r0_tune_res,
+                    'r1_tune': r1_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return(res)
+
+    def set_ml_nuisance_params(self, params):
+        self.g0_params = params['g0_params']
+        self.g1_params = params['g1_params']
+        self.m_params = params['m_params']
+        self.r0_params = params['r0_params']
+        self.r1_params = params['r1_params']
 

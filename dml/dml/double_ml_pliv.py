@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
 from .helper import _dml_cross_val_predict
@@ -10,6 +11,22 @@ class DoubleMLPLIV(DoubleML):
     """
     Double Machine Learning for Partially Linear IV regression model
     """
+    def __init__(self,
+                 n_folds,
+                 ml_learners,
+                 dml_procedure,
+                 inf_model,
+                 se_reestimate=False,
+                 n_rep_cross_fit=1):
+        super().__init__(n_folds,
+                         ml_learners,
+                         dml_procedure,
+                         inf_model,
+                         se_reestimate,
+                         n_rep_cross_fit)
+        self.g_params = None
+        self.m_params = None
+        self.r_params = None
 
     def _check_inf_method(self, inf_model):
         valid_inf_model = ['DML2018']
@@ -22,8 +39,8 @@ class DoubleMLPLIV(DoubleML):
         return
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        ml_m = self.ml_learners['ml_m']
         ml_g = self.ml_learners['ml_g']
+        ml_m = self.ml_learners['ml_m']
         ml_r = self.ml_learners['ml_r']
         
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
@@ -56,4 +73,66 @@ class DoubleMLPLIV(DoubleML):
         score_b = np.multiply(v_hat, u_hat)
 
         return score_a, score_b
+
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+        ml_g = self.ml_learners['ml_g']
+        ml_m = self.ml_learners['ml_m']
+        ml_r = self.ml_learners['ml_r']
+
+        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
+        X, z = check_X_y(X, obj_dml_data.z)
+        X, d = check_X_y(X, obj_dml_data.d)
+
+        if scoring_methods is None:
+            scoring_methods = {'scoring_methods_g': None,
+                               'scoring_methods_m': None,
+                               'scoring_methods_r': None}
+
+        g_tune_res = [None] * len(smpls)
+        m_tune_res = [None] * len(smpls)
+        r_tune_res = [None] * len(smpls)
+
+        for idx, (train_index, test_index) in enumerate(smpls):
+            # cv for ml_g
+            g_tune_resampling = KFold(n_splits=n_folds_tune)
+            g_grid_search = GridSearchCV(ml_g, param_grids['param_grid_g'],
+                                         scoring=scoring_methods['scoring_methods_g'],
+                                         cv=g_tune_resampling)
+            g_tune_res[idx] = g_grid_search.fit(X[train_index, :], y[train_index])
+
+            # cv for ml_m
+            m_tune_resampling = KFold(n_splits=n_folds_tune)
+            m_grid_search = GridSearchCV(ml_m, param_grids['param_grid_m'],
+                                         scoring=scoring_methods['scoring_methods_m'],
+                                         cv=m_tune_resampling)
+            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
+
+            # cv for ml_r
+            r_tune_resampling = KFold(n_splits=n_folds_tune)
+            r_grid_search = GridSearchCV(ml_r, param_grids['param_grid_r'],
+                                         scoring=scoring_methods['scoring_methods_r'],
+                                         cv=r_tune_resampling)
+            r_tune_res[idx] = r_grid_search.fit(X[train_index, :], d[train_index])
+
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        r_best_params = [xx.best_params_ for xx in r_tune_res]
+
+        params = {'g_params': g_best_params,
+                  'm_params': m_best_params,
+                  'r_params': r_best_params}
+
+        tune_res = {'g_tune': g_tune_res,
+                    'm_tune': m_tune_res,
+                    'r_tune': r_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return(res)
+
+    def set_ml_nuisance_params(self, params):
+        self.g_params = params['g_params']
+        self.m_params = params['m_params']
+        self.r_params = params['r_params']
 
