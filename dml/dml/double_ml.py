@@ -266,6 +266,51 @@ class DoubleML(ABC):
                              index=self.d_cols)
         return df_ci
 
+    def tune(self, obj_dml_data,
+             param_grids,
+             scoring_methods=None, # if None the estimator's score method is used
+             n_folds_tune=5,
+             n_jobs_cv=None,
+             set_as_params=True):
+
+        ### TODO: copy-paste from fit START ###
+
+        assert isinstance(obj_dml_data, DoubleMLData)
+        self._check_data(obj_dml_data)
+
+        self._initialize_arrays(obj_dml_data.n_obs,
+                                obj_dml_data.n_treat,
+                                self.n_rep_cross_fit)
+
+        self._d_cols = obj_dml_data.d_cols
+
+        if self.n_rep_cross_fit > 1:
+            # externally transferred samples not supported for repeated cross-fitting
+            assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
+
+        # perform sample splitting
+        if self.smpls is None:
+            self._split_samples()
+
+        ### TODO: copy-paste from fit END ###
+
+        for i_rep in range(self.n_rep_cross_fit):
+            self._i_rep = i_rep
+            for i_d in range(self.n_treat):
+                self._i_treat = i_d
+
+                # this step could be skipped for the single treatment variable case
+                if self.n_treat > 1:
+                    obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
+
+                # ml estimation of nuisance models and computation of score elements
+                res = self._ml_nuisance_tuning(obj_dml_data, self.__smpls,
+                                               param_grids, scoring_methods,
+                                               n_folds_tune,
+                                               n_jobs_cv)
+
+        return res
+
     @abstractmethod
     def _check_inf_method(self, inf_method):
         pass
@@ -276,6 +321,14 @@ class DoubleML(ABC):
 
     @abstractmethod
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
+        pass
+
+    @abstractmethod
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+        pass
+
+    @abstractmethod
+    def set_ml_nuisance_params(self, params):
         pass
 
     def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):

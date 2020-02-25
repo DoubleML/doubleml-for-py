@@ -27,19 +27,23 @@ def check_binary_vector(x, variable_name=''):
         raise ValueError('variable ' + variable_name  + ' must be binary with values 0 and 1')
 
 def _dml_cross_val_predict(estimator, X, y, smpls=None,
-                           n_jobs=None, fit_params=None, method='predict'):
+                           n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
 
-    if (fit_params is None) or isinstance(fit_params, dict):
-        # if there are no parameters set or no fold-specific parameters we redirect to the standard method
-        return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method, fit_params=fit_params)
+    if (est_params is None):
+        # if there are no parameters set we redirect to the standard method
+        return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
+    elif isinstance(est_params, dict):
+        # if no fold-specific parameters we redirect to the standard method
+        return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs, method=method)
 
     # set some defaults aligned with cross_val_predict
+    fit_params = None
     verbose = 0
     pre_dispatch = '2*n_jobs'
 
-    assert len(fit_params) == len(smpls), 'provide one parameter setting per fold'
+    assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
 
     encode = (method == 'predict_proba')
 
@@ -51,7 +55,8 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
     prediction_blocks = parallel(delayed(_fit_and_predict)(
-        clone(estimator), X, y, train_index, test_index, verbose, fit_params[idx], method)
+        clone(estimator).set_params(**est_params[idx]),
+        X, y, train_index, test_index, verbose, fit_params, method)
         for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions
