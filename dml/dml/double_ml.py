@@ -38,7 +38,11 @@ class DoubleML(ABC):
 
     @property
     def n_treat(self):
-        return self.score.shape[2]
+        if hasattr(self, '_score'):
+            n_treat = self.score.shape[2]
+        else:
+            n_treat = 1
+        return n_treat
 
     @property
     def d_cols(self):
