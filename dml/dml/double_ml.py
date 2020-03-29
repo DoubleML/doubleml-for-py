@@ -29,7 +29,6 @@ class DoubleML(ABC):
 
         self.n_folds = n_folds
         self.smpls = None
-        self._d_cols = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
@@ -190,9 +189,9 @@ class DoubleML(ABC):
         """
 
         # TODO: Check whether this check is still needed
-        if self.n_rep_cross_fit > 1:
-            # externally transferred samples not supported for repeated cross-fitting
-            assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
+        #if self.n_rep_cross_fit > 1:
+        #    # externally transferred samples not supported for repeated cross-fitting
+        #    assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
 
         # perform sample splitting
         if self.smpls is None:
@@ -361,11 +360,16 @@ class DoubleML(ABC):
         self.smpls = obj_dml_resampling.split_samples()
 
     def set_samples(self, all_smpls):
+        # TODO warn if n_rep_cross_fit or n_folds is overwritten with different number induced by the transferred
+        # TODO external samples?
         self.n_rep_cross_fit = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
         self.n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
+        self._initialize_arrays(self.n_obs,
+                                self.n_treat,
+                                self.n_rep_cross_fit)
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure

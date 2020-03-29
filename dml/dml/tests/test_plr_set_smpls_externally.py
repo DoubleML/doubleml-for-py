@@ -40,11 +40,15 @@ def inf_model(request):
 def dml_procedure(request):
     return request.param
 
+@pytest.fixture(scope='module',
+                params = [1, 3])
+def n_rep_cross_fit(request):
+    return request.param
+
 
 @pytest.fixture(scope="module")
-def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
+def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_rep_cross_fit):
     n_folds = 3
-    n_rep_boot = 371
 
     # collect data
     data = generate_data1[idx]
@@ -58,16 +62,16 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
                               n_folds,
                               ml_learners,
                               dml_procedure,
-                              inf_model)
+                              inf_model,
+                              n_rep_cross_fit)
 
     np.random.seed(3141)
     dml_plr_obj.fit()
 
     smpls = dml_plr_obj.smpls
 
-    n_folds = 3
     dml_plr_obj2 = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                               n_folds,
+                               None,
                                ml_learners,
                                dml_procedure,
                                inf_model)
