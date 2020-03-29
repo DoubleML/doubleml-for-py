@@ -59,14 +59,14 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
                    'ml_g': clone(learner[1])}
-    
+
+    np.random.seed(3141)
     dml_irm_obj = DoubleMLIRM(data, X_cols, 'y', ['d'],
                               n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    
-    np.random.seed(3141)
+
     dml_irm_obj.fit()
     
     np.random.seed(3141)

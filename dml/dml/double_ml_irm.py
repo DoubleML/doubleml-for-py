@@ -22,14 +22,16 @@ class DoubleMLIRM(DoubleML):
                  ml_learners,
                  dml_procedure,
                  inf_model,
-                 n_rep_cross_fit=1):
+                 n_rep_cross_fit=1,
+                 draw_sample_splitting=True):
         obj_dml_data = DoubleMLData(data, x_cols, y_col, d_cols)
         super().__init__(obj_dml_data,
                          n_folds,
                          ml_learners,
                          dml_procedure,
                          inf_model,
-                         n_rep_cross_fit)
+                         n_rep_cross_fit,
+                         draw_sample_splitting)
         self._g0_params = None
         self._g1_params = None
         self._m_params = None

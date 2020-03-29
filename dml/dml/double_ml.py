@@ -21,19 +21,25 @@ class DoubleML(ABC):
                  ml_learners,
                  dml_procedure,
                  inf_model,
-                 n_rep_cross_fit=1):
+                 n_rep_cross_fit,
+                 draw_sample_splitting):
         # check and pick up obj_dml_data
         assert isinstance(obj_dml_data, DoubleMLData)
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
         self.n_folds = n_folds
-        self.smpls = None
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
         self.n_rep_cross_fit = n_rep_cross_fit
         self._ml_nuiscance_params = None
+
+        # perform sample splitting
+        if draw_sample_splitting:
+            self.draw_sample_splitting()
+        else:
+            self.smpls = None
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._initialize_arrays()
@@ -52,10 +58,14 @@ class DoubleML(ABC):
 
     @property
     def smpls(self):
+        if self._smpls is None:
+            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting()' +
+                             'or set external samples via .set_sample_splitting().')
         return self._smpls
 
     @smpls.setter
     def smpls(self, value):
+        # TODO add checks of dimensions vs properties
         self._smpls = value
 
     @property
@@ -186,10 +196,6 @@ class DoubleML(ABC):
         
         """
 
-        # perform sample splitting
-        if self.smpls is None:
-            self.draw_sample_splitting()
-
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
             for i_d in range(self.n_treat):
@@ -272,10 +278,6 @@ class DoubleML(ABC):
 
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
-
-        # perform sample splitting
-        if self.smpls is None:
-            self.draw_sample_splitting()
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
