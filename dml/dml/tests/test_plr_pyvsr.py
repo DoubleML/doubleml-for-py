@@ -39,21 +39,24 @@ def dml_procedure(request):
 def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     n_folds = 2
     n_rep_boot = 483
+
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
     # Set machine learning methods for m & g
     learner = LinearRegression()
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    data = generate_data1[idx]
+
     #np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
 
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_plr_obj.smpls[0])

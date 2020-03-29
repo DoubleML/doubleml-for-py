@@ -49,21 +49,24 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
-    
+
+    # collect data
+    data = generate_data_iv[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner),
                    'ml_r': clone(learner)}
     
-    dml_pliv_obj = DoubleMLPLIV(n_folds,
+    dml_pliv_obj = DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
+                                n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
-    data = generate_data_iv[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'], 'z')
-    dml_pliv_obj.fit(obj_dml_data)
+    dml_pliv_obj.fit()
     
     np.random.seed(3141)
     y = data['y'].values

@@ -50,21 +50,24 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
-    
+
+    # collect data
+    data = generate_data_iivm[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
                    'ml_g': clone(learner[1]),
                    'ml_r': clone(learner[0])}
     
-    dml_iivm_obj = DoubleMLIIVM(n_folds,
+    dml_iivm_obj = DoubleMLIIVM(data, X_cols, 'y', ['d'], 'z',
+                                n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
-    data = generate_data_iivm[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'], 'z')
-    dml_iivm_obj.fit(obj_dml_data)
+    dml_iivm_obj.fit()
     
     np.random.seed(3141)
     y = data['y'].values

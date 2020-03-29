@@ -45,30 +45,34 @@ def dml_procedure(request):
 def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     n_folds = 3
     n_rep_boot = 371
-    
+
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    data = generate_data1[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
 
     smpls = dml_plr_obj.smpls
 
     n_folds = 3
-    dml_plr_obj2 = DoubleMLPLR(n_folds,
+    dml_plr_obj2 = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                               n_folds,
                                ml_learners,
                                dml_procedure,
                                inf_model)
     dml_plr_obj2.set_samples(smpls)
-    dml_plr_obj2.fit(obj_dml_data)
+    dml_plr_obj2.fit()
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef2': dml_plr_obj2.coef,

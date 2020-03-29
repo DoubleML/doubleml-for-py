@@ -45,25 +45,28 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 483
+
+    # collect data
+    if idx < n_datasets:
+        data = generate_data_bivariate[idx]
+    else:
+        data = generate_data_toeplitz[idx-n_datasets]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    d_cols = data.columns[data.columns.str.startswith('d')].tolist()
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', d_cols,
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    if idx < n_datasets:
-        data = generate_data_bivariate[idx]
-    else:
-        data = generate_data_toeplitz[idx-n_datasets]
+
         
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    d_cols = data.columns[data.columns.str.startswith('d')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', d_cols)
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
     
     np.random.seed(3141)
     y = data['y'].values

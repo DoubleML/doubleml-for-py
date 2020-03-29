@@ -43,22 +43,24 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
     n_folds = 2
     n_rep_boot = 502
 
-    alpha = 0.05
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
+    alpha = 0.05
     learner = Lasso(alpha=alpha)
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    data = generate_data1[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
 
     np.random.seed(3141)
     learner = Lasso()
@@ -66,13 +68,14 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
 
-    dml_plr_obj_ext_set_par = DoubleMLPLR(n_folds,
+    dml_plr_obj_ext_set_par = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                                          n_folds,
                                           ml_learners,
                                           dml_procedure,
                                           inf_model)
     dml_plr_obj_ext_set_par.set_ml_nuisance_params({'g_params': {'alpha': alpha},
                                                     'm_params': {'alpha': alpha}})
-    dml_plr_obj_ext_set_par.fit(obj_dml_data)
+    dml_plr_obj_ext_set_par.fit()
 
     
     res_dict = {'coef': dml_plr_obj.coef,

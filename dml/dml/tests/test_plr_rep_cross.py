@@ -54,21 +54,24 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
+
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model,
                               n_rep_cross_fit=n_rep_cross_fit)
-    data = generate_data1[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
     
     np.random.seed(3141)
     y = data['y'].values

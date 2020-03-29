@@ -43,34 +43,36 @@ def inf_model(request):
 def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
     dml_procedure = 'dml2'
     n_folds = 2
-    
+
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
 
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-
     np.random.seed(3141)
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model,
                               se_reestimate=False)
-    dml_plr_obj.fit(obj_dml_data)
-    
+    dml_plr_obj.fit()
+
     np.random.seed(3141)
-    dml_plr_obj_reestimate_se = DoubleMLPLR(n_folds,
-                              ml_learners,
-                              dml_procedure,
-                              inf_model,
-                              se_reestimate=True)
-    dml_plr_obj_reestimate_se.fit(obj_dml_data)
-    
+    dml_plr_obj_reestimate_se = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                                            n_folds,
+                                            ml_learners,
+                                            dml_procedure,
+                                            inf_model,
+                                            se_reestimate=True)
+    dml_plr_obj_reestimate_se.fit()
+
     res_dict = {'se': dml_plr_obj.se,
                 'se_reestimate_se': dml_plr_obj_reestimate_se.se}
-    
+
     return res_dict
 
 
@@ -85,21 +87,22 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
     dml_procedure = 'dml1'
     n_folds = 2
 
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
 
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-
     np.random.seed(3141)
-    dml_plr_obj = DoubleMLPLR(n_folds,
+    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model,
                               se_reestimate=True)
-    dml_plr_obj.fit(obj_dml_data)
+    dml_plr_obj.fit()
 
     np.random.seed(3141)
     y = data['y'].values

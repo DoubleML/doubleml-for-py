@@ -41,22 +41,25 @@ def dml_procedure(request):
 @pytest.fixture(scope='module')
 def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     n_folds = 2
-    
+
+    # collect data
+    data = generate_data_irm[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & g
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
     learner_reg = LinearRegression()
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg)}
     
-    dml_irm_obj = DoubleMLIRM(n_folds,
+    dml_irm_obj = DoubleMLIRM(data, X_cols, 'y', ['d'],
+                              n_folds,
                               ml_learners,
                               dml_procedure,
                               inf_model)
-    data = generate_data_irm[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'])
-    dml_irm_obj.fit(obj_dml_data)
+    dml_irm_obj.fit()
 
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_irm_obj.smpls[0])

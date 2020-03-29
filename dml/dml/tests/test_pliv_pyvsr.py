@@ -41,6 +41,10 @@ def dml_procedure(request):
 @pytest.fixture(scope='module')
 def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
     n_folds = 2
+
+    # collect data
+    data = generate_data_iv[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
     # Set machine learning methods for m & g
     learner = LinearRegression()
@@ -48,16 +52,15 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner),
                    'ml_r': clone(learner)}
     
-    dml_pliv_obj = DoubleMLPLIV(n_folds,
+    dml_pliv_obj = DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
+                                n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
-    data = generate_data_iv[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'], 'z')
-    dml_pliv_obj.fit(obj_dml_data)
-    
+    dml_pliv_obj.fit()
+
 
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_pliv_obj.smpls[0])

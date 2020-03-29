@@ -41,7 +41,11 @@ def dml_procedure(request):
 def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
-    
+
+    # collect data
+    data = generate_data_iivm[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
     # Set machine learning methods for m & gg
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
     learner_reg = LinearRegression()
@@ -49,15 +53,14 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner_reg),
                    'ml_r': clone(learner_classif)}
     
-    dml_iivm_obj = DoubleMLIIVM(n_folds,
+    dml_iivm_obj = DoubleMLIIVM(data, X_cols, 'y', ['d'], 'z',
+                                n_folds,
                                 ml_learners,
                                 dml_procedure,
                                 inf_model)
-    data = generate_data_iivm[idx]
+
     np.random.seed(3141)
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    obj_dml_data = DoubleMLData(data, X_cols, 'y', ['d'], 'z')
-    dml_iivm_obj.fit(obj_dml_data)
+    dml_iivm_obj.fit()
 
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_iivm_obj.smpls[0])
