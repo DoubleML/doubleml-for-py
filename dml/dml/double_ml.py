@@ -16,12 +16,18 @@ class DoubleML(ABC):
     Double Machine Learning
     """
     def __init__(self,
+                 obj_dml_data,
                  n_folds,
                  ml_learners,
                  dml_procedure,
                  inf_model,
                  se_reestimate=False,
                  n_rep_cross_fit=1):
+        # check and pick up obj_dml_data
+        assert isinstance(obj_dml_data, DoubleMLData)
+        self._check_data(obj_dml_data)
+        self._dml_data = obj_dml_data
+
         self.n_folds = n_folds
         self.smpls = None
         self._d_cols = None
@@ -31,6 +37,11 @@ class DoubleML(ABC):
         self.se_reestimate = se_reestimate
         self.n_rep_cross_fit = n_rep_cross_fit
         self._ml_nuiscance_params = None
+
+        # initialize arrays according to obj_dml_data and the resampling settings
+        self._initialize_arrays(obj_dml_data.n_obs,
+                                obj_dml_data.n_treat,
+                                self.n_rep_cross_fit)
 
     @property
     def n_obs(self):
@@ -173,7 +184,7 @@ class DoubleML(ABC):
     def __all_se(self, value):
         self._all_se[self._i_treat, self._i_rep] = value
     
-    def fit(self, obj_dml_data, n_jobs_cv=None, keep_scores=True):
+    def fit(self, n_jobs_cv=None, keep_scores=True):
         """
         Fit doubleML model
         Parameters
@@ -183,15 +194,8 @@ class DoubleML(ABC):
         -------
         
         """
-        
-        assert isinstance(obj_dml_data, DoubleMLData)
-        self._check_data(obj_dml_data)
-        
-        self._initialize_arrays(obj_dml_data.n_obs,
-                                obj_dml_data.n_treat,
-                                self.n_rep_cross_fit)
 
-        self._d_cols = obj_dml_data.d_cols
+        self._d_cols = self._dml_data.d_cols
 
         # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
@@ -212,10 +216,10 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
+                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(obj_dml_data, self.__smpls, n_jobs_cv)
+                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(self._dml_data, self.__smpls, n_jobs_cv)
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()
@@ -275,26 +279,23 @@ class DoubleML(ABC):
                              index=self.d_cols)
         return df_ci
 
-    def tune(self, obj_dml_data,
+    def tune(self,
              param_grids,
              scoring_methods=None, # if None the estimator's score method is used
              n_folds_tune=5,
              n_jobs_cv=None,
              set_as_params=True):
 
-        assert isinstance(obj_dml_data, DoubleMLData)
-        self._check_data(obj_dml_data)
-
         # initialize score, as there are dependent properties
         # TODO: check whether we can get rid of this indirect dependencies
-        self._score = np.full((obj_dml_data.n_obs,
+        self._score = np.full((self._dml_data.n_obs,
                                self.n_rep_cross_fit,
-                               obj_dml_data.n_treat), np.nan)
+                               self._dml_data.n_treat), np.nan)
 
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
 
-        self._d_cols = obj_dml_data.d_cols
+        self._d_cols = self._dml_data.d_cols
 
         # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
@@ -312,10 +313,10 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    obj_dml_data._set_x_d(obj_dml_data.d_cols[i_d])
+                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                res = self._ml_nuisance_tuning(obj_dml_data, self.__smpls,
+                res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
                                                n_jobs_cv)

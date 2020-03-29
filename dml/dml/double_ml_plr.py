@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
-from .double_ml import DoubleML
+from .double_ml import DoubleML, DoubleMLData
 from .helper import _dml_cross_val_predict
 
 
@@ -12,13 +12,19 @@ class DoubleMLPLR(DoubleML):
     Double Machine Learning for Partially Linear Regression
     """
     def __init__(self,
+                 data,
+                 x_cols,
+                 y_col,
+                 d_cols,
                  n_folds,
                  ml_learners,
                  dml_procedure,
                  inf_model,
                  se_reestimate=False,
                  n_rep_cross_fit=1):
-        super().__init__(n_folds,
+        obj_dml_data = DoubleMLData(data, x_cols, y_col, d_cols)
+        super().__init__(obj_dml_data,
+                         n_folds,
                          ml_learners,
                          dml_procedure,
                          inf_model,
