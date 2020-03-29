@@ -61,10 +61,10 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
 
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
-                              inf_model)
+                              n_folds,
+                              inf_model=inf_model,
+                              dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
     
@@ -147,10 +147,10 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner)}
 
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
-                              inf_model)
+                              n_folds,
+                              inf_model=inf_model,
+                              dml_procedure=dml_procedure)
 
     N = data.shape[0]
     this_smpl = list()

@@ -55,10 +55,10 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
 
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
-                              inf_model)
+                              n_folds,
+                              inf_model=inf_model,
+                              dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
 
@@ -69,10 +69,10 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner)}
 
     dml_plr_obj_ext_set_par = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                                          n_folds,
                                           ml_learners,
-                                          dml_procedure,
-                                          inf_model)
+                                          n_folds,
+                                          inf_model=inf_model,
+                                          dml_procedure=dml_procedure)
     dml_plr_obj_ext_set_par.set_ml_nuisance_params({'g_params': {'alpha': alpha},
                                                     'm_params': {'alpha': alpha}})
     dml_plr_obj_ext_set_par.fit()

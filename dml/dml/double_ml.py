@@ -17,11 +17,11 @@ class DoubleML(ABC):
     """
     def __init__(self,
                  obj_dml_data,
-                 n_folds,
                  ml_learners,
-                 dml_procedure,
-                 inf_model,
+                 n_folds,
                  n_rep_cross_fit,
+                 inf_model,
+                 dml_procedure,
                  draw_sample_splitting):
         # check and pick up obj_dml_data
         assert isinstance(obj_dml_data, DoubleMLData)

@@ -65,11 +65,11 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
 
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
+                              n_folds,
+                              n_rep_cross_fit,
                               inf_model,
-                              n_rep_cross_fit=n_rep_cross_fit)
+                              dml_procedure)
 
     dml_plr_obj.fit()
     

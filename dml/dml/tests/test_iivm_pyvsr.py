@@ -54,10 +54,9 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
                    'ml_r': clone(learner_classif)}
     
     dml_iivm_obj = DoubleMLIIVM(data, X_cols, 'y', ['d'], 'z',
-                                n_folds,
                                 ml_learners,
-                                dml_procedure,
-                                inf_model)
+                                n_folds,
+                                dml_procedure=dml_procedure)
 
     np.random.seed(3141)
     dml_iivm_obj.fit()

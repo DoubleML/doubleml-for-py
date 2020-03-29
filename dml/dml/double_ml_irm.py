@@ -18,19 +18,19 @@ class DoubleMLIRM(DoubleML):
                  x_cols,
                  y_col,
                  d_cols,
-                 n_folds,
                  ml_learners,
-                 dml_procedure,
-                 inf_model,
+                 n_folds=5,
                  n_rep_cross_fit=1,
+                 inf_model='ATE',
+                 dml_procedure='dml1',
                  draw_sample_splitting=True):
         obj_dml_data = DoubleMLData(data, x_cols, y_col, d_cols)
         super().__init__(obj_dml_data,
-                         n_folds,
                          ml_learners,
-                         dml_procedure,
-                         inf_model,
+                         n_folds,
                          n_rep_cross_fit,
+                         inf_model,
+                         dml_procedure,
                          draw_sample_splitting)
         self._g0_params = None
         self._g1_params = None

@@ -54,18 +54,18 @@ def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
 
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
-                              inf_model)
+                              n_folds,
+                              inf_model=inf_model,
+                              dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=False)
 
     np.random.seed(3141)
     dml_plr_obj_reestimate_se = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                                            n_folds,
                                             ml_learners,
-                                            dml_procedure,
-                                            inf_model)
+                                            n_folds,
+                                            inf_model=inf_model,
+                                            dml_procedure=dml_procedure)
     dml_plr_obj_reestimate_se.fit(se_reestimate=True)
 
     res_dict = {'se': dml_plr_obj.se,
@@ -95,10 +95,10 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
 
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              n_folds,
                               ml_learners,
-                              dml_procedure,
-                              inf_model)
+                              n_folds,
+                              inf_model=inf_model,
+                              dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=True)
 
     np.random.seed(3141)
