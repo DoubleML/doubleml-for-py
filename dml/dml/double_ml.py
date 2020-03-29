@@ -287,8 +287,6 @@ class DoubleML(ABC):
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
 
-        self._d_cols = self._dml_data.d_cols
-
         # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
