@@ -241,7 +241,7 @@ class DoubleML(ABC):
 
         dml_procedure = self.dml_procedure
         
-        self._initialize_boot_arrays(n_rep, self.n_rep_cross_fit)
+        self._initialize_boot_arrays(n_rep)
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
@@ -277,11 +277,6 @@ class DoubleML(ABC):
 
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
-
-        # TODO: Check whether this check is still needed
-        if self.n_rep_cross_fit > 1:
-            # externally transferred samples not supported for repeated cross-fitting
-            assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
 
         # perform sample splitting
         if self.smpls is None:
@@ -347,9 +342,9 @@ class DoubleML(ABC):
         self._all_coef = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
         self._all_se = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
 
-    def _initialize_boot_arrays(self, n_rep, n_rep_cross_fit):
+    def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
-        self._boot_coef = np.full((self.n_treat, n_rep * n_rep_cross_fit), np.nan)
+        self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep_cross_fit), np.nan)
 
     def _split_samples(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
