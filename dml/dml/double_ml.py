@@ -188,7 +188,7 @@ class DoubleML(ABC):
 
         # perform sample splitting
         if self.smpls is None:
-            self._split_samples()
+            self.draw_sample_splitting()
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
@@ -275,7 +275,7 @@ class DoubleML(ABC):
 
         # perform sample splitting
         if self.smpls is None:
-            self._split_samples()
+            self.draw_sample_splitting()
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
@@ -341,7 +341,7 @@ class DoubleML(ABC):
         self.n_rep_boot = n_rep
         self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep_cross_fit), np.nan)
 
-    def _split_samples(self):
+    def draw_sample_splitting(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep_cross_fit=self.n_rep_cross_fit,
                                                 n_obs=self.n_obs)
