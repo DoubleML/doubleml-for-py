@@ -45,19 +45,15 @@ class DoubleML(ABC):
 
     @property
     def n_obs(self):
-        return self.score.shape[0]
+        return self._dml_data.n_obs
 
     @property
     def n_treat(self):
-        if hasattr(self, '_score'):
-            n_treat = self.score.shape[2]
-        else:
-            n_treat = 1
-        return n_treat
+        return self._dml_data.n_treat
 
     @property
     def d_cols(self):
-        return self._d_cols
+        return self._dml_data.d_cols
 
     @property
     def smpls(self):
@@ -195,8 +191,6 @@ class DoubleML(ABC):
         
         """
 
-        self._d_cols = self._dml_data.d_cols
-
         # TODO: Check whether this check is still needed
         if self.n_rep_cross_fit > 1:
             # externally transferred samples not supported for repeated cross-fitting
@@ -216,7 +210,7 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
+                    self._dml_data._set_x_d(self.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
                 self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(self._dml_data, self.__smpls, n_jobs_cv)
@@ -313,7 +307,7 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
-                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
+                    self._dml_data._set_x_d(self.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
                 res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
