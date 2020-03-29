@@ -28,12 +28,14 @@ class DoubleML(ABC):
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
-        self.n_folds = n_folds
         self.ml_learners = ml_learners
+        self._ml_nuiscance_params = None
+
+        self.n_folds = n_folds
+        self.n_rep_cross_fit = n_rep_cross_fit
+        
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
-        self.n_rep_cross_fit = n_rep_cross_fit
-        self._ml_nuiscance_params = None
 
         # perform sample splitting
         if draw_sample_splitting:
