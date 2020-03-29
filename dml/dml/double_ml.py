@@ -347,7 +347,7 @@ class DoubleML(ABC):
                                                 n_obs=self.n_obs)
         self.smpls = obj_dml_resampling.split_samples()
 
-    def set_samples(self, all_smpls):
+    def set_sample_splitting(self, all_smpls):
         # TODO warn if n_rep_cross_fit or n_folds is overwritten with different number induced by the transferred
         # TODO external samples?
         self.n_rep_cross_fit = len(all_smpls)

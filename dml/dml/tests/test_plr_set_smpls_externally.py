@@ -75,7 +75,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
                                ml_learners,
                                dml_procedure,
                                inf_model)
-    dml_plr_obj2.set_samples(smpls)
+    dml_plr_obj2.set_sample_splitting(smpls)
     dml_plr_obj2.fit()
     
     res_dict = {'coef': dml_plr_obj.coef,

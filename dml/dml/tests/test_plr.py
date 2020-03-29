@@ -158,7 +158,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     this_smpl.append((np.arange(xx, N), np.arange(0, xx)))
     this_smpl.append((np.arange(0, xx), np.arange(xx, N)))
     smpls = [this_smpl]
-    dml_plr_obj.set_samples(smpls)
+    dml_plr_obj.set_sample_splitting(smpls)
 
     dml_plr_obj.fit()
     
