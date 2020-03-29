@@ -278,12 +278,6 @@ class DoubleML(ABC):
              n_jobs_cv=None,
              set_as_params=True):
 
-        # initialize score, as there are dependent properties
-        # TODO: check whether we can get rid of this indirect dependencies
-        self._score = np.full((self._dml_data.n_obs,
-                               self.n_rep_cross_fit,
-                               self._dml_data.n_treat), np.nan)
-
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
 
