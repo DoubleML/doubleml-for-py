@@ -21,7 +21,6 @@ class DoubleML(ABC):
                  ml_learners,
                  dml_procedure,
                  inf_model,
-                 se_reestimate=False,
                  n_rep_cross_fit=1):
         # check and pick up obj_dml_data
         assert isinstance(obj_dml_data, DoubleMLData)
@@ -34,7 +33,6 @@ class DoubleML(ABC):
         self.ml_learners = ml_learners
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
-        self.se_reestimate = se_reestimate
         self.n_rep_cross_fit = n_rep_cross_fit
         self._ml_nuiscance_params = None
 
@@ -180,7 +178,7 @@ class DoubleML(ABC):
     def __all_se(self, value):
         self._all_se[self._i_treat, self._i_rep] = value
     
-    def fit(self, n_jobs_cv=None, keep_scores=True):
+    def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
         Fit doubleML model
         Parameters
@@ -222,7 +220,7 @@ class DoubleML(ABC):
                 self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
+                self.__all_se = self._se_causal_pars(se_reestimate)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -397,12 +395,12 @@ class DoubleML(ABC):
 
         return coef
 
-    def _se_causal_pars(self):
+    def _se_causal_pars(self, se_reestimate):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
         if dml_procedure == 'dml1':
-            if self.se_reestimate:
+            if se_reestimate:
                 se = np.sqrt(self._var_est())
             else:
                 variances = np.zeros(self.n_folds)
