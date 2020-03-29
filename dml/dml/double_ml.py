@@ -186,11 +186,6 @@ class DoubleML(ABC):
         
         """
 
-        # TODO: Check whether this check is still needed
-        #if self.n_rep_cross_fit > 1:
-        #    # externally transferred samples not supported for repeated cross-fitting
-        #    assert self.smpls is None, 'externally transferred samples not supported for repeated cross-fitting'
-
         # perform sample splitting
         if self.smpls is None:
             self._split_samples()
