@@ -36,9 +36,7 @@ class DoubleML(ABC):
         self._ml_nuiscance_params = None
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._initialize_arrays(obj_dml_data.n_obs,
-                                obj_dml_data.n_treat,
-                                self.n_rep_cross_fit)
+        self._initialize_arrays()
 
     @property
     def n_obs(self):
@@ -338,16 +336,16 @@ class DoubleML(ABC):
     def _set_ml_nuisance_params(self, params):
         pass
 
-    def _initialize_arrays(self, n_obs, n_treat, n_rep_cross_fit):
-        self._score = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
-        self._score_a = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
-        self._score_b = np.full((n_obs, n_rep_cross_fit, n_treat), np.nan)
+    def _initialize_arrays(self):
+        self._score = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._score_a = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._score_b = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
         
-        self._coef = np.full(n_treat, np.nan)
-        self._se = np.full(n_treat, np.nan)
+        self._coef = np.full(self.n_treat, np.nan)
+        self._se = np.full(self.n_treat, np.nan)
 
-        self._all_coef = np.full((n_treat, n_rep_cross_fit), np.nan)
-        self._all_se = np.full((n_treat, n_rep_cross_fit), np.nan)
+        self._all_coef = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
+        self._all_se = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
 
     def _initialize_boot_arrays(self, n_rep, n_rep_cross_fit):
         self.n_rep_boot = n_rep
@@ -367,9 +365,7 @@ class DoubleML(ABC):
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
         self.n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
-        self._initialize_arrays(self.n_obs,
-                                self.n_treat,
-                                self.n_rep_cross_fit)
+        self._initialize_arrays()
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
