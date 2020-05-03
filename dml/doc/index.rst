@@ -1,20 +1,23 @@
-Welcome to DoubleML's documentation!
-====================================
+DoubleML Package
+================
+
+The DoubleML package contains routines for:
+
+- Double machine learning of partially linear regression (PLR) models
+- Double Machine Learning for Partially Linear IV regression (PLIV) model
+- Double machine learning for interactive regression (IRM) models
+- Double machine learning for interactive IV regression (IIVM) models
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
-.. autoclass:: dml.double_ml.DoubleML
-    :members:
-.. autoclass:: dml.double_ml_plr.DoubleMLPLR
-    :members:
-.. autoclass:: dml.double_ml_pliv.DoubleMLPLIV
-    :members:
-.. autoclass:: dml.double_ml_irm.DoubleMLIRM
-    :members:
-.. autoclass:: dml.double_ml_iivm.DoubleMLIIVM
-    :members:
+    Getting started <intro/intro>
+    User Guide <guide/guide>
+    Examples <examples/examples>
+    API Reference <api/api>
+    Release Notes <release/release>
 
 Indices and tables
 ==================
