@@ -1,18 +1,15 @@
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
-
 from sklearn.linear_model import LinearRegression
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_plr import DoubleMLPLR
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLR
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLR
 pandas2ri.activate()
 
 # number of datasets per dgp
@@ -49,7 +46,7 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, inf_model, dml_procedure):
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
     
-    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
                               ml_learners,
                               n_folds,
                               inf_model=inf_model,

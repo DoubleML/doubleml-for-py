@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 
-from dml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from doubleml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
 
-from dml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_general import get_n_datasets
 
 
 # number of datasets per dgp

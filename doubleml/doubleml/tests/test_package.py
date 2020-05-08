@@ -2,6 +2,6 @@
 
 
 def test_version_is_string():
-    import dml
-    assert isinstance(dml.__version__, str)
+    import doubleml
+    assert isinstance(doubleml.__version__, str)
 

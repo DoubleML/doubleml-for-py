@@ -8,7 +8,7 @@ from scipy.linalg import toeplitz
 
 from sklearn.datasets import make_spd_matrix
 
-from dml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_general import get_n_datasets
 
 
 def g(x):

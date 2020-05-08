@@ -9,11 +9,10 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_plr import DoubleMLPLR
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
-from dml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
 # number of datasets per dgp
@@ -60,7 +59,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
                    'ml_g': clone(learner)}
 
     np.random.seed(3141)
-    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
                               ml_learners,
                               n_folds,
                               inf_model=inf_model,
@@ -146,7 +145,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     ml_learners = {'ml_m': clone(learner),
                    'ml_g': clone(learner)}
 
-    dml_plr_obj = DoubleMLPLR(data, X_cols, 'y', ['d'],
+    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
                               ml_learners,
                               n_folds,
                               inf_model=inf_model,

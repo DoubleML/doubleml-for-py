@@ -8,11 +8,10 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_irm import DoubleMLIRM
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
-from dml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm
 
 
 # number of datasets per dgp
@@ -61,7 +60,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
                    'ml_g': clone(learner[1])}
 
     np.random.seed(3141)
-    dml_irm_obj = DoubleMLIRM(data, X_cols, 'y', ['d'],
+    dml_irm_obj = dml.DoubleMLIRM(data, X_cols, 'y', ['d'],
                               ml_learners,
                               n_folds,
                               inf_model=inf_model,

@@ -38,8 +38,8 @@ class DoubleMLIRM(DoubleML):
 
     Examples
     --------
-    >>> from dml.double_ml_irm import DoubleMLIRM
-    >>> DoubleMLIRM()
+    >>> import doubleml.api as dml
+    >>> dml.DoubleMLIRM()
 
     Notes
     -----

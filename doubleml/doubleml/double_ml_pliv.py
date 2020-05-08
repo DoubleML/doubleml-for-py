@@ -38,8 +38,8 @@ class DoubleMLPLIV(DoubleML):
 
     Examples
     --------
-    >>> from dml.double_ml_pliv import DoubleMLPLIV
-    >>> DoubleMLPLIV()
+    >>> import doubleml.api as dml
+    >>> dml.DoubleMLPLIV()
 
     Notes
     -----

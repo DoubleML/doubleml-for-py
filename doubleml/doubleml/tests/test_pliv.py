@@ -8,11 +8,10 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_pliv import DoubleMLPLIV
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
-from dml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
 
 
 # number of datasets per dgp
@@ -60,7 +59,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                    'ml_r': clone(learner)}
 
     np.random.seed(3141)
-    dml_pliv_obj = DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
+    dml_pliv_obj = dml.DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
                                 ml_learners,
                                 n_folds,
                                 dml_procedure=dml_procedure)

@@ -36,8 +36,8 @@ class DoubleMLPLR(DoubleML):
 
     Examples
     --------
-    >>> from dml.double_ml_plr import DoubleMLPLR
-    >>> DoubleMLPLR()
+    >>> import doubleml.api as dml
+    >>> dml.DoubleMLPLR()
 
     Notes
     -----

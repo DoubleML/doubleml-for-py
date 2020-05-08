@@ -2,18 +2,16 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_iivm import DoubleMLIIVM
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_pyvsr import export_smpl_split_to_r, r_IIVM
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_IIVM
 pandas2ri.activate()
 
 # number of datasets per dgp
@@ -53,7 +51,7 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
                    'ml_g': clone(learner_reg),
                    'ml_r': clone(learner_classif)}
     
-    dml_iivm_obj = DoubleMLIIVM(data, X_cols, 'y', ['d'], 'z',
+    dml_iivm_obj = dml.DoubleMLIIVM(data, X_cols, 'y', ['d'], 'z',
                                 ml_learners,
                                 n_folds,
                                 dml_procedure=dml_procedure)

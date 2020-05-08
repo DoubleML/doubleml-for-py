@@ -2,18 +2,15 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
-
 from sklearn.linear_model import LinearRegression
 
-from dml.double_ml_data import DoubleMLData
-from dml.double_ml_pliv import DoubleMLPLIV
+import doubleml.api as dml
 
-from dml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_general import get_n_datasets
+from doubleml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLIV
 
 from rpy2.robjects import pandas2ri
-from dml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLIV
 pandas2ri.activate()
 
 
@@ -53,7 +50,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
                    'ml_r': clone(learner)}
 
     np.random.seed(3141)
-    dml_pliv_obj = DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
+    dml_pliv_obj = dml.DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
                                 ml_learners,
                                 n_folds,
                                 dml_procedure=dml_procedure)
