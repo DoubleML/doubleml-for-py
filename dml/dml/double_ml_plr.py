@@ -9,7 +9,49 @@ from .helper import _dml_cross_val_predict
 
 class DoubleMLPLR(DoubleML):
     """
-    Double Machine Learning for Partially Linear Regression
+    Double machine learning for partially linear regression models
+
+    Parameters
+    ----------
+    data :
+        ToDo
+    x_cols :
+        ToDo
+    y_col :
+        ToDo
+    d_cols :
+        ToDo
+    ml_learners :
+        ToDo
+    n_folds :
+        ToDo
+    n_rep_cross_fit :
+        ToDo
+    inf_model :
+        ToDo
+    dml_procedure :
+        ToDo
+    draw_sample_splitting :
+        ToDo
+
+    Examples
+    --------
+    >>> from dml.double_ml_plr import DoubleMLPLR
+    >>> DoubleMLPLR()
+
+    Notes
+    -----
+    **Partially linear regression (PLR)** models take the form
+
+    .. math::
+
+        Y = D \\theta_0 + g_0(X) + \zeta, & &\mathbb{E}(\zeta | D,X) = 0,
+
+        D = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
+
+    where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
+    The high-dimensional vector :math:`X = (X_1, \ldots, X_p)` consists of other confounding covariates,
+    and :math:`\zeta` and :math:`V` are stochastic errors.
     """
     def __init__(self,
                  data,

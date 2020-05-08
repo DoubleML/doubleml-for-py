@@ -9,7 +9,48 @@ from .helper import _dml_cross_val_predict
 
 class DoubleMLPLIV(DoubleML):
     """
-    Double Machine Learning for Partially Linear IV regression model
+    Double machine learning for partially linear IV regression models
+
+    Parameters
+    ----------
+    data :
+        ToDo
+    x_cols :
+        ToDo
+    y_col :
+        ToDo
+    d_cols :
+        ToDo
+    z_col :
+        ToDo
+    ml_learners :
+        ToDo
+    n_folds :
+        ToDo
+    n_rep_cross_fit :
+        ToDo
+    inf_model :
+        ToDo
+    dml_procedure :
+        ToDo
+    draw_sample_splitting :
+        ToDo
+
+    Examples
+    --------
+    >>> from dml.double_ml_pliv import DoubleMLPLIV
+    >>> DoubleMLPLIV()
+
+    Notes
+    -----
+    **Partially linear IV regression (PLIV)** models take the form
+
+    .. math::
+
+        Y - D \\theta_0 =  g_0(X) + \zeta, & &\mathbb{E}(\zeta | Z, X) = 0,
+
+        Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
+
     """
     def __init__(self,
                  data,

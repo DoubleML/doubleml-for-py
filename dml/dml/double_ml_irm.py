@@ -11,7 +11,46 @@ from .helper import check_binary_vector
 
 class DoubleMLIRM(DoubleML):
     """
-    Double Machine Learning for Interactive Regression Model
+    Double machine learning for interactive regression models
+
+    Parameters
+    ----------
+    data :
+        ToDo
+    x_cols :
+        ToDo
+    y_col :
+        ToDo
+    d_cols :
+        ToDo
+    ml_learners :
+        ToDo
+    n_folds :
+        ToDo
+    n_rep_cross_fit :
+        ToDo
+    inf_model :
+        ToDo
+    dml_procedure :
+        ToDo
+    draw_sample_splitting :
+        ToDo
+
+    Examples
+    --------
+    >>> from dml.double_ml_irm import DoubleMLIRM
+    >>> DoubleMLIRM()
+
+    Notes
+    -----
+    **Interactive regression (IRM)** models take the form
+
+    .. math::
+
+        Y = g_0(D, X) + U, & &\mathbb{E}(U | X, D) = 0,
+
+        D = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
+
     """
     def __init__(self,
                  data,

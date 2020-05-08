@@ -11,7 +11,48 @@ from .helper import _dml_cross_val_predict
 
 class DoubleMLIIVM(DoubleML):
     """
-    Double Machine Learning for Interactive IV Model
+    Double machine learning for interactive IV regression models
+
+    Parameters
+    ----------
+    data :
+        ToDo
+    x_cols :
+        ToDo
+    y_col :
+        ToDo
+    d_cols :
+        ToDo
+    z_col :
+        ToDo
+    ml_learners :
+        ToDo
+    n_folds :
+        ToDo
+    n_rep_cross_fit :
+        ToDo
+    inf_model :
+        ToDo
+    dml_procedure :
+        ToDo
+    draw_sample_splitting :
+        ToDo
+
+    Examples
+    --------
+    >>> from dml.double_ml_iivm import DoubleMLIIVM
+    >>> DoubleMLIIVM()
+
+    Notes
+    -----
+    **Interactive IV (IIVM)** models take the form
+
+    .. math::
+
+        Y = g_0(D, X) + \zeta, & &\mathbb{E}(\zeta | Z, X) = 0,
+
+        Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
+
     """
     def __init__(self,
                  data,
