@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
+    'nbsphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,6 +49,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 master_doc = 'index'
 
+autoclass_content = 'class'
 autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
@@ -64,3 +66,6 @@ html_static_path = ['_static']
 
 
 # -- Extension configuration -------------------------------------------------
+
+
+html_theme = 'nature'

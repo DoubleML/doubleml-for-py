@@ -4,11 +4,11 @@ API reference
 Double machine learning models
 ------------------------------
 
-.. autosummary::
-   :toctree: generated/
+.. toctree::
+    :maxdepth: 3
 
-    ~dml.double_ml_plr.DoubleMLPLR
-    ~dml.double_ml_pliv.DoubleMLPLIV
-    ~dml.double_ml_irm.DoubleMLIRM
-    ~dml.double_ml_iivm.DoubleMLIIVM
+    double_ml_plr
+    double_ml_pliv
+    double_ml_irm
+    double_ml_iivm
 

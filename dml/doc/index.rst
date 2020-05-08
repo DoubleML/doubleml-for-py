@@ -11,7 +11,6 @@ The DoubleML package contains routines for:
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
 
     Getting started <intro/intro>
     User Guide <guide/guide>
