@@ -2,13 +2,12 @@ import numpy as np
 import pandas as pd
 
 import pytest
-import math
-import scipy
 from scipy.linalg import toeplitz
 
 from sklearn.datasets import make_spd_matrix
 
 from doubleml.tests.helper_general import get_n_datasets
+from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data
 
 
 def g(x):
@@ -38,20 +37,11 @@ def generate_data1(request):
     N = N_p[0]
     p = N_p[1]
     theta=0.5
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        M = m(np.dot(X,b))
-        D = M+np.random.standard_normal(size=[N,])
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D}
-        data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd'])
+        data = make_plr_data(N, p, theta)
         datasets.append(data)
     
     return datasets
@@ -87,10 +77,11 @@ def generate_data_bivariate(request):
         datasets.append(data)
     
     return datasets
-    
+
+
 @pytest.fixture(scope='session',
-                params = [(1000, 20)])
-def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, noisevar = 10):
+                params=[(1000, 20)])
+def generate_data_toeplitz(request, betamax=4, decay=0.99, threshold=0, noisevar=10):
     N_p = request.param
     np.random.seed(3141)
     # setting parameters
@@ -121,103 +112,63 @@ def generate_data_toeplitz(request, betamax = 4, decay = 0.99, threshold = 0, no
     
     return datasets
 
+
 @pytest.fixture(scope='session',
-                params = [(1000, 20)])
+                params=[(1000, 20)])
 def generate_data_iv(request):
     N_p = request.param
     np.random.seed(1111)
     # setting parameters
     N = N_p[0]
     p = N_p[1]
-    theta=0.5
-    gamma_z=0.4
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
+    theta = 0.5
+    gamma_z = 0.4
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        # instrument 
-        Z = m(np.dot(X,b)) + np.random.standard_normal(size=[N,])
-        # treatment
-        M = m(gamma_z * Z + np.dot(X,b))
-        D = M + np.random.standard_normal(size=[N,])
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
-                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd', 'z'])
+        data = make_pliv_data(N, p, theta, gamma_z)
         datasets.append(data)
     
     return datasets
 
+
 @pytest.fixture(scope='session',
-                params = [(500, 10),
-                          (1000, 20),
-                          (1000, 100)])
+                params=[(500, 10),
+                        (1000, 20),
+                        (1000, 100)])
 def generate_data_irm(request):
     N_p = request.param
     np.random.seed(1111)
     # setting parameters
     N = N_p[0]
     p = N_p[1]
-    theta=0.5
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
+    theta = 0.5
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        M = m3(np.dot(X,b))
-        MM = M+np.random.standard_normal(size=[N,])
-        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-        D = np.random.binomial(p=MMM, n=1)
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D}
-        data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd'])
+        data = make_irm_data(N, p, theta)
         datasets.append(data)
     
     return datasets
 
 
 @pytest.fixture(scope='session',
-                params = [(1000, 30)])
+                params=[(1000, 30)])
 def generate_data_iivm(request):
     N_p = request.param
     np.random.seed(1111)
     # setting parameters
     N = N_p[0]
     p = N_p[1]
-    theta=0.5
-    gamma_z=0.4
-    b= [1/k for k in range(1,p+1)]
-    sigma = make_spd_matrix(p)
+    theta = 0.5
+    gamma_z = 0.4
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        X = np.random.multivariate_normal(np.zeros(p),sigma,size=[N,])
-        G = g(np.dot(X,b))
-        # instrument 
-        M1 = m3(np.dot(X,b))
-        MM = M1+np.random.standard_normal(size=[N,])
-        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-        Z = np.random.binomial(p=MMM, n=1)
-        
-        # treatment
-        M = m3(gamma_z * Z + np.dot(X,b))
-        MM = M+np.random.standard_normal(size=[N,])
-        MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-        D = np.random.binomial(p=MMM, n=1)
-        
-        Y = np.dot(theta,D)+G+np.random.standard_normal(size=[N,])
-        xx = {'X': X, 'y': Y, 'd': D, 'z': Z}
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
-                            columns = [f'X{i+1}' for i in np.arange(p)] + ['y', 'd', 'z'])
+        data = make_iivm_data(N, p, theta, gamma_z)
         datasets.append(data)
     
     return datasets
