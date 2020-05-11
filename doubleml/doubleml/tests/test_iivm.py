@@ -8,7 +8,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-import doubleml.api as dml
+import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm

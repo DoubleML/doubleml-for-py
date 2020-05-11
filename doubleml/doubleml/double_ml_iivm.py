@@ -40,7 +40,7 @@ class DoubleMLIIVM(DoubleML):
 
     Examples
     --------
-    >>> import doubleml.api as dml
+    >>> import doubleml as dml
     >>> dml.DoubleMLIIVM()
 
     Notes

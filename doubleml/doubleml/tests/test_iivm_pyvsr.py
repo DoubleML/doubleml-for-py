@@ -6,7 +6,7 @@ from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
-import doubleml.api as dml
+import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pyvsr import export_smpl_split_to_r, r_IIVM

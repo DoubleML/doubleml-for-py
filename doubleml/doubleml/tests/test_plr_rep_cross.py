@@ -9,7 +9,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
-import doubleml.api as dml
+import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr

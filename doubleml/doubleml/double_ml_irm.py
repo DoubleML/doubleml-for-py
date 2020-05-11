@@ -38,7 +38,7 @@ class DoubleMLIRM(DoubleML):
 
     Examples
     --------
-    >>> import doubleml.api as dml
+    >>> import doubleml as dml
     >>> dml.DoubleMLIRM()
 
     Notes

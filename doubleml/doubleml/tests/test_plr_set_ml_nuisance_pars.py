@@ -5,7 +5,7 @@ import math
 from sklearn.base import clone
 from sklearn.linear_model import Lasso
 
-import doubleml.api as dml
+import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 
