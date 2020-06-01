@@ -1,7 +1,7 @@
 DoubleMLPLR
 ===========
 
-.. currentmodule:: dml.double_ml_plr
+.. currentmodule:: double_ml.double_ml_plr
 
 Constructor
 ~~~~~~~~~~~

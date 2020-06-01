@@ -1,7 +1,7 @@
 DoubleMLIRM
 ===========
 
-.. currentmodule:: dml.double_ml_irm
+.. currentmodule:: double_ml.double_ml_irm
 
 Constructor
 ~~~~~~~~~~~

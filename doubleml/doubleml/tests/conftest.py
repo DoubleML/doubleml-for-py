@@ -155,7 +155,7 @@ def generate_data_irm(request):
 
 
 @pytest.fixture(scope='session',
-                params=[(1000, 30)])
+                params=[(500, 11)])
 def generate_data_iivm(request):
     N_p = request.param
     np.random.seed(1111)

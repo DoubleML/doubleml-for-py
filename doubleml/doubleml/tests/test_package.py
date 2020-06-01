@@ -1,4 +1,4 @@
-"""Test the dml package."""
+"""Test the doubleml package."""
 
 
 def test_version_is_string():

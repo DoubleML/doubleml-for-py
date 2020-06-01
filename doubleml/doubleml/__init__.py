@@ -5,4 +5,4 @@ from .double_ml_pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
 from .double_ml_iivm import DoubleMLIIVM
 
-__version__ = get_distribution('dml').version
+__version__ = get_distribution('doubleml').version

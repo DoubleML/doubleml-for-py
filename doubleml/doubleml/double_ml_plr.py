@@ -37,7 +37,14 @@ class DoubleMLPLR(DoubleML):
     Examples
     --------
     >>> import doubleml as dml
-    >>> dml.DoubleMLPLR()
+    >>> from doubleml.datasets import make_plr_data
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+    >>> data, x_cols = make_plr_data(return_x_cols=True)
+    >>> dml_plr_obj = dml.DoubleMLPLR(data, x_cols, 'y', ['d'], ml_learners)
+    >>> dml_plr_obj.fit()
+    >>> dml_plr_obj.summary
 
     Notes
     -----
