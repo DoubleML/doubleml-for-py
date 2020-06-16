@@ -1,7 +1,7 @@
 DoubleMLIIVM
 ============
 
-.. currentmodule:: double_ml.double_ml_iivm
+.. currentmodule:: doubleml.double_ml_iivm
 
 Constructor
 ~~~~~~~~~~~

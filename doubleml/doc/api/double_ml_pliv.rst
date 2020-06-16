@@ -1,7 +1,7 @@
 DoubleMLPLIV
 ============
 
-.. currentmodule:: double_ml.double_ml_pliv
+.. currentmodule:: doubleml.double_ml_pliv
 
 
 Constructor
