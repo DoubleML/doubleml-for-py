@@ -48,12 +48,13 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     learner_reg = LinearRegression()
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg)}
-    
-    dml_irm_obj = dml.DoubleMLIRM(data, X_cols, 'y', ['d'],
-                              ml_learners,
-                              n_folds,
-                              inf_model=inf_model,
-                              dml_procedure=dml_procedure)
+
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  inf_model=inf_model,
+                                  dml_procedure=dml_procedure)
 
     np.random.seed(3141)
     dml_irm_obj.fit()

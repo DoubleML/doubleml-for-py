@@ -51,19 +51,20 @@ def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
                    'ml_g': clone(learner)}
 
     np.random.seed(3141)
-    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              ml_learners,
-                              n_folds,
-                              inf_model=inf_model,
-                              dml_procedure=dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  inf_model=inf_model,
+                                  dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=False)
 
     np.random.seed(3141)
-    dml_plr_obj_reestimate_se = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
-                                            ml_learners,
-                                            n_folds,
-                                            inf_model=inf_model,
-                                            dml_procedure=dml_procedure)
+    dml_plr_obj_reestimate_se = dml.DoubleMLPLR(obj_dml_data,
+                                                ml_learners,
+                                                n_folds,
+                                                inf_model=inf_model,
+                                                dml_procedure=dml_procedure)
     dml_plr_obj_reestimate_se.fit(se_reestimate=True)
 
     res_dict = {'se': dml_plr_obj.se,
@@ -92,11 +93,12 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
                    'ml_g': clone(learner)}
 
     np.random.seed(3141)
-    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              ml_learners,
-                              n_folds,
-                              inf_model=inf_model,
-                              dml_procedure=dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  inf_model=inf_model,
+                                  dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=True)
 
     np.random.seed(3141)

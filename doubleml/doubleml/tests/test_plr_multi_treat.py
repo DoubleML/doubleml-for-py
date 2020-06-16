@@ -58,11 +58,12 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
                    'ml_g': clone(learner)}
 
     np.random.seed(3141)
-    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', d_cols,
-                              ml_learners,
-                              n_folds,
-                              inf_model=inf_model,
-                              dml_procedure=dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, X_cols)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  inf_model=inf_model,
+                                  dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
     

@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
-from .double_ml import DoubleML, DoubleMLData
+from .double_ml import DoubleML
 from .helper import _dml_cross_val_predict
 
 
@@ -41,8 +41,9 @@ class DoubleMLPLR(DoubleML):
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
     >>> ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
-    >>> data, x_cols = make_plr_data(return_x_cols=True)
-    >>> dml_plr_obj = dml.DoubleMLPLR(data, x_cols, 'y', ['d'], ml_learners)
+    >>> data = make_plr_data()
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', ['d'])
+    >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
     >>> dml_plr_obj.fit()
     >>> dml_plr_obj.summary
 
@@ -61,17 +62,13 @@ class DoubleMLPLR(DoubleML):
     and :math:`\zeta` and :math:`V` are stochastic errors.
     """
     def __init__(self,
-                 data,
-                 x_cols,
-                 y_col,
-                 d_cols,
+                 obj_dml_data,
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
                  inf_model='DML2018',
                  dml_procedure='dml1',
                  draw_sample_splitting=True):
-        obj_dml_data = DoubleMLData(data, x_cols, y_col, d_cols)
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,

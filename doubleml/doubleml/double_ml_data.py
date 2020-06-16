@@ -1,24 +1,71 @@
 import numpy as np
 import pandas as pd
+
+from typing import Collection
+
 from .helper import assure_2d_array
 
 
 class DoubleMLData:
     def __init__(self,
                  data,
-                 x_cols,
                  y_col,
-                 d_cols,
+                 d_cols: Collection,
+                 x_cols=None,
                  z_col=None):
         self.data = data
-        self.x_cols = x_cols
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_col = z_col
+        if x_cols is not None:
+            self.x_cols = x_cols
+        else:
+            # x_cols defaults to all columns but y_col, d_cols and z_col
+            all_cols = set(self.data.columns)
+            if self.z_col is not None:
+                self.x_cols = list(set(all_cols) - set(self.y_col) - set(self.d_cols) - set(self.z_col))
+            else:
+                self.x_cols = list(set(all_cols) - set(self.y_col) - set(self.d_cols))
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self._set_x_d(d_cols[0])
-    
+
+    def __repr__(self):
+        return f'=== DoubleMLData Object ===\n' \
+               f'y_col: {self.y_col}\n' \
+               f'd_cols: {self.d_cols}\n' \
+               f'x_cols: {self.x_cols}\n' \
+               f'z_col: {self.z_col}\n' \
+               f'data:\n {self.data}'
+
+    @classmethod
+    def from_arrays(cls, y, d, X, z=None):
+        X = assure_2d_array(X)
+        d = assure_2d_array(d)
+
+        # assert single y and z variable here
+        y_col = 'y'
+        if z is None:
+            z_col = None
+        else:
+            z_col = 'z'
+
+        if d.shape[1] == 1:
+            d_cols = ['d']
+        else:
+            d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
+
+        x_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
+
+        if z is None:
+            data = pd.DataFrame(np.column_stack((X, y, d)),
+                                columns=x_cols + [y_col] + d_cols)
+        else:
+            data = pd.DataFrame(np.column_stack((X, y, d, z)),
+                                columns=x_cols + [y_col] + d_cols + [z_col])
+
+        return cls(data, y_col, d_cols, x_cols, z_col)
+
     @property
     def x(self):
         return self._X.values
@@ -56,7 +103,10 @@ class DoubleMLData:
     
     @x_cols.setter
     def x_cols(self, value):
-        assert isinstance(value, list)
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, list):
+            raise TypeError('x_cols must be a list')
         assert set(value).issubset(set(self.all_variables))
         self._x_cols = value
     
@@ -66,7 +116,10 @@ class DoubleMLData:
     
     @d_cols.setter
     def d_cols(self, value):
-        assert isinstance(value, list)
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, list):
+            raise TypeError('d_cols must be a list')
         assert set(value).issubset(set(self.all_variables))
         self._d_cols = value
     
@@ -106,31 +159,3 @@ class DoubleMLData:
         xd_list.remove(treatment_var)
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
-        
-    
-def double_ml_data_from_arrays(X, y, d, z=None):
-    X = assure_2d_array(X)
-    d = assure_2d_array(d)
-    
-    # assert single y and z variable here
-    y_col = 'y'
-    if z is None:
-        z_col = None
-    else:
-        z_col = 'z'
-    
-    if d.shape[1] == 1:
-        d_cols = ['d']
-    else:
-        d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
-    
-    x_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
-
-    if z is None:
-        data = pd.DataFrame(np.column_stack((X, y, d)),
-                            columns=x_cols + [y_col] + d_cols)
-    else:
-        data = pd.DataFrame(np.column_stack((X, y, d, z)),
-                            columns=x_cols + [y_col] + d_cols + [z_col])
-    return DoubleMLData(data, x_cols, y_col, d_cols, z_col)
-

@@ -60,11 +60,12 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
                    'ml_g': clone(learner[1])}
 
     np.random.seed(3141)
-    dml_irm_obj = dml.DoubleMLIRM(data, X_cols, 'y', ['d'],
-                              ml_learners,
-                              n_folds,
-                              inf_model=inf_model,
-                              dml_procedure=dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  inf_model=inf_model,
+                                  dml_procedure=dml_procedure)
 
     dml_irm_obj.fit()
     

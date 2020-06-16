@@ -59,10 +59,11 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                    'ml_r': clone(learner)}
 
     np.random.seed(3141)
-    dml_pliv_obj = dml.DoubleMLPLIV(data, X_cols, 'y', ['d'], 'z',
-                                ml_learners,
-                                n_folds,
-                                dml_procedure=dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
+    dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
+                                    ml_learners,
+                                    n_folds,
+                                    dml_procedure=dml_procedure)
 
     dml_pliv_obj.fit()
     

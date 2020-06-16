@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from doubleml.double_ml_data import DoubleMLData, double_ml_data_from_arrays
+from doubleml.double_ml_data import DoubleMLData
 
 from doubleml.tests.helper_general import get_n_datasets
 
@@ -21,10 +21,10 @@ def dml_data_fixture(generate_data1, idx):
     np.random.seed(3141)
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
-    obj_from_np = double_ml_data_from_arrays(data.loc[:, x_cols].values,
-                                             data['y'].values, data['d'].values)
+    obj_from_np = DoubleMLData.from_arrays(data['y'].values, data['d'].values,
+                                           data.loc[:, x_cols].values)
 
-    obj_from_pd = DoubleMLData(data, x_cols, 'y', ['d'])
+    obj_from_pd = DoubleMLData(data, 'y', ['d'], x_cols)
     
     return {'obj_from_np': obj_from_np,
             'obj_from_pd': obj_from_pd}

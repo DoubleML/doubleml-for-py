@@ -53,17 +53,13 @@ class DoubleMLIRM(DoubleML):
 
     """
     def __init__(self,
-                 data,
-                 x_cols,
-                 y_col,
-                 d_cols,
+                 obj_dml_data,
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
                  inf_model='ATE',
                  dml_procedure='dml1',
                  draw_sample_splitting=True):
-        obj_dml_data = DoubleMLData(data, x_cols, y_col, d_cols)
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,

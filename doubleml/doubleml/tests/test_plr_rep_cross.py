@@ -63,12 +63,13 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
                    'ml_g': clone(learner)}
 
     np.random.seed(3141)
-    dml_plr_obj = dml.DoubleMLPLR(data, X_cols, 'y', ['d'],
-                              ml_learners,
-                              n_folds,
-                              n_rep_cross_fit,
-                              inf_model,
-                              dml_procedure)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_learners,
+                                  n_folds,
+                                  n_rep_cross_fit,
+                                  inf_model,
+                                  dml_procedure)
 
     dml_plr_obj.fit()
     
