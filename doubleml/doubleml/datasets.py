@@ -12,7 +12,7 @@ def fetch_401K():
 
 def fetch_bonus():
     url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
-    data = pd.read_stata(url)
+    data = pd.read_csv(url, delim_whitespace=True)
     return data
 
 
