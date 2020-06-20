@@ -22,11 +22,12 @@ class DoubleMLData:
             self.x_cols = x_cols
         else:
             # x_cols defaults to all columns but y_col, d_cols and z_col
-            all_cols = set(self.data.columns)
             if self.z_col is not None:
-                self.x_cols = list(set(all_cols) - set(self.y_col) - set(self.d_cols) - set(self.z_col))
+                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_col))
+                self.x_cols = [col for col in self.data.columns if col not in y_d_z]
             else:
-                self.x_cols = list(set(all_cols) - set(self.y_col) - set(self.d_cols))
+                y_d = set.union(set(self.y_col), set(self.d_cols))
+                self.x_cols = [col for col in self.data.columns if col not in y_d]
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self._set_x_d(d_cols[0])
