@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import io
 
 from typing import Collection
 
@@ -31,12 +32,15 @@ class DoubleMLData:
         self._set_x_d(d_cols[0])
 
     def __repr__(self):
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        data_info = buf.getvalue()
         return f'=== DoubleMLData Object ===\n' \
                f'y_col: {self.y_col}\n' \
                f'd_cols: {self.d_cols}\n' \
                f'x_cols: {self.x_cols}\n' \
                f'z_col: {self.z_col}\n' \
-               f'data:\n {self.data}'
+               f'data:\n {data_info}'
 
     @classmethod
     def from_arrays(cls, y, d, X, z=None):
