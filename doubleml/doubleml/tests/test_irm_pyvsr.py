@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 import math
 
@@ -40,8 +41,10 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     n_folds = 2
 
     # collect data
-    data = generate_data_irm[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    (X, y, d) = generate_data_irm[idx]
+    x_cols = [f'X{i + 1}' for i in np.arange(X.shape[1])]
+    data = pd.DataFrame(np.column_stack((X, y, d)),
+                        columns=x_cols + ['y', 'd'])
 
     # Set machine learning methods for m & g
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
@@ -49,7 +52,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     ml_learners = {'ml_m': clone(learner_classif),
                    'ml_g': clone(learner_reg)}
 
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_learners,
                                   n_folds,
