@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 import io
 
-from typing import Collection
-
 from .helper import assure_2d_array
 
 
@@ -11,7 +9,7 @@ class DoubleMLData:
     def __init__(self,
                  data,
                  y_col,
-                 d_cols: Collection,
+                 d_cols,
                  x_cols=None,
                  z_col=None):
         self.data = data
@@ -30,7 +28,7 @@ class DoubleMLData:
                 self.x_cols = [col for col in self.data.columns if col not in y_d]
         self._set_y_z()
         # by default, we initialize to the first treatment variable
-        self._set_x_d(d_cols[0])
+        self._set_x_d(self.d_cols[0])
 
     def __repr__(self):
         buf = io.StringIO()
@@ -44,7 +42,7 @@ class DoubleMLData:
                f'data:\n {data_info}'
 
     @classmethod
-    def from_arrays(cls, y, d, X, z=None):
+    def from_arrays(cls, X, y, d, z=None):
         X = assure_2d_array(X)
         d = assure_2d_array(d)
 
