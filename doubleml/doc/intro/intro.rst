@@ -1,16 +1,27 @@
 Getting started
 ===============
 
-The purpose of the following case-study is to demonstrate the core functionalities of ``DoubleML``. ``DoubleML``
-provides interfaces to ``pandas`` DataFrames as well as ``numpy`` arrays. The usage of both interfaces is demonstrated
-with two case studies.
+The purpose of the following case-studies is to demonstrate the core functionalities of ``doubleml``.
 
-Example 1: 401(k) data set
---------------------------
+Data and the causal model
+-------------------------
 
-The following real data application is taken from Chernozhukov et al. (2017) illustrates the usage of ``DoubleMLPLR``
-for carrying out inference on the main causal parameter in a partially linear regression model (PLR). **Partially linear
-regression (PLR)** models take the form
+``doubleml`` provides interfaces to ``pandas`` DataFrames as well as ``numpy`` arrays. The usage of both interfaces is
+demonstrated in the following. We download the 401(k) data set.
+
+.. ipython:: python
+
+    from doubleml.datasets import fetch_401K
+
+    # Load data
+    df_401k = fetch_401K()
+    df_401k.head(5)
+
+Partially linear regression (PLR) models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Exemplarily we specify a partially linear regression model (PLR). **Partially linear regression (PLR)** models take the
+form
 
 .. math::
 
@@ -22,69 +33,108 @@ where :math:`Y` is the outcome variable and :math:`D` is the policy variable of 
 The high-dimensional vector :math:`X = (X_1, \ldots, X_p)` consists of other confounding covariates,
 and :math:`\zeta` and :math:`V` are stochastic errors.
 
+DoubleMLData from pandas DataFrames
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``doubleml.DoubleMLData`` class serves as data-backend and can be initialized from a ``pandas.DataFrame`` by
+specifying the column ``y_col='net_tfa'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'e401'``
+serving as treatment variable :math:`D` and the columns ``x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']``
+specifying the confounders.
+
 .. ipython:: python
 
-    from doubleml import DoubleMLData, DoubleMLPLR
-    from doubleml.datasets import fetch_401K
-
-    from sklearn.base import clone
-    from sklearn.ensemble import RandomForestRegressor
-
-    # Load data
-    data = fetch_401K()
+    from doubleml import DoubleMLData
 
     # Specify the data and the variables for the causal model
-    dml_data_obj = DoubleMLData(data,
-                                y_col='net_tfa',
-                                d_cols='e401',
-                                x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown'])
-
-    # Specify the learners for the nuisance functions and initialize the DoubleMLPLR object
-    learner = RandomForestRegressor(max_depth=2, n_estimators=100)
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner)}
-    dml_plr_obj = DoubleMLPLR(dml_data_obj, ml_learners)
-
-    # Fit the PLR model with double machine learning
-    dml_plr_obj.fit()
-
-    # Inspect the results
-    dml_plr_obj.summary
+    obj_dml_data_401k = DoubleMLData(df_401k,
+                                     y_col='net_tfa',
+                                     d_cols='e401',
+                                     x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
+                                             'twoearn', 'db', 'pira', 'hown'])
+    print(obj_dml_data_401k)
 
 
-Example 2: Simulated data
--------------------------
+DoubleMLData from numpy arrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To introduce the ``numpy`` arrays interface we generate a data set consisting of confounding variables ``X``, an outcome
+variable ``y`` and a treatment variable ``d``
+
 .. ipython:: python
 
-    from doubleml import DoubleMLData, DoubleMLPLR
-    from doubleml.datasets import fetch_401K
-
     import numpy as np
-    from sklearn.base import clone
-    from sklearn.linear_model import Lasso
 
     # Generate data
     n_obs = 500
     n_vars = 100
-    n_nonzero = 3
-    beta_d = np.random.uniform(0, 5, size=n_nonzero)
-    beta_y = np.random.uniform(0, 5, size=n_nonzero)
     theta = 3
     X = np.random.normal(size=(n_obs, n_vars))
-    d = np.dot(X[:, :n_nonzero], beta_d) + np.random.standard_normal(size=(n_obs,))
-    y = theta * d + np.dot(X[:, :n_nonzero], beta_y) + np.random.standard_normal(size=(n_obs,))
+    d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+    y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
 
-    # Specify the data and the variables for the causal model
-    dml_data_obj = DoubleMLData.from_arrays(X, y, d)
+To specify the data and the variables for the causal model from ``numpy.arrays`` we call
 
-    # Specify the learners for the nuisance functions and initialize the DoubleMLPLR object
+.. ipython:: python
+
+    from doubleml import DoubleMLData
+
+    obj_dml_data_sim = DoubleMLData.from_arrays(X, y, d)
+    print(obj_dml_data_sim)
+
+Estimate a causal model with double/debiased machine learning
+-------------------------------------------------------------
+
+Machine learners to estimate the nuisance models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To estimate our partially linear regression (PLR) model with the double machine learning algorithm, we first have to
+specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the 401(k) data we use ``RandomForestRegressor``
+from ``sklearn.ensemble`` and for our simulated data from a sparse linear model we use ``Lasso`` from ``sklearn.linear_model``.
+
+.. ipython:: python
+
+    from sklearn.base import clone
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.linear_model import Lasso
+
+    learner = RandomForestRegressor(max_depth=2, n_estimators=100)
+    ml_learners_401k = {'ml_m': clone(learner),
+                        'ml_g': clone(learner)}
+
     learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner)}
-    dml_plr_obj = DoubleMLPLR(dml_data_obj, ml_learners)
+    ml_learners_sim = {'ml_m': clone(learner),
+                       'ml_g': clone(learner)}
 
-    # Fit the PLR model with double machine learning
-    dml_plr_obj.fit()
+Cross-fitting, DML algorithms and Neyman-orthogonal score functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # Inspect the results
-    dml_plr_obj.summary
+When initializing the ``doubleml`` object for PLR models ``DoubleMLPLR``, we can further set parameters specifying the
+resampling: The number of folds used for cross-fitting ``n_folds`` (defaults to ``n_folds = 5``) as well as the number
+of repetitions when applying repeated cross-fitting ``n_rep_cross_fit`` (defaults to ``n_rep_cross_fit = 1``).
+Additionally, one can choose between the algorithms ``'dml1'`` and  `'dml2'`` via ``dml_procedure``. Depending on the
+causal model, one can further choose between different Neyman-orthogonal score / moment functions.
+
+DoubleMLPLR: Double/debiased machine learning for partially linear regression models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We now initialize ``DoubleMLPLR`` objects for our examples using default parameters
+
+.. ipython:: python
+
+    from doubleml import  DoubleMLPLR
+    obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_learners_401k)
+    obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_learners_sim)
+
+Estimate double/debiased machine learning models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The models are estimated by calling the `fit()` method and we can inspect the estimated treatment effect using the
+`summary` property.
+
+.. ipython:: python
+
+    obj_dml_plr_401k.fit()
+    print(obj_dml_plr_401k.summary)
+
+    obj_dml_plr_sim.fit()
+    print(obj_dml_plr_sim.summary)
