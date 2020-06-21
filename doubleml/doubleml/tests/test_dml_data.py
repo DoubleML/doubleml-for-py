@@ -21,8 +21,8 @@ def dml_data_fixture(generate_data1, idx):
     np.random.seed(3141)
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
-    obj_from_np = DoubleMLData.from_arrays(data['y'].values, data['d'].values,
-                                           data.loc[:, x_cols].values)
+    obj_from_np = DoubleMLData.from_arrays(data.loc[:, x_cols].values,
+                                           data['y'].values, data['d'].values)
 
     obj_from_pd = DoubleMLData(data, 'y', ['d'], x_cols)
     

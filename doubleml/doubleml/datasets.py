@@ -32,23 +32,23 @@ def m3(x, nu=0., gamma=1.):
     return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
-def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_x_cols=False):
+def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_X_y_d=False):
     b = [1 / k for k in range(1, n_features + 1)]
     sigma = make_spd_matrix(n_features)
 
     X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
     G = g(np.dot(X, b))
     M = m(np.dot(X, b))
-    D = M + np.random.standard_normal(size=[n_samples, ])
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_samples, ])
+    d = M + np.random.standard_normal(size=[n_samples, ])
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_samples, ])
 
-    x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
-    data = pd.DataFrame(np.column_stack((X, Y, D)),
-                        columns=x_cols + ['y', 'd'])
-    if return_x_cols:
-        return data, x_cols
-
-    return data
+    if return_X_y_d:
+        return X, y, d
+    else:
+        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        data = pd.DataFrame(np.column_stack((X, y, d)),
+                            columns=x_cols + ['y', 'd'])
+        return data
 
 
 def make_pliv_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_x_cols=False):
@@ -73,8 +73,8 @@ def make_pliv_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_
     return data
 
 
-def make_irm_data(n_samples=100, n_features=20, theta=0.5, return_x_cols=False):
-    b = [1/k for k in range(1,n_features+1)]
+def make_irm_data(n_samples=100, n_features=20, theta=0.5, return_X_y_d=False):
+    b = [1/k for k in range(1, n_features+1)]
     sigma = make_spd_matrix(n_features)
 
     X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
@@ -82,16 +82,16 @@ def make_irm_data(n_samples=100, n_features=20, theta=0.5, return_x_cols=False):
     M = m3(np.dot(X, b))
     MM = M + np.random.standard_normal(size=[n_samples, ])
     MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-    D = np.random.binomial(p=MMM, n=1)
+    d = np.random.binomial(p=MMM, n=1)
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_samples, ])
 
-    x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_samples, ])
-    data = pd.DataFrame(np.column_stack((X, Y, D)),
-                        columns=x_cols + ['y', 'd'])
-    if return_x_cols:
-        return data, x_cols
-
-    return data
+    if return_X_y_d:
+        return X, y, d
+    else:
+        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        data = pd.DataFrame(np.column_stack((X, y, d)),
+                            columns=x_cols + ['y', 'd'])
+        return data
 
 
 def make_iivm_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_x_cols=False):

@@ -148,7 +148,7 @@ def generate_data_irm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_irm_data(N, p, theta)
+        data = make_irm_data(N, p, theta, return_X_y_d=True)
         datasets.append(data)
     
     return datasets

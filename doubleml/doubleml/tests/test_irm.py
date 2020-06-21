@@ -52,15 +52,14 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     n_rep_boot = 499
 
     # collect data
-    data = generate_data_irm[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    (X, y, d) = generate_data_irm[idx]
 
     # Set machine learning methods for m & g
     ml_learners = {'ml_m': clone(learner[0]),
                    'ml_g': clone(learner[1])}
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData.from_arrays(X, y, d)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_learners,
                                   n_folds,
@@ -70,9 +69,6 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     dml_irm_obj.fit()
     
     np.random.seed(3141)
-    y = data['y'].values
-    X = data.loc[:, X_cols].values
-    d = data['d'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
