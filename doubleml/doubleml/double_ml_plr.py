@@ -124,7 +124,7 @@ class DoubleMLPLR(DoubleML):
                 raise ValueError('invalid inf_model')
             score_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y, d, g_hat, m_hat)
+            score_a, score_b = self.inf_model(y, d, g_hat, m_hat, smpls)
 
         return score_a, score_b
 
