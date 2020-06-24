@@ -186,6 +186,16 @@ class DoubleML(ABC):
     @__all_se.setter
     def __all_se(self, value):
         self._all_se[self._i_treat, self._i_rep] = value
+
+    @property
+    def __all_dml1_coef(self):
+        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
+        return self._all_dml1_coef[self._i_treat, self._i_rep, :]
+
+    @__all_coef.setter
+    def __all_dml1_coef(self, value):
+        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
+        self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
     
     def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
@@ -341,6 +351,9 @@ class DoubleML(ABC):
         self._all_coef = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
         self._all_se = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
 
+        if self.dml_procedure == 'dml1':
+            self._all_dml1_coef = np.full((self.n_treat, self.n_rep_cross_fit, self.n_folds), np.nan)
+
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
         self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep_cross_fit), np.nan)
@@ -371,6 +384,8 @@ class DoubleML(ABC):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
             coef = theta_hat
+
+            self.__all_dml1_coef = thetas
             
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
