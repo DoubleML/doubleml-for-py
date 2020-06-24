@@ -80,10 +80,14 @@ class DoubleMLPLR(DoubleML):
         self._m_params = None
 
     def _check_inf_method(self, inf_model):
-        valid_inf_model = ['IV-type', 'DML2018']
-        if inf_model not in valid_inf_model:
-            raise ValueError('invalid inf_model ' + inf_model +
-                             '\n valid inf_model ' + ' or '.join(valid_inf_model))
+        if isinstance(inf_model, str):
+            valid_inf_model = ['IV-type', 'DML2018']
+            if inf_model not in valid_inf_model:
+                raise ValueError('invalid inf_model ' + inf_model +
+                                 '\n valid inf_model ' + ' or '.join(valid_inf_model))
+        else:
+            if not callable(inf_model):
+                raise ValueError("inf_model should either be a string or callable")
         return inf_model
 
     def _check_data(self, obj_dml_data):
@@ -111,13 +115,16 @@ class DoubleMLPLR(DoubleML):
         v_hatd = np.multiply(v_hat, d)
 
         inf_model = self.inf_model
-        if inf_model == 'IV-type':
-            score_a = -v_hatd
-        elif inf_model == 'DML2018':
-            score_a = -np.multiply(v_hat, v_hat)
-        else:
-            raise ValueError('invalid inf_model')
-        score_b = np.multiply(v_hat, u_hat)
+        if isinstance(self.inf_model, str):
+            if inf_model == 'IV-type':
+                score_a = -v_hatd
+            elif inf_model == 'DML2018':
+                score_a = -np.multiply(v_hat, v_hat)
+            else:
+                raise ValueError('invalid inf_model')
+            score_b = np.multiply(v_hat, u_hat)
+        elif callable(self.inf_model):
+            score_a, score_b = self.inf_model(y, d, g_hat, m_hat)
 
         return score_a, score_b
 
