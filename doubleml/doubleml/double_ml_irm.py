@@ -72,10 +72,15 @@ class DoubleMLIRM(DoubleML):
         self._m_params = None
 
     def _check_inf_method(self, inf_model):
-        valid_inf_model = ['ATE', 'ATTE']
-        if inf_model not in valid_inf_model:
-            raise ValueError('invalid inf_model ' + inf_model +
-                             '\n valid inf_model ' + ' or '.join(valid_inf_model))
+        if isinstance(inf_model, str):
+            valid_inf_model = ['ATE', 'ATTE']
+            if inf_model not in valid_inf_model:
+                raise ValueError('invalid inf_model ' + inf_model +
+                                 '\n valid inf_model ' + ' or '.join(valid_inf_model))
+        else:
+            if not callable(inf_model):
+                raise ValueError('inf_model should be either a string or a callable.'
+                                 ' %r was passed' % inf_model)
         return inf_model
 
     def _check_data(self, obj_dml_data):
@@ -93,6 +98,7 @@ class DoubleMLIRM(DoubleML):
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         inf_model = self.inf_model
+        self._check_inf_method(inf_model)
 
         ml_g0 = clone(self.ml_learners['ml_g'])
         ml_g1 = clone(self.ml_learners['ml_g'])
@@ -111,7 +117,7 @@ class DoubleMLIRM(DoubleML):
 
         # nuisance g
         g_hat0 = _dml_cross_val_predict(ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv)
-        if inf_model == 'ATE':
+        if (inf_model == 'ATE') | callable(self.inf_model):
             g_hat1 = _dml_cross_val_predict(ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv)
         
         # nuisance m
@@ -121,19 +127,20 @@ class DoubleMLIRM(DoubleML):
         u_hat0 = y - g_hat0
         if inf_model == 'ATE':
             u_hat1 = y - g_hat1
-
-        if inf_model == 'ATE':
-            score_b = g_hat1 - g_hat0 \
-                            + np.divide(np.multiply(d, u_hat1), m_hat) \
-                            - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
-            score_a = np.full_like(m_hat, -1.0)
-        elif inf_model == 'ATTE':
-            score_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                            - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                                        np.multiply(p_hat, (1.0 - m_hat)))
-            score_a = - np.divide(d, p_hat)
-        else:
-            raise ValueError('invalid inf_model')
+        
+        if isinstance(self.inf_model, str):
+            if inf_model == 'ATE':
+                score_b = g_hat1 - g_hat0 \
+                                + np.divide(np.multiply(d, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
+                score_a = np.full_like(m_hat, -1.0)
+            elif inf_model == 'ATTE':
+                score_b = np.divide(np.multiply(d, u_hat0), p_hat) \
+                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
+                                            np.multiply(p_hat, (1.0 - m_hat)))
+                score_a = - np.divide(d, p_hat)
+        elif callable(self.inf_model):
+            score_a, score_b = self.inf_model(y, d, g_hat0, g_hat1, m_hat, smpls)
 
         return score_a, score_b
 

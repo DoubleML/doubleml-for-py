@@ -72,10 +72,19 @@ class DoubleMLPLIV(DoubleML):
         self._r_params = None
 
     def _check_inf_method(self, inf_model):
-        valid_inf_model = ['DML2018']
-        if inf_model not in valid_inf_model:
-            raise ValueError('invalid inf_model ' + inf_model +
-                             '\n valid inf_model ' + valid_inf_model)
+        if isinstance(inf_model, str):
+            valid_inf_model = ['DML2018']
+            # check whether its worth implementing the IV_type as well
+            # In CCDHNR equation (4.7) a score of this type is provided;
+            # however in the following paragraph it is explained that one might
+            # still need to estimate the DML2018 type first
+            if inf_model not in valid_inf_model:
+                raise ValueError('invalid inf_model ' + inf_model +
+                                 '\n valid inf_model ' + valid_inf_model)
+        else:
+            if not callable(inf_model):
+                raise ValueError('inf_model should be either a string or a callable.'
+                                 ' %r was passed' % inf_model)
         return inf_model
 
     def _check_data(self, obj_dml_data):
@@ -105,15 +114,14 @@ class DoubleMLPLIV(DoubleML):
         w_hat = d - r_hat
 
         inf_model = self.inf_model
-        if inf_model == 'DML2018':
-            score_a = -np.multiply(w_hat, v_hat)
-        else:
-            # check whether its worth implementing the IV_type here as well
-            # In CCDHNR equation (4.7) a score of this type is provided;
-            # however in the following paragraph it is explained that one might
-            # still need to estimate the DML2018 type first
-            raise ValueError('invalid inf_model')
-        score_b = np.multiply(v_hat, u_hat)
+        self._check_inf_method(inf_model)
+        if isinstance(self.inf_model, str):
+            if inf_model == 'DML2018':
+                score_a = -np.multiply(w_hat, v_hat)
+            score_b = np.multiply(v_hat, u_hat)
+        elif callable(self.inf_model):
+            score_a, score_b = self.inf_model(y, z, d, g_hat, m_hat, r_hat, smpls)
+
 
         return score_a, score_b
 

@@ -76,10 +76,15 @@ class DoubleMLIIVM(DoubleML):
         self._r1_params = None
 
     def _check_inf_method(self, inf_model):
-        valid_inf_model = ['LATE']
-        if inf_model not in valid_inf_model:
-            raise ValueError('invalid inf_model ' + inf_model +
-                             '\n valid inf_model ' + valid_inf_model)
+        if isinstance(inf_model, str):
+            valid_inf_model = ['LATE']
+            if inf_model not in valid_inf_model:
+                raise ValueError('invalid inf_model ' + inf_model +
+                                 '\n valid inf_model ' + valid_inf_model)
+        else:
+            if not callable(inf_model):
+                raise ValueError('inf_model should be either a string or a callable.'
+                                 ' %r was passed' % inf_model)
         return inf_model
 
     def _check_data(self, obj_dml_data):
@@ -128,15 +133,17 @@ class DoubleMLIIVM(DoubleML):
         w_hat1 = d - r_hat1
 
         inf_model = self.inf_model
-        if inf_model == 'LATE':
-            score_b = g_hat1 - g_hat0 \
-                            + np.divide(np.multiply(z, u_hat1), m_hat) \
-                            - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
-            score_a = -1*(r_hat1 - r_hat0 \
-                                + np.divide(np.multiply(z, w_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
-        else:
-            raise ValueError('invalid inf_model')
+        self._check_inf_method(inf_model)
+        if isinstance(self.inf_model, str):
+            if inf_model == 'LATE':
+                score_b = g_hat1 - g_hat0 \
+                                + np.divide(np.multiply(z, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
+                score_a = -1*(r_hat1 - r_hat0 \
+                                    + np.divide(np.multiply(z, w_hat1), m_hat) \
+                                    - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
+        elif callable(self.inf_model):
+            score_a, score_b = self.inf_model(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return score_a, score_b
 
