@@ -116,21 +116,16 @@ class DoubleMLPLR(DoubleML):
         v_hatd = np.multiply(v_hat, d)
 
         inf_model = self.inf_model
+        self._check_inf_method(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'IV-type':
                 score_a = -v_hatd
             elif inf_model == 'DML2018':
                 score_a = -np.multiply(v_hat, v_hat)
-            else:
-                # raise error via check
-                self._check_inf_method(self.inf_model)
             score_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
             score_a, score_b = self.inf_model(y, d, g_hat, m_hat, smpls)
-        else:
-            # raise error via check
-            self._check_inf_method(self.inf_model)
-
+        
         return score_a, score_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
