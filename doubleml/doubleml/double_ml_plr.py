@@ -87,7 +87,8 @@ class DoubleMLPLR(DoubleML):
                                  '\n valid inf_model ' + ' or '.join(valid_inf_model))
         else:
             if not callable(inf_model):
-                raise ValueError("inf_model should either be a string or callable")
+                raise ValueError('inf_model should be either a string or a callable.'
+                                 ' %r was passed' % inf_model)
         return inf_model
 
     def _check_data(self, obj_dml_data):
@@ -121,10 +122,14 @@ class DoubleMLPLR(DoubleML):
             elif inf_model == 'DML2018':
                 score_a = -np.multiply(v_hat, v_hat)
             else:
-                raise ValueError('invalid inf_model')
+                # raise error via check
+                self._check_inf_method(self.inf_model)
             score_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
             score_a, score_b = self.inf_model(y, d, g_hat, m_hat, smpls)
+        else:
+            # raise error via check
+            self._check_inf_method(self.inf_model)
 
         return score_a, score_b
 
