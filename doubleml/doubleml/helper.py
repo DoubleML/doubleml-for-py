@@ -32,6 +32,28 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
                            n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
+
+    test_indices = np.concatenate([test_index for _, test_index in smpls])
+    smpls_is_partition = _check_is_permutation(test_indices, _num_samples(X))
+
+    if not smpls_is_partition:
+        assert len(smpls) == 1
+        train_index, test_index = smpls[0]
+        # set some defaults aligned with cross_val_predict
+        fit_params = None
+        verbose = 0
+        if (est_params is None):
+            predictions, test_indices = _fit_and_predict(clone(estimator),
+                                           X, y, train_index, test_index, verbose, fit_params, method)
+        elif isinstance(est_params, dict):
+            predictions, test_indices = _fit_and_predict(clone(estimator).set_params(**est_params),
+                                           X, y, train_index, test_index, verbose, fit_params, method)
+
+        # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
+        # inv_test_indices = np.argsort(test_indices)
+        assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
+        return predictions
+
     if (est_params is None):
         # if there are no parameters set we redirect to the standard method
         return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
@@ -45,8 +67,6 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
     verbose = 0
     pre_dispatch = '2*n_jobs'
 
-    assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
-
     encode = (method == 'predict_proba')
 
     if encode:
@@ -56,10 +76,25 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
 
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
-    prediction_blocks = parallel(delayed(_fit_and_predict)(
-        clone(estimator).set_params(**est_params[idx]),
-        X, y, train_index, test_index, verbose, fit_params, method)
-        for idx, (train_index, test_index) in enumerate(smpls))
+    # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
+    if (est_params is None):
+        prediction_blocks = parallel(delayed(_fit_and_predict)(
+            estimator,
+            X, y, train_index, test_index, verbose, fit_params, method)
+                                     for idx, (train_index, test_index) in enumerate(smpls))
+    elif isinstance(est_params, dict):
+        # if no fold-specific parameters we redirect to the standard method
+        warnings.warn("Using the same (hyper-)parameters for all folds")
+        prediction_blocks = parallel(delayed(_fit_and_predict)(
+            clone(estimator).set_params(**est_params),
+            X, y, train_index, test_index, verbose, fit_params, method)
+                                     for idx, (train_index, test_index) in enumerate(smpls))
+    else:
+        assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
+        prediction_blocks = parallel(delayed(_fit_and_predict)(
+            clone(estimator).set_params(**est_params[idx]),
+            X, y, train_index, test_index, verbose, fit_params, method)
+            for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions
     predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]

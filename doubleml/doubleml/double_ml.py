@@ -22,7 +22,8 @@ class DoubleML(ABC):
                  n_rep_cross_fit,
                  inf_model,
                  dml_procedure,
-                 draw_sample_splitting):
+                 draw_sample_splitting,
+                 apply_cross_fitting):
         # check and pick up obj_dml_data
         assert isinstance(obj_dml_data, DoubleMLData)
         self._check_data(obj_dml_data)
@@ -33,9 +34,17 @@ class DoubleML(ABC):
 
         self.n_folds = n_folds
         self.n_rep_cross_fit = n_rep_cross_fit
-        
+        self.apply_cross_fitting = apply_cross_fitting
+
         self.dml_procedure = dml_procedure
         self.inf_model = self._check_inf_method(inf_model)
+
+        if not self.apply_cross_fitting:
+            assert self.n_folds == 2
+            assert self.n_rep_cross_fit == 1
+            if self.dml_procedure == 'dml1':
+                # redirect to dml2 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
+                self.dml_procedure = 'dml2'
 
         # perform sample splitting
         if draw_sample_splitting:
@@ -49,6 +58,15 @@ class DoubleML(ABC):
     @property
     def n_obs(self):
         return self._dml_data.n_obs
+
+    @property
+    def n_obs_test(self):
+        if self.apply_cross_fitting:
+            n_obs_test = self._dml_data.n_obs
+        else:
+            test_index = self.smpls[0][0][1]
+            n_obs_test = len(test_index)
+        return n_obs_test
 
     @property
     def n_treat(self):
@@ -341,9 +359,9 @@ class DoubleML(ABC):
         pass
 
     def _initialize_arrays(self):
-        self._score = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._score_a = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._score_b = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._score = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._score_a = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._score_b = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
         
         self._coef = np.full(self.n_treat, np.nan)
         self._se = np.full(self.n_treat, np.nan)
@@ -361,7 +379,8 @@ class DoubleML(ABC):
     def draw_sample_splitting(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep_cross_fit=self.n_rep_cross_fit,
-                                                n_obs=self.n_obs)
+                                                n_obs=self.n_obs,
+                                                apply_cross_fitting=self.apply_cross_fitting)
         self.smpls = obj_dml_resampling.split_samples()
 
     def set_sample_splitting(self, all_smpls):

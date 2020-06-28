@@ -68,14 +68,16 @@ class DoubleMLPLR(DoubleML):
                  n_rep_cross_fit=1,
                  inf_model='DML2018',
                  dml_procedure='dml1',
-                 draw_sample_splitting=True):
+                 draw_sample_splitting=True,
+                 apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,
                          n_rep_cross_fit,
                          inf_model,
                          dml_procedure,
-                         draw_sample_splitting)
+                         draw_sample_splitting,
+                         apply_cross_fitting)
         self._g_params = None
         self._m_params = None
 
@@ -109,11 +111,20 @@ class DoubleMLPLR(DoubleML):
         # nuisance m
         m_hat = _dml_cross_val_predict(ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
                                        est_params=self._m_params)
-        
+
+        if self.apply_cross_fitting:
+            y_test = y
+            d_test = d
+        else:
+            # the no cross-fitting case
+            test_index = self.smpls[0][0][1]
+            y_test = y[test_index]
+            d_test = d[test_index]
+
         # compute residuals
-        u_hat = y - g_hat
-        v_hat = d - m_hat
-        v_hatd = np.multiply(v_hat, d)
+        u_hat = y_test - g_hat
+        v_hat = d_test - m_hat
+        v_hatd = np.multiply(v_hat, d_test)
 
         inf_model = self.inf_model
         self._check_inf_method(inf_model)
@@ -124,7 +135,7 @@ class DoubleMLPLR(DoubleML):
                 score_a = -np.multiply(v_hat, v_hat)
             score_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y, d, g_hat, m_hat, smpls)
+            score_a, score_b = self.inf_model(y_test, d_test, g_hat, m_hat, smpls)
         
         return score_a, score_b
 
