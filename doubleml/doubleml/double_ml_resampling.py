@@ -21,8 +21,12 @@ class DoubleMLResampling:
                                            n_repeats=n_rep_cross_fit)
         else:
             assert n_rep_cross_fit == 1
-            assert n_folds == 2
+            assert n_folds <= 2
             self.resampling = KFold(n_splits=n_folds, shuffle=True)
+
+        if n_folds == 1:
+            assert n_rep_cross_fit == 1
+            self.resampling = ResampleNoSplit()
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(np.zeros(self.n_obs))]
@@ -33,6 +37,19 @@ class DoubleMLResampling:
             # no cross-fitting
             smpls = [[all_smpls[0]]]
         return smpls
+
+
+# A helper class to run double without cross-fitting
+class ResampleNoSplit():
+    def __init__(self):
+        self.n_splits = 1
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        return self.n_splits
+
+    def split(self, X, y=None, groups=None):
+        indices = np.arange(X.shape[0])
+        yield indices, indices
 
 
 class DoubleMLMultiwayResampling:
