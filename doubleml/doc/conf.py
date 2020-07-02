@@ -39,6 +39,7 @@ extensions = [
     'nbsphinx',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
+    'matplotlib.sphinxext.plot_directive',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
