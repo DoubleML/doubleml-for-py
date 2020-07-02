@@ -61,14 +61,16 @@ class DoubleMLIIVM(DoubleML):
                  n_rep_cross_fit=1,
                  inf_model='LATE',
                  dml_procedure='dml1',
-                 draw_sample_splitting=True):
+                 draw_sample_splitting=True,
+                 apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,
                          n_rep_cross_fit,
                          inf_model,
                          dml_procedure,
-                         draw_sample_splitting)
+                         draw_sample_splitting,
+                         apply_cross_fitting)
         self._g0_params = None
         self._g1_params = None
         self._m_params = None
