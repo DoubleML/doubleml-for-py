@@ -239,7 +239,7 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
     sns.kdeplot(theta_nonorth, shade=True, ax=ax);
     sns.kdeplot(theta_orth_nosplit, shade=True);
     sns.kdeplot(theta_dml, shade=True);
-    labels = ['OLS', 'Non-Orthogonal ML', 'Double ML (no Cross-Fitting)', 'Double ML with Cross-Fitting']
+    labels = ['True Theta', 'OLS', 'Non-Orthogonal ML', 'Double ML (no Cross-Fitting)', 'Double ML with Cross-Fitting']
     ax.axvline(0.5, color='k', label='True theta');
     @savefig comparison.png width=5in
     ax.legend(labels);
