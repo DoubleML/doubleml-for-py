@@ -13,15 +13,7 @@ class DoubleMLPLIV(DoubleML):
 
     Parameters
     ----------
-    data :
-        ToDo
-    x_cols :
-        ToDo
-    y_col :
-        ToDo
-    d_cols :
-        ToDo
-    z_col :
+    obj_dml_data :
         ToDo
     ml_learners :
         ToDo
@@ -34,6 +26,8 @@ class DoubleMLPLIV(DoubleML):
     dml_procedure :
         ToDo
     draw_sample_splitting :
+        ToDo
+    apply_cross_fitting :
         ToDo
 
     Examples

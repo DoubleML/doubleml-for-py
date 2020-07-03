@@ -15,15 +15,7 @@ class DoubleMLIIVM(DoubleML):
 
     Parameters
     ----------
-    data :
-        ToDo
-    x_cols :
-        ToDo
-    y_col :
-        ToDo
-    d_cols :
-        ToDo
-    z_col :
+    obj_dml_data :
         ToDo
     ml_learners :
         ToDo
@@ -36,6 +28,8 @@ class DoubleMLIIVM(DoubleML):
     dml_procedure :
         ToDo
     draw_sample_splitting :
+        ToDo
+    apply_cross_fitting :
         ToDo
 
     Examples

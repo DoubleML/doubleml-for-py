@@ -13,13 +13,7 @@ class DoubleMLPLR(DoubleML):
 
     Parameters
     ----------
-    data :
-        ToDo
-    x_cols :
-        ToDo
-    y_col :
-        ToDo
-    d_cols :
+    obj_dml_data :
         ToDo
     ml_learners :
         ToDo
@@ -32,6 +26,8 @@ class DoubleMLPLR(DoubleML):
     dml_procedure :
         ToDo
     draw_sample_splitting :
+        ToDo
+    apply_cross_fitting :
         ToDo
 
     Examples
