@@ -28,16 +28,22 @@ r_MLPLR = robjects.r('''
                              mlmethod_g = 'regr.lm')
             params <- list(params_m = list(),
                            params_g = list())
-
-            double_mlplr_obj = DoubleMLPLR$new(n_folds = 2,
-                                     ml_learners = mlmethod,
-                                     params = params,
-                                     dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+                                                     d_cols = "d", x_cols = Xnames)
+            
+            double_mlplr_obj = DoubleMLPLR$new(data_ml,
+                                               n_folds = 2,
+                                               ml_learners = mlmethod,
+                                               params = params,
+                                               dml_procedure = dml_procedure,
+                                               inf_model = inf_model)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlplr_obj$set_samples(smpls)
             
-            double_mlplr_obj$fit(data, y = 'y', d = 'd')
+            double_mlplr_obj$fit()
             return(list(coef = double_mlplr_obj$coef,
                         se = double_mlplr_obj$se))
         }
@@ -58,16 +64,23 @@ r_MLPLIV = robjects.r('''
             params <- list(params_m = list(),
                            params_g = list(),
                            params_r = list())
-
-            double_mlpliv_obj = DoubleMLPLIV$new(n_folds = 2,
-                                     ml_learners = mlmethod,
-                                     params = params,
-                                     dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+                                                     d_cols = "d", x_cols = Xnames,
+                                                     z_col = "z")
+            
+            double_mlpliv_obj = DoubleMLPLIV$new(data_ml,
+                                                 n_folds = 2,
+                                                 ml_learners = mlmethod,
+                                                 params = params,
+                                                 dml_procedure = dml_procedure,
+                                                 inf_model = inf_model)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlpliv_obj$set_samples(smpls)
             
-            double_mlpliv_obj$fit(data, y = 'y', d = 'd', z = 'z')
+            double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
                         se = double_mlpliv_obj$se))
         }
@@ -86,16 +99,22 @@ r_IRM = robjects.r('''
                              mlmethod_g = 'regr.lm')
             params <- list(params_m = list(),
                            params_g = list())
-
-            double_mlirm_obj = DoubleMLIRM$new(n_folds = 2,
-                                     ml_learners = mlmethod,
-                                     params = params,
-                                     dml_procedure = dml_procedure, inf_model = inf_model)
+            
+            Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+                                                     d_cols = "d", x_cols = Xnames)
+            
+            double_mlirm_obj = DoubleMLIRM$new(data_ml,
+                                               n_folds = 2,
+                                               ml_learners = mlmethod,
+                                               params = params,
+                                               dml_procedure = dml_procedure,
+                                               inf_model = inf_model)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlirm_obj$set_samples(smpls)
             
-            double_mlirm_obj$fit(data, y = 'y', d = 'd')
+            double_mlirm_obj$fit()
             return(list(coef = double_mlirm_obj$coef,
                         se = double_mlirm_obj$se))
         }
@@ -116,16 +135,23 @@ r_IIVM = robjects.r('''
             params <- list(params_p = list(),
                            params_mu = list(),
                            params_m = list())
+            
+            Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+                                                     d_cols = "d", x_cols = Xnames,
+                                                     z_col = "z")
 
-            double_mliivm_obj = DoubleMLIIVM$new(n_folds = 2,
-                                     ml_learners = mlmethod,
-                                     params = params,
-                                     dml_procedure = dml_procedure, inf_model = inf_model)
+            double_mliivm_obj = DoubleMLIIVM$new(data_ml,
+                                                 n_folds = 2,
+                                                 ml_learners = mlmethod,
+                                                 params = params,
+                                                 dml_procedure = dml_procedure,
+                                                 inf_model = inf_model)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mliivm_obj$set_samples(smpls)
             
-            double_mliivm_obj$fit(data, y = 'y', d = 'd', z = 'z')
+            double_mliivm_obj$fit()
             return(list(coef = double_mliivm_obj$coef,
                         se = double_mliivm_obj$se))
         }
