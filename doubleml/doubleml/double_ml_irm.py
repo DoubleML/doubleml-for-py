@@ -35,7 +35,15 @@ class DoubleMLIRM(DoubleML):
     Examples
     --------
     >>> import doubleml as dml
-    >>> dml.DoubleMLIRM()
+    >>> from doubleml.datasets import make_irm_data
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=10),
+    >>>                'ml_g': RandomForestRegressor(max_depth=2, n_estimators=10)}
+    >>> data = make_irm_data()
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_learners)
+    >>> dml_irm_obj.fit()
+    >>> dml_irm_obj.summary
 
     Notes
     -----
@@ -45,7 +53,7 @@ class DoubleMLIRM(DoubleML):
 
         Y = g_0(D, X) + U, & &\mathbb{E}(U | X, D) = 0,
 
-        D = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
+        D = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
 
     """
     def __init__(self,

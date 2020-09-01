@@ -33,7 +33,16 @@ class DoubleMLPLIV(DoubleML):
     Examples
     --------
     >>> import doubleml as dml
-    >>> dml.DoubleMLPLIV()
+    >>> from doubleml.datasets import make_pliv_data
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> from sklearn.base import clone
+    >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner), 'ml_r': clone(learner)}
+    >>> data = make_pliv_data()
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_col='z')
+    >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_learners)
+    >>> dml_pliv_obj.fit()
+    >>> dml_pliv_obj.summary
 
     Notes
     -----

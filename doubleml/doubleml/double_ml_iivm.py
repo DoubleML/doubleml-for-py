@@ -35,7 +35,16 @@ class DoubleMLIIVM(DoubleML):
     Examples
     --------
     >>> import doubleml as dml
-    >>> dml.DoubleMLIIVM()
+    >>> from doubleml.datasets import make_iivm_data
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=10),
+    >>>                'ml_g': RandomForestRegressor(max_depth=2, n_estimators=10),
+    >>>                'ml_r': RandomForestClassifier(max_depth=2, n_estimators=10)}
+    >>> data = make_iivm_data()
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_col='z')
+    >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_learners)
+    >>> dml_iivm_obj.fit()
+    >>> dml_iivm_obj.summary
 
     Notes
     -----
@@ -45,7 +54,7 @@ class DoubleMLIIVM(DoubleML):
 
         Y = g_0(D, X) + \zeta, & &\mathbb{E}(\zeta | Z, X) = 0,
 
-        Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
+        Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
 
     """
     def __init__(self,
