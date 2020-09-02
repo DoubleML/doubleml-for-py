@@ -12,5 +12,5 @@ User guide
     Score functions <scores>
     Double machine learning algorithms <algorithms>
     Sample-splitting and cross-fitting <resampling>
-    Parameter tuning <tuning>
+    Hyperparameter tuning <tuning>
     Dataset utilities <datasets>

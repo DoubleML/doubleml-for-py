@@ -1,3 +1,3 @@
-Parameter tuning
-----------------
+Hyperparameter tuning
+---------------------
 
