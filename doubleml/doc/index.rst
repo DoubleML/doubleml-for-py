@@ -16,10 +16,3 @@ The DoubleML package contains routines for:
     Examples <examples/examples>
     API reference <api/api>
     Release notes <release/release>
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
