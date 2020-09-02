@@ -1,5 +1,5 @@
 :parenttoc: True
 
-Release Notes
+Release notes
 =============
 
