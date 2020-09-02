@@ -8,7 +8,6 @@ The DoubleML package contains routines for:
 - Double machine learning for interactive regression (IRM) models
 - Double machine learning for interactive IV regression (IIVM) models
 
-
 .. toctree::
    :maxdepth: 2
 

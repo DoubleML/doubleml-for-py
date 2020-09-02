@@ -1,3 +1,5 @@
+:parenttoc: True
+
 Getting started
 ===============
 
