@@ -79,7 +79,7 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` 
 
 
 Interactive IV model (IIVM)
-+++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++
 
 .. include:: ../shared/models/iivm.rst
 

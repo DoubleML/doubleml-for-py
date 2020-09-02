@@ -31,11 +31,140 @@ uses the linearity of the score function in the parameter :math:`theta`
 
 .. math::
 
-    \psi(W; \theta, \eta) = \psi^a(W; \eta) \theta + \psi^b(W; \eta).
+    \psi(W; \theta, \eta) = \psi_a(W; \eta) \theta + \psi_b(W; \eta).
 
 Hence the estimator can be written as
 
 .. math::
 
-    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi^b(W; \eta)]}{\mathbb{E}_N[\psi^a(W; \eta)]}
+    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}
+
+Partially linear regression model (PLR)
+***************************************
+
+For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` one can choose between
+``inf_method='IV-type'`` and ``inf_method='DML2018'``.
+
+``inf_method='IV-type'`` implements the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - D \theta - g(X)] [D - m(X)]
+
+    &= - D (D - m(X)) \theta + (Y - g(X)) (D - m(X))
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(g,m)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - D (D - m(X)),
+
+    \psi_b(W; \eta) &= (Y - g(X)) (D - m(X)).
+
+``inf_method='DML2018'`` implements the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - \ell(X) - \theta (D - m(X))] [D - m(X)]
+
+    &= - (D - m(X)) (D - m(X)) \theta + (Y - \ell(X)) (D - m(X))
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(\ell,m)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - (D - m(X)) (D - m(X)),
+
+    \psi_b(W; \eta) &= (Y - \ell(X)) (D - m(X)).
+
+
+Partially linear IV regression model (PLIV)
+*******************************************
+
+For the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
+we employ for ``inf_method='DML2018'`` the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - \ell(X) - \theta (D - r(X))] [Z - m(X)]
+
+    &= - (D - r(X)) (Z - m(X)) \theta + (Y - \ell(X)) (Z - m(X))
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - (D - r(X)) (Z - m(X)),
+
+    \psi_b(W; \eta) &= (Y - \ell(X)) (Z - m(X)).
+
+Interactive regression model (IRM)
+**********************************
+
+For the IRM model implemented in :class:`~doubleml.double_ml_irm.DoubleMLIRM` one can choose between
+``inf_method='ATE'`` and ``inf_method='ATTE'``.
+
+``inf_method='ATE'`` implements the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= g(1,X) - g(0,X) + \frac{D (Y - g(1,X))}{m(X)} - \frac{(1 - D)(Y - g(0,X))}{1 - m(x)} - \theta
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(g,m)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - 1,
+
+    \psi_b(W; \eta) &= g(1,X) - g(0,X) + \frac{D (Y - g(1,X))}{m(X)} - \frac{(1 - D)(Y - g(0,X))}{1 - m(x)}.
+
+``inf_method='ATTE'`` implements the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= \frac{D (Y - g(0,X))}{p} - \frac{m(X) (1 - D) (Y - g(0,X))}{p(1 - m(x))} - \frac{D}{p} \theta
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(g, m, p)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - \frac{D}{p},
+
+    \psi_b(W; \eta) &= \frac{D (Y - g(0,X))}{p} - \frac{m(X) (1 - D) (Y - g(0,X))}{p(1 - m(X))}.
+
+
+Interactive IV model (IIVM)
+***************************
+
+For the IIVM model implemented in :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
+we employ for ``inf_method='LATE'`` the score function:
+
+``inf_method='LATE'`` implements the score function:
+
+.. math::
+
+    \psi(W; \theta, \eta) :=\; &\mu(1,X) - \mu(0,X)
+    + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}
+
+    &- \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg) \theta
+
+    =\; &\psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(g,m)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg),
+
+    \psi_b(W; \eta) &= \mu(1,X) - \mu(0,X) + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}.
 
