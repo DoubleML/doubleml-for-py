@@ -11,3 +11,4 @@ User Guide
     Double machine learning algorithms <algorithms>
     Sample-splitting and cross-fitting <resampling>
     Parameter tuning <tuning>
+    Dataset utilities <datasets>
