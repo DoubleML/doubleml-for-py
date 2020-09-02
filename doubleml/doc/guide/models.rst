@@ -1,16 +1,15 @@
-Key models
+Models
 ----------
 
 Partially linear regression model (PLR)
 +++++++++++++++++++++++++++++++++++++++
 
-.. currentmodule:: doubleml.double_ml_plr
-
 .. include:: ../shared/models/plr.rst
 
 .. include:: ../shared/causal_graphs/plr_irm_causal_graph.rst
 
-:class:`DoubleMLPLR` implements PLR models. Estimation is conducted via its :meth:`DoubleMLPLR.fit` method:
+:class:`~doubleml.double_ml_plr.DoubleMLPLR` implements PLR models.
+Estimation is conducted via its :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method:
 
 .. ipython:: python
 
@@ -31,13 +30,12 @@ Partially linear regression model (PLR)
 Partially linear IV regression model (PLIV)
 +++++++++++++++++++++++++++++++++++++++++++
 
-.. currentmodule:: doubleml.double_ml_pliv
-
 .. include:: ../shared/models/pliv.rst
 
 .. include:: ../shared/causal_graphs/pliv_iivm_causal_graph.rst
 
-:class:`DoubleMLPLIV` implements PLIV models. Estimation is conducted via its :meth:`DoubleMLPLIV.fit` method:
+:class:`~doubleml.double_ml_pliv.DoubleMLPLIV` implements PLIV models.
+Estimation is conducted via its :meth:`~doubleml.double_ml_pliv.DoubleMLPLIV.fit` method:
 
 .. ipython:: python
 
@@ -58,13 +56,12 @@ Partially linear IV regression model (PLIV)
 Interactive regression model (IRM)
 ++++++++++++++++++++++++++++++++++
 
-.. currentmodule:: doubleml.double_ml_irm
-
 .. include:: ../shared/models/irm.rst
 
 .. include:: ../shared/causal_graphs/plr_irm_causal_graph.rst
 
-:class:`DoubleMLIRM` implements IRM models. Estimation is conducted via its :meth:`DoubleMLIRM.fit` method:
+:class:`~doubleml.double_ml_irm.DoubleMLIRM` implements IRM models.
+Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` method:
 
 .. ipython:: python
 
@@ -84,13 +81,12 @@ Interactive regression model (IRM)
 Interactive IV model (IIVM)
 +++++++++++++++++++++++++++++++++++++
 
-.. currentmodule:: doubleml.double_ml_iivm
-
 .. include:: ../shared/models/iivm.rst
 
 .. include:: ../shared/causal_graphs/pliv_iivm_causal_graph.rst
 
-:class:`DoubleMLIIVM` implements IIVM models. Estimation is conducted via its :meth:`DoubleMLIIVM.fit` method:
+:class:`~doubleml.double_ml_iivm.DoubleMLIIVM` implements IIVM models.
+Estimation is conducted via its :meth:`~doubleml.double_ml_iivm.DoubleMLIIVM.fit` method:
 
 .. ipython:: python
 
