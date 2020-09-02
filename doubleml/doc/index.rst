@@ -13,10 +13,10 @@ The DoubleML package contains routines for:
    :maxdepth: 2
 
     Getting started <intro/intro>
-    User Guide <guide/guide>
+    User guide <guide/guide>
     Examples <examples/examples>
-    API Reference <api/api>
-    Release Notes <release/release>
+    API reference <api/api>
+    Release notes <release/release>
 
 Indices and tables
 ==================

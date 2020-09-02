@@ -1,4 +1,4 @@
-User Guide
+User guide
 ==========
 
 .. toctree::
@@ -6,7 +6,7 @@ User Guide
    :maxdepth: 3
 
     The basics of double/debiased machine learning <basics>
-    Key models <models>
+    Models <models>
     Neyman orthogonal score functions <scores>
     Double machine learning algorithms <algorithms>
     Sample-splitting and cross-fitting <resampling>
