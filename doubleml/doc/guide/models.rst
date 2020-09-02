@@ -2,21 +2,11 @@ Key models
 ----------
 
 Partially linear regression model (PLR)
-+++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++
 
 .. currentmodule:: doubleml.double_ml_plr
 
-**Partially linear regression (PLR)** models take the form
-
-.. math::
-
-    Y = D \theta_0 + g_0(X) + \zeta, & &\mathbb{E}(\zeta | D,X) = 0,
-
-    D = m_0(X) + V, & &\mathbb{E}(V | X) = 0,
-
-where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
-The high-dimensional vector :math:`X = (X_1, \ldots, X_p)` consists of other confounding covariates,
-and :math:`\zeta` and :math:`V` are stochastic errors.
+.. include:: ../shared/models/plr.rst
 
 :class:`DoubleMLPLR` implements PLR models. Estimation is conducted via its :meth:`DoubleMLPLR.fit` method:
 
@@ -37,17 +27,11 @@ and :math:`\zeta` and :math:`V` are stochastic errors.
 
 
 Partially linear IV regression model (PLIV)
-+++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++
 
 .. currentmodule:: doubleml.double_ml_pliv
 
-**Partially linear IV regression (PLIV)** models take the form
-
-.. math::
-
-    Y - D \theta_0 =  g_0(X) + \zeta, & &\mathbb{E}(\zeta | Z, X) = 0,
-
-    Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
+.. include:: ../shared/models/pliv.rst
 
 :class:`DoubleMLPLIV` implements PLIV models. Estimation is conducted via its :meth:`DoubleMLPLIV.fit` method:
 
@@ -68,17 +52,11 @@ Partially linear IV regression model (PLIV)
 
 
 Interactive regression model (IRM)
-+++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++
 
 .. currentmodule:: doubleml.double_ml_irm
 
-**Interactive regression (IRM)** models take the form
-
-.. math::
-
-    Y = g_0(D, X) + U, & &\mathbb{E}(U | X, D) = 0,
-
-    D = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
+.. include:: ../shared/models/irm.rst
 
 :class:`DoubleMLIRM` implements IRM models. Estimation is conducted via its :meth:`DoubleMLIRM.fit` method:
 
@@ -102,15 +80,9 @@ Interactive IV model (IIVM)
 
 .. currentmodule:: doubleml.double_ml_iivm
 
-**Interactive IV (IIVM)** models take the form
+.. include:: ../shared/models/iivm.rst
 
-.. math::
-
-    Y = g_0(D, X) + \zeta, & &\mathbb{E}(\zeta | Z, X) = 0,
-
-    Z = m_0(X) + V, & &\mathbb{E}(V | X) = 0.
-
-:class:`DoubleMLIIVM` implements IRM models. Estimation is conducted via its :meth:`DoubleMLIIVM.fit` method:
+:class:`DoubleMLIIVM` implements IIVM models. Estimation is conducted via its :meth:`DoubleMLIIVM.fit` method:
 
 .. ipython:: python
 
