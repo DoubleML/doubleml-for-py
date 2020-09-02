@@ -1,8 +1,8 @@
 Score functions
 ---------------
 
-Neyman orthogonal score functions
-+++++++++++++++++++++++++++++++++
+Implemented Neyman orthogonal score functions
++++++++++++++++++++++++++++++++++++++++++++++
 
 We use method-of-moments estimators for the target parameter :math:`\theta_0` based upon the empirical analog of the
 moment condition
@@ -167,4 +167,38 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
     \psi_a(W; \eta) &=  - \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg),
 
     \psi_b(W; \eta) &= \mu(1,X) - \mu(0,X) + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}.
+
+Specifying alternative score functions via callables
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Via callables user-written score functions can be used.
+For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` an alternative score function can be
+set via ``inf_method``.
+Choose a callable object / function with signature ``score(y, d, g_hat, m_hat, smpls)`` which returns
+the two score components :math:`psi_a()` and :math:`psi_b()`.
+
+For example, the non-orthogonal score function
+
+.. math::
+
+    \psi(W; \theta, \eta) = [Y - D \theta - g(X)] D
+
+can be obtained with
+
+.. ipython:: python
+
+    def non_orth_score(y, d, g_hat, m_hat, smpls):
+        u_hat = y - g_hat
+        score_a = -np.multiply(d, d)
+        score_b = np.multiply(d, u_hat)
+        return score_a, score_b
+
+Use :class:`~doubleml.double_ml_plr.DoubleMLPLR` with ``inf_model=non_orth_score`` in order to obtain the estimator
+
+.. math::
+
+    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[D (Y-g(X))]}{\mathbb{E}_N[D^2]}
+
+when applying :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit`.
+Note that this estimate will in general be prone to a regularization bias.
 

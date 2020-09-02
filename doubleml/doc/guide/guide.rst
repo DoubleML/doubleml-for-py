@@ -7,7 +7,7 @@ User guide
 
     The basics of double/debiased machine learning <basics>
     Models <models>
-    Neyman orthogonal score functions <scores>
+    Score functions <scores>
     Double machine learning algorithms <algorithms>
     Sample-splitting and cross-fitting <resampling>
     Parameter tuning <tuning>
