@@ -43,7 +43,7 @@ from doubleml.datasets import make_pliv_multiway_cluster_data
 
 # %%
 # Simulate multiway cluster data
-# ------------------------
+# ------------------------------
 #
 # We use the PLIV data generating process described in Section 4.1 of Chiang et al. (2020).
 
@@ -66,7 +66,7 @@ data.head(30)
 
 # %%
 # Initialize the objects of class DoubleMLData and DoubleMLPLIV
-# ------------------------
+# -------------------------------------------------------------
 
 # collect data and specify the DoubleMLData object
 x_cols = data.columns[data.columns.str.startswith('x')].tolist()
@@ -140,7 +140,7 @@ for i_split, this_split_ind in enumerate(smpls_multi_ind):
 
 # %%
 # Visualize sample splitting with linear indexing (one column per fold)
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 df = pd.DataFrame(np.zeros([N*M, K*K]))
 for i_split, this_split_ind in enumerate(smpls_lin_ind):
