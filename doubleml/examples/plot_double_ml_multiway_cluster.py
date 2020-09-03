@@ -64,8 +64,6 @@ data = make_pliv_multiway_cluster_data(N, M, dim_X)
 data.head(30)
 
 
-
-
 # %%
 # Initialize the objects of class DoubleMLData and DoubleMLPLIV
 # ------------------------
@@ -105,7 +103,7 @@ dml_pliv_obj.set_sample_splitting([smpls_lin_ind])
 # --------------------------------
 
 dml_pliv_obj.fit()
-dml_pliv_obj.summary
+print(dml_pliv_obj.summary)
 
 # %%
 # Visualization of sample splitting with tuple and linear indexing
