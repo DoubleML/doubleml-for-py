@@ -1,5 +1,6 @@
 .. graphviz::
    :align: center
+   :caption: Causal diagram
 
    digraph {
         nodesep=1;
