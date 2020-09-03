@@ -1,9 +1,6 @@
 Score functions
 ---------------
 
-Implemented Neyman orthogonal score functions
-+++++++++++++++++++++++++++++++++++++++++++++
-
 We use method-of-moments estimators for the target parameter :math:`\theta_0` based upon the empirical analog of the
 moment condition
 
@@ -38,6 +35,35 @@ Hence the estimator can be written as
 .. math::
 
     \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}
+
+Implementation of the score function and the estimate of the causal parameter
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+As an example we consider a partially linear regression model (PLR)
+implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+
+.. ipython:: python
+
+    import doubleml as dml
+    from doubleml.datasets import make_plr_data
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.base import clone
+
+    learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+    data = make_plr_data()
+    obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
+    dml_plr_obj.fit()
+
+The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
+stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
+The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0)`
+are stored in the attributes ``score_a`` and ``score_b``.
+In the attribute ``score`` the values of the score function :math:`\psi(W_i; \tilde{\theta}_0, \hat{\eta}_0)` are stored.
+
+Implemented Neyman orthogonal score functions
++++++++++++++++++++++++++++++++++++++++++++++
 
 Partially linear regression model (PLR)
 ***************************************
