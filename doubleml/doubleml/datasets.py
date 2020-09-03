@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from scipy.linalg import toeplitz
+
 from sklearn.datasets import make_spd_matrix
 
 
@@ -120,3 +122,75 @@ def make_iivm_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_
 
     return data
 
+
+def make_pliv_multiway_cluster_data(N, M, dim_X, **kwargs):
+    # additional parameters specifiable via kwargs
+    theta_0 = kwargs.get('theta_0', 1.0)
+    pi_10 = kwargs.get('pi_10', 1.0)
+
+    xx = np.arange(1, dim_X + 1)
+    zeta_0 = kwargs.get('zeta_0', np.power(0.5, xx))
+    pi_20 = kwargs.get('pi_20', np.power(0.5, xx))
+    xi_0 = kwargs.get('xi_0', np.power(0.5, xx))
+
+    omega_X = kwargs.get('omega_X', np.array([0.25, 0.5]))
+    omega_eps = kwargs.get('omega_eps', np.array([0.25, 0.5]))
+    omega_v = kwargs.get('omega_v', np.array([0.25, 0.5]))
+    omega_V = kwargs.get('omega_V', np.array([0.25, 0.5]))
+
+    s_X = kwargs.get('s_X', 0.25)
+    s_epsv = kwargs.get('s_epsv', 0.25)
+
+    # use np.tile() and np.repeat() for repeating vectors in different styles, i.e.,
+    # np.tile([v1, v2, v3], 2) [v1, v2, v3, v1, v2, v3]
+    # np.repeat([v1, v2, v3], 2) [v1, v1, v2, v2, v3, v3]
+
+    alpha_V = np.random.normal(size=(N * M))
+    alpha_V_i = np.repeat(np.random.normal(size=N), M)
+    alpha_V_j = np.tile(np.random.normal(size=M), N)
+
+    cov_mat = np.array([[1, s_epsv], [s_epsv, 1]])
+    alpha_eps_v = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[N * M, ])
+    alpha_eps = alpha_eps_v[:, 0]
+    alpha_v = alpha_eps_v[:, 1]
+
+    alpha_eps_v_i = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[N, ])
+    alpha_eps_i = np.repeat(alpha_eps_v_i[:, 0], M)
+    alpha_v_i = np.repeat(alpha_eps_v_i[:, 1], M)
+
+    alpha_eps_v_j = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[M, ])
+    alpha_eps_j = np.tile(alpha_eps_v_j[:, 0], N)
+    alpha_v_j = np.tile(alpha_eps_v_j[:, 1], N)
+
+    cov_mat = toeplitz([np.power(s_X, k) for k in range(dim_X)])
+    alpha_X = np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[N * M, ])
+    alpha_X_i = np.repeat(np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[N, ]),
+                          M, axis=0)
+    alpha_X_j = np.tile(np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[M, ]),
+                        (N, 1))
+
+    # generate variables
+    X = (1 - omega_X[0] - omega_X[1]) * alpha_X \
+        + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
+
+    eps = (1 - omega_eps[0] - omega_eps[1]) * alpha_eps \
+          + omega_eps[0] * alpha_eps_i + omega_eps[1] * alpha_eps_j
+
+    v = (1 - omega_v[0] - omega_v[1]) * alpha_v \
+        + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j
+
+    V = (1 - omega_V[0] - omega_V[1]) * alpha_V \
+        + omega_V[0] * alpha_V_i + omega_V[1] * alpha_V_j
+
+    Z = np.matmul(X, xi_0) + V
+    D = Z * pi_10 + np.matmul(X, pi_20) + v
+    Y = D * theta_0 + np.matmul(X, zeta_0) + eps
+
+    ind = pd.MultiIndex.from_product([range(N), range(M)])
+    cols = ['Y', 'D', 'Z', 'V'] + [f'x{i + 1}' for i in np.arange(dim_X)]
+
+    data = pd.DataFrame(np.column_stack((Y, D, Z, V, X)),
+                        columns=cols,
+                        index=ind)
+
+    return data
