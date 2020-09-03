@@ -11,7 +11,7 @@ User guide
     Models <models>
     Score functions <scores>
     Double machine learning algorithms <algorithms>
-    Variance estimation and confidence intervals <se_confint>
-    Sample-splitting and cross-fitting <resampling>
+    Variance estimation, confidence intervals and boostrap standard errors <se_confint>
+    Sample-splitting, cross-fitting and repeated cross-fitting <resampling>
     Hyperparameter tuning <tuning>
     Dataset utilities <datasets>
