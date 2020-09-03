@@ -1,12 +1,12 @@
 DoubleML package
 ================
 
-The DoubleML package contains routines for:
-
-- Double machine learning of partially linear regression (PLR) models
-- Double Machine Learning for Partially Linear IV regression (PLIV) model
-- Double machine learning for interactive regression (IRM) models
-- Double machine learning for interactive IV regression (IIVM) models
+.. The DoubleML package contains routines for:
+..
+.. - Double machine learning of partially linear regression (PLR) models
+.. - Double Machine Learning for Partially Linear IV regression (PLIV) model
+.. - Double machine learning for interactive regression (IRM) models
+.. - Double machine learning for interactive IV regression (IIVM) models
 
 .. toctree::
    :hidden:
