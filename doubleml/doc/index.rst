@@ -18,6 +18,6 @@ DoubleML package
 
     Getting started <intro/intro>
     User guide <guide/guide>
-    Examples <examples/examples>
+    Examples <auto_examples/index>
     API reference <api/api>
     Release notes <release/release>
