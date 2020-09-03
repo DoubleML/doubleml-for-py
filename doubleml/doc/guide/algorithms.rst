@@ -57,3 +57,31 @@ The algorithm ``dml_procedure='dml2'`` can be summarized as
 
 4. **Outputs:** The estimate of the causal parameter :math:`\tilde{\theta}_0` as well as the values of the evaluate score function are returned.
 
+Implementation of the double machine learning algorithms
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+As an example we consider a partially linear regression model (PLR)
+implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``dml_procedure='dml2'``.
+
+.. ipython:: python
+
+    import doubleml as dml
+    from doubleml.datasets import make_plr_data
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.base import clone
+
+    learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+    data = make_plr_data()
+    obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
+    dml_plr_obj.fit()
+
+The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
+stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
+Let :math:`k(i) = \lbrace k: i \in I_k \rbrace`.
+The values of the score function :math:`(\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k(i)}))_{i \in [N]}`
+are stored in the attribute ``score``.
+For the DML1 algorithm, the estimates for the different folds
+:math:`\check{\theta}_{0,k}``, :math:`k \in [K]` are stored in attribute ``_all_dml1_coef``.
