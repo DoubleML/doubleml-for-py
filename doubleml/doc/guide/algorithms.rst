@@ -1,3 +1,5 @@
+.. _dml-algo:
+
 Double machine learning algorithms
 ----------------------------------
 
@@ -10,7 +12,7 @@ The algorithm ``dml_procedure='dml1'`` can be summarized as
 
 1. **Inputs:** Choose a model (PLR, PLIV, IRM, IIVM), provide data :math:`(W_i)_{i=1}^{N}`, a Neyman-orthogonal score function :math:`\psi(W; \theta, \eta)` and specify machine learning method(s) for the nuisance function(s) :math:`\eta`.
 
-2. **Train ML predictors on folds:** Take a :math:`K`-fold random partition :math:`(I_K)_{k=1}^{K}` of observation indices :math:`[N] = \lbrace 1, \ldots, N\rbrace` such that the size of each fold :math:`I_k` is :math:`n=N/K`. For each :math:`k \in [K] = \lbrace 1, \ldots, K]`, construct a high-quality machine learning estimator
+2. **Train ML predictors on folds:** Take a :math:`K`-fold random partition :math:`(I_k)_{k=1}^{K}` of observation indices :math:`[N] = \lbrace 1, \ldots, N\rbrace` such that the size of each fold :math:`I_k` is :math:`n=N/K`. For each :math:`k \in [K] = \lbrace 1, \ldots, K]`, construct a high-quality machine learning estimator
 
     .. math::
 
@@ -40,7 +42,7 @@ The algorithm ``dml_procedure='dml2'`` can be summarized as
 
 1. **Inputs:** Choose a model (PLR, PLIV, IRM, IIVM), provide data :math:`(W_i)_{i=1}^{N}`, a Neyman-orthogonal score function :math:`\psi(W; \theta, \eta)` and specify machine learning method(s) for the nuisance function(s) :math:`\eta`.
 
-2. **Train ML predictors on folds:** Take a :math:`K`-fold random partition :math:`(I_K)_{k=1}^{K}` of observation indices :math:`[N] = \lbrace 1, \ldots, N\rbrace` such that the size of each fold :math:`I_k` is :math:`n=N/K`. For each :math:`k \in [K] = \lbrace 1, \ldots, K]`, construct a high-quality machine learning estimator
+2. **Train ML predictors on folds:** Take a :math:`K`-fold random partition :math:`(I_k)_{k=1}^{K}` of observation indices :math:`[N] = \lbrace 1, \ldots, N\rbrace` such that the size of each fold :math:`I_k` is :math:`n=N/K`. For each :math:`k \in [K] = \lbrace 1, \ldots, K]`, construct a high-quality machine learning estimator
 
     .. math::
 
