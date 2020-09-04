@@ -127,11 +127,11 @@ The parameter estimates :math:`(\tilde{\theta}_{0,m})_{m \in [M]}` and asymptoti
     print(dml_plr_obj._all_coef)
     print(dml_plr_obj._all_se)
 
-Provide a partition externally
-++++++++++++++++++++++++++++++
+Externally provide a sample splitting / partition
++++++++++++++++++++++++++++++++++++++++++++++++++
 
 All DML models allow a partition to be provided externally via the method ``set_sample_splitting()``.
-For example we can use the K-Folds cross-validator of sklearn :py:class:`sklearn.model_selection.KFold` in order to
+For example we can use the K-Folds cross-validator of sklearn :py:class:`~sklearn.model_selection.KFold` in order to
 generate a sample splitting and provide it to the DML model object.
 Note that by setting ``draw_sample_splitting = False`` one can prevent that a partition is drawn during initialization
 of the DML model object.
@@ -146,7 +146,7 @@ initialization of the :class:`~doubleml.double_ml_plr.DoubleMLPLR` object.
     dml_plr_obj_internal.fit()
     print(dml_plr_obj_internal.summary)
 
-In the second sample code, we use the K-Folds cross-validator of sklearn :py:class:`sklearn.model_selection.KFold`
+In the second sample code, we use the K-Folds cross-validator of sklearn :py:class:`~sklearn.model_selection.KFold`
 and set the partition via the ``set_sample_splitting()`` method.
 
 .. ipython:: python
@@ -166,5 +166,36 @@ Sample-splitting without cross-fitting
 ++++++++++++++++++++++++++++++++++++++
 
 The boolean flag ``apply_cross_fitting`` allows to estimate DML models without applying cross-fitting.
-It results in
+It results in randomly splitting the sample into two parts.
+The first half of the data is used for the estimation of the nuisance ML models and the second half for estimating the
+causal parameter.
+Note that cross-fitting performs well empirically and is recommended to remove bias induced by overfitting, see also
+:ref:`bias_overfitting`.
+
+.. ipython:: python
+
+    dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_learners,
+                                           n_folds = 2, apply_cross_fitting = False)
+    dml_plr_obj_external.fit()
+    print(dml_plr_obj_external.summary)
+    print(dml_plr_obj_external.n_obs)
+    print(dml_plr_obj_external.score.shape)
+
+Note, that in order to split data unevenly into train and test the interface to externally set the sample splitting
+via ``set_sample_splitting()`` needs to be applied, like for example:
+
+.. ipython:: python
+
+    dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_learners,
+                                           n_folds = 2, apply_cross_fitting = False, draw_sample_splitting = False)
+
+    from sklearn.model_selection import train_test_split
+    smpls = train_test_split(np.arange(obj_dml_data.n_obs), train_size=0.8)
+    smpls = [np.sort(x) for x in smpls]  # only sorted indices are supported
+    dml_plr_obj_external.set_sample_splitting([[smpls]])
+
+    dml_plr_obj_external.fit()
+    print(dml_plr_obj_external.summary)
+    print(dml_plr_obj_external.n_obs)
+    print(dml_plr_obj_external.score.shape)
 
