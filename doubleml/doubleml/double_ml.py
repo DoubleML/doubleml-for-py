@@ -62,10 +62,14 @@ class DoubleML(ABC):
     @property
     def n_obs_test(self):
         if self.apply_cross_fitting:
-            n_obs_test = self._dml_data.n_obs
+            n_obs_test = self.n_obs
         else:
-            test_index = self.smpls[0][0][1]
-            n_obs_test = len(test_index)
+            if self._smpls is None:
+                # if there is no sample splitting specified yet backfall to n_obs
+                n_obs_test = self.n_obs
+            else:
+                test_index = self.smpls[0][0][1]
+                n_obs_test = len(test_index)
         return n_obs_test
 
     @property
