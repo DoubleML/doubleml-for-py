@@ -8,7 +8,7 @@ The purpose of the following case-studies is to demonstrate the core functionali
 Data and the causal model
 -------------------------
 
-``doubleml`` provides interfaces to ``pandas`` DataFrames as well as ``numpy`` arrays. The usage of both interfaces is
+:ref:`DoubleML <doubleml_package>` provides interfaces to :py:class:`pandas.DataFrame` as well as :py:class:`numpy.ndarray`. The usage of both interfaces is
 demonstrated in the following. We download the 401(k) data set.
 
 .. ipython:: python
@@ -38,7 +38,7 @@ and :math:`\zeta` and :math:`V` are stochastic errors.
 DoubleMLData from pandas DataFrames
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``doubleml.DoubleMLData`` class serves as data-backend and can be initialized from a ``pandas.DataFrame`` by
+The :class:`~doubleml.double_ml_data.DoubleMLData` class serves as data-backend and can be initialized from a :py:class:`pandas.DataFrame` by
 specifying the column ``y_col='net_tfa'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'e401'``
 serving as treatment variable :math:`D` and the columns ``x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']``
 specifying the confounders.
@@ -59,7 +59,7 @@ specifying the confounders.
 DoubleMLData from numpy arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To introduce the ``numpy`` arrays interface we generate a data set consisting of confounding variables ``X``, an outcome
+To introduce the :py:class:`numpy.ndarray` interface we generate a data set consisting of confounding variables ``X``, an outcome
 variable ``y`` and a treatment variable ``d``
 
 .. ipython:: python
@@ -74,7 +74,7 @@ variable ``y`` and a treatment variable ``d``
     d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
     y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
 
-To specify the data and the variables for the causal model from ``numpy.arrays`` we call
+To specify the data and the variables for the causal model from :py:class:`numpy.ndarray` we call
 
 .. ipython:: python
 
@@ -90,8 +90,10 @@ Machine learners to estimate the nuisance models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To estimate our partially linear regression (PLR) model with the double machine learning algorithm, we first have to
-specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the 401(k) data we use ``RandomForestRegressor``
-from ``sklearn.ensemble`` and for our simulated data from a sparse linear model we use ``Lasso`` from ``sklearn.linear_model``.
+specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the 401(k) data we use
+:py:class:`~sklearn.ensemble.RandomForestRegressor` from :py:mod:`sklearn.ensemble`
+and for our simulated data from a sparse linear model we use
+:py:class:`~sklearn.linear_model.Lasso` from :py:mod:`sklearn.linear_model`.
 
 .. ipython:: python
 
@@ -110,28 +112,28 @@ from ``sklearn.ensemble`` and for our simulated data from a sparse linear model 
 Cross-fitting, DML algorithms and Neyman-orthogonal score functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When initializing the ``doubleml`` object for PLR models ``DoubleMLPLR``, we can further set parameters specifying the
+When initializing the object for PLR models :class:`~doubleml.double_ml_plr.DoubleMLPLR`, we can further set parameters specifying the
 resampling: The number of folds used for cross-fitting ``n_folds`` (defaults to ``n_folds = 5``) as well as the number
 of repetitions when applying repeated cross-fitting ``n_rep_cross_fit`` (defaults to ``n_rep_cross_fit = 1``).
-Additionally, one can choose between the algorithms ``'dml1'`` and  `'dml2'`` via ``dml_procedure``. Depending on the
+Additionally, one can choose between the algorithms ``'dml1'`` and  ``'dml2'`` via ``dml_procedure``. Depending on the
 causal model, one can further choose between different Neyman-orthogonal score / moment functions.
 
 DoubleMLPLR: Double/debiased machine learning for partially linear regression models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We now initialize ``DoubleMLPLR`` objects for our examples using default parameters
+We now initialize :class:`~doubleml.double_ml_plr.DoubleMLPLR` objects for our examples using default parameters
 
 .. ipython:: python
 
-    from doubleml import  DoubleMLPLR
+    from doubleml import DoubleMLPLR
     obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_learners_401k)
     obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_learners_sim)
 
 Estimate double/debiased machine learning models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The models are estimated by calling the `fit()` method and we can inspect the estimated treatment effect using the
-`summary` property.
+The models are estimated by calling the ``fit()`` method and we can inspect the estimated treatment effect using the
+``summary`` property.
 
 .. ipython:: python
 

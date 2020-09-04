@@ -1,3 +1,5 @@
+.. _doubleml_package:
+
 DoubleML package
 ================
 
