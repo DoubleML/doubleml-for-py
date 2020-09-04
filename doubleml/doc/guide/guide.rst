@@ -13,5 +13,6 @@ User guide
     Double machine learning algorithms <algorithms>
     Variance estimation, confidence intervals and boostrap standard errors <se_confint>
     Sample-splitting, cross-fitting and repeated cross-fitting <resampling>
+    Multiple treatment variables <mult_treat>
     Hyperparameter tuning <tuning>
     Dataset utilities <datasets>
