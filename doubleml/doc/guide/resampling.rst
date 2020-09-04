@@ -131,7 +131,36 @@ Provide a partition externally
 ++++++++++++++++++++++++++++++
 
 All DML models allow a partition to be provided externally via the method ``set_sample_splitting()``.
-For example we can use the K-Folds cross-validator of sklearn
+For example we can use the K-Folds cross-validator of sklearn :py:class:`sklearn.model_selection.KFold` in order to
+generate a sample splitting and provide it to the DML model object.
+Note that by setting ``draw_sample_splitting = False`` one can prevent that a partition is drawn during initialization
+of the DML model object.
+The following are equivalent.
+In the first sample code, we use the standard interface and draw the sample-splitting with :math:`K=4` folds during
+initialization of the :class:`~doubleml.double_ml_plr.DoubleMLPLR` object.
+
+.. ipython:: python
+
+    np.random.seed(314)
+    dml_plr_obj_internal = dml.DoubleMLPLR(obj_dml_data, ml_learners, n_folds = 4)
+    dml_plr_obj_internal.fit()
+    print(dml_plr_obj_internal.summary)
+
+In the second sample code, we use the K-Folds cross-validator of sklearn :py:class:`sklearn.model_selection.KFold`
+and set the partition via the ``set_sample_splitting()`` method.
+
+.. ipython:: python
+
+    dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_learners, draw_sample_splitting = False)
+
+    from sklearn.model_selection import KFold
+    np.random.seed(314)
+    kf = KFold(n_splits=4, shuffle=True)
+    smpls = [[(train, test) for train, test in kf.split(obj_dml_data.x)]]
+
+    dml_plr_obj_external.set_sample_splitting(smpls)
+    dml_plr_obj_external.fit()
+    print(dml_plr_obj_external.summary)
 
 Sample-splitting without cross-fitting
 ++++++++++++++++++++++++++++++++++++++
