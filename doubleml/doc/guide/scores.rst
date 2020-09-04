@@ -201,7 +201,7 @@ Via callables user-written score functions can be used.
 For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` an alternative score function can be
 set via ``inf_method``.
 Choose a callable object / function with signature ``score(y, d, g_hat, m_hat, smpls)`` which returns
-the two score components :math:`psi_a()` and :math:`psi_b()`.
+the two score components :math:`\psi_a()` and :math:`\psi_b()`.
 
 For example, the non-orthogonal score function
 
