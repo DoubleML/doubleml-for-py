@@ -123,25 +123,37 @@ class DoubleMLIIVM(DoubleML):
         # nuisance r
         r_hat0 = _dml_cross_val_predict(ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         r_hat1 = _dml_cross_val_predict(ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
-        
+
+        if self.apply_cross_fitting:
+            y_test = y
+            z_test = z
+            d_test = d
+        else:
+            # the no cross-fitting case
+            test_index = self.smpls[0][0][1]
+            y_test = y[test_index]
+            z_test = z[test_index]
+            d_test = d[test_index]
+
         # compute residuals
-        u_hat0 = y - g_hat0
-        u_hat1 = y - g_hat1
-        w_hat0 = d - r_hat0
-        w_hat1 = d - r_hat1
+        u_hat0 = y_test - g_hat0
+        u_hat1 = y_test - g_hat1
+        w_hat0 = d_test - r_hat0
+        w_hat1 = d_test - r_hat1
 
         inf_model = self.inf_model
         self._check_inf_method(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'LATE':
                 score_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(z, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
+                                + np.divide(np.multiply(z_test, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-z_test, u_hat0), 1.0 - m_hat)
                 score_a = -1*(r_hat1 - r_hat0 \
-                                    + np.divide(np.multiply(z, w_hat1), m_hat) \
-                                    - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
+                                    + np.divide(np.multiply(z_test, w_hat1), m_hat) \
+                                    - np.divide(np.multiply(1.0-z_test, w_hat0), 1.0 - m_hat))
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+            score_a, score_b = self.inf_model(y_test, z_test, d_test,
+                                              g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return score_a, score_b
 

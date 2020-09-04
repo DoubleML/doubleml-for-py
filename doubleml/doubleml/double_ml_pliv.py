@@ -105,11 +105,22 @@ class DoubleMLPLIV(DoubleML):
         
         # nuisance r
         r_hat = _dml_cross_val_predict(ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
+
+        if self.apply_cross_fitting:
+            y_test = y
+            z_test = z
+            d_test = d
+        else:
+            # the no cross-fitting case
+            test_index = self.smpls[0][0][1]
+            y_test = y[test_index]
+            z_test = z[test_index]
+            d_test = d[test_index]
         
         # compute residuals
-        u_hat = y - g_hat
-        v_hat = z - m_hat
-        w_hat = d - r_hat
+        u_hat = y_test - g_hat
+        v_hat = z_test - m_hat
+        w_hat = d_test - r_hat
 
         inf_model = self.inf_model
         self._check_inf_method(inf_model)
@@ -118,8 +129,8 @@ class DoubleMLPLIV(DoubleML):
                 score_a = -np.multiply(w_hat, v_hat)
             score_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y, z, d, g_hat, m_hat, r_hat, smpls)
-
+            score_a, score_b = self.inf_model(y_test, z_test, d_test,
+                                              g_hat, m_hat, r_hat, smpls)
 
         return score_a, score_b
 
