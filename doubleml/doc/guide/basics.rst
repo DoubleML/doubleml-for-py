@@ -147,6 +147,8 @@ A Heuristic illustration is given by
 :math:`a` is approximately Gaussian under mild conditions.
 However, :math:`b` (the regularization bias) diverges in general.
 
+.. _bias_non_orth:
+
 Overcoming Regularization Bias by Orthogonalization
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -176,6 +178,8 @@ We use the final estimate
 
 If the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
+
+.. _bias_overfitting:
 
 Sample Splitting to Remove Bias Induced by Overfitting
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++

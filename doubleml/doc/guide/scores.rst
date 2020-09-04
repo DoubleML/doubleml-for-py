@@ -235,5 +235,5 @@ Use :class:`~doubleml.double_ml_plr.DoubleMLPLR` with ``inf_model=non_orth_score
     \tilde{\theta}_0 = - \frac{\mathbb{E}_N[D (Y-g(X))]}{\mathbb{E}_N[D^2]}
 
 when applying :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit`.
-Note that this estimate will in general be prone to a regularization bias.
+Note that this estimate will in general be prone to a regularization bias, see also :ref:`bias_non_orth`.
 
