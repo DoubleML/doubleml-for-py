@@ -58,9 +58,18 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
+
+.. ipython:: python
+
+    print(dml_plr_obj.coef)
+
 The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0)`
 are stored in the attributes ``score_a`` and ``score_b``.
 In the attribute ``score`` the values of the score function :math:`\psi(W_i; \tilde{\theta}_0, \hat{\eta}_0)` are stored.
+
+.. ipython:: python
+
+    print(dml_plr_obj.score[:5])
 
 Implemented Neyman orthogonal score functions
 +++++++++++++++++++++++++++++++++++++++++++++

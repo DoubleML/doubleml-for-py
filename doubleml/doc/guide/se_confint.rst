@@ -54,13 +54,34 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
+
+.. ipython:: python
+
+    print(dml_plr_obj.coef)
+
 The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``se`` attribute.
+
+.. ipython:: python
+
+    print(dml_plr_obj.se)
+
 Additionally, the value of the :math:`t`-statistic and the corresponding p-value are provided in the attributes
 ``t_stat`` and ``pval``.
 
-TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
+.. ipython:: python
+
+    print(dml_plr_obj.t_stat)
+    print(dml_plr_obj.pval)
+
+An overview of all these estimates, together with a 95 % confidence interval is stored in the attribute ``summary``.
+
+.. ipython:: python
+
+    print(dml_plr_obj.summary)
+
+.. TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
 
 Boostrap standard errors and joint confidence intervals
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-TODO
+.. TODO Document the multiplier bootstrap and joint confidence intervals.
