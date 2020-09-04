@@ -69,6 +69,8 @@ html_theme = 'pydata_sphinx_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# -- Extension configuration -------------------------------------------------
+
 # config of sphinx gallery for examples
 sphinx_gallery_conf = {
      'examples_dirs': '../examples',   # path to your example scripts
@@ -76,5 +78,10 @@ sphinx_gallery_conf = {
      'filename_pattern': '/double_ml_',     # example .py files starting with double_ml_ are executed during build
 }
 
-
-# -- Extension configuration -------------------------------------------------
+# intersphinx configuration
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
+    'sklearn': ('https://scikit-learn.org/stable/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+}
