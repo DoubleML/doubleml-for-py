@@ -21,10 +21,10 @@ pip install -r requirements.txt
 ```
 Run `setup.py` of package `dml`
 ```
-python dml/setup.py develop
+python doubleml/setup.py develop
 ```
 Test whether package can be loaded
 ```
-python dml/dml/tests/test_package.py
+python doubleml/doubleml/tests/test_package.py
 ```
 
