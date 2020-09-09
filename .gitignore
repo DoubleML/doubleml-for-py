@@ -1,6 +1,3 @@
-# virtual environment
-venv_dml_dev/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -29,4 +26,3 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
