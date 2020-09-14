@@ -73,6 +73,9 @@ html_static_path = ['_static']
 
 # -- Extension configuration -------------------------------------------------
 
+copybutton_prompt_text = r'>>> |> '
+copybutton_prompt_is_regexp = True
+
 # config of sphinx gallery for examples
 sphinx_gallery_conf = {
      'examples_dirs': '../examples',   # path to your example scripts

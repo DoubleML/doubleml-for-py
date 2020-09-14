@@ -8,16 +8,34 @@ The purpose of the following case-studies is to demonstrate the core functionali
 Data and the causal model
 -------------------------
 
-:ref:`DoubleML <doubleml_package>` provides interfaces to :py:class:`pandas.DataFrame` as well as :py:class:`numpy.ndarray`. The usage of both interfaces is
+:ref:`DoubleML <doubleml_package>` provides interfaces to dataframes as well as arrays. The usage of both interfaces is
 demonstrated in the following. We download the 401(k) data set.
 
-.. ipython:: python
+.. note::
+    * In python we use :py:class:`pandas.DataFrame` and :py:class:`numpy.ndarray`.
+    * In R we use
 
-    from doubleml.datasets import fetch_401K
+.. tabs::
 
-    # Load data
-    df_401k = fetch_401K()
-    df_401k.head(5)
+    .. code-tab:: py
+
+        >>> from doubleml.datasets import fetch_401K
+
+        >>> # Load data
+        >>> df_401k = fetch_401K()
+        >>> df_401k.head(5)
+              nifa  net_tfa        tw  age      inc  ...  twoearn  e401  p401  pira  hown
+        0      0.0      0.0    4500.0   47   6765.0  ...        0     0     0     0     1
+        1   6215.0   1015.0   22390.0   36  28452.0  ...        0     0     0     0     1
+        2      0.0  -2000.0   -2000.0   37   3300.0  ...        0     0     0     0     0
+        3  15000.0  15000.0  155000.0   58  52590.0  ...        1     0     0     0     1
+        4      0.0      0.0   58000.0   32  21804.0  ...        0     0     0     0     1
+        [5 rows x 14 columns]
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 Partially linear regression (PLR) models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,17 +61,35 @@ specifying the column ``y_col='net_tfa'`` serving as outcome variable :math:`Y`,
 serving as treatment variable :math:`D` and the columns ``x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']``
 specifying the confounders.
 
-.. ipython:: python
+.. tabs::
 
-    from doubleml import DoubleMLData
+    .. code-tab:: py
 
-    # Specify the data and the variables for the causal model
-    obj_dml_data_401k = DoubleMLData(df_401k,
-                                     y_col='net_tfa',
-                                     d_cols='e401',
-                                     x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
-                                             'twoearn', 'db', 'pira', 'hown'])
-    print(obj_dml_data_401k)
+        >>> from doubleml import DoubleMLData
+
+        >>> # Specify the data and the variables for the causal model
+        >>> obj_dml_data_401k = DoubleMLData(df_401k,
+        >>>                                  y_col='net_tfa',
+        >>>                                  d_cols='e401',
+        >>>                                  x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
+        >>>                                          'twoearn', 'db', 'pira', 'hown'])
+        >>> print(obj_dml_data_401k)
+        === DoubleMLData Object ===
+        y_col: net_tfa
+        d_cols: ['e401']
+        x_cols: ['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']
+        z_col: None
+        data:
+         <class 'pandas.core.frame.DataFrame'>
+        Int64Index: 9915 entries, 0 to 9914
+        Columns: 14 entries, nifa to hown
+        dtypes: float32(4), int8(10)
+        memory usage: 329.2 KB
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 
 DoubleMLData from numpy arrays
@@ -62,26 +98,41 @@ DoubleMLData from numpy arrays
 To introduce the :py:class:`numpy.ndarray` interface we generate a data set consisting of confounding variables ``X``, an outcome
 variable ``y`` and a treatment variable ``d``
 
-.. ipython:: python
 
-    import numpy as np
+.. tabs::
 
-    # Generate data
-    n_obs = 500
-    n_vars = 100
-    theta = 3
-    X = np.random.normal(size=(n_obs, n_vars))
-    d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
-    y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+    .. code-tab:: py
+
+        >>> import numpy as np
+
+        >>> # Generate data
+        >>> n_obs = 500
+        >>> n_vars = 100
+        >>> theta = 3
+        >>> X = np.random.normal(size=(n_obs, n_vars))
+        >>> d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+        >>> y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 To specify the data and the variables for the causal model from :py:class:`numpy.ndarray` we call
 
-.. ipython:: python
+.. tabs::
 
-    from doubleml import DoubleMLData
+    .. code-tab:: py
 
-    obj_dml_data_sim = DoubleMLData.from_arrays(X, y, d)
-    print(obj_dml_data_sim)
+        >>> from doubleml import DoubleMLData
+
+        >>> obj_dml_data_sim = DoubleMLData.from_arrays(X, y, d)
+        >>> print(obj_dml_data_sim)
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 Estimate a causal model with double/debiased machine learning
 -------------------------------------------------------------
@@ -95,19 +146,26 @@ specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the 401(k)
 and for our simulated data from a sparse linear model we use
 :py:class:`~sklearn.linear_model.Lasso` from :py:mod:`sklearn.linear_model`.
 
-.. ipython:: python
+.. tabs::
 
-    from sklearn.base import clone
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.linear_model import Lasso
+    .. code-tab:: py
 
-    learner = RandomForestRegressor(max_depth=2, n_estimators=100)
-    ml_learners_401k = {'ml_m': clone(learner),
-                        'ml_g': clone(learner)}
+        >>> from sklearn.base import clone
+        >>> from sklearn.ensemble import RandomForestRegressor
+        >>> from sklearn.linear_model import Lasso
 
-    learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
-    ml_learners_sim = {'ml_m': clone(learner),
-                       'ml_g': clone(learner)}
+        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=100)
+        >>> ml_learners_401k = {'ml_m': clone(learner),
+        >>>                     'ml_g': clone(learner)}
+
+        >>> learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        >>> ml_learners_sim = {'ml_m': clone(learner),
+        >>>                    'ml_g': clone(learner)}
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 Cross-fitting, DML algorithms and Neyman-orthogonal score functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -123,11 +181,19 @@ DoubleMLPLR: Double/debiased machine learning for partially linear regression mo
 
 We now initialize :class:`~doubleml.double_ml_plr.DoubleMLPLR` objects for our examples using default parameters
 
-.. ipython:: python
 
-    from doubleml import DoubleMLPLR
-    obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_learners_401k)
-    obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_learners_sim)
+.. tabs::
+
+    .. code-tab:: py
+
+        >>> from doubleml import DoubleMLPLR
+        >>> obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_learners_401k)
+        >>> obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_learners_sim)
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
 
 Estimate double/debiased machine learning models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -135,10 +201,18 @@ Estimate double/debiased machine learning models
 The models are estimated by calling the ``fit()`` method and we can inspect the estimated treatment effect using the
 ``summary`` property.
 
-.. ipython:: python
 
-    obj_dml_plr_401k.fit()
-    print(obj_dml_plr_401k.summary)
+.. tabs::
 
-    obj_dml_plr_sim.fit()
-    print(obj_dml_plr_sim.summary)
+    .. code-tab:: py
+
+        >>> obj_dml_plr_401k.fit()
+        >>> print(obj_dml_plr_401k.summary)
+
+        >>> obj_dml_plr_sim.fit()
+        >>> print(obj_dml_plr_sim.summary)
+
+    .. code-tab:: r R
+
+        > # R-code here
+        > a=5
