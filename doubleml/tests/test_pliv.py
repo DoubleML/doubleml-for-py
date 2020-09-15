@@ -32,8 +32,8 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['DML2018'])
-def inf_model(request):
+                params = ['partialling out'])
+def score(request):
     return request.param
 
 
@@ -44,7 +44,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
+def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -84,12 +84,12 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
         res_manual, se_manual = pliv_dml1(y, X, d,
                                           z,
                                           g_hat, m_hat, r_hat,
-                                          smpls, inf_model)
+                                          smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = pliv_dml2(y, X, d,
                                           z,
                                           g_hat, m_hat, r_hat,
-                                          smpls, inf_model)
+                                          smpls, score)
     
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual,
@@ -103,7 +103,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, inf_model, dml_procedure):
                                y, d,
                                z,
                                g_hat, m_hat, r_hat,
-                               smpls, inf_model,
+                               smpls, score,
                                se_manual,
                                bootstrap, n_rep_boot,
                                dml_procedure)

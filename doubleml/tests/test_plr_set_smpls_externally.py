@@ -26,8 +26,8 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'DML2018'])
-def inf_model(request):
+                params = ['IV-type', 'partialling out'])
+def score(request):
     return request.param
 
 
@@ -43,7 +43,7 @@ def n_rep_cross_fit(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_rep_cross_fit):
+def dml_plr_smpls_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep_cross_fit):
     n_folds = 3
 
     # collect data
@@ -60,7 +60,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
                                   ml_learners,
                                   n_folds,
                                   n_rep_cross_fit,
-                                  inf_model,
+                                  score,
                                   dml_procedure)
 
     dml_plr_obj.fit()
@@ -69,7 +69,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, inf_model, dml_procedure
 
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
                                    ml_learners,
-                                   inf_model=inf_model,
+                                   score=score,
                                    dml_procedure=dml_procedure,
                                    draw_sample_splitting=False)
     dml_plr_obj2.set_sample_splitting(smpls)

@@ -35,7 +35,7 @@ def learner(request):
 
 @pytest.fixture(scope='module',
                 params = ['ATE', 'ATTE'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -46,7 +46,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
+def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -63,7 +63,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     dml_irm_obj.fit()
@@ -75,16 +75,16 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
     
     g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
                                                     clone(learner[0]), clone(learner[1]), smpls,
-                                                    inf_model)
+                                                    score)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = irm_dml2(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual,
@@ -97,7 +97,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner, inf_model, dml_procedure):
         boot_theta = boot_irm(res_manual,
                               y, d,
                               g_hat0, g_hat1, m_hat, p_hat,
-                              smpls, inf_model,
+                              smpls, score,
                               se_manual,
                               bootstrap, n_rep_boot,
                               dml_procedure)

@@ -26,7 +26,7 @@ def idx(request):
 
 @pytest.fixture(scope='module',
                 params = ['ATE', 'ATTE'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -37,7 +37,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
+def dml_irm_pyvsr_fixture(generate_data_irm, idx, score, dml_procedure):
     n_folds = 2
 
     # collect data
@@ -56,7 +56,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     np.random.seed(3141)
@@ -66,9 +66,7 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, inf_model, dml_procedure):
     all_train, all_test = export_smpl_split_to_r(dml_irm_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
-    if inf_model == 'ATTE':
-        inf_model = 'ATET'
-    res_r = r_IRM(r_dataframe, inf_model, dml_procedure,
+    res_r = r_IRM(r_dataframe, score, dml_procedure,
                   all_train, all_test)
 
     res_dict = {'coef_py': dml_irm_obj.coef,

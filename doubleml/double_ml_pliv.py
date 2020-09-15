@@ -21,7 +21,7 @@ class DoubleMLPLIV(DoubleML):
         ToDo
     n_rep_cross_fit :
         ToDo
-    inf_model :
+    score :
         ToDo
     dml_procedure :
         ToDo
@@ -53,15 +53,15 @@ class DoubleMLPLIV(DoubleML):
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
-                 inf_model='DML2018',
-                 dml_procedure='dml1',
+                 score='partialling out',
+                 dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,
                          n_rep_cross_fit,
-                         inf_model,
+                         score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
@@ -69,21 +69,21 @@ class DoubleMLPLIV(DoubleML):
         self._m_params = None
         self._r_params = None
 
-    def _check_inf_method(self, inf_model):
-        if isinstance(inf_model, str):
-            valid_inf_model = ['DML2018']
+    def _check_score(self, score):
+        if isinstance(score, str):
+            valid_score = ['partialling out']
             # check whether its worth implementing the IV_type as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
-            # still need to estimate the DML2018 type first
-            if inf_model not in valid_inf_model:
-                raise ValueError('invalid inf_model ' + inf_model +
-                                 '\n valid inf_model ' + valid_inf_model)
+            # still need to estimate the partialling out type first
+            if score not in valid_score:
+                raise ValueError('invalid score ' + score +
+                                 '\n valid score ' + valid_score)
         else:
-            if not callable(inf_model):
-                raise ValueError('inf_model should be either a string or a callable.'
-                                 ' %r was passed' % inf_model)
-        return inf_model
+            if not callable(score):
+                raise ValueError('score should be either a string or a callable.'
+                                 ' %r was passed' % score)
+        return score
 
     def _check_data(self, obj_dml_data):
         return
@@ -122,17 +122,17 @@ class DoubleMLPLIV(DoubleML):
         v_hat = z_test - m_hat
         w_hat = d_test - r_hat
 
-        inf_model = self.inf_model
-        self._check_inf_method(inf_model)
-        if isinstance(self.inf_model, str):
-            if inf_model == 'DML2018':
-                score_a = -np.multiply(w_hat, v_hat)
-            score_b = np.multiply(v_hat, u_hat)
-        elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y_test, z_test, d_test,
+        score = self.score
+        self._check_score(score)
+        if isinstance(self.score, str):
+            if score == 'partialling out':
+                psi_a = -np.multiply(w_hat, v_hat)
+            psi_b = np.multiply(v_hat, u_hat)
+        elif callable(self.score):
+            psi_a, psi_b = self.score(y_test, z_test, d_test,
                                               g_hat, m_hat, r_hat, smpls)
 
-        return score_a, score_b
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         ml_g = self.ml_learners['ml_g']

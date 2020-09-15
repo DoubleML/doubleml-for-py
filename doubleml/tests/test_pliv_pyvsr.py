@@ -24,8 +24,8 @@ def idx(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['DML2018'])
-def inf_model(request):
+                params = ['partialling out'])
+def score(request):
     return request.param
 
 
@@ -36,7 +36,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
+def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
     n_folds = 2
 
     # collect data
@@ -63,8 +63,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, inf_model, dml_procedure):
     all_train, all_test = export_smpl_split_to_r(dml_pliv_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
-    assert inf_model == 'DML2018'
-    res_r = r_MLPLIV(r_dataframe, 'partialling-out', dml_procedure,
+    res_r = r_MLPLIV(r_dataframe, 'partialling out', dml_procedure,
                      all_train, all_test)
     print(res_r)
 

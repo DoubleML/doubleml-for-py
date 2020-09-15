@@ -25,7 +25,7 @@ def idx(request):
 
 @pytest.fixture(scope='module',
                 params = ['LATE'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -36,7 +36,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
+def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
 
@@ -64,7 +64,7 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, inf_model, dml_procedure):
     all_train, all_test = export_smpl_split_to_r(dml_iivm_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
-    res_r = r_IIVM(r_dataframe, inf_model, dml_procedure,
+    res_r = r_IIVM(r_dataframe, score, dml_procedure,
                    all_train, all_test)
 
     res_dict = {'coef_py': dml_iivm_obj.coef,

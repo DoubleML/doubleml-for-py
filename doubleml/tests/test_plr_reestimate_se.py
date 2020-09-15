@@ -32,13 +32,13 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'DML2018'])
-def inf_model(request):
+                params = ['IV-type', 'partialling out'])
+def score(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
+def dml2_plr_fixture(generate_data1, idx, learner, score):
     dml_procedure = 'dml2'
     n_folds = 2
 
@@ -55,7 +55,7 @@ def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=False)
 
@@ -63,7 +63,7 @@ def dml2_plr_fixture(generate_data1, idx, learner, inf_model):
     dml_plr_obj_reestimate_se = dml.DoubleMLPLR(obj_dml_data,
                                                 ml_learners,
                                                 n_folds,
-                                                inf_model=inf_model,
+                                                score=score,
                                                 dml_procedure=dml_procedure)
     dml_plr_obj_reestimate_se.fit(se_reestimate=True)
 
@@ -80,7 +80,7 @@ def test_dml2_plr_se(dml2_plr_fixture):
 
 
 @pytest.fixture(scope="module")
-def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
+def dml1_plr_fixture(generate_data1, idx, learner, score):
     dml_procedure = 'dml1'
     n_folds = 2
 
@@ -97,7 +97,7 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
     dml_plr_obj.fit(se_reestimate=True)
 
@@ -114,7 +114,7 @@ def dml1_plr_fixture(generate_data1, idx, learner, inf_model):
 
     res_manual, se_manual = plr_dml1(y, X, d,
                                      g_hat, m_hat,
-                                     smpls, inf_model,
+                                     smpls, score,
                                      se_reestimate=True)
 
     res_dict = {'se': dml_plr_obj.se,

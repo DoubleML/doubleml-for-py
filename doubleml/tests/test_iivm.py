@@ -34,7 +34,7 @@ def learner(request):
 
 @pytest.fixture(scope='module',
                 params = ['LATE'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -45,7 +45,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure):
+def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
@@ -84,11 +84,11 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
     if dml_procedure == 'dml1':
         res_manual, se_manual = iivm_dml1(y, X, d, z,
                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                         smpls, inf_model)
+                                         smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = iivm_dml2(y, X, d, z,
                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                         smpls, inf_model)
+                                         smpls, score)
     
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual,
@@ -101,7 +101,7 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, inf_model, dml_procedure)
         boot_theta = boot_iivm(res_manual,
                               y, d, z,
                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                              smpls, inf_model,
+                              smpls, score,
                               se_manual,
                               bootstrap, n_rep_boot,
                               dml_procedure)

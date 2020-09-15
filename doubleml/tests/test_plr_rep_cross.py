@@ -32,8 +32,8 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'DML2018'])
-def inf_model(request):
+                params = ['IV-type', 'partialling out'])
+def score(request):
     return request.param
 
 
@@ -49,7 +49,7 @@ def n_rep_cross_fit(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_rep_cross_fit):
+def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep_cross_fit):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
@@ -68,7 +68,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
                                   ml_learners,
                                   n_folds,
                                   n_rep_cross_fit,
-                                  inf_model,
+                                  score,
                                   dml_procedure)
 
     dml_plr_obj.fit()
@@ -100,11 +100,11 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
         if dml_procedure == 'dml1':
             thetas[i_rep], ses[i_rep] = plr_dml1(y, X, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
-                                                 smpls, inf_model)
+                                                 smpls, score)
         elif dml_procedure == 'dml2':
             thetas[i_rep], ses[i_rep] = plr_dml2(y, X, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
-                                                 smpls, inf_model)
+                                                 smpls, score)
 
     res_manual = np.median(thetas)
     se_manual = np.sqrt(np.median(np.power(ses, 2) - np.power(thetas - res_manual, 2)))
@@ -124,7 +124,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure, n_re
             boot_theta = boot_plr(thetas[i_rep],
                                   y, d,
                                   all_g_hat[i_rep], all_m_hat[i_rep],
-                                  smpls, inf_model,
+                                  smpls, score,
                                   ses[i_rep],
                                   bootstrap, n_rep_boot,
                                   dml_procedure)

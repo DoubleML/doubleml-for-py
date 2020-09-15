@@ -20,8 +20,8 @@ def idx(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'DML2018'])
-def inf_model(request):
+                params = ['IV-type', 'partialling out'])
+def score(request):
     return request.param
 
 
@@ -32,7 +32,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
+def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
@@ -52,7 +52,7 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
@@ -66,7 +66,7 @@ def dml_plr_fixture(generate_data1, idx, inf_model, dml_procedure):
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
                                               ml_learners,
                                               n_folds,
-                                              inf_model=inf_model,
+                                              score=score,
                                               dml_procedure=dml_procedure)
     dml_plr_obj_ext_set_par.set_ml_nuisance_params({'g_params': {'alpha': alpha},
                                                     'm_params': {'alpha': alpha}})

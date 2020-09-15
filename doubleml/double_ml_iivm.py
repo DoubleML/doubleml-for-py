@@ -23,7 +23,7 @@ class DoubleMLIIVM(DoubleML):
         ToDo
     n_rep_cross_fit :
         ToDo
-    inf_model :
+    score :
         ToDo
     dml_procedure :
         ToDo
@@ -55,15 +55,15 @@ class DoubleMLIIVM(DoubleML):
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
-                 inf_model='LATE',
-                 dml_procedure='dml1',
+                 score='LATE',
+                 dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,
                          n_rep_cross_fit,
-                         inf_model,
+                         score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
@@ -73,17 +73,17 @@ class DoubleMLIIVM(DoubleML):
         self._r0_params = None
         self._r1_params = None
 
-    def _check_inf_method(self, inf_model):
-        if isinstance(inf_model, str):
-            valid_inf_model = ['LATE']
-            if inf_model not in valid_inf_model:
-                raise ValueError('invalid inf_model ' + inf_model +
-                                 '\n valid inf_model ' + valid_inf_model)
+    def _check_score(self, score):
+        if isinstance(score, str):
+            valid_score = ['LATE']
+            if score not in valid_score:
+                raise ValueError('invalid score ' + score +
+                                 '\n valid score ' + valid_score)
         else:
-            if not callable(inf_model):
-                raise ValueError('inf_model should be either a string or a callable.'
-                                 ' %r was passed' % inf_model)
-        return inf_model
+            if not callable(score):
+                raise ValueError('score should be either a string or a callable.'
+                                 ' %r was passed' % score)
+        return score
 
     def _check_data(self, obj_dml_data):
         assert obj_dml_data.n_treat == 1
@@ -141,21 +141,21 @@ class DoubleMLIIVM(DoubleML):
         w_hat0 = d_test - r_hat0
         w_hat1 = d_test - r_hat1
 
-        inf_model = self.inf_model
-        self._check_inf_method(inf_model)
-        if isinstance(self.inf_model, str):
-            if inf_model == 'LATE':
-                score_b = g_hat1 - g_hat0 \
+        score = self.score
+        self._check_score(score)
+        if isinstance(self.score, str):
+            if score == 'LATE':
+                psi_b = g_hat1 - g_hat0 \
                                 + np.divide(np.multiply(z_test, u_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-z_test, u_hat0), 1.0 - m_hat)
-                score_a = -1*(r_hat1 - r_hat0 \
+                psi_a = -1*(r_hat1 - r_hat0 \
                                     + np.divide(np.multiply(z_test, w_hat1), m_hat) \
                                     - np.divide(np.multiply(1.0-z_test, w_hat0), 1.0 - m_hat))
-        elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y_test, z_test, d_test,
+        elif callable(self.score):
+            psi_a, psi_b = self.score(y_test, z_test, d_test,
                                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
-        return score_a, score_b
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
 

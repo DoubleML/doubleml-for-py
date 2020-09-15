@@ -23,7 +23,7 @@ class DoubleMLIRM(DoubleML):
         ToDo
     n_rep_cross_fit :
         ToDo
-    inf_model :
+    score :
         ToDo
     dml_procedure :
         ToDo
@@ -54,15 +54,15 @@ class DoubleMLIRM(DoubleML):
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
-                 inf_model='ATE',
-                 dml_procedure='dml1',
+                 score='ATE',
+                 dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          ml_learners,
                          n_folds,
                          n_rep_cross_fit,
-                         inf_model,
+                         score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
@@ -70,17 +70,17 @@ class DoubleMLIRM(DoubleML):
         self._g1_params = None
         self._m_params = None
 
-    def _check_inf_method(self, inf_model):
-        if isinstance(inf_model, str):
-            valid_inf_model = ['ATE', 'ATTE']
-            if inf_model not in valid_inf_model:
-                raise ValueError('invalid inf_model ' + inf_model +
-                                 '\n valid inf_model ' + ' or '.join(valid_inf_model))
+    def _check_score(self, score):
+        if isinstance(score, str):
+            valid_score = ['ATE', 'ATTE']
+            if score not in valid_score:
+                raise ValueError('invalid score ' + score +
+                                 '\n valid score ' + ' or '.join(valid_score))
         else:
-            if not callable(inf_model):
-                raise ValueError('inf_model should be either a string or a callable.'
-                                 ' %r was passed' % inf_model)
-        return inf_model
+            if not callable(score):
+                raise ValueError('score should be either a string or a callable.'
+                                 ' %r was passed' % score)
+        return score
 
     def _check_data(self, obj_dml_data):
         assert obj_dml_data.z_col is None
@@ -96,8 +96,8 @@ class DoubleMLIRM(DoubleML):
         return smpls_d0, smpls_d1
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        inf_model = self.inf_model
-        self._check_inf_method(inf_model)
+        score = self.score
+        self._check_score(score)
 
         ml_g0 = clone(self.ml_learners['ml_g'])
         ml_g1 = clone(self.ml_learners['ml_g'])
@@ -109,14 +109,14 @@ class DoubleMLIRM(DoubleML):
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
         # fraction of treated for ATTE
-        if inf_model == 'ATTE':
+        if score == 'ATTE':
             p_hat = np.zeros_like(d, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
         g_hat0 = _dml_cross_val_predict(ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv)
-        if (inf_model == 'ATE') | callable(self.inf_model):
+        if (score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cross_val_predict(ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv)
         
         # nuisance m
@@ -133,28 +133,28 @@ class DoubleMLIRM(DoubleML):
         
         # compute residuals
         u_hat0 = y_test - g_hat0
-        if inf_model == 'ATE':
+        if score == 'ATE':
             u_hat1 = y_test - g_hat1
         
-        if isinstance(self.inf_model, str):
-            if inf_model == 'ATE':
-                score_b = g_hat1 - g_hat0 \
+        if isinstance(self.score, str):
+            if score == 'ATE':
+                psi_b = g_hat1 - g_hat0 \
                                 + np.divide(np.multiply(d_test, u_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-d_test, u_hat0), 1.0 - m_hat)
-                score_a = np.full_like(m_hat, -1.0)
-            elif inf_model == 'ATTE':
-                score_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
+                psi_a = np.full_like(m_hat, -1.0)
+            elif score == 'ATTE':
+                psi_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
                                 - np.divide(np.multiply(m_hat, np.multiply(1.0-d_test, u_hat0)),
                                             np.multiply(p_hat, (1.0 - m_hat)))
-                score_a = - np.divide(d_test, p_hat)
-        elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y_test, d_test,
+                psi_a = - np.divide(d_test, p_hat)
+        elif callable(self.score):
+            psi_a, psi_b = self.score(y_test, d_test,
                                               g_hat0, g_hat1, m_hat, smpls)
 
-        return score_a, score_b
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        inf_model = self.inf_model
+        score = self.score
 
         ml_g0 = clone(self.ml_learners['ml_g'])
         ml_g1 = clone(self.ml_learners['ml_g'])
@@ -184,7 +184,7 @@ class DoubleMLIRM(DoubleML):
             train_index_d0 = smpls_d0[idx][0]
             g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
 
-            if inf_model == 'ATE':
+            if score == 'ATE':
                 # cv for ml_g1
                 g1_tune_resampling = KFold(n_splits=n_folds_tune)
                 g1_grid_search = GridSearchCV(ml_g1, param_grids['param_grid_g1'],

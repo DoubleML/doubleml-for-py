@@ -82,7 +82,7 @@ ml_learners = {'ml_m': clone(learner),
 # initialize the DoubleMLPLIV object
 dml_pliv_obj = DoubleMLPLIV(obj_dml_data,
                             ml_learners,
-                            inf_model='DML2018',
+                            inf_model='partialling out',
                             dml_procedure='dml1',
                             draw_sample_splitting=False)
 
