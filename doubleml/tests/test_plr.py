@@ -34,7 +34,7 @@ def learner(request):
 
 @pytest.fixture(scope='module',
                 params = ['IV-type', 'partialling out'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -45,7 +45,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
+def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
@@ -63,7 +63,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
@@ -82,11 +82,11 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
@@ -99,7 +99,7 @@ def dml_plr_fixture(generate_data1, idx, learner, inf_model, dml_procedure):
         boot_theta = boot_plr(res_manual,
                               y, d,
                               g_hat, m_hat,
-                              smpls, inf_model,
+                              smpls, score,
                               se_manual,
                               bootstrap, n_rep_boot,
                               dml_procedure)
@@ -132,7 +132,7 @@ def test_dml_plr_boot(dml_plr_fixture):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
+def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
     learner = LinearRegression()
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
@@ -150,7 +150,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     N = data.shape[0]
@@ -186,11 +186,11 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
-                                         smpls, inf_model)
+                                         smpls, score)
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
@@ -203,7 +203,7 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, inf_model, dml_procedure):
         boot_theta = boot_plr(res_manual,
                               y, d,
                               g_hat, m_hat,
-                              smpls, inf_model,
+                              smpls, score,
                               se_manual,
                               bootstrap, n_rep_boot,
                               dml_procedure)

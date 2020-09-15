@@ -22,7 +22,7 @@ r_MLPLR = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
+        f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'regr.lm',
                              mlmethod_g = 'regr.lm')
@@ -38,7 +38,7 @@ r_MLPLR = robjects.r('''
                                                ml_learners = mlmethod,
                                                params = params,
                                                dml_procedure = dml_procedure,
-                                               inf_model = inf_model)
+                                               score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlplr_obj$set_samples(smpls)
@@ -56,7 +56,7 @@ r_MLPLIV = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
+        f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'regr.lm',
                              mlmethod_g = 'regr.lm',
@@ -75,7 +75,7 @@ r_MLPLIV = robjects.r('''
                                                  ml_learners = mlmethod,
                                                  params = params,
                                                  dml_procedure = dml_procedure,
-                                                 inf_model = inf_model)
+                                                 score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlpliv_obj$set_samples(smpls)
@@ -93,7 +93,7 @@ r_IRM = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
+        f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_m = 'classif.log_reg',
                              mlmethod_g = 'regr.lm')
@@ -109,7 +109,7 @@ r_IRM = robjects.r('''
                                                ml_learners = mlmethod,
                                                params = params,
                                                dml_procedure = dml_procedure,
-                                               inf_model = inf_model)
+                                               score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlirm_obj$set_samples(smpls)
@@ -127,7 +127,7 @@ r_IIVM = robjects.r('''
         library('data.table')
         library('mlr3')
 
-        f <- function(data, inf_model, dml_procedure, train_ids, test_ids) {
+        f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
             mlmethod <- list(mlmethod_p = 'classif.log_reg',
                              mlmethod_mu = 'regr.lm',
@@ -146,7 +146,7 @@ r_IIVM = robjects.r('''
                                                  ml_learners = mlmethod,
                                                  params = params,
                                                  dml_procedure = dml_procedure,
-                                                 inf_model = inf_model)
+                                                 score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mliivm_obj$set_samples(smpls)

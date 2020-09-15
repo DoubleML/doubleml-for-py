@@ -29,7 +29,7 @@ def learner(request):
 
 @pytest.fixture(scope='module',
                 params = ['IV-type', 'partialling out'])
-def inf_model(request):
+def score(request):
     return request.param
 
 
@@ -40,7 +40,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, inf_model, dml_procedure):
+def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 483
@@ -62,7 +62,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_learners,
                                   n_folds,
-                                  inf_model=inf_model,
+                                  score=score,
                                   dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
@@ -96,11 +96,11 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         if dml_procedure == 'dml1':
             coef_manual[i_d], se_manual[i_d] = plr_dml1(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
-                                                        smpls, inf_model)
+                                                        smpls, score)
         elif dml_procedure == 'dml2':
             coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
-                                                        smpls, inf_model)
+                                                        smpls, score)
                    
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': coef_manual,
@@ -116,7 +116,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
             boot_theta[i_d, :] = boot_plr(coef_manual[i_d],
                                           y, d[:, i_d],
                                           all_g_hat[i_d], all_m_hat[i_d],
-                                          smpls, inf_model,
+                                          smpls, score,
                                           se_manual[i_d],
                                           bootstrap, n_rep_boot,
                                           dml_procedure)

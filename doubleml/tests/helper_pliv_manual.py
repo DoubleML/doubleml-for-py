@@ -16,7 +16,7 @@ def fit_nuisance_pliv(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     
     return g_hat, m_hat, r_hat
 
-def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
+def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     
@@ -24,7 +24,7 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
         u_hat = Y[test_index] - g_hat[idx]
         v_hat = Z[test_index] - m_hat[idx]
         w_hat = D[test_index] - r_hat[idx]
-        thetas[idx] = pliv_orth(u_hat, v_hat, w_hat, D[test_index], inf_model)
+        thetas[idx] = pliv_orth(u_hat, v_hat, w_hat, D[test_index], score)
     theta_hat = np.mean(thetas)
     
     ses = np.zeros(len(smpls))
@@ -34,12 +34,12 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
         w_hat = D[test_index] - r_hat[idx]
         ses[idx] = var_pliv(theta_hat, D[test_index],
                             u_hat, v_hat, w_hat,
-                            inf_model, n_obs)
+                            score, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
-def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
+def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     u_hat = np.zeros_like(Y)
@@ -49,8 +49,8 @@ def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
-    theta_hat = pliv_orth(u_hat, v_hat, w_hat, D, inf_model)
-    se = np.sqrt(var_pliv(theta_hat, D, u_hat, v_hat, w_hat, inf_model, n_obs))
+    theta_hat = pliv_orth(u_hat, v_hat, w_hat, D, score)
+    se = np.sqrt(var_pliv(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
     
     return theta_hat, se
     
@@ -63,15 +63,15 @@ def var_pliv(theta, d, u_hat, v_hat, w_hat, score, n_obs):
     
     return var
 
-def pliv_orth(u_hat, v_hat, w_hat, D, inf_model):
-    if inf_model == 'partialling out':
+def pliv_orth(u_hat, v_hat, w_hat, D, score):
+    if score == 'partialling out':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, w_hat))
     else:
-      raise ValueError('invalid inf_model')
+      raise ValueError('invalid score')
     
     return res
 
-def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
+def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(Z)
     w_hat = np.zeros_like(D)
@@ -82,14 +82,14 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstr
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
         if dml_procedure == 'dml1':
-            if inf_model == 'partialling out':
+            if score == 'partialling out':
                 J[idx] = np.mean(-np.multiply(v_hat[test_index], w_hat[test_index]))
 
     if dml_procedure == 'dml2':
-        if inf_model == 'partialling out':
+        if score == 'partialling out':
             J = np.mean(-np.multiply(v_hat, w_hat))
 
-    if inf_model == 'partialling out':
+    if score == 'partialling out':
         score = np.multiply(u_hat - w_hat*theta, v_hat)
     else:
         raise ValueError('invalid score')

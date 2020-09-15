@@ -29,7 +29,7 @@ def fit_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     
     return g_hat0, g_hat1, m_hat, r_hat0, r_hat1
 
-def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model):
+def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     
@@ -43,7 +43,7 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
                                 r_hat0[idx], r_hat1[idx],
                                 u_hat0, u_hat1,
                                 w_hat0, w_hat1,
-                                Z[test_index], inf_model)
+                                Z[test_index], score)
     theta_hat = np.mean(thetas)
     
     ses = np.zeros(len(smpls))
@@ -57,12 +57,12 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
                             r_hat0[idx], r_hat1[idx],
                             u_hat0, u_hat1,
                             w_hat0, w_hat1,
-                            Z[test_index], inf_model, n_obs)
+                            Z[test_index], score, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
 
-def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model):
+def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     n_obs = len(Y)
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
@@ -84,11 +84,11 @@ def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
         r_hat1_all[test_index] = r_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
     theta_hat = iivm_orth(g_hat0_all, g_hat1_all, m_hat_all, r_hat0_all, r_hat1_all,
-                          u_hat0, u_hat1, w_hat0, w_hat1, Z, inf_model)
+                          u_hat0, u_hat1, w_hat0, w_hat1, Z, score)
     se = np.sqrt(var_iivm(theta_hat, g_hat0_all, g_hat1_all,
                           m_hat_all, r_hat0_all, r_hat1_all,
                           u_hat0, u_hat1, w_hat0, w_hat1,
-                          Z, inf_model, n_obs))
+                          Z, score, n_obs))
     
     return theta_hat, se
     
@@ -108,9 +108,9 @@ def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat
     
     return var
 
-def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, inf_model):
+def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, score):
     
-    if inf_model == 'LATE':
+    if score == 'LATE':
         res = np.mean(g_hat1 - g_hat0 \
                       + np.divide(np.multiply(Z, u_hat1), m_hat) \
                       - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat)) \
@@ -118,11 +118,11 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
                         + np.divide(np.multiply(Z, w_hat1), m_hat) \
                         - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat))
     else:
-        raise ValueError('invalid inf_model')
+        raise ValueError('invalid score')
     
     return res
 
-def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_model, se, bootstrap, n_rep, dml_procedure):
+def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, bootstrap, n_rep, dml_procedure):
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     w_hat0 = np.zeros_like(Y)
@@ -145,18 +145,18 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
         r_hat1_all[test_index] = r_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
         if dml_procedure == 'dml1':
-            if inf_model == 'LATE':
+            if score == 'LATE':
                 J[idx] = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index] \
                               + np.divide(np.multiply(Z[test_index], w_hat1[test_index]), m_hat_all[test_index]) \
                               - np.divide(np.multiply(1. - Z[test_index], w_hat0[test_index]), 1. - m_hat_all[test_index])))
 
     if dml_procedure == 'dml2':
-        if inf_model == 'LATE':
+        if score == 'LATE':
             J = np.mean(-(r_hat1_all - r_hat0_all \
                           + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
                           - np.divide(np.multiply(1. - Z, w_hat0), 1. - m_hat_all)))
 
-    if inf_model == 'LATE':
+    if score == 'LATE':
         score = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
                 - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat_all) \
@@ -164,7 +164,7 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_
                     + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
                     - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all))
     else:
-        raise ValueError('invalid inf_model')
+        raise ValueError('invalid score')
     
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)

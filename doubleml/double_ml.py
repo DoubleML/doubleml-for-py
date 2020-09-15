@@ -20,7 +20,7 @@ class DoubleML(ABC):
                  ml_learners,
                  n_folds,
                  n_rep_cross_fit,
-                 inf_model,
+                 score,
                  dml_procedure,
                  draw_sample_splitting,
                  apply_cross_fitting):
@@ -37,7 +37,7 @@ class DoubleML(ABC):
         self.apply_cross_fitting = apply_cross_fitting
 
         self.dml_procedure = dml_procedure
-        self.inf_model = self._check_score(inf_model)
+        self.score = self._check_score(score)
 
         if not self.apply_cross_fitting:
             assert self.n_folds == 2
