@@ -17,7 +17,7 @@ def export_smpl_split_to_r(smpls):
 
 # The R code to fit the DML model
 r_MLPLR = robjects.r('''
-        library('dml')
+        library('DoubleML')
         library('mlr3learners')
         library('data.table')
         library('mlr3')
@@ -51,7 +51,7 @@ r_MLPLR = robjects.r('''
 
 
 r_MLPLIV = robjects.r('''
-        library('dml')
+        library('DoubleML')
         library('mlr3learners')
         library('data.table')
         library('mlr3')
@@ -88,7 +88,7 @@ r_MLPLIV = robjects.r('''
 
 
 r_IRM = robjects.r('''
-        library('dml')
+        library('DoubleML')
         library('mlr3learners')
         library('data.table')
         library('mlr3')
@@ -122,7 +122,7 @@ r_IRM = robjects.r('''
 
 
 r_IIVM = robjects.r('''
-        library('dml')
+        library('DoubleML')
         library('mlr3learners')
         library('data.table')
         library('mlr3')
