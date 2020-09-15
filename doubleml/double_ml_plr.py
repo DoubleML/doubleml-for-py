@@ -43,6 +43,8 @@ class DoubleMLPLR(DoubleML):
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
     >>> dml_plr_obj.fit()
     >>> dml_plr_obj.summary
+         coef   std err         t         P>|t|    2.5 %    97.5 %
+    d  0.608353  0.101595  5.988004  2.124312e-09  0.40923  0.807477
 
     Notes
     -----
