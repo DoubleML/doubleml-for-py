@@ -56,7 +56,7 @@ class DoubleMLIIVM(DoubleML):
                  n_folds=5,
                  n_rep_cross_fit=1,
                  inf_model='LATE',
-                 dml_procedure='dml1',
+                 dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,

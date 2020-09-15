@@ -128,7 +128,7 @@ dml_plr_obj_lasso = dml.DoubleMLPLR(dml_data_lasso,
                                     ml_learners,
                                     n_folds,
                                     n_rep_cross_fit,
-                                    'DML2018',
+                                    'partialling out',
                                     'dml2')
 
 # %%

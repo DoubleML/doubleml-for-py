@@ -78,7 +78,7 @@ Partially linear regression model (PLR)
 ***************************************
 
 For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` one can choose between
-``score='IV-type'`` and ``score='DML2018'``.
+``score='IV-type'`` and ``score='partialling out'``.
 
 ``score='IV-type'`` implements the score function:
 
@@ -98,7 +98,7 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
 
     \psi_b(W; \eta) &= (Y - g(X)) (D - m(X)).
 
-``score='DML2018'`` implements the score function:
+``score='partialling out'`` implements the score function:
 
 .. math::
 
@@ -121,7 +121,7 @@ Partially linear IV regression model (PLIV)
 *******************************************
 
 For the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
-we employ for ``score='DML2018'`` the score function:
+we employ for ``score='partialling out'`` the score function:
 
 .. math::
 

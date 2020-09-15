@@ -53,8 +53,8 @@ class DoubleMLPLR(DoubleML):
                  ml_learners,
                  n_folds=5,
                  n_rep_cross_fit=1,
-                 inf_model='DML2018',
-                 dml_procedure='dml1',
+                 inf_model='partialling out',
+                 dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -70,7 +70,7 @@ class DoubleMLPLR(DoubleML):
 
     def _check_score(self, inf_model):
         if isinstance(inf_model, str):
-            valid_inf_model = ['IV-type', 'DML2018']
+            valid_inf_model = ['IV-type', 'partialling out']
             if inf_model not in valid_inf_model:
                 raise ValueError('invalid inf_model ' + inf_model +
                                  '\n valid inf_model ' + ' or '.join(valid_inf_model))
@@ -118,7 +118,7 @@ class DoubleMLPLR(DoubleML):
         if isinstance(self.inf_model, str):
             if inf_model == 'IV-type':
                 psi_a = -v_hatd
-            elif inf_model == 'DML2018':
+            elif inf_model == 'partialling out':
                 psi_a = -np.multiply(v_hat, v_hat)
             psi_b = np.multiply(v_hat, u_hat)
         elif callable(self.inf_model):
