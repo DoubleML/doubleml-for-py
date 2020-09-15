@@ -138,20 +138,20 @@ class DoubleMLIRM(DoubleML):
         
         if isinstance(self.inf_model, str):
             if inf_model == 'ATE':
-                score_b = g_hat1 - g_hat0 \
+                psi_b = g_hat1 - g_hat0 \
                                 + np.divide(np.multiply(d_test, u_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-d_test, u_hat0), 1.0 - m_hat)
-                score_a = np.full_like(m_hat, -1.0)
+                psi_a = np.full_like(m_hat, -1.0)
             elif inf_model == 'ATTE':
-                score_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
+                psi_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
                                 - np.divide(np.multiply(m_hat, np.multiply(1.0-d_test, u_hat0)),
                                             np.multiply(p_hat, (1.0 - m_hat)))
-                score_a = - np.divide(d_test, p_hat)
+                psi_a = - np.divide(d_test, p_hat)
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y_test, d_test,
+            psi_a, psi_b = self.inf_model(y_test, d_test,
                                               g_hat0, g_hat1, m_hat, smpls)
 
-        return score_a, score_b
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         inf_model = self.inf_model

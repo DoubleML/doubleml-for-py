@@ -145,17 +145,17 @@ class DoubleMLIIVM(DoubleML):
         self._check_inf_method(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'LATE':
-                score_b = g_hat1 - g_hat0 \
+                psi_b = g_hat1 - g_hat0 \
                                 + np.divide(np.multiply(z_test, u_hat1), m_hat) \
                                 - np.divide(np.multiply(1.0-z_test, u_hat0), 1.0 - m_hat)
-                score_a = -1*(r_hat1 - r_hat0 \
+                psi_a = -1*(r_hat1 - r_hat0 \
                                     + np.divide(np.multiply(z_test, w_hat1), m_hat) \
                                     - np.divide(np.multiply(1.0-z_test, w_hat0), 1.0 - m_hat))
         elif callable(self.inf_model):
-            score_a, score_b = self.inf_model(y_test, z_test, d_test,
+            psi_a, psi_b = self.inf_model(y_test, z_test, d_test,
                                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
-        return score_a, score_b
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
 

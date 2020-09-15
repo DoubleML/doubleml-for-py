@@ -93,16 +93,16 @@ class DoubleML(ABC):
         self._smpls = value
 
     @property
-    def score(self):
-        return self._score
+    def psi(self):
+        return self._psi
     
     @property 
-    def score_a(self):
-        return self._score_a
+    def psi_a(self):
+        return self._psi_a
     
     @property 
-    def score_b(self):
-        return self._score_b
+    def psi_b(self):
+        return self._psi_b
     
     @property 
     def coef(self):
@@ -158,28 +158,28 @@ class DoubleML(ABC):
         return self.smpls[self._i_rep]
 
     @property 
-    def __score(self):
-        return self._score[:, self._i_rep, self._i_treat]
+    def __psi(self):
+        return self._psi[:, self._i_rep, self._i_treat]
 
-    @__score.setter
-    def __score(self, value):
-        self._score[:, self._i_rep, self._i_treat] = value
+    @__psi.setter
+    def __psi(self, value):
+        self._psi[:, self._i_rep, self._i_treat] = value
 
     @property
-    def __score_a(self):
-        return self._score_a[:, self._i_rep, self._i_treat]
+    def __psi_a(self):
+        return self._psi_a[:, self._i_rep, self._i_treat]
 
-    @__score_a.setter
-    def __score_a(self, value):
-        self._score_a[:, self._i_rep, self._i_treat] = value
+    @__psi_a.setter
+    def __psi_a(self, value):
+        self._psi_a[:, self._i_rep, self._i_treat] = value
     
     @property 
-    def __score_b(self):
-        return self._score_b[:, self._i_rep, self._i_treat]
+    def __psi_b(self):
+        return self._psi_b[:, self._i_rep, self._i_treat]
 
-    @__score_b.setter
-    def __score_b(self, value):
-        self._score_b[:, self._i_rep, self._i_treat] = value
+    @__psi_b.setter
+    def __psi_b(self, value):
+        self._psi_b[:, self._i_rep, self._i_treat] = value
 
     @property
     def __boot_coef(self):
@@ -243,7 +243,7 @@ class DoubleML(ABC):
                     self._dml_data._set_x_d(self.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__score_a, self.__score_b = self._ml_nuisance_and_score_elements(self._dml_data, self.__smpls, n_jobs_cv)
+                self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self._dml_data, self.__smpls, n_jobs_cv)
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()
@@ -363,9 +363,9 @@ class DoubleML(ABC):
         pass
 
     def _initialize_arrays(self):
-        self._score = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._score_a = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._score_b = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi_a = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi_b = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
         
         self._coef = np.full(self.n_treat, np.nan)
         self._se = np.full(self.n_treat, np.nan)
@@ -465,14 +465,14 @@ class DoubleML(ABC):
         if dml_procedure == 'dml1':
             boot_coefs = np.full((n_rep, self.n_folds), np.nan)
             for idx, (_, test_index) in enumerate(smpls):
-                J = np.mean(self.__score_a[test_index])
-                boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__score[test_index]) / (
+                J = np.mean(self.__psi_a[test_index])
+                boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
                             len(test_index) * self.__all_se * J)
             boot_coef = np.mean(boot_coefs, axis=1)
 
         elif dml_procedure == 'dml2':
-            J = np.mean(self.__score_a)
-            boot_coef = np.matmul(weights, self.__score) / (self.n_obs * self.__all_se * J)
+            J = np.mean(self.__psi_a)
+            boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
 
         else:
             raise ValueError('invalid dml_procedure')
@@ -484,18 +484,18 @@ class DoubleML(ABC):
         """
         Estimate the standard errors of the structural parameter
         """
-        score_a = self.__score_a
-        score = self.__score
+        psi_a = self.__psi_a
+        psi = self.__psi
         
         if inds is not None:
-            score_a = score_a[inds]
-            score = score[inds]
+            psi_a = psi_a[inds]
+            psi = psi[inds]
         
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         n_obs = self.n_obs
-        J = np.mean(score_a)
-        sigma2_hat = 1/n_obs * np.mean(np.power(score, 2)) / np.power(J, 2)
+        J = np.mean(psi_a)
+        sigma2_hat = 1/n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
         
         return sigma2_hat    
         
@@ -503,22 +503,22 @@ class DoubleML(ABC):
         """
         Estimate the structural parameter
         """
-        score_a = self.__score_a
-        score_b = self.__score_b
+        psi_a = self.__psi_a
+        psi_b = self.__psi_b
         
         if inds is not None:
-            score_a = score_a[inds]
-            score_b = score_b[inds]
+            psi_a = psi_a[inds]
+            psi_b = psi_b[inds]
         
-        theta = -np.mean(score_b)/np.mean(score_a)
+        theta = -np.mean(psi_b)/np.mean(psi_a)
         
         return theta
     
     def _compute_score(self):
-        self.__score = self.__score_a * self.__all_coef + self.__score_b
+        self.__psi = self.__psi_a * self.__all_coef + self.__psi_b
 
     def _clean_scores(self):
-        del self._score
-        del self._score_a
-        del self._score_b
+        del self._psi
+        del self._psi_a
+        del self._psi_b
 
