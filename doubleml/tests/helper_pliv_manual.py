@@ -55,7 +55,7 @@ def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
     return theta_hat, se
     
 def var_pliv(theta, d, u_hat, v_hat, w_hat, score, n_obs):
-    if score == 'DML2018':
+    if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, w_hat)), 2) * \
               np.mean(np.power(np.multiply(u_hat - w_hat*theta, v_hat), 2))
     else:
@@ -64,7 +64,7 @@ def var_pliv(theta, d, u_hat, v_hat, w_hat, score, n_obs):
     return var
 
 def pliv_orth(u_hat, v_hat, w_hat, D, inf_model):
-    if inf_model == 'DML2018':
+    if inf_model == 'partialling out':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, w_hat))
     else:
       raise ValueError('invalid inf_model')
@@ -82,14 +82,14 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstr
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
         if dml_procedure == 'dml1':
-            if inf_model == 'DML2018':
+            if inf_model == 'partialling out':
                 J[idx] = np.mean(-np.multiply(v_hat[test_index], w_hat[test_index]))
 
     if dml_procedure == 'dml2':
-        if inf_model == 'DML2018':
+        if inf_model == 'partialling out':
             J = np.mean(-np.multiply(v_hat, w_hat))
 
-    if inf_model == 'DML2018':
+    if inf_model == 'partialling out':
         score = np.multiply(u_hat - w_hat*theta, v_hat)
     else:
         raise ValueError('invalid score')

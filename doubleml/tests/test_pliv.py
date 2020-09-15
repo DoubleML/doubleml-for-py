@@ -32,7 +32,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['DML2018'])
+                params = ['partialling out'])
 def inf_model(request):
     return request.param
 

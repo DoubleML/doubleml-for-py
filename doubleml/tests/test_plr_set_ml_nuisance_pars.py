@@ -20,7 +20,7 @@ def idx(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'DML2018'])
+                params = ['IV-type', 'partialling out'])
 def inf_model(request):
     return request.param
 
