@@ -54,12 +54,12 @@ def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, inf_model):
     
     return theta_hat, se
     
-def var_pliv(theta, d, u_hat, v_hat, w_hat, se_type, n_obs):
-    if se_type == 'DML2018':
+def var_pliv(theta, d, u_hat, v_hat, w_hat, score, n_obs):
+    if score == 'DML2018':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, w_hat)), 2) * \
               np.mean(np.power(np.multiply(u_hat - w_hat*theta, v_hat), 2))
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid score')
     
     return var
 
@@ -92,7 +92,7 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, inf_model, se, bootstr
     if inf_model == 'DML2018':
         score = np.multiply(u_hat - w_hat*theta, v_hat)
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid score')
     
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)

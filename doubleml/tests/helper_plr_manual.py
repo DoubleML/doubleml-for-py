@@ -58,15 +58,15 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, inf_model):
     
     return theta_hat, se
     
-def var_plr(theta, d, u_hat, v_hat, se_type, n_obs):
-    if se_type == 'DML2018':
+def var_plr(theta, d, u_hat, v_hat, score, n_obs):
+    if score == 'DML2018':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
               np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
-    elif se_type == 'IV-type':
+    elif score == 'IV-type':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
               np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid score')
     
     return var
 
@@ -103,7 +103,7 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, inf_model, se, bootstrap, n_rep, 
     elif inf_model == 'IV-type':
         score = np.multiply(u_hat - D * theta, v_hat)
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid score')
 
     n_obs = len(score)
     boot_theta = np.zeros(n_rep)

@@ -92,8 +92,8 @@ def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, inf_mode
     
     return theta_hat, se
     
-def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, se_type, n_obs):
-    if se_type == 'LATE':
+def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, score, n_obs):
+    if score == 'LATE':
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
                             + np.divide(np.multiply(Z, u_hat1), m_hat) \
                             - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat) \
@@ -104,7 +104,7 @@ def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat
                                 + np.divide(np.multiply(Z, w_hat1), m_hat) \
                                 - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)
     else:
-        raise ValueError('invalid se_type')
+        raise ValueError('invalid score')
     
     return var
 
