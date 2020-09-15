@@ -61,7 +61,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(X, y, d)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
-                                  ml_learners,
+                                  ml_g,
+                                  ml_m,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)

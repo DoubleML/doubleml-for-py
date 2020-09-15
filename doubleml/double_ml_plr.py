@@ -50,7 +50,8 @@ class DoubleMLPLR(DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_learners,
+                 ml_g,
+                 ml_m,
                  n_folds=5,
                  n_rep_cross_fit=1,
                  score='partialling out',
@@ -58,13 +59,14 @@ class DoubleMLPLR(DoubleML):
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
-                         ml_learners,
                          n_folds,
                          n_rep_cross_fit,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+        self.ml_g = ml_g
+        self.ml_m = ml_m
         self._g_params = None
         self._m_params = None
 
@@ -85,18 +87,15 @@ class DoubleMLPLR(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        ml_g = self.ml_learners['ml_g']
-        ml_m = self.ml_learners['ml_m']
-        
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
                                        est_params=self._g_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
                                        est_params=self._m_params)
 
         if self.apply_cross_fitting:
@@ -127,9 +126,6 @@ class DoubleMLPLR(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        ml_g = self.ml_learners['ml_g']
-        ml_m = self.ml_learners['ml_m']
-
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
 
@@ -143,14 +139,14 @@ class DoubleMLPLR(DoubleML):
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_g
             g_tune_resampling = KFold(n_splits=n_folds_tune)
-            g_grid_search = GridSearchCV(ml_g, param_grids['param_grid_g'],
+            g_grid_search = GridSearchCV(self.ml_g, param_grids['param_grid_g'],
                                          scoring=scoring_methods['scoring_methods_g'],
                                          cv=g_tune_resampling)
             g_tune_res[idx] = g_grid_search.fit(X[train_index, :], y[train_index])
 
             # cv for ml_m
             m_tune_resampling = KFold(n_splits=n_folds_tune)
-            m_grid_search = GridSearchCV(ml_m, param_grids['param_grid_m'],
+            m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])

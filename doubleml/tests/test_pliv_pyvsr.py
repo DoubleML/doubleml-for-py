@@ -45,14 +45,16 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
     
     # Set machine learning methods for m & g
     learner = LinearRegression()
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner),
-                   'ml_r': clone(learner)}
+    ml_m = clone(learner)
+    ml_g = clone(learner)
+    ml_r = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_learners,
+                                    ml_g,
+                                    ml_m,
+                                    ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure)
 

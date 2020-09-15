@@ -59,13 +59,14 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep_cr
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner)}
+    ml_m = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_learners,
+                                  ml_m,
+                                  ml_g,
                                   n_folds,
                                   n_rep_cross_fit,
                                   score,

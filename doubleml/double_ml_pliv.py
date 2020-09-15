@@ -50,7 +50,9 @@ class DoubleMLPLIV(DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_learners,
+                 ml_g,
+                 ml_m,
+                 ml_r,
                  n_folds=5,
                  n_rep_cross_fit=1,
                  score='partialling out',
@@ -58,13 +60,15 @@ class DoubleMLPLIV(DoubleML):
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
-                         ml_learners,
                          n_folds,
                          n_rep_cross_fit,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+        self.ml_g = ml_g
+        self.ml_m = ml_m
+        self.ml_r = ml_r
         self._g_params = None
         self._m_params = None
         self._r_params = None
@@ -89,22 +93,18 @@ class DoubleMLPLIV(DoubleML):
         return
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        ml_g = self.ml_learners['ml_g']
-        ml_m = self.ml_learners['ml_m']
-        ml_r = self.ml_learners['ml_r']
-        
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
+        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
+        m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
         
         # nuisance r
-        r_hat = _dml_cross_val_predict(ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -135,10 +135,6 @@ class DoubleMLPLIV(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        ml_g = self.ml_learners['ml_g']
-        ml_m = self.ml_learners['ml_m']
-        ml_r = self.ml_learners['ml_r']
-
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
@@ -155,21 +151,21 @@ class DoubleMLPLIV(DoubleML):
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_g
             g_tune_resampling = KFold(n_splits=n_folds_tune)
-            g_grid_search = GridSearchCV(ml_g, param_grids['param_grid_g'],
+            g_grid_search = GridSearchCV(self.ml_g, param_grids['param_grid_g'],
                                          scoring=scoring_methods['scoring_methods_g'],
                                          cv=g_tune_resampling)
             g_tune_res[idx] = g_grid_search.fit(X[train_index, :], y[train_index])
 
             # cv for ml_m
             m_tune_resampling = KFold(n_splits=n_folds_tune)
-            m_grid_search = GridSearchCV(ml_m, param_grids['param_grid_m'],
+            m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
 
             # cv for ml_r
             r_tune_resampling = KFold(n_splits=n_folds_tune)
-            r_grid_search = GridSearchCV(ml_r, param_grids['param_grid_r'],
+            r_grid_search = GridSearchCV(self.ml_r, param_grids['param_grid_r'],
                                          scoring=scoring_methods['scoring_methods_r'],
                                          cv=r_tune_resampling)
             r_tune_res[idx] = r_grid_search.fit(X[train_index, :], d[train_index])

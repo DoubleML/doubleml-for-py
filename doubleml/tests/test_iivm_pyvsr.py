@@ -47,13 +47,15 @@ def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, score, dml_procedure):
     # Set machine learning methods for m & gg
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
     learner_reg = LinearRegression()
-    ml_learners = {'ml_m': clone(learner_classif),
-                   'ml_g': clone(learner_reg),
-                   'ml_r': clone(learner_classif)}
+    ml_m = clone(learner_classif)
+    ml_g = clone(learner_reg)
+    ml_r = clone(learner_classif)
 
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
-                                    ml_learners,
+                                    ml_g,
+                                    ml_m,
+                                    ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure)
 
