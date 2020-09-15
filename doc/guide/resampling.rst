@@ -63,13 +63,13 @@ is based on the observations of all other :math:`k-1` folds.
 The values of the two score function components
 :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0))`
 for each observation index :math:`i \in I_k` are computed and
-stored in the attributes ``score_a`` and ``score_b``.
+stored in the attributes ``psi_a`` and ``psi_b``.
 
 .. ipython:: python
 
     dml_plr_obj.fit()
-    print(dml_plr_obj.score_a[:5])
-    print(dml_plr_obj.score_b[:5])
+    print(dml_plr_obj.psi_a[:5])
+    print(dml_plr_obj.psi_b[:5])
 
 Repeated cross-fitting with :math:`K` folds and :math:`M` repetition
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -85,7 +85,7 @@ It results in :math:`M` random :math:`K`-fold partitions being drawn.
 
 For each of the :math:`M` partitions, the nuisance ML models are estimated and score functions computed as described
 in :ref:`k-fold-cross-fitting`.
-The resulting values of the score functions are stored in 3-dimensional arrays ``score_a`` and ``score_b``, where the
+The resulting values of the score functions are stored in 3-dimensional arrays ``psi_a`` and ``psi_b``, where the
 row index corresponds the observation index :math:`i \in [N] = \lbrace 1, \ldots, N]`
 and the column index to the partition :math:`m \in [M] = \lbrace 1, \ldots, M]`.
 The third dimension refers to the treatment variable and becomes non-singleton in case of multiple treatment variables.
@@ -97,8 +97,8 @@ The third dimension refers to the treatment variable and becomes non-singleton i
 .. ipython:: python
 
     dml_plr_obj.fit()
-    print(dml_plr_obj.score_a[:5, :, 0])
-    print(dml_plr_obj.score_b[:5, :, 0])
+    print(dml_plr_obj.psi_a[:5, :, 0])
+    print(dml_plr_obj.psi_b[:5, :, 0])
 
 We estimate the causal parameter :math:`\tilde{\theta}_{0,m}` for each of the :math:`M` partitions with a DML
 algorithm as described in :ref:`dml-algo`.
@@ -179,7 +179,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
     dml_plr_obj_external.fit()
     print(dml_plr_obj_external.summary)
     print(dml_plr_obj_external.n_obs)
-    print(dml_plr_obj_external.score.shape)
+    print(dml_plr_obj_external.psi.shape)
 
 Note, that in order to split data unevenly into train and test the interface to externally set the sample splitting
 via ``set_sample_splitting()`` needs to be applied, like for example:
@@ -197,5 +197,5 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
     dml_plr_obj_external.fit()
     print(dml_plr_obj_external.summary)
     print(dml_plr_obj_external.n_obs)
-    print(dml_plr_obj_external.score.shape)
+    print(dml_plr_obj_external.psi.shape)
 

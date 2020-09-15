@@ -105,9 +105,9 @@ Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is o
 
     def non_orth_score(y, d, g_hat, m_hat, smpls):
         u_hat = y - g_hat
-        score_a = -np.multiply(d, d)
-        score_b = np.multiply(d, u_hat)
-        return score_a, score_b
+        psi_a = -np.multiply(d, d)
+        psi_b = np.multiply(d, u_hat)
+        return psi_a, psi_b
 
     learner = RandomForestRegressor(max_depth=2, n_estimators=10)
     ml_learners = {'ml_m': clone(learner),

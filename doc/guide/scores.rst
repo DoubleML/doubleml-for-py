@@ -64,12 +64,12 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
     print(dml_plr_obj.coef)
 
 The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0)`
-are stored in the attributes ``score_a`` and ``score_b``.
-In the attribute ``score`` the values of the score function :math:`\psi(W_i; \tilde{\theta}_0, \hat{\eta}_0)` are stored.
+are stored in the attributes ``psi_a`` and ``psi_b``.
+In the attribute ``psi`` the values of the score function :math:`\psi(W_i; \tilde{\theta}_0, \hat{\eta}_0)` are stored.
 
 .. ipython:: python
 
-    print(dml_plr_obj.score[:5])
+    print(dml_plr_obj.psi[:5])
 
 Implemented Neyman orthogonal score functions
 +++++++++++++++++++++++++++++++++++++++++++++
@@ -78,9 +78,9 @@ Partially linear regression model (PLR)
 ***************************************
 
 For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` one can choose between
-``inf_method='IV-type'`` and ``inf_method='DML2018'``.
+``score='IV-type'`` and ``score='DML2018'``.
 
-``inf_method='IV-type'`` implements the score function:
+``score='IV-type'`` implements the score function:
 
 .. math::
 
@@ -98,7 +98,7 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
 
     \psi_b(W; \eta) &= (Y - g(X)) (D - m(X)).
 
-``inf_method='DML2018'`` implements the score function:
+``score='DML2018'`` implements the score function:
 
 .. math::
 
@@ -121,7 +121,7 @@ Partially linear IV regression model (PLIV)
 *******************************************
 
 For the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
-we employ for ``inf_method='DML2018'`` the score function:
+we employ for ``score='DML2018'`` the score function:
 
 .. math::
 
@@ -143,9 +143,9 @@ Interactive regression model (IRM)
 **********************************
 
 For the IRM model implemented in :class:`~doubleml.double_ml_irm.DoubleMLIRM` one can choose between
-``inf_method='ATE'`` and ``inf_method='ATTE'``.
+``score='ATE'`` and ``score='ATTE'``.
 
-``inf_method='ATE'`` implements the score function:
+``score='ATE'`` implements the score function:
 
 .. math::
 
@@ -161,7 +161,7 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
 
     \psi_b(W; \eta) &= g(1,X) - g(0,X) + \frac{D (Y - g(1,X))}{m(X)} - \frac{(1 - D)(Y - g(0,X))}{1 - m(x)}.
 
-``inf_method='ATTE'`` implements the score function:
+``score='ATTE'`` implements the score function:
 
 .. math::
 
@@ -182,9 +182,9 @@ Interactive IV model (IIVM)
 ***************************
 
 For the IIVM model implemented in :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
-we employ for ``inf_method='LATE'`` the score function:
+we employ for ``score='LATE'`` the score function:
 
-``inf_method='LATE'`` implements the score function:
+``score='LATE'`` implements the score function:
 
 .. math::
 
@@ -208,7 +208,7 @@ Specifying alternative score functions via callables
 
 Via callables user-written score functions can be used.
 For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` an alternative score function can be
-set via ``inf_method``.
+set via ``score``.
 Choose a callable object / function with signature ``score(y, d, g_hat, m_hat, smpls)`` which returns
 the two score components :math:`\psi_a()` and :math:`\psi_b()`.
 
@@ -224,9 +224,9 @@ can be obtained with
 
     def non_orth_score(y, d, g_hat, m_hat, smpls):
         u_hat = y - g_hat
-        score_a = -np.multiply(d, d)
-        score_b = np.multiply(d, u_hat)
-        return score_a, score_b
+        psi_a = -np.multiply(d, d)
+        psi_b = np.multiply(d, u_hat)
+        return psi_a, psi_b
 
 Use :class:`~doubleml.double_ml_plr.DoubleMLPLR` with ``inf_model=non_orth_score`` in order to obtain the estimator
 

@@ -90,12 +90,12 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 Let :math:`k(i) = \lbrace k: i \in I_k \rbrace`.
 The values of the score function :math:`(\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k(i)}))_{i \in [N]}`
-are stored in the attribute ``score``.
+are stored in the attribute ``psi``.
 
 
 .. ipython:: python
 
-    print(dml_plr_obj.score[:5])
+    print(dml_plr_obj.psi[:5])
 
 For the DML1 algorithm, the estimates for the different folds
 :math:`\check{\theta}_{0,k}``, :math:`k \in [K]` are stored in attribute ``_all_dml1_coef``.
