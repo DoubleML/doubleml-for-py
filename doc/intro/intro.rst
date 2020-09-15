@@ -53,10 +53,10 @@ where :math:`Y` is the outcome variable and :math:`D` is the policy variable of 
 The high-dimensional vector :math:`X = (X_1, \ldots, X_p)` consists of other confounding covariates,
 and :math:`\zeta` and :math:`V` are stochastic errors.
 
-DoubleMLData from pandas DataFrames
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DoubleMLData from dataframes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `DoubleMLData` class serves as data-backend and can be initialized from a dataframe by
+The ``DoubleMLData`` class serves as data-backend and can be initialized from a dataframe by
 specifying the column ``y_col='net_tfa'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'e401'``
 serving as treatment variable :math:`D` and the columns ``x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']``
 specifying the confounders.
@@ -96,8 +96,8 @@ specifying the confounders.
         > a=5
 
 
-DoubleMLData from numpy arrays
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DoubleMLData from arrays
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 To introduce the array interface we generate a data set consisting of confounding variables ``X``, an outcome
 variable ``y`` and a treatment variable ``d``
@@ -191,7 +191,7 @@ and for our simulated data from a sparse linear model we use a Lasso regression 
 Cross-fitting, DML algorithms and Neyman-orthogonal score functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When initializing the object for PLR models `DoubleMLPLR`, we can further set parameters specifying the
+When initializing the object for PLR models ``DoubleMLPLR``, we can further set parameters specifying the
 resampling: The number of folds used for cross-fitting ``n_folds`` (defaults to ``n_folds = 5``) as well as the number
 of repetitions when applying repeated cross-fitting ``n_rep_cross_fit`` (defaults to ``n_rep_cross_fit = 1``).
 Additionally, one can choose between the algorithms ``'dml1'`` and  ``'dml2'`` via ``dml_procedure``. Depending on the
@@ -200,7 +200,7 @@ causal model, one can further choose between different Neyman-orthogonal score /
 DoubleMLPLR: Double/debiased machine learning for partially linear regression models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We now initialize `DoubleMLPLR` objects for our examples using default parameters
+We now initialize ``DoubleMLPLR`` objects for our examples using default parameters
 
 
 .. tabs::
