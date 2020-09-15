@@ -68,7 +68,7 @@ class DoubleMLPLR(DoubleML):
         self._g_params = None
         self._m_params = None
 
-    def _check_inf_method(self, inf_model):
+    def _check_score(self, inf_model):
         if isinstance(inf_model, str):
             valid_inf_model = ['IV-type', 'DML2018']
             if inf_model not in valid_inf_model:
@@ -114,7 +114,7 @@ class DoubleMLPLR(DoubleML):
         v_hatd = np.multiply(v_hat, d_test)
 
         inf_model = self.inf_model
-        self._check_inf_method(inf_model)
+        self._check_score(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'IV-type':
                 psi_a = -v_hatd

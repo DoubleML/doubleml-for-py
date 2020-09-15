@@ -73,7 +73,7 @@ class DoubleMLIIVM(DoubleML):
         self._r0_params = None
         self._r1_params = None
 
-    def _check_inf_method(self, inf_model):
+    def _check_score(self, inf_model):
         if isinstance(inf_model, str):
             valid_inf_model = ['LATE']
             if inf_model not in valid_inf_model:
@@ -142,7 +142,7 @@ class DoubleMLIIVM(DoubleML):
         w_hat1 = d_test - r_hat1
 
         inf_model = self.inf_model
-        self._check_inf_method(inf_model)
+        self._check_score(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'LATE':
                 psi_b = g_hat1 - g_hat0 \

@@ -37,7 +37,7 @@ class DoubleML(ABC):
         self.apply_cross_fitting = apply_cross_fitting
 
         self.dml_procedure = dml_procedure
-        self.inf_model = self._check_inf_method(inf_model)
+        self.inf_model = self._check_score(inf_model)
 
         if not self.apply_cross_fitting:
             assert self.n_folds == 2
@@ -343,7 +343,7 @@ class DoubleML(ABC):
             self._ml_nuiscance_params = params
 
     @abstractmethod
-    def _check_inf_method(self, inf_method):
+    def _check_score(self, score):
         pass
 
     @abstractmethod

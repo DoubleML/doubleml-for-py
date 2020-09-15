@@ -70,7 +70,7 @@ class DoubleMLIRM(DoubleML):
         self._g1_params = None
         self._m_params = None
 
-    def _check_inf_method(self, inf_model):
+    def _check_score(self, inf_model):
         if isinstance(inf_model, str):
             valid_inf_model = ['ATE', 'ATTE']
             if inf_model not in valid_inf_model:
@@ -97,7 +97,7 @@ class DoubleMLIRM(DoubleML):
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         inf_model = self.inf_model
-        self._check_inf_method(inf_model)
+        self._check_score(inf_model)
 
         ml_g0 = clone(self.ml_learners['ml_g'])
         ml_g1 = clone(self.ml_learners['ml_g'])

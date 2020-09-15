@@ -69,7 +69,7 @@ class DoubleMLPLIV(DoubleML):
         self._m_params = None
         self._r_params = None
 
-    def _check_inf_method(self, inf_model):
+    def _check_score(self, inf_model):
         if isinstance(inf_model, str):
             valid_inf_model = ['DML2018']
             # check whether its worth implementing the IV_type as well
@@ -123,7 +123,7 @@ class DoubleMLPLIV(DoubleML):
         w_hat = d_test - r_hat
 
         inf_model = self.inf_model
-        self._check_inf_method(inf_model)
+        self._check_score(inf_model)
         if isinstance(self.inf_model, str):
             if inf_model == 'DML2018':
                 psi_a = -np.multiply(w_hat, v_hat)
