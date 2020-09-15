@@ -49,13 +49,12 @@ def dml_irm_pyvsr_fixture(generate_data_irm, idx, score, dml_procedure):
     # Set machine learning methods for m & g
     learner_classif = LogisticRegression(penalty='none', solver='newton-cg')
     learner_reg = LinearRegression()
-    ml_m = clone(learner_classif)
     ml_g = clone(learner_reg)
+    ml_m = clone(learner_classif)
 
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
-                                  ml_g,
-                                  ml_m,
+                                  ml_g, ml_m,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)

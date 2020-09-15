@@ -55,16 +55,14 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure):
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
-    ml_m = clone(learner[0])
     ml_g = clone(learner[1])
+    ml_m = clone(learner[0])
     ml_r = clone(learner[0])
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
-                                    ml_g,
-                                    ml_m,
-                                    ml_r,
+                                    ml_g, ml_m, ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure)
 
