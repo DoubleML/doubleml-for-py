@@ -63,8 +63,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
     all_train, all_test = export_smpl_split_to_r(dml_pliv_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
-    assert score == 'partialling out'
-    res_r = r_MLPLIV(r_dataframe, 'partialling-out', dml_procedure,
+    res_r = r_MLPLIV(r_dataframe, 'partialling out', dml_procedure,
                      all_train, all_test)
     print(res_r)
 
