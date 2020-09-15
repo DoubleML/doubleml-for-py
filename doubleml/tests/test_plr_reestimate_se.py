@@ -62,7 +62,8 @@ def dml2_plr_fixture(generate_data1, idx, learner, score):
 
     np.random.seed(3141)
     dml_plr_obj_reestimate_se = dml.DoubleMLPLR(obj_dml_data,
-                                                ml_learners,
+                                                ml_m,
+                                                ml_g,
                                                 n_folds,
                                                 score=score,
                                                 dml_procedure=dml_procedure)

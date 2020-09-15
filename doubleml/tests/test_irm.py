@@ -55,8 +55,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
     (X, y, d) = generate_data_irm[idx]
 
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(learner[0]),
-                   'ml_g': clone(learner[1])}
+    ml_m = clone(learner[0])
+    ml_g = clone(learner[1])
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(X, y, d)

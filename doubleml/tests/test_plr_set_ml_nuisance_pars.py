@@ -65,7 +65,8 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
     ml_g = clone(learner)
 
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
-                                              ml_learners,
+                                              ml_m,
+                                              ml_g,
                                               n_folds,
                                               score=score,
                                               dml_procedure=dml_procedure)
