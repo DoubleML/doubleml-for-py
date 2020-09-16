@@ -19,10 +19,11 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` 
     from sklearn.base import clone
 
     learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+    ml_m = clone(learner)
+    ml_g = clone(learner)
     data = make_plr_data()
     obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_m, ml_g)
     dml_plr_obj.fit()
     dml_plr_obj.summary
 
@@ -45,7 +46,9 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_pliv.DoubleMLPLIV.fit
     from sklearn.base import clone
 
     learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner), 'ml_r': clone(learner)}
+    ml_m = clone(learner)
+    ml_g = clone(learner)
+    ml_r = clone(learner)
     data = make_pliv_data()
     obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_col='z')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_learners)
@@ -69,8 +72,8 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` 
     from doubleml.datasets import make_irm_data
     from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-    ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=10),
-                   'ml_g': RandomForestRegressor(max_depth=2, n_estimators=10)}
+    ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
+    ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
     data = make_irm_data()
     obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_learners)
