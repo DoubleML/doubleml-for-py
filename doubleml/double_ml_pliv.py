@@ -42,7 +42,7 @@ class DoubleMLPLIV(DoubleML):
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
     >>> data = make_pliv_data()
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_col='z')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_pliv_obj.fit()
     >>> dml_pliv_obj.summary
@@ -148,13 +148,14 @@ class DoubleMLPLIV(DoubleML):
                 psi_a = -np.multiply(r_hat_tilde, r_hat)
                 psi_b = np.multiply(r_hat_tilde, g_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'not implemented'
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
                                               g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+        assert obj_dml_data.n_instr == 1, 'tuning not implemented for several instruments'
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
