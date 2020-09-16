@@ -69,12 +69,88 @@ class DoubleMLPLIV(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+        self.partialX = True
+        self.partialZ = False
         self.ml_g = ml_g
         self.ml_m = ml_m
         self.ml_r = ml_r
         self._g_params = None
         self._m_params = None
         self._r_params = None
+
+    @classmethod
+    def partialX(cls,
+                 obj_dml_data,
+                 ml_g,
+                 ml_m,
+                 ml_r,
+                 n_folds=5,
+                 n_rep_cross_fit=1,
+                 score='partialling out',
+                 dml_procedure='dml2',
+                 draw_sample_splitting=True,
+                 apply_cross_fitting=True):
+        obj = cls(obj_dml_data,
+                  ml_g,
+                  ml_m,
+                  ml_r,
+                  n_folds,
+                  n_rep_cross_fit,
+                  score,
+                  dml_procedure,
+                  draw_sample_splitting,
+                  apply_cross_fitting)
+        return obj
+
+    @classmethod
+    def partialZ(cls,
+                 obj_dml_data,
+                 ml_r,
+                 n_folds=5,
+                 n_rep_cross_fit=1,
+                 score='partialling out',
+                 dml_procedure='dml2',
+                 draw_sample_splitting=True,
+                 apply_cross_fitting=True):
+        obj = cls(obj_dml_data,
+                  None,
+                  None,
+                  ml_r,
+                  n_folds,
+                  n_rep_cross_fit,
+                  score,
+                  dml_procedure,
+                  draw_sample_splitting,
+                  apply_cross_fitting)
+        obj.partialX = False
+        obj.partialZ = True
+        return obj
+
+    @classmethod
+    def partialXZ(cls,
+                  obj_dml_data,
+                  ml_g,
+                  ml_m,
+                  ml_r,
+                  n_folds=5,
+                  n_rep_cross_fit=1,
+                  score='partialling out',
+                  dml_procedure='dml2',
+                  draw_sample_splitting=True,
+                  apply_cross_fitting=True):
+        obj = cls(obj_dml_data,
+                  ml_g,
+                  ml_m,
+                  ml_r,
+                  n_folds,
+                  n_rep_cross_fit,
+                  score,
+                  dml_procedure,
+                  draw_sample_splitting,
+                  apply_cross_fitting)
+        obj.partialX = True
+        obj.partialZ = True
+        return obj
 
     def _check_score(self, score):
         if isinstance(score, str):
