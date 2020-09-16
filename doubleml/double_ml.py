@@ -17,7 +17,6 @@ class DoubleML(ABC):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_learners,
                  n_folds,
                  n_rep_cross_fit,
                  score,
@@ -29,7 +28,6 @@ class DoubleML(ABC):
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
-        self.ml_learners = ml_learners
         self._ml_nuiscance_params = None
 
         self.n_folds = n_folds

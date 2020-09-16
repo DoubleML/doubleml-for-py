@@ -54,13 +54,13 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     d_cols = data.columns[data.columns.str.startswith('d')].tolist()
     
     # Set machine learning methods for m & g
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner)}
+    ml_g = clone(learner)
+    ml_m = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, X_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_learners,
+                                  ml_g, ml_m,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)

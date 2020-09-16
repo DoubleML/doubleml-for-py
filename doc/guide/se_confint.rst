@@ -38,46 +38,56 @@ An approximate confidence interval is given by
 As an example we consider a partially linear regression model (PLR)
 implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
-.. ipython:: python
+.. tabs::
 
-    import doubleml as dml
-    from doubleml.datasets import make_plr_data
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.base import clone
+    .. code-tab:: py
 
-    learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
-    data = make_plr_data()
-    obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
-    dml_plr_obj.fit()
+        import doubleml as dml
+        from doubleml.datasets import make_plr_data
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.base import clone
+
+        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+        data = make_plr_data()
+        obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
+        dml_plr_obj.fit()
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.coef)
+    .. code-tab:: py
+
+        print(dml_plr_obj.coef)
 
 The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``se`` attribute.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.se)
+    .. code-tab:: py
+
+        print(dml_plr_obj.se)
 
 Additionally, the value of the :math:`t`-statistic and the corresponding p-value are provided in the attributes
 ``t_stat`` and ``pval``.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.t_stat)
-    print(dml_plr_obj.pval)
+    .. code-tab:: py
+
+        print(dml_plr_obj.t_stat)
+        print(dml_plr_obj.pval)
 
 An overview of all these estimates, together with a 95 % confidence interval is stored in the attribute ``summary``.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.summary)
+    .. code-tab:: py
+
+        print(dml_plr_obj.summary)
 
 .. TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
 

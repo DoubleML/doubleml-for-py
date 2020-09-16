@@ -52,7 +52,9 @@ class DoubleMLIIVM(DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_learners,
+                 ml_g,
+                 ml_m,
+                 ml_r,
                  n_folds=5,
                  n_rep_cross_fit=1,
                  score='LATE',
@@ -60,13 +62,17 @@ class DoubleMLIIVM(DoubleML):
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
-                         ml_learners,
                          n_folds,
                          n_rep_cross_fit,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+        self.ml_g0 = clone(ml_g)
+        self.ml_g1 = clone(ml_g)
+        self.ml_m = ml_m
+        self.ml_r0 = clone(ml_r)
+        self.ml_r1 = clone(ml_r)
         self._g0_params = None
         self._g1_params = None
         self._m_params = None
@@ -99,13 +105,6 @@ class DoubleMLIIVM(DoubleML):
         return smpls_z0, smpls_z1
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-
-        ml_g0 = clone(self.ml_learners['ml_g'])
-        ml_g1 = clone(self.ml_learners['ml_g'])
-        ml_m = self.ml_learners['ml_m']
-        ml_r0 = clone(self.ml_learners['ml_r'])
-        ml_r1 = clone(self.ml_learners['ml_r'])
-        
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
@@ -114,15 +113,15 @@ class DoubleMLIIVM(DoubleML):
         smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
         
         # nuisance g
-        g_hat0 = _dml_cross_val_predict(ml_g0, X, y, smpls=smpls_z0, n_jobs=n_jobs_cv)
-        g_hat1 = _dml_cross_val_predict(ml_g1, X, y, smpls=smpls_z1, n_jobs=n_jobs_cv)
+        g_hat0 = _dml_cross_val_predict(self.ml_g0, X, y, smpls=smpls_z0, n_jobs=n_jobs_cv)
+        g_hat1 = _dml_cross_val_predict(self.ml_g1, X, y, smpls=smpls_z1, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(ml_m, X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
         
         # nuisance r
-        r_hat0 = _dml_cross_val_predict(ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
-        r_hat1 = _dml_cross_val_predict(ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        r_hat0 = _dml_cross_val_predict(self.ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        r_hat1 = _dml_cross_val_predict(self.ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
 
         if self.apply_cross_fitting:
             y_test = y
@@ -158,13 +157,6 @@ class DoubleMLIIVM(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-
-        ml_g0 = clone(self.ml_learners['ml_g'])
-        ml_g1 = clone(self.ml_learners['ml_g'])
-        ml_m = self.ml_learners['ml_m']
-        ml_r0 = clone(self.ml_learners['ml_r'])
-        ml_r1 = clone(self.ml_learners['ml_r'])
-
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
@@ -188,7 +180,7 @@ class DoubleMLIIVM(DoubleML):
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_g0
             g0_tune_resampling = KFold(n_splits=n_folds_tune)
-            g0_grid_search = GridSearchCV(ml_g0, param_grids['param_grid_g0'],
+            g0_grid_search = GridSearchCV(self.ml_g0, param_grids['param_grid_g0'],
                                          scoring=scoring_methods['scoring_methods_g0'],
                                          cv=g0_tune_resampling)
             train_index_z0 = smpls_z0[idx][0]
@@ -196,7 +188,7 @@ class DoubleMLIIVM(DoubleML):
 
             # cv for ml_g1
             g1_tune_resampling = KFold(n_splits=n_folds_tune)
-            g1_grid_search = GridSearchCV(ml_g1, param_grids['param_grid_g1'],
+            g1_grid_search = GridSearchCV(self.ml_g1, param_grids['param_grid_g1'],
                                          scoring=scoring_methods['scoring_methods_g1'],
                                          cv=g1_tune_resampling)
             train_index_z1 = smpls_z1[idx][0]
@@ -204,14 +196,14 @@ class DoubleMLIIVM(DoubleML):
 
             # cv for ml_m
             m_tune_resampling = KFold(n_splits=n_folds_tune)
-            m_grid_search = GridSearchCV(ml_m, param_grids['param_grid_m'],
+            m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
 
             # cv for ml_r0
             r0_tune_resampling = KFold(n_splits=n_folds_tune)
-            r0_grid_search = GridSearchCV(ml_r0, param_grids['param_grid_r0'],
+            r0_grid_search = GridSearchCV(self.ml_r0, param_grids['param_grid_r0'],
                                          scoring=scoring_methods['scoring_methods_r0'],
                                          cv=r0_tune_resampling)
             train_index_z0 = smpls_z0[idx][0]
@@ -219,7 +211,7 @@ class DoubleMLIIVM(DoubleML):
 
             # cv for ml_g1
             r1_tune_resampling = KFold(n_splits=n_folds_tune)
-            r1_grid_search = GridSearchCV(ml_r1, param_grids['param_grid_r1'],
+            r1_grid_search = GridSearchCV(self.ml_r1, param_grids['param_grid_r1'],
                                          scoring=scoring_methods['scoring_methods_r1'],
                                          cv=r1_tune_resampling)
             train_index_z1 = smpls_z1[idx][0]

@@ -24,33 +24,35 @@ The non-linear functions :math:`g()` and :math:`m()` are chosen as
 
     m(X_i) = \frac{\exp(X_{i3})}{1+\exp(X_{i3})}
 
-.. ipython:: python
+.. tabs::
 
-    import numpy as np
-    from scipy.linalg import toeplitz
+    .. code-tab:: py
 
-    def generate_data(n_obs, n_vars):
-        cov_mat = toeplitz([np.power(0.7, k) for k in range(n_vars)])
-        a_1 = 0.25
-        b_1 = 0.25
-        alpha = 0.5
-        x = np.random.multivariate_normal(np.zeros(n_vars), cov_mat, size=[n_obs,])
-        d = x[:,0] + a_1 * np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-            + np.random.standard_normal(size=[n_obs,])
-        y = alpha * d + np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-            + b_1 * x[:,2] + np.random.standard_normal(size=[n_obs,])
-        return x, y, d
+        >>> import numpy as np
+        >>> from scipy.linalg import toeplitz
 
-    np.random.seed(1234)
-    n_rep = 1000
-    n_obs = 500
-    n_vars = 20
+        >>> def generate_data(n_obs, n_vars):
+        >>>     cov_mat = toeplitz([np.power(0.7, k) for k in range(n_vars)])
+        >>>     a_1 = 0.25
+        >>>     b_1 = 0.25
+        >>>     alpha = 0.5
+        >>>     x = np.random.multivariate_normal(np.zeros(n_vars), cov_mat, size=[n_obs,])
+        >>>     d = x[:,0] + a_1 * np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
+        >>>         + np.random.standard_normal(size=[n_obs,])
+        >>>     y = alpha * d + np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
+        >>>         + b_1 * x[:,2] + np.random.standard_normal(size=[n_obs,])
+        >>>     return x, y, d
 
-    data = list()
+        >>> np.random.seed(1234)
+        >>> n_rep = 1000
+        >>> n_obs = 500
+        >>> n_vars = 20
 
-    for i_rep in range(n_rep):
-        (x, y, d) = generate_data(n_obs, n_vars)
-        data.append((x, y, d))
+        >>> data = list()
+
+        >>> for i_rep in range(n_rep):
+        >>>     (x, y, d) = generate_data(n_obs, n_vars)
+        >>>     data.append((x, y, d))
 
 
 OLS Estimation
@@ -58,30 +60,31 @@ OLS Estimation
 
 A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
-.. ipython:: python
+.. tabs::
 
-    from sklearn.linear_model import LinearRegression
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    sns.set()
-    colors = sns.color_palette()
+    .. code-tab:: py
 
-    def est_ols(y, X):
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
-        ols = LinearRegression(fit_intercept=False)
-        results = ols.fit(X, y)
-        theta = results.coef_
-        return theta
+        >>> from sklearn.linear_model import LinearRegression
+        >>> import matplotlib.pyplot as plt
+        >>> import seaborn as sns
+        >>> sns.set()
+        >>> colors = sns.color_palette()
 
-    theta_ols = np.zeros(n_rep)
-    for i_rep in range(n_rep):
-        (x, y, d) = data[i_rep]
-        theta_ols[i_rep] = est_ols(y, d)
+        >>> def est_ols(y, X):
+        >>>     if X.ndim == 1:
+        >>>         X = X.reshape(-1, 1)
+        >>>     ols = LinearRegression(fit_intercept=False)
+        >>>     results = ols.fit(X, y)
+        >>>     theta = results.coef_
+        >>>     return theta
 
-    ax = sns.kdeplot(theta_ols, shade=True, color=colors[0])
-    @savefig ols.png width=5in
-    ax.axvline(0.5, color='k', label='True theta');
+        >>> theta_ols = np.zeros(n_rep)
+        >>> for i_rep in range(n_rep):
+        >>>     (x, y, d) = data[i_rep]
+        >>>     theta_ols[i_rep] = est_ols(y, d)
+
+        >>> ax = sns.kdeplot(theta_ols, shade=True, color=colors[0])
+        >>> ax.axvline(0.5, color='k', label='True theta');
 
 
 Regularization Bias in Simple ML-Approaches
@@ -96,38 +99,39 @@ Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is o
 
     \hat{\theta} = \left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (Y_i - \hat{g}(X_i))
 
-.. ipython:: python
+.. tabs::
 
-    from doubleml import DoubleMLData
-    from doubleml import DoubleMLPLR
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.base import clone
+    .. code-tab:: py
 
-    def non_orth_score(y, d, g_hat, m_hat, smpls):
-        u_hat = y - g_hat
-        psi_a = -np.multiply(d, d)
-        psi_b = np.multiply(d, u_hat)
-        return psi_a, psi_b
+        >>> from doubleml import DoubleMLData
+        >>> from doubleml import DoubleMLPLR
+        >>> from sklearn.ensemble import RandomForestRegressor
+        >>> from sklearn.base import clone
 
-    learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    ml_learners = {'ml_m': clone(learner),
-                   'ml_g': clone(learner)}
+        >>> def non_orth_score(y, d, g_hat, m_hat, smpls):
+        >>>     u_hat = y - g_hat
+        >>>     psi_a = -np.multiply(d, d)
+        >>>     psi_b = np.multiply(d, u_hat)
+        >>>     return psi_a, psi_b
 
-    theta_nonorth = np.zeros(n_rep)
-    for i_rep in range(n_rep):
-        (x, y, d) = data[i_rep]
-        obj_dml_data = DoubleMLData.from_arrays(x, y, d)
-        obj_dml_plr_nonorth = DoubleMLPLR(obj_dml_data,
-                                          ml_learners,
-                                          n_folds=2,
-                                          apply_cross_fitting=False,
-                                          inf_model=non_orth_score)
-        obj_dml_plr_nonorth.fit()
-        theta_nonorth[i_rep] = obj_dml_plr_nonorth.coef[0]
+        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        >>> ml_m = clone(learner)
+        >>> ml_g = clone(learner)
 
-    ax = sns.kdeplot(theta_nonorth, shade=True, color=colors[1])
-    @savefig nonorth.png width=5in
-    ax.axvline(0.5, color='k', label='True theta');
+        >>> theta_nonorth = np.zeros(n_rep)
+        >>> for i_rep in range(n_rep):
+        >>>     (x, y, d) = data[i_rep]
+        >>>     obj_dml_data = DoubleMLData.from_arrays(x, y, d)
+        >>>     obj_dml_plr_nonorth = DoubleMLPLR(obj_dml_data,
+        >>>                                       ml_g, ml_m,
+        >>>                                       n_folds=2,
+        >>>                                       apply_cross_fitting=False,
+        >>>                                       score=non_orth_score)
+        >>>     obj_dml_plr_nonorth.fit()
+        >>>     theta_nonorth[i_rep] = obj_dml_plr_nonorth.coef[0]
+
+        >>> ax = sns.kdeplot(theta_nonorth, shade=True, color=colors[1])
+        >>> ax.axvline(0.5, color='k', label='True theta');
 
 The regularization bias in the simple ML-approach is caused by the slow convergence of :math:`\hat{\theta}`
 
@@ -159,22 +163,23 @@ We use the final estimate
 
     \check{\theta} = \left(\frac{1}{n} \sum_{i\in I} \hat{V}_i D_i\right)^{-1} \frac{1}{n} \sum_{i\in I} \hat{V}_i (Y_i - \hat{g}(X_i)).
 
-.. ipython:: python
+.. tabs::
 
-    theta_orth_nosplit = np.zeros(n_rep)
-    for i_rep in range(n_rep):
-        (x, y, d) = data[i_rep]
-        obj_dml_data = DoubleMLData.from_arrays(x, y, d)
-        obj_dml_plr_orth_nosplit = DoubleMLPLR(obj_dml_data,
-                                               ml_learners,
-                                               n_folds=1,
-                                               inf_model='IV-type')
-        obj_dml_plr_orth_nosplit.fit()
-        theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit.coef[0]
+    .. code-tab:: py
 
-    ax = sns.kdeplot(theta_orth_nosplit, shade=True, color=colors[2])
-    @savefig orth_nosplit.png width=5in
-    ax.axvline(0.5, color='k', label='True theta');
+        >>> theta_orth_nosplit = np.zeros(n_rep)
+        >>> for i_rep in range(n_rep):
+        >>>     (x, y, d) = data[i_rep]
+        >>>     obj_dml_data = DoubleMLData.from_arrays(x, y, d)
+        >>>     obj_dml_plr_orth_nosplit = DoubleMLPLR(obj_dml_data,
+        >>>                                            ml_g, ml_m,
+        >>>                                            n_folds=1,
+        >>>                                            score='IV-type')
+        >>>     obj_dml_plr_orth_nosplit.fit()
+        >>>     theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit.coef[0]
+
+        >>> ax = sns.kdeplot(theta_orth_nosplit, shade=True, color=colors[2])
+        >>> ax.axvline(0.5, color='k', label='True theta');
 
 If the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
@@ -188,22 +193,23 @@ Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}()` and
 data (training data) and estimate :math:`\check{\theta}` on the other part of the data (test data) overcomes the bias
 induced by overfitting. Cross-fitting performs well empirically.
 
-.. ipython:: python
+.. tabs::
 
-    theta_dml = np.zeros(n_rep)
-    for i_rep in range(n_rep):
-        (x, y, d) = data[i_rep]
-        obj_dml_data = DoubleMLData.from_arrays(x, y, d)
-        obj_dml_plr = DoubleMLPLR(obj_dml_data,
-                                  ml_learners,
-                                  n_folds=2,
-                                  inf_model='IV-type')
-        obj_dml_plr.fit()
-        theta_dml[i_rep] = obj_dml_plr.coef[0]
+    .. code-tab:: py
 
-        ax = sns.kdeplot(theta_dml, shade=True, color=colors[3])
-        @savefig orth.png width=5in
-        ax.axvline(0.5, color='k', label='True theta');
+        >>> theta_dml = np.zeros(n_rep)
+        >>> for i_rep in range(n_rep):
+        >>>     (x, y, d) = data[i_rep]
+        >>>     obj_dml_data = DoubleMLData.from_arrays(x, y, d)
+        >>>     obj_dml_plr = DoubleMLPLR(obj_dml_data,
+        >>>                               ml_g, ml_m,
+        >>>                               n_folds=2,
+        >>>                               score='IV-type')
+        >>>     obj_dml_plr.fit()
+        >>>     theta_dml[i_rep] = obj_dml_plr.coef[0]
+
+        >>>     ax = sns.kdeplot(theta_dml, shade=True, color=colors[3])
+        >>>     ax.axvline(0.5, color='k', label='True theta');
 
 Double/debiased machine learning
 ++++++++++++++++++++++++++++++++
@@ -234,13 +240,14 @@ vanishes asymptotically for many data generating processes.
 
 The third term :math:`c^*` vanishes in probability if sample splitting is applied.
 
-.. ipython:: python
+.. tabs::
 
-    ax = sns.kdeplot(theta_ols, shade=True)
-    sns.kdeplot(theta_nonorth, shade=True, ax=ax);
-    sns.kdeplot(theta_orth_nosplit, shade=True);
-    sns.kdeplot(theta_dml, shade=True);
-    labels = ['True Theta', 'OLS', 'Non-Orthogonal ML', 'Double ML (no Cross-Fitting)', 'Double ML with Cross-Fitting']
-    ax.axvline(0.5, color='k', label='True theta');
-    @savefig comparison.png width=5in
-    ax.legend(labels);
+    .. code-tab:: py
+
+        >>> ax = sns.kdeplot(theta_ols, shade=True)
+        >>> sns.kdeplot(theta_nonorth, shade=True, ax=ax);
+        >>> sns.kdeplot(theta_orth_nosplit, shade=True);
+        >>> sns.kdeplot(theta_dml, shade=True);
+        >>> labels = ['True Theta', 'OLS', 'Non-Orthogonal ML', 'Double ML (no Cross-Fitting)', 'Double ML with Cross-Fitting']
+        >>> ax.axvline(0.5, color='k', label='True theta');
+        >>> ax.legend(labels);

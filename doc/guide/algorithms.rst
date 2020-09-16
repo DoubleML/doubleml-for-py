@@ -66,41 +66,75 @@ As an example we consider a partially linear regression model (PLR)
 implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``dml_procedure='dml2'``.
 
-.. ipython:: python
+.. tabs::
 
-    import doubleml as dml
-    from doubleml.datasets import make_plr_data
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.base import clone
+    .. code-tab:: py
 
-    learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
-    data = make_plr_data()
-    obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners,
-                                  dml_procedure='dml1')
-    dml_plr_obj.fit()
+        >>> import doubleml as dml
+        >>> from doubleml.datasets import make_plr_data
+        >>> from sklearn.ensemble import RandomForestRegressor
+        >>> from sklearn.base import clone
+
+        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        >>> ml_g = clone(learner)
+        >>> ml_m = clone(learner)
+        >>> data = make_plr_data()
+        >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+        >>>                               ml_g, ml_m,
+        >>>                               dml_procedure='dml1')
+        >>> dml_plr_obj.fit()
+
+    .. code-tab:: r R
+
+        R
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.coef)
+    .. code-tab:: py
+
+        >>> print(dml_plr_obj.coef)
+        [0.64503734]
+
+    .. code-tab:: r R
+
+        R
 
 Let :math:`k(i) = \lbrace k: i \in I_k \rbrace`.
 The values of the score function :math:`(\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k(i)}))_{i \in [N]}`
 are stored in the attribute ``psi``.
 
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj.psi[:5])
+    .. code-tab:: py
+
+        >>> print(dml_plr_obj.psi[:5])
+        [[[ 1.45043738]]
+         [[-0.01066243]]
+         [[ 0.45144132]]
+         [[-0.00286757]]
+         [[-1.16424823]]]
+
+    .. code-tab:: r R
+
+        R
+
 
 For the DML1 algorithm, the estimates for the different folds
 :math:`\check{\theta}_{0,k}``, :math:`k \in [K]` are stored in attribute ``_all_dml1_coef``.
 
-.. ipython:: python
+.. tabs::
 
-    print(dml_plr_obj._all_dml1_coef)
+    .. code-tab:: py
+
+        >>> print(dml_plr_obj._all_dml1_coef)
+        [[[ 0.78812573  0.97564034  1.11185669 -0.01144584  0.36100978]]]
+
+    .. code-tab:: r R
+
+        R
 
