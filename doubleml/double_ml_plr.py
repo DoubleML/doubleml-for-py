@@ -85,7 +85,7 @@ class DoubleMLPLR(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.z_col is None
+        assert obj_dml_data.z_cols is None
         return
 
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):

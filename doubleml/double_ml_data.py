@@ -11,17 +11,17 @@ class DoubleMLData:
                  y_col,
                  d_cols,
                  x_cols=None,
-                 z_col=None):
+                 z_cols=None):
         self.data = data
         self.y_col = y_col
         self.d_cols = d_cols
-        self.z_col = z_col
+        self.z_cols = z_cols
         if x_cols is not None:
             self.x_cols = x_cols
         else:
-            # x_cols defaults to all columns but y_col, d_cols and z_col
-            if self.z_col is not None:
-                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_col))
+            # x_cols defaults to all columns but y_col, d_cols and z_cols
+            if self.z_cols is not None:
+                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_cols))
                 self.x_cols = [col for col in self.data.columns if col not in y_d_z]
             else:
                 y_d = set.union(set(self.y_col), set(self.d_cols))
@@ -38,7 +38,7 @@ class DoubleMLData:
                f'y_col: {self.y_col}\n' \
                f'd_cols: {self.d_cols}\n' \
                f'x_cols: {self.x_cols}\n' \
-               f'z_col: {self.z_col}\n' \
+               f'z_cols: {self.z_cols}\n' \
                f'data:\n {data_info}'
 
     @classmethod
@@ -46,12 +46,15 @@ class DoubleMLData:
         X = assure_2d_array(X)
         d = assure_2d_array(d)
 
-        # assert single y and z variable here
+        # assert single y variable here
         y_col = 'y'
         if z is None:
-            z_col = None
+            z_cols = None
         else:
-            z_col = 'z'
+            if z.shape[1] == 1:
+                z_cols = ['z']
+            else:
+                z_cols = [f'z{i + 1}' for i in np.arange(z.shape[1])]
 
         if d.shape[1] == 1:
             d_cols = ['d']
@@ -65,9 +68,9 @@ class DoubleMLData:
                                 columns=x_cols + [y_col] + d_cols)
         else:
             data = pd.DataFrame(np.column_stack((X, y, d, z)),
-                                columns=x_cols + [y_col] + d_cols + [z_col])
+                                columns=x_cols + [y_col] + d_cols + z_cols)
 
-        return cls(data, y_col, d_cols, x_cols, z_col)
+        return cls(data, y_col, d_cols, x_cols, z_cols)
 
     @property
     def x(self):
@@ -83,7 +86,7 @@ class DoubleMLData:
     
     @property
     def z(self):
-        if self.z_col is not None:
+        if self.z_cols is not None:
             return self._z.values
         else:
             return None
@@ -137,24 +140,24 @@ class DoubleMLData:
         self._y_col = value
     
     @property
-    def z_col(self):
-        return self._z_col
+    def z_cols(self):
+        return self._z_cols
     
-    @z_col.setter
-    def z_col(self, value):
+    @z_cols.setter
+    def z_cols(self, value):
         if value is not None:
             assert isinstance(value, str)
             assert value in self.all_variables
-            self._z_col = value
+            self._z_cols = value
         else:
-            self._z_col = None
+            self._z_cols = None
     
     def _set_y_z(self):
         self._y = self.data.loc[:, self.y_col]
-        if self.z_col is None:
+        if self.z_cols is None:
             self._z = None
         else:
-            self._z = self.data.loc[:, self.z_col]
+            self._z = self.data.loc[:, self.z_cols]
     
     def _set_x_d(self, treatment_var):
         assert treatment_var in self.d_cols
