@@ -303,10 +303,12 @@ class DoubleML(ABC):
 
     def tune(self,
              param_grids,
+             tune_on_folds=False,
              scoring_methods=None, # if None the estimator's score method is used
              n_folds_tune=5,
              n_jobs_cv=None,
              set_as_params=True):
+        assert tune_on_folds == True, 'not implemented'
 
         self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
         tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
