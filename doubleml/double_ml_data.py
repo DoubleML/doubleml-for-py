@@ -98,6 +98,10 @@ class DoubleMLData:
     @property 
     def n_treat(self):
         return len(self.d_cols)
+
+    @property
+    def n_instr(self):
+        return len(self.z_cols)
     
     @property 
     def n_obs(self):
@@ -146,8 +150,11 @@ class DoubleMLData:
     @z_cols.setter
     def z_cols(self, value):
         if value is not None:
-            assert isinstance(value, str)
-            assert value in self.all_variables
+            if isinstance(value, str):
+                value = [value]
+            if not isinstance(value, list):
+                raise TypeError('z_cols must be a list')
+            assert set(value).issubset(set(self.all_variables))
             self._z_cols = value
         else:
             self._z_cols = None

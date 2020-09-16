@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LinearRegression
 
 from .double_ml import DoubleML, DoubleMLData
 from .helper import _dml_cross_val_predict
@@ -96,41 +97,58 @@ class DoubleMLPLIV(DoubleML):
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
         g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
-        
+        if obj_dml_data.n_instr == 1:
+            # one instrument: just identified
+            X, z = check_X_y(X, obj_dml_data.z)
+            m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
+        else:
+            # several instruments: 2SLS
+            m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
+            for i_instr in range(obj_dml_data.n_instr):
+                X, this_z = check_X_y(X, obj_dml_data.z[:, i_instr])
+                m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv)
+
         # nuisance r
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
-            y_test = y
-            z_test = z
-            d_test = d
+            if obj_dml_data.n_instr == 1:
+                y_test = y
+                d_test = d
+                z_test = z
         else:
             # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            z_test = z[test_index]
-            d_test = d[test_index]
+            if obj_dml_data.n_instr == 1:
+                test_index = self.smpls[0][0][1]
+                y_test = y[test_index]
+                d_test = d[test_index]
+                z_test = z[test_index]
         
         # compute residuals
-        u_hat = y_test - g_hat
-        v_hat = z_test - m_hat
-        w_hat = d_test - r_hat
+        if obj_dml_data.n_instr == 1:
+            u_hat = y_test - g_hat
+            w_hat = d_test - r_hat
+            v_hat = z_test - m_hat
 
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            if score == 'partialling out':
+            if obj_dml_data.n_instr == 1:
                 psi_a = -np.multiply(w_hat, v_hat)
-            psi_b = np.multiply(v_hat, u_hat)
+                psi_b = np.multiply(v_hat, u_hat)
+            else:
+                reg = LinearRegression(fit_intercept=True).fit(m_hat, r_hat)
+                r_hat_tilde = reg.predict(m_hat)
+                psi_a = -np.multiply(r_hat_tilde, r_hat)
+                psi_b = np.multiply(r_hat_tilde, g_hat)
         elif callable(self.score):
+            assert obj_dml_data.n_instr == 1, 'not implemented'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
                                               g_hat, m_hat, r_hat, smpls)
 
