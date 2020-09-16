@@ -74,10 +74,11 @@ class DoubleMLPLIVselectZ(DoubleML):
     
     def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
         y = obj_dml_data.y
-        X, d = check_X_y(obj_dml_data.x, obj_dml_data.d)
+        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
+                          obj_dml_data.d)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv)
+        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -92,8 +93,8 @@ class DoubleMLPLIVselectZ(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(m_hat, d)
-            psi_b = np.multiply(m_hat, y)
+            psi_a = -np.multiply(m_hat, d_test)
+            psi_b = np.multiply(m_hat, y_test)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
             psi_a, psi_b = self.score(y_test, d_test,
@@ -102,7 +103,8 @@ class DoubleMLPLIVselectZ(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        X, d = check_X_y(obj_dml_data.x, obj_dml_data.d)
+        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
+                          obj_dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'scoring_methods_m': None}
@@ -115,7 +117,7 @@ class DoubleMLPLIVselectZ(DoubleML):
             m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
                                          cv=m_tune_resampling)
-            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])
+            m_tune_res[idx] = m_grid_search.fit(XZ[train_index, :], d[train_index])
 
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
