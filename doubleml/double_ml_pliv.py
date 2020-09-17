@@ -302,7 +302,7 @@ class DoubleMLPLIV(DoubleML):
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
 
-        return
+        return psi_a, psi_b
 
     def _ml_nuisance_tuning_partialX(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         assert obj_dml_data.n_instr == 1, 'tuning not implemented for several instruments'
