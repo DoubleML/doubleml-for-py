@@ -15,24 +15,19 @@ demonstrated in the following. We download the 401(k) data set.
     * In python we use :py:class:`pandas.DataFrame` and :py:class:`numpy.ndarray`.
     * In R we use
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> from doubleml.datasets import fetch_401K
+        from doubleml.datasets import fetch_401K
 
-        >>> # Load data
-        >>> df_401k = fetch_401K()
-        >>> df_401k.head(5)
-              nifa  net_tfa        tw  age      inc  ...  twoearn  e401  p401  pira  hown
-        0      0.0      0.0    4500.0   47   6765.0  ...        0     0     0     0     1
-        1   6215.0   1015.0   22390.0   36  28452.0  ...        0     0     0     0     1
-        2      0.0  -2000.0   -2000.0   37   3300.0  ...        0     0     0     0     0
-        3  15000.0  15000.0  155000.0   58  52590.0  ...        1     0     0     0     1
-        4      0.0      0.0   58000.0   32  21804.0  ...        0     0     0     0     1
-        [5 rows x 14 columns]
+        # Load data
+        df_401k = fetch_401K()
+        df_401k.head(5)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -65,32 +60,23 @@ specifying the confounders.
     * In python we use :py:class:`pandas.DataFrame`.
     * In R we use
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> from doubleml import DoubleMLData
+        from doubleml import DoubleMLData
 
-        >>> # Specify the data and the variables for the causal model
-        >>> obj_dml_data_401k = DoubleMLData(df_401k,
-        >>>                                  y_col='net_tfa',
-        >>>                                  d_cols='e401',
-        >>>                                  x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
-        >>>                                          'twoearn', 'db', 'pira', 'hown'])
-        >>> print(obj_dml_data_401k)
-        === DoubleMLData Object ===
-        y_col: net_tfa
-        d_cols: ['e401']
-        x_cols: ['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']
-        z_col: None
-        data:
-         <class 'pandas.core.frame.DataFrame'>
-        Int64Index: 9915 entries, 0 to 9914
-        Columns: 14 entries, nifa to hown
-        dtypes: float32(4), int8(10)
-        memory usage: 329.2 KB
+        # Specify the data and the variables for the causal model
+        obj_dml_data_401k = DoubleMLData(df_401k,
+                                         y_col='net_tfa',
+                                         d_cols='e401',
+                                         x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
+                                                 'twoearn', 'db', 'pira', 'hown'])
+        print(obj_dml_data_401k)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -106,48 +92,41 @@ variable ``y`` and a treatment variable ``d``
     * In python we use :py:class:`numpy.ndarray`.
     * In R we use
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> import numpy as np
+        import numpy as np
 
-        >>> # Generate data
-        >>> n_obs = 500
-        >>> n_vars = 100
-        >>> theta = 3
-        >>> X = np.random.normal(size=(n_obs, n_vars))
-        >>> d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
-        >>> y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+        # Generate data
+        n_obs = 500
+        n_vars = 100
+        theta = 3
+        X = np.random.normal(size=(n_obs, n_vars))
+        d = np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
+        y = theta * d + np.dot(X[:, :3], np.array([5, 5, 5])) + np.random.standard_normal(size=(n_obs,))
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
 
 To specify the data and the variables for the causal model from arrays we call
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> from doubleml import DoubleMLData
+        from doubleml import DoubleMLData
 
-        >>> obj_dml_data_sim = DoubleMLData.from_arrays(X, y, d)
-        >>> print(obj_dml_data_sim)
-        === DoubleMLData Object ===
-        y_col: y
-        d_cols: ['d']
-        x_cols: ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23', 'X24', 'X25', 'X26', 'X27', 'X28', 'X29', 'X30', 'X31', 'X32', 'X33', 'X34', 'X35', 'X36', 'X37', 'X38', 'X39', 'X40', 'X41', 'X42', 'X43', 'X44', 'X45', 'X46', 'X47', 'X48', 'X49', 'X50', 'X51', 'X52', 'X53', 'X54', 'X55', 'X56', 'X57', 'X58', 'X59', 'X60', 'X61', 'X62', 'X63', 'X64', 'X65', 'X66', 'X67', 'X68', 'X69', 'X70', 'X71', 'X72', 'X73', 'X74', 'X75', 'X76', 'X77', 'X78', 'X79', 'X80', 'X81', 'X82', 'X83', 'X84', 'X85', 'X86', 'X87', 'X88', 'X89', 'X90', 'X91', 'X92', 'X93', 'X94', 'X95', 'X96', 'X97', 'X98', 'X99', 'X100']
-        z_col: None
-        data:
-         <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 500 entries, 0 to 499
-        Columns: 102 entries, X1 to d
-        dtypes: float64(102)
-        memory usage: 398.6 KB
+        obj_dml_data_sim = DoubleMLData.from_arrays(X, y, d)
+        print(obj_dml_data_sim)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -167,23 +146,25 @@ and for our simulated data from a sparse linear model we use a Lasso regression 
     * In python the machine learners are implemented in :py:class:`~sklearn.ensemble.RandomForestRegressor` from :py:mod:`sklearn.ensemble` and :py:class:`~sklearn.linear_model.Lasso` from :py:mod:`sklearn.linear_model`.
     * In R we use
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> from sklearn.base import clone
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.linear_model import Lasso
+        from sklearn.base import clone
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.linear_model import Lasso
 
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=100)
-        >>> ml_learners_401k = {'ml_m': clone(learner),
-        >>>                     'ml_g': clone(learner)}
+        learner = RandomForestRegressor(max_depth=2, n_estimators=100)
+        ml_g_401k = clone(learner)
+        ml_m_401k = clone(learner)
 
-        >>> learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
-        >>> ml_learners_sim = {'ml_m': clone(learner),
-        >>>                    'ml_g': clone(learner)}
+        learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        ml_g_sim = clone(learner)
+        ml_m_sim = clone(learner)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -203,15 +184,17 @@ DoubleMLPLR: Double/debiased machine learning for partially linear regression mo
 We now initialize ``DoubleMLPLR`` objects for our examples using default parameters
 
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> from doubleml import DoubleMLPLR
-        >>> obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_learners_401k)
-        >>> obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_learners_sim)
+        from doubleml import DoubleMLPLR
+        obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_g_401k, ml_m_401k)
+        obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_g_sim, ml_m_sim)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -223,21 +206,19 @@ The models are estimated by calling the ``fit()`` method and we can inspect the 
 ``summary`` property.
 
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> obj_dml_plr_401k.fit()
-        >>> print(obj_dml_plr_401k.summary)
-                     coef   std err         t         P>|t|        2.5 %        97.5 %
-        e401  9842.765039  1367.591  7.197155  6.148165e-13  7162.335933  12523.194145
+        obj_dml_plr_401k.fit()
+        print(obj_dml_plr_401k.summary)
 
-        >>> obj_dml_plr_sim.fit()
-        >>> print(obj_dml_plr_sim.summary)
-               coef   std err          t  P>|t|    2.5 %    97.5 %
-        d  2.982792  0.061354  48.615984    0.0  2.86254  3.103044
+        obj_dml_plr_sim.fit()
+        print(obj_dml_plr_sim.summary)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5

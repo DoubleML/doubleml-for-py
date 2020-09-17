@@ -42,24 +42,26 @@ Implementation of the score function and the estimate of the causal parameter
 As an example we consider a partially linear regression model (PLR)
 implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_data
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
+        import doubleml as dml
+        from doubleml.datasets import make_plr_data
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.base import clone
 
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = clone(learner)
-        >>> ml_m = clone(learner)
-        >>> data = make_plr_data()
-        >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> dml_plr_obj.fit()
+        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        ml_g = clone(learner)
+        ml_m = clone(learner)
+        data = make_plr_data()
+        obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj.fit()
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -67,14 +69,15 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.coef)
-        [0.63162553]
+        print(dml_plr_obj.coef)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -83,18 +86,15 @@ The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` an
 are stored in the attributes ``psi_a`` and ``psi_b``.
 In the attribute ``psi`` the values of the score function :math:`\psi(W_i; \tilde{\theta}_0, \hat{\eta}_0)` are stored.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.psi[:5])
-        [[[ 0.31844323]]
-         [[ 0.34103659]]
-         [[-0.36340142]]
-         [[ 0.46526429]]
-         [[-0.12063995]]]
+        print(dml_plr_obj.psi[:5])
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -249,19 +249,21 @@ For example, the non-orthogonal score function
 
 can be obtained with
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> import numpy as np
+        import numpy as np
 
-        >>> def non_orth_score(y, d, g_hat, m_hat, smpls):
-        >>>     u_hat = y - g_hat
-        >>>     psi_a = -np.multiply(d, d)
-        >>>     psi_b = np.multiply(d, u_hat)
-        >>>     return psi_a, psi_b
+        def non_orth_score(y, d, g_hat, m_hat, smpls):
+            u_hat = y - g_hat
+            psi_a = -np.multiply(d, d)
+            psi_b = np.multiply(d, u_hat)
+            return psi_a, psi_b
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5

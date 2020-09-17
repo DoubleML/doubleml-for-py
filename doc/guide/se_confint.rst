@@ -38,24 +38,26 @@ An approximate confidence interval is given by
 As an example we consider a partially linear regression model (PLR)
 implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_data
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
+        import doubleml as dml
+        from doubleml.datasets import make_plr_data
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.base import clone
 
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = clone(learner)
-        >>> ml_m = clone(learner)
-        >>> data = make_plr_data()
-        >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> dml_plr_obj.fit()
+        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        ml_g = clone(learner)
+        ml_m = clone(learner)
+        data = make_plr_data()
+        obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj.fit()
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -63,28 +65,30 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.coef)
-        [0.47131134]
+        print(dml_plr_obj.coef)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
 
 The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``se`` attribute.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.se)
-        [0.08864033]
+        print(dml_plr_obj.se)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
@@ -92,31 +96,31 @@ The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``s
 Additionally, the value of the :math:`t`-statistic and the corresponding p-value are provided in the attributes
 ``t_stat`` and ``pval``.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.t_stat)
-        [5.3171206]
-        >>> print(dml_plr_obj.pval)
-        [1.05422201e-07]
+        print(dml_plr_obj.t_stat)
+        print(dml_plr_obj.pval)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
 
 An overview of all these estimates, together with a 95 % confidence interval is stored in the attribute ``summary``.
 
-.. tabs::
+.. tabbed:: Python
 
-    .. code-tab:: py
+    .. ipython:: python
 
-        >>> print(dml_plr_obj.summary)
-               coef  std err         t         P>|t|     2.5 %    97.5 %
-        d  0.471311  0.08864  5.317121  1.054222e-07  0.297579  0.645043
+        print(dml_plr_obj.summary)
 
-    .. code-tab:: r R
+.. tabbed:: R
+
+    .. code-block:: R
 
         > # R-code here
         > a=5
