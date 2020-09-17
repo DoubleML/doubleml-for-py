@@ -280,6 +280,28 @@ class DoubleMLPLIV(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_and_score_elements_partialXZ(self, obj_dml_data, smpls, n_jobs_cv):
+        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
+        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
+                          obj_dml_data.d)
+        X, d = check_X_y(X, obj_dml_data.d)
+
+        # nuisance g
+        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
+
+        # nuisance m
+        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
+
+        # nuisance r
+        m_hat_tilde = _dml_cross_val_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv)
+
+        score = self.score
+        self._check_score(score)
+        if isinstance(self.score, str):
+            psi_a = -np.multiply(m_hat_tilde, m_hat)
+            psi_b = np.multiply(m_hat_tilde, g_hat)
+        elif callable(self.score):
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
+
         return
 
     def _ml_nuisance_tuning_partialX(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
