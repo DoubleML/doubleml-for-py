@@ -122,6 +122,40 @@ def make_iivm_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_
 
     return data
 
+def make_pliv_CHS2015(n_samples, alpha=1., dim_x=200, dim_z=150):
+    assert dim_x >= dim_z
+    # see https://assets.aeaweb.org/asset-server/articles-attachments/aer/app/10505/P2015_1022_app.pdf
+    xx = np.random.multivariate_normal(np.zeros(2),
+                                       np.array([[1., 0.6], [0.6, 1.]]),
+                                       size=[n_samples, ])
+    epsilon = xx[:,0]
+    u = xx[:,1]
+
+    sigma = toeplitz([np.power(0.5, k) for k in range(1, dim_x + 1)])
+    X = np.random.multivariate_normal(np.zeros(dim_x),
+                                      sigma,
+                                      size=[n_samples, ])
+
+    I_z = np.eye(dim_z)
+    xi = np.random.multivariate_normal(np.zeros(dim_z),
+                                       0.25*I_z,
+                                       size=[n_samples, ])
+
+    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    gamma = beta
+    delta = [1 / (k**2) for k in range(1, dim_z + 1)]
+    Pi = np.hstack((I_z, np.zeros((dim_z, dim_x-dim_z))))
+
+    Z = np.dot(X, np.transpose(Pi)) + xi
+    D = np.dot(X, gamma) + np.dot(Z, delta) + u
+    Y = alpha * D + np.dot(X, beta) + epsilon
+
+    x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+    z_cols = [f'Z{i + 1}' for i in np.arange(dim_z)]
+    data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+                        columns=x_cols + ['y', 'd'] + z_cols)
+
+    return data
 
 def make_pliv_multiway_cluster_data(N, M, dim_X, **kwargs):
     # additional parameters specifiable via kwargs
