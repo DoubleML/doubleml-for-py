@@ -297,8 +297,8 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(m_hat_tilde, m_hat)
-            psi_b = np.multiply(m_hat_tilde, g_hat)
+            psi_a = -np.multiply(m_hat_tilde, (m_hat-m_hat_tilde))
+            psi_b = np.multiply((m_hat-m_hat_tilde), g_hat)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
 
