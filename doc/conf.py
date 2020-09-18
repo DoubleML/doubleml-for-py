@@ -44,6 +44,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_copybutton',
     'sphinx_panels',
+    'jupyter_sphinx.execute',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -90,3 +91,9 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
+
+# To execute R code via jupyter-execute one needs to install the R kernel for jupyter
+# https://github.com/IRkernel/IRkernel
+
+jupyter_execute_default_kernel = 'ir'
+jupyter_sphinx_linenos = True

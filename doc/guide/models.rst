@@ -31,10 +31,11 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` 
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 Partially linear IV regression model (PLIV)
