@@ -11,7 +11,8 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
+from doubleml.tests.helper_pliv_partial_xz_manual import pliv_partial_xz_dml1, pliv_partial_xz_dml2, \
+    fit_nuisance_pliv_partial_xz, boot_pliv_partial_xz
 
 
 # number of datasets per dgp
@@ -70,22 +71,22 @@ def dml_pliv_fixture(generate_data_pliv_partialXZ, idx, learner, score, dml_proc
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    z = data['z'].values
+    z = data.loc[:, Z_cols].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,
+    g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
                                             clone(learner), clone(learner), clone(learner),
                                             smpls)
     
     if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_dml1(y, X, d,
+        res_manual, se_manual = pliv_partial_xz_dml1(y, X, d,
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = pliv_dml2(y, X, d,
+        res_manual, se_manual = pliv_partial_xz_dml2(y, X, d,
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
@@ -98,7 +99,7 @@ def dml_pliv_fixture(generate_data_pliv_partialXZ, idx, learner, score, dml_proc
     
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = boot_pliv(res_manual,
+        boot_theta = boot_pliv_partial_xz(res_manual,
                                y, d,
                                z,
                                g_hat, m_hat, r_hat,
