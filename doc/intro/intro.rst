@@ -27,10 +27,11 @@ demonstrated in the following. We download the 401(k) data set.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Partially linear regression (PLR) models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,10 +77,11 @@ specifying the confounders.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 DoubleMLData from arrays
@@ -108,10 +110,11 @@ variable ``y`` and a treatment variable ``d``
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 To specify the data and the variables for the causal model from arrays we call
 
@@ -126,10 +129,11 @@ To specify the data and the variables for the causal model from arrays we call
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Estimate a causal model with double/debiased machine learning
 -------------------------------------------------------------
@@ -164,10 +168,11 @@ and for our simulated data from a sparse linear model we use a Lasso regression 
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Cross-fitting, DML algorithms and Neyman-orthogonal score functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -194,10 +199,11 @@ We now initialize ``DoubleMLPLR`` objects for our examples using default paramet
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Estimate double/debiased machine learning models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -218,7 +224,8 @@ The models are estimated by calling the ``fit()`` method and we can inspect the 
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)

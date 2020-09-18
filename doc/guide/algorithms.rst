@@ -85,9 +85,11 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        R
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -100,9 +102,11 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        R
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Let :math:`k(i) = \lbrace k: i \in I_k \rbrace`.
 The values of the score function :math:`(\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k(i)}))_{i \in [N]}`
@@ -117,9 +121,11 @@ are stored in the attribute ``psi``.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        R
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 For the DML1 algorithm, the estimates for the different folds
@@ -133,7 +139,9 @@ For the DML1 algorithm, the estimates for the different folds
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        R
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 

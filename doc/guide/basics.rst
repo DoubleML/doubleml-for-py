@@ -56,10 +56,11 @@ The non-linear functions :math:`g()` and :math:`m()` are chosen as
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 OLS Estimation
@@ -96,10 +97,11 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 Regularization Bias in Simple ML-Approaches
@@ -152,10 +154,11 @@ Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is o
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The regularization bias in the simple ML-approach is caused by the slow convergence of :math:`\hat{\theta}`
 
@@ -208,10 +211,11 @@ We use the final estimate
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 If the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
@@ -246,10 +250,11 @@ induced by overfitting. Cross-fitting performs well empirically.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Double/debiased machine learning
 ++++++++++++++++++++++++++++++++
@@ -295,7 +300,8 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)

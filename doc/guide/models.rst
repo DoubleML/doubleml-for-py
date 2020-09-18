@@ -70,10 +70,11 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_pliv.DoubleMLPLIV.fit
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 Interactive regression model (IRM)
@@ -104,10 +105,11 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` 
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 Interactive IV model (IIVM)
@@ -140,8 +142,9 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_iivm.DoubleMLIIVM.fit
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 

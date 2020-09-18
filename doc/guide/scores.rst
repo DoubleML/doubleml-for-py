@@ -61,10 +61,11 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -77,10 +78,11 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0)`
 are stored in the attributes ``psi_a`` and ``psi_b``.
@@ -94,10 +96,11 @@ In the attribute ``psi`` the values of the score function :math:`\psi(W_i; \tild
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 
 Implemented Neyman orthogonal score functions
@@ -263,10 +266,11 @@ can be obtained with
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Use :class:`~doubleml.double_ml_plr.DoubleMLPLR` with ``inf_model=non_orth_score`` in order to obtain the estimator
 

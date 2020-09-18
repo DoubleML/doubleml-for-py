@@ -57,10 +57,11 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -73,10 +74,11 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``se`` attribute.
 
@@ -88,10 +90,11 @@ The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``s
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 Additionally, the value of the :math:`t`-statistic and the corresponding p-value are provided in the attributes
 ``t_stat`` and ``pval``.
@@ -105,10 +108,11 @@ Additionally, the value of the :math:`t`-statistic and the corresponding p-value
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 An overview of all these estimates, together with a 95 % confidence interval is stored in the attribute ``summary``.
 
@@ -120,10 +124,11 @@ An overview of all these estimates, together with a 95 % confidence interval is 
 
 .. tabbed:: R
 
-    .. code-block:: R
+    .. jupyter-execute::
 
-        > # R-code here
-        > a=5
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
 
 .. TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
 
