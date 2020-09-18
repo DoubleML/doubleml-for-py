@@ -86,7 +86,7 @@ class DoubleMLIRM(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.z_col is None
+        assert obj_dml_data.z_cols is None
         assert obj_dml_data.n_treat == 1
         check_binary_vector(obj_dml_data.d, variable_name='d')
         return

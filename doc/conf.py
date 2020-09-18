@@ -42,8 +42,9 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.graphviz',
     'sphinx_gallery.gen_gallery',
-    'sphinx_tabs.tabs',
     'sphinx_copybutton',
+    'sphinx_panels',
+    'jupyter_sphinx.execute',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -64,7 +65,7 @@ autosummary_generate = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_book_theme'
+html_theme = 'pydata_sphinx_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -73,7 +74,7 @@ html_static_path = ['_static']
 
 # -- Extension configuration -------------------------------------------------
 
-copybutton_prompt_text = r'>>> |> '
+copybutton_prompt_text = r'In \[\d*\]: | {2,5}\.\.\.: | > '
 copybutton_prompt_is_regexp = True
 
 # config of sphinx gallery for examples
@@ -90,3 +91,9 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
 }
+
+# To execute R code via jupyter-execute one needs to install the R kernel for jupyter
+# https://github.com/IRkernel/IRkernel
+
+jupyter_execute_default_kernel = 'ir'
+jupyter_sphinx_linenos = True
