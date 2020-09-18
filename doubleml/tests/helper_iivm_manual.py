@@ -157,7 +157,7 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, scor
                           - np.divide(np.multiply(1. - Z, w_hat0), 1. - m_hat_all)))
 
     if score == 'LATE':
-        score = g_hat1_all - g_hat0_all \
+        psi = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
                 - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat_all) \
                 -theta*(r_hat1_all - r_hat0_all \
@@ -166,7 +166,7 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, scor
     else:
         raise ValueError('invalid score')
     
-    n_obs = len(score)
+    n_obs = len(psi)
     boot_theta = np.zeros(n_rep)
     if bootstrap == 'wild':
         # if method wild for unit test comparability draw all rv at one step
@@ -189,10 +189,10 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, scor
             this_boot_theta = np.zeros(n_folds)
             for idx, (train_index, test_index) in enumerate(smpls):
                 this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
-                                                           score[test_index] / J[idx]))
+                                                           psi[test_index] / J[idx]))
             boot_theta[i_rep] = np.mean(this_boot_theta)
         elif dml_procedure == 'dml2':
             boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                                    score / J))
+                                                    psi / J))
     
     return boot_theta

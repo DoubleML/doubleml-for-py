@@ -132,18 +132,18 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootst
             J = np.mean(-np.divide(D, p_hat_all))
     
     if score == 'ATE':
-        score = g_hat1_all - g_hat0_all \
+        psi = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(D, u_hat1), m_hat_all) \
                 - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat_all) - theta
     elif score == 'ATTE':
-        score = np.divide(np.multiply(D, u_hat0), p_hat_all) \
+        psi = np.divide(np.multiply(D, u_hat0), p_hat_all) \
                 - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
                             np.multiply(p_hat_all, (1.-m_hat_all))) \
                 - theta * np.divide(D, p_hat_all)
     else:
         raise ValueError('invalid score')
     
-    n_obs = len(score)
+    n_obs = len(psi)
     boot_theta = np.zeros(n_rep)
     if bootstrap == 'wild':
         # if method wild for unit test comparability draw all rv at one step
@@ -166,10 +166,10 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootst
             this_boot_theta = np.zeros(n_folds)
             for idx, (train_index, test_index) in enumerate(smpls):
                 this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
-                                                           score[test_index] / J[idx]))
+                                                           psi[test_index] / J[idx]))
             boot_theta[i_rep] = np.mean(this_boot_theta)
         elif dml_procedure == 'dml2':
             boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                                    score / J))
+                                                    psi / J))
     
     return boot_theta

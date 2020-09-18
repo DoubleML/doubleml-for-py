@@ -99,13 +99,13 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
             J = np.mean(-np.multiply(v_hat, D))
 
     if score == 'partialling out':
-        score = np.multiply(u_hat - v_hat * theta, v_hat)
+        psi = np.multiply(u_hat - v_hat * theta, v_hat)
     elif score == 'IV-type':
-        score = np.multiply(u_hat - D * theta, v_hat)
+        psi = np.multiply(u_hat - D * theta, v_hat)
     else:
         raise ValueError('invalid score')
 
-    n_obs = len(score)
+    n_obs = len(psi)
     boot_theta = np.zeros(n_rep)
     if bootstrap == 'wild':
         # if method wild for unit test comparability draw all rv at one step
@@ -128,10 +128,10 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
             this_boot_theta = np.zeros(n_folds)
             for idx, (train_index, test_index) in enumerate(smpls):
                 this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
-                                               score[test_index] / J[idx]))
+                                               psi[test_index] / J[idx]))
             boot_theta[i_rep] = np.mean(this_boot_theta)
         elif dml_procedure == 'dml2':
             boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                                    score / J))
+                                                    psi / J))
     
     return boot_theta

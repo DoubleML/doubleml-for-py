@@ -7,7 +7,7 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data
+from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
 def g(x):
@@ -173,3 +173,20 @@ def generate_data_iivm(request):
     
     return datasets
 
+
+@pytest.fixture(scope='session',
+                params=[500])
+def generate_data_pliv_partialXZ(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p
+    theta = 1.
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_pliv_CHS2015(N, alpha=theta)
+        datasets.append(data)
+
+    return datasets
