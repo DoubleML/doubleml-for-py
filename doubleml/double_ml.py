@@ -5,8 +5,6 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-import warnings
-
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
 
@@ -355,6 +353,10 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
+    def _initialize_ml_nuisance_params(self, params):
+        pass
+
+    @abstractmethod
     def _check_score(self, score):
         pass
 
@@ -404,6 +406,7 @@ class DoubleML(ABC):
         self.n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
         self._initialize_arrays()
+        self._initialize_ml_nuisance_params()
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure

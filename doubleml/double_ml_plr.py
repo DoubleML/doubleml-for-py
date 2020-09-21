@@ -69,8 +69,7 @@ class DoubleMLPLR(DoubleML):
                          apply_cross_fitting)
         self.ml_g = ml_g
         self.ml_m = ml_m
-        self._g_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+        self._initialize_ml_nuisance_params()
 
     @property
     def g_params(self):
@@ -186,6 +185,11 @@ class DoubleMLPLR(DoubleML):
                'tune_res': tune_res}
 
         return(res)
+
+    def _initialize_ml_nuisance_params(self):
+        self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g', 'ml_m']
