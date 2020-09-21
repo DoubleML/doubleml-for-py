@@ -12,7 +12,7 @@ import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr_with_params, boot_plr, \
-    tune_nuisance_plr
+    tune_nuisance_plr, fit_nuisance_plr
 
 
 # number of datasets per dgp
@@ -40,12 +40,15 @@ def learner_m(request):
 def score(request):
     return request.param
 
-
 @pytest.fixture(scope='module',
                 params = ['dml2'])
 def dml_procedure(request):
     return request.param
 
+@pytest.fixture(scope='module',
+                params = [True, False])
+def tune_on_folds(request):
+    return request.param
 
 def get_par_grid(learner):
     if learner.__class__ == Lasso:
@@ -56,7 +59,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner_g, learner_m, score, dml_procedure):
+def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
     # use different grids to have a better test coverage
     par_grid = {'param_grid_g': get_par_grid(learner_g),
                 'param_grid_m': get_par_grid(learner_m)}
@@ -67,7 +70,7 @@ def dml_plr_fixture(generate_data1, idx, learner_g, learner_m, score, dml_proced
     n_rep_boot = 502
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data2[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
@@ -84,7 +87,7 @@ def dml_plr_fixture(generate_data1, idx, learner_g, learner_m, score, dml_proced
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    res_tuning = dml_plr_obj.tune(par_grid, tune_on_folds=True, n_folds_tune=n_folds_tune)
+    res_tuning = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     # fit with tuned parameters
     dml_plr_obj.fit()
@@ -97,13 +100,25 @@ def dml_plr_fixture(generate_data1, idx, learner_g, learner_m, score, dml_proced
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
 
-    g_params, m_params = tune_nuisance_plr(y, X, d,
-                                           clone(learner_m), clone(learner_g), smpls, n_folds_tune,
-                                           par_grid['param_grid_g'], par_grid['param_grid_m'])
+    if tune_on_folds:
+        g_params, m_params = tune_nuisance_plr(y, X, d,
+                                               clone(learner_m), clone(learner_g), smpls, n_folds_tune,
+                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
 
-    g_hat, m_hat = fit_nuisance_plr_with_params(y, X, d,
-                                                clone(learner_m), clone(learner_g), smpls,
-                                                g_params, m_params)
+        g_hat, m_hat = fit_nuisance_plr_with_params(y, X, d,
+                                                    clone(learner_m), clone(learner_g), smpls,
+                                                    g_params, m_params)
+    else:
+        xx = [(np.arange(data.shape[0]), np.array([]))]
+        g_params, m_params = tune_nuisance_plr(y, X, d,
+                                               clone(learner_m), clone(learner_g), xx, n_folds_tune,
+                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+
+        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+                                        clone(learner_m).set_params(**m_params[0]),
+                                        clone(learner_g).set_params(**g_params[0]),
+                                        smpls)
+
 
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,

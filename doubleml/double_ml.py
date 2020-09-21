@@ -308,31 +308,45 @@ class DoubleML(ABC):
              n_folds_tune=5,
              n_jobs_cv=None,
              set_as_params=True):
-        assert tune_on_folds == True, 'not implemented'
 
-        tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
+        if tune_on_folds:
+            tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
+        else:
+            tuning_res = [None] * self.n_treat
 
         for i_d in range(self.n_treat):
             self._i_treat = i_d
-            nuiscance_params = [None] * self.n_rep_cross_fit
-            for i_rep in range(self.n_rep_cross_fit):
-                self._i_rep = i_rep
+            # this step could be skipped for the single treatment variable case
+            if self.n_treat > 1:
+                self._dml_data._set_x_d(self.d_cols[i_d])
 
-                # this step could be skipped for the single treatment variable case
-                if self.n_treat > 1:
-                    self._dml_data._set_x_d(self.d_cols[i_d])
+            if tune_on_folds:
+                nuiscance_params = [None] * self.n_rep_cross_fit
+                for i_rep in range(self.n_rep_cross_fit):
+                    self._i_rep = i_rep
 
-                # ml estimation of nuisance models and computation of score elements
-                res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
+                    # tune hyperparameters
+                    res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
+                                                   param_grids, scoring_methods,
+                                                   n_folds_tune,
+                                                   n_jobs_cv)
+
+                    tuning_res[i_rep][i_d] = res
+                    nuiscance_params[i_rep] = res['params']
+                for nuisance_model in nuiscance_params[0].keys():
+                    params = [x[nuisance_model] for x in nuiscance_params]
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+
+            else:
+                smpls = [(np.arange(self.n_obs), np.array([]))]
+                # tune hyperparameters
+                res = self._ml_nuisance_tuning(self._dml_data, smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
                                                n_jobs_cv)
-
-                tuning_res[i_rep][i_d] = res
-                nuiscance_params[i_rep] = res['params']
-            for nuisance_model in nuiscance_params[0].keys():
-                params = [x[nuisance_model] for x in nuiscance_params]
-                self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                tuning_res[i_d] = res
+                for nuisance_model in res['params'].keys():
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], res['params'][nuisance_model][0])
 
         return tuning_res
 
