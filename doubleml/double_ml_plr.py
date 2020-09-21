@@ -88,17 +88,9 @@ class DoubleMLPLR(DoubleML):
     def __g_params(self):
         return self._g_params[self.d_cols[self._i_treat]][self._i_rep]
 
-    @__g_params.setter
-    def __g_params(self, value):
-        self._g_params[self.d_cols[self._i_treat]][self._i_rep] = value
-
     @property
     def __m_params(self):
         return self._m_params[self.d_cols[self._i_treat]][self._i_rep]
-
-    @__m_params.setter
-    def __m_params(self, value):
-        self._m_params[self.d_cols[self._i_treat]][self._i_rep] = value
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -155,7 +147,7 @@ class DoubleMLPLR(DoubleML):
         
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, set_as_params):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
 
@@ -184,19 +176,14 @@ class DoubleMLPLR(DoubleML):
         g_best_params = [xx.best_params_ for xx in g_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'g_params': g_best_params,
-                  'm_params': m_best_params}
+        params = {'ml_g': g_best_params,
+                  'ml_m': m_best_params}
 
         tune_res = {'g_tune': g_tune_res,
                     'm_tune': m_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
-
-        if set_as_params:
-            # set params for self._i_rep and self._i_treat
-            self.__g_params = g_best_params
-            self.__m_params = m_best_params
 
         return(res)
 

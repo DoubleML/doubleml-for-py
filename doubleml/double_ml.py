@@ -312,10 +312,11 @@ class DoubleML(ABC):
 
         tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
 
-        for i_rep in range(self.n_rep_cross_fit):
-            self._i_rep = i_rep
-            for i_d in range(self.n_treat):
-                self._i_treat = i_d
+        for i_d in range(self.n_treat):
+            self._i_treat = i_d
+            nuiscance_params = [None] * self.n_rep_cross_fit
+            for i_rep in range(self.n_rep_cross_fit):
+                self._i_rep = i_rep
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -325,10 +326,13 @@ class DoubleML(ABC):
                 res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
-                                               n_jobs_cv,
-                                               set_as_params)
+                                               n_jobs_cv)
 
                 tuning_res[i_rep][i_d] = res
+                nuiscance_params[i_rep] = res['params']
+            for nuisance_model in nuiscance_params[0].keys():
+                params = [x[nuisance_model] for x in nuiscance_params]
+                self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
         return tuning_res
 
