@@ -69,8 +69,36 @@ class DoubleMLPLR(DoubleML):
                          apply_cross_fitting)
         self.ml_g = ml_g
         self.ml_m = ml_m
-        self._g_params = None
-        self._m_params = None
+        self._g_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+        self._m_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+
+    @property
+    def g_params(self):
+        return self._g_params
+
+    @property
+    def m_params(self):
+        return self._m_params
+
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
+    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
+    # self._i_rep, the index of the cross-fitting sample.
+
+    @property
+    def __g_params(self):
+        return self._g_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @__g_params.setter
+    def __g_params(self, value):
+        self._g_params[self.d_cols[self._i_treat]][self._i_rep] = value
+
+    @property
+    def __m_params(self):
+        return self._m_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @__m_params.setter
+    def __m_params(self, value):
+        self._m_params[self.d_cols[self._i_treat]][self._i_rep] = value
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -94,11 +122,11 @@ class DoubleMLPLR(DoubleML):
         
         # nuisance g
         g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self._g_params)
+                                       est_params=self.__g_params)
         
         # nuisance m
         m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self._m_params)
+                                       est_params=self.__m_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -127,7 +155,7 @@ class DoubleMLPLR(DoubleML):
         
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, set_as_params):
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
         X, d = check_X_y(X, obj_dml_data.d)
 
@@ -165,8 +193,30 @@ class DoubleMLPLR(DoubleML):
         res = {'params': params,
                'tune_res': tune_res}
 
+        if set_as_params:
+            # set params for self._i_rep and self._i_treat
+            self.__g_params = g_best_params
+            self.__m_params = m_best_params
+
         return(res)
 
-    def _set_ml_nuisance_params(self, params):
-        self._g_params = params['g_params']
-        self._m_params = params['m_params']
+    def set_ml_nuisance_params(self, learner, treat_var, params):
+        valid_learner = ['ml_g', 'ml_m']
+        if learner not in valid_learner:
+            raise ValueError('invalid nuisance learner' + learner +
+                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+        if treat_var not in self.d_cols:
+            raise ValueError('invalid treatment variable' + learner +
+                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
+
+        if isinstance(params, dict):
+            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+        else:
+            assert len(params) == self.n_rep_cross_fit
+            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            all_params = params
+
+        if learner == 'ml_g':
+            self._g_params[treat_var] = all_params
+        elif learner == 'ml_m':
+            self._m_params[treat_var] = all_params

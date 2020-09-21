@@ -233,8 +233,8 @@ class DoubleML(ABC):
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
 
-                if self._ml_nuiscance_params is not None:
-                    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
+                #if self._ml_nuiscance_params is not None:
+                #    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -310,8 +310,7 @@ class DoubleML(ABC):
              set_as_params=True):
         assert tune_on_folds == True, 'not implemented'
 
-        self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
-        tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
+        tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
 
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
@@ -326,21 +325,16 @@ class DoubleML(ABC):
                 res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
-                                               n_jobs_cv)
+                                               n_jobs_cv,
+                                               set_as_params)
 
                 tuning_res[i_rep][i_d] = res
-                self._ml_nuiscance_params[i_rep][i_d] = res['params']
 
         return tuning_res
 
+    @abstractmethod
     def set_ml_nuisance_params(self, params):
-        if isinstance(params, dict):
-            warnings.warn("Using the same (hyper-)parameters for all repeated cross-fits and treatment variables")
-            self._ml_nuiscance_params = [[params] * self.n_treat] * self.n_rep_cross_fit
-        else:
-            assert len(params) == self.n_rep_cross_fit
-            assert np.all(np.array([len(x) for x in params]) == self.n_treat)
-            self._ml_nuiscance_params = params
+        pass
 
     @abstractmethod
     def _check_score(self, score):
@@ -355,11 +349,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        pass
-
-    @abstractmethod
-    def _set_ml_nuisance_params(self, params):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, set_as_params):
         pass
 
     def _initialize_arrays(self):
