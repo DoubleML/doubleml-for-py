@@ -18,10 +18,12 @@ from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_pl
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
                 params = range(n_datasets))
 def idx(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params=[Lasso(),
@@ -29,32 +31,37 @@ def idx(request):
 def learner_g(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params=[Lasso(),
                         ElasticNet()])
 def learner_m(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params=['partialling out'])
 def score(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params = ['dml2'])
 def dml_procedure(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params = [True, False])
 def tune_on_folds(request):
     return request.param
 
+
 def get_par_grid(learner):
     if learner.__class__ == Lasso:
-        par_grid = {'alpha': np.linspace(0.05, .95, 20)}
+        par_grid = {'alpha': np.linspace(0.05, .95, 7)}
     elif learner.__class__ == ElasticNet:
-        par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 20)}
+        par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
     return par_grid
 
 
