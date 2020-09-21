@@ -190,3 +190,21 @@ def generate_data_pliv_partialXZ(request):
         datasets.append(data)
 
     return datasets
+
+
+@pytest.fixture(scope='session',
+                params=[500])
+def generate_data_pliv_partialX(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p
+    theta = 1.
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_pliv_CHS2015(N, alpha=theta, dim_z=5)
+        datasets.append(data)
+
+    return datasets
