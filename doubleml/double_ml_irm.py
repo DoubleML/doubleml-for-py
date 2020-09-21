@@ -69,9 +69,37 @@ class DoubleMLIRM(DoubleML):
         self.ml_g0 = clone(ml_g)
         self.ml_g1 = clone(ml_g)
         self.ml_m = ml_m
-        self._g0_params = None
-        self._g1_params = None
-        self._m_params = None
+        self._g0_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+        self._g1_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+        self._m_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+
+    @property
+    def g0_params(self):
+        return self._g0_params
+
+    @property
+    def g1_params(self):
+        return self._g1_params
+
+    @property
+    def m_params(self):
+        return self._m_params
+
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
+    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
+    # self._i_rep, the index of the cross-fitting sample.
+
+    @property
+    def __g0_params(self):
+        return self._g0_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @property
+    def __g1_params(self):
+        return self._g1_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @property
+    def __m_params(self):
+        return self._m_params[self.d_cols[self._i_treat]][self._i_rep]
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -202,9 +230,9 @@ class DoubleMLIRM(DoubleML):
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'g0_params': g0_best_params,
-                  'g1_params': g1_best_params,
-                  'm_params': m_best_params}
+        params = {'ml_g0': g0_best_params,
+                  'ml_g1': g1_best_params,
+                  'ml_m': m_best_params}
 
         tune_res = {'g0_tune': g0_tune_res,
                     'g1_tune': g1_tune_res,
@@ -213,10 +241,32 @@ class DoubleMLIRM(DoubleML):
         res = {'params': params,
                'tune_res': tune_res}
 
-        return(res)
+        return res
 
-    def _set_ml_nuisance_params(self, params):
-        self._g0_params = params['g0_params']
-        self._g1_params = params['g1_params']
-        self._m_params = params['m_params']
+    def _initialize_ml_nuisance_params(self):
+        self._g0_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._g1_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
 
+    def set_ml_nuisance_params(self, learner, treat_var, params):
+        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
+        if learner not in valid_learner:
+            raise ValueError('invalid nuisance learner' + learner +
+                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+        if treat_var not in self.d_cols:
+            raise ValueError('invalid treatment variable' + learner +
+                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
+
+        if isinstance(params, dict):
+            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+        else:
+            assert len(params) == self.n_rep_cross_fit
+            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            all_params = params
+
+        if learner == 'ml_g0':
+            self._g0_params[treat_var] = all_params
+        elif learner == 'ml_g1':
+            self._g1_params[treat_var] = all_params
+        elif learner == 'ml_m':
+            self._m_params[treat_var] = all_params
