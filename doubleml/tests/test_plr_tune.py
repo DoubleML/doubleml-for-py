@@ -6,8 +6,7 @@ import scipy
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
@@ -24,15 +23,20 @@ n_datasets = get_n_datasets()
 def idx(request):
     return request.param
 
-
 @pytest.fixture(scope='module',
-                params = [Lasso()])
-def learner(request):
+                params=[Lasso(),
+                        ElasticNet()])
+def learner_g(request):
     return request.param
 
+@pytest.fixture(scope='module',
+                params=[Lasso(),
+                        ElasticNet()])
+def learner_m(request):
+    return request.param
 
 @pytest.fixture(scope='module',
-                params = ['partialling out'])
+                params=['partialling out'])
 def score(request):
     return request.param
 
@@ -43,11 +47,19 @@ def dml_procedure(request):
     return request.param
 
 
+def get_par_grid(learner):
+    if learner.__class__ == Lasso:
+        par_grid = {'alpha': np.linspace(0.05, .95, 20)}
+    elif learner.__class__ == ElasticNet:
+        par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 20)}
+    return par_grid
+
+
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
+def dml_plr_fixture(generate_data1, idx, learner_g, learner_m, score, dml_procedure):
     # use different grids to have a better test coverage
-    par_grid = {'param_grid_g': {'alpha': np.linspace(0.05, 1., 20)},
-                'param_grid_m': {'alpha': np.linspace(0.05, .95, 20)}}
+    par_grid = {'param_grid_g': get_par_grid(learner_g),
+                'param_grid_m': get_par_grid(learner_m)}
     n_folds_tune = 4
 
     boot_methods = ['normal']
@@ -59,8 +71,8 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    ml_g = clone(learner_g)
+    ml_m = clone(learner_m)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
@@ -86,11 +98,11 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
     smpls = [(train, test) for train, test in resampling.split(X)]
 
     g_params, m_params = tune_nuisance_plr(y, X, d,
-                                           clone(learner), clone(learner), smpls, n_folds_tune,
+                                           clone(learner_m), clone(learner_g), smpls, n_folds_tune,
                                            par_grid['param_grid_g'], par_grid['param_grid_m'])
 
     g_hat, m_hat = fit_nuisance_plr_with_params(y, X, d,
-                                                clone(learner), clone(learner), smpls,
+                                                clone(learner_m), clone(learner_g), smpls,
                                                 g_params, m_params)
 
     if dml_procedure == 'dml1':
