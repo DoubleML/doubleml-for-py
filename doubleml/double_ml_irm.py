@@ -218,8 +218,6 @@ class DoubleMLIRM(DoubleML):
 
                 train_index_d1 = smpls_d1[idx][0]
                 g1_tune_res[idx] = g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1])
-            else:
-                g1_tune_res[idx] = {'best_params_': None}
 
             # cv for ml_m
             m_tune_resampling = KFold(n_splits=n_folds_tune)
@@ -229,12 +227,15 @@ class DoubleMLIRM(DoubleML):
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-
-        params = {'ml_g0': g0_best_params,
-                  'ml_g1': g1_best_params,
-                  'ml_m': m_best_params}
+        if score == 'ATTE':
+            params = {'ml_g0': g0_best_params,
+                      'ml_m': m_best_params}
+        else:
+            g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+            params = {'ml_g0': g0_best_params,
+                      'ml_g1': g1_best_params,
+                      'ml_m': m_best_params}
 
         tune_res = {'g0_tune': g0_tune_res,
                     'g1_tune': g1_tune_res,
