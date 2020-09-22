@@ -189,8 +189,7 @@ class DoubleMLIRM(DoubleML):
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
 
         if scoring_methods is None:
-            scoring_methods = {'scoring_methods_g0': None,
-                               'scoring_methods_g1': None,
+            scoring_methods = {'scoring_methods_g': None,
                                'scoring_methods_m': None}
 
         g0_tune_res = [None] * len(smpls)
@@ -200,9 +199,9 @@ class DoubleMLIRM(DoubleML):
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_g0
             g0_tune_resampling = KFold(n_splits=n_folds_tune)
-            g0_grid_search = GridSearchCV(self.ml_g0, param_grids['param_grid_g0'],
-                                         scoring=scoring_methods['scoring_methods_g0'],
-                                         cv=g0_tune_resampling)
+            g0_grid_search = GridSearchCV(self.ml_g0, param_grids['param_grid_g'],
+                                          scoring=scoring_methods['scoring_methods_g'],
+                                          cv=g0_tune_resampling)
 
             train_index_d0 = smpls_d0[idx][0]
             g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
@@ -210,8 +209,8 @@ class DoubleMLIRM(DoubleML):
             if score == 'ATE':
                 # cv for ml_g1
                 g1_tune_resampling = KFold(n_splits=n_folds_tune)
-                g1_grid_search = GridSearchCV(self.ml_g1, param_grids['param_grid_g1'],
-                                              scoring=scoring_methods['scoring_methods_g1'],
+                g1_grid_search = GridSearchCV(self.ml_g1, param_grids['param_grid_g'],
+                                              scoring=scoring_methods['scoring_methods_g'],
                                               cv=g1_tune_resampling)
 
                 train_index_d1 = smpls_d1[idx][0]
