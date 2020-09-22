@@ -1,33 +1,102 @@
 import numpy as np
+from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.base import clone
 
 
-def fit_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
+def fit_nuisance_iivm(Y, X, D, Z, learner_m, learner_g, learner_r, smpls,
+                      g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None):
+    ml_g0 = clone(learner_g)
     g_hat0 = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        train_index0 =np.intersect1d(np.where(Z==0)[0], train_index)
-        g_hat0.append(ml_g.fit(X[train_index0], Y[train_index0]).predict(X[test_index]))
-    
+        if g0_params is not None:
+            ml_g0.set_params(**g0_params[idx])
+        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
+        g_hat0.append(ml_g0.fit(X[train_index0], Y[train_index0]).predict(X[test_index]))
+
+    ml_g1 = clone(learner_g)
     g_hat1 = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        train_index1 =np.intersect1d(np.where(Z==1)[0], train_index)
-        g_hat1.append(ml_g.fit(X[train_index1], Y[train_index1]).predict(X[test_index]))
-    
+        if g1_params is not None:
+            ml_g1.set_params(**g1_params[idx])
+        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
+        g_hat1.append(ml_g1.fit(X[train_index1], Y[train_index1]).predict(X[test_index]))
+
+    ml_m = clone(learner_m)
     m_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
+        if m_params is not None:
+            ml_m.set_params(**m_params[idx])
         m_hat.append(ml_m.fit(X[train_index], Z[train_index]).predict_proba(X[test_index])[:, 1])
-    
+
+    ml_r0 = clone(learner_r)
     r_hat0 = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        train_index0 =np.intersect1d(np.where(Z==0)[0], train_index)
-        r_hat0.append(ml_r.fit(X[train_index0], D[train_index0]).predict_proba(X[test_index])[:, 1])
-    
+        if r0_params is not None:
+            ml_r0.set_params(**r0_params[idx])
+        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
+        r_hat0.append(ml_r0.fit(X[train_index0], D[train_index0]).predict_proba(X[test_index])[:, 1])
+
+    ml_r1 = clone(learner_r)
     r_hat1 = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        train_index1 =np.intersect1d(np.where(Z==1)[0], train_index)
-        r_hat1.append(ml_r.fit(X[train_index1], D[train_index1]).predict_proba(X[test_index])[:, 1])
-    
-    
+        if r1_params is not None:
+            ml_r1.set_params(**r1_params[idx])
+        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
+        r_hat1.append(ml_r1.fit(X[train_index1], D[train_index1]).predict_proba(X[test_index])[:, 1])
+
     return g_hat0, g_hat1, m_hat, r_hat0, r_hat1
+
+
+def tune_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune,
+                       param_grid_g, param_grid_m, param_grid_r):
+    g0_tune_res = [None] * len(smpls)
+    g1_tune_res = [None] * len(smpls)
+    m_tune_res = [None] * len(smpls)
+    r0_tune_res = [None] * len(smpls)
+    r1_tune_res = [None] * len(smpls)
+
+    for idx, (train_index, test_index) in enumerate(smpls):
+        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
+        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
+
+        # cv for ml_g0
+        g0_tune_resampling = KFold(n_splits=n_folds_tune)
+        g0_grid_search = GridSearchCV(ml_g, param_grid_g,
+                                      cv=g0_tune_resampling)
+        g0_tune_res[idx] = g0_grid_search.fit(X[train_index0, :], Y[train_index0])
+
+        # cv for ml_g1
+        g1_tune_resampling = KFold(n_splits=n_folds_tune)
+        g1_grid_search = GridSearchCV(ml_g, param_grid_g,
+                                      cv=g1_tune_resampling)
+        g1_tune_res[idx] = g1_grid_search.fit(X[train_index1, :], Y[train_index1])
+
+        # cv for ml_m
+        m_tune_resampling = KFold(n_splits=n_folds_tune)
+        m_grid_search = GridSearchCV(ml_m, param_grid_m,
+                                     cv=m_tune_resampling)
+        m_tune_res[idx] = m_grid_search.fit(X[train_index, :], Z[train_index])
+
+        # cv for ml_r0
+        r0_tune_resampling = KFold(n_splits=n_folds_tune)
+        r0_grid_search = GridSearchCV(ml_r, param_grid_r,
+                                      cv=r0_tune_resampling)
+        r0_tune_res[idx] = r0_grid_search.fit(X[train_index0, :], D[train_index0])
+
+        # cv for ml_r1
+        r1_tune_resampling = KFold(n_splits=n_folds_tune)
+        r1_grid_search = GridSearchCV(ml_r, param_grid_r,
+                                      cv=r1_tune_resampling)
+        r1_tune_res[idx] = r1_grid_search.fit(X[train_index1, :], D[train_index1])
+
+    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+    r0_best_params = [xx.best_params_ for xx in r0_tune_res]
+    r1_best_params = [xx.best_params_ for xx in r1_tune_res]
+
+    return g0_best_params, g1_best_params, m_best_params, r0_best_params, r1_best_params
+
 
 def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     thetas = np.zeros(len(smpls))
