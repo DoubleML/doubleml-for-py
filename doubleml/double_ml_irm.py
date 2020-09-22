@@ -142,12 +142,15 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = _dml_cross_val_predict(self.ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv)
+        g_hat0 = _dml_cross_val_predict(self.ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                        est_params=self.__g0_params)
         if (score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cross_val_predict(self.ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv)
+            g_hat1 = _dml_cross_val_predict(self.ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                            est_params=self.__g1_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv)[:, 1]
+        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+                                       est_params=self.__m_params)[:, 1]
 
         if self.apply_cross_fitting:
             y_test = y
