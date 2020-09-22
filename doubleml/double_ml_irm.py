@@ -69,9 +69,7 @@ class DoubleMLIRM(DoubleML):
         self.ml_g0 = clone(ml_g)
         self.ml_g1 = clone(ml_g)
         self.ml_m = ml_m
-        self._g0_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
-        self._g1_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in obj_dml_data.d_cols}
+        self._initialize_ml_nuisance_params()
 
     @property
     def g0_params(self):
