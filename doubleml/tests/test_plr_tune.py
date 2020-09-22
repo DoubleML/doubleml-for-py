@@ -11,8 +11,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr_with_params, boot_plr, \
-    tune_nuisance_plr, fit_nuisance_plr
+from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
 
 
 # number of datasets per dgp
@@ -67,7 +66,6 @@ def get_par_grid(learner):
 
 @pytest.fixture(scope="module")
 def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
-    # use different grids to have a better test coverage
     par_grid = {'param_grid_g': get_par_grid(learner_g),
                 'param_grid_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -112,9 +110,9 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                                clone(learner_m), clone(learner_g), smpls, n_folds_tune,
                                                par_grid['param_grid_g'], par_grid['param_grid_m'])
 
-        g_hat, m_hat = fit_nuisance_plr_with_params(y, X, d,
-                                                    clone(learner_m), clone(learner_g), smpls,
-                                                    g_params, m_params)
+        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+                                        clone(learner_m), clone(learner_g), smpls,
+                                        g_params, m_params)
     else:
         xx = [(np.arange(data.shape[0]), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, X, d,

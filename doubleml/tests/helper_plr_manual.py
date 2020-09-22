@@ -1,29 +1,24 @@
 import numpy as np
 import scipy
 from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.base import clone
 
 
-def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
+def fit_nuisance_plr(Y, X, D, learner_m, learner_g, smpls, g_params=None, m_params=None):
+    ml_g = clone(learner_g)
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        g_hat.append(ml_g.fit(X[train_index],Y[train_index]).predict(X[test_index]))
-    
+        if g_params is not None:
+            ml_g.set_params(**g_params[idx])
+        g_hat.append(ml_g.fit(X[train_index], Y[train_index]).predict(X[test_index]))
+
+    ml_m = clone(learner_m)
     m_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        m_hat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
+        if m_params is not None:
+            ml_m.set_params(**m_params[idx])
+        m_hat.append(ml_m.fit(X[train_index], D[train_index]).predict(X[test_index]))
     
-    return g_hat, m_hat
-
-
-def fit_nuisance_plr_with_params(Y, X, D, ml_m, ml_g, smpls, g_params, m_params):
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        g_hat.append(ml_g.set_params(**g_params[idx]).fit(X[train_index], Y[train_index]).predict(X[test_index]))
-
-    m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        m_hat.append(ml_m.set_params(**m_params[idx]).fit(X[train_index], D[train_index]).predict(X[test_index]))
-
     return g_hat, m_hat
 
 
