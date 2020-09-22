@@ -3,7 +3,8 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
 
-def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score, g0_params=None, g1_params=None, m_params=None):
+def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
+                     g0_params=None, g1_params=None, m_params=None):
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
     g_hat0 = []
@@ -37,7 +38,8 @@ def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score, g0_params=None
     return g_hat0, g_hat1, m_hat, p_hat
 
 
-def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune, param_grid_g, param_grid_m):
+def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
+                      param_grid_g, param_grid_m):
     g0_tune_res = [None] * len(smpls)
     g1_tune_res = [None] * len(smpls)
     m_tune_res = [None] * len(smpls)
