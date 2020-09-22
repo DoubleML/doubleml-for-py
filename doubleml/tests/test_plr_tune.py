@@ -120,9 +120,9 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                                par_grid['param_grid_g'], par_grid['param_grid_m'])
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
-                                        clone(learner_m).set_params(**m_params[0]),
-                                        clone(learner_g).set_params(**g_params[0]),
-                                        smpls)
+                                        clone(learner_m), clone(learner_g),
+                                        smpls,
+                                        g_params * n_folds, m_params * n_folds)
 
 
     if dml_procedure == 'dml1':
