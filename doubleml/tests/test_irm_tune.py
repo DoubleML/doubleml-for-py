@@ -37,7 +37,7 @@ def learner_m(request):
 
 
 @pytest.fixture(scope='module',
-                params=['ATE'])
+                params=['ATE', 'ATTE'])
 def score(request):
     return request.param
 
@@ -113,11 +113,16 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
                                                            clone(learner_m), clone(learner_g), xx, score,
                                                            n_folds_tune,
                                                            par_grid['param_grid_g'], par_grid['param_grid_m'])
-
-        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
-                                                        clone(learner_m), clone(learner_g), smpls,
-                                                        score,
-                                                        g0_params * n_folds, g1_params * n_folds, m_params * n_folds)
+        if score == 'ATE':
+            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+                                                            clone(learner_m), clone(learner_g), smpls,
+                                                            score,
+                                                            g0_params * n_folds, g1_params * n_folds, m_params * n_folds)
+        elif score == 'ATTE':
+            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+                                                            clone(learner_m), clone(learner_g), smpls,
+                                                            score,
+                                                            g0_params * n_folds, None, m_params * n_folds)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(y, X, d,

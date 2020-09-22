@@ -65,7 +65,10 @@ def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune, param_gri
         m_tune_res[idx] = m_grid_search.fit(X[train_index, :], D[train_index])
 
     g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    if score == 'ATTE':
+        g1_best_params = None
+    else:
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g0_best_params, g1_best_params, m_best_params
