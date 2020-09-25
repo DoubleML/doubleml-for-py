@@ -214,22 +214,22 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
+            y_test = y
+            d_test = d
             if obj_dml_data.n_instr == 1:
-                y_test = y
-                d_test = d
                 z_test = z
         else:
             # the no cross-fitting case
+            test_index = self.smpls[0][0][1]
+            y_test = y[test_index]
+            d_test = d[test_index]
             if obj_dml_data.n_instr == 1:
-                test_index = self.smpls[0][0][1]
-                y_test = y[test_index]
-                d_test = d[test_index]
                 z_test = z[test_index]
         
         # compute residuals
+        u_hat = y_test - g_hat
+        w_hat = d_test - r_hat
         if obj_dml_data.n_instr == 1:
-            u_hat = y_test - g_hat
-            w_hat = d_test - r_hat
             v_hat = z_test - m_hat
 
         score = self.score
@@ -246,7 +246,7 @@ class DoubleMLPLIV(DoubleML):
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
-                                              g_hat, m_hat, r_hat, smpls)
+                                      g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
