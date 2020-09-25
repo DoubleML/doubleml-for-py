@@ -2,6 +2,7 @@ import numpy as np
 
 from doubleml.tests.helper_boot import boot_manual
 
+
 def fit_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -20,6 +21,7 @@ def fit_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     
     return g_hat, m_hat, m_hat_tilde
 
+
 def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
@@ -37,11 +39,12 @@ def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
         v_hat = m_hat[idx] - m_hat_tilde[idx]
         w_hat = D[test_index] - m_hat_tilde[idx]
         ses[idx] = var_pliv_partial_xz(theta_hat, D[test_index],
-                            u_hat, v_hat, w_hat,
-                            score, n_obs)
+                                       u_hat, v_hat, w_hat,
+                                       score, n_obs)
     se = np.sqrt(np.mean(ses))
     
     return theta_hat, se
+
 
 def pliv_partial_xz_dml2(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     thetas = np.zeros(len(smpls))
@@ -57,7 +60,8 @@ def pliv_partial_xz_dml2(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     se = np.sqrt(var_pliv_partial_xz(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
     
     return theta_hat, se
-    
+
+
 def var_pliv_partial_xz(theta, d, u_hat, v_hat, w_hat, score, n_obs):
     if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, w_hat)), 2) * \
@@ -67,6 +71,7 @@ def var_pliv_partial_xz(theta, d, u_hat, v_hat, w_hat, score, n_obs):
     
     return var
 
+
 def pliv_partial_xz_orth(u_hat, v_hat, w_hat, D, score):
     if score == 'partialling out':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, w_hat))
@@ -74,6 +79,7 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, D, score):
       raise ValueError('invalid score')
     
     return res
+
 
 def boot_pliv_partial_xz(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score, se, bootstrap, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
