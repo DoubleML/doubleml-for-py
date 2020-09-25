@@ -24,10 +24,8 @@ r_MLPLR = robjects.r('''
 
         f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
-            mlmethod <- list(mlmethod_m = 'regr.lm',
-                             mlmethod_g = 'regr.lm')
-            params <- list(params_m = list(),
-                           params_g = list())
+            mlmethod_m = 'regr.lm'
+            mlmethod_g = 'regr.lm'
             
             Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
@@ -35,8 +33,8 @@ r_MLPLR = robjects.r('''
             
             double_mlplr_obj = DoubleMLPLR$new(data_ml,
                                                n_folds = 2,
-                                               ml_learners = mlmethod,
-                                               params = params,
+                                               ml_g = mlmethod_g,
+                                               ml_m = mlmethod_m,
                                                dml_procedure = dml_procedure,
                                                score = score)
             
@@ -58,12 +56,9 @@ r_MLPLIV = robjects.r('''
 
         f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
-            mlmethod <- list(mlmethod_m = 'regr.lm',
-                             mlmethod_g = 'regr.lm',
-                             mlmethod_r = 'regr.lm')
-            params <- list(params_m = list(),
-                           params_g = list(),
-                           params_r = list())
+            mlmethod_g = 'regr.lm'
+            mlmethod_m = 'regr.lm'
+            mlmethod_r = 'regr.lm'
             
             Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
@@ -72,8 +67,9 @@ r_MLPLIV = robjects.r('''
             
             double_mlpliv_obj = DoubleMLPLIV$new(data_ml,
                                                  n_folds = 2,
-                                                 ml_learners = mlmethod,
-                                                 params = params,
+                                                 ml_g = mlmethod_g,
+                                                 ml_m = mlmethod_m,
+                                                 ml_r = mlmethod_r,
                                                  dml_procedure = dml_procedure,
                                                  score = score)
             
@@ -95,10 +91,8 @@ r_IRM = robjects.r('''
 
         f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
-            mlmethod <- list(mlmethod_m = 'classif.log_reg',
-                             mlmethod_g = 'regr.lm')
-            params <- list(params_m = list(),
-                           params_g = list())
+            mlmethod_g = 'regr.lm'
+            mlmethod_m = 'classif.log_reg'
             
             Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
@@ -106,8 +100,8 @@ r_IRM = robjects.r('''
             
             double_mlirm_obj = DoubleMLIRM$new(data_ml,
                                                n_folds = 2,
-                                               ml_learners = mlmethod,
-                                               params = params,
+                                               ml_g = mlmethod_g,
+                                               ml_m = mlmethod_m,
                                                dml_procedure = dml_procedure,
                                                score = score)
             
@@ -129,12 +123,9 @@ r_IIVM = robjects.r('''
 
         f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
-            mlmethod <- list(mlmethod_p = 'classif.log_reg',
-                             mlmethod_mu = 'regr.lm',
-                             mlmethod_m = 'classif.log_reg')
-            params <- list(params_p = list(),
-                           params_mu = list(),
-                           params_m = list())
+            mlmethod_p = 'classif.log_reg'
+            mlmethod_mu = 'regr.lm'
+            mlmethod_m = 'classif.log_reg'
             
             Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
@@ -143,8 +134,9 @@ r_IIVM = robjects.r('''
 
             double_mliivm_obj = DoubleMLIIVM$new(data_ml,
                                                  n_folds = 2,
-                                                 ml_learners = mlmethod,
-                                                 params = params,
+                                                 ml_p = mlmethod_p,
+                                                 ml_mu = mlmethod_mu,
+                                                 ml_m = mlmethod_m,
                                                  dml_procedure = dml_procedure,
                                                  score = score)
             
