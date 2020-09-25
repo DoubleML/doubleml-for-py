@@ -259,7 +259,7 @@ class DoubleMLPLIV(DoubleML):
                           obj_dml_data.d)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -273,8 +273,8 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(m_hat, d_test)
-            psi_b = np.multiply(m_hat, y_test)
+            psi_a = -np.multiply(r_hat, d_test)
+            psi_b = np.multiply(r_hat, y_test)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
