@@ -214,24 +214,27 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
-            if obj_dml_data.n_instr == 1:
-                y_test = y
-                d_test = d
-                z_test = z
+            y_test = y
+            d_test = d
+            z_test = obj_dml_data.z
         else:
             # the no cross-fitting case
-            if obj_dml_data.n_instr == 1:
-                test_index = self.smpls[0][0][1]
-                y_test = y[test_index]
-                d_test = d[test_index]
-                z_test = z[test_index]
+            test_index = self.smpls[0][0][1]
+            y_test = y[test_index]
+            d_test = d[test_index]
+            z_test = obj_dml_data.z[test_index]
         
         # compute residuals
-        if obj_dml_data.n_instr == 1:
-            u_hat = y_test - g_hat
-            w_hat = d_test - r_hat
-            v_hat = z_test - m_hat
+        u_hat = y_test - g_hat
+        w_hat = d_test - r_hat
+        v_hat = z_test - m_hat
 
+        if obj_dml_data.n_instr > 1:
+            assert self.apply_cross_fitting
+            # TODO check whether the no cross-fitting case can be supported here
+            # projection of r_hat on m_hat
+            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
+                                                 smpls=smpls, n_jobs=n_jobs_cv)
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
@@ -239,14 +242,12 @@ class DoubleMLPLIV(DoubleML):
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
             else:
-                reg = LinearRegression(fit_intercept=True).fit(m_hat, r_hat)
-                r_hat_tilde = reg.predict(m_hat)
-                psi_a = -np.multiply(r_hat_tilde, r_hat)
-                psi_b = np.multiply(r_hat_tilde, g_hat)
+                psi_a = -np.multiply(w_hat, r_hat_tilde)
+                psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
-                                              g_hat, m_hat, r_hat, smpls)
+                                      g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
@@ -256,7 +257,7 @@ class DoubleMLPLIV(DoubleML):
                           obj_dml_data.d)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -270,12 +271,10 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(m_hat, d_test)
-            psi_b = np.multiply(m_hat, y_test)
+            psi_a = -np.multiply(r_hat, d_test)
+            psi_b = np.multiply(r_hat, y_test)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
-            psi_a, psi_b = self.score(y_test, d_test,
-                                      m_hat, smpls)
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
         return psi_a, psi_b
 
@@ -313,7 +312,7 @@ class DoubleMLPLIV(DoubleML):
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialXZ'
 
         return psi_a, psi_b
 

@@ -7,7 +7,7 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data
+from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
 def g(x):
@@ -173,3 +173,91 @@ def generate_data_iivm(request):
     
     return datasets
 
+
+@pytest.fixture(scope='session',
+                params=[500])
+def generate_data_pliv_partialXZ(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p
+    theta = 1.
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_pliv_CHS2015(N, alpha=theta)
+        datasets.append(data)
+
+    return datasets
+
+
+@pytest.fixture(scope='session',
+                params=[500])
+def generate_data_pliv_partialX(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p
+    theta = 1.
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_pliv_CHS2015(N, alpha=theta, dim_z=5)
+        datasets.append(data)
+
+    return datasets
+
+@pytest.fixture(scope='session',
+                params=[500])
+def generate_data_pliv_partialZ(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p
+    theta = 1.
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_data_pliv_partialZ(N, alpha=theta, dim_x=5)
+        datasets.append(data)
+
+    return datasets
+
+
+def make_data_pliv_partialZ(n_samples, alpha=1., dim_x=5, dim_z=150):
+    xx = np.random.multivariate_normal(np.zeros(2),
+                                       np.array([[1., 0.6], [0.6, 1.]]),
+                                       size=[n_samples, ])
+    epsilon = xx[:,0]
+    u = xx[:,1]
+
+    sigma = toeplitz([np.power(0.5, k) for k in range(1, dim_x + 1)])
+    X = np.random.multivariate_normal(np.zeros(dim_x),
+                                      sigma,
+                                      size=[n_samples, ])
+
+    I_z = np.eye(dim_z)
+    xi = np.random.multivariate_normal(np.zeros(dim_z),
+                                       0.25*I_z,
+                                       size=[n_samples, ])
+
+    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    gamma = beta
+    delta = [1 / (k**2) for k in range(1, dim_z + 1)]
+
+    I_x = np.eye(dim_x)
+    Pi = np.hstack((I_x, np.zeros((dim_x, dim_z-dim_x))))
+    Z = np.dot(X, Pi) + xi
+
+    D = np.dot(X, gamma) + np.dot(Z, delta) + u
+    Y = alpha * D + np.dot(X, beta) + epsilon
+
+    x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+    z_cols = [f'Z{i + 1}' for i in np.arange(dim_z)]
+    data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+                        columns=x_cols + ['y', 'd'] + z_cols)
+
+    return data
