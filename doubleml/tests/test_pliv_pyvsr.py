@@ -96,6 +96,8 @@ def dml_pliv_partial_x_pyvsr_fixture(generate_data_pliv_partialX, idx, score, dm
     data = generate_data_pliv_partialX[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
+    X_cols = X_cols[0:100]  # no real ml-learner in UT, so keep dim low
+    data = data[X_cols + Z_cols + ['d', 'y']]
 
     # Set machine learning methods for g, m & r
     learner = LinearRegression()
@@ -149,6 +151,8 @@ def dml_pliv_partial_z_pyvsr_fixture(generate_data_pliv_partialZ, idx, score, dm
     data = generate_data_pliv_partialZ[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
+    Z_cols = Z_cols[0:50]  # no real ml-learner in UT, so keep dim low
+    data = data[X_cols + Z_cols + ['d', 'y']]
 
     # Set machine learning methods for g, m & r
     learner = LinearRegression()
@@ -199,6 +203,9 @@ def dml_pliv_partial_xz_pyvsr_fixture(generate_data_pliv_partialXZ, idx, score, 
     data = generate_data_pliv_partialXZ[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
+    X_cols = X_cols[0:100]  # no real ml-learner in UT, so keep dim low
+    Z_cols = Z_cols[0:50]  # no real ml-learner in UT, so keep dim low
+    data = data[X_cols + Z_cols + ['d', 'y']]
 
     # Set machine learning methods for g, m & r
     learner = LinearRegression()
