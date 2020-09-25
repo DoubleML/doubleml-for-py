@@ -241,8 +241,8 @@ class DoubleMLPLIV(DoubleML):
             else:
                 reg = LinearRegression(fit_intercept=True).fit(m_hat, r_hat)
                 r_hat_tilde = reg.predict(m_hat)
-                psi_a = -np.multiply(r_hat_tilde, r_hat)
-                psi_b = np.multiply(r_hat_tilde, g_hat)
+                psi_a = -np.multiply(w_hat, r_hat_tilde)
+                psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
