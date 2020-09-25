@@ -77,19 +77,19 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, idx, learner, score,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
     
-    g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_x(y, X, d, z,
-                                                      clone(learner), clone(learner), clone(learner),
-                                                      smpls)
+    g_hat, r_hat, r_hat_tilde = fit_nuisance_pliv_partial_x(y, X, d, z,
+                                                            clone(learner), clone(learner), clone(learner),
+                                                            smpls)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = pliv_partial_x_dml1(y, X, d,
                                                     z,
-                                                    g_hat, m_hat, r_hat,
+                                                    g_hat, r_hat, r_hat_tilde,
                                                     smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = pliv_partial_x_dml2(y, X, d,
                                                     z,
-                                                    g_hat, m_hat, r_hat,
+                                                    g_hat, r_hat, r_hat_tilde,
                                                     smpls, score)
     
     res_dict = {'coef': dml_pliv_obj.coef,
@@ -103,7 +103,7 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, idx, learner, score,
         boot_theta = boot_pliv_partial_x(res_manual,
                                          y, d,
                                          z,
-                                         g_hat, m_hat, r_hat,
+                                         g_hat, r_hat, r_hat_tilde,
                                          smpls, score,
                                          se_manual,
                                          bootstrap, n_rep_boot,

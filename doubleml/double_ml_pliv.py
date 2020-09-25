@@ -213,6 +213,11 @@ class DoubleMLPLIV(DoubleML):
         # nuisance r
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
+        if obj_dml_data.n_instr > 1:
+            # projection of r_hat on m_hat
+            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), m_hat, r_hat,
+                                                 smpls=smpls, n_jobs=n_jobs_cv)
+
         if self.apply_cross_fitting:
             y_test = y
             d_test = d
@@ -239,8 +244,6 @@ class DoubleMLPLIV(DoubleML):
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
             else:
-                reg = LinearRegression(fit_intercept=True).fit(m_hat, r_hat)
-                r_hat_tilde = reg.predict(m_hat)
                 psi_a = -np.multiply(w_hat, r_hat_tilde)
                 psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
