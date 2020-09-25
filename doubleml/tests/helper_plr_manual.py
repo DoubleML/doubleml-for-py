@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from sklearn.model_selection import KFold, GridSearchCV
 
 from doubleml.tests.helper_boot import boot_manual
 
@@ -13,6 +14,41 @@ def fit_nuisance_plr(Y, X, D, ml_m, ml_g, smpls):
         m_hat.append(ml_m.fit(X[train_index],D[train_index]).predict(X[test_index]))
     
     return g_hat, m_hat
+
+
+def fit_nuisance_plr_with_params(Y, X, D, ml_m, ml_g, smpls, g_params, m_params):
+    g_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        g_hat.append(ml_g.set_params(**g_params[idx]).fit(X[train_index], Y[train_index]).predict(X[test_index]))
+
+    m_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        m_hat.append(ml_m.set_params(**m_params[idx]).fit(X[train_index], D[train_index]).predict(X[test_index]))
+
+    return g_hat, m_hat
+
+
+def tune_nuisance_plr(Y, X, D, ml_m, ml_g, smpls, n_folds_tune, param_grid_g, param_grid_m):
+    g_tune_res = [None] * len(smpls)
+    m_tune_res = [None] * len(smpls)
+
+    for idx, (train_index, test_index) in enumerate(smpls):
+        # cv for ml_g
+        g_tune_resampling = KFold(n_splits=n_folds_tune)
+        g_grid_search = GridSearchCV(ml_g, param_grid_g,
+                                     cv=g_tune_resampling)
+        g_tune_res[idx] = g_grid_search.fit(X[train_index, :], Y[train_index])
+
+        # cv for ml_m
+        m_tune_resampling = KFold(n_splits=n_folds_tune)
+        m_grid_search = GridSearchCV(ml_m, param_grid_m,
+                                     cv=m_tune_resampling)
+        m_tune_res[idx] = m_grid_search.fit(X[train_index, :], D[train_index])
+
+    g_best_params = [xx.best_params_ for xx in g_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g_best_params, m_best_params
 
 
 def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score, se_reestimate=False):
