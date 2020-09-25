@@ -27,8 +27,8 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
 
     r_hat_tilde = []
     for idx, (train_index, test_index) in enumerate(smpls):
-        r_hat_tilde.append(LinearRegression(fit_intercept=True).fit(m_hat_array[train_index],
-                                                                    r_hat_array[train_index]).predict(m_hat_array[test_index]))
+        r_hat_tilde.append(LinearRegression(fit_intercept=True).fit(Z[train_index] - m_hat_array[train_index],
+                                                                    D[train_index] - r_hat_array[train_index]).predict(Z[test_index] - m_hat_array[test_index]))
     
     return g_hat, r_hat, r_hat_tilde
 

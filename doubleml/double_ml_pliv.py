@@ -213,30 +213,28 @@ class DoubleMLPLIV(DoubleML):
         # nuisance r
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
 
-        if obj_dml_data.n_instr > 1:
-            # projection of r_hat on m_hat
-            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), m_hat, r_hat,
-                                                 smpls=smpls, n_jobs=n_jobs_cv)
-
         if self.apply_cross_fitting:
             y_test = y
             d_test = d
-            if obj_dml_data.n_instr == 1:
-                z_test = z
+            z_test = obj_dml_data.z
         else:
             # the no cross-fitting case
             test_index = self.smpls[0][0][1]
             y_test = y[test_index]
             d_test = d[test_index]
-            if obj_dml_data.n_instr == 1:
-                z_test = z[test_index]
+            z_test = obj_dml_data.z[test_index]
         
         # compute residuals
         u_hat = y_test - g_hat
         w_hat = d_test - r_hat
-        if obj_dml_data.n_instr == 1:
-            v_hat = z_test - m_hat
+        v_hat = z_test - m_hat
 
+        if obj_dml_data.n_instr > 1:
+            assert self.apply_cross_fitting
+            # TODO check whether the no cross-fitting case can be supported here
+            # projection of r_hat on m_hat
+            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
+                                                 smpls=smpls, n_jobs=n_jobs_cv)
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
