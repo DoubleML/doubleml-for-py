@@ -18,26 +18,27 @@ from doubleml.tests.helper_pliv_partial_xz_manual import pliv_partial_xz_dml1, p
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [Lasso(alpha=0.1)])
+                params=[Lasso(alpha=0.1)])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['partialling out'])
+                params=['partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -77,19 +78,19 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner, scor
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
-                                            clone(learner), clone(learner), clone(learner),
-                                            smpls)
+                                                       clone(learner), clone(learner), clone(learner),
+                                                       smpls)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = pliv_partial_xz_dml1(y, X, d,
-                                          z,
-                                          g_hat, m_hat, r_hat,
-                                          smpls, score)
+                                                     z,
+                                                     g_hat, m_hat, r_hat,
+                                                     smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = pliv_partial_xz_dml2(y, X, d,
-                                          z,
-                                          g_hat, m_hat, r_hat,
-                                          smpls, score)
+                                                     z,
+                                                     g_hat, m_hat, r_hat,
+                                                     smpls, score)
     
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual,
@@ -100,16 +101,16 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner, scor
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta = boot_pliv_partial_xz(res_manual,
-                               y, d,
-                               z,
-                               g_hat, m_hat, r_hat,
-                               smpls, score,
-                               se_manual,
-                               bootstrap, n_rep_boot,
-                               dml_procedure)
+                                          y, d,
+                                          z,
+                                          g_hat, m_hat, r_hat,
+                                          smpls, score,
+                                          se_manual,
+                                          bootstrap, n_rep_boot,
+                                          dml_procedure)
         
         np.random.seed(3141)
-        dml_pliv_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
+        dml_pliv_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
     
