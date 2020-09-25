@@ -247,7 +247,7 @@ class DoubleMLPLIV(DoubleML):
                 psi_a = -np.multiply(w_hat, r_hat_tilde)
                 psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
             psi_a, psi_b = self.score(y_test, z_test, d_test,
                                       g_hat, m_hat, r_hat, smpls)
 
@@ -276,9 +276,7 @@ class DoubleMLPLIV(DoubleML):
             psi_a = -np.multiply(m_hat, d_test)
             psi_b = np.multiply(m_hat, y_test)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
-            psi_a, psi_b = self.score(y_test, d_test,
-                                      m_hat, smpls)
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
         return psi_a, psi_b
 
@@ -316,7 +314,7 @@ class DoubleMLPLIV(DoubleML):
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for several instruments'
+            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialXZ'
 
         return psi_a, psi_b
 
