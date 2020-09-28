@@ -73,8 +73,16 @@ class DoubleML(ABC):
         return self._dml_data.n_treat
 
     @property
+    def n_instr(self):
+        return self._dml_data.n_instr
+
+    @property
     def d_cols(self):
         return self._dml_data.d_cols
+
+    @property
+    def z_cols(self):
+        return self._dml_data.z_cols
 
     @property
     def smpls(self):

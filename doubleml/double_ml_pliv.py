@@ -74,9 +74,7 @@ class DoubleMLPLIV(DoubleML):
         self.ml_g = ml_g
         self.ml_m = ml_m
         self.ml_r = ml_r
-        self._g_params = None
-        self._m_params = None
-        self._r_params = None
+        self._initialize_ml_nuisance_params()
 
     @classmethod
     def partialX(cls,
@@ -100,6 +98,7 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._initialize_ml_nuisance_params()
         return obj
 
     @classmethod
@@ -124,6 +123,7 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = False
         obj.partialZ = True
+        obj._initialize_ml_nuisance_params()
         return obj
 
     @classmethod
@@ -150,7 +150,44 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = True
         obj.partialZ = True
+        obj._initialize_ml_nuisance_params()
         return obj
+
+    @property
+    def g_params(self):
+        return self._g_params
+
+    @property
+    def m_params(self):
+        return self._m_params
+
+    @property
+    def m_params_mult_instr(self):
+        return self._m_params_mult_instr
+
+    @property
+    def r_params(self):
+        return self._r_params
+
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
+    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
+    # self._i_rep, the index of the cross-fitting sample.
+
+    @property
+    def __g_params(self):
+        return self._g_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @property
+    def __m_params(self):
+        return self._m_params[self.d_cols[self._i_treat]][self._i_rep]
+
+    @property
+    def __m_params_mult_instr(self):
+        return self._m_params_mult_instr[self.z_cols[self._i_instr]][self.d_cols[self._i_treat]][self._i_rep]
+
+    @property
+    def __r_params(self):
+        return self._r_params[self.d_cols[self._i_treat]][self._i_rep]
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -196,23 +233,28 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
+        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__g_params)
         
         # nuisance m
         if obj_dml_data.n_instr == 1:
             # one instrument: just identified
             X, z = check_X_y(X, obj_dml_data.z)
-            m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv)
+            m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__m_params)
         else:
             # several instruments: 2SLS
             m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
             z = obj_dml_data.z
             for i_instr in range(obj_dml_data.n_instr):
+                self._i_instr = i_instr
                 X, this_z = check_X_y(X, z[:, i_instr])
-                m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv)
+                m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__m_params_mult_instr)
 
         # nuisance r
-        r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -258,7 +300,8 @@ class DoubleMLPLIV(DoubleML):
                           obj_dml_data.d)
 
         # nuisance m
-        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
+        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -286,13 +329,16 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
 
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv)
+        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__g_params)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv)
+        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self.__m_params)
 
         # nuisance r
-        m_hat_tilde = _dml_cross_val_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv)
+        m_hat_tilde = _dml_cross_val_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
+                                             est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -402,8 +448,60 @@ class DoubleMLPLIV(DoubleML):
     def _ml_nuisance_tuning_partialXZ(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         return
 
-    def _set_ml_nuisance_params(self, params):
-        self._g_params = params['g_params']
-        self._m_params = params['m_params']
-        self._r_params = params['r_params']
+    def _initialize_ml_nuisance_params(self):
+        if self.partialX & (not self.partialZ):
+            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            if self.n_instr == 1:
+                self._m_params = {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols}
+            else:
+                self._m_params_mult_instr = {key_z:  {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols} for key_z in self.z_cols}
+        elif (not self.partialX) & self.partialZ:
+            self._g_params = None
+            self._m_params = None
+            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        elif self.partialX & self.partialZ:
+            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
 
+    def set_ml_nuisance_params(self, learner, treat_var, params, instr_var=None):
+        if self.partialX & (not self.partialZ):
+            valid_learner = ['ml_g', 'ml_m', 'ml_r']
+        elif (not self.partialX) & self.partialZ:
+            valid_learner = ['ml_r']
+        elif self.partialX & self.partialZ:
+            valid_learner = ['ml_g', 'ml_m', 'ml_r']
+
+        if learner not in valid_learner:
+            raise ValueError('invalid nuisance learner' + learner +
+                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+        if treat_var not in self.d_cols:
+            raise ValueError('invalid treatment variable' + learner +
+                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
+
+        if instr_var is not None:
+            if instr_var not in self.z_cols:
+                raise ValueError('invalid instrument variable' + learner +
+                                 '\n valid instrument variable ' + ' or '.join(self.z_cols))
+
+        if isinstance(params, dict):
+            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+        else:
+            assert len(params) == self.n_rep_cross_fit
+            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            all_params = params
+
+        if learner == 'ml_g':
+            self._g_params[treat_var] = all_params
+        elif learner == 'ml_r':
+            self._r_params[treat_var] = all_params
+        elif learner == 'ml_m':
+            if self.partialX & (not self.partialZ):
+                if self.n_instr == 1:
+                    assert instr_var is None
+                    self._m_params[treat_var] = all_params
+                else:
+                    self._m_params_mult_instr[instr_var][treat_var] = all_params
+            elif self.partialX & self.partialZ:
+                self._m_params[treat_var] = all_params
