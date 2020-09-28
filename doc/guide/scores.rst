@@ -152,7 +152,10 @@ with :math:`\eta=(\ell,m)` and where the components of the linear score are
 Partially linear IV regression model (PLIV)
 *******************************************
 
-For the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
+``partialX``
+=============
+
+In the case with only one instrumental variable :math:`Z`, the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
 we employ for ``score='partialling out'`` the score function:
 
 .. math::
@@ -170,6 +173,87 @@ with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
     \psi_a(W; \eta) &=  - (D - r(X)) (Z - m(X)),
 
     \psi_b(W; \eta) &= (Y - \ell(X)) (Z - m(X)).
+
+In the case with multiple instruments :math:`Z`, the implemented score incorporates an additional linear projection step of the
+residualized treatment variable :math:`\tilde{D}` on the residualized instruments :math:`\tilde{Z}_1, \ldots, \tilde{Z}_{n^{instr}}`.
+This projection step results in the predictions :math:`\hat{\tilde{D}}` which are then used as a one-dimensional instrumental variable:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - \ell(X) - \theta (D - r(X))] [f_{\tilde{D}}(Z - m(x))]
+
+    &= [Y - \ell(X) - \theta (D - r(X))] [f_{\tilde{D}}(\tilde{Z})]
+
+    &= [Y - \ell(X) - \theta (D - r(X))] [\hat{\tilde D}]
+
+    &= - (D - r(X)) f_{\tilde{D}}(Z - m(x) \theta + (Y - \ell(X)) f_{\tilde{D}}(Z - m(x)
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - (D - r(X)) f_{\tilde{D}}(Z - m(x),
+
+    \psi_b(W; \eta) &= (Y - \ell(X)) f_{\tilde{D}}(Z - m(x).
+
+..
+    Paper - Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W., & Robins, J. (2018). Double/debiased machine learning for treatment and structural parameters.
+
+``partialXZ``
+=============
+
+In the case with partialling out of :math:`X` and :math:`Z`, the score incorporates an additional learning step of the relationship of
+the first stage predictions and the controls :math:`X`.
+
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - \ell(X) - \theta (D - r(X))] [ f_D(X,Z) - r(X) ]
+
+    & = [Y - \ell(X) - \theta (D - r(X))] [ \tilde{\hat{D}}]
+
+    &= - (D - r(X)) ( f_D(X,Z) - r(X) ) \theta + (Y - \ell(X)) ( f_D(X,Z) - r(X) )
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - (D - r(X)) (f_D(X,Z) - r(X) ),
+
+    \psi_b(W; \eta) &= (Y - \ell(X)) (f_D(X,Z) - r(X)).
+
+..
+    Paper - Chernozhukov, V., Hansen, C., & Spindler, M. (2015). Post-selection and post-regularization inference in linear models with many controls and instruments. American Economic Review, 105(5), 486-90
+
+
+``partialZ``
+=============
+
+In the case with partialling out of the instrumental variables :math:`Z`, ``score='partialling out'`` implements the score:
+
+.. math::
+
+    \psi(W; \theta, \eta) &:= [Y - \theta D)] [ f_D(X, Z) ]
+
+    &= - D f_D(X,Z) \theta + Y f_D(X,Z)
+
+    &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
+
+with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
+
+.. math::
+
+    \psi_a(W; \eta) &=  - D f_D(X,Z),
+
+    \psi_b(W; \eta) &= Y f_D(X,Z).
+
+..
+    Paper - Belloni, A., Chen, D., Chernozhukov, V., & Hansen, C. (2012). Sparse models and methods for optimal instruments with an application to eminent domain. Econometrica, 80(6), 2369-2429
+
 
 Interactive regression model (IRM)
 **********************************

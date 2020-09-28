@@ -43,6 +43,8 @@ Partially linear IV regression model (PLIV)
 
 .. include:: ../shared/models/pliv.rst
 
+.. include:: ../shared/models/pliv_cases.rst
+
 .. include:: ../shared/causal_graphs/pliv_iivm_causal_graph.rst
 
 :class:`~doubleml.double_ml_pliv.DoubleMLPLIV` implements PLIV models.
