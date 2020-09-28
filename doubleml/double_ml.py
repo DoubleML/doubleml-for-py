@@ -341,7 +341,12 @@ class DoubleML(ABC):
                     nuiscance_params[i_rep] = res['params']
                 for nuisance_model in nuiscance_params[0].keys():
                     params = [x[nuisance_model] for x in nuiscance_params]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                    if isinstance(params, dict):
+                        # this case is only of relevance for the PLIV.partialX model with multiple instruments
+                        for instr_var in params:
+                            self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
+                    else:
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
             else:
                 smpls = [(np.arange(self.n_obs), np.array([]))]
@@ -352,13 +357,21 @@ class DoubleML(ABC):
                                                n_jobs_cv)
                 tuning_res[i_d] = res
                 for nuisance_model in res['params'].keys():
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], res['params'][nuisance_model][0])
+                    params = res['params'][nuisance_model][0]
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                    #if isinstance(params, dict):
+                    #    # this case is only of relevance for the PLIV.partialX model with multiple instruments
+                    #    for instr_var in params:
+                    #        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
+                    #else:
+                    #    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
         return tuning_res
 
-    @abstractmethod
-    def set_ml_nuisance_params(self, params):
-        pass
+    # right now with different signatures because of PLIV.partialX with multiple instruments
+    #@abstractmethod
+    #def set_ml_nuisance_params(self, params):
+    #    pass
 
     @abstractmethod
     def _initialize_ml_nuisance_params(self, params):

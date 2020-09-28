@@ -241,7 +241,7 @@ class DoubleMLPLIV(DoubleML):
             # one instrument: just identified
             X, z = check_X_y(X, obj_dml_data.z)
             m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)
+                                           est_params=self.__m_params)
         else:
             # several instruments: 2SLS
             m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
@@ -250,7 +250,7 @@ class DoubleMLPLIV(DoubleML):
                 self._i_instr = i_instr
                 X, this_z = check_X_y(X, z[:, i_instr])
                 m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params_mult_instr)
+                                                           est_params=self.__m_params_mult_instr)
 
         # nuisance r
         r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -404,9 +404,9 @@ class DoubleMLPLIV(DoubleML):
         m_best_params = [xx.best_params_ for xx in m_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
 
-        params = {'g_params': g_best_params,
-                  'm_params': m_best_params,
-                  'r_params': r_best_params}
+        params = {'ml_g': g_best_params,
+                  'ml_m': m_best_params,
+                  'ml_r': r_best_params}
 
         tune_res = {'g_tune': g_tune_res,
                     'm_tune': m_tune_res,
