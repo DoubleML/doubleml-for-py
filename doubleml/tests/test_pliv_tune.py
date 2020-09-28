@@ -30,13 +30,13 @@ def learner_g(request):
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestRegressor()])
+                params=[ElasticNet()])
 def learner_m(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestRegressor()])
+                params=[ElasticNet()])
 def learner_r(request):
     return request.param
 
@@ -74,7 +74,6 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
                 'param_grid_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
-
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -97,7 +96,6 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
 
     # tune hyperparameters
     res_tuning = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
-
 
     dml_pliv_obj.fit()
     

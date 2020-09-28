@@ -49,7 +49,7 @@ def tune_nuisance_pliv(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_
         r_tune_resampling = KFold(n_splits=n_folds_tune)
         r_grid_search = GridSearchCV(ml_r, param_grid_r,
                                      cv=r_tune_resampling)
-        r_tune_res[idx] = r_grid_search.fit(X[train_index, :], Z[train_index])
+        r_tune_res[idx] = r_grid_search.fit(X[train_index, :], D[train_index])
 
     g_best_params = [xx.best_params_ for xx in g_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
