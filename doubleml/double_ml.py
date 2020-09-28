@@ -349,7 +349,7 @@ class DoubleML(ABC):
                         self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self.n_obs), np.array([]))]
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._ml_nuisance_tuning(self._dml_data, smpls,
                                                param_grids, scoring_methods,
@@ -357,14 +357,13 @@ class DoubleML(ABC):
                                                n_jobs_cv)
                 tuning_res[i_d] = res
                 for nuisance_model in res['params'].keys():
-                    params = res['params'][nuisance_model][0]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
-                    #if isinstance(params, dict):
-                    #    # this case is only of relevance for the PLIV.partialX model with multiple instruments
-                    #    for instr_var in params:
-                    #        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
-                    #else:
-                    #    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                    params = res['params'][nuisance_model]
+                    if isinstance(params, dict):
+                        # this case is only of relevance for the PLIV.partialX model with multiple instruments
+                        for instr_var in params:
+                            self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
+                    else:
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
 
         return tuning_res
 
