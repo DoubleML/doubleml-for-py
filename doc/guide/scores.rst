@@ -239,6 +239,8 @@ In the case with partialling out of the instrumental variables :math:`Z`, ``scor
 
     \psi(W; \theta, \eta) &:= [Y - \theta D)] [ f_D(X, Z) ]
 
+    &= [Y - \theta D)] [ \hat{D} ]
+
     &= - D f_D(X,Z) \theta + Y f_D(X,Z)
 
     &= \psi_a(W; \eta) \theta + \psi_b(W; \eta)
