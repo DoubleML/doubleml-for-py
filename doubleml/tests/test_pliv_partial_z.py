@@ -44,7 +44,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_x_fixture(generate_data_pliv_partialZ, idx, learner, score, dml_procedure):
+def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -115,21 +115,21 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialZ, idx, learner, score,
     return res_dict
 
 
-def test_dml_pliv_coef(dml_pliv_partial_x_fixture):
-    assert math.isclose(dml_pliv_partial_x_fixture['coef'],
-                        dml_pliv_partial_x_fixture['coef_manual'],
+def test_dml_pliv_coef(dml_pliv_partial_z_fixture):
+    assert math.isclose(dml_pliv_partial_z_fixture['coef'],
+                        dml_pliv_partial_z_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_pliv_se(dml_pliv_partial_x_fixture):
-    assert math.isclose(dml_pliv_partial_x_fixture['se'],
-                        dml_pliv_partial_x_fixture['se_manual'],
+def test_dml_pliv_se(dml_pliv_partial_z_fixture):
+    assert math.isclose(dml_pliv_partial_z_fixture['se'],
+                        dml_pliv_partial_z_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_pliv_boot(dml_pliv_partial_x_fixture):
-    for bootstrap in dml_pliv_partial_x_fixture['boot_methods']:
-        assert np.allclose(dml_pliv_partial_x_fixture['boot_coef' + bootstrap],
-                           dml_pliv_partial_x_fixture['boot_coef' + bootstrap + '_manual'],
+def test_dml_pliv_boot(dml_pliv_partial_z_fixture):
+    for bootstrap in dml_pliv_partial_z_fixture['boot_methods']:
+        assert np.allclose(dml_pliv_partial_z_fixture['boot_coef' + bootstrap],
+                           dml_pliv_partial_z_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
 
