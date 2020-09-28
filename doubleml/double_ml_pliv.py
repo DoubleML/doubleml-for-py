@@ -206,8 +206,9 @@ class DoubleMLPLIV(DoubleML):
         else:
             # several instruments: 2SLS
             m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
+            z = obj_dml_data.z
             for i_instr in range(obj_dml_data.n_instr):
-                X, this_z = check_X_y(X, obj_dml_data.z[:, i_instr])
+                X, this_z = check_X_y(X, z[:, i_instr])
                 m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv)
 
         # nuisance r
@@ -216,13 +217,13 @@ class DoubleMLPLIV(DoubleML):
         if self.apply_cross_fitting:
             y_test = y
             d_test = d
-            z_test = obj_dml_data.z
+            z_test = z
         else:
             # the no cross-fitting case
             test_index = self.smpls[0][0][1]
             y_test = y[test_index]
             d_test = d[test_index]
-            z_test = obj_dml_data.z[test_index]
+            z_test = z[test_index]
         
         # compute residuals
         u_hat = y_test - g_hat
