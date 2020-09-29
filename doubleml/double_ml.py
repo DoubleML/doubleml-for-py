@@ -341,12 +341,7 @@ class DoubleML(ABC):
                     nuiscance_params[i_rep] = res['params']
                 for nuisance_model in nuiscance_params[0].keys():
                     params = [x[nuisance_model] for x in nuiscance_params]
-                    if isinstance(params, dict):
-                        # this case is only of relevance for the PLIV.partialX model with multiple instruments
-                        for instr_var in params:
-                            self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
-                    else:
-                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
             else:
                 smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
@@ -358,19 +353,13 @@ class DoubleML(ABC):
                 tuning_res[i_d] = res
                 for nuisance_model in res['params'].keys():
                     params = res['params'][nuisance_model]
-                    if isinstance(params, dict):
-                        # this case is only of relevance for the PLIV.partialX model with multiple instruments
-                        for instr_var in params:
-                            self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[instr_var], instr_var)
-                    else:
-                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
 
         return tuning_res
 
-    # right now with different signatures because of PLIV.partialX with multiple instruments
-    #@abstractmethod
-    #def set_ml_nuisance_params(self, params):
-    #    pass
+    @abstractmethod
+    def set_ml_nuisance_params(self, learner, treat_var, params):
+        pass
 
     @abstractmethod
     def _initialize_ml_nuisance_params(self, params):

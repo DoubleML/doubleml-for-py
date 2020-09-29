@@ -364,9 +364,7 @@ class DoubleMLPLIV(DoubleML):
         return psi_a, psi_b
 
     def _ml_nuisance_tuning_partialX(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        assert obj_dml_data.n_instr == 1, 'tuning not implemented for several instruments'
         X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, z = check_X_y(X, obj_dml_data.z)
         X, d = check_X_y(X, obj_dml_data.d)
 
         if scoring_methods is None:
@@ -391,6 +389,7 @@ class DoubleMLPLIV(DoubleML):
 
             # cv for ml_m
             if obj_dml_data.n_instr > 1:
+                # several instruments: 2SLS
                 z = obj_dml_data.z
                 for i_instr in range(obj_dml_data.n_instr):
                     X, this_z = check_X_y(X, z[:, i_instr])
@@ -398,8 +397,10 @@ class DoubleMLPLIV(DoubleML):
                     m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                                  scoring=scoring_methods['scoring_methods_m'],
                                                  cv=m_tune_resampling)
-                    m_tune_res[self.z_cols[self._i_instr]][idx] = m_grid_search.fit(X[train_index, :], this_z[train_index])
+                    m_tune_res[self.z_cols[i_instr]][idx] = m_grid_search.fit(X[train_index, :], this_z[train_index])
             else:
+                # one instrument: just identified
+                X, z = check_X_y(X, obj_dml_data.z)
                 m_tune_resampling = KFold(n_splits=n_folds_tune)
                 m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                              scoring=scoring_methods['scoring_methods_m'],
@@ -414,15 +415,17 @@ class DoubleMLPLIV(DoubleML):
             r_tune_res[idx] = r_grid_search.fit(X[train_index, :], d[train_index])
 
         g_best_params = [xx.best_params_ for xx in g_tune_res]
+        r_best_params = [xx.best_params_ for xx in r_tune_res]
         if obj_dml_data.n_instr > 1:
-            m_best_params = {instr_var: [xx.best_params_ for xx in m_tune_res[instr_var]] for instr_var in self.z_cols}
+            params = {'ml_g': g_best_params,
+                      'ml_r': r_best_params}
+            for instr_var in self.z_cols:
+                params['ml_m_' + instr_var] = [xx.best_params_ for xx in m_tune_res[instr_var]]
         else:
             m_best_params = [xx.best_params_ for xx in m_tune_res]
-        r_best_params = [xx.best_params_ for xx in r_tune_res]
-
-        params = {'ml_g': g_best_params,
-                  'ml_m': m_best_params,
-                  'ml_r': r_best_params}
+            params = {'ml_g': g_best_params,
+                      'ml_m': m_best_params,
+                      'ml_r': r_best_params}
 
         tune_res = {'g_tune': g_tune_res,
                     'm_tune': m_tune_res,
@@ -542,9 +545,12 @@ class DoubleMLPLIV(DoubleML):
             self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
             self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
 
-    def set_ml_nuisance_params(self, learner, treat_var, params, instr_var=None):
+    def set_ml_nuisance_params(self, learner, treat_var, params):
         if self.partialX & (not self.partialZ):
-            valid_learner = ['ml_g', 'ml_m', 'ml_r']
+            if self.n_instr == 1:
+                valid_learner = ['ml_g', 'ml_m', 'ml_r']
+            else:
+                valid_learner = ['ml_g', 'ml_r'] + ['ml_m_' + z_col for z_col in self.z_cols]
         elif (not self.partialX) & self.partialZ:
             valid_learner = ['ml_r']
         elif self.partialX & self.partialZ:
@@ -556,11 +562,6 @@ class DoubleMLPLIV(DoubleML):
         if treat_var not in self.d_cols:
             raise ValueError('invalid treatment variable' + learner +
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
-
-        if instr_var is not None:
-            if instr_var not in self.z_cols:
-                raise ValueError('invalid instrument variable' + learner +
-                                 '\n valid instrument variable ' + ' or '.join(self.z_cols))
 
         if isinstance(params, dict):
             all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
@@ -574,11 +575,8 @@ class DoubleMLPLIV(DoubleML):
         elif learner == 'ml_r':
             self._r_params[treat_var] = all_params
         elif learner == 'ml_m':
-            if self.partialX & (not self.partialZ):
-                if self.n_instr == 1:
-                    assert instr_var is None
-                    self._m_params[treat_var] = all_params
-                else:
-                    self._m_params_mult_instr[instr_var][treat_var] = all_params
-            elif self.partialX & self.partialZ:
-                self._m_params[treat_var] = all_params
+            self._m_params[treat_var] = all_params
+        else:
+            assert learner.startswith('ml_m_')
+            instr_var = learner.split('ml_m_')[1]
+            self._m_params_mult_instr[instr_var][treat_var] = all_params
