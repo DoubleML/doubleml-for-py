@@ -46,6 +46,26 @@ def generate_data1(request):
     
     return datasets
 
+
+@pytest.fixture(scope='session',
+                params=[(500, 20)])
+def generate_data2(request):
+    N_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    N = N_p[0]
+    p = N_p[1]
+    theta = 0.5
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        data = make_plr_data(N, p, theta)
+        datasets.append(data)
+
+    return datasets
+
+
 @pytest.fixture(scope='session',
                 params = [(1000, 20)])
 def generate_data_bivariate(request):

@@ -5,14 +5,14 @@ import math
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.linear_model import LinearRegression, Lasso, ElasticNet
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pliv_partial_z_manual import pliv_partial_z_dml1, pliv_partial_z_dml2, \
-    fit_nuisance_pliv_partial_z, boot_pliv_partial_z
+    fit_nuisance_pliv_partial_z, boot_pliv_partial_z, tune_nuisance_pliv_partial_z
 
 
 # number of datasets per dgp
@@ -26,8 +26,8 @@ def idx(request):
 
 
 @pytest.fixture(scope='module',
-                params=[Lasso(alpha=0.1)])
-def learner(request):
+                params=[ElasticNet()])
+def learner_r(request):
     return request.param
 
 
@@ -38,13 +38,28 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
+                params=['dml2'])
 def dml_procedure(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[True, False])
+def tune_on_folds(request):
+    return request.param
+
+
+def get_par_grid(learner):
+    if learner.__class__ == ElasticNet:
+        par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
+    return par_grid
+
+
 @pytest.fixture(scope='module')
-def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score, dml_procedure):
+def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, score, dml_procedure, tune_on_folds):
+    par_grid = {'param_grid_r': get_par_grid(learner_r)}
+    n_folds_tune = 4
+
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -55,7 +70,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score,
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
 
     # Set machine learning methods for r
-    ml_r = clone(learner)
+    ml_r = clone(learner_r)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, Z_cols)
@@ -63,6 +78,9 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score,
                                              ml_r,
                                              n_folds,
                                              dml_procedure=dml_procedure)
+
+    # tune hyperparameters
+    res_tuning = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     dml_pliv_obj.fit()
     
@@ -74,11 +92,29 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score,
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
-    
-    r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
-                                        clone(learner),
-                                        smpls)
-    
+
+    if tune_on_folds:
+        r_params = tune_nuisance_pliv_partial_z(y, X, d, z,
+                                                clone(learner_r),
+                                                smpls, n_folds_tune,
+                                                par_grid['param_grid_r'])
+
+        r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
+                                            clone(learner_r),
+                                            smpls,
+                                            r_params)
+    else:
+        xx = [(np.arange(len(y)), np.array([]))]
+        r_params = tune_nuisance_pliv_partial_z(y, X, d, z,
+                                                clone(learner_r),
+                                                xx, n_folds_tune,
+                                                par_grid['param_grid_r'])
+
+        r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
+                                            clone(learner_r),
+                                            smpls,
+                                            r_params * n_folds)
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = pliv_partial_z_dml1(y, X, d,
                                                     z,

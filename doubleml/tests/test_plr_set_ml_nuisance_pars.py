@@ -68,8 +68,8 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
                                               n_folds,
                                               score=score,
                                               dml_procedure=dml_procedure)
-    dml_plr_obj_ext_set_par.set_ml_nuisance_params({'g_params': {'alpha': alpha},
-                                                    'm_params': {'alpha': alpha}})
+    dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_g', 'd', {'alpha': alpha})
+    dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_m', 'd', {'alpha': alpha})
     dml_plr_obj_ext_set_par.fit()
 
     

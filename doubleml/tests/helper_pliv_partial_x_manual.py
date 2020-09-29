@@ -1,13 +1,17 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual
 
 
-def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
+def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):
     assert Z.ndim == 2
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
+        if g_params is not None:
+            ml_g.set_params(**g_params[idx])
         g_hat.append(ml_g.fit(X[train_index], Y[train_index]).predict(X[test_index]))
     
     m_hat = []
@@ -15,6 +19,8 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     for i_instr in range(Z.shape[1]):
         this_instr_m_hat = []
         for idx, (train_index, test_index) in enumerate(smpls):
+            if m_params is not None:
+                ml_m.set_params(**m_params[i_instr][idx])
             this_instr_m_hat.append(ml_m.fit(X[train_index], Z[train_index, i_instr]).predict(X[test_index]))
             m_hat_array[test_index, i_instr] = this_instr_m_hat[idx]
         m_hat.append(this_instr_m_hat)
@@ -22,6 +28,8 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
     r_hat = []
     r_hat_array = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
+        if r_params is not None:
+            ml_r.set_params(**r_params[idx])
         r_hat.append(ml_r.fit(X[train_index], D[train_index]).predict(X[test_index]))
         r_hat_array[test_index] = r_hat[idx]
 
@@ -31,6 +39,38 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls):
                                                                     D[train_index] - r_hat_array[train_index]).predict(Z[test_index] - m_hat_array[test_index]))
     
     return g_hat, r_hat, r_hat_tilde
+
+
+def tune_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
+    g_tune_res = [None] * len(smpls)
+    m_tune_res = [[None] * len(smpls) for i in range(Z.shape[1])]
+    r_tune_res = [None] * len(smpls)
+
+    for idx, (train_index, test_index) in enumerate(smpls):
+        # cv for ml_g
+        g_tune_resampling = KFold(n_splits=n_folds_tune)
+        g_grid_search = GridSearchCV(ml_g, param_grid_g,
+                                     cv=g_tune_resampling)
+        g_tune_res[idx] = g_grid_search.fit(X[train_index, :], Y[train_index])
+
+        # cv for ml_m
+        for i_instr in range(Z.shape[1]):
+            m_tune_resampling = KFold(n_splits=n_folds_tune)
+            m_grid_search = GridSearchCV(ml_m, param_grid_m,
+                                         cv=m_tune_resampling)
+            m_tune_res[i_instr][idx] = m_grid_search.fit(X[train_index, :], Z[train_index, i_instr])
+
+        # cv for ml_r
+        r_tune_resampling = KFold(n_splits=n_folds_tune)
+        r_grid_search = GridSearchCV(ml_r, param_grid_r,
+                                     cv=r_tune_resampling)
+        r_tune_res[idx] = r_grid_search.fit(X[train_index, :], D[train_index])
+
+    g_best_params = [xx.best_params_ for xx in g_tune_res]
+    m_best_params = [[xx.best_params_ for xx in m_tune_res[i_instr]] for i_instr in range(Z.shape[1])]
+    r_best_params = [xx.best_params_ for xx in r_tune_res]
+
+    return g_best_params, m_best_params, r_best_params
 
 
 def pliv_partial_x_dml1(Y, X, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score):

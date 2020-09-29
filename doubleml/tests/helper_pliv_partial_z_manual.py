@@ -1,15 +1,35 @@
 import numpy as np
+from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual
 
 
-def fit_nuisance_pliv_partial_z(Y, X, D, Z, ml_r, smpls):
+def fit_nuisance_pliv_partial_z(Y, X, D, Z, ml_r, smpls, r_params=None):
     XZ = np.hstack((X, Z))
     r_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
+        if r_params is not None:
+            ml_r.set_params(**r_params[idx])
         r_hat.append(ml_r.fit(XZ[train_index], D[train_index]).predict(XZ[test_index]))
     
     return r_hat
+
+
+def tune_nuisance_pliv_partial_z(Y, X, D, Z, ml_r, smpls, n_folds_tune, param_grid_r):
+    XZ = np.hstack((X, Z))
+    r_tune_res = [None] * len(smpls)
+
+    for idx, (train_index, test_index) in enumerate(smpls):
+        # cv for ml_r
+        r_tune_resampling = KFold(n_splits=n_folds_tune)
+        r_grid_search = GridSearchCV(ml_r, param_grid_r,
+                                     cv=r_tune_resampling)
+        r_tune_res[idx] = r_grid_search.fit(XZ[train_index, :], D[train_index])
+
+    r_best_params = [xx.best_params_ for xx in r_tune_res]
+
+    return r_best_params
 
 
 def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):

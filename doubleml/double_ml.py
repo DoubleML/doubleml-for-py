@@ -5,8 +5,6 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-import warnings
-
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
 
@@ -75,8 +73,16 @@ class DoubleML(ABC):
         return self._dml_data.n_treat
 
     @property
+    def n_instr(self):
+        return self._dml_data.n_instr
+
+    @property
     def d_cols(self):
         return self._dml_data.d_cols
+
+    @property
+    def z_cols(self):
+        return self._dml_data.z_cols
 
     @property
     def smpls(self):
@@ -233,8 +239,8 @@ class DoubleML(ABC):
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
 
-                if self._ml_nuiscance_params is not None:
-                    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
+                #if self._ml_nuiscance_params is not None:
+                #    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
                 if self.n_treat > 1:
@@ -308,39 +314,56 @@ class DoubleML(ABC):
              n_folds_tune=5,
              n_jobs_cv=None,
              set_as_params=True):
-        assert tune_on_folds == True, 'not implemented'
 
-        self._ml_nuiscance_params = [[None] * self.n_treat] * self.n_rep_cross_fit
-        tuning_res = [[None] * self.n_treat] * self.n_rep_cross_fit
+        if tune_on_folds:
+            tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
+        else:
+            tuning_res = [None] * self.n_treat
 
-        for i_rep in range(self.n_rep_cross_fit):
-            self._i_rep = i_rep
-            for i_d in range(self.n_treat):
-                self._i_treat = i_d
+        for i_d in range(self.n_treat):
+            self._i_treat = i_d
+            # this step could be skipped for the single treatment variable case
+            if self.n_treat > 1:
+                self._dml_data._set_x_d(self.d_cols[i_d])
 
-                # this step could be skipped for the single treatment variable case
-                if self.n_treat > 1:
-                    self._dml_data._set_x_d(self.d_cols[i_d])
+            if tune_on_folds:
+                nuiscance_params = [None] * self.n_rep_cross_fit
+                for i_rep in range(self.n_rep_cross_fit):
+                    self._i_rep = i_rep
 
-                # ml estimation of nuisance models and computation of score elements
-                res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
+                    # tune hyperparameters
+                    res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
+                                                   param_grids, scoring_methods,
+                                                   n_folds_tune,
+                                                   n_jobs_cv)
+
+                    tuning_res[i_rep][i_d] = res
+                    nuiscance_params[i_rep] = res['params']
+                for nuisance_model in nuiscance_params[0].keys():
+                    params = [x[nuisance_model] for x in nuiscance_params]
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+
+            else:
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
+                # tune hyperparameters
+                res = self._ml_nuisance_tuning(self._dml_data, smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
                                                n_jobs_cv)
-
-                tuning_res[i_rep][i_d] = res
-                self._ml_nuiscance_params[i_rep][i_d] = res['params']
+                tuning_res[i_d] = res
+                for nuisance_model in res['params'].keys():
+                    params = res['params'][nuisance_model]
+                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
 
         return tuning_res
 
-    def set_ml_nuisance_params(self, params):
-        if isinstance(params, dict):
-            warnings.warn("Using the same (hyper-)parameters for all repeated cross-fits and treatment variables")
-            self._ml_nuiscance_params = [[params] * self.n_treat] * self.n_rep_cross_fit
-        else:
-            assert len(params) == self.n_rep_cross_fit
-            assert np.all(np.array([len(x) for x in params]) == self.n_treat)
-            self._ml_nuiscance_params = params
+    @abstractmethod
+    def set_ml_nuisance_params(self, learner, treat_var, params):
+        pass
+
+    @abstractmethod
+    def _initialize_ml_nuisance_params(self, params):
+        pass
 
     @abstractmethod
     def _check_score(self, score):
@@ -355,11 +378,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
-        pass
-
-    @abstractmethod
-    def _set_ml_nuisance_params(self, params):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, set_as_params):
         pass
 
     def _initialize_arrays(self):
@@ -396,6 +415,7 @@ class DoubleML(ABC):
         self.n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
         self._initialize_arrays()
+        self._initialize_ml_nuisance_params()
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
