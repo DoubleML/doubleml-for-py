@@ -17,6 +17,7 @@ from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
                 params=range(n_datasets))
 def idx(request):
