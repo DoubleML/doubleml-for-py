@@ -43,7 +43,7 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=No
 
 def tune_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
     g_tune_res = [None] * len(smpls)
-    m_tune_res = [[None] * len(smpls)] * Z.shape[1]
+    m_tune_res = [[None] * len(smpls) for i in range(Z.shape[1])]
     r_tune_res = [None] * len(smpls)
 
     for idx, (train_index, test_index) in enumerate(smpls):
