@@ -131,7 +131,7 @@ def make_pliv_CHS2015(n_samples, alpha=1., dim_x=200, dim_z=150):
     epsilon = xx[:,0]
     u = xx[:,1]
 
-    sigma = toeplitz([np.power(0.5, k) for k in range(1, dim_x + 1)])
+    sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
     X = np.random.multivariate_normal(np.zeros(dim_x),
                                       sigma,
                                       size=[n_samples, ])
