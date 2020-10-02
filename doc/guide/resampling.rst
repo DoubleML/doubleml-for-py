@@ -36,9 +36,17 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        learner = "regr.ranger"
+        ml_g = learner
+        ml_m = learner
+        set.seed(123)
+        data = make_plr_data()
+        X_cols = names(data)[grep("X", names(data))]
+        obj_dml_data = DoubleMLData$new(data,
+                                        x_cols = X_cols,
+                                        y_col = "y",
+                                        d_cols = "d")
 
 .. _k-fold-cross-fitting:
 
@@ -52,7 +60,7 @@ The default setting is ``n_folds = 5`` and ``n_rep_cross_fit = 1``, i.e.,
 
     .. ipython:: python
 
-        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 1)
+        dml_plr_obj =dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 1)
         print(dml_plr_obj.n_folds)
         print(dml_plr_obj.n_rep_cross_fit)
 
@@ -60,9 +68,9 @@ The default setting is ``n_folds = 5`` and ``n_rep_cross_fit = 1``, i.e.,
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 1)
+        print(dml_plr_obj$n_folds)
+        print(dml_plr_obj$n_rep_cross_fit)
 
 During the initialization of a DML model like :class:`~doubleml.double_ml_plr.DoubleMLPLR` a :math:`K`-fold random
 partition :math:`(I_k)_{k=1}^{K}` of observation indices is generated.
@@ -80,9 +88,7 @@ The :math:`K`-fold random partition is stored in the ``smpls`` attribute of the 
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$smpls
 
 For each :math:`k \in [K] = \lbrace 1, \ldots, K]` the nuisance ML estimator
 
@@ -108,9 +114,9 @@ stored in the attributes ``psi_a`` and ``psi_b``.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$fit()
+        #print(dml_plr_obj$psi_a[1:5,])
+        #print(dml_plr_obj$psi_b[1:5,])
 
 Repeated cross-fitting with :math:`K` folds and :math:`M` repetition
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -130,9 +136,9 @@ It results in :math:`M` random :math:`K`-fold partitions being drawn.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 10)
+        print(dml_plr_obj.n_folds)
+        print(dml_plr_obj.n_rep_cross_fit)
 
 For each of the :math:`M` partitions, the nuisance ML models are estimated and score functions computed as described
 in :ref:`k-fold-cross-fitting`.
@@ -157,9 +163,7 @@ The third dimension refers to the treatment variable and becomes non-singleton i
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj.fit()
 
 We estimate the causal parameter :math:`\tilde{\theta}_{0,m}` for each of the :math:`M` partitions with a DML
 algorithm as described in :ref:`dml-algo`.
@@ -185,9 +189,8 @@ and the asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` in ``se``.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$coef)
+        print(dml_plr_obj$se)
 
 The parameter estimates :math:`(\tilde{\theta}_{0,m})_{m \in [M]}` and asymptotic standard errors
 :math:`(\hat{\sigma}_m)_{m \in [M]}` for each of the :math:`M` partitions are stored in the attributes
@@ -204,9 +207,8 @@ The parameter estimates :math:`(\tilde{\theta}_{0,m})_{m \in [M]}` and asymptoti
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$.__enclos_env__$private$all_coef)
+        print(dml_plr_obj$.__enclos_env__$private$all_se)
 
 Externally provide a sample splitting / partition
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -233,9 +235,10 @@ initialization of the :class:`~doubleml.double_ml_plr.DoubleMLPLR` object.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        set.seed(314)
+        dml_plr_obj_internal = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 4)
+        dml_plr_obj_internal$fit()
+        dml_plr_obj_internal$summary()
 
 In the second sample code, we use the K-Folds cross-validator of sklearn :py:class:`~sklearn.model_selection.KFold`
 and set the partition via the ``set_sample_splitting()`` method.
@@ -259,9 +262,16 @@ and set the partition via the ``set_sample_splitting()`` method.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, draw_sample_splitting = F#)
+
+        from sklearn.model_selection import KFold
+        np.random.seed(314)
+        kf = KFold(n_splits=4, shuffle=True)
+        smpls = [[(train, test) for train, test in kf.split(obj_dml_data.x)]]
+
+        dml_plr_obj_external.set_sample_splitting(smpls)
+        dml_plr_obj_external.fit()
+        print(dml_plr_obj_external.summary)
 
 Sample-splitting without cross-fitting
 ++++++++++++++++++++++++++++++++++++++
