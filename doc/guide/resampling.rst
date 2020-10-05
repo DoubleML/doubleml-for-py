@@ -37,14 +37,17 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
     .. jupyter-execute::
 
         library(DoubleML)
+        library(mlr3)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+        library(mlr3learners)
+        library(data.table)
+
         learner = "regr.ranger"
         ml_g = learner
         ml_m = learner
-        set.seed(123)
-        data = make_plr_data()
-        X_cols = names(data)[grep("X", names(data))]
+        data("data_plr")
+        data = data_plr
         obj_dml_data = DoubleMLData$new(data,
-                                        x_cols = X_cols,
                                         y_col = "y",
                                         d_cols = "d")
 
@@ -115,8 +118,8 @@ stored in the attributes ``psi_a`` and ``psi_b``.
     .. jupyter-execute::
 
         dml_plr_obj$fit()
-        #print(dml_plr_obj$psi_a[1:5,])
-        #print(dml_plr_obj$psi_b[1:5,])
+        print(dml_plr_obj$.__enclos_env__$private$psi_a[1:5, ,1])
+        print(dml_plr_obj$.__enclos_env__$private$psi_b[1:5, ,1])
 
 Repeated cross-fitting with :math:`K` folds and :math:`M` repetition
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -137,8 +140,8 @@ It results in :math:`M` random :math:`K`-fold partitions being drawn.
     .. jupyter-execute::
 
         dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 10)
-        print(dml_plr_obj.n_folds)
-        print(dml_plr_obj.n_rep_cross_fit)
+        print(dml_plr_obj$n_folds)
+        print(dml_plr_obj$n_rep_cross_fit)
 
 For each of the :math:`M` partitions, the nuisance ML models are estimated and score functions computed as described
 in :ref:`k-fold-cross-fitting`.
@@ -163,7 +166,9 @@ The third dimension refers to the treatment variable and becomes non-singleton i
 
     .. jupyter-execute::
 
-        dml_plr_obj.fit()
+        dml_plr_obj$fit()
+        print(dml_plr_obj$.__enclos_env__$private$psi_a[1:5, ,1])
+        print(dml_plr_obj$.__enclos_env__$private$psi_b[1:5, ,1])
 
 We estimate the causal parameter :math:`\tilde{\theta}_{0,m}` for each of the :math:`M` partitions with a DML
 algorithm as described in :ref:`dml-algo`.
@@ -262,16 +267,20 @@ and set the partition via the ``set_sample_splitting()`` method.
 
     .. jupyter-execute::
 
-        dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, draw_sample_splitting = F#)
+        dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, draw_sample_splitting = FALSE)
 
-        from sklearn.model_selection import KFold
-        np.random.seed(314)
-        kf = KFold(n_splits=4, shuffle=True)
-        smpls = [[(train, test) for train, test in kf.split(obj_dml_data.x)]]
+        set.seed(314)
+        # set up a task and cross-validation resampling scheme in mlr3
+        my_task = Task$new("help task", "regr", data)
+        my_sampling = rsmp("cv", folds = 4)$instantiate(my_task)
 
-        dml_plr_obj_external.set_sample_splitting(smpls)
-        dml_plr_obj_external.fit()
-        print(dml_plr_obj_external.summary)
+        train_ids = lapply(1:4, function(x) my_sampling$train_set(x))
+        test_ids = lapply(1:4, function(x) my_sampling$test_set(x))
+        smpls = list(list(train_ids = train_ids, test_ids = test_ids))
+
+        dml_plr_obj_external$set_samples(smpls)
+        dml_plr_obj_external$fit()
+        dml_plr_obj_external$summary()
 
 Sample-splitting without cross-fitting
 ++++++++++++++++++++++++++++++++++++++
@@ -298,10 +307,12 @@ Note that cross-fitting performs well empirically and is recommended to remove b
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
-
+        dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
+                                               n_folds = 2, apply_cross_fitting = FALSE)
+        dml_plr_obj_external$fit()
+        dml_plr_obj_external$summary()
+        print(dml_plr_obj_external$n_obs)
+        print(dim(dml_plr_obj_external$.__enclos_env__$private$psi))
 Note, that in order to split data unevenly into train and test the interface to externally set the sample splitting
 via ``set_sample_splitting()`` needs to be applied, like for example:
 
@@ -326,7 +337,20 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
+                                                n_folds = 2, apply_cross_fitting = FALSE, draw_sample_splitting = FALSE)
 
+        set.seed(314)
+        # set up a task and cross-validation resampling scheme in mlr3
+        my_task = Task$new("help task", "regr", data)
+        my_sampling = rsmp("holdout", ratio = 0.8)$instantiate(my_task)
+
+        train_ids = list(my_sampling$train_set(1))
+        test_ids = list(my_sampling$test_set(1))
+        smpls = list(list(train_ids = train_ids, test_ids = test_ids))
+
+        dml_plr_obj_external$set_samples(smpls)
+        dml_plr_obj_external$fit()
+        dml_plr_obj_external$summary()
+        print(dml_plr_obj_external$n_obs)
+        print(dim(dml_plr_obj_external$.__enclos_env__$private$psi))
