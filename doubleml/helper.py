@@ -26,7 +26,8 @@ def check_binary_vector(x, variable_name=''):
     assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
     
     if np.any(np.power(x,2) - x != 0):
-        raise ValueError('variable ' + variable_name  + ' must be binary with values 0 and 1')
+        raise ValueError('variable ' + variable_name + ' must be binary with values 0 and 1')
+
 
 def _dml_cross_val_predict(estimator, X, y, smpls=None,
                            n_jobs=None, est_params=None, method='predict'):
@@ -42,7 +43,7 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
         # set some defaults aligned with cross_val_predict
         fit_params = None
         verbose = 0
-        if (est_params is None):
+        if est_params is None:
             predictions, test_indices = _fit_and_predict(clone(estimator),
                                            X, y, train_index, test_index, verbose, fit_params, method)
         elif isinstance(est_params, dict):
@@ -54,7 +55,7 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
         assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
         return predictions
 
-    if (est_params is None):
+    if est_params is None:
         # if there are no parameters set we redirect to the standard method
         return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
     elif isinstance(est_params, dict):
@@ -77,7 +78,7 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
     # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
-    if (est_params is None):
+    if est_params is None:
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             estimator,
             X, y, train_index, test_index, verbose, fit_params, method)
