@@ -78,24 +78,11 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
     # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
-    if est_params is None:
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
-            estimator,
-            X, y, train_index, test_index, verbose, fit_params, method)
-                                     for idx, (train_index, test_index) in enumerate(smpls))
-    elif isinstance(est_params, dict):
-        # if no fold-specific parameters we redirect to the standard method
-        warnings.warn("Using the same (hyper-)parameters for all folds")
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
-            clone(estimator).set_params(**est_params),
-            X, y, train_index, test_index, verbose, fit_params, method)
-                                     for idx, (train_index, test_index) in enumerate(smpls))
-    else:
-        assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
-            clone(estimator).set_params(**est_params[idx]),
-            X, y, train_index, test_index, verbose, fit_params, method)
-            for idx, (train_index, test_index) in enumerate(smpls))
+    assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
+    prediction_blocks = parallel(delayed(_fit_and_predict)(
+        clone(estimator).set_params(**est_params[idx]),
+        X, y, train_index, test_index, verbose, fit_params, method)
+        for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions
     predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
