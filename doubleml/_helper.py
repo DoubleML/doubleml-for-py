@@ -1,21 +1,17 @@
 import numpy as np
+
 from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import cross_val_predict
+from sklearn.base import clone
+from sklearn.preprocessing import LabelEncoder
 
 import warnings
-
-import scipy.sparse as sp
 from joblib import Parallel, delayed
-
-from sklearn.base import clone
-from sklearn.utils.validation import _num_samples
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection._validation import _fit_and_predict, _check_is_permutation
 
 
 def assure_2d_array(x):
     if x.ndim == 1:
-        x = x.reshape(-1,1)
+        x = x.reshape(-1, 1)
     elif x.ndim > 2:
         raise ValueError('Only one- or two-dimensional arrays are allowed')
     return x
@@ -25,89 +21,90 @@ def check_binary_vector(x, variable_name=''):
     # assure D binary
     assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
     
-    if np.any(np.power(x,2) - x != 0):
+    if np.any(np.power(x, 2) - x != 0):
         raise ValueError('variable ' + variable_name + ' must be binary with values 0 and 1')
 
 
-def _dml_cv_predict(estimator, X, y, smpls=None,
-                    n_jobs=None, est_params=None, method='predict'):
-    # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
-    # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
-
+def _check_is_partition(smpls, n_obs):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
-    smpls_is_partition = _check_is_permutation(test_indices, _num_samples(X))
+    if len(test_indices) != n_obs:
+        return False
+    hit = np.zeros(n_obs, dtype=bool)
+    hit[test_indices] = True
+    if not np.all(hit):
+        return False
+    return True
 
-    if not smpls_is_partition:
-        assert len(smpls) == 1
-        train_index, test_index = smpls[0]
-        # set some defaults aligned with cross_val_predict
-        fit_params = None
-        verbose = 0
+
+def _fit(estimator, X, y, train_index, idx=None):
+    estimator.fit(X[train_index, :], y[train_index])
+    return estimator, idx
+
+
+def _dml_cv_predict(estimator, X, y, smpls=None,
+                    n_jobs=None, est_params=None, method='predict', return_train_preds=False):
+    smpls_is_partition = _check_is_partition(smpls, len(y))
+    fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
+    manual_cv_predict = (not smpls_is_partition) | (not return_train_preds) | fold_specific_params
+
+    if not manual_cv_predict:
         if est_params is None:
-            predictions, test_indices = _fit_and_predict(clone(estimator),
-                                           X, y, train_index, test_index, verbose, fit_params, method)
+            # if there are no parameters set we redirect to the standard method
+            return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
         elif isinstance(est_params, dict):
-            predictions, test_indices = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                           X, y, train_index, test_index, verbose, fit_params, method)
-
-        # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
-        # inv_test_indices = np.argsort(test_indices)
-        assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
-        return predictions
-
-    if est_params is None:
-        # if there are no parameters set we redirect to the standard method
-        return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
-    elif isinstance(est_params, dict):
-        # if no fold-specific parameters we redirect to the standard method
-        warnings.warn("Using the same (hyper-)parameters for all folds")
-        return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs, method=method)
-
-    # set some defaults aligned with cross_val_predict
-    fit_params = None
-    verbose = 0
-    pre_dispatch = '2*n_jobs'
-
-    encode = (method == 'predict_proba')
-
-    if encode:
-        y = np.asarray(y)
-        le = LabelEncoder()
-        y = le.fit_transform(y)
-
-    parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
-                        pre_dispatch=pre_dispatch)
-    # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
-    assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
-    prediction_blocks = parallel(delayed(_fit_and_predict)(
-        clone(estimator).set_params(**est_params[idx]),
-        X, y, train_index, test_index, verbose, fit_params, method)
-        for idx, (train_index, test_index) in enumerate(smpls))
-
-    # Concatenate the predictions
-    predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
-    test_indices = np.concatenate([indices_i
-                                   for _, indices_i in prediction_blocks])
-
-    if not _check_is_permutation(test_indices, _num_samples(X)):
-        raise ValueError('_dml_cross_val_predict only works for partitions')
-
-    inv_test_indices = np.empty(len(test_indices), dtype=int)
-    inv_test_indices[test_indices] = np.arange(len(test_indices))
-
-    if sp.issparse(predictions[0]):
-        predictions = sp.vstack(predictions, format=predictions[0].format)
-    elif encode and isinstance(predictions[0], list):
-        n_labels = y.shape[1]
-        concat_pred = []
-        for i_label in range(n_labels):
-            label_preds = np.concatenate([p[i_label] for p in predictions])
-            concat_pred.append(label_preds)
-        predictions = concat_pred
+            # if no fold-specific parameters we redirect to the standard method
+            warnings.warn("Using the same (hyper-)parameters for all folds")
+            return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs,
+                                     method=method)
     else:
-        predictions = np.concatenate(predictions)
+        if not smpls_is_partition:
+            assert len(smpls) == 1
+            train_index, test_index = smpls[0]
+            # restrict to sorted set of test_indices
+            assert np.all(np.diff(test_index) > 0), 'test_index not sorted'
+            if est_params is None:
+                fitted_model, _ = _fit(clone(estimator),
+                                        X, y, train_index)
+            elif isinstance(est_params, dict):
+                fitted_model, _ = _fit(clone(estimator).set_params(**est_params),
+                                        X, y, train_index)
+            pred_fun = getattr(fitted_model, method)
+            preds = pred_fun(X[test_index, :])
+            return preds
 
-    if isinstance(predictions, list):
-        return [p[inv_test_indices] for p in predictions]
-    else:
-        return predictions[inv_test_indices]
+        else:
+            if method == 'predict_proba':
+                y = np.asarray(y)
+                le = LabelEncoder()
+                y = le.fit_transform(y)
+
+            parallel = Parallel(n_jobs=n_jobs, verbose=0, pre_dispatch='2*n_jobs')
+
+            if est_params is None:
+                fitted_models = parallel(delayed(_fit)(
+                    clone(estimator), X, y, train_index, idx)
+                                             for idx, (train_index, test_index) in enumerate(smpls))
+            elif isinstance(est_params, dict):
+                warnings.warn("Using the same (hyper-)parameters for all folds")
+                fitted_models = parallel(delayed(_fit)(
+                    clone(estimator).set_params(**est_params), X, y, train_index, idx)
+                                             for idx, (train_index, test_index) in enumerate(smpls))
+            else:
+                assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
+                fitted_models = parallel(delayed(_fit)(
+                    clone(estimator).set_params(**est_params[idx]), X, y, train_index, idx)
+                                             for idx, (train_index, test_index) in enumerate(smpls))
+
+            preds = np.zeros_like(y)
+            train_preds = list()
+            for idx, (train_index, test_index) in enumerate(smpls):
+                assert idx == fitted_models[idx][1]
+                pred_fun = getattr(fitted_models[idx][0], method)
+                preds[test_index] = pred_fun(X[test_index, :])
+                if return_train_preds:
+                    train_preds.append(pred_fun(X[train_index, :]))
+
+            if return_train_preds:
+                return preds, train_preds
+            else:
+                return preds
