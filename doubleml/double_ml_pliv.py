@@ -137,7 +137,8 @@ class DoubleMLPLIV(DoubleML):
                   score='partialling out',
                   dml_procedure='dml2',
                   draw_sample_splitting=True,
-                  apply_cross_fitting=True):
+                  apply_cross_fitting=True,
+                  m_hat_on_train=False):
         obj = cls(obj_dml_data,
                   ml_g,
                   ml_m,
@@ -150,6 +151,7 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = True
         obj.partialZ = True
+        obj.m_hat_on_train = m_hat_on_train
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -191,7 +193,7 @@ class DoubleMLPLIV(DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['partialling out']
+            valid_score = ['partialling out', 'partialling out']
             # check whether its worth implementing the IV_type as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
@@ -332,13 +334,34 @@ class DoubleMLPLIV(DoubleML):
         g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self.__g_params)
 
-        # nuisance m
-        m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self.__m_params)
+        if self.m_hat_on_train:
+            # nuisance m
+            m_hat, m_hat_on_train = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                                    est_params=self.__m_params, return_train_preds=True)
 
-        # nuisance r
-        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
-                                      est_params=self.__r_params)
+            # nuisance r
+            fold_specific_pars = False
+            if (self.__r_params is not None) & (not isinstance(self.__r_params, dict)):
+                assert len(self.__r_params) == self.n_folds
+                fold_specific_pars = True
+            m_hat_tilde = np.full(self.n_obs, np.nan)
+            for idx, (train_index, test_index) in enumerate(smpls):
+                this_m_hat = np.full(self.n_obs, np.nan)
+                this_m_hat[train_index] = m_hat_on_train[idx]
+                if fold_specific_pars:
+                    this_pars = self.__r_params[idx]
+                else:
+                    this_pars = self.__r_params
+                m_hat_tilde[test_index] = _dml_cv_predict(self.ml_r, X, this_m_hat, smpls=[(train_index, test_index)],
+                                                          est_params=this_pars)
+        else:
+            # nuisance m
+            m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self.__m_params)
+
+            # nuisance r
+            m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
+                                          est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
