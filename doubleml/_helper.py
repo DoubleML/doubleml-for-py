@@ -45,7 +45,7 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
                     n_jobs=None, est_params=None, method='predict', return_train_preds=False):
     smpls_is_partition = _check_is_partition(smpls, len(y))
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
-    manual_cv_predict = (not smpls_is_partition) | (not return_train_preds) | fold_specific_params
+    manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params
 
     if not manual_cv_predict:
         if est_params is None:
@@ -96,11 +96,17 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
                                              for idx, (train_index, test_index) in enumerate(smpls))
 
             preds = np.zeros_like(y)
+            if method == 'predict_proba':
+                preds = np.zeros((len(y), 2))
             train_preds = list()
             for idx, (train_index, test_index) in enumerate(smpls):
                 assert idx == fitted_models[idx][1]
                 pred_fun = getattr(fitted_models[idx][0], method)
-                preds[test_index] = pred_fun(X[test_index, :])
+                if method == 'predict_proba':
+                    preds[test_index, :] = pred_fun(X[test_index, :])
+                else:
+                    preds[test_index] = pred_fun(X[test_index, :])
+
                 if return_train_preds:
                     train_preds.append(pred_fun(X[train_index, :]))
 
