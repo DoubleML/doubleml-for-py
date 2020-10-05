@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
-from .helper import _dml_cross_val_predict
+from ._helper import _dml_cross_val_predict
 
 
 class DoubleMLPLR(DoubleML):
@@ -189,7 +189,6 @@ class DoubleMLPLR(DoubleML):
     def _initialize_ml_nuisance_params(self):
         self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
         self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g', 'ml_m']

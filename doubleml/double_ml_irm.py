@@ -5,8 +5,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML, DoubleMLData
-from .helper import _dml_cross_val_predict
-from .helper import check_binary_vector
+from ._helper import _dml_cross_val_predict
+from ._helper import check_binary_vector
 
 
 class DoubleMLIRM(DoubleML):

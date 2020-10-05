@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression
 
 from .double_ml import DoubleML, DoubleMLData
-from .helper import _dml_cross_val_predict
+from ._helper import _dml_cross_val_predict
 
 
 class DoubleMLPLIV(DoubleML):
