@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression
 
 from .double_ml import DoubleML, DoubleMLData
-from ._helper import _dml_cross_val_predict
+from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLIV(DoubleML):
@@ -233,15 +233,15 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
         
         # nuisance m
         if obj_dml_data.n_instr == 1:
             # one instrument: just identified
             X, z = check_X_y(X, obj_dml_data.z)
-            m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=self.__m_params)
+            m_hat = _dml_cv_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self.__m_params)
         else:
             # several instruments: 2SLS
             m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
@@ -249,12 +249,12 @@ class DoubleMLPLIV(DoubleML):
             for i_instr in range(obj_dml_data.n_instr):
                 self._i_instr = i_instr
                 X, this_z = check_X_y(X, z[:, i_instr])
-                m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                           est_params=self.__m_params_mult_instr)
+                m_hat[:, i_instr] = _dml_cv_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                                    est_params=self.__m_params_mult_instr)
 
         # nuisance r
-        r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__r_params)
+        r_hat = _dml_cv_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -276,8 +276,8 @@ class DoubleMLPLIV(DoubleML):
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
             # projection of r_hat on m_hat
-            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
-                                                 smpls=smpls, n_jobs=n_jobs_cv)
+            r_hat_tilde = _dml_cv_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
+                                          smpls=smpls, n_jobs=n_jobs_cv)
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
@@ -300,8 +300,8 @@ class DoubleMLPLIV(DoubleML):
                           obj_dml_data.d)
 
         # nuisance m
-        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__r_params)
+        r_hat = _dml_cv_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -329,16 +329,16 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
 
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)
+        m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__m_params)
 
         # nuisance r
-        m_hat_tilde = _dml_cross_val_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
-                                             est_params=self.__r_params)
+        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
+                                      est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
@@ -499,11 +499,11 @@ class DoubleMLPLIV(DoubleML):
 
         # obtain predictions based on the tuned model
         if len(m_best_params) > 1:
-            m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=m_best_params)
+            m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=m_best_params)
         elif len(m_best_params) == 1:
-            m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=m_best_params[0])
+            m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=m_best_params[0])
 
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_r

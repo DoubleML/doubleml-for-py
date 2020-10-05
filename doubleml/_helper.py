@@ -29,8 +29,8 @@ def check_binary_vector(x, variable_name=''):
         raise ValueError('variable ' + variable_name + ' must be binary with values 0 and 1')
 
 
-def _dml_cross_val_predict(estimator, X, y, smpls=None,
-                           n_jobs=None, est_params=None, method='predict'):
+def _dml_cv_predict(estimator, X, y, smpls=None,
+                    n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
 

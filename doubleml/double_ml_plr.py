@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
-from ._helper import _dml_cross_val_predict
+from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLR(DoubleML):
@@ -112,12 +112,12 @@ class DoubleMLPLR(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)
+        m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__m_params)
 
         if self.apply_cross_fitting:
             y_test = y
