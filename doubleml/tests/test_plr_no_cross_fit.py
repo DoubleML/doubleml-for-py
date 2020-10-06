@@ -37,7 +37,7 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=[2])
+                params=[1, 2])
 def n_folds(request):
     return request.param
 
@@ -72,10 +72,13 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
-    smpls = [smpls[0]]
+    if n_folds == 1:
+        smpls = [(np.arange(len(y)), np.arange(len(y)))]
+    else:
+        resampling = KFold(n_splits=n_folds,
+                           shuffle=True)
+        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [smpls[0]]
     
     g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                     clone(learner), clone(learner), smpls)
