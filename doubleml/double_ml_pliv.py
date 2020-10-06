@@ -337,20 +337,8 @@ class DoubleMLPLIV(DoubleML):
                                                 est_params=self.__m_params, return_train_preds=True)
 
         # nuisance r
-        fold_specific_pars = False
-        if (self.__r_params is not None) & (not isinstance(self.__r_params, dict)):
-            assert len(self.__r_params) == self.n_folds
-            fold_specific_pars = True
-        m_hat_tilde = np.full(self.n_obs, np.nan)
-        for idx, (train_index, test_index) in enumerate(smpls):
-            this_m_hat = np.full(self.n_obs, np.nan)
-            this_m_hat[train_index] = m_hat_on_train[idx]
-            if fold_specific_pars:
-                this_pars = self.__r_params[idx]
-            else:
-                this_pars = self.__r_params
-            m_hat_tilde[test_index] = _dml_cv_predict(self.ml_r, X, this_m_hat, smpls=[(train_index, test_index)],
-                                                      est_params=this_pars)
+        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
+                                      est_params=self.__r_params)
 
         if self.apply_cross_fitting:
             y_test = y
