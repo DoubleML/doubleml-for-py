@@ -36,8 +36,7 @@ class DoubleML(ABC):
         self.score = self._check_score(score)
 
         if not self.apply_cross_fitting:
-            assert self.n_folds == 2
-            #assert self.n_rep_cross_fit == 1
+            assert self.n_folds <= 2
             if self.dml_procedure == 'dml2':
                 # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
                 self.dml_procedure = 'dml1'
@@ -205,7 +204,7 @@ class DoubleML(ABC):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         return self._all_dml1_coef[self._i_treat, self._i_rep, :]
 
-    @__all_coef.setter
+    @__all_dml1_coef.setter
     def __all_dml1_coef(self, value):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
@@ -386,7 +385,10 @@ class DoubleML(ABC):
         self._all_se = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
 
         if self.dml_procedure == 'dml1':
-            self._all_dml1_coef = np.full((self.n_treat, self.n_rep_cross_fit, self.n_folds), np.nan)
+            if self.apply_cross_fitting:
+                self._all_dml1_coef = np.full((self.n_treat, self.n_rep_cross_fit, self.n_folds), np.nan)
+            else:
+                self._all_dml1_coef = np.full((self.n_treat, self.n_rep_cross_fit, 1), np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
