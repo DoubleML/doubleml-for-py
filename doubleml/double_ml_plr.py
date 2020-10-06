@@ -119,19 +119,10 @@ class DoubleMLPLR(DoubleML):
         m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self.__m_params)
 
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
-
         # compute residuals
-        u_hat = y_test - g_hat
-        v_hat = d_test - m_hat
-        v_hatd = np.multiply(v_hat, d_test)
+        u_hat = y - g_hat
+        v_hat = d - m_hat
+        v_hatd = np.multiply(v_hat, d)
 
         score = self.score
         self._check_score(score)
@@ -142,7 +133,7 @@ class DoubleMLPLR(DoubleML):
                 psi_a = -np.multiply(v_hat, v_hat)
             psi_b = np.multiply(v_hat, u_hat)
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, d_test, g_hat, m_hat, smpls)
+            psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
         
         return psi_a, psi_b
 

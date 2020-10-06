@@ -65,6 +65,9 @@ def cv_predict_fixture(generate_data_cv_predict, idx, cross_fit, params):
 
 
 def test_cv_predict(cv_predict_fixture):
-    assert np.allclose(cv_predict_fixture['preds'],
-                       cv_predict_fixture['preds_ut'],
+    ind_nan_preds = np.isnan(cv_predict_fixture['preds'])
+    ind_nan_preds_ut = np.isnan(cv_predict_fixture['preds_ut'])
+    assert np.array_equal(ind_nan_preds, ind_nan_preds_ut)
+    assert np.allclose(cv_predict_fixture['preds'][~ind_nan_preds],
+                       cv_predict_fixture['preds_ut'][~ind_nan_preds],
                        rtol=1e-9, atol=1e-4)

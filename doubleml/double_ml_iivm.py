@@ -168,35 +168,24 @@ class DoubleMLIIVM(DoubleML):
         r_hat1 = _dml_cv_predict(self.ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
                                  est_params=self.__r1_params)[:, 1]
 
-        if self.apply_cross_fitting:
-            y_test = y
-            z_test = z
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            z_test = z[test_index]
-            d_test = d[test_index]
-
         # compute residuals
-        u_hat0 = y_test - g_hat0
-        u_hat1 = y_test - g_hat1
-        w_hat0 = d_test - r_hat0
-        w_hat1 = d_test - r_hat1
+        u_hat0 = y - g_hat0
+        u_hat1 = y - g_hat1
+        w_hat0 = d - r_hat0
+        w_hat1 = d - r_hat1
 
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
             if score == 'LATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(z_test, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-z_test, u_hat0), 1.0 - m_hat)
+                                + np.divide(np.multiply(z, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
                 psi_a = -1*(r_hat1 - r_hat0 \
-                                    + np.divide(np.multiply(z_test, w_hat1), m_hat) \
-                                    - np.divide(np.multiply(1.0-z_test, w_hat0), 1.0 - m_hat))
+                                    + np.divide(np.multiply(z, w_hat1), m_hat) \
+                                    - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, z_test, d_test,
+            psi_a, psi_b = self.score(y, z, d,
                                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return psi_a, psi_b

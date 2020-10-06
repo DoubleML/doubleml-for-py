@@ -25,16 +25,18 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
         # set some defaults aligned with cross_val_predict
         fit_params = None
         verbose = 0
+        predictions = np.full(len(y), np.nan)
         if est_params is None:
-            predictions, test_indices = _fit_and_predict(clone(estimator),
-                                           X, y, train_index, test_index, verbose, fit_params, method)
+            xx, test_indices = _fit_and_predict(clone(estimator),
+                                                X, y, train_index, test_index, verbose, fit_params, method)
         elif isinstance(est_params, dict):
-            predictions, test_indices = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                           X, y, train_index, test_index, verbose, fit_params, method)
+            xx, test_indices = _fit_and_predict(clone(estimator).set_params(**est_params),
+                                                X, y, train_index, test_index, verbose, fit_params, method)
 
         # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
         # inv_test_indices = np.argsort(test_indices)
         assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
+        predictions[test_indices] = xx
         return predictions
 
     # set some defaults aligned with cross_val_predict

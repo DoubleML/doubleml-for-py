@@ -38,9 +38,9 @@ class DoubleML(ABC):
         if not self.apply_cross_fitting:
             assert self.n_folds == 2
             #assert self.n_rep_cross_fit == 1
-            if self.dml_procedure == 'dml1':
-                # redirect to dml2 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
-                self.dml_procedure = 'dml2'
+            if self.dml_procedure == 'dml2':
+                # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
+                self.dml_procedure = 'dml1'
 
         # perform sample splitting
         if draw_sample_splitting:
@@ -54,19 +54,6 @@ class DoubleML(ABC):
     @property
     def n_obs(self):
         return self._dml_data.n_obs
-
-    @property
-    def n_obs_test(self):
-        if self.apply_cross_fitting:
-            n_obs_test = self.n_obs
-        else:
-            if self._smpls is None:
-                # if there is no sample splitting specified yet backfall to n_obs
-                n_obs_test = self.n_obs
-            else:
-                test_index = self.smpls[0][0][1]
-                n_obs_test = len(test_index)
-        return n_obs_test
 
     @property
     def n_treat(self):
@@ -234,6 +221,11 @@ class DoubleML(ABC):
         
         """
 
+        if not self.apply_cross_fitting:
+            if se_reestimate:
+                # redirect to se_reestimate = False; se_reestimate is of no relevance without cross-fitting
+                se_reestimate = False
+
         for i_rep in range(self.n_rep_cross_fit):
             self._i_rep = i_rep
             for i_d in range(self.n_treat):
@@ -383,9 +375,9 @@ class DoubleML(ABC):
         pass
 
     def _initialize_arrays(self):
-        self._psi = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._psi_a = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._psi_b = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi_a = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi_b = np.full((self.n_obs, self.n_rep_cross_fit, self.n_treat), np.nan)
         
         self._coef = np.full(self.n_treat, np.nan)
         self._se = np.full(self.n_treat, np.nan)
@@ -423,7 +415,8 @@ class DoubleML(ABC):
         smpls = self.__smpls
         
         if dml_procedure == 'dml1':
-            thetas = np.zeros(self.n_folds)
+            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+            thetas = np.zeros(len(smpls))
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
@@ -448,7 +441,8 @@ class DoubleML(ABC):
             if se_reestimate:
                 se = np.sqrt(self._var_est())
             else:
-                variances = np.zeros(self.n_folds)
+                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+                variances = np.zeros(len(smpls))
                 for idx, (train_index, test_index) in enumerate(smpls):
                     variances[idx] = self._var_est(test_index)
                 se = np.sqrt(np.mean(variances))
