@@ -1,6 +1,4 @@
 import numpy as np
-from sklearn.utils.multiclass import type_of_target
-from sklearn.model_selection import cross_val_predict
 
 import warnings
 
@@ -13,23 +11,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection._validation import _fit_and_predict, _check_is_permutation
 
 
-def assure_2d_array(x):
-    if x.ndim == 1:
-        x = x.reshape(-1,1)
-    elif x.ndim > 2:
-        raise ValueError('Only one- or two-dimensional arrays are allowed')
-    return x
-
-
-def check_binary_vector(x, variable_name=''):
-    # assure D binary
-    assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
-    
-    if np.any(np.power(x,2) - x != 0):
-        raise ValueError('variable ' + variable_name  + ' must be binary with values 0 and 1')
-
-def _dml_cross_val_predict(estimator, X, y, smpls=None,
-                           n_jobs=None, est_params=None, method='predict'):
+def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
+                    n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
 
@@ -42,7 +25,7 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
         # set some defaults aligned with cross_val_predict
         fit_params = None
         verbose = 0
-        if (est_params is None):
+        if est_params is None:
             predictions, test_indices = _fit_and_predict(clone(estimator),
                                            X, y, train_index, test_index, verbose, fit_params, method)
         elif isinstance(est_params, dict):
@@ -53,14 +36,6 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
         # inv_test_indices = np.argsort(test_indices)
         assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
         return predictions
-
-    if (est_params is None):
-        # if there are no parameters set we redirect to the standard method
-        return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
-    elif isinstance(est_params, dict):
-        # if no fold-specific parameters we redirect to the standard method
-        warnings.warn("Using the same (hyper-)parameters for all folds")
-        return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs, method=method)
 
     # set some defaults aligned with cross_val_predict
     fit_params = None
@@ -77,7 +52,7 @@ def _dml_cross_val_predict(estimator, X, y, smpls=None,
     parallel = Parallel(n_jobs=n_jobs, verbose=verbose,
                         pre_dispatch=pre_dispatch)
     # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
-    if (est_params is None):
+    if est_params is None:
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             estimator,
             X, y, train_index, test_index, verbose, fit_params, method)
