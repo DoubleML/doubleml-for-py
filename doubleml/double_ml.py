@@ -37,7 +37,7 @@ class DoubleML(ABC):
 
         if not self.apply_cross_fitting:
             assert self.n_folds == 2
-            assert self.n_rep_cross_fit == 1
+            #assert self.n_rep_cross_fit == 1
             if self.dml_procedure == 'dml1':
                 # redirect to dml2 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
                 self.dml_procedure = 'dml2'
@@ -277,6 +277,7 @@ class DoubleML(ABC):
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
+        assert self.apply_cross_fitting
 
         dml_procedure = self.dml_procedure
         

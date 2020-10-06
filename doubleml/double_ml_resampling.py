@@ -16,13 +16,10 @@ class DoubleMLResampling:
         self.n_rep_cross_fit = n_rep_cross_fit
         self.n_obs = n_obs
         self.apply_cross_fitting = apply_cross_fitting
-        if apply_cross_fitting:
-           self.resampling = RepeatedKFold(n_splits=n_folds,
-                                           n_repeats=n_rep_cross_fit)
-        else:
-            assert n_rep_cross_fit == 1
+        if not apply_cross_fitting:
             assert n_folds <= 2
-            self.resampling = KFold(n_splits=n_folds, shuffle=True)
+        self.resampling = RepeatedKFold(n_splits=n_folds,
+                                        n_repeats=n_rep_cross_fit)
 
         if n_folds == 1:
             assert n_rep_cross_fit == 1
@@ -30,12 +27,11 @@ class DoubleMLResampling:
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(np.zeros(self.n_obs))]
-        if self.apply_cross_fitting:
-            smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
-                     for i_repeat in range(self.n_rep_cross_fit)]
-        else:
-            # no cross-fitting
-            smpls = [[all_smpls[0]]]
+        smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
+                 for i_repeat in range(self.n_rep_cross_fit)]
+        if not self.apply_cross_fitting:
+            # in the no cross-fitting case in each repetition we only use the first sample split
+            smpls = [[xx[0]] for xx in smpls]
         return smpls
 
 
