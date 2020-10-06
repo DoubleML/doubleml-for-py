@@ -191,7 +191,7 @@ class DoubleMLPLIV(DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['partialling out']
+            valid_score = ['partialling out', 'partialling out']
             # check whether its worth implementing the IV_type as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
@@ -333,11 +333,11 @@ class DoubleMLPLIV(DoubleML):
                                 est_params=self.__g_params)
 
         # nuisance m
-        m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self.__m_params)
+        m_hat, m_hat_on_train = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                                est_params=self.__m_params, return_train_preds=True)
 
         # nuisance r
-        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
+        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
                                       est_params=self.__r_params)
 
         if self.apply_cross_fitting:
@@ -494,25 +494,16 @@ class DoubleMLPLIV(DoubleML):
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(XZ[train_index, :], d[train_index])
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
-
-        # obtain predictions based on the tuned model
-        if len(m_best_params) > 1:
-            m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=m_best_params)
-        elif len(m_best_params) == 1:
-            m_hat = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=m_best_params[0])
-
-        for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_r
+            m_hat = m_grid_search.predict(XZ[train_index, :])
             r_tune_resampling = KFold(n_splits=n_folds_tune)
             r_grid_search = GridSearchCV(self.ml_r, param_grids['param_grid_r'],
                                          scoring=scoring_methods['scoring_methods_r'],
                                          cv=r_tune_resampling)
-            r_tune_res[idx] = r_grid_search.fit(X[train_index, :], m_hat[train_index])
+            r_tune_res[idx] = r_grid_search.fit(X[train_index, :], m_hat)
 
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
 
         params = {'ml_g': g_best_params,
