@@ -37,21 +37,17 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[2])
 def n_folds(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, dml_procedure, n_folds):
+def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     boot_methods = ['normal']
     n_rep_boot = 502
+
+    dml_procedure = 'dml1'
 
     # collect data
     data = generate_data1[idx]
@@ -84,10 +80,10 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, dml_proced
     g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                     clone(learner), clone(learner), smpls)
 
-    assert dml_procedure == 'dml2'
-    res_manual, se_manual = plr_dml2(y, X, d,
+    assert dml_procedure == 'dml1'
+    res_manual, se_manual = plr_dml1(y, X, d,
                                      g_hat, m_hat,
-                                     smpls, score, apply_cross_fitting=False)
+                                     smpls, score)
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
