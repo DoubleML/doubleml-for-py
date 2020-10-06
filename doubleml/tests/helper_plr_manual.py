@@ -75,7 +75,7 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score, se_reestimate=False):
     
     return theta_hat, se
 
-def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
+def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score, apply_cross_fitting=True):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     u_hat = np.zeros_like(Y)
@@ -83,9 +83,16 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
-    theta_hat = plr_orth(v_hat, u_hat, D, score)
-    se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
-    
+    if apply_cross_fitting:
+        theta_hat = plr_orth(v_hat, u_hat, D, score)
+        se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
+    else:
+        theta_hat = plr_orth(v_hat[test_index], u_hat[test_index], D[test_index],
+                             score)
+        se = np.sqrt(var_plr(theta_hat,
+                             D[test_index], u_hat[test_index], v_hat[test_index],
+                             score, n_obs))
+
     return theta_hat, se
     
 def var_plr(theta, d, u_hat, v_hat, score, n_obs):
