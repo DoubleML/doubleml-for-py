@@ -14,18 +14,18 @@ def fit_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=N
 
     XZ = np.hstack((X, Z))
     m_hat = []
-    m_hat_vector = np.zeros_like(D)
+    m_hat_train = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if m_params is not None:
             ml_m.set_params(**m_params[idx])
         m_hat.append(ml_m.fit(XZ[train_index], D[train_index]).predict(XZ[test_index]))
-        m_hat_vector[test_index] = m_hat[idx]
+        m_hat_train.append(ml_m.fit(XZ[train_index], D[train_index]).predict(XZ[train_index]))
     
     m_hat_tilde = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if r_params is not None:
             ml_r.set_params(**r_params[idx])
-        m_hat_tilde.append(ml_r.fit(X[train_index], m_hat_vector[train_index]).predict(X[test_index]))
+        m_hat_tilde.append(ml_r.fit(X[train_index], m_hat_train[idx]).predict(X[test_index]))
     
     return g_hat, m_hat, m_hat_tilde
 
