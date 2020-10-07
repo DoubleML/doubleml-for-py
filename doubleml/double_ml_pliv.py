@@ -264,9 +264,10 @@ class DoubleMLPLIV(DoubleML):
         if obj_dml_data.n_instr > 1:
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
-            # projection of r_hat on m_hat
-            r_hat_tilde = _dml_cv_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
-                                          smpls=smpls, n_jobs=n_jobs_cv)
+            # projection of w_hat on v_hat
+            reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
+            r_hat_tilde = reg.predict(v_hat)
+
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
