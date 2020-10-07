@@ -245,16 +245,19 @@ class DoubleMLPLIV(DoubleML):
         else:
             # several instruments: 2SLS
             m_hat = np.full((self.n_obs, obj_dml_data.n_instr), np.nan)
+            m_hat_train = [np.full((self.n_obs, obj_dml_data.n_instr), np.nan)] * self.n_folds
             z = obj_dml_data.z
             for i_instr in range(obj_dml_data.n_instr):
                 self._i_instr = i_instr
                 X, this_z = check_X_y(X, z[:, i_instr])
-                m_hat[:, i_instr] = _dml_cv_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                    est_params=self.__m_params_mult_instr)
+                m_hat[:, i_instr], xx = _dml_cv_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                                        est_params=self.__m_params_mult_instr, return_train_preds=True)
+                for idx, (train_index, test_index) in enumerate(smpls):
+                    m_hat_train[idx][train_index, i_instr] = xx[idx]
 
         # nuisance r
-        r_hat = _dml_cv_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self.__r_params)
+        r_hat, r_hat_train = _dml_cv_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                             est_params=self.__r_params, return_train_preds=True)
         
         # compute residuals
         u_hat = y - g_hat
@@ -265,8 +268,14 @@ class DoubleMLPLIV(DoubleML):
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
             # projection of w_hat on v_hat
-            reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
-            r_hat_tilde = reg.predict(v_hat)
+            #reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
+            #r_hat_tilde = reg.predict(v_hat)
+
+            for idx, (train_index, test_index) in enumerate(smpls):
+                v_hat_train = z[train_index, :] - m_hat_train[idx][train_index, :]
+                w_hat_train = d[train_index] - r_hat_train[idx]
+                reg = LinearRegression(fit_intercept=True).fit(v_hat_train, w_hat_train)
+                r_hat_tilde = reg.predict(v_hat)
 
         score = self.score
         self._check_score(score)
