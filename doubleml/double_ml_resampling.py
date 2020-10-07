@@ -9,26 +9,26 @@ import itertools
 class DoubleMLResampling:
     def __init__(self,
                  n_folds,
-                 n_rep_cross_fit,
+                 n_rep,
                  n_obs,
                  apply_cross_fitting):
         self.n_folds = n_folds
-        self.n_rep_cross_fit = n_rep_cross_fit
+        self.n_rep = n_rep
         self.n_obs = n_obs
         self.apply_cross_fitting = apply_cross_fitting
         if not apply_cross_fitting:
             assert n_folds <= 2
         self.resampling = RepeatedKFold(n_splits=n_folds,
-                                        n_repeats=n_rep_cross_fit)
+                                        n_repeats=n_rep)
 
         if n_folds == 1:
-            assert n_rep_cross_fit == 1
+            assert n_rep == 1
             self.resampling = ResampleNoSplit()
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(np.zeros(self.n_obs))]
         smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
-                 for i_repeat in range(self.n_rep_cross_fit)]
+                 for i_repeat in range(self.n_rep)]
         if not self.apply_cross_fitting:
             # in the no cross-fitting case in each repetition we only use the first sample split
             smpls = [[xx[0]] for xx in smpls]

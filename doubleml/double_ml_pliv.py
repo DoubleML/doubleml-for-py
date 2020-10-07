@@ -20,7 +20,7 @@ class DoubleMLPLIV(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -57,14 +57,14 @@ class DoubleMLPLIV(DoubleML):
                  ml_m,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -83,7 +83,7 @@ class DoubleMLPLIV(DoubleML):
                  ml_m,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
@@ -93,7 +93,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -106,7 +106,7 @@ class DoubleMLPLIV(DoubleML):
                  obj_dml_data,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
@@ -116,7 +116,7 @@ class DoubleMLPLIV(DoubleML):
                   None,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -133,7 +133,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds=5,
-                  n_rep_cross_fit=1,
+                  n_rep=1,
                   score='partialling out',
                   dml_procedure='dml2',
                   draw_sample_splitting=True,
@@ -143,7 +143,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -492,20 +492,20 @@ class DoubleMLPLIV(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         if self.partialX & (not self.partialZ):
-            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
             if self.n_instr == 1:
-                self._m_params = {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols}
+                self._m_params = {key_d: [None] * self.n_rep for key_d in self.d_cols}
             else:
-                self._m_params_mult_instr = {key_z:  {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols} for key_z in self.z_cols}
+                self._m_params_mult_instr = {key_z:  {key_d: [None] * self.n_rep for key_d in self.d_cols} for key_z in self.z_cols}
         elif (not self.partialX) & self.partialZ:
             self._g_params = None
             self._m_params = None
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
         elif self.partialX & self.partialZ:
-            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         if self.partialX & (not self.partialZ):
@@ -526,9 +526,9 @@ class DoubleMLPLIV(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 

@@ -82,15 +82,16 @@ dml_data
 
 # Set machine learning methods for m & g
 learner = RandomForestRegressor(max_depth=2, n_estimators=100)
-ml_learners = {'ml_m': clone(learner),
-               'ml_g': clone(learner)}
+ml_g = clone(learner)
+ml_m = clone(learner)
 n_folds = 2
-n_rep_cross_fit=100
+n_rep = 100
 
 dml_plr_obj_rf = dml.DoubleMLPLR(dml_data,
-                                 ml_learners,
+                                 ml_g,
+                                 ml_m,
                                  n_folds,
-                                 n_rep_cross_fit,
+                                 n_rep,
                                  'IV-type',
                                  'dml1')
 
@@ -119,15 +120,16 @@ dml_data_lasso
 
 # Set machine learning methods for m & g
 learner = Lasso(alpha=0.1)
-ml_learners = {'ml_m': clone(learner),
-               'ml_g': clone(learner)}
+ml_g = clone(learner)
+ml_m = clone(learner)
 n_folds = 2
-n_rep_cross_fit=100
+n_rep = 100
 
 dml_plr_obj_lasso = dml.DoubleMLPLR(dml_data_lasso,
-                                    ml_learners,
+                                    ml_g,
+                                    ml_m,
                                     n_folds,
-                                    n_rep_cross_fit,
+                                    n_rep,
                                     'partialling out',
                                     'dml2')
 
@@ -141,15 +143,16 @@ dml_plr_obj_lasso.summary
 #
 
 # Set machine learning methods for m & g
-ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=100),
-               'ml_g': RandomForestRegressor(max_depth=2, n_estimators=100)}
+ml_g = RandomForestRegressor(max_depth=2, n_estimators=100)
+ml_m = RandomForestClassifier(max_depth=2, n_estimators=100)
 n_folds = 2
-n_rep_cross_fit=100
+n_rep=100
 
 dml_irm_obj = dml.DoubleMLIRM(dml_data,
-                              ml_learners,
+                              ml_g,
+                              ml_m,
                               n_folds,
-                              n_rep_cross_fit,
+                              n_rep,
                               'ATE',
                               'dml2')
 
