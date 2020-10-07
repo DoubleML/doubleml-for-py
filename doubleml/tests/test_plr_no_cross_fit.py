@@ -133,12 +133,12 @@ def test_dml_plr_se(dml_plr_no_cross_fit_fixture):
 
 @pytest.fixture(scope='module',
                 params=[10, 13])
-def n_rep_cross_fit(request):
+def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep_cross_fit):
+def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
@@ -157,7 +157,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep_
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
-                                  n_rep_cross_fit,
+                                  n_rep,
                                   score,
                                   dml_procedure,
                                   apply_cross_fitting=False)
@@ -169,7 +169,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep_
     X = data.loc[:, X_cols].values
     d = data['d'].values
     all_smpls = []
-    for i_rep in range(n_rep_cross_fit):
+    for i_rep in range(n_rep):
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
         smpls = [(train, test) for train, test in resampling.split(X)]
@@ -178,11 +178,11 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep_
     # adapt to do no-cross-fitting in each repetition
     all_smpls = [[xx[0]] for xx in all_smpls]
 
-    thetas = np.zeros(n_rep_cross_fit)
-    ses = np.zeros(n_rep_cross_fit)
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
     all_g_hat = list()
     all_m_hat = list()
-    for i_rep in range(n_rep_cross_fit):
+    for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
@@ -208,7 +208,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep_
     #for bootstrap in boot_methods:
     #    np.random.seed(3141)
     #    all_boot_theta = list()
-    #    for i_rep in range(n_rep_cross_fit):
+    #    for i_rep in range(n_rep):
     #        smpls = all_smpls[i_rep]
     #        boot_theta = boot_plr(thetas[i_rep],
     #                              y, d,

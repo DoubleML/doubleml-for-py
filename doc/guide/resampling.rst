@@ -7,7 +7,7 @@ For all DML models
 :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`,
 :class:`~doubleml.double_ml_irm.DoubleMLIRM`,
 and :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
-the specification is done via the parameters ``n_folds`` and ``n_rep_cross_fit``.
+the specification is done via the parameters ``n_folds`` and ``n_rep``.
 Advanced resampling techniques can be obtained via the boolean parameters
 ``draw_sample_splitting`` and ``apply_cross_fitting`` as well as the methods
 ``draw_sample_splitting()`` and ``set_sample_splitting()``.
@@ -45,16 +45,16 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 Cross-fitting with :math:`K` folds
 ++++++++++++++++++++++++++++++++++
 
-The default setting is ``n_folds = 5`` and ``n_rep_cross_fit = 1``, i.e.,
+The default setting is ``n_folds = 5`` and ``n_rep = 1``, i.e.,
 :math:`K=5` folds and no repeated cross-fitting.
 
 .. tabbed:: Python
 
     .. ipython:: python
 
-        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 1)
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 1)
         print(dml_plr_obj.n_folds)
-        print(dml_plr_obj.n_rep_cross_fit)
+        print(dml_plr_obj.n_rep)
 
 .. tabbed:: R
 
@@ -115,16 +115,16 @@ stored in the attributes ``psi_a`` and ``psi_b``.
 Repeated cross-fitting with :math:`K` folds and :math:`M` repetition
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Repeated cross-fitting is obtained by choosing a value :math:`M>1` for the number of repetition ``n_rep_cross_fit``.
+Repeated cross-fitting is obtained by choosing a value :math:`M>1` for the number of repetition ``n_rep``.
 It results in :math:`M` random :math:`K`-fold partitions being drawn.
 
 .. tabbed:: Python
 
     .. ipython:: python
 
-        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 10)
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 10)
         print(dml_plr_obj.n_folds)
-        print(dml_plr_obj.n_rep_cross_fit)
+        print(dml_plr_obj.n_rep)
 
 .. tabbed:: R
 

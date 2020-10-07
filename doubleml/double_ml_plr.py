@@ -19,7 +19,7 @@ class DoubleMLPLR(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -55,14 +55,14 @@ class DoubleMLPLR(DoubleML):
                  ml_g,
                  ml_m,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -178,8 +178,8 @@ class DoubleMLPLR(DoubleML):
         return(res)
 
     def _initialize_ml_nuisance_params(self):
-        self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g', 'ml_m']
@@ -191,9 +191,9 @@ class DoubleMLPLR(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 
