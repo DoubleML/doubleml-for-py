@@ -85,7 +85,7 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
     theta_hat = plr_orth(v_hat, u_hat, D, score)
     se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
-    
+
     return theta_hat, se
     
 def var_plr(theta, d, u_hat, v_hat, score, n_obs):

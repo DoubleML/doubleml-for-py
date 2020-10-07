@@ -63,69 +63,56 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
             assert len(smpls) == 1
-            train_index, test_index = smpls[0]
-            # restrict to sorted set of test_indices
-            assert np.all(np.diff(test_index) > 0), 'test_index not sorted'
-            if est_params is None:
-                fitted_model, _ = _fit(clone(estimator),
-                                        X, y, train_index)
-            elif isinstance(est_params, dict):
-                fitted_model, _ = _fit(clone(estimator).set_params(**est_params),
-                                        X, y, train_index)
-            pred_fun = getattr(fitted_model, method)
-            preds = pred_fun(X[test_index, :])
-            return preds
 
+        if method == 'predict_proba':
+            assert not fold_specific_target  # fold_specific_target only needed for PLIV.partialXZ
+            y = np.asarray(y)
+            le = LabelEncoder()
+            y = le.fit_transform(y)
+
+        parallel = Parallel(n_jobs=n_jobs, verbose=0, pre_dispatch='2*n_jobs')
+
+        if fold_specific_target:
+            y_list = list()
+            for idx, (train_index, _) in enumerate(smpls):
+                xx = np.full(n_obs, np.nan)
+                xx[train_index] = y[idx]
+                y_list.append(xx)
         else:
+            # just replicate the y in a list
+            y_list = [y] * len(smpls)
+
+        if est_params is None:
+            fitted_models = parallel(delayed(_fit)(
+                clone(estimator), X, y_list[idx], train_index, idx)
+                                     for idx, (train_index, test_index) in enumerate(smpls))
+        elif isinstance(est_params, dict):
+            warnings.warn("Using the same (hyper-)parameters for all folds")
+            fitted_models = parallel(delayed(_fit)(
+                clone(estimator).set_params(**est_params), X, y_list[idx], train_index, idx)
+                                     for idx, (train_index, test_index) in enumerate(smpls))
+        else:
+            assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
+            fitted_models = parallel(delayed(_fit)(
+                clone(estimator).set_params(**est_params[idx]), X, y_list[idx], train_index, idx)
+                                     for idx, (train_index, test_index) in enumerate(smpls))
+
+        preds = np.full(n_obs, np.nan)
+        if method == 'predict_proba':
+            preds = np.full((n_obs, 2), np.nan)
+        train_preds = list()
+        for idx, (train_index, test_index) in enumerate(smpls):
+            assert idx == fitted_models[idx][1]
+            pred_fun = getattr(fitted_models[idx][0], method)
             if method == 'predict_proba':
-                assert not fold_specific_target  # fold_specific_target only needed for PLIV.partialXZ
-                y = np.asarray(y)
-                le = LabelEncoder()
-                y = le.fit_transform(y)
-
-            parallel = Parallel(n_jobs=n_jobs, verbose=0, pre_dispatch='2*n_jobs')
-
-            if fold_specific_target:
-                y_list = list()
-                for idx, (train_index, _) in enumerate(smpls):
-                    xx = np.full(n_obs, np.nan)
-                    xx[train_index] = y[idx]
-                    y_list.append(xx)
+                preds[test_index, :] = pred_fun(X[test_index, :])
             else:
-                # just replicate the y in a list
-                y_list = [y] * len(smpls)
-
-            if est_params is None:
-                fitted_models = parallel(delayed(_fit)(
-                    clone(estimator), X, y_list[idx], train_index, idx)
-                                         for idx, (train_index, test_index) in enumerate(smpls))
-            elif isinstance(est_params, dict):
-                warnings.warn("Using the same (hyper-)parameters for all folds")
-                fitted_models = parallel(delayed(_fit)(
-                    clone(estimator).set_params(**est_params), X, y_list[idx], train_index, idx)
-                                         for idx, (train_index, test_index) in enumerate(smpls))
-            else:
-                assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
-                fitted_models = parallel(delayed(_fit)(
-                    clone(estimator).set_params(**est_params[idx]), X, y_list[idx], train_index, idx)
-                                         for idx, (train_index, test_index) in enumerate(smpls))
-
-            preds = np.zeros(n_obs)
-            if method == 'predict_proba':
-                preds = np.zeros((n_obs, 2))
-            train_preds = list()
-            for idx, (train_index, test_index) in enumerate(smpls):
-                assert idx == fitted_models[idx][1]
-                pred_fun = getattr(fitted_models[idx][0], method)
-                if method == 'predict_proba':
-                    preds[test_index, :] = pred_fun(X[test_index, :])
-                else:
-                    preds[test_index] = pred_fun(X[test_index, :])
-
-                if return_train_preds:
-                    train_preds.append(pred_fun(X[train_index, :]))
+                preds[test_index] = pred_fun(X[test_index, :])
 
             if return_train_preds:
-                return preds, train_preds
-            else:
-                return preds
+                train_preds.append(pred_fun(X[train_index, :]))
+
+        if return_train_preds:
+            return preds, train_preds
+        else:
+            return preds

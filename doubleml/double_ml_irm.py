@@ -149,34 +149,25 @@ class DoubleMLIRM(DoubleML):
         # nuisance m
         m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self.__m_params)[:, 1]
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
         
         # compute residuals
-        u_hat0 = y_test - g_hat0
+        u_hat0 = y - g_hat0
         if score == 'ATE':
-            u_hat1 = y_test - g_hat1
+            u_hat1 = y - g_hat1
         
         if isinstance(self.score, str):
             if score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(d_test, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-d_test, u_hat0), 1.0 - m_hat)
+                                + np.divide(np.multiply(d, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
                 psi_a = np.full_like(m_hat, -1.0)
             elif score == 'ATTE':
-                psi_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
-                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d_test, u_hat0)),
+                psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
+                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
                                             np.multiply(p_hat, (1.0 - m_hat)))
-                psi_a = - np.divide(d_test, p_hat)
+                psi_a = - np.divide(d, p_hat)
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, d_test,
+            psi_a, psi_b = self.score(y, d,
                                               g_hat0, g_hat1, m_hat, smpls)
 
         return psi_a, psi_b

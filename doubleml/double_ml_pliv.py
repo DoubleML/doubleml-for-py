@@ -244,7 +244,7 @@ class DoubleMLPLIV(DoubleML):
                                     est_params=self.__m_params)
         else:
             # several instruments: 2SLS
-            m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
+            m_hat = np.full((self.n_obs, obj_dml_data.n_instr), np.nan)
             z = obj_dml_data.z
             for i_instr in range(obj_dml_data.n_instr):
                 self._i_instr = i_instr
@@ -255,22 +255,11 @@ class DoubleMLPLIV(DoubleML):
         # nuisance r
         r_hat = _dml_cv_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self.__r_params)
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-            z_test = z
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
-            z_test = z[test_index]
         
         # compute residuals
-        u_hat = y_test - g_hat
-        w_hat = d_test - r_hat
-        v_hat = z_test - m_hat
+        u_hat = y - g_hat
+        w_hat = d - r_hat
+        v_hat = z - m_hat
 
         if obj_dml_data.n_instr > 1:
             assert self.apply_cross_fitting
@@ -289,7 +278,7 @@ class DoubleMLPLIV(DoubleML):
                 psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
-            psi_a, psi_b = self.score(y_test, z_test, d_test,
+            psi_a, psi_b = self.score(y, z, d,
                                       g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
@@ -303,20 +292,11 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cv_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self.__r_params)
 
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
-
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(r_hat, d_test)
-            psi_b = np.multiply(r_hat, y_test)
+            psi_a = -np.multiply(r_hat, d)
+            psi_b = np.multiply(r_hat, y)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
@@ -340,18 +320,9 @@ class DoubleMLPLIV(DoubleML):
         m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
                                       est_params=self.__r_params)
 
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
-
         # compute residuals
-        u_hat = y_test - g_hat
-        w_hat = d_test - m_hat_tilde
+        u_hat = y - g_hat
+        w_hat = d - m_hat_tilde
 
         score = self.score
         self._check_score(score)
