@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
-from .helper import _dml_cross_val_predict
+from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLR(DoubleML):
@@ -19,7 +19,7 @@ class DoubleMLPLR(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -55,14 +55,14 @@ class DoubleMLPLR(DoubleML):
                  ml_g,
                  ml_m,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -112,26 +112,17 @@ class DoubleMLPLR(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
+        m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__m_params)
 
         # compute residuals
-        u_hat = y_test - g_hat
-        v_hat = d_test - m_hat
-        v_hatd = np.multiply(v_hat, d_test)
+        u_hat = y - g_hat
+        v_hat = d - m_hat
+        v_hatd = np.multiply(v_hat, d)
 
         score = self.score
         self._check_score(score)
@@ -142,7 +133,7 @@ class DoubleMLPLR(DoubleML):
                 psi_a = -np.multiply(v_hat, v_hat)
             psi_b = np.multiply(v_hat, u_hat)
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, d_test, g_hat, m_hat, smpls)
+            psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
         
         return psi_a, psi_b
 
@@ -187,9 +178,8 @@ class DoubleMLPLR(DoubleML):
         return(res)
 
     def _initialize_ml_nuisance_params(self):
-        self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-
+        self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g', 'ml_m']
@@ -201,9 +191,9 @@ class DoubleMLPLR(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 

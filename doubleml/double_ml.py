@@ -16,7 +16,7 @@ class DoubleML(ABC):
     def __init__(self,
                  obj_dml_data,
                  n_folds,
-                 n_rep_cross_fit,
+                 n_rep,
                  score,
                  dml_procedure,
                  draw_sample_splitting,
@@ -29,18 +29,17 @@ class DoubleML(ABC):
         self._ml_nuiscance_params = None
 
         self.n_folds = n_folds
-        self.n_rep_cross_fit = n_rep_cross_fit
+        self.n_rep = n_rep
         self.apply_cross_fitting = apply_cross_fitting
 
         self.dml_procedure = dml_procedure
         self.score = self._check_score(score)
 
         if not self.apply_cross_fitting:
-            assert self.n_folds == 2
-            assert self.n_rep_cross_fit == 1
-            if self.dml_procedure == 'dml1':
-                # redirect to dml2 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
-                self.dml_procedure = 'dml2'
+            assert self.n_folds <= 2
+            if self.dml_procedure == 'dml2':
+                # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
+                self.dml_procedure = 'dml1'
 
         # perform sample splitting
         if draw_sample_splitting:
@@ -54,19 +53,6 @@ class DoubleML(ABC):
     @property
     def n_obs(self):
         return self._dml_data.n_obs
-
-    @property
-    def n_obs_test(self):
-        if self.apply_cross_fitting:
-            n_obs_test = self.n_obs
-        else:
-            if self._smpls is None:
-                # if there is no sample splitting specified yet backfall to n_obs
-                n_obs_test = self.n_obs
-            else:
-                test_index = self.smpls[0][0][1]
-                n_obs_test = len(test_index)
-        return n_obs_test
 
     @property
     def n_treat(self):
@@ -218,7 +204,7 @@ class DoubleML(ABC):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         return self._all_dml1_coef[self._i_treat, self._i_rep, :]
 
-    @__all_coef.setter
+    @__all_dml1_coef.setter
     def __all_dml1_coef(self, value):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
@@ -234,7 +220,12 @@ class DoubleML(ABC):
         
         """
 
-        for i_rep in range(self.n_rep_cross_fit):
+        if not self.apply_cross_fitting:
+            if se_reestimate:
+                # redirect to se_reestimate = False; se_reestimate is of no relevance without cross-fitting
+                se_reestimate = False
+
+        for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
@@ -277,12 +268,13 @@ class DoubleML(ABC):
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
+        assert self.apply_cross_fitting
 
         dml_procedure = self.dml_procedure
         
         self._initialize_boot_arrays(n_rep)
 
-        for i_rep in range(self.n_rep_cross_fit):
+        for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
@@ -316,7 +308,7 @@ class DoubleML(ABC):
              set_as_params=True):
 
         if tune_on_folds:
-            tuning_res = [[None] * self.n_rep_cross_fit] * self.n_treat
+            tuning_res = [[None] * self.n_rep] * self.n_treat
         else:
             tuning_res = [None] * self.n_treat
 
@@ -327,8 +319,8 @@ class DoubleML(ABC):
                 self._dml_data._set_x_d(self.d_cols[i_d])
 
             if tune_on_folds:
-                nuiscance_params = [None] * self.n_rep_cross_fit
-                for i_rep in range(self.n_rep_cross_fit):
+                nuiscance_params = [None] * self.n_rep
+                for i_rep in range(self.n_rep):
                     self._i_rep = i_rep
 
                     # tune hyperparameters
@@ -382,34 +374,37 @@ class DoubleML(ABC):
         pass
 
     def _initialize_arrays(self):
-        self._psi = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._psi_a = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
-        self._psi_b = np.full((self.n_obs_test, self.n_rep_cross_fit, self.n_treat), np.nan)
+        self._psi = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
+        self._psi_a = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
+        self._psi_b = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
         
         self._coef = np.full(self.n_treat, np.nan)
         self._se = np.full(self.n_treat, np.nan)
 
-        self._all_coef = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
-        self._all_se = np.full((self.n_treat, self.n_rep_cross_fit), np.nan)
+        self._all_coef = np.full((self.n_treat, self.n_rep), np.nan)
+        self._all_se = np.full((self.n_treat, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
-            self._all_dml1_coef = np.full((self.n_treat, self.n_rep_cross_fit, self.n_folds), np.nan)
+            if self.apply_cross_fitting:
+                self._all_dml1_coef = np.full((self.n_treat, self.n_rep, self.n_folds), np.nan)
+            else:
+                self._all_dml1_coef = np.full((self.n_treat, self.n_rep, 1), np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
-        self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep_cross_fit), np.nan)
+        self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep_cross_fit=self.n_rep_cross_fit,
+                                                n_rep=self.n_rep,
                                                 n_obs=self.n_obs,
                                                 apply_cross_fitting=self.apply_cross_fitting)
         self.smpls = obj_dml_resampling.split_samples()
 
     def set_sample_splitting(self, all_smpls):
-        # TODO warn if n_rep_cross_fit or n_folds is overwritten with different number induced by the transferred
+        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred
         # TODO external samples?
-        self.n_rep_cross_fit = len(all_smpls)
+        self.n_rep = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
         self.n_folds = n_folds_each_smpl[0]
@@ -422,7 +417,8 @@ class DoubleML(ABC):
         smpls = self.__smpls
         
         if dml_procedure == 'dml1':
-            thetas = np.zeros(self.n_folds)
+            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+            thetas = np.zeros(len(smpls))
             for idx, (train_index, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
@@ -447,7 +443,8 @@ class DoubleML(ABC):
             if se_reestimate:
                 se = np.sqrt(self._var_est())
             else:
-                variances = np.zeros(self.n_folds)
+                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+                variances = np.zeros(len(smpls))
                 for idx, (train_index, test_index) in enumerate(smpls):
                     variances[idx] = self._var_est(test_index)
                 se = np.sqrt(np.mean(variances))
@@ -464,7 +461,7 @@ class DoubleML(ABC):
         # aggregate parameters from the repeated cross-fitting
         # don't use the getter (always for one treatment variable and one sample), but the private variable
         self.coef = np.median(self._all_coef, 1)
-        xx = np.tile(self.coef.reshape(-1, 1), self.n_rep_cross_fit)
+        xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
         self.se = np.sqrt(np.median(np.power(self._all_se, 2) - np.power(self._all_coef - xx, 2), 1))
 
     def _compute_bootstrap(self, method, n_rep):

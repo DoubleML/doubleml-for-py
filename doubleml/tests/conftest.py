@@ -5,6 +5,7 @@ import pytest
 from scipy.linalg import toeplitz
 
 from sklearn.datasets import make_spd_matrix
+from sklearn.datasets import make_regression
 
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
@@ -281,3 +282,21 @@ def make_data_pliv_partialZ(n_samples, alpha=1., dim_x=5, dim_z=150):
                         columns=x_cols + ['y', 'd'] + z_cols)
 
     return data
+
+
+@pytest.fixture(scope='session',
+                params=[(253, 10), (501, 52)])
+def generate_data_cv_predict(request):
+    np.random.seed(3141)
+    # setting parameters
+    n_p = request.param
+    n = n_p[0]
+    p = n_p[1]
+
+    # generating data
+    datasets = []
+    for i in range(n_datasets):
+        x, y = make_regression(n_samples=n, n_features=p)
+        datasets.append((x, y))
+
+    return datasets

@@ -5,8 +5,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML, DoubleMLData
-from .helper import _dml_cross_val_predict
-from .helper import check_binary_vector
+from ._helper import _dml_cv_predict
+from ._helper import check_binary_vector
 
 
 class DoubleMLIRM(DoubleML):
@@ -21,7 +21,7 @@ class DoubleMLIRM(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -54,14 +54,14 @@ class DoubleMLIRM(DoubleML):
                  ml_g,
                  ml_m,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='ATE',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -140,43 +140,34 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = _dml_cross_val_predict(self.ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                        est_params=self.__g0_params)
+        g_hat0 = _dml_cv_predict(self.ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                 est_params=self.__g0_params)
         if (score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cross_val_predict(self.ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                            est_params=self.__g1_params)
+            g_hat1 = _dml_cv_predict(self.ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                     est_params=self.__g1_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)[:, 1]
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
+        m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+                                est_params=self.__m_params)[:, 1]
         
         # compute residuals
-        u_hat0 = y_test - g_hat0
+        u_hat0 = y - g_hat0
         if score == 'ATE':
-            u_hat1 = y_test - g_hat1
+            u_hat1 = y - g_hat1
         
         if isinstance(self.score, str):
             if score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(d_test, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-d_test, u_hat0), 1.0 - m_hat)
+                                + np.divide(np.multiply(d, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
                 psi_a = np.full_like(m_hat, -1.0)
             elif score == 'ATTE':
-                psi_b = np.divide(np.multiply(d_test, u_hat0), p_hat) \
-                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d_test, u_hat0)),
+                psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
+                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
                                             np.multiply(p_hat, (1.0 - m_hat)))
-                psi_a = - np.divide(d_test, p_hat)
+                psi_a = - np.divide(d, p_hat)
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, d_test,
+            psi_a, psi_b = self.score(y, d,
                                               g_hat0, g_hat1, m_hat, smpls)
 
         return psi_a, psi_b
@@ -245,9 +236,9 @@ class DoubleMLIRM(DoubleML):
         return res
 
     def _initialize_ml_nuisance_params(self):
-        self._g0_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._g1_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._g0_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._g1_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
@@ -259,9 +250,9 @@ class DoubleMLIRM(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 

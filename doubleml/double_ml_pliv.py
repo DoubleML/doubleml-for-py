@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression
 
 from .double_ml import DoubleML, DoubleMLData
-from .helper import _dml_cross_val_predict
+from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLIV(DoubleML):
@@ -20,7 +20,7 @@ class DoubleMLPLIV(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -57,14 +57,14 @@ class DoubleMLPLIV(DoubleML):
                  ml_m,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -83,7 +83,7 @@ class DoubleMLPLIV(DoubleML):
                  ml_m,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
@@ -93,7 +93,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -106,7 +106,7 @@ class DoubleMLPLIV(DoubleML):
                  obj_dml_data,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
@@ -116,7 +116,7 @@ class DoubleMLPLIV(DoubleML):
                   None,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -133,7 +133,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds=5,
-                  n_rep_cross_fit=1,
+                  n_rep=1,
                   score='partialling out',
                   dml_procedure='dml2',
                   draw_sample_splitting=True,
@@ -143,7 +143,7 @@ class DoubleMLPLIV(DoubleML):
                   ml_m,
                   ml_r,
                   n_folds,
-                  n_rep_cross_fit,
+                  n_rep,
                   score,
                   dml_procedure,
                   draw_sample_splitting,
@@ -191,7 +191,7 @@ class DoubleMLPLIV(DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['partialling out']
+            valid_score = ['partialling out', 'partialling out']
             # check whether its worth implementing the IV_type as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
@@ -233,51 +233,40 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
         
         # nuisance m
         if obj_dml_data.n_instr == 1:
             # one instrument: just identified
             X, z = check_X_y(X, obj_dml_data.z)
-            m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=self.__m_params)
+            m_hat = _dml_cv_predict(self.ml_m, X, z, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self.__m_params)
         else:
             # several instruments: 2SLS
-            m_hat = np.full((self.n_obs_test, obj_dml_data.n_instr), np.nan)
+            m_hat = np.full((self.n_obs, obj_dml_data.n_instr), np.nan)
             z = obj_dml_data.z
             for i_instr in range(obj_dml_data.n_instr):
                 self._i_instr = i_instr
                 X, this_z = check_X_y(X, z[:, i_instr])
-                m_hat[:, i_instr] = _dml_cross_val_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                           est_params=self.__m_params_mult_instr)
+                m_hat[:, i_instr] = _dml_cv_predict(self.ml_m, X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                                    est_params=self.__m_params_mult_instr)
 
         # nuisance r
-        r_hat = _dml_cross_val_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__r_params)
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-            z_test = z
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
-            z_test = z[test_index]
+        r_hat = _dml_cv_predict(self.ml_r, X, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__r_params)
         
         # compute residuals
-        u_hat = y_test - g_hat
-        w_hat = d_test - r_hat
-        v_hat = z_test - m_hat
+        u_hat = y - g_hat
+        w_hat = d - r_hat
+        v_hat = z - m_hat
 
         if obj_dml_data.n_instr > 1:
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
             # projection of r_hat on m_hat
-            r_hat_tilde = _dml_cross_val_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
-                                                 smpls=smpls, n_jobs=n_jobs_cv)
+            r_hat_tilde = _dml_cv_predict(LinearRegression(fit_intercept=True), v_hat, w_hat,
+                                          smpls=smpls, n_jobs=n_jobs_cv)
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
@@ -289,7 +278,7 @@ class DoubleMLPLIV(DoubleML):
                 psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
-            psi_a, psi_b = self.score(y_test, z_test, d_test,
+            psi_a, psi_b = self.score(y, z, d,
                                       g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
@@ -300,23 +289,14 @@ class DoubleMLPLIV(DoubleML):
                           obj_dml_data.d)
 
         # nuisance m
-        r_hat = _dml_cross_val_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__r_params)
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
+        r_hat = _dml_cv_predict(self.ml_r, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__r_params)
 
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            psi_a = -np.multiply(r_hat, d_test)
-            psi_b = np.multiply(r_hat, y_test)
+            psi_a = -np.multiply(r_hat, d)
+            psi_b = np.multiply(r_hat, y)
         elif callable(self.score):
             assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
@@ -329,29 +309,20 @@ class DoubleMLPLIV(DoubleML):
         X, d = check_X_y(X, obj_dml_data.d)
 
         # nuisance g
-        g_hat = _dml_cross_val_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__g_params)
+        g_hat = _dml_cv_predict(self.ml_g, X, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self.__g_params)
 
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)
+        m_hat, m_hat_on_train = _dml_cv_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                                est_params=self.__m_params, return_train_preds=True)
 
         # nuisance r
-        m_hat_tilde = _dml_cross_val_predict(self.ml_r, X, m_hat, smpls=smpls, n_jobs=n_jobs_cv,
-                                             est_params=self.__r_params)
-
-        if self.apply_cross_fitting:
-            y_test = y
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            d_test = d[test_index]
+        m_hat_tilde = _dml_cv_predict(self.ml_r, X, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
+                                      est_params=self.__r_params)
 
         # compute residuals
-        u_hat = y_test - g_hat
-        w_hat = d_test - m_hat_tilde
+        u_hat = y - g_hat
+        w_hat = d - m_hat_tilde
 
         score = self.score
         self._check_score(score)
@@ -494,25 +465,16 @@ class DoubleMLPLIV(DoubleML):
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(XZ[train_index, :], d[train_index])
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
-
-        # obtain predictions based on the tuned model
-        if len(m_best_params) > 1:
-            m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=m_best_params)
-        elif len(m_best_params) == 1:
-            m_hat = _dml_cross_val_predict(self.ml_m, XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                           est_params=m_best_params[0])
-
-        for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_r
+            m_hat = m_grid_search.predict(XZ[train_index, :])
             r_tune_resampling = KFold(n_splits=n_folds_tune)
             r_grid_search = GridSearchCV(self.ml_r, param_grids['param_grid_r'],
                                          scoring=scoring_methods['scoring_methods_r'],
                                          cv=r_tune_resampling)
-            r_tune_res[idx] = r_grid_search.fit(X[train_index, :], m_hat[train_index])
+            r_tune_res[idx] = r_grid_search.fit(X[train_index, :], m_hat)
 
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
 
         params = {'ml_g': g_best_params,
@@ -530,20 +492,20 @@ class DoubleMLPLIV(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         if self.partialX & (not self.partialZ):
-            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
             if self.n_instr == 1:
-                self._m_params = {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols}
+                self._m_params = {key_d: [None] * self.n_rep for key_d in self.d_cols}
             else:
-                self._m_params_mult_instr = {key_z:  {key_d: [None] * self.n_rep_cross_fit for key_d in self.d_cols} for key_z in self.z_cols}
+                self._m_params_mult_instr = {key_z:  {key_d: [None] * self.n_rep for key_d in self.d_cols} for key_z in self.z_cols}
         elif (not self.partialX) & self.partialZ:
             self._g_params = None
             self._m_params = None
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
         elif self.partialX & self.partialZ:
-            self._g_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-            self._r_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+            self._g_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
+            self._r_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         if self.partialX & (not self.partialZ):
@@ -564,9 +526,9 @@ class DoubleMLPLIV(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 

@@ -5,8 +5,8 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML, DoubleMLData
-from .helper import check_binary_vector
-from .helper import _dml_cross_val_predict
+from ._helper import check_binary_vector
+from ._helper import _dml_cv_predict
 
 
 class DoubleMLIIVM(DoubleML):
@@ -21,7 +21,7 @@ class DoubleMLIIVM(DoubleML):
         ToDo
     n_folds :
         ToDo
-    n_rep_cross_fit :
+    n_rep :
         ToDo
     score :
         ToDo
@@ -56,14 +56,14 @@ class DoubleMLIIVM(DoubleML):
                  ml_m,
                  ml_r,
                  n_folds=5,
-                 n_rep_cross_fit=1,
+                 n_rep=1,
                  score='LATE',
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
-                         n_rep_cross_fit,
+                         n_rep,
                          score,
                          dml_procedure,
                          draw_sample_splitting,
@@ -153,50 +153,39 @@ class DoubleMLIIVM(DoubleML):
         smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
         
         # nuisance g
-        g_hat0 = _dml_cross_val_predict(self.ml_g0, X, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                        est_params=self.__g0_params)
-        g_hat1 = _dml_cross_val_predict(self.ml_g1, X, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                        est_params=self.__g1_params)
+        g_hat0 = _dml_cv_predict(self.ml_g0, X, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
+                                 est_params=self.__g0_params)
+        g_hat1 = _dml_cv_predict(self.ml_g1, X, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
+                                 est_params=self.__g1_params)
         
         # nuisance m
-        m_hat = _dml_cross_val_predict(self.ml_m, X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
-                                       est_params=self.__m_params)[:, 1]
+        m_hat = _dml_cv_predict(self.ml_m, X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+                                est_params=self.__m_params)[:, 1]
         
         # nuisance r
-        r_hat0 = _dml_cross_val_predict(self.ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
-                                        est_params=self.__r0_params)[:, 1]
-        r_hat1 = _dml_cross_val_predict(self.ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
-                                        est_params=self.__r1_params)[:, 1]
-
-        if self.apply_cross_fitting:
-            y_test = y
-            z_test = z
-            d_test = d
-        else:
-            # the no cross-fitting case
-            test_index = self.smpls[0][0][1]
-            y_test = y[test_index]
-            z_test = z[test_index]
-            d_test = d[test_index]
+        r_hat0 = _dml_cv_predict(self.ml_r0, X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
+                                 est_params=self.__r0_params)[:, 1]
+        r_hat1 = _dml_cv_predict(self.ml_r1, X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
+                                 est_params=self.__r1_params)[:, 1]
 
         # compute residuals
-        u_hat0 = y_test - g_hat0
-        u_hat1 = y_test - g_hat1
-        w_hat0 = d_test - r_hat0
-        w_hat1 = d_test - r_hat1
+        u_hat0 = y - g_hat0
+        u_hat1 = y - g_hat1
+        w_hat0 = d - r_hat0
+        w_hat1 = d - r_hat1
 
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
             if score == 'LATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(z_test, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-z_test, u_hat0), 1.0 - m_hat)
+                                + np.divide(np.multiply(z, u_hat1), m_hat) \
+                                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
                 psi_a = -1*(r_hat1 - r_hat0 \
-                                    + np.divide(np.multiply(z_test, w_hat1), m_hat) \
-                                    - np.divide(np.multiply(1.0-z_test, w_hat0), 1.0 - m_hat))
+                                    + np.divide(np.multiply(z, w_hat1), m_hat) \
+                                    - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
         elif callable(self.score):
-            psi_a, psi_b = self.score(y_test, z_test, d_test,
+            psi_a, psi_b = self.score(y, z, d,
                                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return psi_a, psi_b
@@ -284,11 +273,11 @@ class DoubleMLIIVM(DoubleML):
         return res
 
     def _initialize_ml_nuisance_params(self):
-        self._g0_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._g1_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._m_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._r0_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
-        self._r1_params = {key: [None] * self.n_rep_cross_fit for key in self.d_cols}
+        self._g0_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._g1_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._r0_params = {key: [None] * self.n_rep for key in self.d_cols}
+        self._r1_params = {key: [None] * self.n_rep for key in self.d_cols}
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m', 'ml_r0', 'ml_r1']
@@ -300,9 +289,9 @@ class DoubleMLIIVM(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep_cross_fit
+            all_params = [[params] * self.n_folds] * self.n_rep
         else:
-            assert len(params) == self.n_rep_cross_fit
+            assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 

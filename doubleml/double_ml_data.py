@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import io
 
-from .helper import assure_2d_array
+from ._helper import assure_2d_array
 
 
 class DoubleMLData:

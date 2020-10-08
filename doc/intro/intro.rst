@@ -179,7 +179,7 @@ Cross-fitting, DML algorithms and Neyman-orthogonal score functions
 
 When initializing the object for PLR models ``DoubleMLPLR``, we can further set parameters specifying the
 resampling: The number of folds used for cross-fitting ``n_folds`` (defaults to ``n_folds = 5``) as well as the number
-of repetitions when applying repeated cross-fitting ``n_rep_cross_fit`` (defaults to ``n_rep_cross_fit = 1``).
+of repetitions when applying repeated cross-fitting ``n_rep`` (defaults to ``n_rep = 1``).
 Additionally, one can choose between the algorithms ``'dml1'`` and  ``'dml2'`` via ``dml_procedure``. Depending on the
 causal model, one can further choose between different Neyman-orthogonal score / moment functions.
 
