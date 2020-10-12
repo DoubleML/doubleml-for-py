@@ -5,6 +5,8 @@ from scipy.linalg import toeplitz
 
 from sklearn.datasets import make_spd_matrix
 
+from .double_ml_data import DoubleMLData
+
 
 def fetch_401K():
     url = 'https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta'
@@ -34,7 +36,18 @@ def m3(x, nu=0., gamma=1.):
     return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
-def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_X_y_d=False):
+_array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
+_data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
+_dml_data_alias = ['DoubleMLData', DoubleMLData]
+
+
+def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_type='DoubleMLData'):
+    """
+
+    Parameters
+    ----------
+    n_samples :
+    """
     cov_mat = toeplitz([np.power(0.7, k) for k in range(n_features)])
     a_1 = 0.25
     b_1 = 0.25
@@ -44,13 +57,18 @@ def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_X_y_d=F
     y = alpha * d + np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
         + b_1 * x[:, 2] + np.random.standard_normal(size=[n_samples, ])
 
-    if return_X_y_d:
+    if return_type in _array_alias:
         return x, y, d
-    else:
+    elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
         data = pd.DataFrame(np.column_stack((x, y, d)),
                             columns=x_cols + ['y', 'd'])
-        return data
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, 'y', 'd', x_cols)
+    else:
+        raise ValueError('invalid return_type')
 
 
 def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_X_y_d=False):
