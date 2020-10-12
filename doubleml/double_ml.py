@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import warnings
 
 from scipy.stats import norm
 
@@ -35,8 +36,12 @@ class DoubleML(ABC):
         self.dml_procedure = dml_procedure
         self.score = self._check_score(score)
 
+        if (self.n_folds == 1) & self.apply_cross_fitting:
+            warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
+            self.apply_cross_fitting = False
+
         if not self.apply_cross_fitting:
-            assert self.n_folds <= 2
+            assert self.n_folds <= 2, 'Estimation without cross-fitting not supported for n_folds > 2.'
             if self.dml_procedure == 'dml2':
                 # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
                 self.dml_procedure = 'dml1'
