@@ -42,7 +42,7 @@ def generate_data1(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_plr_data(N, p, theta)
+        data = make_plr_data(N, p, theta, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -148,7 +148,7 @@ def generate_data_iv(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_pliv_data(N, p, theta, gamma_z)
+        data = make_pliv_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -169,7 +169,7 @@ def generate_data_irm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_irm_data(N, p, theta, return_X_y_d=True)
+        data = make_irm_data(N, p, theta, return_type='array')
         datasets.append(data)
     
     return datasets
@@ -189,7 +189,7 @@ def generate_data_iivm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_iivm_data(N, p, theta, gamma_z)
+        data = make_iivm_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
