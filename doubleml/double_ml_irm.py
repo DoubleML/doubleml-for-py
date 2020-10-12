@@ -185,30 +185,26 @@ class DoubleMLIRM(DoubleML):
                                'scoring_methods_m': None}
 
         g0_tune_res = [None] * len(smpls)
-        g1_tune_res = [None] * len(smpls)
-        m_tune_res = [None] * len(smpls)
-
         for idx, (train_index, test_index) in enumerate(smpls):
-            # cv for ml_g0
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             g0_grid_search = GridSearchCV(self.ml_g0, param_grids['param_grid_g'],
                                           scoring=scoring_methods['scoring_methods_g'],
                                           cv=g0_tune_resampling)
-
             train_index_d0 = smpls_d0[idx][0]
             g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
 
-            if score == 'ATE':
-                # cv for ml_g1
+        if score == 'ATE':
+            g1_tune_res = [None] * len(smpls)
+            for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 g1_grid_search = GridSearchCV(self.ml_g1, param_grids['param_grid_g'],
                                               scoring=scoring_methods['scoring_methods_g'],
                                               cv=g1_tune_resampling)
-
                 train_index_d1 = smpls_d1[idx][0]
                 g1_tune_res[idx] = g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1])
 
-            # cv for ml_m
+        m_tune_res = [None] * len(smpls)
+        for idx, (train_index, test_index) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
@@ -220,15 +216,16 @@ class DoubleMLIRM(DoubleML):
         if score == 'ATTE':
             params = {'ml_g0': g0_best_params,
                       'ml_m': m_best_params}
+            tune_res = {'g0_tune': g0_tune_res,
+                        'm_tune': m_tune_res}
         else:
             g1_best_params = [xx.best_params_ for xx in g1_tune_res]
             params = {'ml_g0': g0_best_params,
                       'ml_g1': g1_best_params,
                       'ml_m': m_best_params}
-
-        tune_res = {'g0_tune': g0_tune_res,
-                    'g1_tune': g1_tune_res,
-                    'm_tune': m_tune_res}
+            tune_res = {'g0_tune': g0_tune_res,
+                        'g1_tune': g1_tune_res,
+                        'm_tune': m_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
