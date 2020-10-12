@@ -510,7 +510,11 @@ class DoubleML(ABC):
         
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        n_obs = self.n_obs
+        if self.apply_cross_fitting:
+            n_obs = self.n_obs
+        else:
+            test_index = self.smpls[0][0][1]
+            n_obs = len(test_index)
         J = np.mean(psi_a)
         sigma2_hat = 1/n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
         
