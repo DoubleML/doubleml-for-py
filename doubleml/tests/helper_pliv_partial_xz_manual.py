@@ -39,20 +39,20 @@ def tune_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_t
 
     for idx, (train_index, test_index) in enumerate(smpls):
         # cv for ml_g
-        g_tune_resampling = KFold(n_splits=n_folds_tune)
+        g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         g_grid_search = GridSearchCV(ml_g, param_grid_g,
                                      cv=g_tune_resampling)
         g_tune_res[idx] = g_grid_search.fit(X[train_index, :], Y[train_index])
 
         # cv for ml_m
-        m_tune_resampling = KFold(n_splits=n_folds_tune)
+        m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         m_grid_search = GridSearchCV(ml_m, param_grid_m,
                                      cv=m_tune_resampling)
         m_tune_res[idx] = m_grid_search.fit(XZ[train_index, :], D[train_index])
 
         # cv for ml_r
         m_hat = m_grid_search.predict(XZ[train_index, :])
-        r_tune_resampling = KFold(n_splits=n_folds_tune)
+        r_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         r_grid_search = GridSearchCV(ml_r, param_grid_r,
                                      cv=r_tune_resampling)
         r_tune_res[idx] = r_grid_search.fit(X[train_index, :], m_hat)

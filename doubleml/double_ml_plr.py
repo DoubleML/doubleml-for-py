@@ -150,14 +150,14 @@ class DoubleMLPLR(DoubleML):
 
         for idx, (train_index, test_index) in enumerate(smpls):
             # cv for ml_g
-            g_tune_resampling = KFold(n_splits=n_folds_tune)
+            g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             g_grid_search = GridSearchCV(self.ml_g, param_grids['param_grid_g'],
                                          scoring=scoring_methods['scoring_methods_g'],
                                          cv=g_tune_resampling)
             g_tune_res[idx] = g_grid_search.fit(X[train_index, :], y[train_index])
 
             # cv for ml_m
-            m_tune_resampling = KFold(n_splits=n_folds_tune)
+            m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
                                          scoring=scoring_methods['scoring_methods_m'],
                                          cv=m_tune_resampling)
