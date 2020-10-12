@@ -268,7 +268,6 @@ class DoubleML(ABC):
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
-        assert self.apply_cross_fitting
 
         dml_procedure = self.dml_procedure
         
@@ -467,36 +466,46 @@ class DoubleML(ABC):
     def _compute_bootstrap(self, method, n_rep):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
+        if self.apply_cross_fitting:
+            n_obs = self.n_obs
+        else:
+            # be prepared for the case of test sets of different size in repeated no-cross-fitting
+            test_index = smpls[0][1]
+            n_obs = len(test_index)
 
         if method == 'Bayes':
-            weights = np.random.exponential(scale=1.0, size=(n_rep, self.n_obs)) - 1.
+            weights = np.random.exponential(scale=1.0, size=(n_rep, n_obs)) - 1.
         elif method == 'normal':
-            weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+            weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
         elif method == 'wild':
-            xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
-            yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, self.n_obs))
+            xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
+            yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep, n_obs))
             weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1) / 2
         else:
             raise ValueError('invalid boot method')
 
-        if dml_procedure == 'dml1':
-            boot_coefs = np.full((n_rep, self.n_folds), np.nan)
-            for idx, (_, test_index) in enumerate(smpls):
-                J = np.mean(self.__psi_a[test_index])
-                boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                            len(test_index) * self.__all_se * J)
-            boot_coef = np.mean(boot_coefs, axis=1)
+        if self.apply_cross_fitting:
+            if dml_procedure == 'dml1':
+                boot_coefs = np.full((n_rep, self.n_folds), np.nan)
+                for idx, (_, test_index) in enumerate(smpls):
+                    J = np.mean(self.__psi_a[test_index])
+                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
+                                len(test_index) * self.__all_se * J)
+                boot_coef = np.mean(boot_coefs, axis=1)
 
-        elif dml_procedure == 'dml2':
-            J = np.mean(self.__psi_a)
-            boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
+            elif dml_procedure == 'dml2':
+                J = np.mean(self.__psi_a)
+                boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
 
+            else:
+                raise ValueError('invalid dml_procedure')
         else:
-            raise ValueError('invalid dml_procedure')
+            J = np.mean(self.__psi_a[test_index])
+            boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
 
         return boot_coef
 
-    
+
     def _var_est(self, inds = None):
         """
         Estimate the standard errors of the structural parameter
@@ -513,7 +522,9 @@ class DoubleML(ABC):
         if self.apply_cross_fitting:
             n_obs = self.n_obs
         else:
-            test_index = self.smpls[0][0][1]
+            # be prepared for the case of test sets of different size in repeated no-cross-fitting
+            smpls = self.__smpls
+            test_index = smpls[0][1]
             n_obs = len(test_index)
         J = np.mean(psi_a)
         sigma2_hat = 1/n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)

@@ -1,7 +1,12 @@
 import numpy as np
 
-def boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure):
-    n_obs = len(psi)
+def boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting=True):
+
+    if apply_cross_fitting:
+        n_obs = len(psi)
+    else:
+        test_index = smpls[0][1]
+        n_obs = len(test_index)
     n_folds = len(smpls)
 
     boot_theta = np.zeros(n_rep)
@@ -22,14 +27,18 @@ def boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure):
         else:
             raise ValueError('invalid bootstrap method')
 
-        if dml_procedure == 'dml1':
-            this_boot_theta = np.zeros(n_folds)
-            for idx, (train_index, test_index) in enumerate(smpls):
-                this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
-                                                           psi[test_index] / J[idx]))
-            boot_theta[i_rep] = np.mean(this_boot_theta)
-        elif dml_procedure == 'dml2':
+        if apply_cross_fitting:
+            if dml_procedure == 'dml1':
+                this_boot_theta = np.zeros(n_folds)
+                for idx, (train_index, test_index) in enumerate(smpls):
+                    this_boot_theta[idx] = np.mean(np.multiply(np.divide(weights[test_index], se),
+                                                               psi[test_index] / J[idx]))
+                boot_theta[i_rep] = np.mean(this_boot_theta)
+            elif dml_procedure == 'dml2':
+                boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
+                                                        psi / J))
+        else:
             boot_theta[i_rep] = np.mean(np.multiply(np.divide(weights, se),
-                                                    psi / J))
+                                                    psi[test_index] / J[0]))
 
     return boot_theta
