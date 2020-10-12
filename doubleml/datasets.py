@@ -34,6 +34,25 @@ def m3(x, nu=0., gamma=1.):
     return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
+def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_X_y_d=False):
+    cov_mat = toeplitz([np.power(0.7, k) for k in range(n_features)])
+    a_1 = 0.25
+    b_1 = 0.25
+    x = np.random.multivariate_normal(np.zeros(n_features), cov_mat, size=[n_samples, ])
+    d = x[:, 0] + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
+        + np.random.standard_normal(size=[n_samples, ])
+    y = alpha * d + np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
+        + b_1 * x[:, 2] + np.random.standard_normal(size=[n_samples, ])
+
+    if return_X_y_d:
+        return x, y, d
+    else:
+        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        data = pd.DataFrame(np.column_stack((x, y, d)),
+                            columns=x_cols + ['y', 'd'])
+        return data
+
+
 def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_X_y_d=False):
     b = [1 / k for k in range(1, n_features + 1)]
     sigma = make_spd_matrix(n_features)
