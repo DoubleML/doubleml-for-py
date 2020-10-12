@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import warnings
+
 from sklearn.model_selection import KFold, RepeatedKFold
 from sklearn.model_selection import ShuffleSplit
 import itertools
-
 
 
 class DoubleMLResampling:
@@ -16,6 +17,9 @@ class DoubleMLResampling:
         self.n_rep = n_rep
         self.n_obs = n_obs
         self.apply_cross_fitting = apply_cross_fitting
+        if (self.n_folds == 1) & self.apply_cross_fitting:
+            warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
+            self.apply_cross_fitting = False
         if not apply_cross_fitting:
             assert n_folds <= 2
         self.resampling = RepeatedKFold(n_splits=n_folds,
