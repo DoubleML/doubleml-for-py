@@ -47,13 +47,17 @@ def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_type='D
     Parameters
     ----------
     n_samples :
-        ToDo
+        The number of samples.
     n_features :
-        ToDo
+        The number of features.
     alpha :
-        ToDo
+        The value of the causal parameter.
     return_type :
-        ToDo
+        If `'DoubleMLData'` or `DoubleMLData`, returns a `DoubleMLData` object.
+
+        If `'DataFrame'`, `'pd.DataFrame'` or `pd.DataFrame`, returns a `pd.DataFrame` object.
+
+        If `'array'`, `'np.ndarray'`, `'np.array'` or `np.ndarray`, returns a `np.ndarray`'s `(x, y, d)`.
     """
     cov_mat = toeplitz([np.power(0.7, k) for k in range(n_features)])
     a_1 = 0.25

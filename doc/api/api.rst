@@ -13,4 +13,5 @@ Double machine learning models
     double_ml_pliv
     double_ml_irm
     double_ml_iivm
+    double_ml_datasets
 
