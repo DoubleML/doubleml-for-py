@@ -75,7 +75,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
                 'param_grid_m': get_par_grid(learner_m),
                 'param_grid_r': get_par_grid(learner_r)}
     n_folds_tune = 4
-    
+
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
