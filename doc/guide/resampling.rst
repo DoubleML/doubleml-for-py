@@ -71,9 +71,9 @@ The default setting is ``n_folds = 5`` and ``n_rep = 1``, i.e.,
 
     .. jupyter-execute::
 
-        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 1)
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 1)
         print(dml_plr_obj$n_folds)
-        print(dml_plr_obj$n_rep_cross_fit)
+        print(dml_plr_obj$n_rep)
 
 During the initialization of a DML model like :class:`~doubleml.double_ml_plr.DoubleMLPLR` a :math:`K`-fold random
 partition :math:`(I_k)_{k=1}^{K}` of observation indices is generated.
@@ -139,9 +139,9 @@ It results in :math:`M` random :math:`K`-fold partitions being drawn.
 
     .. jupyter-execute::
 
-        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep_cross_fit = 10)
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 10)
         print(dml_plr_obj$n_folds)
-        print(dml_plr_obj$n_rep_cross_fit)
+        print(dml_plr_obj$n_rep)
 
 For each of the :math:`M` partitions, the nuisance ML models are estimated and score functions computed as described
 in :ref:`k-fold-cross-fitting`.
