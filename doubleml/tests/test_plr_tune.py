@@ -75,16 +75,13 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
     n_rep_boot = 502
 
     # collect data
-    data = generate_data2[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    obj_dml_data = generate_data2[idx]
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
-
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -98,9 +95,9 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
     dml_plr_obj.fit()
 
     np.random.seed(3141)
-    y = data['y'].values
-    X = data.loc[:, X_cols].values
-    d = data['d'].values
+    y = obj_dml_data.y
+    X = obj_dml_data.x
+    d = obj_dml_data.d
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
@@ -114,7 +111,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                         clone(learner_m), clone(learner_g), smpls,
                                         g_params, m_params)
     else:
-        xx = [(np.arange(data.shape[0]), np.array([]))]
+        xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, X, d,
                                                clone(learner_m), clone(learner_g), xx, n_folds_tune,
                                                par_grid['param_grid_g'], par_grid['param_grid_m'])

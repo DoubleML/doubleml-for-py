@@ -29,8 +29,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         ml_g = clone(learner)
         ml_m = clone(learner)
         np.random.seed(123)
-        data = make_plr_data()
-        obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        obj_dml_data = make_plr_data()
 
 .. tabbed:: R
 
@@ -313,6 +312,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
         dml_plr_obj_external$summary()
         print(dml_plr_obj_external$data$n_obs())
         print(dim(dml_plr_obj_external$.__enclos_env__$private$psi))
+
 Note, that in order to split data unevenly into train and test the interface to externally set the sample splitting
 via ``set_sample_splitting()`` needs to be applied, like for example:
 

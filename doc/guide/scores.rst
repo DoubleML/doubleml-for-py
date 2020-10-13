@@ -54,7 +54,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         learner = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_g = clone(learner)
         ml_m = clone(learner)
-        data = make_plr_data()
+        data = make_plr_data(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
         dml_plr_obj.fit()

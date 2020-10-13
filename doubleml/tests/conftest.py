@@ -42,7 +42,7 @@ def generate_data1(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_plr_data(N, p, theta)
+        data = make_plr_data(N, p, theta, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -148,7 +148,7 @@ def generate_data_iv(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_pliv_data(N, p, theta, gamma_z)
+        data = make_pliv_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -169,7 +169,7 @@ def generate_data_irm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_irm_data(N, p, theta, return_X_y_d=True)
+        data = make_irm_data(N, p, theta, return_type='array')
         datasets.append(data)
     
     return datasets
@@ -189,7 +189,7 @@ def generate_data_iivm(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_iivm_data(N, p, theta, gamma_z)
+        data = make_iivm_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -248,22 +248,22 @@ def generate_data_pliv_partialZ(request):
     return datasets
 
 
-def make_data_pliv_partialZ(n_samples, alpha=1., dim_x=5, dim_z=150):
+def make_data_pliv_partialZ(n_obs, alpha=1., dim_x=5, dim_z=150):
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.6], [0.6, 1.]]),
-                                       size=[n_samples, ])
+                                       size=[n_obs, ])
     epsilon = xx[:,0]
     u = xx[:,1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(1, dim_x + 1)])
     X = np.random.multivariate_normal(np.zeros(dim_x),
                                       sigma,
-                                      size=[n_samples, ])
+                                      size=[n_obs, ])
 
     I_z = np.eye(dim_z)
     xi = np.random.multivariate_normal(np.zeros(dim_z),
                                        0.25*I_z,
-                                       size=[n_samples, ])
+                                       size=[n_obs, ])
 
     beta = [1 / (k**2) for k in range(1, dim_x + 1)]
     gamma = beta

@@ -76,15 +76,12 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
                 'param_grid_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
-
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
 
     # collect data
-    data = generate_data_pliv_partialXZ[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
+    obj_dml_data = generate_data_pliv_partialXZ[idx]
 
     # Set machine learning methods for g, m & r
     ml_g = clone(learner_g)
@@ -92,7 +89,6 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
     ml_r = clone(learner_r)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, Z_cols)
     dml_pliv_obj = dml.DoubleMLPLIV.partialXZ(obj_dml_data,
                                               ml_g, ml_m, ml_r,
                                               n_folds,
@@ -104,10 +100,10 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
     dml_pliv_obj.fit()
     
     np.random.seed(3141)
-    y = data['y'].values
-    X = data.loc[:, X_cols].values
-    d = data['d'].values
-    z = data.loc[:, Z_cols].values
+    y = obj_dml_data.y
+    X = obj_dml_data.x
+    d = obj_dml_data.d
+    z = obj_dml_data.z
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]

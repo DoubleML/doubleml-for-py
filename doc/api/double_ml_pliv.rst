@@ -12,6 +12,13 @@ Constructor
 
     DoubleMLPLIV
 
+.. autosummary::
+    :toctree: generated/
+
+    DoubleMLPLIV.partialXZ
+    DoubleMLPLIV.partialX
+    DoubleMLPLIV.partialZ
+
 DML Methods
 ~~~~~~~~~~~
 .. autosummary::

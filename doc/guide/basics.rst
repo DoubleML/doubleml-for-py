@@ -201,7 +201,8 @@ We use the final estimate
             obj_dml_plr_orth_nosplit = DoubleMLPLR(obj_dml_data,
                                                    ml_g, ml_m,
                                                    n_folds=1,
-                                                   score='IV-type')
+                                                   score='IV-type',
+                                                   apply_cross_fitting=False)
             obj_dml_plr_orth_nosplit.fit()
             theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit.coef[0]
 
