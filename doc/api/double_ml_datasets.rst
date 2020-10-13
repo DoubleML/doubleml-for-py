@@ -27,3 +27,4 @@ Samples generator
    datasets.make_plr_CCDDHNR2018
    datasets.make_plr_turrell2018
    datasets.make_pliv_CHS2015
+   datasets.make_pliv_multiway_cluster_CKMS2019

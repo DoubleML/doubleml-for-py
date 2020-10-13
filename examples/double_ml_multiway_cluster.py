@@ -40,7 +40,7 @@ from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLData, DoubleMLPLIV
 from doubleml.double_ml_resampling import DoubleMLMultiwayResampling
 
-from doubleml.datasets import make_pliv_multiway_cluster_data
+from doubleml.datasets import make_pliv_multiway_cluster_CKMS2019
 
 # %%
 # Simulate multiway cluster data
@@ -56,33 +56,31 @@ N = 25  # number of observations (first dimension)
 M = 25  # number of observations (second dimension)
 dim_X = 100  # dimension of X
 
-data = make_pliv_multiway_cluster_data(N, M, dim_X)
+obj_dml_data = make_pliv_multiway_cluster_CKMS2019(N, M, dim_X)
 
 # %%
 #
 
 # The data comes with multi index for rows (tuples with two entries)
-data.head(30)
+obj_dml_data.data.head(30)
 
 
 # %%
 # Initialize the objects of class DoubleMLData and DoubleMLPLIV
 # -------------------------------------------------------------
 
-# collect data and specify the DoubleMLData object
-x_cols = data.columns[data.columns.str.startswith('x')].tolist()
-obj_dml_data = DoubleMLData(data, 'Y', 'D', x_cols, 'Z')
-
 # Set machine learning methods for m & g
 learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-ml_learners = {'ml_m': clone(learner),
-               'ml_g': clone(learner),
-               'ml_r': clone(learner)}
+ml_g = clone(learner)
+ml_m = clone(learner)
+ml_r = clone(learner)
 
 # initialize the DoubleMLPLIV object
 dml_pliv_obj = DoubleMLPLIV(obj_dml_data,
-                            ml_learners,
-                            inf_model='partialling out',
+                            ml_g,
+                            ml_m,
+                            ml_r,
+                            score='partialling out',
                             dml_procedure='dml1',
                             draw_sample_splitting=False)
 

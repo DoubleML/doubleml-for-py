@@ -48,20 +48,20 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        D = m_0(X) + s_1 V, & &V \\sim \\mathcal{N}(0,1),
+        d_i = m_0(x_i) + s_1 v_i, & &v_i \\sim \\mathcal{N}(0,1),
 
-        Y = \\alpha D + g_0(X) + s_2 \\zeta, & &\\zeta \\sim \\mathcal{N}(0,1),
+        y_i = \\alpha d_i + g_0(x_i) + s_2 \\zeta_i, & &\\zeta_i \\sim \\mathcal{N}(0,1),
 
 
-    with covariates :math:`X \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
+    with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
     :math:`\\Sigma_{kj} = 0.7^{|j-k|}`.
     The nuisance functions are given by
 
     .. math::
 
-        m_0(X) &= a_0 X_1 + a_1 \\frac{\\exp(X_3)}{1+\\exp(X_3)},
+        m_0(x_i) &= a_0 x_{i,1} + a_1 \\frac{\\exp(x_{i,3})}{1+\\exp(x_{i,3})},
 
-        g_0(X) &= b_0 \\frac{\\exp(X_1)}{1+\\exp(X_1)} + b_1 X_3.
+        g_0(X) &= b_0 \\frac{\\exp(x_{i,1})}{1+\\exp(x_{i,1})} + b_1 x_{i,3}.
 
     Parameters
     ----------
@@ -118,12 +118,12 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        D = m_0(X' b) + V, & &V \\sim \\mathcal{N}(0,1),
+        d_i = m_0(x_i' b) + v_i, & &v_i \\sim \\mathcal{N}(0,1),
 
-        Y = \\theta D + g_0(X' b) + U, & &U \\sim \\mathcal{N}(0,1),
+        y_i = \\theta d_i + g_0(x_i' b) + u_i, & &u_i \\sim \\mathcal{N}(0,1),
 
 
-    with covariates :math:`X \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a random symmetric,
+    with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a random symmetric,
     positive-definite matrix generated with :py:meth:`sklearn.datasets.make_spd_matrix`.
     :math:`b` is a vector with entries :math:`b_j=\\frac{1}{j}` and the nuisance functions are given by
 
@@ -131,7 +131,7 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
         m_0(x) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x-\\nu)},
 
-        g_0(X) &= \\sin(x)^2.
+        g_0(x) &= \\sin(x)^2.
 
     Parameters
     ----------
@@ -270,17 +270,17 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
 
     .. math::
 
-        Z &= \\Pi X + \\zeta,
+        z_i &= \\Pi x_i + \\zeta_i,
 
-        D &= X' \\gamma + Z' \\delta + u,
+        d_i &= x_i' \\gamma + z_i' \\delta + u_i,
 
-        Y &= \\alpha D + X' \\beta + \\varepsilon,
+        y_i &= \\alpha d_i + x_i' \\beta + \\varepsilon_i,
 
     with
 
     .. math::
 
-        \\left(\\begin{matrix} \\varepsilon \\\\ u \\\\ \\zeta \\\\ x \\end{matrix} \\right) \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.6 & 0 & 0 \\\\ 0.6 & 1 & 0 & 0 \\\\ 0 & 0 & 0.25 I_{p_n^z} & 0 \\\\ 0 & 0 & 0 & \\Sigma \\end{matrix} \\right) \\right)
+        \\left(\\begin{matrix} \\varepsilon_i \\\\ u_i \\\\ \\zeta_i \\\\ x_i \\end{matrix} \\right) \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.6 & 0 & 0 \\\\ 0.6 & 1 & 0 & 0 \\\\ 0 & 0 & 0.25 I_{p_n^z} & 0 \\\\ 0 & 0 & 0 & \\Sigma \\end{matrix} \\right) \\right)
 
     where  :math:`\\Sigma` is a :math:`p_n^x \\times p_n^x` matrix with entries
     :math:`\\Sigma_{kj} = 0.5^{|j-k|}` and :math:`I_{p_n^z}` is the :math:`p_n^z \\times p_n^z` identity matrix.
@@ -349,9 +349,66 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     return data
 
 
-def make_pliv_multiway_cluster_data(N, M, dim_X, **kwargs):
+def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
+    """
+    Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al. (2019).
+    The data generating process is defined as
+
+    .. math::
+
+        Z_{ij} &= X_{ij}' \\xi_0 + V_{ij},
+
+        D_{ij} &= Z_{ij}' \\pi_{10} + X_{ij}' \\pi_{20} + v_{ij},
+
+        Y_{ij} &= D_{ij} \\theta + X_{ij}' \\zeta_0 + \\varepsilon_{ij},
+
+    with
+
+    .. math::
+
+        X_{ij} &= (1 - \\omega_1^X - \\omega_2^X) \\alpha_{ij}^X + \\omega_1^X \\alpha_{i}^X + \\omega_2^X \\alpha_{j}^X,
+
+        \\varepsilon_{ij} &= (1 - \\omega_1^\\varepsilon - \\omega_2^\\varepsilon) \\alpha_{ij}^\\varepsilon + \\omega_1^\\varepsilon \\alpha_{i}^\\varepsilon + \\omega_2^\\varepsilon \\alpha_{j}^\\varepsilon,
+
+        v_{ij} &= (1 - \\omega_1^v - \\omega_2^v) \\alpha_{ij}^v + \\omega_1^v \\alpha_{i}^v + \\omega_2^v \\alpha_{j}^v,
+
+        V_{ij} &= (1 - \\omega_1^V - \\omega_2^V) \\alpha_{ij}^V + \\omega_1^V \\alpha_{i}^V + \\omega_2^V \\alpha_{j}^V,
+
+    and :math:`\\alpha_{ij}^X, \\alpha_{i}^X, \\alpha_{j}^X \\sim \\mathcal{N}(0, \\Sigma)`
+    where  :math:`\\Sigma` is a :math:`p_x \\times p_x` matrix with entries
+    :math:`\\Sigma_{kj} = s_X^{|j-k|}`.
+    Further
+
+    .. math::
+
+        \\left(\\begin{matrix} \\alpha_{ij}^\\varepsilon \\\\ \\alpha_{ij}^v \\end{matrix}\\right), \\left(\\begin{matrix} \\alpha_{i}^\\varepsilon \\\\ \\alpha_{i}^v \\end{matrix}\\right), \\left(\\begin{matrix} \\alpha_{j}^\\varepsilon \\\\ \\alpha_{j}^v \\end{matrix}\\right) \\sim \\mathcal{N}\\left((0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\ s_{\\varepsilon v} & 1 \\end{matrix} \\right) \\right)
+
+
+    and :math:`\\alpha_{ij}^V, \\alpha_{i}^V, \\alpha_{j}^V \\sim \\mathcal{N}(0, 1)`.
+
+    Parameters
+    ----------
+    N :
+        The number of observations (first dimension).
+    M :
+        The number of observations (second dimension).
+    dim_X :
+        The number of covariates.
+    theta :
+        The value of the causal parameter.
+    return_type :
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object where ``DoubleMLData.data`` is a ``pd.DataFrame`` with multiindex.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame`` with multiindex.
+    **kwargs
+        Additional keyword arguments to set non-default values for the parameters
+        :math:`\\nu=0`, or :math:`\\gamma=1`.
+
+    References
+    ----------
+    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2019), Multiway Cluster Robust Double/Debiased Machine Learning, arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
+    """
     # additional parameters specifiable via kwargs
-    theta_0 = kwargs.get('theta_0', 1.0)
     pi_10 = kwargs.get('pi_10', 1.0)
 
     xx = np.arange(1, dim_X + 1)
@@ -359,10 +416,10 @@ def make_pliv_multiway_cluster_data(N, M, dim_X, **kwargs):
     pi_20 = kwargs.get('pi_20', np.power(0.5, xx))
     xi_0 = kwargs.get('xi_0', np.power(0.5, xx))
 
-    omega_X = kwargs.get('omega_X', np.array([0.25, 0.5]))
-    omega_eps = kwargs.get('omega_eps', np.array([0.25, 0.5]))
-    omega_v = kwargs.get('omega_v', np.array([0.25, 0.5]))
-    omega_V = kwargs.get('omega_V', np.array([0.25, 0.5]))
+    omega_X = kwargs.get('omega_X', np.array([0.25, 0.25]))
+    omega_eps = kwargs.get('omega_eps', np.array([0.25, 0.25]))
+    omega_v = kwargs.get('omega_v', np.array([0.25, 0.25]))
+    omega_V = kwargs.get('omega_V', np.array([0.25, 0.25]))
 
     s_X = kwargs.get('s_X', 0.25)
     s_epsv = kwargs.get('s_epsv', 0.25)
@@ -410,13 +467,18 @@ def make_pliv_multiway_cluster_data(N, M, dim_X, **kwargs):
 
     Z = np.matmul(X, xi_0) + V
     D = Z * pi_10 + np.matmul(X, pi_20) + v
-    Y = D * theta_0 + np.matmul(X, zeta_0) + eps
+    Y = D * theta + np.matmul(X, zeta_0) + eps
 
     ind = pd.MultiIndex.from_product([range(N), range(M)])
-    cols = ['Y', 'D', 'Z', 'V'] + [f'x{i + 1}' for i in np.arange(dim_X)]
 
-    data = pd.DataFrame(np.column_stack((Y, D, Z, V, X)),
-                        columns=cols,
-                        index=ind)
-
-    return data
+    if return_type in _data_frame_alias + _dml_data_alias:
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
+        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+                            columns=x_cols + ['Y', 'D', 'Z'],
+                            index=ind)
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, 'Y', 'D', x_cols, 'Z')
+    else:
+        raise ValueError('invalid return_type')
