@@ -22,7 +22,7 @@ demonstrated in the following. We download the 401(k) data set.
         from doubleml.datasets import fetch_401K
 
         # Load data
-        df_401k = fetch_401K()
+        df_401k = fetch_401K('DataFrame')
         df_401k.head(5)
 
 .. tabbed:: R
