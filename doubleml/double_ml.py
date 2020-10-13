@@ -4,6 +4,8 @@ import warnings
 
 from scipy.stats import norm
 
+from statsmodels.stats.multitest import multipletests
+
 from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
@@ -285,7 +287,6 @@ class DoubleML(ABC):
 
                 self.__boot_coef = self._compute_bootstrap(method, n_rep)
 
-
     def confint(self, joint=False, level=0.95):
         a = (1 - level)
         ab = np.array([a/2, 1. - a/2])
@@ -302,6 +303,43 @@ class DoubleML(ABC):
                              columns=['{:.1f} %'.format(i * 100) for i in ab],
                              index=self.d_cols)
         return df_ci
+
+    def p_adjust(self, method='bonferroni', alpha=0.05):
+        if (not hasattr(self, 'coef')) or (self.coef is None):
+            raise ValueError('apply fit() before p_adjust()')
+        
+        if method.lower() in ['rw', 'romano-wolf']:
+            if (not hasattr(self, 'boot_coef')) or (self.boot_coef is None):
+                raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
+
+            pinit = np.full_like(self.pval, np.nan)
+            p_val_corrected = np.full_like(self.pval, np.nan)
+
+            boot_t_stats = self.boot_coef  # TODO check naming
+            t_stat = self.t_stat
+            stepdown_ind = np.argsort(t_stat)[::-1]
+            ro = np.argsort(stepdown_ind)
+
+            for i_d in range(self.n_treat):
+                if i_d == 0:
+                    sim = np.max(boot_t_stats, axis=0)
+                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
+                else:
+                    sim = np.max(np.delete(boot_t_stats, stepdown_ind[:i_d], axis=0),
+                                 axis=0)
+                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
+
+            for i_d in range(self.n_treat):
+                if i_d == 0:
+                    p_val_corrected[i_d] = pinit[i_d]
+                else:
+                    p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d-1])
+
+            p_val = p_val_corrected[ro]
+        else:
+            _, p_val, _, _ = multipletests(self.pval, alpha=alpha, method=method)
+
+        return p_val
 
     def tune(self,
              param_grids,
