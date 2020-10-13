@@ -402,7 +402,9 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame`` with multiindex.
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
-        :math:`\\nu=0`, or :math:`\\gamma=1`.
+        :math:`\\pi_{10}=1.0`, :math:`\\omega_X = \\omega_{\\varepsilon} = \\omega_V = \\omega_v = (0.25, 0.25)`,
+        :math:`s_X = s_{\\varepsilon v} = 0.25`,
+        or the :math:`p_x`-vectors :math:`\\zeta_0 = \\pi_{20} = \\xi_0` with default entries :math:`(\\zeta_{0})_j = 0.5^j`.
 
     References
     ----------
@@ -417,12 +419,12 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     xi_0 = kwargs.get('xi_0', np.power(0.5, xx))
 
     omega_X = kwargs.get('omega_X', np.array([0.25, 0.25]))
-    omega_eps = kwargs.get('omega_eps', np.array([0.25, 0.25]))
+    omega_epsilon = kwargs.get('omega_epsilon', np.array([0.25, 0.25]))
     omega_v = kwargs.get('omega_v', np.array([0.25, 0.25]))
     omega_V = kwargs.get('omega_V', np.array([0.25, 0.25]))
 
     s_X = kwargs.get('s_X', 0.25)
-    s_epsv = kwargs.get('s_epsv', 0.25)
+    s_epsilon_v = kwargs.get('s_epsilon_v', 0.25)
 
     # use np.tile() and np.repeat() for repeating vectors in different styles, i.e.,
     # np.tile([v1, v2, v3], 2) [v1, v2, v3, v1, v2, v3]
@@ -432,7 +434,7 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     alpha_V_i = np.repeat(np.random.normal(size=N), M)
     alpha_V_j = np.tile(np.random.normal(size=M), N)
 
-    cov_mat = np.array([[1, s_epsv], [s_epsv, 1]])
+    cov_mat = np.array([[1, s_epsilon_v], [s_epsilon_v, 1]])
     alpha_eps_v = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[N * M, ])
     alpha_eps = alpha_eps_v[:, 0]
     alpha_v = alpha_eps_v[:, 1]
@@ -456,8 +458,8 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     X = (1 - omega_X[0] - omega_X[1]) * alpha_X \
         + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
-    eps = (1 - omega_eps[0] - omega_eps[1]) * alpha_eps \
-          + omega_eps[0] * alpha_eps_i + omega_eps[1] * alpha_eps_j
+    eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
+          + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
 
     v = (1 - omega_v[0] - omega_v[1]) * alpha_v \
         + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j
