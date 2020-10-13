@@ -8,7 +8,7 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.datasets import make_plr_data, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.datasets import make_plr_turrell2018, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
 def g(x):
@@ -42,7 +42,7 @@ def generate_data1(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_plr_data(N, p, theta, return_type=pd.DataFrame)
+        data = make_plr_turrell2018(N, p, theta, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets
@@ -61,7 +61,7 @@ def generate_data2(request):
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_plr_data(N, p, theta)
+        data = make_plr_turrell2018(N, p, theta)
         datasets.append(data)
 
     return datasets
