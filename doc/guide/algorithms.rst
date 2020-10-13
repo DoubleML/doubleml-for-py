@@ -71,14 +71,14 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
     .. ipython:: python
 
         import doubleml as dml
-        from doubleml.datasets import make_plr_data
+        from doubleml.datasets import make_plr_CCDDHNR2018
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
         learner = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_g = clone(learner)
         ml_m = clone(learner)
-        data = make_plr_data(return_type='DataFrame')
+        data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, dml_procedure='dml1')
         dml_plr_obj.fit()

@@ -21,7 +21,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
 
         import doubleml as dml
         import numpy as np
-        from doubleml.datasets import make_plr_data
+        from doubleml.datasets import make_plr_CCDDHNR2018
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
@@ -29,7 +29,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         ml_g = clone(learner)
         ml_m = clone(learner)
         np.random.seed(123)
-        obj_dml_data = make_plr_data()
+        obj_dml_data = make_plr_CCDDHNR2018()
 
 .. tabbed:: R
 
