@@ -307,21 +307,8 @@ class DoubleML(ABC):
     def p_adjust(self, method='bonferroni', alpha=0.05):
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before p_adjust()')
-        statsmodels_p_adjust_methods = ['b', 'bonf', 'bonferroni',
-                                        's', 'sidak',
-                                        'h', 'holm',
-                                        'hs', 'holm-sidak',
-                                        'sh', 'simes-hochberg',
-                                        'ho', 'hommel',
-                                        'fdr_bh', 'fdr_i', 'fdr_p', 'fdri', 'fdrp',
-                                        'fdr_by', 'fdr_n', 'fdr_c', 'fdrn', 'fdrcorr',
-                                        'fdr_tsbh', 'fdr_2sbh',
-                                        'fdr_tsbky', 'fdr_2sbky', 'fdr_twostage',
-                                        'fdr_gbs']
-        if method.lower() in statsmodels_p_adjust_methods:
-            _, p_val, _, _ = multipletests(self.pval, alpha=alpha, method=method)
-        else:
-            assert method.lower() in ['rw', 'romano-wolf']
+        
+        if method.lower() in ['rw', 'romano-wolf']:
             if (not hasattr(self, 'boot_coef')) or (self.boot_coef is None):
                 raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
 
@@ -349,6 +336,8 @@ class DoubleML(ABC):
                     p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d-1])
 
             p_val = p_val_corrected[ro]
+        else:
+            _, p_val, _, _ = multipletests(self.pval, alpha=alpha, method=method)
 
         return p_val
 
