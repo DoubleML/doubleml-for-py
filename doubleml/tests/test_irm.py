@@ -45,8 +45,14 @@ def dml_procedure(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[0.01, 0.05])
+def trimming_threshold(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
+def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -64,7 +70,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
-                                  dml_procedure=dml_procedure)
+                                  dml_procedure=dml_procedure,
+                                  trimming_threshold=trimming_threshold)
 
     dml_irm_obj.fit()
     
@@ -75,7 +82,8 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure):
     
     g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
                                                     clone(learner[0]), clone(learner[1]), smpls,
-                                                    score)
+                                                    score,
+                                                    trimming_threshold=trimming_threshold)
     
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(y, X, d,

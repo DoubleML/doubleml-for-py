@@ -44,8 +44,14 @@ def dml_procedure(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[0.01, 0.05])
+def trimming_threshold(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure):
+def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
@@ -64,7 +70,8 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure):
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
-                                    dml_procedure=dml_procedure)
+                                    dml_procedure=dml_procedure,
+                                    trimming_threshold=trimming_threshold)
 
     dml_iivm_obj.fit()
     
@@ -78,7 +85,8 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure):
     smpls = [(train, test) for train, test in resampling.split(X)]
     
     g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(y, X, d, z,
-                                                              clone(learner[0]), clone(learner[1]), clone(learner[0]), smpls)
+                                                              clone(learner[0]), clone(learner[1]), clone(learner[0]), smpls,
+                                                              trimming_threshold=trimming_threshold)
     
     
     if dml_procedure == 'dml1':

@@ -30,7 +30,7 @@ def learner_g(request):
 
 
 @pytest.fixture(scope='module',
-                params=[LogisticRegression()])
+                params=[RandomForestClassifier()])
 def learner_m(request):
     return request.param
 
@@ -60,7 +60,7 @@ def tune_on_folds(request):
 
 
 def get_par_grid(learner):
-    if learner.__class__ in [RandomForestRegressor]:
+    if learner.__class__ in [RandomForestRegressor, RandomForestClassifier]:
         par_grid = {'n_estimators': [5, 10, 20]}
     elif learner.__class__ in [LogisticRegression]:
         par_grid = {'C': np.logspace(-4, 2, 10)}
