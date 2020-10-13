@@ -51,43 +51,42 @@ def fit_nuisance_iivm(Y, X, D, Z, learner_m, learner_g, learner_r, smpls,
 def tune_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune,
                        param_grid_g, param_grid_m, param_grid_r):
     g0_tune_res = [None] * len(smpls)
-    g1_tune_res = [None] * len(smpls)
-    m_tune_res = [None] * len(smpls)
-    r0_tune_res = [None] * len(smpls)
-    r1_tune_res = [None] * len(smpls)
-
     for idx, (train_index, test_index) in enumerate(smpls):
-        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
-        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
-
-        # cv for ml_g0
-        g0_tune_resampling = KFold(n_splits=n_folds_tune)
+        g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         g0_grid_search = GridSearchCV(ml_g, param_grid_g,
                                       cv=g0_tune_resampling)
+        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
         g0_tune_res[idx] = g0_grid_search.fit(X[train_index0, :], Y[train_index0])
 
-        # cv for ml_g1
-        g1_tune_resampling = KFold(n_splits=n_folds_tune)
+    g1_tune_res = [None] * len(smpls)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         g1_grid_search = GridSearchCV(ml_g, param_grid_g,
                                       cv=g1_tune_resampling)
+        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
         g1_tune_res[idx] = g1_grid_search.fit(X[train_index1, :], Y[train_index1])
 
-        # cv for ml_m
-        m_tune_resampling = KFold(n_splits=n_folds_tune)
+    m_tune_res = [None] * len(smpls)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         m_grid_search = GridSearchCV(ml_m, param_grid_m,
                                      cv=m_tune_resampling)
         m_tune_res[idx] = m_grid_search.fit(X[train_index, :], Z[train_index])
 
-        # cv for ml_r0
-        r0_tune_resampling = KFold(n_splits=n_folds_tune)
+    r0_tune_res = [None] * len(smpls)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         r0_grid_search = GridSearchCV(ml_r, param_grid_r,
                                       cv=r0_tune_resampling)
+        train_index0 = np.intersect1d(np.where(Z == 0)[0], train_index)
         r0_tune_res[idx] = r0_grid_search.fit(X[train_index0, :], D[train_index0])
 
-        # cv for ml_r1
-        r1_tune_resampling = KFold(n_splits=n_folds_tune)
+    r1_tune_res = [None] * len(smpls)
+    for idx, (train_index, test_index) in enumerate(smpls):
+        r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         r1_grid_search = GridSearchCV(ml_r, param_grid_r,
                                       cv=r1_tune_resampling)
+        train_index1 = np.intersect1d(np.where(Z == 1)[0], train_index)
         r1_tune_res[idx] = r1_grid_search.fit(X[train_index1, :], D[train_index1])
 
     g0_best_params = [xx.best_params_ for xx in g0_tune_res]
