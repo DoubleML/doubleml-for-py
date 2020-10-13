@@ -41,37 +41,70 @@ _data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
 _dml_data_alias = ['DoubleMLData', DoubleMLData]
 
 
-def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_type='DoubleMLData'):
+def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
     """
+    Generates data from a partially linear regression model used in Chernozhukov et al. (2018) for Figure 1.
+    The data generating process is defined as
+
+    .. math::
+
+        D = m_0(X) + s_1 V, & &V \\sim \\mathcal{N}(0,1),
+
+        Y = \\alpha D + g_0(X) + s_2 \\zeta, & &\\zeta \\sim \\mathcal{N}(0,1),
+
+
+    with covariates :math:`X \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
+    :math:`\\Sigma_{kj} = 0.7^{|j-k|}`.
+    The nuisance functions are given by
+
+    .. math::
+
+        m_0(X) &= a_0 X_1 + a_1 \\frac{\\exp(X_3)}{1+\\exp(X_3)},
+
+        g_0(X) &= b_0 \\frac{\\exp(X_1)}{1+\\exp(X_1)} + b_1 X_3.
 
     Parameters
     ----------
-    n_samples :
-        The number of samples.
-    n_features :
-        The number of features.
+    n_obs :
+        The number of observations to simulate.
+    dim_x :
+        The number of covariates.
     alpha :
         The value of the causal parameter.
     return_type :
-        If `'DoubleMLData'` or `DoubleMLData`, returns a `DoubleMLData` object.
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
 
-        If `'DataFrame'`, `'pd.DataFrame'` or `pd.DataFrame`, returns a `pd.DataFrame` object.
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
 
-        If `'array'`, `'np.ndarray'`, `'np.array'` or `np.ndarray`, returns a `np.ndarray`'s `(x, y, d)`.
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d)``.
+    **kwargs
+        Additional keyword arguments to set non-default values for the parameters
+        :math:`a_0=1`, :math:`a_1=0.25`, :math:`s_1=1`, :math:`b_0=1`, :math:`b_1=0.25` or :math:`s_2=1`.
+
+    References
+    ----------
+    .. [1] Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
-    cov_mat = toeplitz([np.power(0.7, k) for k in range(n_features)])
-    a_1 = 0.25
-    b_1 = 0.25
-    x = np.random.multivariate_normal(np.zeros(n_features), cov_mat, size=[n_samples, ])
-    d = x[:, 0] + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
-        + np.random.standard_normal(size=[n_samples, ])
-    y = alpha * d + np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
-        + b_1 * x[:, 2] + np.random.standard_normal(size=[n_samples, ])
+    a_0 = kwargs.get('a_0', 1.)
+    a_1 = kwargs.get('a_1', 0.25)
+    s_1 = kwargs.get('s_1', 1.)
+
+    b_0 = kwargs.get('b_0', 1.)
+    b_1 = kwargs.get('b_1', 0.25)
+    s_2 = kwargs.get('s_2', 1.)
+
+    cov_mat = toeplitz([np.power(0.7, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    d = a_0 * x[:, 0] + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
+        + s_1 * np.random.standard_normal(size=[n_obs, ])
+    y = alpha * d + b_0 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
+        + b_1 * x[:, 2] + s_2 * np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
         return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((x, y, d)),
                             columns=x_cols + ['y', 'd'])
         if return_type in _data_frame_alias:
@@ -82,20 +115,20 @@ def make_plr_CCDDHNR2018(n_samples=500, n_features=20, alpha=0.5, return_type='D
         raise ValueError('invalid return_type')
 
 
-def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_type='DoubleMLData'):
-    b = [1 / k for k in range(1, n_features + 1)]
-    sigma = make_spd_matrix(n_features)
+def make_plr_data(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData'):
+    b = [1 / k for k in range(1, dim_x + 1)]
+    sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
+    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
     G = g(np.dot(X, b))
     M = m(np.dot(X, b))
-    d = M + np.random.standard_normal(size=[n_samples, ])
-    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_samples, ])
+    d = M + np.random.standard_normal(size=[n_obs, ])
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
         return X, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((X, y, d)),
                             columns=x_cols + ['y', 'd'])
         if return_type in _data_frame_alias:
@@ -106,23 +139,23 @@ def make_plr_data(n_samples=100, n_features=20, theta=0.5, return_type='DoubleML
         raise ValueError('invalid return_type')
 
 
-def make_pliv_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, n_features+1)]
-    sigma = make_spd_matrix(n_features)
+def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
+    b = [1/k for k in range(1, dim_x+1)]
+    sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
+    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
     G = g(np.dot(X, b))
     # instrument
-    Z = m(np.dot(X, b)) + np.random.standard_normal(size=[n_samples, ])
+    Z = m(np.dot(X, b)) + np.random.standard_normal(size=[n_obs, ])
     # treatment
     M = m(gamma_z * Z + np.dot(X, b))
-    D = M + np.random.standard_normal(size=[n_samples, ])
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_samples, ])
+    D = M + np.random.standard_normal(size=[n_obs, ])
+    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
         return X, Y, D, Z
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
                             columns=x_cols + ['y', 'd', 'z'])
         if return_type in _data_frame_alias:
@@ -133,22 +166,22 @@ def make_pliv_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_
         raise ValueError('invalid return_type')
 
 
-def make_irm_data(n_samples=100, n_features=20, theta=0.5, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, n_features+1)]
-    sigma = make_spd_matrix(n_features)
+def make_irm_data(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData'):
+    b = [1/k for k in range(1, dim_x+1)]
+    sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
+    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
     G = g(np.dot(X, b))
     M = m3(np.dot(X, b))
-    MM = M + np.random.standard_normal(size=[n_samples, ])
+    MM = M + np.random.standard_normal(size=[n_obs, ])
     MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
     d = np.random.binomial(p=MMM, n=1)
-    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_samples, ])
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
         return X, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((X, y, d)),
                             columns=x_cols + ['y', 'd'])
         if return_type in _data_frame_alias:
@@ -159,29 +192,29 @@ def make_irm_data(n_samples=100, n_features=20, theta=0.5, return_type='DoubleML
         raise ValueError('invalid return_type')
 
 
-def make_iivm_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, n_features+1)]
-    sigma = make_spd_matrix(n_features)
+def make_iivm_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
+    b = [1/k for k in range(1, dim_x+1)]
+    sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(n_features), sigma, size=[n_samples, ])
+    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
     G = g(np.dot(X, b))
     # instrument
     M1 = m3(np.dot(X, b))
-    MM = M1 + np.random.standard_normal(size=[n_samples, ])
+    MM = M1 + np.random.standard_normal(size=[n_obs, ])
     MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
     Z = np.random.binomial(p=MMM, n=1)
     # treatment
     M = m3(gamma_z * Z + np.dot(X, b))
-    MM = M + np.random.standard_normal(size=[n_samples, ])
+    MM = M + np.random.standard_normal(size=[n_obs, ])
     MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
     D = np.random.binomial(p=MMM, n=1)
 
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_samples, ])
+    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
         return X, Y, D, Z
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(n_features)]
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
                             columns=x_cols + ['y', 'd', 'z'])
         if return_type in _data_frame_alias:
@@ -192,24 +225,24 @@ def make_iivm_data(n_samples=100, n_features=20, theta=0.5, gamma_z=0.4, return_
         raise ValueError('invalid return_type')
 
 
-def make_pliv_CHS2015(n_samples, alpha=1., dim_x=200, dim_z=150, return_type='DoubleMLData'):
+def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='DoubleMLData'):
     assert dim_x >= dim_z
     # see https://assets.aeaweb.org/asset-server/articles-attachments/aer/app/10505/P2015_1022_app.pdf
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.6], [0.6, 1.]]),
-                                       size=[n_samples, ])
+                                       size=[n_obs, ])
     epsilon = xx[:,0]
     u = xx[:,1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
     X = np.random.multivariate_normal(np.zeros(dim_x),
                                       sigma,
-                                      size=[n_samples, ])
+                                      size=[n_obs, ])
 
     I_z = np.eye(dim_z)
     xi = np.random.multivariate_normal(np.zeros(dim_z),
                                        0.25*I_z,
-                                       size=[n_samples, ])
+                                       size=[n_obs, ])
 
     beta = [1 / (k**2) for k in range(1, dim_x + 1)]
     gamma = beta
