@@ -72,18 +72,14 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
     alpha :
         The value of the causal parameter.
     return_type :
-        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
-
-        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
-
-        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d)``.
+        .. include:: ../../shared/dgp/return_type.rst
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
         :math:`a_0=1`, :math:`a_1=0.25`, :math:`s_1=1`, :math:`b_0=1`, :math:`b_1=0.25` or :math:`s_2=1`.
 
     References
     ----------
-    .. [1] Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     a_0 = kwargs.get('a_0', 1.)
     a_1 = kwargs.get('a_1', 0.25)
@@ -115,13 +111,55 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
         raise ValueError('invalid return_type')
 
 
-def make_plr_data(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData'):
+def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData', **kwargs):
+    """
+    Generates data from a partially linear regression model used in blog article by Turrell (2018).
+    The data generating process is defined as
+
+    .. math::
+
+        D = m_0(X' b) + V, & &V \\sim \\mathcal{N}(0,1),
+
+        Y = \\theta D + g_0(X' b) + U, & &U \\sim \\mathcal{N}(0,1),
+
+
+    with covariates :math:`X \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a random symmetric,
+    positive-definite matrix generated with :py:meth:`sklearn.datasets.make_spd_matrix`.
+    :math:`b` is a vector with entries :math:`b_j=\\frac{1}{j} and the nuisance functions are given by
+
+    .. math::
+
+        m_0(x) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x-\\nu)},
+
+        g_0(X) &= \\sin(x)^2.
+
+    Parameters
+    ----------
+    n_obs :
+        The number of observations to simulate.
+    dim_x :
+        The number of covariates.
+    theta :
+        The value of the causal parameter.
+    return_type :
+        .. include:: ../../shared/dgp/return_type.rst
+    **kwargs
+        Additional keyword arguments to set non-default values for the parameters
+        :math:`\\nu=0`, or :math:`\\gamma=1`.
+
+    References
+    ----------
+    Turrell, A. (2018), Econometrics in Python part I - Double machine learning, Markov Wanderer: A blog on economics, science, coding and data. `http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/ <http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/>`_.
+    """
+    nu = kwargs.get('nu', 0.)
+    gamma = kwargs.get('gamma', 1.)
+
     b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
     X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
     G = g(np.dot(X, b))
-    M = m(np.dot(X, b))
+    M = m(np.dot(X, b), nu=nu, gamma=gamma)
     d = M + np.random.standard_normal(size=[n_obs, ])
     y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 

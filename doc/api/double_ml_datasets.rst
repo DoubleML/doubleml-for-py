@@ -25,4 +25,5 @@ Samples generator
    :toctree: generated/
 
    datasets.make_plr_CCDDHNR2018
+   datasets.make_plr_turrell2018
    datasets.make_pliv_CHS2015
