@@ -38,42 +38,8 @@ sns.set()
 # Load bonus data using the dml datasets module
 # ---------------------------------------------
 
-raw_data = dml.datasets.fetch_bonus()
-raw_data.head()
-
-
-# %%
-# Data preprocessing
-# ------------------
-
-# data transformations and subselection
-ind = (raw_data['tg'] == 0) | (raw_data['tg'] == 4)
-data = raw_data.copy()[ind]
-data.reset_index(inplace=True)
-data['tg'].replace(4, 1, inplace=True)
-data['inuidur1'] = np.log(data['inuidur1'])
-
-
-# %%
-#
-
-# variable dep as factor (dummy encoding)
-dummy_enc = OneHotEncoder(drop='first', categories='auto').fit(data.loc[:, ['dep']])
-xx = dummy_enc.transform(data.loc[:, ['dep']]).toarray()
-data['dep1'] = xx[:,0]
-data['dep2'] = xx[:,1]
-
-# %%
-#
-
-y_col = 'inuidur1'
-d_cols = ['tg']
-x_cols = ['female', 'black', 'othrace',
-          'dep1', 'dep2',
-          'q2', 'q3', 'q4', 'q5', 'q6',
-          'agelt35', 'agegt54', 'durable', 'lusd', 'husd']
-dml_data = dml.DoubleMLData(data, y_col, d_cols, x_cols)
-dml_data
+dml_data = dml.datasets.fetch_bonus()
+dml_data.data.head()
 
 
 # %%
@@ -104,15 +70,8 @@ dml_plr_obj_rf.summary
 # %%
 #
 
-poly = PolynomialFeatures(2, include_bias=False)
-data_transf = poly.fit_transform(data[x_cols])
-x_cols_lasso = poly.get_feature_names(x_cols)
-
-data_transf = pd.DataFrame(data_transf, columns=x_cols_lasso)
-data_transf = pd.concat((data[[y_col] + d_cols], data_transf),
-                        axis=1, sort=False)
-
-dml_data_lasso = dml.DoubleMLData(data_transf, y_col, d_cols, x_cols_lasso)
+# Load data with polynomial features
+dml_data_lasso = dml.datasets.fetch_bonus(polynomial_features=True)
 dml_data_lasso
 
 # %%

@@ -3,20 +3,110 @@ import numpy as np
 
 from scipy.linalg import toeplitz
 
+from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
 
 from .double_ml_data import DoubleMLData
 
 
-def fetch_401K():
+def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
+    """
+    Data set on financial wealth and 401(k) plan participation.
+
+    Parameters
+    ----------
+    return_type :
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+    polynomial_features :
+        If ``True`` polynomial features are added (see replication files of Chernozhukov et al. (2018)).
+
+    References
+    ----------
+    Abadie, A. (2003), Semiparametric instrumental variable estimation of treatment response models. Journal of Econometrics, 113(2): 231-263.
+
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    """
     url = 'https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta'
-    data = pd.read_stata(url)
+    raw_data = pd.read_stata(url)
+
+    y_col = 'net_tfa'
+    d_cols = ['e401']
+    x_cols = ['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']
+
+    data = raw_data.copy()
+
+    assert not polynomial_features, 'Not implemented yet'
+
+    if return_type in _data_frame_alias + _dml_data_alias:
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, y_col, d_cols, x_cols)
+    else:
+        raise ValueError('invalid return_type')
+
     return data
 
 
-def fetch_bonus():
+def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
+    """
+    Data set on the Pennsylvania Reemployment Bonus experiment.
+
+    Parameters
+    ----------
+    return_type :
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+    polynomial_features :
+        If ``True`` polynomial features are added (see replication files of Chernozhukov et al. (2018)).
+
+    References
+    ----------
+    Bilias Y. (2000), Sequential Testing of Duration Data: The Case of Pennsylvania 'Reemployment Bonus' Experiment. Journal of Applied Econometrics, 15(6): 575-594.
+
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    """
     url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
-    data = pd.read_csv(url, delim_whitespace=True)
+    raw_data = pd.read_csv(url, delim_whitespace=True)
+
+    ind = (raw_data['tg'] == 0) | (raw_data['tg'] == 4)
+    data = raw_data.copy()[ind]
+    data.reset_index(inplace=True)
+    data['tg'].replace(4, 1, inplace=True)
+    data['inuidur1'] = np.log(data['inuidur1'])
+
+    # variable dep as factor (dummy encoding)
+    dummy_enc = OneHotEncoder(drop='first', categories='auto').fit(data.loc[:, ['dep']])
+    xx = dummy_enc.transform(data.loc[:, ['dep']]).toarray()
+    data['dep1'] = xx[:, 0]
+    data['dep2'] = xx[:, 1]
+
+    y_col = 'inuidur1'
+    d_cols = ['tg']
+    x_cols = ['female', 'black', 'othrace',
+              'dep1', 'dep2',
+              'q2', 'q3', 'q4', 'q5', 'q6',
+              'agelt35', 'agegt54', 'durable', 'lusd', 'husd']
+
+    if polynomial_features:
+        poly = PolynomialFeatures(2, include_bias=False)
+        data_transf = poly.fit_transform(data[x_cols])
+        x_cols = poly.get_feature_names(x_cols)
+
+        data_transf = pd.DataFrame(data_transf, columns=x_cols)
+        data = pd.concat((data[[y_col] + d_cols], data_transf),
+                         axis=1, sort=False)
+
+    if return_type in _data_frame_alias + _dml_data_alias:
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, y_col, d_cols, x_cols)
+    else:
+        raise ValueError('invalid return_type')
     return data
 
 
