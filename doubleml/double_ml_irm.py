@@ -57,6 +57,8 @@ class DoubleMLIRM(DoubleML):
                  n_rep=1,
                  score='ATE',
                  dml_procedure='dml2',
+                 trimming_rule='truncate',
+                 trimming_threshold=1e-12,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -70,6 +72,13 @@ class DoubleMLIRM(DoubleML):
         self.ml_g1 = clone(ml_g)
         self.ml_m = ml_m
         self._initialize_ml_nuisance_params()
+
+        valid_trimming_rule = ['truncate']
+        if trimming_rule not in valid_trimming_rule:
+            raise ValueError('invalid trimming_rule ' + trimming_rule +
+                             '\n valid trimming_rule ' + ' or '.join(valid_trimming_rule))
+        self.trimming_rule = trimming_rule
+        self.trimming_threshold = trimming_threshold
 
     @property
     def g0_params(self):
@@ -149,7 +158,11 @@ class DoubleMLIRM(DoubleML):
         # nuisance m
         m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self.__m_params)[:, 1]
-        
+
+        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
+            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
+            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
         # compute residuals
         u_hat0 = y - g_hat0
         if score == 'ATE':

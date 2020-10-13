@@ -5,7 +5,8 @@ from sklearn.base import clone
 from doubleml.tests.helper_boot import boot_manual
 
 def fit_nuisance_iivm(Y, X, D, Z, learner_m, learner_g, learner_r, smpls,
-                      g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None):
+                      g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
+                      trimming_threshold=1e-12):
     ml_g0 = clone(learner_g)
     g_hat0 = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -27,7 +28,11 @@ def fit_nuisance_iivm(Y, X, D, Z, learner_m, learner_g, learner_r, smpls,
     for idx, (train_index, test_index) in enumerate(smpls):
         if m_params is not None:
             ml_m.set_params(**m_params[idx])
-        m_hat.append(ml_m.fit(X[train_index], Z[train_index]).predict_proba(X[test_index])[:, 1])
+        xx = ml_m.fit(X[train_index], Z[train_index]).predict_proba(X[test_index])[:, 1]
+        if trimming_threshold > 0:
+            xx[xx < trimming_threshold] = trimming_threshold
+            xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
+        m_hat.append(xx)
 
     ml_r0 = clone(learner_r)
     r_hat0 = []

@@ -59,6 +59,8 @@ class DoubleMLIIVM(DoubleML):
                  n_rep=1,
                  score='LATE',
                  dml_procedure='dml2',
+                 trimming_rule='truncate',
+                 trimming_threshold=1e-12,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -74,6 +76,13 @@ class DoubleMLIIVM(DoubleML):
         self.ml_r0 = clone(ml_r)
         self.ml_r1 = clone(ml_r)
         self._initialize_ml_nuisance_params()
+
+        valid_trimming_rule = ['truncate']
+        if trimming_rule not in valid_trimming_rule:
+            raise ValueError('invalid trimming_rule ' + trimming_rule +
+                             '\n valid trimming_rule ' + ' or '.join(valid_trimming_rule))
+        self.trimming_rule = trimming_rule
+        self.trimming_threshold = trimming_threshold
 
     @property
     def g0_params(self):
@@ -173,6 +182,10 @@ class DoubleMLIIVM(DoubleML):
         u_hat1 = y - g_hat1
         w_hat0 = d - r_hat0
         w_hat1 = d - r_hat1
+
+        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
+            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
+            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
 
         score = self.score
         self._check_score(score)
