@@ -1,17 +1,45 @@
-:parenttoc: True
-
 API reference
 =============
 
 Double machine learning models
 ------------------------------
 
-.. toctree::
-    :maxdepth: 3
+.. currentmodule:: doubleml
 
-    double_ml_plr
-    double_ml_pliv
-    double_ml_irm
-    double_ml_iivm
-    double_ml_datasets
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
 
+    DoubleMLPLR
+    DoubleMLPLIV
+    DoubleMLIRM
+    DoubleMLIIVM
+
+
+Datasets module
+---------------
+
+
+Dataset loaders
+~~~~~~~~~~~~~~~
+
+.. currentmodule:: doubleml
+
+.. autosummary::
+   :toctree: generated/
+
+   datasets.fetch_401K
+   datasets.fetch_bonus
+
+Dataset generators
+~~~~~~~~~~~~~~~~~~
+
+.. currentmodule:: doubleml
+
+.. autosummary::
+   :toctree: generated/
+
+   datasets.make_plr_CCDDHNR2018
+   datasets.make_plr_turrell2018
+   datasets.make_pliv_CHS2015
+   datasets.make_pliv_multiway_cluster_CKMS2019
