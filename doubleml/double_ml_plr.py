@@ -13,37 +13,53 @@ class DoubleMLPLR(DoubleML):
 
     Parameters
     ----------
-    obj_dml_data :
-        ToDo
-    ml_learners :
-        ToDo
-    n_folds :
-        ToDo
-    n_rep :
-        ToDo
-    score :
-        ToDo
-    dml_procedure :
-        ToDo
-    draw_sample_splitting :
-        ToDo
-    apply_cross_fitting :
-        ToDo
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`g_0(X) = E[Y|X]`.
+
+    ml_m : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`m_0(X) = E[D|X]`.
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+    score : str or callable
+        A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
+        or a callable object / function with signature ``psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)``.
+        Default is ``'partialling out'``.
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied.
+        Default is ``True``.
 
     Examples
     --------
+    >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml.datasets import make_plr_CCDDHNR2018
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
+    >>> np.random.seed(3141)
     >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-    >>> ml_learners = {'ml_m': clone(learner), 'ml_g': clone(learner)}
+    >>> ml_g = learner
+    >>> ml_m = learner
     >>> obj_dml_data = make_plr_CCDDHNR2018()
-    >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_learners)
+    >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit()
     >>> dml_plr_obj.summary
-         coef   std err         t         P>|t|    2.5 %    97.5 %
-    d  0.608353  0.101595  5.988004  2.124312e-09  0.40923  0.807477
+           coef   std err          t         P>|t|    2.5 %    97.5 %
+    d  0.495182  0.042772  11.577156  5.380159e-31  0.41135  0.579015
 
     Notes
     -----
