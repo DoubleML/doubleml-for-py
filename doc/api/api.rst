@@ -1,6 +1,17 @@
 API reference
 =============
 
+Double machine learning data class
+----------------------------------
+
+.. currentmodule:: doubleml
+
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    DoubleMLData
+
 Double machine learning models
 ------------------------------
 
