@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression
 
 from .double_ml import DoubleML, DoubleMLData
-from ._helper import _dml_cv_predict
+from ._helper import _dml_cv_predict, _check_and_duplicate_params
 
 
 class DoubleMLPLIV(DoubleML):
@@ -519,12 +519,7 @@ class DoubleMLPLIV(DoubleML):
             raise ValueError('invalid treatment variable' + learner +
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
-        if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
-        else:
-            assert len(params) == self.n_rep
-            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            all_params = params
+        all_params = _check_and_duplicate_params(params, self.n_rep, self.n_folds, self.apply_cross_fitting)
 
         if learner == 'ml_g':
             self._g_params[treat_var] = all_params
