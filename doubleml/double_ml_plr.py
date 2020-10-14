@@ -23,22 +23,28 @@ class DoubleMLPLR(DoubleML):
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
         for the nuisance function :math:`m_0(X) = E[D|X]`.
+
     n_folds : int
         Number of folds.
         Default is ``5``.
+
     n_rep : int
         Number of repetitons for the sample splitting.
         Default is ``1``.
+
     score : str or callable
         A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)``.
+        or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat, m_hat, smpls)``.
         Default is ``'partialling out'``.
+
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
+
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
+
     apply_cross_fitting : bool
         Indicates whether cross-fitting should be applied.
         Default is ``True``.

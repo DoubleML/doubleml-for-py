@@ -15,35 +15,66 @@ class DoubleMLIRM(DoubleML):
 
     Parameters
     ----------
-    obj_dml_data :
-        ToDo
-    ml_learners :
-        ToDo
-    n_folds :
-        ToDo
-    n_rep :
-        ToDo
-    score :
-        ToDo
-    dml_procedure :
-        ToDo
-    draw_sample_splitting :
-        ToDo
-    apply_cross_fitting :
-        ToDo
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
+
+    ml_m : classifier implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`m_0(X) = E[D|X]`.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str or callable
+        A str (``'ATE'`` or ``'ATTE'``) specifying the score function
+        or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
+        Default is ``'ATE'``.
+
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-12``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied.
+        Default is ``True``.
 
     Examples
     --------
+    >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    >>> ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=10),
-    >>>                'ml_g': RandomForestRegressor(max_depth=2, n_estimators=10)}
-    >>> data = make_irm_data()
+    >>> np.random.seed(3141)
+    >>> ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
+    >>> data = make_irm_data(return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-    >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_learners)
+    >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
     >>> dml_irm_obj.fit()
     >>> dml_irm_obj.summary
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.873418  0.290427  3.007357  0.002635  0.304192  1.442645
 
     Notes
     -----
@@ -180,8 +211,7 @@ class DoubleMLIRM(DoubleML):
                                             np.multiply(p_hat, (1.0 - m_hat)))
                 psi_a = - np.divide(d, p_hat)
         elif callable(self.score):
-            psi_a, psi_b = self.score(y, d,
-                                              g_hat0, g_hat1, m_hat, smpls)
+            psi_a, psi_b = self.score(y, d, g_hat0, g_hat1, m_hat, smpls)
 
         return psi_a, psi_b
 

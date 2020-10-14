@@ -14,38 +14,65 @@ class DoubleMLPLIV(DoubleML):
 
     Parameters
     ----------
-    obj_dml_data :
-        ToDo
-    ml_learners :
-        ToDo
-    n_folds :
-        ToDo
-    n_rep :
-        ToDo
-    score :
-        ToDo
-    dml_procedure :
-        ToDo
-    draw_sample_splitting :
-        ToDo
-    apply_cross_fitting :
-        ToDo
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`g_0(X) = E[Y|X]`.
+
+    ml_m : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`m_0(X) = E[Z|X]`.
+
+    ml_r : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        for the nuisance function :math:`r_0(X) = E[D|X]`.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str or callable
+        A str (``'partialling out'`` is the only choice) specifying the score function
+        or a callable object / function with signature ``psi_a, psi_b = score(y, z, d, g_hat, m_hat, r_hat, smpls)``.
+        Default is ``'partialling out'``.
+
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied.
+        Default is ``True``.
 
     Examples
     --------
+    >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml.datasets import make_pliv_data
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
+    >>> np.random.seed(3141)
     >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
     >>> ml_g = clone(learner)
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
-    >>> data = make_pliv_data()
+    >>> data = make_pliv_data(return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_pliv_obj.fit()
     >>> dml_pliv_obj.summary
+           coef  std err         t     P>|t|     2.5 %    97.5 %
+    d -1.071255  1.20406 -0.889703  0.373625 -3.431168  1.288658
 
     Notes
     -----
@@ -191,7 +218,7 @@ class DoubleMLPLIV(DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['partialling out', 'partialling out']
+            valid_score = ['partialling out']
             # check whether its worth implementing the IV_type as well
             # In CCDHNR equation (4.7) a score of this type is provided;
             # however in the following paragraph it is explained that one might
