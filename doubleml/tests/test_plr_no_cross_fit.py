@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr, tune_nuisance_plr
 
 
 # number of datasets per dgp
@@ -116,19 +116,19 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     return res_dict
 
 
-def test_dml_plr_coef(dml_plr_no_cross_fit_fixture):
+def test_dml_plr_no_cross_fit_coef(dml_plr_no_cross_fit_fixture):
     assert math.isclose(dml_plr_no_cross_fit_fixture['coef'],
                         dml_plr_no_cross_fit_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_plr_se(dml_plr_no_cross_fit_fixture):
+def test_dml_plr_no_cross_fit_se(dml_plr_no_cross_fit_fixture):
     assert math.isclose(dml_plr_no_cross_fit_fixture['se'],
                         dml_plr_no_cross_fit_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_plr_boot(dml_plr_no_cross_fit_fixture):
+def test_dml_plr_no_cross_fit_boot(dml_plr_no_cross_fit_fixture):
     for bootstrap in dml_plr_no_cross_fit_fixture['boot_methods']:
         assert np.allclose(dml_plr_no_cross_fit_fixture['boot_coef' + bootstrap],
                            dml_plr_no_cross_fit_fixture['boot_coef' + bootstrap + '_manual'],
@@ -236,20 +236,140 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
     return res_dict
 
 
-def test_dml_plr_coef(dml_plr_rep_no_cross_fit_fixture):
+def test_dml_plr_rep_no_cross_fit_coef(dml_plr_rep_no_cross_fit_fixture):
     assert math.isclose(dml_plr_rep_no_cross_fit_fixture['coef'],
                         dml_plr_rep_no_cross_fit_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_plr_se(dml_plr_rep_no_cross_fit_fixture):
+def test_dml_plr_rep_no_cross_fit_se(dml_plr_rep_no_cross_fit_fixture):
     assert math.isclose(dml_plr_rep_no_cross_fit_fixture['se'],
                         dml_plr_rep_no_cross_fit_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
-def test_dml_plr_boot(dml_plr_rep_no_cross_fit_fixture):
+def test_dml_plr_rep_no_cross_fit_boot(dml_plr_rep_no_cross_fit_fixture):
     for bootstrap in dml_plr_rep_no_cross_fit_fixture['boot_methods']:
         assert np.allclose(dml_plr_rep_no_cross_fit_fixture['boot_coef' + bootstrap],
                            dml_plr_rep_no_cross_fit_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+
+
+@pytest.fixture(scope='module',
+                params=[True, False])
+def tune_on_folds(request):
+    return request.param
+
+
+@pytest.fixture(scope="module")
+def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_on_folds):
+    par_grid = {'param_grid_g': {'alpha': np.linspace(0.05, .95, 7)},
+                'param_grid_m': {'alpha': np.linspace(0.05, .95, 7)}}
+    n_folds_tune = 3
+
+    boot_methods = ['normal']
+    n_rep_boot = 502
+    dml_procedure = 'dml1'
+
+    # collect data
+    data = generate_data1[idx]
+    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
+    # Set machine learning methods for m & g
+    ml_g = Lasso()
+    ml_m = Lasso()
+
+    np.random.seed(3141)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_g, ml_m,
+                                  n_folds=2,
+                                  score=score,
+                                  dml_procedure=dml_procedure,
+                                  apply_cross_fitting=False)
+
+    # tune hyperparameters
+    res_tuning = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+
+    # fit with tuned parameters
+    dml_plr_obj.fit()
+
+    np.random.seed(3141)
+    y = obj_dml_data.y
+    X = obj_dml_data.x
+    d = obj_dml_data.d
+
+    resampling = KFold(n_splits=2,
+                       shuffle=True)
+    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [smpls[0]]
+
+    if tune_on_folds:
+        g_params, m_params = tune_nuisance_plr(y, X, d,
+                                               clone(ml_m), clone(ml_g), smpls, n_folds_tune,
+                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+
+        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+                                        clone(ml_m), clone(ml_g), smpls,
+                                        g_params, m_params)
+    else:
+        xx = [(np.arange(len(y)), np.array([]))]
+        g_params, m_params = tune_nuisance_plr(y, X, d,
+                                               clone(ml_m), clone(ml_g), xx, n_folds_tune,
+                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+
+        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+                                        clone(ml_m), clone(ml_g),
+                                        smpls,
+                                        g_params, m_params)
+
+    assert dml_procedure == 'dml1'
+    res_manual, se_manual = plr_dml1(y, X, d,
+                                     g_hat, m_hat,
+                                     smpls, score)
+
+    # fix scaling for the no-cross-fitting case;
+    se_manual = se_manual*np.sqrt(len(y)/len(smpls[0][1]))
+
+    res_dict = {'coef': dml_plr_obj.coef,
+                'coef_manual': res_manual,
+                'se': dml_plr_obj.se,
+                'se_manual': se_manual,
+                'boot_methods': boot_methods}
+
+    for bootstrap in boot_methods:
+        np.random.seed(3141)
+        boot_theta = boot_plr(res_manual,
+                              y, d,
+                              g_hat, m_hat,
+                              smpls, score,
+                              se_manual,
+                              bootstrap, n_rep_boot,
+                              dml_procedure,
+                              apply_cross_fitting=False)
+
+        np.random.seed(3141)
+        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
+        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+
+    return res_dict
+
+
+def test_dml_plr_no_cross_fit_tune_coef(dml_plr_no_cross_fit_tune_fixture):
+    assert math.isclose(dml_plr_no_cross_fit_tune_fixture['coef'],
+                        dml_plr_no_cross_fit_tune_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+def test_dml_plr_no_cross_fit_tune_se(dml_plr_no_cross_fit_tune_fixture):
+    assert math.isclose(dml_plr_no_cross_fit_tune_fixture['se'],
+                        dml_plr_no_cross_fit_tune_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+def test_dml_plr_no_cross_fit_tune_boot(dml_plr_no_cross_fit_tune_fixture):
+    for bootstrap in dml_plr_no_cross_fit_tune_fixture['boot_methods']:
+        assert np.allclose(dml_plr_no_cross_fit_tune_fixture['boot_coef' + bootstrap],
+                           dml_plr_no_cross_fit_tune_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
