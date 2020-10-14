@@ -37,7 +37,23 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
 
     data = raw_data.copy()
 
-    assert not polynomial_features, 'Not implemented yet'
+    if polynomial_features:
+        cols = ['marr', 'twoearn', 'db', 'pira', 'hown']
+        data_array = data[cols]
+        #poly_features = {'age': 6, 'inc': 8, 'educ': 4, 'fsize': 2}
+        poly_features = {'age': 6, 'inc': 6, 'educ': 4, 'fsize': 2}
+        for feature, degree in poly_features.items():
+            poly = PolynomialFeatures(degree, include_bias=False)
+            data_array = np.hstack((data_array, poly.fit_transform(raw_data[[feature]])))
+            cols = cols + poly.get_feature_names([feature])
+
+        poly = PolynomialFeatures(2, include_bias=False, interaction_only=True)
+        data_transf = poly.fit_transform(data_array)
+        x_cols = poly.get_feature_names(cols)
+
+        data_transf = pd.DataFrame(data_transf, columns=x_cols)
+        data = pd.concat((data[[y_col] + d_cols], data_transf),
+                         axis=1, sort=False)
 
     if return_type in _data_frame_alias + _dml_data_alias:
         if return_type in _data_frame_alias:
@@ -92,7 +108,7 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
               'agelt35', 'agegt54', 'durable', 'lusd', 'husd']
 
     if polynomial_features:
-        poly = PolynomialFeatures(2, include_bias=False)
+        poly = PolynomialFeatures(2, include_bias=False, interaction_only=True)
         data_transf = poly.fit_transform(data[x_cols])
         x_cols = poly.get_feature_names(x_cols)
 
