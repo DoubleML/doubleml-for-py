@@ -189,10 +189,16 @@ class DoubleMLPLR(DoubleML):
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
+            if self.apply_cross_fitting:
+                all_params = [[params] * self.n_folds] * self.n_rep
+            else:
+                all_params = [[params] * 1] * self.n_rep
         else:
             assert len(params) == self.n_rep
-            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            if self.apply_cross_fitting:
+                assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            else:
+                assert np.all(np.array([len(x) for x in params]) == 1)
             all_params = params
 
         if learner == 'ml_g':
