@@ -66,8 +66,8 @@ def get_par_grid(learner):
 
 @pytest.fixture(scope="module")
 def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
-    par_grid = {'param_grid_g': get_par_grid(learner_g),
-                'param_grid_m': get_par_grid(learner_m)}
+    par_grid = {'ml_g': get_par_grid(learner_g),
+                'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
 
     boot_methods = ['normal']
@@ -105,7 +105,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
     if tune_on_folds:
         g_params, m_params = tune_nuisance_plr(y, X, d,
                                                clone(learner_m), clone(learner_g), smpls, n_folds_tune,
-                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+                                               par_grid['ml_g'], par_grid['ml_m'])
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                         clone(learner_m), clone(learner_g), smpls,
@@ -114,7 +114,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, X, d,
                                                clone(learner_m), clone(learner_g), xx, n_folds_tune,
-                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+                                               par_grid['ml_g'], par_grid['ml_m'])
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                         clone(learner_m), clone(learner_g),

@@ -57,7 +57,7 @@ def get_par_grid(learner):
 
 @pytest.fixture(scope='module')
 def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, score, dml_procedure, tune_on_folds):
-    par_grid = {'param_grid_r': get_par_grid(learner_r)}
+    par_grid = {'ml_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
     boot_methods = ['Bayes', 'normal', 'wild']
@@ -97,7 +97,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, scor
         r_params = tune_nuisance_pliv_partial_z(y, X, d, z,
                                                 clone(learner_r),
                                                 smpls, n_folds_tune,
-                                                par_grid['param_grid_r'])
+                                                par_grid['ml_r'])
 
         r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
                                             clone(learner_r),
@@ -108,7 +108,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, scor
         r_params = tune_nuisance_pliv_partial_z(y, X, d, z,
                                                 clone(learner_r),
                                                 xx, n_folds_tune,
-                                                par_grid['param_grid_r'])
+                                                par_grid['ml_r'])
 
         r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
                                             clone(learner_r),
