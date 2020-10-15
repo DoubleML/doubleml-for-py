@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict
+from ._helper import _dml_cv_predict, _check_and_duplicate_params
 
 
 class DoubleMLPLR(DoubleML):
@@ -210,12 +210,7 @@ class DoubleMLPLR(DoubleML):
             raise ValueError('invalid treatment variable' + learner +
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
-        if isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
-        else:
-            assert len(params) == self.n_rep
-            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            all_params = params
+        all_params = _check_and_duplicate_params(params, self.n_rep, self.n_folds, self.apply_cross_fitting)
 
         if learner == 'ml_g':
             self._g_params[treat_var] = all_params
