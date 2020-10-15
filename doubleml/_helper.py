@@ -53,7 +53,7 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
     if not manual_cv_predict:
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            return cross_val_predict(estimator, X, y, cv=smpls, n_jobs=n_jobs, method=method)
+            return cross_val_predict(clone(estimator), X, y, cv=smpls, n_jobs=n_jobs, method=method)
         elif isinstance(est_params, dict):
             # if no fold-specific parameters we redirect to the standard method
             warnings.warn("Using the same (hyper-)parameters for all folds")
@@ -116,19 +116,3 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
             return preds, train_preds
         else:
             return preds
-
-
-def _check_and_duplicate_params(params, n_rep, n_folds, apply_cross_fitting):
-    if isinstance(params, dict):
-        if apply_cross_fitting:
-            all_params = [[params] * n_folds] * n_rep
-        else:
-            all_params = [[params] * 1] * n_rep
-    else:
-        assert len(params) == n_rep
-        if apply_cross_fitting:
-            assert np.all(np.array([len(x) for x in params]) == n_folds)
-        else:
-            assert np.all(np.array([len(x) for x in params]) == 1)
-        all_params = params
-    return all_params
