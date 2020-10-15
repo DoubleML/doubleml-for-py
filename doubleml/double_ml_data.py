@@ -17,7 +17,7 @@ class DoubleMLData:
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
-        self._use_other_treat_as_covariate = use_other_treat_as_covariate
+        self.use_other_treat_as_covariate = use_other_treat_as_covariate
         if x_cols is not None:
             self.x_cols = x_cols
         else:
@@ -170,7 +170,7 @@ class DoubleMLData:
     
     def _set_x_d(self, treatment_var):
         assert treatment_var in self.d_cols
-        if self._use_other_treat_as_covariate:
+        if self.use_other_treat_as_covariate:
             xd_list = self.x_cols + self.d_cols
             xd_list.remove(treatment_var)
         else:
