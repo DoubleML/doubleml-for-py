@@ -29,7 +29,9 @@ class DoubleML(ABC):
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
-        self._ml_nuiscance_params = None
+        # initialize learners and parameters which are set model specific
+        self._learner = None
+        self._params = None
 
         self.n_folds = n_folds
         self.n_rep = n_rep
@@ -76,6 +78,36 @@ class DoubleML(ABC):
     @property
     def z_cols(self):
         return self._dml_data.z_cols
+
+    @property
+    def learner(self):
+        return self._learner
+
+    @property
+    def learner_names(self):
+        return list(self._learner.keys())
+
+    @property
+    def params(self):
+        return self._params
+
+    @property
+    def params_names(self):
+        return list(self._params.keys())
+
+    def get_params(self, learner):
+        valid_learner = self.params_names
+        if learner not in valid_learner:
+            raise ValueError('invalid nuisance learner' + learner +
+                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+        return self._params[learner]
+
+    # The private function _get_params delivers the single treatment, single (cross-fitting) sample subselection.
+    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
+    # self._i_rep, the index of the cross-fitting sample.
+
+    def _get_params(self, learner):
+        return self._params[learner][self.d_cols[self._i_treat]][self._i_rep]
 
     @property
     def smpls(self):
@@ -147,9 +179,10 @@ class DoubleML(ABC):
             df_summary = df_summary.join(ci)
         return df_summary
     
-    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection.
     # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
     # self._i_rep, the index of the cross-fitting sample.
+
     @property
     def __smpls(self):
         return self.smpls[self._i_rep]
@@ -455,9 +488,31 @@ class DoubleML(ABC):
         else:
             return self
 
-    @abstractmethod
     def set_ml_nuisance_params(self, learner, treat_var, params):
-        pass
+        valid_learner = self.params_names
+        if learner not in valid_learner:
+            raise ValueError('invalid nuisance learner' + learner +
+                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+        if treat_var not in self.d_cols:
+            raise ValueError('invalid treatment variable' + learner +
+                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
+
+        if isinstance(params, dict):
+            if self.apply_cross_fitting:
+                all_params = [[params] * self.n_folds] * self.n_rep
+            else:
+                all_params = [[params] * 1] * self.n_rep
+        else:
+            assert len(params) == self.n_rep
+            if self.apply_cross_fitting:
+                assert np.all(np.array([len(x) for x in params]) == self.n_folds)
+            else:
+                assert np.all(np.array([len(x) for x in params]) == 1)
+            all_params = params
+
+        self._params[learner][treat_var] = all_params
+
+        return self
 
     @abstractmethod
     def _initialize_ml_nuisance_params(self, params):

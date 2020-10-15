@@ -263,8 +263,8 @@ def tune_on_folds(request):
 
 @pytest.fixture(scope="module")
 def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_on_folds):
-    par_grid = {'param_grid_g': {'alpha': np.linspace(0.05, .95, 7)},
-                'param_grid_m': {'alpha': np.linspace(0.05, .95, 7)}}
+    par_grid = {'ml_g': {'alpha': np.linspace(0.05, .95, 7)},
+                'ml_m': {'alpha': np.linspace(0.05, .95, 7)}}
     n_folds_tune = 3
 
     boot_methods = ['normal']
@@ -307,7 +307,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
     if tune_on_folds:
         g_params, m_params = tune_nuisance_plr(y, X, d,
                                                clone(ml_m), clone(ml_g), smpls, n_folds_tune,
-                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+                                               par_grid['ml_g'], par_grid['ml_m'])
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                         clone(ml_m), clone(ml_g), smpls,
@@ -316,7 +316,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, X, d,
                                                clone(ml_m), clone(ml_g), xx, n_folds_tune,
-                                               par_grid['param_grid_g'], par_grid['param_grid_m'])
+                                               par_grid['ml_g'], par_grid['ml_m'])
 
         g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                         clone(ml_m), clone(ml_g),

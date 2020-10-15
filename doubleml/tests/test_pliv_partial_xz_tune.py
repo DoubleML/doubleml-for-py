@@ -71,9 +71,9 @@ def get_par_grid(learner):
 
 @pytest.fixture(scope='module')
 def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, learner_m, learner_r, score, dml_procedure, tune_on_folds):
-    par_grid = {'param_grid_g': get_par_grid(learner_g),
-                'param_grid_m': get_par_grid(learner_m),
-                'param_grid_r': get_par_grid(learner_r)}
+    par_grid = {'ml_g': get_par_grid(learner_g),
+                'ml_m': get_par_grid(learner_m),
+                'ml_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
     boot_methods = ['Bayes', 'normal', 'wild']
@@ -112,8 +112,8 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
         g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, X, d, z,
                                                                      clone(learner_m), clone(learner_g), clone(learner_r),
                                                                      smpls, n_folds_tune,
-                                                                     par_grid['param_grid_g'], par_grid['param_grid_m'],
-                                                                     par_grid['param_grid_r'])
+                                                                     par_grid['ml_g'], par_grid['ml_m'],
+                                                                     par_grid['ml_r'])
 
         g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
                                                            clone(learner_m), clone(learner_g), clone(learner_r),
@@ -124,8 +124,8 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
         g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, X, d, z,
                                                                      clone(learner_m), clone(learner_g), clone(learner_r),
                                                                      xx, n_folds_tune,
-                                                                     par_grid['param_grid_g'], par_grid['param_grid_m'],
-                                                                     par_grid['param_grid_r'])
+                                                                     par_grid['ml_g'], par_grid['ml_m'],
+                                                                     par_grid['ml_r'])
 
         g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
                                                            clone(learner_m), clone(learner_g), clone(learner_r),

@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 
 from .double_ml import DoubleML, DoubleMLData
-from ._helper import _dml_cv_predict, _check_and_duplicate_params
+from ._helper import _dml_cv_predict
 from ._helper import check_binary_vector
 
 
@@ -99,9 +99,8 @@ class DoubleMLIRM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self.ml_g0 = clone(ml_g)
-        self.ml_g1 = clone(ml_g)
-        self.ml_m = ml_m
+        self._learner = {'ml_g': ml_g,
+                         'ml_m': ml_m}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -111,33 +110,9 @@ class DoubleMLIRM(DoubleML):
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
-    @property
-    def g0_params(self):
-        return self._g0_params
-
-    @property
-    def g1_params(self):
-        return self._g1_params
-
-    @property
-    def m_params(self):
-        return self._m_params
-
-    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection
-    # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
-    # self._i_rep, the index of the cross-fitting sample.
-
-    @property
-    def __g0_params(self):
-        return self._g0_params[self.d_cols[self._i_treat]][self._i_rep]
-
-    @property
-    def __g1_params(self):
-        return self._g1_params[self.d_cols[self._i_treat]][self._i_rep]
-
-    @property
-    def __m_params(self):
-        return self._m_params[self.d_cols[self._i_treat]][self._i_rep]
+    def _initialize_ml_nuisance_params(self):
+        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
+        self._params = {learner: {key: [None] * self.n_rep for key in self.d_cols} for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -180,15 +155,15 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self.ml_g0, X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                 est_params=self.__g0_params)
+        g_hat0 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_g0'))
         if (score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cv_predict(self.ml_g1, X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self.__g1_params)
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g1'))
         
         # nuisance m
-        m_hat = _dml_cv_predict(self.ml_m, X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
-                                est_params=self.__m_params)[:, 1]
+        m_hat = _dml_cv_predict(self._learner['ml_m'], X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_m'))[:, 1]
 
         if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
             m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
@@ -224,14 +199,14 @@ class DoubleMLIRM(DoubleML):
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
 
         if scoring_methods is None:
-            scoring_methods = {'scoring_methods_g': None,
-                               'scoring_methods_m': None}
+            scoring_methods = {'ml_g': None,
+                               'ml_m': None}
 
         g0_tune_res = [None] * len(smpls)
         for idx, (train_index, test_index) in enumerate(smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            g0_grid_search = GridSearchCV(self.ml_g0, param_grids['param_grid_g'],
-                                          scoring=scoring_methods['scoring_methods_g'],
+            g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
+                                          scoring=scoring_methods['ml_g'],
                                           cv=g0_tune_resampling)
             train_index_d0 = smpls_d0[idx][0]
             g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
@@ -240,8 +215,8 @@ class DoubleMLIRM(DoubleML):
             g1_tune_res = [None] * len(smpls)
             for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-                g1_grid_search = GridSearchCV(self.ml_g1, param_grids['param_grid_g'],
-                                              scoring=scoring_methods['scoring_methods_g'],
+                g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
+                                              scoring=scoring_methods['ml_g'],
                                               cv=g1_tune_resampling)
                 train_index_d1 = smpls_d1[idx][0]
                 g1_tune_res[idx] = g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1])
@@ -249,8 +224,8 @@ class DoubleMLIRM(DoubleML):
         m_tune_res = [None] * len(smpls)
         for idx, (train_index, test_index) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            m_grid_search = GridSearchCV(self.ml_m, param_grids['param_grid_m'],
-                                         scoring=scoring_methods['scoring_methods_m'],
+            m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
+                                         scoring=scoring_methods['ml_m'],
                                          cv=m_tune_resampling)
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])
 
@@ -274,26 +249,3 @@ class DoubleMLIRM(DoubleML):
                'tune_res': tune_res}
 
         return res
-
-    def _initialize_ml_nuisance_params(self):
-        self._g0_params = {key: [None] * self.n_rep for key in self.d_cols}
-        self._g1_params = {key: [None] * self.n_rep for key in self.d_cols}
-        self._m_params = {key: [None] * self.n_rep for key in self.d_cols}
-
-    def set_ml_nuisance_params(self, learner, treat_var, params):
-        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
-        if learner not in valid_learner:
-            raise ValueError('invalid nuisance learner' + learner +
-                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
-        if treat_var not in self.d_cols:
-            raise ValueError('invalid treatment variable' + learner +
-                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
-
-        all_params = _check_and_duplicate_params(params, self.n_rep, self.n_folds, self.apply_cross_fitting)
-
-        if learner == 'ml_g0':
-            self._g0_params[treat_var] = all_params
-        elif learner == 'ml_g1':
-            self._g1_params[treat_var] = all_params
-        elif learner == 'ml_m':
-            self._m_params[treat_var] = all_params
