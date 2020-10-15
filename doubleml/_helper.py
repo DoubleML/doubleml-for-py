@@ -116,3 +116,19 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
             return preds, train_preds
         else:
             return preds
+
+
+def _check_and_duplicate_params(params, n_rep, n_folds, apply_cross_fitting):
+    if isinstance(params, dict):
+        if apply_cross_fitting:
+            all_params = [[params] * n_folds] * n_rep
+        else:
+            all_params = [[params] * 1] * n_rep
+    else:
+        assert len(params) == n_rep
+        if apply_cross_fitting:
+            assert np.all(np.array([len(x) for x in params]) == n_folds)
+        else:
+            assert np.all(np.array([len(x) for x in params]) == 1)
+        all_params = params
+    return all_params
