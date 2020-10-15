@@ -61,41 +61,81 @@ class DoubleML(ABC):
 
     @property
     def n_obs(self):
+        """
+        The number of observations.
+        """
         return self._dml_data.n_obs
 
     @property
     def n_treat(self):
+        """
+        The number of treatment variables.
+        """
         return self._dml_data.n_treat
 
     @property
     def n_instr(self):
+        """
+        The number of instrument variables.
+        """
         return self._dml_data.n_instr
 
     @property
     def d_cols(self):
+        """
+        The treatment variables.
+        """
         return self._dml_data.d_cols
 
     @property
     def z_cols(self):
+        """
+        The instrument variables.
+        """
         return self._dml_data.z_cols
 
     @property
     def learner(self):
+        """
+        The machine learners for the nuisance functions.
+        """
         return self._learner
 
     @property
     def learner_names(self):
+        """
+        The names of the learners.
+        """
         return list(self._learner.keys())
 
     @property
     def params(self):
+        """
+        The hyperparameters of the learners.
+        """
         return self._params
 
     @property
     def params_names(self):
+        """
+        The names of the nuisance models with hyperparameters.
+        """
         return list(self._params.keys())
 
     def get_params(self, learner):
+        """
+        Get hyperparameters for the nuisance model of DoubleML models.
+
+        Parameters
+        ----------
+        learner : str
+            The nuisance model / learner (see attribute ``params_names``).
+
+        Returns
+        -------
+        params : dict
+            Parameters for the nuisance model / learner.
+        """
         valid_learner = self.params_names
         if learner not in valid_learner:
             raise ValueError('invalid nuisance learner' + learner +
@@ -111,6 +151,9 @@ class DoubleML(ABC):
 
     @property
     def smpls(self):
+        """
+        The partition used for cross-fitting.
+        """
         if self._smpls is None:
             raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting()' +
                              'or set external samples via .set_sample_splitting().')
@@ -123,18 +166,31 @@ class DoubleML(ABC):
 
     @property
     def psi(self):
+        """
+        Values of the score function :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`
+        after calling :meth:`fit`.
+        """
         return self._psi
     
     @property 
     def psi_a(self):
+        """
+        Values of the score function component :math:`\\psi_a(W; \\eta)` after calling :meth:`fit`.
+        """
         return self._psi_a
     
     @property 
     def psi_b(self):
+        """
+        Values of the score function component :math:`\\psi_b(W; \\eta)` after calling :meth:`fit`.
+        """
         return self._psi_b
     
     @property 
     def coef(self):
+        """
+        Estimates for the causal paramter(s) after calling :meth:`fit`.
+        """
         return self._coef
     
     @coef.setter
@@ -143,6 +199,9 @@ class DoubleML(ABC):
     
     @property 
     def se(self):
+        """
+        Standard errors for the causal paramter(s) after calling :meth:`fit`.
+        """
         return self._se
     
     @se.setter
@@ -151,20 +210,32 @@ class DoubleML(ABC):
 
     @property
     def t_stat(self):
+        """
+        t-statistics for the causal paramter(s) after calling :meth:`fit`.
+        """
         t_stat = self.coef / self.se
         return t_stat
 
     @property
     def pval(self):
+        """
+        p-values for the causal paramter(s) after calling :meth:`fit`.
+        """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
     
     @property 
     def boot_coef(self):
+        """
+        Bootstrapped coefficients for the causal paramter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        """
         return self._boot_coef
 
     @property
     def summary(self):
+        """
+        A summary for the estimated causal effect after calling :meth:`fit`.
+        """
         col_names = ['coef', 'std err', 't', 'P>|t|']
         if self.d_cols is None:
             df_summary = pd.DataFrame(columns=col_names)
@@ -433,11 +504,68 @@ class DoubleML(ABC):
     def tune(self,
              param_grids,
              tune_on_folds=False,
-             scoring_methods=None, # if None the estimator's score method is used
+             scoring_methods=None,  # if None the estimator's score method is used
              n_folds_tune=5,
              n_jobs_cv=None,
              set_as_params=True,
              return_tune_res=False):
+        """
+        Hyperparameter-tuning for DoubleML models.
+
+        The hyperparameter-tuning is performed using an exhaustive search over specified parameter values
+        implemented in :class:`sklearn.model_selection.GridSearchCV`
+
+        Parameters
+        ----------
+        param_grids : dict
+            A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
+
+        tune_on_folds : bool
+            Indicates whether the tuning should be done fold-specific or globally.
+            Default is ``False``.
+
+        scoring_methods : None or dict
+            The scoring method used to evaluate the predictions. The scoring method must be set per nuisance model via
+            a dict (see attribute ``learner_names`` for the keys).
+            If None, the estimator’s score method is used.
+            Default is ``None``.
+
+        n_folds_tune : int
+            Number of folds used for tuning.
+            Default is ``5``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to tune the learners. ``None`` means ``1``.
+            Default is ``None``.
+
+        set_as_params : bool
+            Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
+            Default is ``True``.
+
+        return_tune_res : bool
+            Indicates whether detailed tuning results should be returned.
+            Default is ``False``.
+
+        Returns
+        -------
+        self : object
+            Returned if ``return_tune_res`` is ``False``.
+
+        tune_res: list
+            A list containing detailed tuning results and the proposed hyperparameters.
+            Returned if ``return_tune_res`` is ``False``.
+        """
+
+        # check param_grids input
+        if not isinstance(param_grids, dict) & (not all(k in param_grids for k in self.learner_names)):
+            raise ValueError('invalid param_grids' + param_grids +
+                             '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
+
+        if scoring_methods is not None:
+            if not isinstance(scoring_methods, dict) & (not all(k in self.learner_names for k in scoring_methods)):
+                raise ValueError('invalid scoring_methods' + scoring_methods +
+                                 '\n scoring_methods must be a dictionary.' +
+                                 '\n Valid keys are ' + ' or '.join(self.learner_names))
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self.n_treat
@@ -489,6 +617,25 @@ class DoubleML(ABC):
             return self
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
+        """
+        Set hyperparameters for the nuisance models of DoubleML models.
+
+        Parameters
+        ----------
+        learner : str
+            The nuisance model / learner (see attribute ``params_names``).
+
+        treat_var : str
+            The treatment variable (hyperparameters can be set treatment-variable specific).
+
+        params : dict or list
+            A dict with estimator parameters (used for all folds) or a nested list with fold specific paramters. The
+            outer list needs to be of length ``n_rep`` and the inner list of length ``n_folds``.
+
+        Returns
+        -------
+        self : object
+        """
         valid_learner = self.params_names
         if learner not in valid_learner:
             raise ValueError('invalid nuisance learner' + learner +
