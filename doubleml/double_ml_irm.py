@@ -19,11 +19,11 @@ class DoubleMLIRM(DoubleML):
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
         for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
 
     ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.linear_models.Lasso`)
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
         for the nuisance function :math:`m_0(X) = E[D|X]`.
 
     n_folds : int
