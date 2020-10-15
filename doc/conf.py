@@ -90,6 +90,7 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'statsmodels': ('https://www.statsmodels.org/stable/', None),
 }
 
 # To execute R code via jupyter-execute one needs to install the R kernel for jupyter

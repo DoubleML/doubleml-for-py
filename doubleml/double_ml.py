@@ -218,13 +218,25 @@ class DoubleML(ABC):
     
     def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
-        Fit doubleML model
+        Estimate DoubleML models.
+
         Parameters
         ----------
-        obj_dml_data : 
+        se_reestimate : bool
+            Indicates whether standard errors should be reestimated (only relevant for ``dml_procedure == 'dml1'``.
+            Default is ``False``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to fit the learners. ``None`` means ``1``.
+            Default is ``None``.
+
+        keep_scores : bool
+            Indicates whether the score function evaluations should be stored in ``psi``, ``psi_a`` and ``psi_b``.
+            Default is ``True``.
+
         Returns
         -------
-        
+        self : object
         """
 
         if not self.apply_cross_fitting:
@@ -262,16 +274,24 @@ class DoubleML(ABC):
         if not keep_scores:
             self._clean_scores()
 
+        return self
+
     def bootstrap(self, method='normal', n_rep=500):
         """
-        Bootstrap doubleML model
+        Bootstrap for DoubleML models.
+
         Parameters
         ----------
-        method : 
-        n_rep : 
+        method : str
+            A str (``'Bayes''``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
+            Default is ``'normal'``
+
+        n_rep : int
+            The number of bootstrap replications.
+
         Returns
         -------
-        
+        self : object
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
@@ -287,7 +307,27 @@ class DoubleML(ABC):
 
                 self.__boot_coef = self._compute_bootstrap(method, n_rep)
 
+        return self
+
     def confint(self, joint=False, level=0.95):
+        """
+        Confidence intervals for DoubleML models.
+
+        Parameters
+        ----------
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``False``
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
         a = (1 - level)
         ab = np.array([a/2, 1. - a/2])
         if joint:
@@ -304,7 +344,23 @@ class DoubleML(ABC):
                              index=self.d_cols)
         return df_ci
 
-    def p_adjust(self, method='bonferroni', alpha=0.05):
+    def p_adjust(self, method='romano-wolf'):
+        """
+        Multiple testing adjustment for DoubleML models.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'romano-wolf''``, ``'bonferroni'``, ``'holm'``, etc) specifying the adjustment method.
+            In addition to ``'romano-wolf''``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
+
+        Returns
+        -------
+        p_val : np.array
+            An array of adjusted p-values.
+        """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before p_adjust()')
         
@@ -337,7 +393,7 @@ class DoubleML(ABC):
 
             p_val = p_val_corrected[ro]
         else:
-            _, p_val, _, _ = multipletests(self.pval, alpha=alpha, method=method)
+            _, p_val, _, _ = multipletests(self.pval, method=method)
 
         return p_val
 
@@ -347,7 +403,8 @@ class DoubleML(ABC):
              scoring_methods=None, # if None the estimator's score method is used
              n_folds_tune=5,
              n_jobs_cv=None,
-             set_as_params=True):
+             set_as_params=True,
+             return_tune_res=False):
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self.n_treat
@@ -373,9 +430,11 @@ class DoubleML(ABC):
 
                     tuning_res[i_rep][i_d] = res
                     nuiscance_params[i_rep] = res['params']
-                for nuisance_model in nuiscance_params[0].keys():
-                    params = [x[nuisance_model] for x in nuiscance_params]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+
+                if set_as_params:
+                    for nuisance_model in nuiscance_params[0].keys():
+                        params = [x[nuisance_model] for x in nuiscance_params]
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
             else:
                 smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
@@ -385,11 +444,16 @@ class DoubleML(ABC):
                                                n_folds_tune,
                                                n_jobs_cv)
                 tuning_res[i_d] = res
-                for nuisance_model in res['params'].keys():
-                    params = res['params'][nuisance_model]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
 
-        return tuning_res
+                if set_as_params:
+                    for nuisance_model in res['params'].keys():
+                        params = res['params'][nuisance_model]
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
+
+        if return_tune_res:
+            return tuning_res
+        else:
+            return self
 
     @abstractmethod
     def set_ml_nuisance_params(self, learner, treat_var, params):
