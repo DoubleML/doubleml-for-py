@@ -71,6 +71,18 @@ class DoubleMLPLR(DoubleML):
         self._initialize_ml_nuisance_params()
 
     @property
+    def learner(self):
+        learner = {'ml_g': self.ml_g,
+                   'ml_m': self.ml_m}
+        return learner
+
+    @property
+    def params(self):
+        params = {'ml_g': self._g_params,
+                  'ml_m': self._m_params}
+        return params
+    
+    @property
     def g_params(self):
         return self._g_params
 

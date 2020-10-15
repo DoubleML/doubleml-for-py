@@ -154,6 +154,34 @@ class DoubleMLPLIV(DoubleML):
         return obj
 
     @property
+    def learner(self):
+        if self.partialX & (not self.partialZ):
+            learner = {'ml_g': self.ml_g,
+                       'ml_m': self.ml_m,
+                       'ml_r': self.ml_r}
+        elif (not self.partialX) & self.partialZ:
+            learner = {'ml_r': self.ml_r}
+        elif self.partialX & self.partialZ:
+            learner = {'ml_g': self.ml_g,
+                       'ml_m': self.ml_m,
+                       'ml_r': self.ml_r}
+        return learner
+
+    @property
+    def params(self):
+        if self.partialX & (not self.partialZ):
+            params = {'ml_g': self._g_params,
+                      'ml_m': self._m_params,
+                      'ml_r': self._r_params}
+        elif (not self.partialX) & self.partialZ:
+            params = {'ml_r': self._r_params}
+        elif self.partialX & self.partialZ:
+            params = {'ml_g': self._g_params,
+                      'ml_m': self._m_params,
+                      'ml_r': self._r_params}
+        return params
+
+    @property
     def g_params(self):
         return self._g_params
 

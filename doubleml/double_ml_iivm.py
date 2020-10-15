@@ -85,6 +85,22 @@ class DoubleMLIIVM(DoubleML):
         self.trimming_threshold = trimming_threshold
 
     @property
+    def learner(self):
+        learner = {'ml_g': self.ml_g,
+                   'ml_m': self.ml_m,
+                   'ml_r': self.ml_r}
+        return learner
+
+    @property
+    def params(self):
+        params = {'ml_g0': self._g0_params,
+                  'ml_g1': self._g1_params,
+                  'ml_m': self._m_params,
+                  'ml_r0': self._r0_params,
+                  'ml_r1': self._r1_params}
+        return params
+
+    @property
     def g0_params(self):
         return self._g0_params
 
