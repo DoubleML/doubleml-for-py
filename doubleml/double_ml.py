@@ -501,15 +501,44 @@ class DoubleML(ABC):
         self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
+        """
+        Draw sample splitting for DoubleML models.
+
+        The samples are drawn according to the attributes
+        ``n_folds``, ``n_rep`` and ``apply_cross_fitting``.
+
+        Returns
+        -------
+        self : object
+        """
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep=self.n_rep,
                                                 n_obs=self.n_obs,
                                                 apply_cross_fitting=self.apply_cross_fitting)
         self.smpls = obj_dml_resampling.split_samples()
 
+        return self
+
     def set_sample_splitting(self, all_smpls):
-        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred
-        # TODO external samples?
+        """
+        Set the sample splitting for DoubleML models.
+
+        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
+
+        Parameters
+        ----------
+        all_smpls : list
+            A nested list of train and test sets.
+            The outer list needs to provide an entry per repeated sample splitting (length of list is set as ``n_rep``).
+            The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as ``n_folds``).
+
+        Returns
+        -------
+        self : object
+        """
+        # TODO add an example to the documentation (maybe with only 5 observations)
+        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred external samples?
+        # TODO check whether the provided samples are a partition --> set apply_cross_fitting accordingly
         self.n_rep = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
@@ -517,6 +546,8 @@ class DoubleML(ABC):
         self.smpls = all_smpls
         self._initialize_arrays()
         self._initialize_ml_nuisance_params()
+
+        return self
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
