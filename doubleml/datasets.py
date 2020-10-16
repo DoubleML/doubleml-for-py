@@ -203,7 +203,7 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
 def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData', **kwargs):
     """
-    Generates data from a partially linear regression model used in blog article by Turrell (2018).
+    Generates data from a partially linear regression model used in a blog article by Turrell (2018).
     The data generating process is defined as
 
     .. math::

@@ -61,41 +61,81 @@ class DoubleML(ABC):
 
     @property
     def n_obs(self):
+        """
+        The number of observations.
+        """
         return self._dml_data.n_obs
 
     @property
     def n_treat(self):
+        """
+        The number of treatment variables.
+        """
         return self._dml_data.n_treat
 
     @property
     def n_instr(self):
+        """
+        The number of instrument variables.
+        """
         return self._dml_data.n_instr
 
     @property
     def d_cols(self):
+        """
+        The treatment variables.
+        """
         return self._dml_data.d_cols
 
     @property
     def z_cols(self):
+        """
+        The instrument variables.
+        """
         return self._dml_data.z_cols
 
     @property
     def learner(self):
+        """
+        The machine learners for the nuisance functions.
+        """
         return self._learner
 
     @property
     def learner_names(self):
+        """
+        The names of the learners.
+        """
         return list(self._learner.keys())
 
     @property
     def params(self):
+        """
+        The hyperparameters of the learners.
+        """
         return self._params
 
     @property
     def params_names(self):
+        """
+        The names of the nuisance models with hyperparameters.
+        """
         return list(self._params.keys())
 
     def get_params(self, learner):
+        """
+        Get hyperparameters for the nuisance model of DoubleML models.
+
+        Parameters
+        ----------
+        learner : str
+            The nuisance model / learner (see attribute ``params_names``).
+
+        Returns
+        -------
+        params : dict
+            Parameters for the nuisance model / learner.
+        """
         valid_learner = self.params_names
         if learner not in valid_learner:
             raise ValueError('invalid nuisance learner' + learner +
@@ -111,6 +151,9 @@ class DoubleML(ABC):
 
     @property
     def smpls(self):
+        """
+        The partition used for cross-fitting.
+        """
         if self._smpls is None:
             raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting()' +
                              'or set external samples via .set_sample_splitting().')
@@ -123,18 +166,31 @@ class DoubleML(ABC):
 
     @property
     def psi(self):
+        """
+        Values of the score function :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`
+        after calling :meth:`fit`.
+        """
         return self._psi
     
     @property 
     def psi_a(self):
+        """
+        Values of the score function component :math:`\\psi_a(W; \\eta)` after calling :meth:`fit`.
+        """
         return self._psi_a
     
     @property 
     def psi_b(self):
+        """
+        Values of the score function component :math:`\\psi_b(W; \\eta)` after calling :meth:`fit`.
+        """
         return self._psi_b
     
     @property 
     def coef(self):
+        """
+        Estimates for the causal paramter(s) after calling :meth:`fit`.
+        """
         return self._coef
     
     @coef.setter
@@ -143,6 +199,9 @@ class DoubleML(ABC):
     
     @property 
     def se(self):
+        """
+        Standard errors for the causal paramter(s) after calling :meth:`fit`.
+        """
         return self._se
     
     @se.setter
@@ -151,20 +210,32 @@ class DoubleML(ABC):
 
     @property
     def t_stat(self):
+        """
+        t-statistics for the causal paramter(s) after calling :meth:`fit`.
+        """
         t_stat = self.coef / self.se
         return t_stat
 
     @property
     def pval(self):
+        """
+        p-values for the causal paramter(s) after calling :meth:`fit`.
+        """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
     
     @property 
     def boot_coef(self):
+        """
+        Bootstrapped coefficients for the causal paramter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        """
         return self._boot_coef
 
     @property
     def summary(self):
+        """
+        A summary for the estimated causal effect after calling :meth:`fit`.
+        """
         col_names = ['coef', 'std err', 't', 'P>|t|']
         if self.d_cols is None:
             df_summary = pd.DataFrame(columns=col_names)
@@ -251,13 +322,25 @@ class DoubleML(ABC):
     
     def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
-        Fit doubleML model
+        Estimate DoubleML models.
+
         Parameters
         ----------
-        obj_dml_data : 
+        se_reestimate : bool
+            Indicates whether standard errors should be reestimated (only relevant for ``dml_procedure == 'dml1'``.
+            Default is ``False``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to fit the learners. ``None`` means ``1``.
+            Default is ``None``.
+
+        keep_scores : bool
+            Indicates whether the score function evaluations should be stored in ``psi``, ``psi_a`` and ``psi_b``.
+            Default is ``True``.
+
         Returns
         -------
-        
+        self : object
         """
 
         if not self.apply_cross_fitting:
@@ -295,16 +378,24 @@ class DoubleML(ABC):
         if not keep_scores:
             self._clean_scores()
 
+        return self
+
     def bootstrap(self, method='normal', n_rep=500):
         """
-        Bootstrap doubleML model
+        Bootstrap for DoubleML models.
+
         Parameters
         ----------
-        method : 
-        n_rep : 
+        method : str
+            A str (``'Bayes''``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
+            Default is ``'normal'``
+
+        n_rep : int
+            The number of bootstrap replications.
+
         Returns
         -------
-        
+        self : object
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
@@ -320,7 +411,27 @@ class DoubleML(ABC):
 
                 self.__boot_coef = self._compute_bootstrap(method, n_rep)
 
+        return self
+
     def confint(self, joint=False, level=0.95):
+        """
+        Confidence intervals for DoubleML models.
+
+        Parameters
+        ----------
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``False``
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
         a = (1 - level)
         ab = np.array([a/2, 1. - a/2])
         if joint:
@@ -337,7 +448,23 @@ class DoubleML(ABC):
                              index=self.d_cols)
         return df_ci
 
-    def p_adjust(self, method='bonferroni', alpha=0.05):
+    def p_adjust(self, method='romano-wolf'):
+        """
+        Multiple testing adjustment for DoubleML models.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'romano-wolf''``, ``'bonferroni'``, ``'holm'``, etc) specifying the adjustment method.
+            In addition to ``'romano-wolf''``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
+
+        Returns
+        -------
+        p_val : np.array
+            An array of adjusted p-values.
+        """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before p_adjust()')
         
@@ -370,17 +497,75 @@ class DoubleML(ABC):
 
             p_val = p_val_corrected[ro]
         else:
-            _, p_val, _, _ = multipletests(self.pval, alpha=alpha, method=method)
+            _, p_val, _, _ = multipletests(self.pval, method=method)
 
         return p_val
 
     def tune(self,
              param_grids,
              tune_on_folds=False,
-             scoring_methods=None, # if None the estimator's score method is used
+             scoring_methods=None,  # if None the estimator's score method is used
              n_folds_tune=5,
              n_jobs_cv=None,
-             set_as_params=True):
+             set_as_params=True,
+             return_tune_res=False):
+        """
+        Hyperparameter-tuning for DoubleML models.
+
+        The hyperparameter-tuning is performed using an exhaustive search over specified parameter values
+        implemented in :class:`sklearn.model_selection.GridSearchCV`
+
+        Parameters
+        ----------
+        param_grids : dict
+            A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
+
+        tune_on_folds : bool
+            Indicates whether the tuning should be done fold-specific or globally.
+            Default is ``False``.
+
+        scoring_methods : None or dict
+            The scoring method used to evaluate the predictions. The scoring method must be set per nuisance model via
+            a dict (see attribute ``learner_names`` for the keys).
+            If None, the estimator’s score method is used.
+            Default is ``None``.
+
+        n_folds_tune : int
+            Number of folds used for tuning.
+            Default is ``5``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to tune the learners. ``None`` means ``1``.
+            Default is ``None``.
+
+        set_as_params : bool
+            Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
+            Default is ``True``.
+
+        return_tune_res : bool
+            Indicates whether detailed tuning results should be returned.
+            Default is ``False``.
+
+        Returns
+        -------
+        self : object
+            Returned if ``return_tune_res`` is ``False``.
+
+        tune_res: list
+            A list containing detailed tuning results and the proposed hyperparameters.
+            Returned if ``return_tune_res`` is ``False``.
+        """
+
+        # check param_grids input
+        if not isinstance(param_grids, dict) & (not all(k in param_grids for k in self.learner_names)):
+            raise ValueError('invalid param_grids' + param_grids +
+                             '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
+
+        if scoring_methods is not None:
+            if not isinstance(scoring_methods, dict) & (not all(k in self.learner_names for k in scoring_methods)):
+                raise ValueError('invalid scoring_methods' + scoring_methods +
+                                 '\n scoring_methods must be a dictionary.' +
+                                 '\n Valid keys are ' + ' or '.join(self.learner_names))
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self.n_treat
@@ -406,9 +591,11 @@ class DoubleML(ABC):
 
                     tuning_res[i_rep][i_d] = res
                     nuiscance_params[i_rep] = res['params']
-                for nuisance_model in nuiscance_params[0].keys():
-                    params = [x[nuisance_model] for x in nuiscance_params]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+
+                if set_as_params:
+                    for nuisance_model in nuiscance_params[0].keys():
+                        params = [x[nuisance_model] for x in nuiscance_params]
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
 
             else:
                 smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
@@ -418,13 +605,37 @@ class DoubleML(ABC):
                                                n_folds_tune,
                                                n_jobs_cv)
                 tuning_res[i_d] = res
-                for nuisance_model in res['params'].keys():
-                    params = res['params'][nuisance_model]
-                    self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
 
-        return tuning_res
+                if set_as_params:
+                    for nuisance_model in res['params'].keys():
+                        params = res['params'][nuisance_model]
+                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
+
+        if return_tune_res:
+            return tuning_res
+        else:
+            return self
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
+        """
+        Set hyperparameters for the nuisance models of DoubleML models.
+
+        Parameters
+        ----------
+        learner : str
+            The nuisance model / learner (see attribute ``params_names``).
+
+        treat_var : str
+            The treatment variable (hyperparameters can be set treatment-variable specific).
+
+        params : dict or list
+            A dict with estimator parameters (used for all folds) or a nested list with fold specific paramters. The
+            outer list needs to be of length ``n_rep`` and the inner list of length ``n_folds``.
+
+        Returns
+        -------
+        self : object
+        """
         valid_learner = self.params_names
         if learner not in valid_learner:
             raise ValueError('invalid nuisance learner' + learner +
@@ -492,15 +703,44 @@ class DoubleML(ABC):
         self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
+        """
+        Draw sample splitting for DoubleML models.
+
+        The samples are drawn according to the attributes
+        ``n_folds``, ``n_rep`` and ``apply_cross_fitting``.
+
+        Returns
+        -------
+        self : object
+        """
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep=self.n_rep,
                                                 n_obs=self.n_obs,
                                                 apply_cross_fitting=self.apply_cross_fitting)
         self.smpls = obj_dml_resampling.split_samples()
 
+        return self
+
     def set_sample_splitting(self, all_smpls):
-        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred
-        # TODO external samples?
+        """
+        Set the sample splitting for DoubleML models.
+
+        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
+
+        Parameters
+        ----------
+        all_smpls : list
+            A nested list of train and test sets.
+            The outer list needs to provide an entry per repeated sample splitting (length of list is set as ``n_rep``).
+            The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as ``n_folds``).
+
+        Returns
+        -------
+        self : object
+        """
+        # TODO add an example to the documentation (maybe with only 5 observations)
+        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred external samples?
+        # TODO check whether the provided samples are a partition --> set apply_cross_fitting accordingly
         self.n_rep = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
@@ -508,6 +748,8 @@ class DoubleML(ABC):
         self.smpls = all_smpls
         self._initialize_arrays()
         self._initialize_ml_nuisance_params()
+
+        return self
     
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure

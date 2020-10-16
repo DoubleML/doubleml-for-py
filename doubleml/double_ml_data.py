@@ -6,6 +6,48 @@ from ._helper import assure_2d_array
 
 
 class DoubleMLData:
+    """
+    Double machine learning data-backend.
+
+    :class:`DoubleMLData` objects can be initialized from
+    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The outcome variable.
+
+    d_cols : str or list
+        The treatment variable(s).
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
+        treatment variables ``d_cols``, nor instrument variables ``z_cols`` are used as covariates.
+        Default is ``None``.
+
+    z_cols : None, str or list
+        The instrument variable(s).
+        Default is ``None``.
+
+    use_other_treat_as_covariate : bool
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        Default is ``True``.
+
+    Examples
+    --------
+    >>> from doubleml import DoubleMLData
+    >>> from doubleml.datasets import make_plr_CCDDHNR2018
+    >>> # initialization from pandas.DataFrame
+    >>> df = make_plr_CCDDHNR2018(return_type='DataFrame')
+    >>> obj_dml_data_from_df = DoubleMLData(df, 'y', 'd')
+    >>> # initialization from np.ndarray
+    >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
+    >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
+    """
     def __init__(self,
                  data,
                  y_col,
@@ -44,7 +86,36 @@ class DoubleMLData:
                f'data:\n {data_info}'
 
     @classmethod
-    def from_arrays(cls, X, y, d, z=None):
+    def from_arrays(cls, X, y, d, z=None, use_other_treat_as_covariate=True):
+        """
+        Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        X : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y : :class:`numpy.ndarray`
+            Array of the outcome variable.
+
+        d : :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        z : None or :class:`numpy.ndarray`
+            Array of instrument variables.
+            Default is ``None``.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLData
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
+        """
         X = assure_2d_array(X)
         d = assure_2d_array(d)
 
@@ -72,22 +143,40 @@ class DoubleMLData:
             data = pd.DataFrame(np.column_stack((X, y, d, z)),
                                 columns=x_cols + [y_col] + d_cols + z_cols)
 
-        return cls(data, y_col, d_cols, x_cols, z_cols)
+        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate)
 
     @property
     def x(self):
+        """
+        Array of covariates;
+        Dynamic! May depend on the currently set treatment variable;
+        To get an array of all covariates (independent of the currently set treatment variable)
+        call ``obj.data[obj.x_cols].values``.
+        """
         return self._X.values
     
     @property
     def y(self):
+        """
+        Array of outcome variable.
+        """
         return self._y.values
     
     @property
     def d(self):
+        """
+        Array of treatment variable;
+        Dynamic! Depends on the currently set treatment variable;
+        To get an array of all treatment variables (independent of the currently set treatment variable)
+        call ``obj.data[obj.d_cols].values``.
+        """
         return self._d.values
     
     @property
     def z(self):
+        """
+        Array of instrument variables.
+        """
         if self.z_cols is not None:
             return self._z.values
         else:
@@ -95,22 +184,37 @@ class DoubleMLData:
     
     @property 
     def all_variables(self):
+        """
+        All variables available in the dataset.
+        """
         return self.data.columns
     
     @property 
     def n_treat(self):
+        """
+        The number of treatment variables.
+        """
         return len(self.d_cols)
 
     @property
     def n_instr(self):
+        """
+        The number of instrument variables.
+        """
         return len(self.z_cols)
     
     @property 
     def n_obs(self):
+        """
+        The number of observations.
+        """
         return self.data.shape[0]
     
     @property
     def x_cols(self):
+        """
+        The covariates.
+        """
         return self._x_cols
     
     @x_cols.setter
@@ -124,6 +228,9 @@ class DoubleMLData:
     
     @property
     def d_cols(self):
+        """
+        The treatment variable(s).
+        """
         return self._d_cols
     
     @d_cols.setter
@@ -137,6 +244,9 @@ class DoubleMLData:
     
     @property
     def y_col(self):
+        """
+        The outcome variable.
+        """
         return self._y_col
     
     @y_col.setter
@@ -147,6 +257,9 @@ class DoubleMLData:
     
     @property
     def z_cols(self):
+        """
+        The instrument variable(s).
+        """
         return self._z_cols
     
     @z_cols.setter

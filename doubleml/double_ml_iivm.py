@@ -15,36 +15,71 @@ class DoubleMLIIVM(DoubleML):
 
     Parameters
     ----------
-    obj_dml_data :
-        ToDo
-    ml_learners :
-        ToDo
-    n_folds :
-        ToDo
-    n_rep :
-        ToDo
-    score :
-        ToDo
-    dml_procedure :
-        ToDo
-    draw_sample_splitting :
-        ToDo
-    apply_cross_fitting :
-        ToDo
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
+        for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
+
+    ml_m : classifier implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
+        for the nuisance function :math:`m_0(X) = E[Z|X]`.
+
+    ml_r : classifier implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
+        for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str or callable
+        A str (``'LATE'`` is the only choice) specifying the score function
+        or a callable object / function with signature ``psi_a, psi_b = score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)``.
+        Default is ``'LATE'``.
+
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-12``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied.
+        Default is ``True``.
 
     Examples
     --------
+    >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    >>> ml_learners = {'ml_m': RandomForestClassifier(max_depth=2, n_estimators=10),
-    >>>                'ml_g': RandomForestRegressor(max_depth=2, n_estimators=10),
-    >>>                'ml_r': RandomForestClassifier(max_depth=2, n_estimators=10)}
-    >>> data = make_iivm_data()
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_col='z')
-    >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_learners)
+    >>> np.random.seed(3141)
+    >>> ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
+    >>> ml_r = RandomForestClassifier(max_depth=2, n_estimators=10)
+    >>> data = make_iivm_data(return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
+    >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_iivm_obj.fit()
     >>> dml_iivm_obj.summary
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.933779  1.049043  0.890125  0.373399 -1.122308  2.989866
 
     Notes
     -----
@@ -156,8 +191,7 @@ class DoubleMLIIVM(DoubleML):
                                     + np.divide(np.multiply(z, w_hat1), m_hat) \
                                     - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
         elif callable(self.score):
-            psi_a, psi_b = self.score(y, z, d,
-                                              g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+            psi_a, psi_b = self.score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return psi_a, psi_b
 
@@ -179,7 +213,7 @@ class DoubleMLIIVM(DoubleML):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
                                           scoring=scoring_methods['ml_g'],
-                                          cv=g0_tune_resampling)
+                                          cv=g0_tune_resampling, n_jobs=n_jobs_cv)
             train_index_z0 = smpls_z0[idx][0]
             g0_tune_res[idx] = g0_grid_search.fit(X[train_index_z0, :], y[train_index_z0])
 
@@ -188,7 +222,7 @@ class DoubleMLIIVM(DoubleML):
             g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
                                           scoring=scoring_methods['ml_g'],
-                                          cv=g1_tune_resampling)
+                                          cv=g1_tune_resampling, n_jobs=n_jobs_cv)
             train_index_z1 = smpls_z1[idx][0]
             g1_tune_res[idx] = g1_grid_search.fit(X[train_index_z1, :], y[train_index_z1])
 
@@ -197,7 +231,7 @@ class DoubleMLIIVM(DoubleML):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
                                          scoring=scoring_methods['ml_m'],
-                                         cv=m_tune_resampling)
+                                         cv=m_tune_resampling, n_jobs=n_jobs_cv)
             m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
 
         r0_tune_res = [None] * len(smpls)
@@ -205,7 +239,7 @@ class DoubleMLIIVM(DoubleML):
             r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             r0_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
                                           scoring=scoring_methods['ml_r'],
-                                          cv=r0_tune_resampling)
+                                          cv=r0_tune_resampling, n_jobs=n_jobs_cv)
             train_index_z0 = smpls_z0[idx][0]
             r0_tune_res[idx] = r0_grid_search.fit(X[train_index_z0, :], d[train_index_z0])
 
@@ -214,7 +248,7 @@ class DoubleMLIIVM(DoubleML):
             r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             r1_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
                                           scoring=scoring_methods['ml_r'],
-                                          cv=r1_tune_resampling)
+                                          cv=r1_tune_resampling, n_jobs=n_jobs_cv)
             train_index_z1 = smpls_z1[idx][0]
             r1_tune_res[idx] = r1_grid_search.fit(X[train_index_z1, :], d[train_index_z1])
 

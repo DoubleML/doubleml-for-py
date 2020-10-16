@@ -74,7 +74,7 @@ html_theme = 'pydata_sphinx_theme'
 
 # -- Extension configuration -------------------------------------------------
 
-copybutton_prompt_text = r'In \[\d*\]: | {2,5}\.\.\.: | > '
+copybutton_prompt_text = r'>>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: '
 copybutton_prompt_is_regexp = True
 
 # config of sphinx gallery for examples
@@ -90,6 +90,7 @@ intersphinx_mapping = {
     'sklearn': ('https://scikit-learn.org/stable/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'statsmodels': ('https://www.statsmodels.org/stable/', None),
 }
 
 # To execute R code via jupyter-execute one needs to install the R kernel for jupyter

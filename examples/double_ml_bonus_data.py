@@ -8,25 +8,16 @@ TODO: Add a general description!
 print(__doc__)
 
 # %%
-import numpy as np
-import pandas as pd
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from scipy.linalg import toeplitz
-
-from sklearn.model_selection import KFold
-from sklearn.base import clone
-
-from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
-
-from sklearn.linear_model import LinearRegression, Lasso
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
+from sklearn.base import clone
+from sklearn.linear_model import Lasso
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # %%
 #

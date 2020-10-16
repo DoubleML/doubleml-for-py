@@ -10,7 +10,7 @@
 
    .. autosummary::
    {% for item in methods %}
-   {%- if not item.startswith('_') or item in ['__call__'] %}   ~{{ name }}.{{ item }}
+   {%- if not item.startswith('_') or item in ['__call__'] %} ~{{ name }}.{{ item }}
    {% endif %}
    {%- endfor %}
    {% endif %}
@@ -26,3 +26,12 @@
    {%- endfor %}
    {% endif %}
    {% endblock %}
+
+
+{% if methods %}
+{% for item in methods %}
+{%- if not item.startswith('_') or item in ['__call__'] %}
+.. automethod:: {{ name }}.{{ item }}
+{% endif %}
+{%- endfor %}
+{% endif %}
