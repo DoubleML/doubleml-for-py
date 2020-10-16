@@ -7,7 +7,7 @@ from ._helper import assure_2d_array
 
 class DoubleMLData:
     """
-    Double machine learning data-backend
+    Double machine learning data-backend.
 
     :class:`DoubleMLData` objects can be initialized from
     :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
@@ -39,15 +39,12 @@ class DoubleMLData:
 
     Examples
     --------
-    >>> import numpy as np
     >>> from doubleml import DoubleMLData
     >>> from doubleml.datasets import make_plr_CCDDHNR2018
     >>> # initialization from pandas.DataFrame
-    >>> np.random.seed(3141)
     >>> df = make_plr_CCDDHNR2018(return_type='DataFrame')
     >>> obj_dml_data_from_df = DoubleMLData(df, 'y', 'd')
     >>> # initialization from np.ndarray
-    >>> np.random.seed(3141)
     >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
     >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
     """
@@ -104,7 +101,7 @@ class DoubleMLData:
         d : :class:`numpy.ndarray`
             Array of treatment variables.
 
-        z : :class:`numpy.ndarray` or None
+        z : None or :class:`numpy.ndarray`
             Array of instrument variables.
             Default is ``None``.
 
@@ -114,10 +111,8 @@ class DoubleMLData:
 
         Examples
         --------
-        >>> import numpy as np
         >>> from doubleml import DoubleMLData
         >>> from doubleml.datasets import make_plr_CCDDHNR2018
-        >>> np.random.seed(3141)
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
