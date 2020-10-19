@@ -93,7 +93,7 @@ def dml_pliv_partial_x_pyvsr_fixture(generate_data_pliv_partialX, idx, score, dm
     n_folds = 2
 
     # collect data
-    data = generate_data_pliv_partialX[idx]
+    data = generate_data_pliv_partialX[idx].data
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
     X_cols = X_cols[0:100]  # no real ml-learner in UT, so keep dim low
@@ -200,7 +200,7 @@ def dml_pliv_partial_xz_pyvsr_fixture(generate_data_pliv_partialXZ, idx, score, 
     n_folds = 2
 
     # collect data
-    data = generate_data_pliv_partialXZ[idx]
+    data = generate_data_pliv_partialXZ[idx].data
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
     X_cols = X_cols[0:100]  # no real ml-learner in UT, so keep dim low
