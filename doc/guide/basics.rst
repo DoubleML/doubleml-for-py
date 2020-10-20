@@ -8,21 +8,22 @@ We consider the following partially linear model
 
 .. math::
 
-    Y_i = D_i \theta + g(X_i) + \zeta,
+        d_i = m_0(x_i) + v_i, & &v_i \sim \mathcal{N}(0,1),
 
-    D_i = m(X_i) + V,
+        y_i = \theta d_i + g_0(x_i) + \zeta_i, & &\zeta_i \sim \mathcal{N}(0,1),
 
-with :math:`\zeta, V \sim \mathcal{N}(0,1)` and :math:`X \sim \mathcal{N}_{p}(0, \Sigma)`.
-The variance-covariance matrix :math:`\Sigma` of the :math:`p`-dimensional confounders :math:`X` is a Toeplitz-matrix
-with diagonal elements :math:`0.7^i`.
+
+with covariates :math:`x_i \sim \mathcal{N}(0, \Sigma)`, where  :math:`\Sigma` is a matrix with entries
+:math:`\Sigma_{kj} = 0.7^{|j-k|}`.
 The true parameter :math:`\theta` is set to :math:`0.5`.
-The non-linear functions :math:`g()` and :math:`m()` are chosen as
+
+The nuisance functions are given by
 
 .. math::
 
-    g(X_i) = \frac{\exp(X_{i1})}{1+\exp(X_{i1})} + \frac{1}{4} X_{i3},
+    m_0(x_i) &= \frac{1}{4} x_{i,1} + \frac{\exp(x_{i,3})}{1+\exp(x_{i,3})},
 
-    m(X_i) = \frac{\exp(X_{i3})}{1+\exp(X_{i3})}
+    g_0(X) &= \frac{\exp(x_{i,1})}{1+\exp(x_{i,1})} + \frac{1}{4} x_{i,3}.
 
 .. tabbed:: Python
 
@@ -133,7 +134,7 @@ Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is o
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=10)
         ml_m = clone(learner)
         ml_g = clone(learner)
         theta_nonorth = np.zeros(n_rep)
