@@ -104,6 +104,7 @@ variable ``y`` and a treatment variable ``d``
         import numpy as np
 
         # Generate data
+        np.random.seed(3141)
         n_obs = 500
         n_vars = 100
         theta = 3
@@ -161,7 +162,7 @@ and for our simulated data from a sparse linear model we use a Lasso regression 
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.linear_model import Lasso
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=100)
+        learner = RandomForestRegressor(n_estimators = 500, max_features = 'sqrt', max_depth= 5)
         ml_g_bonus = clone(learner)
         ml_m_bonus = clone(learner)
 
@@ -197,6 +198,7 @@ We now initialize ``DoubleMLPLR`` objects for our examples using default paramet
     .. ipython:: python
 
         from doubleml import DoubleMLPLR
+        np.random.seed(3141)
         obj_dml_plr_bonus = DoubleMLPLR(obj_dml_data_bonus, ml_g_bonus, ml_m_bonus)
         obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_g_sim, ml_m_sim)
 
