@@ -678,7 +678,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, set_as_params):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         pass
 
     def _initialize_arrays(self):
