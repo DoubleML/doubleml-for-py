@@ -570,12 +570,12 @@ class DoubleML(ABC):
 
         # check param_grids input
         if not isinstance(param_grids, dict) | (not all(k in param_grids for k in self.learner_names)):
-            raise ValueError('invalid param_grids' + param_grids +
+            raise ValueError('invalid param_grids ' + param_grids +
                              '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
 
         if scoring_methods is not None:
             if not isinstance(scoring_methods, dict) | (not all(k in self.learner_names for k in scoring_methods)):
-                raise ValueError('invalid scoring_methods' + scoring_methods +
+                raise ValueError('invalid scoring_methods ' + scoring_methods +
                                  '\n scoring_methods must be a dictionary.' +
                                  '\n Valid keys are ' + ' or '.join(self.learner_names))
 
@@ -652,10 +652,10 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if learner not in valid_learner:
-            raise ValueError('invalid nuisance learner' + learner +
+            raise ValueError('invalid nuisance learner ' + learner +
                              '\n valid nuisance learner ' + ' or '.join(valid_learner))
         if treat_var not in self.d_cols:
-            raise ValueError('invalid treatment variable' + learner +
+            raise ValueError('invalid treatment variable ' + treat_var +
                              '\n valid treatment variable ' + ' or '.join(self.d_cols))
 
         if isinstance(params, dict):
