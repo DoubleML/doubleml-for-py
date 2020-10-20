@@ -9,21 +9,23 @@ Data and the causal model
 -------------------------
 
 :ref:`DoubleML <doubleml_package>` provides interfaces to dataframes as well as arrays. The usage of both interfaces is
-demonstrated in the following. We download the 401(k) data set.
+demonstrated in the following. We download the Bonus data set from the Pennsylvania Reemployment Bonus experiment.
 
 .. note::
-    * In python we use :py:class:`pandas.DataFrame` and :py:class:`numpy.ndarray`.
-    * In R we use
+    - In Python we use :py:class:`pandas.DataFrame` and :py:class:`numpy.ndarray`.
+      The data can be fetched via :py:func:`doubleml.datasets.fetch_401K`.
+    - In R we use
+      The data can be fetched via
 
 .. tabbed:: Python
 
     .. ipython:: python
 
-        from doubleml.datasets import fetch_401K
+        from doubleml.datasets import fetch_bonus
 
         # Load data
-        df_401k = fetch_401K('DataFrame')
-        df_401k.head(5)
+        df_bonus = fetch_bonus('DataFrame')
+        df_bonus.head(5)
 
 .. tabbed:: R
 
@@ -53,8 +55,8 @@ DoubleMLData from dataframes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``DoubleMLData`` class serves as data-backend and can be initialized from a dataframe by
-specifying the column ``y_col='net_tfa'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'e401'``
-serving as treatment variable :math:`D` and the columns ``x_cols=['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']``
+specifying the column ``y_col='inuidur1'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'tg'``
+serving as treatment variable :math:`D` and the columns ``x_cols=['female', 'black', 'othrace', 'dep1', 'dep2', 'q2', 'q3', 'q4', 'q5', 'q6', 'agelt35', 'agegt54', 'durable', 'lusd', 'husd']``
 specifying the confounders.
 
 .. note::
@@ -68,12 +70,13 @@ specifying the confounders.
         from doubleml import DoubleMLData
 
         # Specify the data and the variables for the causal model
-        obj_dml_data_401k = DoubleMLData(df_401k,
-                                         y_col='net_tfa',
-                                         d_cols='e401',
-                                         x_cols=['age', 'inc', 'educ', 'fsize', 'marr',
-                                                 'twoearn', 'db', 'pira', 'hown'])
-        print(obj_dml_data_401k)
+        obj_dml_data_bonus = DoubleMLData(df_bonus,
+                                          y_col='inuidur1',
+                                          d_cols='tg',
+                                          x_cols=['female', 'black', 'othrace', 'dep1', 'dep2',
+                                                  'q2', 'q3', 'q4', 'q5', 'q6', 'agelt35', 'agegt54',
+                                                  'durable', 'lusd', 'husd'])
+        print(obj_dml_data_bonus)
 
 .. tabbed:: R
 
@@ -159,8 +162,8 @@ and for our simulated data from a sparse linear model we use a Lasso regression 
         from sklearn.linear_model import Lasso
 
         learner = RandomForestRegressor(max_depth=2, n_estimators=100)
-        ml_g_401k = clone(learner)
-        ml_m_401k = clone(learner)
+        ml_g_bonus = clone(learner)
+        ml_m_bonus = clone(learner)
 
         learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
         ml_g_sim = clone(learner)
@@ -194,7 +197,7 @@ We now initialize ``DoubleMLPLR`` objects for our examples using default paramet
     .. ipython:: python
 
         from doubleml import DoubleMLPLR
-        obj_dml_plr_401k = DoubleMLPLR(obj_dml_data_401k, ml_g_401k, ml_m_401k)
+        obj_dml_plr_bonus = DoubleMLPLR(obj_dml_data_bonus, ml_g_bonus, ml_m_bonus)
         obj_dml_plr_sim = DoubleMLPLR(obj_dml_data_sim, ml_g_sim, ml_m_sim)
 
 .. tabbed:: R
@@ -216,8 +219,8 @@ The models are estimated by calling the ``fit()`` method and we can inspect the 
 
     .. ipython:: python
 
-        obj_dml_plr_401k.fit()
-        print(obj_dml_plr_401k.summary)
+        obj_dml_plr_bonus.fit()
+        print(obj_dml_plr_bonus.summary)
 
         obj_dml_plr_sim.fit()
         print(obj_dml_plr_sim.summary)
