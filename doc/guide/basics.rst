@@ -25,24 +25,17 @@ The nuisance functions are given by
 
     g_0(X) &= \frac{\exp(x_{i,1})}{1+\exp(x_{i,1})} + \frac{1}{4} x_{i,3}.
 
+
+.. note::
+    - In Python the data can be generated with :py:func:`doubleml.datasets.make_plr_CCDDHNR2018`.
+    - In R the data can be generated with
+
 .. tabbed:: Python
 
     .. ipython:: python
 
         import numpy as np
-        from scipy.linalg import toeplitz
-
-        def generate_data(n_obs, n_vars):
-            cov_mat = toeplitz([np.power(0.7, k) for k in range(n_vars)])
-            a_1 = 0.25
-            b_1 = 0.25
-            alpha = 0.5
-            x = np.random.multivariate_normal(np.zeros(n_vars), cov_mat, size=[n_obs,])
-            d = x[:,0] + a_1 * np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-                + np.random.standard_normal(size=[n_obs,])
-            y = alpha * d + np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-                + b_1 * x[:,2] + np.random.standard_normal(size=[n_obs,])
-            return x, y, d
+        from doubleml.datasets import make_plr_CCDDHNR2018
 
         np.random.seed(1234)
         n_rep = 1000
@@ -52,7 +45,7 @@ The nuisance functions are given by
         data = list()
 
         for i_rep in range(n_rep):
-            (x, y, d) = generate_data(n_obs, n_vars)
+            (x, y, d) = make_plr_CCDDHNR2018(n_obs, n_vars, return_type='array')
             data.append((x, y, d))
 
 .. tabbed:: R
