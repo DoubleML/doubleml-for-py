@@ -387,7 +387,7 @@ class DoubleML(ABC):
         Parameters
         ----------
         method : str
-            A str (``'Bayes''``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
+            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
             Default is ``'normal'``
 
         n_rep : int
@@ -506,14 +506,17 @@ class DoubleML(ABC):
              tune_on_folds=False,
              scoring_methods=None,  # if None the estimator's score method is used
              n_folds_tune=5,
+             search_mode='grid_search',
+             n_iter_randomized_search=100,
              n_jobs_cv=None,
              set_as_params=True,
              return_tune_res=False):
         """
         Hyperparameter-tuning for DoubleML models.
 
-        The hyperparameter-tuning is performed using an exhaustive search over specified parameter values
-        implemented in :class:`sklearn.model_selection.GridSearchCV`
+        The hyperparameter-tuning is performed using either an exhaustive search over specified parameter values
+        implemented in :class:`sklearn.model_selection.GridSearchCV` or via a randomized search implemented in
+        :class:`sklearn.model_selection.RandomizedSearchCV`.
 
         Parameters
         ----------
@@ -533,6 +536,15 @@ class DoubleML(ABC):
         n_folds_tune : int
             Number of folds used for tuning.
             Default is ``5``.
+
+        search_mode : str
+            A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are optimized via
+            :class:`sklearn.model_selection.GridSearchCV` or :class:`sklearn.model_selection.RandomizedSearchCV`.
+            Default is ``'grid_search'``.
+
+        n_iter_randomized_search : int
+            If ``search_mode == 'randomized_search'``. The number of parameter settings that are sampled.
+            Default is ``100``.
 
         n_jobs_cv : None or int
             The number of CPUs to use to tune the learners. ``None`` means ``1``.
@@ -587,7 +599,8 @@ class DoubleML(ABC):
                     res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
                                                    param_grids, scoring_methods,
                                                    n_folds_tune,
-                                                   n_jobs_cv)
+                                                   n_jobs_cv,
+                                                   search_mode, n_iter_randomized_search)
 
                     tuning_res[i_rep][i_d] = res
                     nuiscance_params[i_rep] = res['params']
@@ -603,7 +616,8 @@ class DoubleML(ABC):
                 res = self._ml_nuisance_tuning(self._dml_data, smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
-                                               n_jobs_cv)
+                                               n_jobs_cv,
+                                               search_mode, n_iter_randomized_search)
                 tuning_res[i_d] = res
 
                 if set_as_params:
@@ -678,7 +692,8 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                            search_mode, n_iter_randomized_search):
         pass
 
     def _initialize_arrays(self):
