@@ -72,7 +72,7 @@ dml_plr_rf.summary
 
 # Load data with polynomial features
 dml_data_lasso = dml.datasets.fetch_bonus(polynomial_features=True)
-dml_data_lasso
+print(dml_data_lasso)
 
 # %%
 # Specify learner and estimate causal parameter: PLR model with Lasso as learner
