@@ -643,7 +643,7 @@ class DoubleML(ABC):
             The treatment variable (hyperparameters can be set treatment-variable specific).
 
         params : dict or list
-            A dict with estimator parameters (used for all folds) or a nested list with fold specific paramters. The
+            A dict with estimator parameters (used for all folds) or a nested list with fold specific parameters. The
             outer list needs to be of length ``n_rep`` and the inner list of length ``n_folds``.
 
         Returns
