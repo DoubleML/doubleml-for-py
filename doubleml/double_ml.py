@@ -232,6 +232,13 @@ class DoubleML(ABC):
         return self._boot_coef
 
     @property
+    def boot_t_stat(self):
+        """
+        Bootstrapped t-statistics for the causal paramter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        """
+        return self._boot_t_stat
+
+    @property
     def summary(self):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
@@ -293,6 +300,18 @@ class DoubleML(ABC):
         ind_start = self._i_rep * self.n_rep_boot
         ind_end = (self._i_rep + 1) * self.n_rep_boot
         self._boot_coef[self._i_treat, ind_start:ind_end] = value
+
+    @property
+    def __boot_t_stat(self):
+        ind_start = self._i_rep * self.n_rep_boot
+        ind_end = (self._i_rep + 1) * self.n_rep_boot
+        return self._boot_t_stat[self._i_treat, ind_start:ind_end]
+
+    @__boot_t_stat.setter
+    def __boot_t_stat(self, value):
+        ind_start = self._i_rep * self.n_rep_boot
+        ind_end = (self._i_rep + 1) * self.n_rep_boot
+        self._boot_t_stat[self._i_treat, ind_start:ind_end] = value
 
     @property
     def __all_coef(self):
@@ -409,7 +428,7 @@ class DoubleML(ABC):
             for i_d in range(self.n_treat):
                 self._i_treat = i_d
 
-                self.__boot_coef = self._compute_bootstrap(method, n_rep)
+                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method, n_rep)
 
         return self
 
@@ -435,7 +454,7 @@ class DoubleML(ABC):
         a = (1 - level)
         ab = np.array([a/2, 1. - a/2])
         if joint:
-            sim = np.amax(np.abs(self.boot_coef), 0)
+            sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1-a)
             hatc_two_sided = np.array([-hatc, hatc])
             ci = self.coef + self.se * hatc_two_sided
@@ -475,7 +494,7 @@ class DoubleML(ABC):
             pinit = np.full_like(self.pval, np.nan)
             p_val_corrected = np.full_like(self.pval, np.nan)
 
-            boot_t_stats = self.boot_coef  # TODO check naming
+            boot_t_stats = self.boot_t_stat
             t_stat = self.t_stat
             stepdown_ind = np.argsort(t_stat)[::-1]
             ro = np.argsort(stepdown_ind)
@@ -716,6 +735,7 @@ class DoubleML(ABC):
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
         self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
+        self._boot_t_stat = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
         """
@@ -842,23 +862,29 @@ class DoubleML(ABC):
         if self.apply_cross_fitting:
             if dml_procedure == 'dml1':
                 boot_coefs = np.full((n_rep, self.n_folds), np.nan)
+                boot_t_stats = np.full((n_rep, self.n_folds), np.nan)
                 for idx, (_, test_index) in enumerate(smpls):
                     J = np.mean(self.__psi_a[test_index])
                     boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
+                                len(test_index) * J)
+                    boot_t_stats[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
                                 len(test_index) * self.__all_se * J)
                 boot_coef = np.mean(boot_coefs, axis=1)
+                boot_t_stat = np.mean(boot_t_stats, axis=1)
 
             elif dml_procedure == 'dml2':
                 J = np.mean(self.__psi_a)
-                boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
+                boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * J)
+                boot_t_stat = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
 
             else:
                 raise ValueError('invalid dml_procedure')
         else:
             J = np.mean(self.__psi_a[test_index])
-            boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
+            boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * J)
+            boot_t_stat = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
 
-        return boot_coef
+        return boot_coef, boot_t_stat
 
 
     def _var_est(self, inds = None):
