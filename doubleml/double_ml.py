@@ -821,7 +821,7 @@ class DoubleML(ABC):
         # don't use the getter (always for one treatment variable and one sample), but the private variable
         self.coef = np.median(self._all_coef, 1)
         xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.median(np.power(self._all_se, 2) - np.power(self._all_coef - xx, 2), 1))
+        self.se = np.sqrt(np.median(np.power(self._all_se, 2) + np.power(self._all_coef - xx, 2), 1))
 
     def _compute_bootstrap(self, method, n_rep):
         dml_procedure = self.dml_procedure
