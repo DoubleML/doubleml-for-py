@@ -55,14 +55,6 @@ for example :py:class:`sklearn.ensemble.RandomForestRegressor`.
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
         dml_plr_obj.fit().summary
 
-.. tabbed:: R
-
-    .. jupyter-execute::
-
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
-
 Setting hyperparameters:
 
     * We can also use pre-parametrized learners, like ``RandomForestRegressor(n_estimators=10)``.
@@ -88,14 +80,6 @@ Setting hyperparameters:
         dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': 10})
         dml_plr_obj.fit()
         print(dml_plr_obj.summary)
-
-.. tabbed:: R
-
-    .. jupyter-execute::
-
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
 
 Setting treatment-variable-specific or fold-specific hyperparameters:
 
