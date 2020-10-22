@@ -112,7 +112,7 @@ class DoubleMLIRM(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
-        self._params = {learner: {key: [None] * self.n_rep for key in self.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -139,12 +139,12 @@ class DoubleMLIRM(DoubleML):
                       test) for train, test in smpls]
         return smpls_d0, smpls_d1
     
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         score = self.score
         self._check_score(score)
         
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
@@ -190,11 +190,11 @@ class DoubleMLIRM(DoubleML):
 
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
+    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv):
         score = self.score
 
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
 
