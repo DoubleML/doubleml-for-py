@@ -199,6 +199,6 @@ def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootst
     else:
         raise ValueError('invalid score')
 
-    boot_theta = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure)
     
-    return boot_theta
+    return boot_theta, boot_t_stat

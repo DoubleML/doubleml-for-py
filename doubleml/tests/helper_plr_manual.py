@@ -133,6 +133,6 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
     else:
         raise ValueError('invalid score')
 
-    boot_theta = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting)
     
-    return boot_theta
+    return boot_theta, boot_t_stat

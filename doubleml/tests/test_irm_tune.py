@@ -141,18 +141,20 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
     
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = boot_irm(res_manual,
-                              y, d,
-                              g_hat0, g_hat1, m_hat, p_hat,
-                              smpls, score,
-                              se_manual,
-                              bootstrap, n_rep_boot,
-                              dml_procedure)
+        boot_theta, boot_t_stat = boot_irm(res_manual,
+                                           y, d,
+                                           g_hat0, g_hat1, m_hat, p_hat,
+                                           smpls, score,
+                                           se_manual,
+                                           bootstrap, n_rep_boot,
+                                           dml_procedure)
         
         np.random.seed(3141)
-        dml_irm_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
+        dml_irm_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
     
     return res_dict
 
@@ -173,5 +175,8 @@ def test_dml_irm_boot(dml_irm_fixture):
     for bootstrap in dml_irm_fixture['boot_methods']:
         assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
                            dml_irm_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
+                           dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
 
