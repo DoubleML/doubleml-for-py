@@ -129,13 +129,13 @@ are stored in the attribute ``psi``.
 
 
 For the DML1 algorithm, the estimates for the different folds
-:math:`\check{\theta}_{0,k}``, :math:`k \in [K]` are stored in attribute ``_all_dml1_coef``.
+:math:`\check{\theta}_{0,k}``, :math:`k \in [K]` are stored in attribute ``all_dml1_coef``.
 
 .. tabbed:: Python
 
     .. ipython:: python
 
-        print(dml_plr_obj._all_dml1_coef)
+        print(dml_plr_obj.all_dml1_coef)
 
 .. tabbed:: R
 

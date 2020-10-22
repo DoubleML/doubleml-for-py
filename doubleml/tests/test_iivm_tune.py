@@ -149,18 +149,20 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner_g, learner_m, learner_r, s
     
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = boot_iivm(res_manual,
-                               y, d, z,
-                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                               smpls, score,
-                               se_manual,
-                               bootstrap, n_rep_boot,
-                               dml_procedure)
+        boot_theta, boot_t_stat = boot_iivm(res_manual,
+                                            y, d, z,
+                                            g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                                            smpls, score,
+                                            se_manual,
+                                            bootstrap, n_rep_boot,
+                                            dml_procedure)
         
         np.random.seed(3141)
-        dml_iivm_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
+        dml_iivm_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
     
     return res_dict
 
@@ -181,5 +183,8 @@ def test_dml_iivm_boot(dml_iivm_fixture):
     for bootstrap in dml_iivm_fixture['boot_methods']:
         assert np.allclose(dml_iivm_fixture['boot_coef' + bootstrap],
                            dml_iivm_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_iivm_fixture['boot_t_stat' + bootstrap],
+                           dml_iivm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
 

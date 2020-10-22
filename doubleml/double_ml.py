@@ -189,7 +189,7 @@ class DoubleML(ABC):
     @property 
     def coef(self):
         """
-        Estimates for the causal paramter(s) after calling :meth:`fit`.
+        Estimates for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._coef
     
@@ -200,7 +200,7 @@ class DoubleML(ABC):
     @property 
     def se(self):
         """
-        Standard errors for the causal paramter(s) after calling :meth:`fit`.
+        Standard errors for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._se
     
@@ -211,7 +211,7 @@ class DoubleML(ABC):
     @property
     def t_stat(self):
         """
-        t-statistics for the causal paramter(s) after calling :meth:`fit`.
+        t-statistics for the causal parameter(s) after calling :meth:`fit`.
         """
         t_stat = self.coef / self.se
         return t_stat
@@ -219,7 +219,7 @@ class DoubleML(ABC):
     @property
     def pval(self):
         """
-        p-values for the causal paramter(s) after calling :meth:`fit`.
+        p-values for the causal parameter(s) after calling :meth:`fit`.
         """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
@@ -227,16 +227,37 @@ class DoubleML(ABC):
     @property 
     def boot_coef(self):
         """
-        Bootstrapped coefficients for the causal paramter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        Bootstrapped coefficients for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
         """
         return self._boot_coef
 
     @property
     def boot_t_stat(self):
         """
-        Bootstrapped t-statistics for the causal paramter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
         """
         return self._boot_t_stat
+
+    @property
+    def all_coef(self):
+        """
+        Estimates of the causal parameter(s) for the `n_rep` different sample splits after calling :meth:`fit`.
+        """
+        return self._all_coef
+
+    @property
+    def all_se(self):
+        """
+        Standard errors of the causal parameter(s) for the `n_rep` different sample splits after calling :meth:`fit`.
+        """
+        return self._all_se
+
+    @property
+    def all_dml1_coef(self):
+        """
+        Estimates of the causal parameter(s) for the `n_rep` x `n_folds` different folds after calling :meth:`fit` with `dml_procedure = 'dml1'`.
+        """
+        return self._all_dml1_coef
 
     @property
     def summary(self):
@@ -836,7 +857,7 @@ class DoubleML(ABC):
         # don't use the getter (always for one treatment variable and one sample), but the private variable
         self.coef = np.median(self._all_coef, 1)
         xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.median(np.power(self._all_se, 2) - np.power(self._all_coef - xx, 2), 1))
+        self.se = np.sqrt(np.median(np.power(self._all_se, 2) + np.power(self._all_coef - xx, 2), 1))
 
     def _compute_bootstrap(self, method, n_rep):
         dml_procedure = self.dml_procedure
