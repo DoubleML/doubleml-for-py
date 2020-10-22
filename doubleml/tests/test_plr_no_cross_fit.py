@@ -99,19 +99,21 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = boot_plr(res_manual,
-                              y, d,
-                              g_hat, m_hat,
-                              smpls, score,
-                              se_manual,
-                              bootstrap, n_rep_boot,
-                              dml_procedure,
-                              apply_cross_fitting=False)
+        boot_theta, boot_t_stat = boot_plr(res_manual,
+                                           y, d,
+                                           g_hat, m_hat,
+                                           smpls, score,
+                                           se_manual,
+                                           bootstrap, n_rep_boot,
+                                           dml_procedure,
+                                           apply_cross_fitting=False)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
     
     return res_dict
 
@@ -339,19 +341,21 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta = boot_plr(res_manual,
-                              y, d,
-                              g_hat, m_hat,
-                              smpls, score,
-                              se_manual,
-                              bootstrap, n_rep_boot,
-                              dml_procedure,
-                              apply_cross_fitting=False)
+        boot_theta, boot_t_stat = boot_plr(res_manual,
+                                           y, d,
+                                           g_hat, m_hat,
+                                           smpls, score,
+                                           se_manual,
+                                           bootstrap, n_rep_boot,
+                                           dml_procedure,
+                                           apply_cross_fitting=False)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
 
@@ -372,4 +376,7 @@ def test_dml_plr_no_cross_fit_tune_boot(dml_plr_no_cross_fit_tune_fixture):
     for bootstrap in dml_plr_no_cross_fit_tune_fixture['boot_methods']:
         assert np.allclose(dml_plr_no_cross_fit_tune_fixture['boot_coef' + bootstrap],
                            dml_plr_no_cross_fit_tune_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_no_cross_fit_tune_fixture['boot_t_stat' + bootstrap],
+                           dml_plr_no_cross_fit_tune_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

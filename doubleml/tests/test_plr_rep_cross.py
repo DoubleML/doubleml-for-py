@@ -107,7 +107,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
                                                  smpls, score)
 
     res_manual = np.median(thetas)
-    se_manual = np.sqrt(np.median(np.power(ses, 2) - np.power(thetas - res_manual, 2)))
+    se_manual = np.sqrt(np.median(np.power(ses, 2) + np.power(thetas - res_manual, 2)))
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
@@ -119,23 +119,28 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         all_boot_theta = list()
+        all_boot_t_stat = list()
         for i_rep in range(n_rep):
             smpls = all_smpls[i_rep]
-            boot_theta = boot_plr(thetas[i_rep],
-                                  y, d,
-                                  all_g_hat[i_rep], all_m_hat[i_rep],
-                                  smpls, score,
-                                  ses[i_rep],
-                                  bootstrap, n_rep_boot,
-                                  dml_procedure)
+            boot_theta, boot_t_stat = boot_plr(thetas[i_rep],
+                                               y, d,
+                                               all_g_hat[i_rep], all_m_hat[i_rep],
+                                               smpls, score,
+                                               ses[i_rep],
+                                               bootstrap, n_rep_boot,
+                                               dml_procedure)
             all_boot_theta.append(boot_theta)
+            all_boot_t_stat.append(boot_t_stat)
 
         boot_theta = np.hstack(all_boot_theta)
+        boot_t_stat = np.hstack(all_boot_t_stat)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
     
     return res_dict
 
@@ -156,4 +161,7 @@ def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
         assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
                            dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
+                           dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

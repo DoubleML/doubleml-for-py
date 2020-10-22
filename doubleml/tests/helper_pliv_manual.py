@@ -138,6 +138,6 @@ def boot_pliv(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, score, se, bootstrap, 
     else:
         raise ValueError('invalid score')
     
-    boot_theta = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure)
 
-    return boot_theta
+    return boot_theta, boot_t_stat

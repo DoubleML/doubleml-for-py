@@ -112,19 +112,22 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta = np.full((n_d, n_rep_boot), np.nan)
+        boot_t_stat = np.full((n_d, n_rep_boot), np.nan)
         for i_d in range(n_d):
-            boot_theta[i_d, :] = boot_plr(coef_manual[i_d],
-                                          y, d[:, i_d],
-                                          all_g_hat[i_d], all_m_hat[i_d],
-                                          smpls, score,
-                                          se_manual[i_d],
-                                          bootstrap, n_rep_boot,
-                                          dml_procedure)
+            boot_theta[i_d, :], boot_t_stat[i_d, :] = boot_plr(coef_manual[i_d],
+                                                               y, d[:, i_d],
+                                                               all_g_hat[i_d], all_m_hat[i_d],
+                                                               smpls, score,
+                                                               se_manual[i_d],
+                                                               bootstrap, n_rep_boot,
+                                                               dml_procedure)
         
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method = bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
+        res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
     
     return res_dict
 
@@ -145,5 +148,8 @@ def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
     for bootstrap in dml_plr_multitreat_fixture['boot_methods']:
         assert np.allclose(dml_plr_multitreat_fixture['boot_coef' + bootstrap],
                            dml_plr_multitreat_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_multitreat_fixture['boot_t_stat' + bootstrap],
+                           dml_plr_multitreat_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
 
