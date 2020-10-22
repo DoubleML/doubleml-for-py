@@ -241,21 +241,21 @@ class DoubleML(ABC):
     @property
     def all_coef(self):
         """
-        Estimates of the causal parameter(s) for the `n_rep` different sample splits after calling :meth:`fit`.
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
         """
         return self._all_coef
 
     @property
     def all_se(self):
         """
-        Standard errors of the causal parameter(s) for the `n_rep` different sample splits after calling :meth:`fit`.
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
         """
         return self._all_se
 
     @property
     def all_dml1_coef(self):
         """
-        Estimates of the causal parameter(s) for the `n_rep` x `n_folds` different folds after calling :meth:`fit` with `dml_procedure = 'dml1'`.
+        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with `dml_procedure = 'dml1'`.
         """
         return self._all_dml1_coef
 
