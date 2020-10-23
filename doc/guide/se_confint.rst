@@ -152,4 +152,57 @@ string-representation of the object.
 Boostrap standard errors and joint confidence intervals
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-.. TODO Document the multiplier bootstrap and joint confidence intervals.
+The ``bootstrap()`` method provides an implementation of a multiplier bootstrap for double machine learning models.
+For :math:`b=1, \ldots, B` weights :math:`\xi_{i, b}` are generated according to a normal (Gaussian) bootstrap, wild
+bootstrap or exponential bootstrap.
+The number of bootstrap samples is provided as input ``n_boot_rep`` and for method one can choose ``'Bayes'``,
+``'normal'`` or ``'wild'``.
+Based on the estimates of the standard errors given by
+
+.. math::
+
+    \sigma^2 := J_0^{-2} \mathbb{E}(\psi^2(W; \theta_0, \eta_0)),
+
+    J_0 = \mathbb{E}(\psi_a(W; \eta_0)).
+
+we obtain bootstrap coefficients :math:`\theta^*_b` and bootstrap t-statistics :math:`t^*_b`
+
+.. math::
+
+    \theta^*_b &= \frac{1}{\sqrt{N} \hat{J}_0}\sum_{k=1}^{K} \sum_{i \in I_k} \xi_{i, b} \cdot \psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k}),
+
+    t^*_b &= \frac{1}{\sqrt{N} \hat{J}_0 \hat{\sigma}} \sum_{k=1}^{K} \sum_{i \in I_k} \xi_{i, b} \cdot \psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k}).
+
+
+To demonstrate the bootstrap, we simulate data from a sparse partially linear regression model.
+Then we estimate the PLR model and perform the multiplier bootstrap.
+Joint confidence intervals based on the multiplier bootstrap are then obtained with the method ``confint()``
+or do a multiple hypotheses testing adjustment of p-values from a high-dimensional model can be performed with the
+method ``p_adjust``.
+
+.. tabbed:: Python
+
+    .. ipython:: python
+
+        import numpy as np
+        from sklearn.base import clone
+        from sklearn.linear_model import Lasso
+
+        # Simulate data
+        np.random.seed(1234)
+        n_obs = 500
+        n_vars = 100
+        X = np.random.normal(size=(n_obs, n_vars))
+        theta = np.array([3., 3., 3.])
+        y = np.dot(X[:, :3], theta) + np.random.standard_normal(size=(n_obs,))
+
+        dml_data = DoubleMLData.from_arrays(X[:, 10:], y, X[:, :10])
+
+        learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        ml_g = clone(learner)
+        ml_m = clone(learner)
+        dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
+
+        print(dml_plr.fit().bootstrap().confint(joint=True))
+        print(dml_plr.p_adjust())
+
