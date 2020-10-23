@@ -155,7 +155,7 @@ Boostrap standard errors and joint confidence intervals
 The ``bootstrap()`` method provides an implementation of a multiplier bootstrap for double machine learning models.
 For :math:`b=1, \ldots, B` weights :math:`\xi_{i, b}` are generated according to a normal (Gaussian) bootstrap, wild
 bootstrap or exponential bootstrap.
-The number of bootstrap samples is provided as input ``n_boot_rep`` and for method one can choose ``'Bayes'``,
+The number of bootstrap samples is provided as input ``n_boot_rep`` and for ``method`` one can choose ``'Bayes'``,
 ``'normal'`` or ``'wild'``.
 Based on the estimates of the standard errors given by
 
@@ -184,6 +184,7 @@ method ``p_adjust``.
 
     .. ipython:: python
 
+        import doubleml as dml
         import numpy as np
         from sklearn.base import clone
         from sklearn.linear_model import Lasso
@@ -196,12 +197,12 @@ method ``p_adjust``.
         theta = np.array([3., 3., 3.])
         y = np.dot(X[:, :3], theta) + np.random.standard_normal(size=(n_obs,))
 
-        dml_data = DoubleMLData.from_arrays(X[:, 10:], y, X[:, :10])
+        dml_data = dml.DoubleMLData.from_arrays(X[:, 10:], y, X[:, :10])
 
         learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
         ml_g = clone(learner)
         ml_m = clone(learner)
-        dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
+        dml_plr = dml.DoubleMLPLR(dml_data, ml_g, ml_m)
 
         print(dml_plr.fit().bootstrap().confint(joint=True))
         print(dml_plr.p_adjust())
