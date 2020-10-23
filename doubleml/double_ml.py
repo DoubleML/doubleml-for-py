@@ -848,8 +848,19 @@ class DoubleML(ABC):
         # aggregate parameters from the repeated cross-fitting
         # don't use the getter (always for one treatment variable and one sample), but the private variable
         self.coef = np.median(self._all_coef, 1)
+
+        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
+        # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
+        if self.apply_cross_fitting:
+            n_obs = self._dml_data.n_obs
+        else:
+            # be prepared for the case of test sets of different size in repeated no-cross-fitting
+            smpls = self.__smpls
+            test_index = smpls[0][1]
+            n_obs = len(test_index)
         xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.median(np.power(self._all_se, 2) + np.power(self._all_coef - xx, 2), 1))
+        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), n_obs) +
+                                              np.power(self._all_coef - xx, 2), 1), n_obs))
 
     def _compute_bootstrap(self, method, n_rep):
         dml_procedure = self.dml_procedure

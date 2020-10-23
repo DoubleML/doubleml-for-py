@@ -204,7 +204,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
         ses[i_rep] = ses[i_rep]*np.sqrt(len(y)/len(smpls[0][1]))
 
     res_manual = np.median(thetas)
-    se_manual = np.sqrt(np.median(np.power(ses, 2) + np.power(thetas - res_manual, 2)))
+    se_manual = np.sqrt(np.median(np.power(ses, 2)*len(smpls[0][1]) + np.power(thetas - res_manual, 2))/len(smpls[0][1]))
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,

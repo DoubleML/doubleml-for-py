@@ -177,7 +177,7 @@ The aggregation of the estimates of the causal parameter and its standard errors
     .. math::
         \tilde{\theta}_{0} &= \text{Median}\big((\tilde{\theta}_{0,m})_{m \in [M]}\big),
 
-        \hat{\sigma} &= \sqrt{\text{Median}\big(\hat{\sigma}_m^2 - N (\tilde{\theta}_{0,m} - \tilde{\theta}_{0})^2\big)}.
+        \hat{\sigma} &= \sqrt{\text{Median}\big(\hat{\sigma}_m^2 + (\tilde{\theta}_{0,m} - \tilde{\theta}_{0})^2\big)}.
 
 The estimate of the causal parameter :math:`\tilde{\theta}_{0}` is stored in the ``coef`` attribute
 and the asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` in ``se``.
@@ -299,7 +299,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
                                                n_folds = 2, apply_cross_fitting = False)
         dml_plr_obj_external.fit()
         print(dml_plr_obj_external.summary)
-        print(dml_plr_obj_external.n_obs)
+        print(obj_dml_data.n_obs)
         print(dml_plr_obj_external.psi.shape)
 
 .. tabbed:: R
@@ -330,7 +330,7 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
 
         dml_plr_obj_external.fit()
         print(dml_plr_obj_external.summary)
-        print(dml_plr_obj_external.n_obs)
+        print(obj_dml_data.n_obs)
         print(dml_plr_obj_external.psi.shape)
 
 .. tabbed:: R
