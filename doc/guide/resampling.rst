@@ -232,8 +232,7 @@ initialization of the :class:`~doubleml.double_ml_plr.DoubleMLPLR` object.
 
         np.random.seed(314)
         dml_plr_obj_internal = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, n_folds = 4)
-        dml_plr_obj_internal.fit()
-        print(dml_plr_obj_internal.summary)
+        print(dml_plr_obj_internal.fit().summary)
 
 .. tabbed:: R
 
@@ -258,9 +257,8 @@ and set the partition via the ``set_sample_splitting()`` method.
         kf = KFold(n_splits=4, shuffle=True)
         smpls = [[(train, test) for train, test in kf.split(obj_dml_data.x)]]
 
-        dml_plr_obj_external.set_sample_splitting(smpls)
-        dml_plr_obj_external.fit()
-        print(dml_plr_obj_external.summary)
+        dml_plr_obj_external.set_sample_splitting(smpls);
+        print(dml_plr_obj_external.fit().summary)
 
 .. tabbed:: R
 
@@ -297,8 +295,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
 
         dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m,
                                                n_folds = 2, apply_cross_fitting = False)
-        dml_plr_obj_external.fit()
-        print(dml_plr_obj_external.summary)
+        print(dml_plr_obj_external.fit().summary)
         print(obj_dml_data.n_obs)
         print(dml_plr_obj_external.psi.shape)
 
@@ -326,10 +323,9 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
         from sklearn.model_selection import train_test_split
         smpls = train_test_split(np.arange(obj_dml_data.n_obs), train_size=0.8)
         smpls = [np.sort(x) for x in smpls]  # only sorted indices are supported
-        dml_plr_obj_external.set_sample_splitting([[smpls]])
+        dml_plr_obj_external.set_sample_splitting([[smpls]]);
 
-        dml_plr_obj_external.fit()
-        print(dml_plr_obj_external.summary)
+        print(dml_plr_obj_external.fit().summary)
         print(obj_dml_data.n_obs)
         print(dml_plr_obj_external.psi.shape)
 

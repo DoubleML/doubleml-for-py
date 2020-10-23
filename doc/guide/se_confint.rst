@@ -53,7 +53,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
 
 .. tabbed:: R
 
@@ -121,6 +121,23 @@ An overview of all these estimates, together with a 95 % confidence interval is 
     .. ipython:: python
 
         print(dml_plr_obj.summary)
+
+.. tabbed:: R
+
+    .. jupyter-execute::
+
+        X = c(1,4,5,6);
+        Y = c(5,3,5,7);
+        lm(Y~X)
+
+A more detailed overview of the fitted model, its specifications and the summary can be obtained via the
+string-representation of the object.
+
+.. tabbed:: Python
+
+    .. ipython:: python
+
+        print(dml_plr_obj)
 
 .. tabbed:: R
 

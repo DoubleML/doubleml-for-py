@@ -81,7 +81,7 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, dml_procedure='dml1')
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
 
 .. tabbed:: R
 

@@ -72,16 +72,14 @@ Setting hyperparameters:
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                       RandomForestRegressor(n_estimators=10),
                                       RandomForestRegressor())
-        dml_plr_obj.fit()
-        print(dml_plr_obj.summary)
+        print(dml_plr_obj.fit().summary)
 
         np.random.seed(1234)
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                       RandomForestRegressor(),
                                       RandomForestRegressor())
         dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': 10})
-        dml_plr_obj.fit()
-        print(dml_plr_obj.summary)
+        print(dml_plr_obj.fit().summary)
 
 Setting treatment-variable-specific or fold-specific hyperparameters:
 
@@ -132,14 +130,14 @@ implemented in :class:`sklearn.model_selection.GridSearchCV` or via a randomized
         dml_plr_obj = dml.DoubleMLPLR(dml_data, ml_g, ml_m)
         par_grids = {'ml_g': {'alpha': np.arange(0.05, 1., 0.1)},
                      'ml_m': {'alpha': np.arange(0.05, 1., 0.1)}}
-        dml_plr_obj.tune(par_grids, search_mode='grid_search')
+        dml_plr_obj.tune(par_grids, search_mode='grid_search');
         print(dml_plr_obj.params)
         print(dml_plr_obj.fit().summary)
 
         np.random.seed(1234)
         par_grids = {'ml_g': {'alpha': np.arange(0.05, 1., 0.01)},
                      'ml_m': {'alpha': np.arange(0.05, 1., 0.01)}}
-        dml_plr_obj.tune(par_grids, search_mode='randomized_search', n_iter_randomized_search=20)
+        dml_plr_obj.tune(par_grids, search_mode='randomized_search', n_iter_randomized_search=20);
         print(dml_plr_obj.params)
         print(dml_plr_obj.fit().summary)
 
@@ -162,11 +160,13 @@ In this case the tuning should be done externally and the parameters can then be
         ml_g = Lasso()
         ml_m = Lasso()
         dml_plr_obj = dml.DoubleMLPLR(dml_data, ml_g, ml_m)
-        dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'alpha': ml_g_tune.alpha_})
-        dml_plr_obj.set_ml_nuisance_params('ml_m', 'd', {'alpha': ml_m_tune.alpha_})
+        dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'alpha': ml_g_tune.alpha_});
+        dml_plr_obj.set_ml_nuisance_params('ml_m', 'd', {'alpha': ml_m_tune.alpha_});
         print(dml_plr_obj.params)
         print(dml_plr_obj.fit().summary)
 
+
+.. TODO: Also discuss other specification options like `tune_on_folds` or `scoring_methods`.
 
 .. _learners_r:
 

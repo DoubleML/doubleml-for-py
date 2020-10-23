@@ -57,7 +57,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
 
 .. tabbed:: R
 

@@ -26,8 +26,7 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` 
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        dml_plr_obj.fit()
-        dml_plr_obj.summary
+        print(dml_plr_obj.fit())
 
 .. tabbed:: R
 
@@ -65,8 +64,7 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_pliv.DoubleMLPLIV.fit
         data = make_pliv_data(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
         dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
-        dml_pliv_obj.fit()
-        dml_pliv_obj.summary
+        print(dml_pliv_obj.fit())
 
 .. tabbed:: R
 
@@ -100,8 +98,7 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` 
         data = make_irm_data(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
-        dml_irm_obj.fit()
-        dml_irm_obj.summary
+        print(dml_irm_obj.fit())
 
 .. tabbed:: R
 
@@ -137,8 +134,7 @@ Estimation is conducted via its :meth:`~doubleml.double_ml_iivm.DoubleMLIIVM.fit
         data = make_iivm_data(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
         dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
-        dml_iivm_obj.fit()
-        dml_iivm_obj.summary
+        print(dml_iivm_obj.fit())
 
 .. tabbed:: R
 
