@@ -5,17 +5,17 @@ Sample-splitting, cross-fitting and repeated cross-fitting
 
 Sample-splitting and the application of cross-fitting is a central part of double/debiased machine learning (DML).
 For all DML models
-:class:`~doubleml.double_ml_plr.DoubleMLPLR`,
-:class:`~doubleml.double_ml_pliv.DoubleMLPLIV`,
-:class:`~doubleml.double_ml_irm.DoubleMLIRM`,
-and :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
+``DoubleMLPLR``,
+``DoubleMLPLIV``,
+``DoubleMLIRM``,
+and ``DoubleMLIIVM``
 the specification is done via the parameters ``n_folds`` and ``n_rep``.
 Advanced resampling techniques can be obtained via the boolean parameters
 ``draw_sample_splitting`` and ``apply_cross_fitting`` as well as the methods
 ``draw_sample_splitting()`` and ``set_sample_splitting()``.
 
 As an example we consider a partially linear regression model (PLR)
-implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+implemented in ``DoubleMLPLR``.
 
 .. tabbed:: Python
 
@@ -30,8 +30,8 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         learner = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_g = clone(learner)
         ml_m = clone(learner)
-        np.random.seed(123)
-        obj_dml_data = make_plr_CCDDHNR2018()
+        np.random.seed(1234)
+        obj_dml_data = make_plr_CCDDHNR2018(n_obs=100)
 
 .. tabbed:: R
 
@@ -76,7 +76,7 @@ The default setting is ``n_folds = 5`` and ``n_rep = 1``, i.e.,
         print(dml_plr_obj$n_folds)
         print(dml_plr_obj$n_rep)
 
-During the initialization of a DML model like :class:`~doubleml.double_ml_plr.DoubleMLPLR` a :math:`K`-fold random
+During the initialization of a DML model like ``DoubleMLPLR`` a :math:`K`-fold random
 partition :math:`(I_k)_{k=1}^{K}` of observation indices is generated.
 The :math:`K`-fold random partition is stored in the ``smpls`` attribute of the DML model object.
 
@@ -159,7 +159,7 @@ The third dimension refers to the treatment variable and becomes non-singleton i
 
     .. ipython:: python
 
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
         print(dml_plr_obj.psi_a[:5, :, 0])
         print(dml_plr_obj.psi_b[:5, :, 0])
 
@@ -172,8 +172,8 @@ The third dimension refers to the treatment variable and becomes non-singleton i
         print(dml_plr_obj$.__enclos_env__$private$psi_b[1:5, ,1])
 
 We estimate the causal parameter :math:`\tilde{\theta}_{0,m}` for each of the :math:`M` partitions with a DML
-algorithm as described in :ref:`dml-algo`.
-Standard errors are obtained as described in :ref:`se-confint`.
+algorithm as described in :ref:`algorithms`.
+Standard errors are obtained as described in :ref:`se_confint`.
 The aggregation of the estimates of the causal parameter and its standard errors is done using the median
 
     .. math::
@@ -220,13 +220,13 @@ Externally provide a sample splitting / partition
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
 All DML models allow a partition to be provided externally via the method ``set_sample_splitting()``.
-For example we can use the K-Folds cross-validator of sklearn :py:class:`~sklearn.model_selection.KFold` in order to
-generate a sample splitting and provide it to the DML model object.
+In Python we can for example use the K-Folds cross-validator of sklearn :py:class:`~sklearn.model_selection.KFold` in
+order to generate a sample splitting and provide it to the DML model object.
 Note that by setting ``draw_sample_splitting = False`` one can prevent that a partition is drawn during initialization
 of the DML model object.
 The following are equivalent.
 In the first sample code, we use the standard interface and draw the sample-splitting with :math:`K=4` folds during
-initialization of the :class:`~doubleml.double_ml_plr.DoubleMLPLR` object.
+initialization of the ``DoubleMLPLR`` object.
 
 .. tabbed:: Python
 
@@ -295,6 +295,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
 
     .. ipython:: python
 
+        np.random.seed(314)
         dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m,
                                                n_folds = 2, apply_cross_fitting = False)
         print(dml_plr_obj_external.fit().summary)
@@ -319,6 +320,7 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
 
     .. ipython:: python
 
+        np.random.seed(314)
         dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m,
                                                n_folds = 2, apply_cross_fitting = False, draw_sample_splitting = False)
 

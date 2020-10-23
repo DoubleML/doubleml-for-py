@@ -10,8 +10,8 @@ Partially linear regression model (PLR)
 
 .. include:: ../shared/causal_graphs/plr_irm_causal_graph.rst
 
-:class:`~doubleml.double_ml_plr.DoubleMLPLR` implements PLR models.
-Estimation is conducted via its :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method:
+``DoubleMLPLR`` implements PLR models.
+Estimation is conducted via its ``fit()`` method:
 
 .. tabbed:: Python
 
@@ -46,8 +46,8 @@ Partially linear IV regression model (PLIV)
 
 .. include:: ../shared/causal_graphs/pliv_iivm_causal_graph.rst
 
-:class:`~doubleml.double_ml_pliv.DoubleMLPLIV` implements PLIV models.
-Estimation is conducted via its :meth:`~doubleml.double_ml_pliv.DoubleMLPLIV.fit` method:
+``DoubleMLPLIV`` implements PLIV models.
+Estimation is conducted via its ``fit()`` method:
 
 .. tabbed:: Python
 
@@ -84,8 +84,8 @@ Interactive regression model (IRM)
 
 .. include:: ../shared/causal_graphs/plr_irm_causal_graph.rst
 
-:class:`~doubleml.double_ml_irm.DoubleMLIRM` implements IRM models.
-Estimation is conducted via its :meth:`~doubleml.double_ml_irm.DoubleMLIRM.fit` method:
+``DoubleMLIRM`` implements IRM models.
+Estimation is conducted via its ``fit()`` method:
 
 .. tabbed:: Python
 
@@ -118,8 +118,8 @@ Interactive IV model (IIVM)
 
 .. include:: ../shared/causal_graphs/pliv_iivm_causal_graph.rst
 
-:class:`~doubleml.double_ml_iivm.DoubleMLIIVM` implements IIVM models.
-Estimation is conducted via its :meth:`~doubleml.double_ml_iivm.DoubleMLIIVM.fit` method:
+``DoubleMLIIVM`` implements IIVM models.
+Estimation is conducted via its ``fit()`` method:
 
 .. tabbed:: Python
 

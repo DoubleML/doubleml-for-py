@@ -36,7 +36,7 @@ An approximate confidence interval is given by
     \big[\tilde{\theta}_0 \pm \Phi^{-1}(1 - \alpha/2) \hat{\sigma} / \sqrt{N}].
 
 As an example we consider a partially linear regression model (PLR)
-implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+implemented in ``DoubleMLPLR``.
 
 .. tabbed:: Python
 
@@ -63,7 +63,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         Y = c(5,3,5,7);
         lm(Y~X)
 
-The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
+The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: Python
