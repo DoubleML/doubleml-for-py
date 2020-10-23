@@ -1,3 +1,5 @@
+.. _guide:
+
 :parenttoc: True
 
 User guide

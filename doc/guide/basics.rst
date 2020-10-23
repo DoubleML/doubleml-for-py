@@ -1,3 +1,5 @@
+.. _basics:
+
 The basics of double/debiased machine learning
 ----------------------------------------------
 

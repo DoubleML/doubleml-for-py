@@ -1,3 +1,5 @@
+.. _data_backend:
+
 The data-backend DoubleMLData
 -----------------------------
 

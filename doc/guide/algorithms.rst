@@ -1,4 +1,4 @@
-.. _dml-algo:
+.. _algorithms:
 
 Double machine learning algorithms
 ----------------------------------

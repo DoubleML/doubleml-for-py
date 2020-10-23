@@ -1,4 +1,4 @@
-.. _se-confint:
+.. _se_confint:
 
 Variance estimation, confidence intervals and boostrap standard errors
 ----------------------------------------------------------------------
