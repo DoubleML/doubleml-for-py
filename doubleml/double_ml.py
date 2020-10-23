@@ -16,6 +16,7 @@ class DoubleML(ABC):
     """
     Double Machine Learning
     """
+
     def __init__(self,
                  obj_dml_data,
                  n_folds,
@@ -58,6 +59,31 @@ class DoubleML(ABC):
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._initialize_arrays()
+
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f'================== {class_name} Object ==================\n'
+        data_info = f'Outcome variable: {self._dml_data.y_col}\n' \
+                    f'Treatment variable(s): {self._dml_data.d_cols}\n' \
+                    f'Covariates: {self._dml_data.x_cols}\n' \
+                    f'Instrument variable(s): {self._dml_data.z_cols}\n' \
+                    f'No. Observations: {self._dml_data.n_obs}\n'
+        score_info = f'Score function: {str(self.score)}\n' \
+                     f'DML algorithm: {self.dml_procedure}\n'
+        learner_info = ''
+        for key, value in self.learner.items():
+            learner_info += f'Learner {key}: {str(value)}\n'
+        resampling_info = f'No. folds: {self.n_folds}\n' \
+                          f'No. repeated sample splits: {self.n_rep}\n' \
+                          f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+        fit_summary = str(self.summary)
+        res = header + \
+            '\n------------------ Data summary      ------------------\n' + data_info + \
+            '\n------------------ Score & algorithm ------------------\n' + score_info + \
+            '\n------------------ Machine learner   ------------------\n' + learner_info + \
+            '\n------------------ Resampling        ------------------\n' + resampling_info + \
+            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        return res
 
     @property
     def learner(self):
@@ -136,39 +162,39 @@ class DoubleML(ABC):
         after calling :meth:`fit`.
         """
         return self._psi
-    
-    @property 
+
+    @property
     def psi_a(self):
         """
         Values of the score function component :math:`\\psi_a(W; \\eta)` after calling :meth:`fit`.
         """
         return self._psi_a
-    
-    @property 
+
+    @property
     def psi_b(self):
         """
         Values of the score function component :math:`\\psi_b(W; \\eta)` after calling :meth:`fit`.
         """
         return self._psi_b
-    
-    @property 
+
+    @property
     def coef(self):
         """
         Estimates for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._coef
-    
+
     @coef.setter
     def coef(self, value):
         self._coef = value
-    
-    @property 
+
+    @property
     def se(self):
         """
         Standard errors for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._se
-    
+
     @se.setter
     def se(self, value):
         self._se = value
@@ -188,8 +214,8 @@ class DoubleML(ABC):
         """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
-    
-    @property 
+
+    @property
     def boot_coef(self):
         """
         Bootstrapped coefficients for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
@@ -242,7 +268,7 @@ class DoubleML(ABC):
             ci = self.confint()
             df_summary = df_summary.join(ci)
         return df_summary
-    
+
     # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection.
     # The slicing is based on the two properties self._i_treat, the index of the treatment variable, and
     # self._i_rep, the index of the cross-fitting sample.
@@ -251,7 +277,7 @@ class DoubleML(ABC):
     def __smpls(self):
         return self.smpls[self._i_rep]
 
-    @property 
+    @property
     def __psi(self):
         return self._psi[:, self._i_rep, self._i_treat]
 
@@ -266,8 +292,8 @@ class DoubleML(ABC):
     @__psi_a.setter
     def __psi_a(self, value):
         self._psi_a[:, self._i_rep, self._i_treat] = value
-    
-    @property 
+
+    @property
     def __psi_b(self):
         return self._psi_b[:, self._i_rep, self._i_treat]
 
@@ -324,7 +350,7 @@ class DoubleML(ABC):
     def __all_dml1_coef(self, value):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
-    
+
     def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
         Estimate DoubleML models.
@@ -358,7 +384,7 @@ class DoubleML(ABC):
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
-                #if self._ml_nuiscance_params is not None:
+                # if self._ml_nuiscance_params is not None:
                 #    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
@@ -406,7 +432,7 @@ class DoubleML(ABC):
             raise ValueError('apply fit() before bootstrap()')
 
         dml_procedure = self.dml_procedure
-        
+
         self._initialize_boot_arrays(n_rep)
 
         for i_rep in range(self.n_rep):
@@ -438,10 +464,10 @@ class DoubleML(ABC):
             A data frame with the confidence interval(s).
         """
         a = (1 - level)
-        ab = np.array([a/2, 1. - a/2])
+        ab = np.array([a / 2, 1. - a / 2])
         if joint:
             sim = np.amax(np.abs(self.boot_t_stat), 0)
-            hatc = np.quantile(sim, 1-a)
+            hatc = np.quantile(sim, 1 - a)
             hatc_two_sided = np.array([-hatc, hatc])
             ci = self.coef + self.se * hatc_two_sided
         else:
@@ -472,7 +498,7 @@ class DoubleML(ABC):
         """
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before p_adjust()')
-        
+
         if method.lower() in ['rw', 'romano-wolf']:
             if (not hasattr(self, 'boot_coef')) or (self.boot_coef is None):
                 raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
@@ -498,7 +524,7 @@ class DoubleML(ABC):
                 if i_d == 0:
                     p_val_corrected[i_d] = pinit[i_d]
                 else:
-                    p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d-1])
+                    p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d - 1])
 
             p_val = p_val_corrected[ro]
         else:
@@ -706,7 +732,7 @@ class DoubleML(ABC):
         self._psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
         self._psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
         self._psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-        
+
         self._coef = np.full(self._dml_data.n_treat, np.nan)
         self._se = np.full(self._dml_data.n_treat, np.nan)
 
@@ -772,11 +798,11 @@ class DoubleML(ABC):
         self._initialize_ml_nuisance_params()
 
         return self
-    
+
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
-        
+
         if dml_procedure == 'dml1':
             # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
             thetas = np.zeros(len(smpls))
@@ -786,11 +812,11 @@ class DoubleML(ABC):
             coef = theta_hat
 
             self.__all_dml1_coef = thetas
-            
+
         elif dml_procedure == 'dml2':
             theta_hat = self._orth_est()
             coef = theta_hat
-            
+
         else:
             raise ValueError('invalid dml_procedure')
 
@@ -853,9 +879,9 @@ class DoubleML(ABC):
                 for idx, (_, test_index) in enumerate(smpls):
                     J = np.mean(self.__psi_a[test_index])
                     boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                                len(test_index) * J)
+                            len(test_index) * J)
                     boot_t_stats[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                                len(test_index) * self.__all_se * J)
+                            len(test_index) * self.__all_se * J)
                 boot_coef = np.mean(boot_coefs, axis=1)
                 boot_t_stat = np.mean(boot_t_stats, axis=1)
 
@@ -873,18 +899,17 @@ class DoubleML(ABC):
 
         return boot_coef, boot_t_stat
 
-
-    def _var_est(self, inds = None):
+    def _var_est(self, inds=None):
         """
         Estimate the standard errors of the structural parameter
         """
         psi_a = self.__psi_a
         psi = self.__psi
-        
+
         if inds is not None:
             psi_a = psi_a[inds]
             psi = psi[inds]
-        
+
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         if self.apply_cross_fitting:
@@ -895,25 +920,25 @@ class DoubleML(ABC):
             test_index = smpls[0][1]
             n_obs = len(test_index)
         J = np.mean(psi_a)
-        sigma2_hat = 1/n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
-        
-        return sigma2_hat    
-        
-    def _orth_est(self, inds = None):
+        sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
+
+        return sigma2_hat
+
+    def _orth_est(self, inds=None):
         """
         Estimate the structural parameter
         """
         psi_a = self.__psi_a
         psi_b = self.__psi_b
-        
+
         if inds is not None:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
-        
-        theta = -np.mean(psi_b)/np.mean(psi_a)
-        
+
+        theta = -np.mean(psi_b) / np.mean(psi_a)
+
         return theta
-    
+
     def _compute_score(self):
         self.__psi = self.__psi_a * self.__all_coef + self.__psi_b
 
@@ -921,4 +946,3 @@ class DoubleML(ABC):
         del self._psi
         del self._psi_a
         del self._psi_b
-
