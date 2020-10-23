@@ -185,15 +185,15 @@ class DoubleMLPLIV(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         if self.partialX & (not self.partialZ):
-            if self.n_instr == 1:
+            if self._dml_data.n_instr == 1:
                 valid_learner = ['ml_g', 'ml_m', 'ml_r']
             else:
-                valid_learner = ['ml_g', 'ml_r'] + ['ml_m_' + z_col for z_col in self.z_cols]
+                valid_learner = ['ml_g', 'ml_r'] + ['ml_m_' + z_col for z_col in self._dml_data.z_cols]
         elif (not self.partialX) & self.partialZ:
             valid_learner = ['ml_r']
         elif self.partialX & self.partialZ:
             valid_learner = ['ml_g', 'ml_m', 'ml_r']
-        self._params = {learner: {key: [None] * self.n_rep for key in self.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -214,52 +214,52 @@ class DoubleMLPLIV(DoubleML):
     def _check_data(self, obj_dml_data):
         return
 
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         if self.partialX & (not self.partialZ):
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialX(obj_dml_data, smpls, n_jobs_cv)
+            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialX(smpls, n_jobs_cv)
         elif (not self.partialX) & self.partialZ:
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialZ(obj_dml_data, smpls, n_jobs_cv)
+            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialZ(smpls, n_jobs_cv)
         elif self.partialX & self.partialZ:
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialXZ(obj_dml_data, smpls, n_jobs_cv)
+            psi_a, psi_b = self._ml_nuisance_and_score_elements_partialXZ(smpls, n_jobs_cv)
 
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
         if self.partialX & (not self.partialZ):
-            res = self._ml_nuisance_tuning_partialX(obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune,
-                                                    n_jobs_cv, search_mode, n_iter_randomized_search)
+            res = self._ml_nuisance_tuning_partialX(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                                                    search_mode, n_iter_randomized_search)
         elif (not self.partialX) & self.partialZ:
-            res = self._ml_nuisance_tuning_partialZ(obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune,
-                                                    n_jobs_cv, search_mode, n_iter_randomized_search)
+            res = self._ml_nuisance_tuning_partialZ(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                                                    search_mode, n_iter_randomized_search)
         elif self.partialX & self.partialZ:
-            res = self._ml_nuisance_tuning_partialXZ(obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune,
-                                                     n_jobs_cv, search_mode, n_iter_randomized_search)
+            res = self._ml_nuisance_tuning_partialXZ(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                                                    search_mode, n_iter_randomized_search)
 
         return res
 
-    def _ml_nuisance_and_score_elements_partialX(self, obj_dml_data, smpls, n_jobs_cv):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+    def _ml_nuisance_and_score_elements_partialX(self, smpls, n_jobs_cv):
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
         
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'))
         
         # nuisance m
-        if obj_dml_data.n_instr == 1:
+        if self._dml_data.n_instr == 1:
             # one instrument: just identified
-            X, z = check_X_y(X, obj_dml_data.z)
+            X, z = check_X_y(X, self._dml_data.z)
             m_hat = _dml_cv_predict(self._learner['ml_m'], X, z, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'))
         else:
             # several instruments: 2SLS
-            m_hat = np.full((self.n_obs, obj_dml_data.n_instr), np.nan)
-            z = obj_dml_data.z
-            for i_instr in range(obj_dml_data.n_instr):
+            m_hat = np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan)
+            z = self._dml_data.z
+            for i_instr in range(self._dml_data.n_instr):
                 X, this_z = check_X_y(X, z[:, i_instr])
                 m_hat[:, i_instr] = _dml_cv_predict(self._learner['ml_m'], X, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                    est_params=self._get_params('ml_m_' + self.z_cols[i_instr]))
+                                                    est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]))
 
         # nuisance r
         r_hat = _dml_cv_predict(self._learner['ml_r'], X, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -270,7 +270,7 @@ class DoubleMLPLIV(DoubleML):
         w_hat = d - r_hat
         v_hat = z - m_hat
 
-        if obj_dml_data.n_instr > 1:
+        if self._dml_data.n_instr > 1:
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
             # projection of w_hat on v_hat
@@ -280,23 +280,23 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            if obj_dml_data.n_instr == 1:
+            if self._dml_data.n_instr == 1:
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
             else:
                 psi_a = -np.multiply(w_hat, r_hat_tilde)
                 psi_b = np.multiply(r_hat_tilde, u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
+            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
             psi_a, psi_b = self.score(y, z, d,
                                       g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
-    def _ml_nuisance_and_score_elements_partialZ(self, obj_dml_data, smpls, n_jobs_cv):
-        y = obj_dml_data.y
-        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
-                          obj_dml_data.d)
+    def _ml_nuisance_and_score_elements_partialZ(self, smpls, n_jobs_cv):
+        y = self._dml_data.y
+        XZ, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
+                          self._dml_data.d)
 
         # nuisance m
         r_hat = _dml_cv_predict(self._learner['ml_r'], XZ, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -308,15 +308,15 @@ class DoubleMLPLIV(DoubleML):
             psi_a = -np.multiply(r_hat, d)
             psi_b = np.multiply(r_hat, y)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
+            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
 
         return psi_a, psi_b
 
-    def _ml_nuisance_and_score_elements_partialXZ(self, obj_dml_data, smpls, n_jobs_cv):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
-                          obj_dml_data.d)
-        X, d = check_X_y(X, obj_dml_data.d)
+    def _ml_nuisance_and_score_elements_partialXZ(self, smpls, n_jobs_cv):
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        XZ, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
+                          self._dml_data.d)
+        X, d = check_X_y(X, self._dml_data.d)
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls, n_jobs=n_jobs_cv,
@@ -340,14 +340,14 @@ class DoubleMLPLIV(DoubleML):
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         elif callable(self.score):
-            assert obj_dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialXZ'
+            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialXZ'
 
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning_partialX(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning_partialX(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                      search_mode, n_iter_randomized_search):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
@@ -369,11 +369,11 @@ class DoubleMLPLIV(DoubleML):
                                                    n_iter=n_iter_randomized_search)
             g_tune_res[idx] = g_grid_search.fit(X[train_index, :], y[train_index])
 
-        if obj_dml_data.n_instr > 1:
+        if self._dml_data.n_instr > 1:
             # several instruments: 2SLS
-            m_tune_res = {instr_var: [None] * len(smpls) for instr_var in self.z_cols}
-            z = obj_dml_data.z
-            for i_instr in range(obj_dml_data.n_instr):
+            m_tune_res = {instr_var: [None] * len(smpls) for instr_var in self._dml_data.z_cols}
+            z = self._dml_data.z
+            for i_instr in range(self._dml_data.n_instr):
                 for idx, (train_index, test_index) in enumerate(smpls):
                     X, this_z = check_X_y(X, z[:, i_instr])
                     m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
@@ -387,12 +387,12 @@ class DoubleMLPLIV(DoubleML):
                                                            scoring=scoring_methods['ml_m'],
                                                            cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                            n_iter=n_iter_randomized_search)
-                    m_tune_res[self.z_cols[i_instr]][idx] = m_grid_search.fit(X[train_index, :], this_z[train_index])
+                    m_tune_res[self._dml_data.z_cols[i_instr]][idx] = m_grid_search.fit(X[train_index, :], this_z[train_index])
         else:
             # one instrument: just identified
             m_tune_res = [None] * len(smpls)
             for idx, (train_index, test_index) in enumerate(smpls):
-                X, z = check_X_y(X, obj_dml_data.z)
+                X, z = check_X_y(X, self._dml_data.z)
                 m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
                     m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
@@ -423,10 +423,10 @@ class DoubleMLPLIV(DoubleML):
 
         g_best_params = [xx.best_params_ for xx in g_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
-        if obj_dml_data.n_instr > 1:
+        if self._dml_data.n_instr > 1:
             params = {'ml_g': g_best_params,
                       'ml_r': r_best_params}
-            for instr_var in self.z_cols:
+            for instr_var in self._dml_data.z_cols:
                 params['ml_m_' + instr_var] = [xx.best_params_ for xx in m_tune_res[instr_var]]
         else:
             m_best_params = [xx.best_params_ for xx in m_tune_res]
@@ -443,10 +443,10 @@ class DoubleMLPLIV(DoubleML):
 
         return res
 
-    def _ml_nuisance_tuning_partialZ(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning_partialZ(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                      search_mode, n_iter_randomized_search):
-        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
-                          obj_dml_data.d)
+        XZ, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
+                          self._dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_r': None}
@@ -477,12 +477,12 @@ class DoubleMLPLIV(DoubleML):
 
         return res
 
-    def _ml_nuisance_tuning_partialXZ(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning_partialXZ(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                       search_mode, n_iter_randomized_search):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        XZ, d = check_X_y(np.hstack((obj_dml_data.x, obj_dml_data.z)),
-                          obj_dml_data.d)
-        X, d = check_X_y(X, obj_dml_data.d)
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        XZ, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
+                          self._dml_data.d)
+        X, d = check_X_y(X, self._dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,

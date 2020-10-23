@@ -93,7 +93,7 @@ class DoubleMLPLR(DoubleML):
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
-        self._params = {learner: {key: [None] * self.n_rep for key in self.d_cols} for learner in ['ml_g', 'ml_m']}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -111,9 +111,9 @@ class DoubleMLPLR(DoubleML):
         assert obj_dml_data.z_cols is None
         return
 
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
         
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls, n_jobs=n_jobs_cv,
@@ -141,10 +141,10 @@ class DoubleMLPLR(DoubleML):
         
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        X, y = check_X_y(obj_dml_data.x, obj_dml_data.y)
-        X, d = check_X_y(X, obj_dml_data.d)
+        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        X, d = check_X_y(X, self._dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,

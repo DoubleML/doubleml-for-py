@@ -60,41 +60,6 @@ class DoubleML(ABC):
         self._initialize_arrays()
 
     @property
-    def n_obs(self):
-        """
-        The number of observations.
-        """
-        return self._dml_data.n_obs
-
-    @property
-    def n_treat(self):
-        """
-        The number of treatment variables.
-        """
-        return self._dml_data.n_treat
-
-    @property
-    def n_instr(self):
-        """
-        The number of instrument variables.
-        """
-        return self._dml_data.n_instr
-
-    @property
-    def d_cols(self):
-        """
-        The treatment variables.
-        """
-        return self._dml_data.d_cols
-
-    @property
-    def z_cols(self):
-        """
-        The instrument variables.
-        """
-        return self._dml_data.z_cols
-
-    @property
     def learner(self):
         """
         The machine learners for the nuisance functions.
@@ -147,7 +112,7 @@ class DoubleML(ABC):
     # self._i_rep, the index of the cross-fitting sample.
 
     def _get_params(self, learner):
-        return self._params[learner][self.d_cols[self._i_treat]][self._i_rep]
+        return self._params[learner][self._dml_data.d_cols[self._i_treat]][self._i_rep]
 
     @property
     def smpls(self):
@@ -265,7 +230,7 @@ class DoubleML(ABC):
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         col_names = ['coef', 'std err', 't', 'P>|t|']
-        if self.d_cols is None:
+        if self._dml_data.d_cols is None:
             df_summary = pd.DataFrame(columns=col_names)
         else:
             summary_stats = np.transpose(np.vstack(
@@ -273,7 +238,7 @@ class DoubleML(ABC):
                  self.t_stat, self.pval]))
             df_summary = pd.DataFrame(summary_stats,
                                       columns=col_names,
-                                      index=self.d_cols)
+                                      index=self._dml_data.d_cols)
             ci = self.confint()
             df_summary = df_summary.join(ci)
         return df_summary
@@ -390,18 +355,18 @@ class DoubleML(ABC):
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-            for i_d in range(self.n_treat):
+            for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
                 #if self._ml_nuiscance_params is not None:
                 #    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
 
                 # this step could be skipped for the single treatment variable case
-                if self.n_treat > 1:
-                    self._dml_data._set_x_d(self.d_cols[i_d])
+                if self._dml_data.n_treat > 1:
+                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self._dml_data, self.__smpls, n_jobs_cv)
+                self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()
@@ -446,7 +411,7 @@ class DoubleML(ABC):
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-            for i_d in range(self.n_treat):
+            for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
                 self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method, n_rep)
@@ -485,7 +450,7 @@ class DoubleML(ABC):
 
         df_ci = pd.DataFrame([ci],
                              columns=['{:.1f} %'.format(i * 100) for i in ab],
-                             index=self.d_cols)
+                             index=self._dml_data.d_cols)
         return df_ci
 
     def p_adjust(self, method='romano-wolf'):
@@ -520,7 +485,7 @@ class DoubleML(ABC):
             stepdown_ind = np.argsort(t_stat)[::-1]
             ro = np.argsort(stepdown_ind)
 
-            for i_d in range(self.n_treat):
+            for i_d in range(self._dml_data.n_treat):
                 if i_d == 0:
                     sim = np.max(boot_t_stats, axis=0)
                     pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
@@ -529,7 +494,7 @@ class DoubleML(ABC):
                                  axis=0)
                     pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
 
-            for i_d in range(self.n_treat):
+            for i_d in range(self._dml_data.n_treat):
                 if i_d == 0:
                     p_val_corrected[i_d] = pinit[i_d]
                 else:
@@ -610,25 +575,25 @@ class DoubleML(ABC):
 
         # check param_grids input
         if not isinstance(param_grids, dict) | (not all(k in param_grids for k in self.learner_names)):
-            raise ValueError('invalid param_grids ' + param_grids +
+            raise ValueError('invalid param_grids ' + str(param_grids) +
                              '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
 
         if scoring_methods is not None:
             if not isinstance(scoring_methods, dict) | (not all(k in self.learner_names for k in scoring_methods)):
-                raise ValueError('invalid scoring_methods ' + scoring_methods +
+                raise ValueError('invalid scoring_methods ' + str(scoring_methods) +
                                  '\n scoring_methods must be a dictionary.' +
                                  '\n Valid keys are ' + ' or '.join(self.learner_names))
 
         if tune_on_folds:
-            tuning_res = [[None] * self.n_rep] * self.n_treat
+            tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
         else:
-            tuning_res = [None] * self.n_treat
+            tuning_res = [None] * self._dml_data.n_treat
 
-        for i_d in range(self.n_treat):
+        for i_d in range(self._dml_data.n_treat):
             self._i_treat = i_d
             # this step could be skipped for the single treatment variable case
-            if self.n_treat > 1:
-                self._dml_data._set_x_d(self.d_cols[i_d])
+            if self._dml_data.n_treat > 1:
+                self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
 
             if tune_on_folds:
                 nuiscance_params = [None] * self.n_rep
@@ -636,7 +601,7 @@ class DoubleML(ABC):
                     self._i_rep = i_rep
 
                     # tune hyperparameters
-                    res = self._ml_nuisance_tuning(self._dml_data, self.__smpls,
+                    res = self._ml_nuisance_tuning(self.__smpls,
                                                    param_grids, scoring_methods,
                                                    n_folds_tune,
                                                    n_jobs_cv,
@@ -648,12 +613,12 @@ class DoubleML(ABC):
                 if set_as_params:
                     for nuisance_model in nuiscance_params[0].keys():
                         params = [x[nuisance_model] for x in nuiscance_params]
-                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params)
+                        self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
+                smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
                 # tune hyperparameters
-                res = self._ml_nuisance_tuning(self._dml_data, smpls,
+                res = self._ml_nuisance_tuning(smpls,
                                                param_grids, scoring_methods,
                                                n_folds_tune,
                                                n_jobs_cv,
@@ -663,7 +628,7 @@ class DoubleML(ABC):
                 if set_as_params:
                     for nuisance_model in res['params'].keys():
                         params = res['params'][nuisance_model]
-                        self.set_ml_nuisance_params(nuisance_model, self.d_cols[i_d], params[0])
+                        self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params[0])
 
         if return_tune_res:
             return tuning_res
@@ -694,9 +659,10 @@ class DoubleML(ABC):
         if learner not in valid_learner:
             raise ValueError('invalid nuisance learner ' + learner +
                              '\n valid nuisance learner ' + ' or '.join(valid_learner))
-        if treat_var not in self.d_cols:
-            raise ValueError('invalid treatment variable ' + treat_var +
-                             '\n valid treatment variable ' + ' or '.join(self.d_cols))
+
+        if treat_var not in self._dml_data.d_cols:
+            raise ValueError('invalid treatment variable' + treat_var +
+                             '\n valid treatment variable ' + ' or '.join(self._dml_data.d_cols))
 
         if isinstance(params, dict):
             if self.apply_cross_fitting:
@@ -728,35 +694,35 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_and_score_elements(self, obj_dml_data, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, obj_dml_data, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
         pass
 
     def _initialize_arrays(self):
-        self._psi = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
-        self._psi_a = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
-        self._psi_b = np.full((self.n_obs, self.n_rep, self.n_treat), np.nan)
+        self._psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        self._psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        self._psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
         
-        self._coef = np.full(self.n_treat, np.nan)
-        self._se = np.full(self.n_treat, np.nan)
+        self._coef = np.full(self._dml_data.n_treat, np.nan)
+        self._se = np.full(self._dml_data.n_treat, np.nan)
 
-        self._all_coef = np.full((self.n_treat, self.n_rep), np.nan)
-        self._all_se = np.full((self.n_treat, self.n_rep), np.nan)
+        self._all_coef = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
+        self._all_se = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
             if self.apply_cross_fitting:
-                self._all_dml1_coef = np.full((self.n_treat, self.n_rep, self.n_folds), np.nan)
+                self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
             else:
-                self._all_dml1_coef = np.full((self.n_treat, self.n_rep, 1), np.nan)
+                self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
-        self._boot_coef = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
-        self._boot_t_stat = np.full((self.n_treat, n_rep * self.n_rep), np.nan)
+        self._boot_coef = np.full((self._dml_data.n_treat, n_rep * self.n_rep), np.nan)
+        self._boot_t_stat = np.full((self._dml_data.n_treat, n_rep * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
         """
@@ -771,7 +737,7 @@ class DoubleML(ABC):
         """
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep=self.n_rep,
-                                                n_obs=self.n_obs,
+                                                n_obs=self._dml_data.n_obs,
                                                 apply_cross_fitting=self.apply_cross_fitting)
         self.smpls = obj_dml_resampling.split_samples()
 
@@ -863,7 +829,7 @@ class DoubleML(ABC):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
         if self.apply_cross_fitting:
-            n_obs = self.n_obs
+            n_obs = self._dml_data.n_obs
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             test_index = smpls[0][1]
@@ -895,8 +861,8 @@ class DoubleML(ABC):
 
             elif dml_procedure == 'dml2':
                 J = np.mean(self.__psi_a)
-                boot_coef = np.matmul(weights, self.__psi) / (self.n_obs * J)
-                boot_t_stat = np.matmul(weights, self.__psi) / (self.n_obs * self.__all_se * J)
+                boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
+                boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
             else:
                 raise ValueError('invalid dml_procedure')
@@ -922,7 +888,7 @@ class DoubleML(ABC):
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         if self.apply_cross_fitting:
-            n_obs = self.n_obs
+            n_obs = self._dml_data.n_obs
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             smpls = self.__smpls
