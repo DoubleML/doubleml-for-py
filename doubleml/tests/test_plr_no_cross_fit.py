@@ -109,7 +109,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
@@ -234,7 +234,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
         boot_t_stat = np.hstack(all_boot_t_stat)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
@@ -359,7 +359,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
