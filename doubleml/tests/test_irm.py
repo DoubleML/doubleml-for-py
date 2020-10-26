@@ -111,7 +111,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimm
                                            dml_procedure)
         
         np.random.seed(3141)
-        dml_irm_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        dml_irm_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta

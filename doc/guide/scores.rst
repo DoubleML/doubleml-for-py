@@ -1,3 +1,5 @@
+.. _scores:
+
 Score functions
 ---------------
 
@@ -19,12 +21,12 @@ and that obey the **Neyman orthogonality condition**
 
     \partial_{\eta} \mathbb{E}[ \psi(W; \theta_0, \eta)] \bigg|_{\eta=\eta_0} = 0.
 
-The object-oriented (OOP) implementation of
-:class:`~doubleml.double_ml_plr.DoubleMLPLR`,
-:class:`~doubleml.double_ml_pliv.DoubleMLPLIV`,
-:class:`~doubleml.double_ml_irm.DoubleMLIRM`,
-and :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
-uses the linearity of the score function in the parameter :math:`theta`
+An integral component for the object-oriented (OOP) implementation of
+``DoubleMLPLR``,
+``DoubleMLPLIV``,
+``DoubleMLIRM``,
+and ``DoubleMLIIVM``
+is the linearity of the score function in the parameter :math:`\theta`
 
 .. math::
 
@@ -34,13 +36,20 @@ Hence the estimator can be written as
 
 .. math::
 
-    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}
+    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}.
+
+The linearity of the score function in the parameter :math:`\theta` allows the implementation of key components in a very
+general way.
+The methods and algorithms to estimate the causal parameters, to estimate their standard errors, to perform a multiplier
+bootstrap, to obtain confidence intervals and many more are implemented in the abstract base class ``DoubleML``.
+The object-oriented architecture therefore allows for easy extension to new model classes for double machine learning.
+This is doable with very minor effort whenever the linearity of the score function is satisfied.
 
 Implementation of the score function and the estimate of the causal parameter
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 As an example we consider a partially linear regression model (PLR)
-implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+implemented in ``DoubleMLPLR``.
 
 .. tabbed:: Python
 
@@ -57,7 +66,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
 
 .. tabbed:: R
 
@@ -67,7 +76,7 @@ implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
         Y = c(5,3,5,7);
         lm(Y~X)
 
-The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
+The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: Python
@@ -109,7 +118,7 @@ Implemented Neyman orthogonal score functions
 Partially linear regression model (PLR)
 ***************************************
 
-For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` one can choose between
+For the PLR model implemented in ``DoubleMLPLR`` one can choose between
 ``score='IV-type'`` and ``score='partialling out'``.
 
 ``score='IV-type'`` implements the score function:
@@ -152,7 +161,7 @@ with :math:`\eta=(\ell,m)` and where the components of the linear score are
 Partially linear IV regression model (PLIV)
 *******************************************
 
-For the PLIV model implemented in :class:`~doubleml.double_ml_pliv.DoubleMLPLIV`
+For the PLIV model implemented in ``DoubleMLPLIV``
 we employ for ``score='partialling out'`` the score function:
 
 .. math::
@@ -174,7 +183,7 @@ with :math:`\eta=(\ell, m, r)` and where the components of the linear score are
 Interactive regression model (IRM)
 **********************************
 
-For the IRM model implemented in :class:`~doubleml.double_ml_irm.DoubleMLIRM` one can choose between
+For the IRM model implemented in ``DoubleMLIRM`` one can choose between
 ``score='ATE'`` and ``score='ATTE'``.
 
 ``score='ATE'`` implements the score function:
@@ -213,17 +222,17 @@ with :math:`\eta=(g, m, p)` and where the components of the linear score are
 Interactive IV model (IIVM)
 ***************************
 
-For the IIVM model implemented in :class:`~doubleml.double_ml_iivm.DoubleMLIIVM`
+For the IIVM model implemented in ``DoubleMLIIVM``
 we employ for ``score='LATE'`` the score function:
 
 ``score='LATE'`` implements the score function:
 
 .. math::
 
-    \psi(W; \theta, \eta) :=\; &\mu(1,X) - \mu(0,X)
-    + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}
+    \psi(W; \theta, \eta) :=\; &g(1,X) - g(0,X)
+    + \frac{Z (Y - g(1,X))}{m(X)} - \frac{(1 - Z)(Y - g(0,X))}{1 - m(x)}
 
-    &- \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg) \theta
+    &- \bigg(r(1,X) - r(0,X) + \frac{Z (D - r(1,X))}{m(X)} - \frac{(1 - Z)(D - r(0,X))}{1 - m(x)} \bigg) \theta
 
     =\; &\psi_a(W; \eta) \theta + \psi_b(W; \eta)
 
@@ -231,15 +240,16 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
 
 .. math::
 
-    \psi_a(W; \eta) &=  - \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg),
+    \psi_a(W; \eta) &=  - \bigg(r(1,X) - r(0,X) + \frac{Z (D - r(1,X))}{m(X)} - \frac{(1 - Z)(D - r(0,X))}{1 - m(x)} \bigg),
 
-    \psi_b(W; \eta) &= \mu(1,X) - \mu(0,X) + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}.
+    \psi_b(W; \eta) &= g(1,X) - g(0,X) + \frac{Z (Y - g(1,X))}{m(X)} - \frac{(1 - Z)(Y - g(0,X))}{1 - m(x)}.
 
 Specifying alternative score functions via callables
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Via callables user-written score functions can be used.
-For the PLR model implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR` an alternative score function can be
+This functionality is at the moment only implemented for specific model classes in Python.
+For the PLR model implemented in ``DoubleMLPLR`` an alternative score function can be
 set via ``score``.
 Choose a callable object / function with signature ``score(y, d, g_hat, m_hat, smpls)`` which returns
 the two score components :math:`\psi_a()` and :math:`\psi_b()`.
@@ -264,20 +274,12 @@ can be obtained with
             psi_b = np.multiply(d, u_hat)
             return psi_a, psi_b
 
-.. tabbed:: R
-
-    .. jupyter-execute::
-
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
-
-Use :class:`~doubleml.double_ml_plr.DoubleMLPLR` with ``inf_model=non_orth_score`` in order to obtain the estimator
+Use ``DoubleMLPLR`` with ``inf_model=non_orth_score`` in order to obtain the estimator
 
 .. math::
 
     \tilde{\theta}_0 = - \frac{\mathbb{E}_N[D (Y-g(X))]}{\mathbb{E}_N[D^2]}
 
-when applying :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit`.
+when applying ``fit()``.
 Note that this estimate will in general be prone to a regularization bias, see also :ref:`bias_non_orth`.
 

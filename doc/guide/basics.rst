@@ -1,5 +1,13 @@
+.. _basics:
+
 The basics of double/debiased machine learning
 ----------------------------------------------
+
+In the following we provide a brief summary of and motivation to double machine learning methods and show how the
+corresponding methods provided by the :ref:`DoubleML <doubleml_package>` package can be applied.
+For details we refer to Chernozhukov et al. (2018).
+
+.. Add references to the vignette here when it is ready.
 
 Data generating process
 +++++++++++++++++++++++
@@ -8,40 +16,34 @@ We consider the following partially linear model
 
 .. math::
 
-    Y_i = D_i \theta + g(X_i) + \zeta,
+        d_i = m_0(x_i) + v_i, & &v_i \sim \mathcal{N}(0,1),
 
-    D_i = m(X_i) + V,
+        y_i = \theta d_i + g_0(x_i) + \zeta_i, & &\zeta_i \sim \mathcal{N}(0,1),
 
-with :math:`\zeta, V \sim \mathcal{N}(0,1)` and :math:`X \sim \mathcal{N}_{p}(0, \Sigma)`.
-The variance-covariance matrix :math:`\Sigma` of the :math:`p`-dimensional confounders :math:`X` is a Toeplitz-matrix
-with diagonal elements :math:`0.7^i`.
+
+with covariates :math:`x_i \sim \mathcal{N}(0, \Sigma)`, where  :math:`\Sigma` is a matrix with entries
+:math:`\Sigma_{kj} = 0.7^{|j-k|}`.
 The true parameter :math:`\theta` is set to :math:`0.5`.
-The non-linear functions :math:`g()` and :math:`m()` are chosen as
+
+The nuisance functions are given by
 
 .. math::
 
-    g(X_i) = \frac{\exp(X_{i1})}{1+\exp(X_{i1})} + \frac{1}{4} X_{i3},
+    m_0(x_i) &= \frac{1}{4} x_{i,1} + \frac{\exp(x_{i,3})}{1+\exp(x_{i,3})},
 
-    m(X_i) = \frac{\exp(X_{i3})}{1+\exp(X_{i3})}
+    g_0(X) &= \frac{\exp(x_{i,1})}{1+\exp(x_{i,1})} + \frac{1}{4} x_{i,3}.
+
+
+.. note::
+    - In Python the data can be generated with :py:func:`doubleml.datasets.make_plr_CCDDHNR2018`.
+    - In R the data can be generated with
 
 .. tabbed:: Python
 
     .. ipython:: python
 
         import numpy as np
-        from scipy.linalg import toeplitz
-
-        def generate_data(n_obs, n_vars):
-            cov_mat = toeplitz([np.power(0.7, k) for k in range(n_vars)])
-            a_1 = 0.25
-            b_1 = 0.25
-            alpha = 0.5
-            x = np.random.multivariate_normal(np.zeros(n_vars), cov_mat, size=[n_obs,])
-            d = x[:,0] + a_1 * np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-                + np.random.standard_normal(size=[n_obs,])
-            y = alpha * d + np.divide(np.exp(x[:,2]), 1 + np.exp(x[:,2])) \
-                + b_1 * x[:,2] + np.random.standard_normal(size=[n_obs,])
-            return x, y, d
+        from doubleml.datasets import make_plr_CCDDHNR2018
 
         np.random.seed(1234)
         n_rep = 1000
@@ -51,7 +53,7 @@ The non-linear functions :math:`g()` and :math:`m()` are chosen as
         data = list()
 
         for i_rep in range(n_rep):
-            (x, y, d) = generate_data(n_obs, n_vars)
+            (x, y, d) = make_plr_CCDDHNR2018(n_obs, n_vars, return_type='array')
             data.append((x, y, d))
 
 .. tabbed:: R
@@ -63,12 +65,20 @@ The non-linear functions :math:`g()` and :math:`m()` are chosen as
         lm(Y~X)
 
 
-OLS Estimation
+OLS estimation
 ++++++++++++++
 
 A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
 .. tabbed:: Python
+
+    .. The following block makes sure that the seaborn graphics are rendered appropriately but does not need to be shown
+
+    .. ipython:: python
+        :suppress:
+
+        import seaborn as sns
+        sns.set()
 
     .. ipython:: python
 
@@ -104,17 +114,18 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
         lm(Y~X)
 
 
-Regularization Bias in Simple ML-Approaches
+Regularization bias in simple ML-approaches
 +++++++++++++++++++++++++++++++++++++++++++
 
 A simple ML approach is given by randomly splitting the sample into two parts.
-On the auxiliary sample :math:`g(X)` is estimated with an ML method.
-Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is obtained as (:math:`n=N/2`)
+On the auxiliary sample indexed by :math:`i \in I^C` the nuisance function :math:`g_0(X)` is estimated with an ML method.
+Given the estimate :math:`\hat{g}_0(X)`, the final estimate of :math:`\theta` is obtained as (:math:`n=N/2`) using the
+other half of observations indexed with :math:`i \in I`
 
 
 .. math::
 
-    \hat{\theta} = \left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (Y_i - \hat{g}(X_i))
+    \hat{\theta} = \left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (Y_i - \hat{g}_0(X_i)).
 
 .. tabbed:: Python
 
@@ -133,7 +144,7 @@ Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is o
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=10)
         ml_m = clone(learner)
         ml_g = clone(learner)
         theta_nonorth = np.zeros(n_rep)
@@ -173,22 +184,22 @@ A Heuristic illustration is given by
 .. math::
 
     \sqrt{n}(\hat{\theta} - \theta) = \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i U_i}_{=:a}
-    +  \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (g(X_i) - \hat{g}(X_i))}_{=:b}.
+    +  \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (g_0(X_i) - \hat{g}_0(X_i))}_{=:b}.
 
 :math:`a` is approximately Gaussian under mild conditions.
 However, :math:`b` (the regularization bias) diverges in general.
 
 .. _bias_non_orth:
 
-Overcoming Regularization Bias by Orthogonalization
+Overcoming regularization bias by orthogonalization
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Directly partialling out the effect of :math:`X` from :math:`D` to obtain the orthogonalized regressor :math:`V = D - m(X)`.
-We use the final estimate
+To overcome the regularization bias we are directly partialling out the effect of :math:`X` from :math:`D` to obtain the
+orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
 .. math::
 
-    \check{\theta} = \left(\frac{1}{n} \sum_{i\in I} \hat{V}_i D_i\right)^{-1} \frac{1}{n} \sum_{i\in I} \hat{V}_i (Y_i - \hat{g}(X_i)).
+    \check{\theta} = \left(\frac{1}{n} \sum_{i\in I} \hat{V}_i D_i\right)^{-1} \frac{1}{n} \sum_{i\in I} \hat{V}_i (Y_i - \hat{g}_0(X_i)).
 
 .. tabbed:: Python
 
@@ -218,15 +229,15 @@ We use the final estimate
         Y = c(5,3,5,7);
         lm(Y~X)
 
-If the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
+If the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
 
 .. _bias_overfitting:
 
-Sample Splitting to Remove Bias Induced by Overfitting
+Sample splitting to remove bias induced by overfitting
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` on one part of the
+Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` on one part of the
 data (training data) and estimate :math:`\check{\theta}` on the other part of the data (test data) overcomes the bias
 induced by overfitting. Cross-fitting performs well empirically.
 
@@ -266,7 +277,7 @@ To illustrate the benefits of the auxiliary prediction step (the DML) we write t
 
     \sqrt{n}(\check{\theta} - \theta) = a^* + b^* + c^*
 
-Chernozhukov et al. 2017 argues that:
+Chernozhukov et al. (2018) argues that:
 
 The first term
 
@@ -280,7 +291,7 @@ The second term
 
 .. math::
 
-    b^* := (EV^2)^{-1} \frac{1}{\sqrt{n}} \sum_{i\in I} (\hat{m}(X_i) - m(X_i)) (\hat{g}(X_i) - g(X_i))
+    b^* := (EV^2)^{-1} \frac{1}{\sqrt{n}} \sum_{i\in I} (\hat{m}(X_i) - m(X_i)) (\hat{g}_0(X_i) - g_0(X_i))
 
 vanishes asymptotically for many data generating processes.
 
@@ -306,3 +317,8 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
         X = c(1,4,5,6);
         Y = c(5,3,5,7);
         lm(Y~X)
+
+References
+++++++++++
+
+Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.

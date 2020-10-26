@@ -74,7 +74,7 @@ class DoubleMLData:
         # by default, we initialize to the first treatment variable
         self._set_x_d(self.d_cols[0])
 
-    def __repr__(self):
+    def __str__(self):
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         data_info = buf.getvalue()

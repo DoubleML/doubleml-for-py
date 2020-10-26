@@ -267,6 +267,70 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
         raise ValueError('invalid return_type')
 
 
+def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type='DoubleMLData'):
+    # inspired by https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA12723, see suplement
+    v = np.random.uniform(size=[n_obs, ])
+    zeta = np.random.standard_normal(size=[n_obs, ])
+
+    cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    b_sigma_b = np.dot(np.dot(cov_mat, beta), beta)
+    c_y = np.sqrt(R2_y/((1-R2_y) * b_sigma_b))
+    c_d = np.sqrt(np.pi**2 / 3. * R2_d/((1-R2_d) * b_sigma_b))
+
+    xx = np.exp(np.dot(x, np.multiply(beta, c_d)))
+    d = 1. * ((xx/(1+xx)) > v)
+
+    y = d * theta + d * np.dot(x, np.multiply(beta, c_y)) + zeta
+
+    if return_type in _array_alias:
+        return x, y, d
+    elif return_type in _data_frame_alias + _dml_data_alias:
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d)),
+                            columns=x_cols + ['y', 'd'])
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, 'y', 'd', x_cols)
+    else:
+        raise ValueError('invalid return_type')
+
+
+def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
+    # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201&download=yes
+    xx = np.random.multivariate_normal(np.zeros(2),
+                                       np.array([[1., 0.3], [0.3, 1.]]),
+                                       size=[n_obs, ])
+    u = xx[:, 0]
+    v = xx[:, 1]
+
+    cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+
+    z = np.random.binomial(p=0.5, n=1, size=[n_obs, ])
+    d = 1. * (alpha_x * z + v > 0)
+
+    y = d * theta + np.dot(x, beta) + u
+
+    if return_type in _array_alias:
+        return x, y, d, z
+    elif return_type in _data_frame_alias + _dml_data_alias:
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
+                            columns=x_cols + ['y', 'd', 'z'])
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, 'y', 'd', x_cols, 'z')
+    else:
+        raise ValueError('invalid return_type')
+
+
 def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
     b = [1/k for k in range(1, dim_x+1)]
     sigma = make_spd_matrix(dim_x)
@@ -278,65 +342,6 @@ def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='Dou
     # treatment
     M = m(gamma_z * Z + np.dot(X, b))
     D = M + np.random.standard_normal(size=[n_obs, ])
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
-
-    if return_type in _array_alias:
-        return X, Y, D, Z
-    elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
-                            columns=x_cols + ['y', 'd', 'z'])
-        if return_type in _data_frame_alias:
-            return data
-        else:
-            return DoubleMLData(data, 'y', 'd', x_cols, 'z')
-    else:
-        raise ValueError('invalid return_type')
-
-
-def make_irm_data(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, dim_x+1)]
-    sigma = make_spd_matrix(dim_x)
-
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
-    M = m3(np.dot(X, b))
-    MM = M + np.random.standard_normal(size=[n_obs, ])
-    MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-    d = np.random.binomial(p=MMM, n=1)
-    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
-
-    if return_type in _array_alias:
-        return X, y, d
-    elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, y, d)),
-                            columns=x_cols + ['y', 'd'])
-        if return_type in _data_frame_alias:
-            return data
-        else:
-            return DoubleMLData(data, 'y', 'd', x_cols)
-    else:
-        raise ValueError('invalid return_type')
-
-
-def make_iivm_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, dim_x+1)]
-    sigma = make_spd_matrix(dim_x)
-
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
-    # instrument
-    M1 = m3(np.dot(X, b))
-    MM = M1 + np.random.standard_normal(size=[n_obs, ])
-    MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-    Z = np.random.binomial(p=MMM, n=1)
-    # treatment
-    M = m3(gamma_z * Z + np.dot(X, b))
-    MM = M + np.random.standard_normal(size=[n_obs, ])
-    MMM = np.maximum(np.minimum(MM, 0.99), 0.01)
-    D = np.random.binomial(p=MMM, n=1)
-
     Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:

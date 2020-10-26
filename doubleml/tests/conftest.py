@@ -8,19 +8,22 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.datasets import make_plr_turrell2018, make_pliv_data, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
 def g(x):
-    return np.power(np.sin(x),2)
+    return np.power(np.sin(x), 2)
 
-def m(x,nu=0.,gamma=1.):
+
+def m(x,nu=0., gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
-def m2(x):
-    return np.power(x,2)
 
-def m3(x,nu=0.,gamma=1.):
+def m2(x):
+    return np.power(x, 2)
+
+
+def m3(x, nu=0., gamma=1.):
     return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
@@ -143,12 +146,11 @@ def generate_data_iv(request):
     N = N_p[0]
     p = N_p[1]
     theta = 0.5
-    gamma_z = 0.4
     
     # generating data
     datasets = []
     for i in range(n_datasets):
-        data = make_pliv_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
+        data = make_pliv_CHS2015(n_obs=N, dim_x=p, alpha=theta, dim_z=1, return_type=pd.DataFrame)
         datasets.append(data)
     
     return datasets

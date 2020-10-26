@@ -77,6 +77,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
+    n_obs = len(y)
     all_smpls = []
     for i_rep in range(n_rep):
         resampling = KFold(n_splits=n_folds,
@@ -107,7 +108,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
                                                  smpls, score)
 
     res_manual = np.median(thetas)
-    se_manual = np.sqrt(np.median(np.power(ses, 2) + np.power(thetas - res_manual, 2)))
+    se_manual = np.sqrt(np.median(np.power(ses, 2)*n_obs + np.power(thetas - res_manual, 2))/n_obs)
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
@@ -136,7 +137,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
         boot_t_stat = np.hstack(all_boot_t_stat)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method=bootstrap, n_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta

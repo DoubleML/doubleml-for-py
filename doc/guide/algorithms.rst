@@ -1,4 +1,4 @@
-.. _dml-algo:
+.. _algorithms:
 
 Double machine learning algorithms
 ----------------------------------
@@ -63,7 +63,7 @@ Implementation of the double machine learning algorithms
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 As an example we consider a partially linear regression model (PLR)
-implemented in :class:`~doubleml.double_ml_plr.DoubleMLPLR`.
+implemented in ``DoubleMLPLR``.
 The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``dml_procedure='dml2'``.
 
 .. tabbed:: Python
@@ -81,7 +81,7 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
         data = make_plr_CCDDHNR2018(return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, dml_procedure='dml1')
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
 
 .. tabbed:: R
 
@@ -91,7 +91,7 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
         Y = c(5,3,5,7);
         lm(Y~X)
 
-The :meth:`~doubleml.double_ml_plr.DoubleMLPLR.fit` method of :class:`~doubleml.double_ml_plr.DoubleMLPLR`
+The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
 .. tabbed:: Python
