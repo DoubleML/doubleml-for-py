@@ -3,6 +3,12 @@
 The basics of double/debiased machine learning
 ----------------------------------------------
 
+In the following we provide a brief summary of and motivation to double machine learning methods and show how the
+corresponding methods provided by the :ref:`DoubleML <doubleml_package>` package can be applied.
+For details we refer to Chernozhukov et al. (2018).
+
+.. Add references to the vignette here when it is ready.
+
 Data generating process
 +++++++++++++++++++++++
 
@@ -66,6 +72,14 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
 .. tabbed:: Python
 
+    .. The following block makes sure that the seaborn graphics are rendered appropriately but does not need to be shown
+
+    .. ipython:: python
+        :suppress:
+
+        import seaborn as sns
+        sns.set()
+
     .. ipython:: python
 
         from sklearn.linear_model import LinearRegression
@@ -104,13 +118,14 @@ Regularization Bias in Simple ML-Approaches
 +++++++++++++++++++++++++++++++++++++++++++
 
 A simple ML approach is given by randomly splitting the sample into two parts.
-On the auxiliary sample :math:`g(X)` is estimated with an ML method.
-Given the estimate :math:`\hat{g}(X)`, the final estimate of :math:`\theta` is obtained as (:math:`n=N/2`)
+On the auxiliary sample indexed by :math:`i \in I^C` the nuisance function :math:`g_0(X)` is estimated with an ML method.
+Given the estimate :math:`\hat{g}_0(X)`, the final estimate of :math:`\theta` is obtained as (:math:`n=N/2`) using the
+other half of observations indexed with :math:`i \in I`
 
 
 .. math::
 
-    \hat{\theta} = \left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (Y_i - \hat{g}(X_i))
+    \hat{\theta} = \left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (Y_i - \hat{g}_0(X_i)).
 
 .. tabbed:: Python
 
@@ -169,7 +184,7 @@ A Heuristic illustration is given by
 .. math::
 
     \sqrt{n}(\hat{\theta} - \theta) = \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i U_i}_{=:a}
-    +  \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (g(X_i) - \hat{g}(X_i))}_{=:b}.
+    +  \underbrace{\left(\frac{1}{n} \sum_{i\in I} D_i^2\right)^{-1} \frac{1}{n} \sum_{i\in I} D_i (g_0(X_i) - \hat{g}_0(X_i))}_{=:b}.
 
 :math:`a` is approximately Gaussian under mild conditions.
 However, :math:`b` (the regularization bias) diverges in general.
@@ -179,12 +194,12 @@ However, :math:`b` (the regularization bias) diverges in general.
 Overcoming Regularization Bias by Orthogonalization
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Directly partialling out the effect of :math:`X` from :math:`D` to obtain the orthogonalized regressor :math:`V = D - m(X)`.
-We use the final estimate
+To overcome the regularization bias we are directly partialling out the effect of :math:`X` from :math:`D` to obtain the
+orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
 .. math::
 
-    \check{\theta} = \left(\frac{1}{n} \sum_{i\in I} \hat{V}_i D_i\right)^{-1} \frac{1}{n} \sum_{i\in I} \hat{V}_i (Y_i - \hat{g}(X_i)).
+    \check{\theta} = \left(\frac{1}{n} \sum_{i\in I} \hat{V}_i D_i\right)^{-1} \frac{1}{n} \sum_{i\in I} \hat{V}_i (Y_i - \hat{g}_0(X_i)).
 
 .. tabbed:: Python
 
@@ -214,7 +229,7 @@ We use the final estimate
         Y = c(5,3,5,7);
         lm(Y~X)
 
-If the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
+If the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
 
 .. _bias_overfitting:
@@ -222,7 +237,7 @@ the final estimate :math:`\check{\theta}` another bias can be observed.
 Sample Splitting to Remove Bias Induced by Overfitting
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}()` and :math:`\hat{m}()` on one part of the
+Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` on one part of the
 data (training data) and estimate :math:`\check{\theta}` on the other part of the data (test data) overcomes the bias
 induced by overfitting. Cross-fitting performs well empirically.
 
@@ -262,7 +277,7 @@ To illustrate the benefits of the auxiliary prediction step (the DML) we write t
 
     \sqrt{n}(\check{\theta} - \theta) = a^* + b^* + c^*
 
-Chernozhukov et al. 2017 argues that:
+Chernozhukov et al. (2018) argues that:
 
 The first term
 
@@ -276,7 +291,7 @@ The second term
 
 .. math::
 
-    b^* := (EV^2)^{-1} \frac{1}{\sqrt{n}} \sum_{i\in I} (\hat{m}(X_i) - m(X_i)) (\hat{g}(X_i) - g(X_i))
+    b^* := (EV^2)^{-1} \frac{1}{\sqrt{n}} \sum_{i\in I} (\hat{m}(X_i) - m(X_i)) (\hat{g}_0(X_i) - g_0(X_i))
 
 vanishes asymptotically for many data generating processes.
 
@@ -302,3 +317,8 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
         X = c(1,4,5,6);
         Y = c(5,3,5,7);
         lm(Y~X)
+
+References
+++++++++++
+
+Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
