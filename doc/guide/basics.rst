@@ -65,7 +65,7 @@ The nuisance functions are given by
         lm(Y~X)
 
 
-OLS Estimation
+OLS estimation
 ++++++++++++++
 
 A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
@@ -114,7 +114,7 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
         lm(Y~X)
 
 
-Regularization Bias in Simple ML-Approaches
+Regularization bias in simple ML-approaches
 +++++++++++++++++++++++++++++++++++++++++++
 
 A simple ML approach is given by randomly splitting the sample into two parts.
@@ -191,7 +191,7 @@ However, :math:`b` (the regularization bias) diverges in general.
 
 .. _bias_non_orth:
 
-Overcoming Regularization Bias by Orthogonalization
+Overcoming regularization bias by orthogonalization
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
 To overcome the regularization bias we are directly partialling out the effect of :math:`X` from :math:`D` to obtain the
@@ -234,7 +234,7 @@ the final estimate :math:`\check{\theta}` another bias can be observed.
 
 .. _bias_overfitting:
 
-Sample Splitting to Remove Bias Induced by Overfitting
+Sample splitting to remove bias induced by overfitting
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Using sample splitting, i.e., estimate the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` on one part of the
