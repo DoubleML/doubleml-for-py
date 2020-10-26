@@ -21,12 +21,12 @@ and that obey the **Neyman orthogonality condition**
 
     \partial_{\eta} \mathbb{E}[ \psi(W; \theta_0, \eta)] \bigg|_{\eta=\eta_0} = 0.
 
-The object-oriented (OOP) implementation of
+An integral component for the object-oriented (OOP) implementation of
 ``DoubleMLPLR``,
 ``DoubleMLPLIV``,
 ``DoubleMLIRM``,
 and ``DoubleMLIIVM``
-uses the linearity of the score function in the parameter :math:`theta`
+is the linearity of the score function in the parameter :math:`\theta`
 
 .. math::
 
@@ -36,7 +36,14 @@ Hence the estimator can be written as
 
 .. math::
 
-    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}
+    \tilde{\theta}_0 = - \frac{\mathbb{E}_N[\psi_b(W; \eta)]}{\mathbb{E}_N[\psi_a(W; \eta)]}.
+
+The linearity of the score function in the parameter :math:`\theta` allows the implementation of key components in a very
+general way.
+The methods and algorithms to estimate the causal parameters, to estimate their standard errors, to perform a multiplier
+bootstrap, to obtain confidence intervals and many more are implemented in the abstract base class ``DoubleML``.
+The object-oriented architecture therefore allows for easy extension to new model classes for double machine learning.
+This is doable with very minor effort whenever the linearity of the score function is satisfied.
 
 Implementation of the score function and the estimate of the causal parameter
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -222,10 +229,10 @@ we employ for ``score='LATE'`` the score function:
 
 .. math::
 
-    \psi(W; \theta, \eta) :=\; &\mu(1,X) - \mu(0,X)
-    + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}
+    \psi(W; \theta, \eta) :=\; &g(1,X) - g(0,X)
+    + \frac{Z (Y - g(1,X))}{m(X)} - \frac{(1 - Z)(Y - g(0,X))}{1 - m(x)}
 
-    &- \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg) \theta
+    &- \bigg(r(1,X) - r(0,X) + \frac{Z (D - r(1,X))}{m(X)} - \frac{(1 - Z)(D - r(0,X))}{1 - m(x)} \bigg) \theta
 
     =\; &\psi_a(W; \eta) \theta + \psi_b(W; \eta)
 
@@ -233,15 +240,15 @@ with :math:`\eta=(g,m)` and where the components of the linear score are
 
 .. math::
 
-    \psi_a(W; \eta) &=  - \bigg(m(1,X) - m(0,X) + \frac{Z (D - m(1,X))}{p(X)} - \frac{(1 - Z)(D - m(0,X))}{1 - p(x)} \bigg),
+    \psi_a(W; \eta) &=  - \bigg(r(1,X) - r(0,X) + \frac{Z (D - r(1,X))}{m(X)} - \frac{(1 - Z)(D - r(0,X))}{1 - m(x)} \bigg),
 
-    \psi_b(W; \eta) &= \mu(1,X) - \mu(0,X) + \frac{Z (Y - \mu(1,X))}{p(X)} - \frac{(1 - Z)(Y - \mu(0,X))}{1 - p(x)}.
+    \psi_b(W; \eta) &= g(1,X) - g(0,X) + \frac{Z (Y - g(1,X))}{m(X)} - \frac{(1 - Z)(Y - g(0,X))}{1 - m(x)}.
 
 Specifying alternative score functions via callables
 ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Via callables user-written score functions can be used.
-This functionality is at the moment only implemented in Python.
+This functionality is at the moment only implemented for specific model classes in Python.
 For the PLR model implemented in ``DoubleMLPLR`` an alternative score function can be
 set via ``score``.
 Choose a callable object / function with signature ``score(y, d, g_hat, m_hat, smpls)`` which returns
