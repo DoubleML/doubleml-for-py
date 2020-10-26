@@ -8,7 +8,7 @@ For all DML models
 ``DoubleMLPLR``,
 ``DoubleMLPLIV``,
 ``DoubleMLIRM``,
-and ``DoubleMLIIVM``
+and ``DoubleMLIIVM``,
 the specification is done via the parameters ``n_folds`` and ``n_rep``.
 Advanced resampling techniques can be obtained via the boolean parameters
 ``draw_sample_splitting`` and ``apply_cross_fitting`` as well as the methods
@@ -224,7 +224,7 @@ In Python we can for example use the K-Folds cross-validator of sklearn :py:clas
 order to generate a sample splitting and provide it to the DML model object.
 Note that by setting ``draw_sample_splitting = False`` one can prevent that a partition is drawn during initialization
 of the DML model object.
-The following are equivalent.
+The following calls are equivalent.
 In the first sample code, we use the standard interface and draw the sample-splitting with :math:`K=4` folds during
 initialization of the ``DoubleMLPLR`` object.
 
@@ -299,8 +299,6 @@ Note that cross-fitting performs well empirically and is recommended to remove b
         dml_plr_obj_external = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m,
                                                n_folds = 2, apply_cross_fitting = False)
         print(dml_plr_obj_external.fit().summary)
-        print(obj_dml_data.n_obs)
-        print(dml_plr_obj_external.psi.shape)
 
 .. tabbed:: R
 
@@ -310,10 +308,8 @@ Note that cross-fitting performs well empirically and is recommended to remove b
                                                n_folds = 2, apply_cross_fitting = FALSE)
         dml_plr_obj_external$fit()
         dml_plr_obj_external$summary()
-        print(dml_plr_obj_external$data$n_obs())
-        print(dim(dml_plr_obj_external$.__enclos_env__$private$psi))
 
-Note, that in order to split data unevenly into train and test the interface to externally set the sample splitting
+Note, that in order to split data unevenly into train and test sets the interface to externally set the sample splitting
 via ``set_sample_splitting()`` needs to be applied, like for example:
 
 .. tabbed:: Python
@@ -330,8 +326,6 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
         dml_plr_obj_external.set_sample_splitting([[smpls]]);
 
         print(dml_plr_obj_external.fit().summary)
-        print(obj_dml_data.n_obs)
-        print(dml_plr_obj_external.psi.shape)
 
 .. tabbed:: R
 
@@ -352,5 +346,34 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
         dml_plr_obj_external$set_samples(smpls)
         dml_plr_obj_external$fit()
         dml_plr_obj_external$summary()
-        print(dml_plr_obj_external$data$n_obs())
-        print(dim(dml_plr_obj_external$.__enclos_env__$private$psi))
+
+
+Estimate DML models without sample-splitting
+++++++++++++++++++++++++++++++++++++++++++++
+
+The implementation of the DML models allows the estimation without sample splitting, i.e., all observations are used
+for learning the nuisance models as well as for the estimation of the causal parameter.
+Note that this approach usually results in a bias and is therefore not recommended without appropriate theoretical
+justification, see also :ref:`bias_overfitting`.
+
+
+.. tabbed:: Python
+
+    .. ipython:: python
+
+        np.random.seed(314)
+        dml_plr_no_split = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m,
+                                           n_folds = 1, apply_cross_fitting = False)
+
+        print(dml_plr_obj_external.fit().summary)
+
+.. tabbed:: R
+
+    .. jupyter-execute::
+
+        dml_plr_no_split = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
+                                           n_folds = 1, apply_cross_fitting = FALSE)
+
+        set.seed(314)
+        dml_plr_no_split$fit()
+        dml_plr_no_split$summary()
