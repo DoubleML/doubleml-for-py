@@ -246,9 +246,16 @@ class DoubleML(ABC):
     @property
     def all_dml1_coef(self):
         """
-        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with `dml_procedure = 'dml1'`.
+        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'``.
         """
         return self._all_dml1_coef
+
+    @property
+    def all_dml1_se(self):
+        """
+        Standard errors of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'`` and ``se_reestimate=False``.
+        """
+        return self._all_dml1_se
 
     @property
     def summary(self):
@@ -351,6 +358,16 @@ class DoubleML(ABC):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
 
+    @property
+    def __all_dml1_se(self):
+        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
+        return self._all_dml1_se[self._i_treat, self._i_rep, :]
+
+    @__all_dml1_se.setter
+    def __all_dml1_se(self, value):
+        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
+        self._all_dml1_se[self._i_treat, self._i_rep, :] = value
+
     def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
         """
         Estimate DoubleML models.
@@ -358,7 +375,7 @@ class DoubleML(ABC):
         Parameters
         ----------
         se_reestimate : bool
-            Indicates whether standard errors should be reestimated (only relevant for ``dml_procedure == 'dml1'``.
+            Indicates whether standard errors should be reestimated (only relevant for ``dml_procedure='dml1'``.
             Default is ``False``.
 
         n_jobs_cv : None or int
@@ -745,8 +762,10 @@ class DoubleML(ABC):
         if self.dml_procedure == 'dml1':
             if self.apply_cross_fitting:
                 self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
+                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
             else:
                 self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
+                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
@@ -838,6 +857,8 @@ class DoubleML(ABC):
                 for idx, (train_index, test_index) in enumerate(smpls):
                     variances[idx] = self._var_est(test_index)
                 se = np.sqrt(np.mean(variances))
+
+                self.__all_dml1_se = np.sqrt(variances)
 
         elif dml_procedure == 'dml2':
             se = np.sqrt(self._var_est())
