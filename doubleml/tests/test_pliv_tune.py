@@ -89,7 +89,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
     ml_r = clone(learner_r)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
@@ -104,7 +104,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    z = data['z'].values
+    z = data['Z1'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]

@@ -25,7 +25,8 @@ Estimation is conducted via its ``fit()`` method:
         learner = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_g = clone(learner)
         ml_m = clone(learner)
-        data = make_plr_CCDDHNR2018(return_type='DataFrame')
+        np.random.seed(1111)
+        data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
         print(dml_plr_obj.fit())
@@ -55,7 +56,7 @@ Estimation is conducted via its ``fit()`` method:
         :okwarning:
 
         import doubleml as dml
-        from doubleml.datasets import make_pliv_data
+        from doubleml.datasets import make_pliv_CHS2015
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
@@ -63,8 +64,9 @@ Estimation is conducted via its ``fit()`` method:
         ml_g = clone(learner)
         ml_m = clone(learner)
         ml_r = clone(learner)
-        data = make_pliv_data(return_type='DataFrame')
-        obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
+        np.random.seed(2222)
+        data = make_pliv_CHS2015(n_obs=500, dim_x=20, alpha=0.5, dim_z=1, return_type='DataFrame')
+        obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
         dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
         print(dml_pliv_obj.fit())
 
@@ -97,7 +99,8 @@ Estimation is conducted via its ``fit()`` method:
 
         ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
-        data = make_irm_data(return_type='DataFrame')
+        np.random.seed(3333)
+        data = make_irm_data(n_obs=500, dim_x=20, theta=0.5, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
         print(dml_irm_obj.fit())
@@ -133,7 +136,8 @@ Estimation is conducted via its ``fit()`` method:
         ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
         ml_r = RandomForestClassifier(max_depth=2, n_estimators=10)
-        data = make_iivm_data(return_type='DataFrame')
+        np.random.seed(4444)
+        data = make_iivm_data(n_obs=500, dim_x=20, theta=1., return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
         dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
         print(dml_iivm_obj.fit())

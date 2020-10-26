@@ -60,10 +60,10 @@ r_MLPLIV = robjects.r('''
             mlmethod_m = 'regr.lm'
             mlmethod_r = 'regr.lm'
             
-            Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
+            Xnames = names(data)[names(data) %in% c("y", "d", "Z1") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
                                                      d_cols = "d", x_cols = Xnames,
-                                                     z_col = "z")
+                                                     z_col = "Z1")
             
             double_mlpliv_obj = DoubleMLPLIV$new(data_ml,
                                                  n_folds = 2,

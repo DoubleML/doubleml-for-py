@@ -76,10 +76,9 @@ class DoubleMLIIVM(DoubleML):
     >>> data = make_iivm_data(return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
-    >>> dml_iivm_obj.fit()
-    >>> dml_iivm_obj.summary
-           coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.933779  1.049043  0.890125  0.373399 -1.122308  2.989866
+    >>> dml_iivm_obj.fit().summary
+           coef   std err        t     P>|t|     2.5 %    97.5 %
+    d  1.847422  0.887744  2.08103  0.037431  0.107476  3.587368
 
     Notes
     -----

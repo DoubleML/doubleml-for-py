@@ -58,7 +58,7 @@ class DoubleMLPLIV(DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_pliv_data
+    >>> from doubleml.datasets import make_pliv_CHS2015
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
@@ -66,13 +66,12 @@ class DoubleMLPLIV(DoubleML):
     >>> ml_g = clone(learner)
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
-    >>> data = make_pliv_data(return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
+    >>> data = make_pliv_CHS2015(n_obs=500, dim_x=20, alpha=0.5, dim_z=1, return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
-    >>> dml_pliv_obj.fit()
-    >>> dml_pliv_obj.summary
-           coef  std err         t     P>|t|     2.5 %    97.5 %
-    d -1.071255  1.20406 -0.889703  0.373625 -3.431168  1.288658
+    >>> dml_pliv_obj.fit().summary
+           coef   std err         t         P>|t|     2.5 %    97.5 %
+    d  0.621559  0.076235  8.153229  3.543352e-16  0.472142  0.770976
 
     Notes
     -----

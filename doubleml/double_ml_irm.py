@@ -71,10 +71,9 @@ class DoubleMLIRM(DoubleML):
     >>> data = make_irm_data(return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
-    >>> dml_irm_obj.fit()
-    >>> dml_irm_obj.summary
-           coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.873418  0.290427  3.007357  0.002635  0.304192  1.442645
+    >>> dml_irm_obj.fit().summary
+           coef   std err         t     P>|t|     2.5 %   97.5 %
+    d  0.184211  0.096047  1.917917  0.055122 -0.004039  0.37246
 
     Notes
     -----
