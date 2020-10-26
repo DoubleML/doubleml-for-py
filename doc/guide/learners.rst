@@ -81,7 +81,7 @@ Setting hyperparameters:
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                       RandomForestRegressor(),
                                       RandomForestRegressor())
-        dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': 10})
+        dml_plr_obj.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': 10});
         print(dml_plr_obj.fit().summary)
 
 Setting treatment-variable-specific or fold-specific hyperparameters:
