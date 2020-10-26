@@ -19,17 +19,18 @@ Python: Machine learners and hyperparameters
 Minimum requirements for learners
 #################################
 
-The minimum requirement for a learner to be used for a nuisance model in the :ref:`DoubleML <doubleml_package>` is
+The minimum requirement for a learner to be used for nuisance models in the :ref:`DoubleML <doubleml_package>`
+package is
 
     * The implementation of a ``fit()`` and ``predict()`` method.
       Some models, like :py:class:`doubleml.DoubleMLIRM` and :py:class:`doubleml.DoubleMLIIVM` require classifiers.
-    * In case of classifiers, the learner needs to come with a ``predict_proba()`` instead of or in addition to a
+    * In case of classifiers, the learner needs to come with a ``predict_proba()`` instead of, or in addition to, a
       ``predict()`` method, see for example :py:meth:`sklearn.ensemble.RandomForestClassifier.predict_proba`.
     * In order to be able to use the ``set_ml_nuisance_params()`` method of :ref:`DoubleML <doubleml_package>` classes the
-      learner additional needs to come with a ``set_params()`` method,
+      learner additionally needs to come with a ``set_params()`` method,
       see for example :py:meth:`sklearn.ensemble.RandomForestRegressor.set_params`.
     * We further rely on the function :py:func:`sklearn.base.clone` which adds the requirement of a ``get_params()``
-      method for a learner in order to be use for nuisance models of :ref:`DoubleML <doubleml_package>` model classes.
+      method for a learner in order to be used for nuisance models of :ref:`DoubleML <doubleml_package>` model classes.
 
 Most learners from `scikit-learn <https://scikit-learn.org/>`_ satisfy all these minimum requirements.
 
@@ -39,7 +40,7 @@ Specifying learners and set hyperparameters
 The learners are set during initialization of the :ref:`DoubleML <doubleml_package>` model classes
 :py:class:`doubleml.DoubleMLPLR`, :py:class:`doubleml.DoubleMLPLIV`,
 :py:class:`doubleml.DoubleMLIRM` and :py:class:`doubleml.DoubleMLIIVM`.
-Lets simulate some data and consider the partial linear regression model.
+Lets simulate some data and consider the partially linear regression model.
 We need to specify learners for the nuisance functions :math:`g_0(X) = E[Y|X]` and :math:`m_0(X) = E[D|X]`,
 for example :py:class:`sklearn.ensemble.RandomForestRegressor`.
 
@@ -85,18 +86,18 @@ Setting hyperparameters:
 
 Setting treatment-variable-specific or fold-specific hyperparameters:
 
-    * In the multiple treatment case, the method ``set_ml_nuisance_params(learner, treat_var, params)`` allows to set
+    * In the multiple-treatment case, the method ``set_ml_nuisance_params(learner, treat_var, params)`` allows to set
       different hyperparameters for different treatment variables.
     * The method ``set_ml_nuisance_params(learner, treat_var, params)`` accepts dicts and lists for ``params``.
       A dict should be provided if for each fold the same hyperparameters should be used.
       Fold-specific parameters are supporter. To do so,  provide a nested list as ``params``, where the outer list is of
-      length n_rep and the inner list of length n_folds.
+      length ``n_rep`` and the inner list of length ``n_folds``.
 
 
 Hyperparameter tuning
 #####################
 
-Parameter tuning for learners of the nuisance functions of :ref:`DoubleML <doubleml_package>` models can be done using
+Parameter tuning of learners for the nuisance functions of :ref:`DoubleML <doubleml_package>` models can be done via
 the ``tune()`` method.
 To illustrate the parameter tuning, we generate data from a sparse partially linear regression model.
 
