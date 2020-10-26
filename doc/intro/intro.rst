@@ -56,8 +56,8 @@ form
 where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
 The high-dimensional vector :math:`X = (X_1, \ldots, X_p)` consists of other confounding covariates,
 and :math:`\zeta` and :math:`V` are stochastic errors.
-For details about the implemented models in the :ref:`DoubleML <doubleml_package>` package we refer to the
-:ref:`user guide <models>`.
+For details about the implemented models in the :ref:`DoubleML <doubleml_package>` package we refer to the user guide
+:ref:`models`.
 
 The data-backend DoubleMLData
 -----------------------------
@@ -105,7 +105,7 @@ specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the bonus 
 regression model and for our simulated data from a sparse partially linear model we use a Lasso regression model.
 The implementation of :ref:`DoubleML <doubleml_package>` is based on the meta-packages
 `scikit-learn <https://scikit-learn.org/>`_ for Python and `mlr3 <https://mlr3.mlr-org.com/>`_ for R.
-For details on the specification of learners and their hyperparameters we refer to the :ref:`user guide <learners>`.
+For details on the specification of learners and their hyperparameters we refer to the user guide :ref:`learners`.
 
 .. tabbed:: Python
 
@@ -142,8 +142,8 @@ Additionally, one can choose between the algorithms ``'dml1'`` and  ``'dml2'`` v
 Depending on the causal model, one can further choose between different Neyman-orthogonal score / moment functions.
 For the PLR model the default ``score`` is ``'partialling out'``.
 
-The user guide provides details about the :ref:`sample splitting <resampling>`, the :ref:`DML algorithms <algorithms>`
-and the :ref:`Neyman-orthogonal score functions <scores>`.
+The user guide provides details about the :ref:`resampling`, the :ref:`algorithms`
+and the :ref:`scores`.
 
 Estimate double/debiased machine learning models
 ------------------------------------------------
@@ -153,8 +153,8 @@ The models are estimated by calling the ``fit()`` method and we can for example 
 using the ``summary`` property.
 A more detailed result summary can be obtained via the string-representation of the object.
 Besides the ``fit()`` method :ref:`DoubleML <doubleml_package>` model classes also provide functionalities to perform
-statistical inference like ``bootstrap()``, ``confint()`` and ``p_adjust()``, for details see the
-:ref:`user guide <se_confint>`.
+statistical inference like ``bootstrap()``, ``confint()`` and ``p_adjust()``, for details see the user guide
+:ref:`se_confint`.
 
 .. tabbed:: Python
 
