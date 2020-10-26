@@ -161,9 +161,9 @@ Based on the estimates of the standard errors given by
 
 .. math::
 
-    \sigma^2 := J_0^{-2} \mathbb{E}(\psi^2(W; \theta_0, \eta_0)),
+    \hat{\sigma}^2 &= \hat{J}_0^{-2} \frac{1}{N} \sum_{k=1}^{K} \sum_{i \in I_k} \big[\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k})\big]^2,
 
-    J_0 = \mathbb{E}(\psi_a(W; \eta_0)).
+    \hat{J}_0 &= \frac{1}{N} \sum_{k=1}^{K} \sum_{i \in I_k} \psi_a(W_i; \hat{\eta}_{0,k}),
 
 we obtain bootstrap coefficients :math:`\theta^*_b` and bootstrap t-statistics :math:`t^*_b`
 
@@ -176,9 +176,9 @@ we obtain bootstrap coefficients :math:`\theta^*_b` and bootstrap t-statistics :
 
 To demonstrate the bootstrap, we simulate data from a sparse partially linear regression model.
 Then we estimate the PLR model and perform the multiplier bootstrap.
-Joint confidence intervals based on the multiplier bootstrap are then obtained with the method ``confint()``
-or do a multiple hypotheses testing adjustment of p-values from a high-dimensional model can be performed with the
-method ``p_adjust``.
+Joint confidence intervals based on the multiplier bootstrap are then obtained with the method ``confint()``.
+Besides that, a multiple hypotheses testing adjustment of p-values from a high-dimensional model can be obtained with
+the method ``p_adjust``.
 
 .. tabbed:: Python
 
