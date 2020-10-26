@@ -73,7 +73,7 @@ class DoubleMLIIVM(DoubleML):
     >>> ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
     >>> ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
     >>> ml_r = RandomForestClassifier(max_depth=2, n_estimators=10)
-    >>> data = make_iivm_data(return_type='DataFrame')
+    >>> data = make_iivm_data(theta=1.0, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_iivm_obj.fit().summary

@@ -53,7 +53,7 @@ The nuisance functions are given by
         data = list()
 
         for i_rep in range(n_rep):
-            (x, y, d) = make_plr_CCDDHNR2018(n_obs, n_vars, return_type='array')
+            (x, y, d) = make_plr_CCDDHNR2018(alpha=0.5, n_obs=n_obs, dim_x=n_vars, return_type='array')
             data.append((x, y, d))
 
 .. tabbed:: R

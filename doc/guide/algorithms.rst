@@ -75,10 +75,11 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
+        np.random.seed(3141)
         learner = RandomForestRegressor(max_depth=2, n_estimators=10)
         ml_g = clone(learner)
         ml_m = clone(learner)
-        data = make_plr_CCDDHNR2018(return_type='DataFrame')
+        data = make_plr_CCDDHNR2018(alpha=0.5, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m, dml_procedure='dml1')
         dml_plr_obj.fit();
@@ -98,7 +99,7 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
     .. ipython:: python
 
-        print(dml_plr_obj.coef)
+        dml_plr_obj.coef
 
 .. tabbed:: R
 
@@ -117,7 +118,7 @@ are stored in the attribute ``psi``.
 
     .. ipython:: python
 
-        print(dml_plr_obj.psi[:5])
+        dml_plr_obj.psi[:5]
 
 .. tabbed:: R
 
@@ -135,7 +136,7 @@ For the DML1 algorithm, the estimates for the different folds
 
     .. ipython:: python
 
-        print(dml_plr_obj.all_dml1_coef)
+        dml_plr_obj.all_dml1_coef
 
 .. tabbed:: R
 

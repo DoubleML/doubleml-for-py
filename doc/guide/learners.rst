@@ -55,7 +55,7 @@ for example :py:class:`sklearn.ensemble.RandomForestRegressor`.
         np.random.seed(1234)
         ml_g = RandomForestRegressor()
         ml_m = RandomForestRegressor()
-        data = make_plr_CCDDHNR2018(return_type='DataFrame')
+        data = make_plr_CCDDHNR2018(alpha=0.5, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
         dml_plr_obj.fit().summary

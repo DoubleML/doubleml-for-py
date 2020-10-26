@@ -60,7 +60,7 @@ class DoubleMLPLR(DoubleML):
     >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
     >>> ml_g = learner
     >>> ml_m = learner
-    >>> obj_dml_data = make_plr_CCDDHNR2018()
+    >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5)
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit().summary
            coef   std err          t         P>|t|    2.5 %    97.5 %

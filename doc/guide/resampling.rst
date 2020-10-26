@@ -31,7 +31,7 @@ implemented in ``DoubleMLPLR``.
         ml_g = clone(learner)
         ml_m = clone(learner)
         np.random.seed(1234)
-        obj_dml_data = make_plr_CCDDHNR2018(n_obs=100)
+        obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=100)
 
 .. tabbed:: R
 
@@ -110,7 +110,7 @@ stored in the attributes ``psi_a`` and ``psi_b``.
 
     .. ipython:: python
 
-        dml_plr_obj.fit()
+        dml_plr_obj.fit();
         print(dml_plr_obj.psi_a[:5])
         print(dml_plr_obj.psi_b[:5])
 

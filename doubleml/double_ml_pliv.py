@@ -66,7 +66,7 @@ class DoubleMLPLIV(DoubleML):
     >>> ml_g = clone(learner)
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
-    >>> data = make_pliv_CHS2015(n_obs=500, dim_x=20, alpha=0.5, dim_z=1, return_type='DataFrame')
+    >>> data = make_pliv_CHS2015(alpha=0.5, n_obs=500, dim_x=20, dim_z=1, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_pliv_obj.fit().summary
