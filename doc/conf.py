@@ -12,7 +12,9 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('sphinxext'))
+
+from github_link import make_linkcode_resolve
 
 
 # -- Project information -----------------------------------------------------
@@ -36,6 +38,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.linkcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'IPython.sphinxext.ipython_console_highlighting',
@@ -98,3 +101,9 @@ intersphinx_mapping = {
 
 jupyter_execute_default_kernel = 'ir'
 jupyter_sphinx_linenos = True
+
+# The following is used by sphinx.ext.linkcode to provide links to github
+linkcode_resolve = make_linkcode_resolve('doubleml',
+                                         'https://github.com/DoubleML/'
+                                         'doubleml-for-py/blob/{revision}/'
+                                         '{package}/{path}#L{lineno}')
