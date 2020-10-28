@@ -430,7 +430,7 @@ class DoubleML(ABC):
 
     def bootstrap(self, method='normal', n_boot_rep=500):
         """
-        Bootstrap for DoubleML models.
+        Multiplier bootstrap for DoubleML models.
 
         Parameters
         ----------
