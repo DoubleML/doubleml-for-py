@@ -71,10 +71,10 @@ specifying the confounders.
 Comments on detailed specifications:
 
     * If ``x_cols`` is not specified, all variables (columns of the dataframe) which are neither specified as outcome
-      variable ``y_col``, nor treatment variables ``d_cols``, nor instrument variables ``z_cols`` are used as covariates.
+      variable ``y_col``, nor treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
     * In case of multiple treatment variables, the boolean ``use_other_treat_as_covariate`` indicates whether the other
       treatment variables should be added as covariates in each treatment-variable-specific learning task.
-    * Instrument variables for IV models have to be provided as ``z_cols``.
+    * Instrumental variables for IV models have to be provided as ``z_cols``.
 
 DoubleMLData from arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^
