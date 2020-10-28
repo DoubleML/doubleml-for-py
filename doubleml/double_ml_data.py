@@ -72,7 +72,7 @@ class DoubleMLData:
                 self.x_cols = [col for col in self.data.columns if col not in y_d]
         self._set_y_z()
         # by default, we initialize to the first treatment variable
-        self._set_x_d(self.d_cols[0])
+        self.set_x_d(self.d_cols[0])
 
     def __str__(self):
         buf = io.StringIO()
