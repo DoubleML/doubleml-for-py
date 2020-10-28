@@ -26,11 +26,11 @@ class DoubleMLData:
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrument variables ``z_cols`` are used as covariates.
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
         Default is ``None``.
 
     z_cols : None, str or list
-        The instrument variable(s).
+        The instrumental variable(s).
         Default is ``None``.
 
     use_other_treat_as_covariate : bool
@@ -102,7 +102,7 @@ class DoubleMLData:
             Array of treatment variables.
 
         z : None or :class:`numpy.ndarray`
-            Array of instrument variables.
+            Array of instrumental variables.
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -175,7 +175,7 @@ class DoubleMLData:
     @property
     def z(self):
         """
-        Array of instrument variables.
+        Array of instrumental variables.
         """
         if self.z_cols is not None:
             return self._z.values
@@ -199,7 +199,7 @@ class DoubleMLData:
     @property
     def n_instr(self):
         """
-        The number of instrument variables.
+        The number of instruments.
         """
         return len(self.z_cols)
     
@@ -258,7 +258,7 @@ class DoubleMLData:
     @property
     def z_cols(self):
         """
-        The instrument variable(s).
+        The instrumental variable(s).
         """
         return self._z_cols
     
