@@ -281,7 +281,15 @@ class DoubleMLData:
         else:
             self._z = self.data.loc[:, self.z_cols]
     
-    def _set_x_d(self, treatment_var):
+    def set_x_d(self, treatment_var):
+        """
+        Function that assigns the role for the treatment variables in the multiple-treatment case.
+
+        Parameters
+        ----------
+        treatment_var : str
+            Active treatment variable that will be set to d.
+        """
         assert treatment_var in self.d_cols
         if self.use_other_treat_as_covariate:
             xd_list = self.x_cols + self.d_cols

@@ -406,7 +406,7 @@ class DoubleML(ABC):
 
                 # this step could be skipped for the single treatment variable case
                 if self._dml_data.n_treat > 1:
-                    self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
+                    self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
                 self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
@@ -639,7 +639,7 @@ class DoubleML(ABC):
             self._i_treat = i_d
             # this step could be skipped for the single treatment variable case
             if self._dml_data.n_treat > 1:
-                self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
+                self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
             if tune_on_folds:
                 nuiscance_params = [None] * self.n_rep
