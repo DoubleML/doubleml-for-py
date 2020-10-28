@@ -435,7 +435,7 @@ class DoubleML(ABC):
         Parameters
         ----------
         method : str
-            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
+            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the multiplier bootstrap method.
             Default is ``'normal'``
 
         n_boot_rep : int
