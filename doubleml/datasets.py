@@ -300,7 +300,7 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
 
 
 def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
-    # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201&download=yes
+    # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.3], [0.3, 1.]]),
                                        size=[n_obs, ])
