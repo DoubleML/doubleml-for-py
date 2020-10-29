@@ -1,4 +1,4 @@
-**Interactive IV (IIVM)** models take the form
+**Interactive IV regression (IIVM)** models take the form
 
 .. math::
 
