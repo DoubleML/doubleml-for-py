@@ -219,9 +219,9 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        m_0(x) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x-\\nu)},
+        m_0(x_i) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x_i-\\nu)},
 
-        g_0(x) &= \\sin(x)^2.
+        g_0(x_i) &= \\sin(x_i)^2.
 
     Parameters
     ----------
