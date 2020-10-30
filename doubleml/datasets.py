@@ -138,9 +138,9 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        d_i = m_0(x_i) + s_1 v_i, & &v_i \\sim \\mathcal{N}(0,1),
+        d_i &= m_0(x_i) + s_1 v_i, & &v_i \\sim \\mathcal{N}(0,1),
 
-        y_i = \\alpha d_i + g_0(x_i) + s_2 \\zeta_i, & &\\zeta_i \\sim \\mathcal{N}(0,1),
+        y_i &= \\alpha d_i + g_0(x_i) + s_2 \\zeta_i, & &\\zeta_i \\sim \\mathcal{N}(0,1),
 
 
     with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
@@ -208,9 +208,9 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        d_i = m_0(x_i' b) + v_i, & &v_i \\sim \\mathcal{N}(0,1),
+        d_i &= m_0(x_i' b) + v_i, & &v_i \\sim \\mathcal{N}(0,1),
 
-        y_i = \\theta d_i + g_0(x_i' b) + u_i, & &u_i \\sim \\mathcal{N}(0,1),
+        y_i &= \\theta d_i + g_0(x_i' b) + u_i, & &u_i \\sim \\mathcal{N}(0,1),
 
 
     with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a random symmetric,
@@ -268,6 +268,47 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
 
 def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type='DoubleMLData'):
+    """
+    Generates data from a interactive regression (IRM) model.
+    The data generating process is defined as
+
+    .. math::
+
+        d_i &= 1\\left\\lbrace \\frac{\\exp(c_d x_i' \\beta)}{1+\\exp(c_d x_i' \\beta)} > v_i \\right\\rbrace, & &v_i \\sim \\mathcal{U}(0,1),
+
+        y_i &= \\theta d_i + c_y x_i' \\beta d_i + \\zeta_i, & &\\zeta_i \\sim \\mathcal{N}(0,1),
+
+    with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
+    :math:`\\Sigma_{kj} = 0.5^{|j-k|}`.
+    :math:`\\beta` is a `dim_x`-vector with entries :math:`\\beta_j=\\frac{1}{j^2}` and the constants :math:`c_y` and
+    :math:`c_d` are given by
+
+    .. math::
+
+        c_y = \\sqrt{\\frac{R_y^2}{(1-R_y^2) \\beta' \\Sigma \\beta}}, \\qquad c_d = \\sqrt{\\frac{(\\pi^2 /3) R_d^2}{(1-R_d^2) \\beta' \\Sigma \\beta}}.
+
+    The data generating process is inspired by a process used in the simulation experiment (see Appendix P) of Belloni
+    et al. (2017).
+
+    Parameters
+    ----------
+    n_obs :
+        The number of observations to simulate.
+    dim_x :
+        The number of covariates.
+    theta :
+        The value of the causal parameter.
+    R2_d :
+        The value of the parameter :math:`R_d^2`.
+    R2_y :
+        The value of the parameter :math:`R_y^2`.
+    return_type :
+        .. include:: ../../shared/dgp/return_type.rst
+
+    References
+    ----------
+    Belloni, A., Chernozhukov, V., Fernández‐Val, I. and Hansen, C. (2017). Program Evaluation and Causal Inference With High‐Dimensional Data. Econometrica, 85: 233-298.
+    """
     # inspired by https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA12723, see suplement
     v = np.random.uniform(size=[n_obs, ])
     zeta = np.random.standard_normal(size=[n_obs, ])
@@ -300,6 +341,45 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
 
 
 def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
+    """
+    Generates data from a interactive IV regression (IIVM) model.
+    The data generating process is defined as
+
+    .. math::
+
+        d_i &= 1\\left\\lbrace \\alpha_x Z + v_i > 0 \\right\\rbrace,
+
+        y_i &= \\theta d_i + x_i' \\beta + u_i,
+
+    with :math:`Z \\sim \\text{Bernoulli}(0.5)` and
+
+    .. math::
+
+        \\left(\\begin{matrix} u_i \\\\ v_i \\end{matrix} \\right) \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.3 \\\\ 0.3 & 1 \\end{matrix} \\right) \\right).
+
+    The covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
+    :math:`\\Sigma_{kj} = 0.5^{|j-k|}` and :math:`\\beta` is a `dim_x`-vector with entries :math:`\\beta_j=\\frac{1}{j^2}`.
+
+    The data generating process is inspired by a process used in the simulation experiment of Farbmacher, Gruber and
+    Klaaßen (2020).
+
+    Parameters
+    ----------
+    n_obs :
+        The number of observations to simulate.
+    dim_x :
+        The number of covariates.
+    theta :
+        The value of the causal parameter.
+    alpha_x :
+        The value of the parameter :math:`\\alpha_x`.
+    return_type :
+        .. include:: ../../shared/dgp/return_type_iv.rst
+
+    References
+    ----------
+    Farbmacher, H., Guber, R. and Klaaßen, S. (2020). Instrument Validity Tests with Causal Forests. MEA Discussion Paper No. 13-2020. Available at SSRN: http://dx.doi.org/10.2139/ssrn.3619201.
+    """
     # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201&download=yes
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.3], [0.3, 1.]]),
@@ -394,7 +474,7 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     dim_z :
         The number of instruments.
     return_type :
-        .. include:: ../../shared/dgp/return_type.rst
+        .. include:: ../../shared/dgp/return_type_iv.rst
 
     References
     ----------
@@ -440,8 +520,6 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
             return DoubleMLData(data, 'y', 'd', x_cols, z_cols)
     else:
         raise ValueError('invalid return_type')
-
-    return data
 
 
 def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
