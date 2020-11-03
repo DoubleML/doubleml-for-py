@@ -36,7 +36,7 @@ The nuisance functions are given by
 
 .. note::
     - In Python the data can be generated with :py:func:`doubleml.datasets.make_plr_CCDDHNR2018`.
-    - In R the data can be generated with
+    - In R the data can be generated with `DoubleML::make_plr_CCDDHNR2018()`.
 
 .. tabbed:: Python
 
@@ -49,20 +49,30 @@ The nuisance functions are given by
         n_rep = 1000
         n_obs = 500
         n_vars = 20
+        alpha = 0.5
 
         data = list()
 
         for i_rep in range(n_rep):
-            (x, y, d) = make_plr_CCDDHNR2018(alpha=0.5, n_obs=n_obs, dim_x=n_vars, return_type='array')
+            (x, y, d) = make_plr_CCDDHNR2018(alpha=alpha, n_obs=n_obs, dim_x=n_vars, return_type='array')
             data.append((x, y, d))
 
 .. tabbed:: R
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        set.seed(1234)
+        n_rep = 1000
+        n_obs = 500
+        n_vars = 20
+        alpha = 0.5
+
+        data = list()
+        for (i_rep in seq_len(n_rep)) {
+            data[[i_rep]] = make_plr_CCDDHNR2018(alpha=alpha, n_obs=n_obs, dim_x=n_vars,
+                                                  return_type="data.frame")
+        }
 
 
 OLS estimation
@@ -109,9 +119,24 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(ggplot2)
+
+        est_ols = function(df) {
+            ols = stats::lm(y ~ -1 +., df)
+            theta = coef(ols)["d"]
+            return(theta)
+        }
+
+        theta_ols = rep(0, n_rep)
+        for (i_rep in seq_len(n_rep)) {
+            df = data[[i_rep]]
+            theta_ols[i_rep] = est_ols(df)
+        }
+
+        g_ols = ggplot(data.frame(theta_ols), aes(x = theta_ols)) +
+                    geom_density(fill = "dark blue", alpha = 0.3, color = "dark blue") +
+                    geom_vline(aes(xintercept = alpha), col = "black")
+        g_ols
 
 
 Regularization bias in simple ML-approaches
@@ -167,9 +192,12 @@ other half of observations indexed with :math:`i \in I`
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        # not yet implemented in R #
+        library(mlr3)
+        library(mlr3learners)
+        learner = lrn("regr.ranger", num.trees = 10)
+        ml_m = learner$clone()
+        ml_g = learner$clone()
 
 The regularization bias in the simple ML-approach is caused by the slow convergence of :math:`\hat{\theta}`
 
@@ -225,9 +253,27 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        theta_orth_nosplit = rep(0, n_rep)
+
+        for (i_rep in seq_len(n_rep)) {
+            df = data[[i_rep]]
+            obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
+            obj_dml_plr_orth_nosplit = DoubleMLPLR$new(obj_dml_data,
+                                                   ml_g, ml_m,
+                                                   n_folds=1,
+                                                   score='IV-type',
+                                                   apply_cross_fitting=FALSE)
+            obj_dml_plr_orth_nosplit$fit()
+            theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit$coef
+        }
+        g_nosplit = ggplot(data.frame(theta_orth_nosplit), aes(x = theta_orth_nosplit)) +
+                    geom_density(fill = "dark green", alpha = 0.3, color = "dark green") +
+                    geom_vline(aes(xintercept = alpha), col = "black")
+        g_nosplit
+
 
 If the nuisance models :math:`\hat{g}_0()` and :math:`\hat{m}()` are estimate on the whole dataset which is also used for obtaining
 the final estimate :math:`\check{\theta}` another bias can be observed.
@@ -264,9 +310,23 @@ induced by overfitting. Cross-fitting performs well empirically.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        theta_dml = rep(0, n_rep)
+        for (i_rep in seq_len(n_rep)) {
+            df = data[[i_rep]]
+            obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
+            obj_dml_plr = DoubleMLPLR$new(obj_dml_data,
+                                      ml_g, ml_m,
+                                      n_folds=2,
+                                      score='IV-type')
+            obj_dml_plr$fit()
+            theta_dml[i_rep] = obj_dml_plr$coef
+        }
+
+        g_dml = ggplot(data.frame(theta_dml), aes(x = theta_dml)) +
+                    geom_density(fill = "dark red", alpha = 0.3, color = "dark red") +
+                    geom_vline(aes(xintercept = alpha), col = "black")
+        g_dml
+
 
 Double/debiased machine learning
 ++++++++++++++++++++++++++++++++
@@ -314,9 +374,13 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        g_all = ggplot(data.frame(theta_ols, theta_orth_nosplit, theta_dml)) +
+                    geom_density(aes(x = theta_ols), fill = "dark blue", alpha = 0.3, color = "dark blue") +
+                    geom_density(aes(x = theta_orth_nosplit), fill = "dark green", alpha = 0.3, color = "dark green") +
+                    geom_density(aes(x = theta_dml), fill = "dark red", alpha = 0.3, color = "dark red") +
+                    geom_vline(aes(xintercept = alpha), col = "black")
+        g_all
+
 
 References
 ++++++++++

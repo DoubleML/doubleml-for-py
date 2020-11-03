@@ -8,9 +8,9 @@ demonstrated in the following. We download the Bonus data set from the Pennsylva
 
 .. note::
     - In Python we use :py:class:`pandas.DataFrame` and :py:class:`numpy.ndarray`.
-      The data can be fetched via :py:func:`doubleml.datasets.fetch_401K`.
-    - In R we use
-      The data can be fetched via
+      The data can be fetched via :py:func:`doubleml.datasets.fetch_bonus`.
+    - In R we use `data.table::data.table()`, `data.frame()`, and `matrix()`.
+      The data can be fetched via `DoubleML::fetch_bonus()`.
 
 .. tabbed:: Python
 
@@ -26,9 +26,15 @@ demonstrated in the following. We download the Bonus data set from the Pennsylva
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+
+        # Load data as data.table
+        dt_bonus = fetch_bonus(return_type = "data.table")
+        head(dt_bonus)
+
+        # Load data as data.frame
+        df_bonus = fetch_bonus(return_type = "data.frame")
+        head(df_bonus)
 
 
 DoubleMLData from dataframes
@@ -42,7 +48,8 @@ specifying the confounders.
 .. note::
     * In Python we use :py:class:`pandas.DataFrame`
       and the API reference can be found here :py:class:`doubleml.DoubleMLData`.
-    * In R we use
+    * In R we use `data.table::data.table()` and the API reference can be found here `DoubleML::DoubleMLData`.
+    * For initialization from the R base class `data.frame()` the API reference can be found here `DoubleML::data_ml_from_data_frame()`.
 
 .. tabbed:: Python
 
@@ -64,9 +71,27 @@ specifying the confounders.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        # Specify the data and the variables for the causal model
+
+        # From data.table object
+        obj_dml_data_bonus = DoubleMLData$new(dt_bonus,
+                                     y_col = "inuidur1",
+                                     d_cols = "tg",
+                                     x_cols = c("female", "black", "othrace", "dep1", "dep2",
+                                                  "q2", "q3", "q4", "q5", "q6", "agelt35", "agegt54",
+                                                  "durable", "lusd", "husd"),
+                                     use_other_treat_as_covariate=TRUE)
+        obj_dml_data_bonus
+
+        # From dat.frame object
+        obj_dml_data_bonus_df = double_ml_data_from_data_frame(df_bonus,
+                                     y_col = "inuidur1",
+                                     d_cols = "tg",
+                                     x_cols = c("female", "black", "othrace", "dep1", "dep2",
+                                                  "q2", "q3", "q4", "q5", "q6", "agelt35", "agegt54",
+                                                  "durable", "lusd", "husd"),
+                                     use_other_treat_as_covariate=TRUE)
+        obj_dml_data_bonus_df
 
 Comments on detailed specifications:
 
@@ -76,8 +101,8 @@ Comments on detailed specifications:
       treatment variables should be added as covariates in each treatment-variable-specific learning task.
     * Instrumental variables for IV models have to be provided as ``z_cols``.
 
-DoubleMLData from arrays
-^^^^^^^^^^^^^^^^^^^^^^^^
+DoubleMLData from arrays and matrices
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To introduce the array interface we generate a data set consisting of confounding variables ``X``, an outcome
 variable ``y`` and a treatment variable ``d``
@@ -85,7 +110,8 @@ variable ``y`` and a treatment variable ``d``
 .. note::
     * In python we use :py:class:`numpy.ndarray`.
       and the API reference can be found here :py:func:`doubleml.DoubleMLData.from_arrays`.
-    * In R we use
+    * In R we use the R base class `matrix()`
+      and the API reference can be found here `DoubleML::double_ml_data_from_matrix()`.
 
 .. tabbed:: Python
 
@@ -106,9 +132,14 @@ variable ``y`` and a treatment variable ``d``
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        # Generate data
+        set.seed(3141)
+        n_obs = 500
+        n_vars = 100
+        theta = 3
+        X = matrix(stats::rnorm(n_obs * n_vars), nrow = n_obs, ncol = n_vars)
+        d = X[, 1:3, drop = FALSE] %*% c(5, 5, 5) + stats::rnorm(n_obs)
+        y = theta * d + X[, 1:3, drop = FALSE] %*% c(5, 5, 5)  + stats::rnorm(n_obs)
 
 To specify the data and the variables for the causal model from arrays we call
 
@@ -125,6 +156,5 @@ To specify the data and the variables for the causal model from arrays we call
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        obj_dml_data_sim = double_ml_data_from_matrix(X = X, y = y, d = d)
+        obj_dml_data_sim
