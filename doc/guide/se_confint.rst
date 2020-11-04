@@ -60,9 +60,21 @@ implemented in ``DoubleMLPLR``.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+
+        set.seed(3141)
+        obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5)
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj$fit()
+
 
 The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -77,9 +89,7 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$coef)
 
 The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``se`` attribute.
 
@@ -93,9 +103,7 @@ The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``s
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$se)
 
 Additionally, the value of the :math:`t`-statistic and the corresponding p-value are provided in the attributes
 ``t_stat`` and ``pval``.
@@ -111,11 +119,16 @@ Additionally, the value of the :math:`t`-statistic and the corresponding p-value
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$t_stat)
+        print(dml_plr_obj$pval)
 
-An overview of all these estimates, together with a 95 % confidence interval is stored in the attribute ``summary``.
+
+.. note::
+    - In Python, an overview of all these estimates, together with a 95 % confidence interval is stored in the
+      attribute ``summary``.
+    - In R, a summary can be obtained by using the method ``summary()``. The ``confint()`` method performs estimation of
+      confidence intervals.
+
 
 .. tabbed:: Python
 
@@ -127,9 +140,8 @@ An overview of all these estimates, together with a 95 % confidence interval is 
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$summary()
+        dml_plr_obj$confint()
 
 A more detailed overview of the fitted model, its specifications and the summary can be obtained via the
 string-representation of the object.
@@ -144,9 +156,7 @@ string-representation of the object.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj)
 
 .. TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
 
@@ -208,3 +218,28 @@ the method ``p_adjust``.
         print(dml_plr.fit().bootstrap().confint(joint=True))
         print(dml_plr.p_adjust())
 
+.. tabbed:: R
+
+    .. jupyter-execute::
+
+        library(DoubleML)
+        library(mlr3)
+        library(data.table)
+
+        set.seed(3141)
+        n_obs = 500
+        n_vars = 100
+        theta = rep(3, 3)
+        X = matrix(stats::rnorm(n_obs * n_vars), nrow = n_obs, ncol = n_vars)
+        y = X[, 1:3, drop = FALSE] %*% theta  + stats::rnorm(n_obs)
+        dml_data = double_ml_data_from_matrix(X = X[, 11:n_vars], y = y, d = X[,1:10])
+
+        learner = lrn("regr.cv_glmnet", s="lambda.min")
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+        dml_plr = DoubleMLPLR$new(dml_data, ml_g, ml_m)
+
+        dml_plr$fit()
+        dml_plr$bootstrap()
+        dml_plr$confint(joint=TRUE)
+        dml_plr$p_adjust()
