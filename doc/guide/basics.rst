@@ -46,7 +46,7 @@ The nuisance functions are given by
         from doubleml.datasets import make_plr_CCDDHNR2018
 
         np.random.seed(1234)
-        n_rep = 1000
+        n_rep = 100
         n_obs = 500
         n_vars = 20
         alpha = 0.5
@@ -63,7 +63,7 @@ The nuisance functions are given by
 
         library(DoubleML)
         set.seed(1234)
-        n_rep = 1000
+        n_rep = 100
         n_obs = 500
         n_vars = 20
         alpha = 0.5
@@ -169,7 +169,7 @@ other half of observations indexed with :math:`i \in I`
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=500)
         ml_m = clone(learner)
         ml_g = clone(learner)
         theta_nonorth = np.zeros(n_rep)
@@ -192,12 +192,44 @@ other half of observations indexed with :math:`i \in I`
 
     .. jupyter-execute::
 
+        non_orth_score = function(y, d, g_hat, m_hat, smpls) {
+         u_hat = y - g_hat
+         psi_a = -1*d*d
+         psi_b = d*u_hat
+         psis = list(psi_a = psi_a, psi_b = psi_b)
+         return(psis)
+        }
+
+
+    .. jupyter-execute::
+
         # not yet implemented in R #
         library(mlr3)
         library(mlr3learners)
-        learner = lrn("regr.ranger", num.trees = 10)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        learner = lrn("regr.ranger", num.trees = 500)
         ml_m = learner$clone()
         ml_g = learner$clone()
+        theta_nonorth = rep(0, n_rep)
+
+        for (i_rep in seq_len(n_rep)) {
+            df = data[[i_rep]]
+            obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
+            obj_dml_plr_nonorth = DoubleMLPLR$new(obj_dml_data,
+                                                   ml_g, ml_m,
+                                                   n_folds=2,
+                                                   score=non_orth_score,
+                                                   apply_cross_fitting=FALSE)
+            obj_dml_plr_nonorth$fit()
+            theta_nonorth[i_rep] = obj_dml_plr_nonorth$coef
+        }
+        g_nonorth = ggplot(data.frame(theta_nonorth), aes(x = theta_nonorth)) +
+                        geom_density(fill = "dark orange", alpha = 0.3, color = "dark orange") +
+                        geom_vline(aes(xintercept = alpha), col = "black")
+        g_nonorth
+
 
 The regularization bias in the simple ML-approach is caused by the slow convergence of :math:`\hat{\theta}`
 
@@ -374,8 +406,9 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
 
     .. jupyter-execute::
 
-        g_all = ggplot(data.frame(theta_ols, theta_orth_nosplit, theta_dml)) +
+        g_all = ggplot(data.frame(theta_ols, theta_nonorth, theta_orth_nosplit, theta_dml)) +
                     geom_density(aes(x = theta_ols), fill = "dark blue", alpha = 0.3, color = "dark blue") +
+                    geom_density(aes(x = theta_nonorth), fill = "dark orange", alpha = 0.3, color = "dark orange") +
                     geom_density(aes(x = theta_orth_nosplit), fill = "dark green", alpha = 0.3, color = "dark green") +
                     geom_density(aes(x = theta_dml), fill = "dark red", alpha = 0.3, color = "dark red") +
                     geom_vline(aes(xintercept = alpha), col = "black")
