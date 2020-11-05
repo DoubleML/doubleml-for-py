@@ -184,7 +184,7 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
     d = a_0 * x[:, 0] + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
         + s_1 * np.random.standard_normal(size=[n_obs, ])
-    y = alpha * d + b_0 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
+    y = alpha * d + b_0 * np.divide(np.exp(x[:, 0]), 1 + np.exp(x[:, 0])) \
         + b_1 * x[:, 2] + s_2 * np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
