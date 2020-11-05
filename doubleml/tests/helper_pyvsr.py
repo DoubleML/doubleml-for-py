@@ -39,7 +39,7 @@ r_MLPLR = robjects.r('''
                                                score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlplr_obj$set_samples(smpls)
+            double_mlplr_obj$set__samples(smpls)
             
             double_mlplr_obj$fit()
             return(list(coef = double_mlplr_obj$coef,
@@ -74,7 +74,7 @@ r_MLPLIV = robjects.r('''
                                                  score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlpliv_obj$set_samples(smpls)
+            double_mlpliv_obj$set__samples(smpls)
             
             double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
@@ -110,7 +110,7 @@ r_MLPLIV_PARTIAL_X = robjects.r('''
                                                       score = score)
 
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlpliv_obj$set_samples(smpls)
+            double_mlpliv_obj$set__samples(smpls)
 
             double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
@@ -142,7 +142,7 @@ r_MLPLIV_PARTIAL_Z = robjects.r('''
                                                       score = score)
 
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlpliv_obj$set_samples(smpls)
+            double_mlpliv_obj$set__samples(smpls)
 
             double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
@@ -178,7 +178,7 @@ r_MLPLIV_PARTIAL_XZ = robjects.r('''
                                                        score = score)
 
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlpliv_obj$set_samples(smpls)
+            double_mlpliv_obj$set__samples(smpls)
 
             double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
@@ -210,7 +210,7 @@ r_IRM = robjects.r('''
                                                score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mlirm_obj$set_samples(smpls)
+            double_mlirm_obj$set__samples(smpls)
             
             double_mlirm_obj$fit()
             return(list(coef = double_mlirm_obj$coef,
@@ -227,9 +227,9 @@ r_IIVM = robjects.r('''
 
         f <- function(data, score, dml_procedure, train_ids, test_ids) {
             data = data.table(data)
-            mlmethod_p = 'classif.log_reg'
-            mlmethod_mu = 'regr.lm'
-            mlmethod_m = 'classif.log_reg'
+            ml_g = 'regr.lm'
+            ml_m = 'classif.log_reg'
+            ml_r = 'classif.log_reg'
             
             Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
             data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
@@ -238,14 +238,14 @@ r_IIVM = robjects.r('''
 
             double_mliivm_obj = DoubleMLIIVM$new(data_ml,
                                                  n_folds = 2,
-                                                 ml_p = mlmethod_p,
-                                                 ml_mu = mlmethod_mu,
-                                                 ml_m = mlmethod_m,
+                                                 ml_g = ml_g,
+                                                 ml_m = ml_m,
+                                                 ml_r = ml_r,
                                                  dml_procedure = dml_procedure,
                                                  score = score)
             
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
-            double_mliivm_obj$set_samples(smpls)
+            double_mliivm_obj$set__samples(smpls)
             
             double_mliivm_obj$fit()
             return(list(coef = double_mliivm_obj$coef,
