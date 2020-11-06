@@ -147,7 +147,8 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
         g_ols = ggplot(data.frame(theta_ols), aes(x = theta_ols)) +
                     geom_density(fill = "dark blue", alpha = 0.3, color = "dark blue") +
-                    geom_vline(aes(xintercept = alpha), col = "black")
+                    geom_vline(aes(xintercept = alpha), col = "black") +
+                    xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_ols
 
 
@@ -183,7 +184,7 @@ other half of observations indexed with :math:`i \in I`
         import numpy as np
         np.random.seed(1111)
 
-        learner = RandomForestRegressor(n_estimators=500)
+        learner = RandomForestRegressor(n_estimators=100)
         ml_m = clone(learner)
         ml_g = clone(learner)
 
@@ -231,7 +232,7 @@ other half of observations indexed with :math:`i \in I`
         lgr::get_logger("mlr3")$set_threshold("warn")
         set.seed(1111)
 
-        learner = lrn("regr.ranger", num.trees = 500)
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_m = learner$clone()
         ml_g = learner$clone()
 
@@ -256,7 +257,8 @@ other half of observations indexed with :math:`i \in I`
 
         g_nonorth = ggplot(data.frame(theta_nonorth), aes(x = theta_nonorth)) +
                         geom_density(fill = "dark orange", alpha = 0.3, color = "dark orange") +
-                        geom_vline(aes(xintercept = alpha), col = "black")
+                        geom_vline(aes(xintercept = alpha), col = "black") +
+                        xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_nonorth
 
 
@@ -349,7 +351,8 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
         g_nosplit = ggplot(data.frame(theta_orth_nosplit), aes(x = theta_orth_nosplit)) +
                     geom_density(fill = "dark green", alpha = 0.3, color = "dark green") +
-                    geom_vline(aes(xintercept = alpha), col = "black")
+                    geom_vline(aes(xintercept = alpha), col = "black") +
+                    xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_nosplit
 
 
@@ -418,7 +421,8 @@ induced by overfitting. Cross-fitting performs well empirically.
 
         g_dml = ggplot(data.frame(theta_dml), aes(x = theta_dml)) +
                     geom_density(fill = "dark red", alpha = 0.3, color = "dark red") +
-                    geom_vline(aes(xintercept = alpha), col = "black")
+                    geom_vline(aes(xintercept = alpha), col = "black") +
+                    xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_dml
 
 
@@ -473,7 +477,8 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
                     geom_density(aes(x = theta_nonorth), fill = "dark orange", alpha = 0.3, color = "dark orange") +
                     geom_density(aes(x = theta_orth_nosplit), fill = "dark green", alpha = 0.3, color = "dark green") +
                     geom_density(aes(x = theta_dml), fill = "dark red", alpha = 0.3, color = "dark red") +
-                    geom_vline(aes(xintercept = alpha), col = "black")
+                    geom_vline(aes(xintercept = alpha), col = "black") +
+                    xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_all
 
 
