@@ -114,8 +114,8 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
         for i_rep in range(1):
             (x, y, d) = data[i_rep]
             this_theta = est_ols(y, d)
-            # we assert that the loaded result matches the just computed
-            assert np.abs(theta_ols[i_rep] - this_theta) < 1e-6
+            # we show that the loaded result matches the just computed
+            print(np.abs(theta_ols[i_rep] - this_theta))
             theta_ols[i_rep] = this_theta
 
         ax = sns.kdeplot(theta_ols, shade=True, color=colors[0])
@@ -175,12 +175,15 @@ other half of observations indexed with :math:`i \in I`
         from doubleml import DoubleMLPLR
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
+        import numpy as np
+        np.random.seed(1111)
 
         learner = RandomForestRegressor(n_estimators=500)
         ml_m = clone(learner)
         ml_g = clone(learner)
 
-        theta_nonorth = np.zeros(n_rep)
+        # to speed up the illustration we hard-code the simulation results
+        theta_nonorth = np.array([0.29366923, 0.3185203 , 0.37533048, 0.37088366, 0.19803773, 0.30828113, 0.34663329, 0.27895468, 0.29746076, 0.24940245, 0.29157326, 0.38012658, 0.35148578, 0.26273756, 0.33198856, 0.35471521, 0.4032286 , 0.2972334 , 0.32185157, 0.23044533, 0.3186483 , 0.32460869, 0.22068749, 0.3613337 , 0.35556874, 0.28618608, 0.29061311, 0.16806013, 0.34984153, 0.2682979 , 0.15792403, 0.26568878, 0.19371346, 0.24222099, 0.28596736, 0.26820864, 0.25735315, 0.28764038, 0.27602423, 0.32650334, 0.25556837, 0.26330747, 0.31135055, 0.18424877, 0.25083002, 0.24005185, 0.29130529, 0.32371353, 0.30196971, 0.23685769, 0.33663465, 0.35461096, 0.33337579, 0.36119784, 0.34360896, 0.25420008, 0.18020323, 0.36871964, 0.35384154, 0.33841536, 0.27163847, 0.25221933, 0.26272111, 0.25356449, 0.267646  , 0.19191615, 0.28093068, 0.27512042, 0.36157435, 0.17145189, 0.12915806, 0.24374555, 0.27688143, 0.12256028, 0.43368743, 0.23872294, 0.34576773, 0.26492525, 0.34938815, 0.29693057, 0.27551534, 0.3528473 , 0.33108614, 0.1452295 , 0.22088902, 0.24975281, 0.32121537, 0.34396557, 0.40426961, 0.3513969 , 0.24562922, 0.22752121, 0.37189554, 0.18458102, 0.30684071, 0.34418113, 0.30683124, 0.15732466, 0.4439994 , 0.22972917])
 
         # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
         #for i_rep in range(n_rep):
@@ -193,7 +196,10 @@ other half of observations indexed with :math:`i \in I`
                                               apply_cross_fitting=False,
                                               score=non_orth_score)
             obj_dml_plr_nonorth.fit()
-            theta_nonorth[i_rep] = obj_dml_plr_nonorth.coef[0]
+            this_theta = obj_dml_plr_nonorth.coef[0]
+            # we show that the loaded result matches the just computed
+            print(np.abs(theta_nonorth[i_rep] - this_theta))
+            theta_nonorth[i_rep] = this_theta
 
         ax = sns.kdeplot(theta_nonorth, shade=True, color=colors[1])
         @savefig nonorth.png width=5in
@@ -276,7 +282,11 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
     .. ipython:: python
 
-        theta_orth_nosplit = np.zeros(n_rep)
+        import numpy as np
+        np.random.seed(2222)
+
+        # to speed up the illustration we hard-code the simulation results
+        theta_orth_nosplit = np.array([0.21267246, 0.19035703, 0.17553032, 0.18811128, 0.19009917, 0.18871992, 0.20287762, 0.18080227, 0.20571531, 0.23544614, 0.20168225, 0.20249789, 0.21004924, 0.15928406, 0.18548533, 0.18651856, 0.19766646, 0.17434387, 0.19763059, 0.19645366, 0.18455094, 0.16241166, 0.16966572, 0.18960055, 0.1810025 , 0.1832846 , 0.19458859, 0.1791934 , 0.17675649, 0.19951372, 0.2011414 , 0.22412837, 0.15889931, 0.15687732, 0.18535516, 0.16488848, 0.18261685, 0.20954582, 0.19590937, 0.18625687, 0.17188457, 0.1858343 , 0.18879836, 0.14296883, 0.20590783, 0.18350397, 0.19686679, 0.18653557, 0.20284635, 0.22071435, 0.18611925, 0.18737602, 0.20448496, 0.19888918, 0.21829413, 0.1691084 , 0.19997557, 0.21021366, 0.176807  , 0.17291738, 0.20451048, 0.19983547, 0.21683657, 0.18955314, 0.21238901, 0.16822338, 0.17381694, 0.192073  , 0.21816915, 0.19955613, 0.17032554, 0.17568031, 0.1776993 , 0.18832984, 0.19328225, 0.20206436, 0.1895523 , 0.19932858, 0.18523962, 0.21029524, 0.18919887, 0.19406502, 0.18869902, 0.17773589, 0.16403292, 0.19089166, 0.1959437 , 0.19981805, 0.19809157, 0.19459026, 0.16202348, 0.17559719, 0.22848809, 0.19218543, 0.19113699, 0.19115575, 0.19039321, 0.19983057, 0.22975582, 0.20277958])
 
         # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
         #for i_rep in range(n_rep):
@@ -289,7 +299,10 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
                                                    score='IV-type',
                                                    apply_cross_fitting=False)
             obj_dml_plr_orth_nosplit.fit()
-            theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit.coef[0]
+            this_theta = obj_dml_plr_orth_nosplit.coef[0]
+            # we show that the loaded result matches the just computed
+            print(np.abs(theta_orth_nosplit[i_rep] - this_theta))
+            theta_orth_nosplit[i_rep] = this_theta
 
         ax = sns.kdeplot(theta_orth_nosplit, shade=True, color=colors[2])
         @savefig orth_nosplit.png width=5in
@@ -337,7 +350,11 @@ induced by overfitting. Cross-fitting performs well empirically.
 
     .. ipython:: python
 
-        theta_dml = np.zeros(n_rep)
+        import numpy as np
+        np.random.seed(3333)
+
+        # to speed up the illustration we hard-code the simulation results
+        theta_dml = np.array([0.54370516, 0.55369544, 0.50097982, 0.52045338, 0.53547201, 0.46795147, 0.54512537, 0.4741297 , 0.58580663, 0.64865909, 0.5201819 , 0.54087818, 0.54222501, 0.46950931, 0.49654939, 0.50097532, 0.55123242, 0.50490227, 0.55370679, 0.53199869, 0.48967937, 0.43577411, 0.46523043, 0.5493953 , 0.46254555, 0.50608273, 0.55363785, 0.51922619, 0.52676764, 0.4838423 , 0.51066561, 0.58334809, 0.46378467, 0.4642138 , 0.44336647, 0.45042542, 0.52993666, 0.58578501, 0.48790803, 0.54744297, 0.43473949, 0.43933014, 0.50520622, 0.44414833, 0.5980775 , 0.48150111, 0.54326984, 0.56599116, 0.57365272, 0.59776555, 0.49154794, 0.55213332, 0.52850586, 0.52698463, 0.59896053, 0.4642551 , 0.62334582, 0.55125113, 0.51414727, 0.51910541, 0.54772369, 0.53309515, 0.52693028, 0.48280077, 0.59887037, 0.44053728, 0.53403916, 0.50420431, 0.5990181 , 0.51283072, 0.51651118, 0.4873045 , 0.49561432, 0.54101811, 0.5434123 , 0.60495487, 0.58368309, 0.51277121, 0.5162138 , 0.54098573, 0.50907415, 0.49830674, 0.50543125, 0.48862414, 0.44121645, 0.50641711, 0.57551834, 0.59563729, 0.49882687, 0.51580948, 0.48474833, 0.47058381, 0.62205853, 0.45802027, 0.56951467, 0.52920686, 0.50473622, 0.49641629, 0.59351419, 0.55661256])
 
         # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
         #for i_rep in range(n_rep):
@@ -349,7 +366,10 @@ induced by overfitting. Cross-fitting performs well empirically.
                                       n_folds=2,
                                       score='IV-type')
             obj_dml_plr.fit()
-            theta_dml[i_rep] = obj_dml_plr.coef[0]
+            this_theta = obj_dml_plr.coef[0]
+            # we show that the loaded result matches the just computed
+            print(np.abs(theta_dml[i_rep] - this_theta))
+            theta_dml[i_rep] = this_theta
 
         ax = sns.kdeplot(theta_dml, shade=True, color=colors[3])
         @savefig orth.png width=5in
