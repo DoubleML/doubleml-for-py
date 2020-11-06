@@ -106,10 +106,17 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
             theta = results.coef_
             return theta
 
-        theta_ols = np.zeros(n_rep)
-        for i_rep in range(n_rep):
+        # to speed up the illustration we hard-code the simulation results
+        theta_ols = np.array([0.74327549, 0.71934891, 0.7071162 , 0.66889543, 0.7321444 , 0.69223437, 0.68652905, 0.68488856, 0.72617801, 0.77559064, 0.71563239, 0.70957142, 0.72750812, 0.61424786, 0.71949073, 0.76285484, 0.7496472 , 0.69688757, 0.6478375 , 0.69363074, 0.60957089, 0.69387009, 0.63558263, 0.74582498, 0.68074102, 0.66290947, 0.70199172, 0.67168635, 0.6949646 , 0.67395231, 0.6863304 , 0.72837954, 0.63418985, 0.624109  , 0.74254538, 0.66124323, 0.69945743, 0.74743667, 0.67949935, 0.70447876, 0.68997626, 0.6485608 , 0.6996691 , 0.64571962, 0.689712  , 0.72131247, 0.75407754, 0.70783852, 0.66223883, 0.74018891, 0.71145533, 0.69873155, 0.7445769 , 0.74689479, 0.73542415, 0.67113299, 0.76903052, 0.70375282, 0.70996563, 0.70438228, 0.74164684, 0.74533407, 0.66750142, 0.66591911, 0.68102801, 0.68273323, 0.68804608, 0.65742228, 0.73445098, 0.73037019, 0.70510367, 0.66405038, 0.7135943 , 0.68373932, 0.69066059, 0.72144004, 0.70095231, 0.73540764, 0.65717624, 0.72036667, 0.68831806, 0.68206625, 0.6739611 , 0.6508514 , 0.68228283, 0.70360066, 0.69994817, 0.6896916 , 0.7008032 , 0.65414898, 0.63797163, 0.68304265, 0.719207  , 0.71895005, 0.68102457, 0.72023145, 0.65410707, 0.73580482, 0.758165  , 0.76284332])
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for i_rep in range(n_rep):
+        for i_rep in range(1):
             (x, y, d) = data[i_rep]
-            theta_ols[i_rep] = est_ols(y, d)
+            this_theta = est_ols(y, d)
+            # we assert that the loaded result matches the just computed
+            assert np.abs(theta_ols[i_rep] - this_theta) < 1e-6
+            theta_ols[i_rep] = this_theta
 
         ax = sns.kdeplot(theta_ols, shade=True, color=colors[0])
         @savefig ols.png width=5in
@@ -172,8 +179,12 @@ other half of observations indexed with :math:`i \in I`
         learner = RandomForestRegressor(n_estimators=500)
         ml_m = clone(learner)
         ml_g = clone(learner)
+
         theta_nonorth = np.zeros(n_rep)
-        for i_rep in range(n_rep):
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for i_rep in range(n_rep):
+        for i_rep in range(1):
             (x, y, d) = data[i_rep]
             obj_dml_data = DoubleMLData.from_arrays(x, y, d)
             obj_dml_plr_nonorth = DoubleMLPLR(obj_dml_data,
@@ -222,7 +233,7 @@ other half of observations indexed with :math:`i \in I`
                                                    n_folds=2,
                                                    score=non_orth_score,
                                                    apply_cross_fitting=FALSE)
-            obj_dml_plr_nonorth$fit()
+            #obj_dml_plr_nonorth$fit()
             theta_nonorth[i_rep] = obj_dml_plr_nonorth$coef
         }
         g_nonorth = ggplot(data.frame(theta_nonorth), aes(x = theta_nonorth)) +
@@ -266,7 +277,10 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
     .. ipython:: python
 
         theta_orth_nosplit = np.zeros(n_rep)
-        for i_rep in range(n_rep):
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for i_rep in range(n_rep):
+        for i_rep in range(1):
             (x, y, d) = data[i_rep]
             obj_dml_data = DoubleMLData.from_arrays(x, y, d)
             obj_dml_plr_orth_nosplit = DoubleMLPLR(obj_dml_data,
@@ -298,7 +312,7 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
                                                    n_folds=1,
                                                    score='IV-type',
                                                    apply_cross_fitting=FALSE)
-            obj_dml_plr_orth_nosplit$fit()
+            #obj_dml_plr_orth_nosplit$fit()
             theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit$coef
         }
         g_nosplit = ggplot(data.frame(theta_orth_nosplit), aes(x = theta_orth_nosplit)) +
@@ -324,7 +338,10 @@ induced by overfitting. Cross-fitting performs well empirically.
     .. ipython:: python
 
         theta_dml = np.zeros(n_rep)
-        for i_rep in range(n_rep):
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for i_rep in range(n_rep):
+        for i_rep in range(1):
             (x, y, d) = data[i_rep]
             obj_dml_data = DoubleMLData.from_arrays(x, y, d)
             obj_dml_plr = DoubleMLPLR(obj_dml_data,
@@ -350,7 +367,7 @@ induced by overfitting. Cross-fitting performs well empirically.
                                       ml_g, ml_m,
                                       n_folds=2,
                                       score='IV-type')
-            obj_dml_plr$fit()
+            #obj_dml_plr$fit()
             theta_dml[i_rep] = obj_dml_plr$coef
         }
 
