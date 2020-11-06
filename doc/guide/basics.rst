@@ -95,7 +95,6 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
         from sklearn.linear_model import LinearRegression
         import matplotlib.pyplot as plt
         import seaborn as sns
-        sns.set()
         colors = sns.color_palette()
 
         def est_ols(y, X):
@@ -134,10 +133,16 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
             return(theta)
         }
 
-        theta_ols = rep(0, n_rep)
-        for (i_rep in seq_len(n_rep)) {
-            df = data[[i_rep]]
-            theta_ols[i_rep] = est_ols(df)
+        # to speed up the illustration we hard-code the simulation results
+        theta_ols = c(0.56568853, 0.61535317, 0.48324806, 0.55823581, 0.44806661, 0.54462785, 0.62151523, 0.52220771, 0.52877665, 0.61186918, 0.59896715, 0.51507146, 0.54963678, 0.46885688, 0.54107110, 0.51628228, 0.53442839, 0.63808414, 0.58678979, 0.57107671, 0.51878880, 0.56878589, 0.51057651, 0.54227942, 0.55689755, 0.47777885, 0.59702464, 0.61836297, 0.54024895, 0.52693577, 0.60209075, 0.55945983, 0.66520891, 0.56832120, 0.53326787, 0.57577407, 0.60194382, 0.59589239, 0.54732804, 0.63402734, 0.54418566, 0.63390548, 0.44703585, 0.59108581, 0.67518078, 0.59737571, 0.63265445, 0.58739447, 0.55429088, 0.51448692, 0.61853824, 0.62802557, 0.60996312, 0.55281861, 0.59962309, 0.68038114, 0.59224985, 0.51640663, 0.54085081, 0.55923941, 0.53867494, 0.53933255, 0.65676841, 0.55922278, 0.57683549, 0.48492191, 0.52246326, 0.50390511, 0.66077033, 0.51111042, 0.58298023, 0.60905476, 0.49274861, 0.51219966, 0.56855359, 0.50324880, 0.59366592, 0.58155089, 0.51891216, 0.53146179, 0.46317588, 0.52762106, 0.58657506, 0.55967932, 0.52004331, 0.57938516, 0.55099221, 0.56508028, 0.54747505, 0.64902116, 0.64223485, 0.56481903, 0.51606981, 0.55878822, 0.52949256, 0.62884680, 0.56188547, 0.55526127, 0.64044715, 0.50851205)
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for (i_rep in seq_len(n_rep)) {
+        for (i_rep in seq_len(1)) {
+          df = data[[i_rep]]
+          this_theta = est_ols(df)
+          print(abs(theta_ols[i_rep] - this_theta))
+          theta_ols[i_rep] = this_theta
         }
 
         g_ols = ggplot(data.frame(theta_ols), aes(x = theta_ols)) +
@@ -220,28 +225,35 @@ other half of observations indexed with :math:`i \in I`
 
     .. jupyter-execute::
 
-        # not yet implemented in R #
         library(mlr3)
         library(mlr3learners)
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
+        set.seed(1111)
 
         learner = lrn("regr.ranger", num.trees = 500)
         ml_m = learner$clone()
         ml_g = learner$clone()
-        theta_nonorth = rep(0, n_rep)
 
-        for (i_rep in seq_len(n_rep)) {
+        # to speed up the illustration we hard-code the simulation results
+        theta_nonorth = c(0.39207365, 0.42380689, 0.39862041, 0.31101434, 0.23695041, 0.28660659, 0.39800054, 0.40390565, 0.23648048, 0.29610868, 0.43745864, 0.38293966, 0.34555853, 0.32377895, 0.35627763, 0.32330548, 0.36746418, 0.36576855, 0.44022034, 0.34458993, 0.32936759, 0.30424130, 0.48469919, 0.32510004, 0.33212339, 0.28615481, 0.22279747, 0.43963686, 0.35949993, 0.40066471, 0.33460311, 0.26335276, 0.24557140, 0.39415905, 0.36175826, 0.36807517, 0.30517815, 0.47318286, 0.36693829, 0.41930241, 0.41658134, 0.46573425, 0.22816966, 0.49017576, 0.45902062, 0.37762354, 0.38482861, 0.35601587, 0.40448002, 0.21640488, 0.30720589, 0.39399475, 0.36389091, 0.34727100, 0.30692754, 0.48097881, 0.34415444, 0.22997112, 0.28485261, 0.34093450, 0.36470029, 0.33712527, 0.37370901, 0.33275257, 0.41833763, 0.22570285, 0.32505267, 0.41583171, 0.45271700, 0.37122270, 0.32387104, 0.37987577, 0.27003827, 0.36611732, 0.35969669, 0.35851335, 0.38239889, 0.39741693, 0.27138911, 0.33606514, 0.25505852, 0.35793249, 0.32265930, 0.25043318, 0.41496952, 0.31918266, 0.37785125, 0.38101082, 0.38306949, 0.46753705, 0.48406362, 0.33986358, 0.31642493, 0.36691439, 0.28618942, 0.37942738, 0.33215118, 0.28269792, 0.33738578, 0.29179458)
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for (i_rep in seq_len(n_rep)) {
+        for (i_rep in seq_len(1)) {
             df = data[[i_rep]]
             obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
             obj_dml_plr_nonorth = DoubleMLPLR$new(obj_dml_data,
-                                                   ml_g, ml_m,
-                                                   n_folds=2,
-                                                   score=non_orth_score,
-                                                   apply_cross_fitting=FALSE)
-            #obj_dml_plr_nonorth$fit()
-            theta_nonorth[i_rep] = obj_dml_plr_nonorth$coef
+                                                  ml_g, ml_m,
+                                                  n_folds=2,
+                                                  score=non_orth_score,
+                                                  apply_cross_fitting=FALSE)
+            obj_dml_plr_nonorth$fit()
+            this_theta = obj_dml_plr_nonorth$coef
+            print(abs(theta_nonorth[i_rep] - this_theta))
+            theta_nonorth[i_rep] = this_theta
         }
+
         g_nonorth = ggplot(data.frame(theta_nonorth), aes(x = theta_nonorth)) +
                         geom_density(fill = "dark orange", alpha = 0.3, color = "dark orange") +
                         geom_vline(aes(xintercept = alpha), col = "black")
@@ -314,10 +326,14 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
+        set.seed(2222)
 
-        theta_orth_nosplit = rep(0, n_rep)
+        # to speed up the illustration we hard-code the simulation results
+        theta_orth_nosplit = c(0.18554704, 0.19152684, 0.16225393, 0.19500685, 0.16028222, 0.18262672, 0.21190041, 0.18788714, 0.17272570, 0.21196016, 0.20740163, 0.18011456, 0.17953159, 0.15627498, 0.18276306, 0.16326673, 0.17466104, 0.19686748, 0.20160621, 0.19726060, 0.17497535, 0.18040960, 0.18381150, 0.18312531, 0.18424386, 0.17027957, 0.18334437, 0.23649185, 0.19273812, 0.18375377, 0.19574566, 0.17870017, 0.22277071, 0.19187247, 0.17748468, 0.18958201, 0.19504114, 0.20228565, 0.18624799, 0.18969783, 0.19419763, 0.20932274, 0.14436446, 0.22064810, 0.22149545, 0.21727191, 0.20759782, 0.18973507, 0.19901034, 0.18293526, 0.19295537, 0.19897967, 0.22567532, 0.16393716, 0.18962320, 0.23279276, 0.18668416, 0.16397648, 0.17864105, 0.17473359, 0.19441851, 0.16591696, 0.19602413, 0.17233333, 0.19220794, 0.17624605, 0.17315150, 0.18452760, 0.21344478, 0.17591469, 0.19716302, 0.19302851, 0.17150364, 0.17745392, 0.19355065, 0.18011089, 0.20123804, 0.19948755, 0.18022829, 0.18257577, 0.17109106, 0.18877710, 0.19532342, 0.19013967, 0.19919929, 0.19145109, 0.18436386, 0.19344241, 0.18134797, 0.21207902, 0.22144476, 0.18154989, 0.17915224, 0.18852455, 0.16822747, 0.21825961, 0.18202925, 0.18674577, 0.20043600, 0.19170828)
 
-        for (i_rep in seq_len(n_rep)) {
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for i_rep in range(n_rep):
+        for (i_rep in seq_len(1)) {
             df = data[[i_rep]]
             obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
             obj_dml_plr_orth_nosplit = DoubleMLPLR$new(obj_dml_data,
@@ -325,9 +341,12 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
                                                    n_folds=1,
                                                    score='IV-type',
                                                    apply_cross_fitting=FALSE)
-            #obj_dml_plr_orth_nosplit$fit()
-            theta_orth_nosplit[i_rep] = obj_dml_plr_orth_nosplit$coef
+            obj_dml_plr_orth_nosplit$fit()
+            this_theta = obj_dml_plr_orth_nosplit$coef
+            print(abs(theta_orth_nosplit[i_rep] - this_theta))
+            theta_orth_nosplit[i_rep] = this_theta
         }
+
         g_nosplit = ggplot(data.frame(theta_orth_nosplit), aes(x = theta_orth_nosplit)) +
                     geom_density(fill = "dark green", alpha = 0.3, color = "dark green") +
                     geom_vline(aes(xintercept = alpha), col = "black")
@@ -379,16 +398,22 @@ induced by overfitting. Cross-fitting performs well empirically.
 
     .. jupyter-execute::
 
-        theta_dml = rep(0, n_rep)
-        for (i_rep in seq_len(n_rep)) {
+        # to speed up the illustration we hard-code the simulation results
+        theta_dml = c(0.47450604, 0.47771349, 0.39208527, 0.48768474, 0.39126772, 0.43996833, 0.53237247, 0.43313347, 0.42486289, 0.49823468, 0.47684340, 0.44571437, 0.42579078, 0.38103985, 0.42528382, 0.43261412, 0.42129905, 0.50829197, 0.47570751, 0.46171264, 0.40471696, 0.44310933, 0.43459084, 0.43099682, 0.45354901, 0.39724178, 0.45597381, 0.54662218, 0.44107996, 0.45632417, 0.48493125, 0.44041580, 0.53886373, 0.44888788, 0.42124165, 0.45295682, 0.46048400, 0.48030550, 0.45561629, 0.46991624, 0.45780461, 0.47856131, 0.34455817, 0.53597516, 0.53149656, 0.54445309, 0.49190822, 0.46263852, 0.46958176, 0.41675478, 0.45293972, 0.45405524, 0.48901882, 0.39474565, 0.44922023, 0.54010241, 0.44401941, 0.39798519, 0.43462028, 0.44350060, 0.46673201, 0.42067083, 0.46010273, 0.46541884, 0.44639246, 0.42294623, 0.40787671, 0.45167520, 0.46560168, 0.42573472, 0.48362198, 0.46358099, 0.41175618, 0.43308461, 0.46882993, 0.44913037, 0.47432966, 0.46508514, 0.42095465, 0.42903559, 0.41892517, 0.43725693, 0.46447758, 0.44849267, 0.48802319, 0.47014653, 0.44633787, 0.47154824, 0.41002225, 0.48455142, 0.51425894, 0.43138922, 0.46143077, 0.43380019, 0.37781081, 0.50141875, 0.45813842, 0.46647715, 0.47641829, 0.46974689)
+
+        # to run the full simulation uncomment the following line to fit the model for every dataset and not just for the first dataset
+        #for (i_rep in seq_len(n_rep)) {
+        for (i_rep in seq_len(1)) {
             df = data[[i_rep]]
             obj_dml_data = double_ml_data_from_data_frame(df, y_col = "y", d_cols = "d")
             obj_dml_plr = DoubleMLPLR$new(obj_dml_data,
                                       ml_g, ml_m,
                                       n_folds=2,
                                       score='IV-type')
-            #obj_dml_plr$fit()
-            theta_dml[i_rep] = obj_dml_plr$coef
+            obj_dml_plr$fit()
+            theta_dml[i_rep] = this_theta
+            print(abs(theta_dml[i_rep] - this_theta))
+            theta_dml[i_rep] = this_theta
         }
 
         g_dml = ggplot(data.frame(theta_dml), aes(x = theta_dml)) +
