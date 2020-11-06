@@ -135,7 +135,8 @@ A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
 
         g_ols = ggplot(data.frame(theta_ols), aes(x = theta_ols)) +
                     geom_density(fill = "dark blue", alpha = 0.3, color = "dark blue") +
-                    geom_vline(aes(xintercept = alpha), col = "black")
+                    geom_vline(aes(xintercept = alpha), col = "black") +
+                    xlim(c(0.08, 0.75)) + xlab("") + ylab("") + theme_minimal()
         g_ols
 
 
