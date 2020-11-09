@@ -87,7 +87,9 @@ class DoubleML(ABC):
             self.smpls = None
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._initialize_arrays()
+        self._psi, self._psi_a, self._psi_b,\
+            self._coef, self._se, self._all_coef, self._all_se,\
+            self._all_dml1_coef, self._all_dml1_se = self._initialize_arrays()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -871,23 +873,28 @@ class DoubleML(ABC):
         return learner
 
     def _initialize_arrays(self):
-        self._psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-        self._psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-        self._psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
 
-        self._coef = np.full(self._dml_data.n_treat, np.nan)
-        self._se = np.full(self._dml_data.n_treat, np.nan)
+        coef = np.full(self._dml_data.n_treat, np.nan)
+        se = np.full(self._dml_data.n_treat, np.nan)
 
-        self._all_coef = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
-        self._all_se = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
+        all_coef = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
+        all_se = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
             if self.apply_cross_fitting:
-                self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
-                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
+                all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
+                all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
             else:
-                self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
-                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
+                all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
+                all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
+        else:
+            all_dml1_coef = None
+            all_dml1_se = None
+
+        return psi, psi_a, psi_b, coef, se, all_coef, all_se, all_dml1_coef, all_dml1_se
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
@@ -934,12 +941,14 @@ class DoubleML(ABC):
         # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred external samples?
         # TODO check whether the provided samples are a partition --> set apply_cross_fitting accordingly
         # TODO first check fitted and may re-initialize twice to prevent multiple warnings
-        self.n_rep = len(all_smpls)
+        self._n_rep = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
-        self.n_folds = n_folds_each_smpl[0]
+        self._n_folds = n_folds_each_smpl[0]
         self.smpls = all_smpls
-        self._initialize_arrays()
+        self._psi, self._psi_a, self._psi_b, \
+            self._coef, self._se, self._all_coef, self._all_se, \
+            self._all_dml1_coef, self._all_dml1_se = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self
