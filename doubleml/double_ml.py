@@ -64,7 +64,7 @@ class DoubleML(ABC):
         self.apply_cross_fitting = apply_cross_fitting
 
         # check and set dml_procedure and score
-        if not isinstance(dml_procedure, str) | (dml_procedure not in ['dml1', 'dml2']):
+        if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
             raise ValueError('dml_procedure must be "dml1" or "dml2" '
                              f' got {str(dml_procedure)}')
         self.dml_procedure = dml_procedure
