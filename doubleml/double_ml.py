@@ -157,8 +157,8 @@ class DoubleML(ABC):
             Parameters for the nuisance model / learner.
         """
         valid_learner = self.params_names
-        if learner not in valid_learner:
-            raise ValueError('invalid nuisance learner' + learner +
+        if (not isinstance(learner, str)) | (learner not in valid_learner):
+            raise ValueError('invalid nuisance learner ' + str(learner) +
                              '\n valid nuisance learner ' + ' or '.join(valid_learner))
         return self._params[learner]
 
