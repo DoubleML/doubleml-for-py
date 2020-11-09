@@ -831,7 +831,7 @@ class DoubleML(ABC):
         return self
 
     @abstractmethod
-    def _initialize_ml_nuisance_params(self, params):
+    def _initialize_ml_nuisance_params(self):
         pass
 
     @abstractmethod
