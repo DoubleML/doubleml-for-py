@@ -38,11 +38,19 @@ class DoubleML(ABC):
 
         # check resampling specifications
         if not isinstance(n_folds, int):
-            raise ValueError('The number of folds must be of int type. '
-                             f'{str(n_folds)} of type {str(type(n_folds))} was passed.')
+            raise TypeError('The number of folds must be of int type. '
+                            f'{str(n_folds)} of type {str(type(n_folds))} was passed.')
+        if n_folds < 1:
+            raise ValueError('The number of folds must be positive. '
+                             f'{str(n_folds)} was passed.')
+
         if not isinstance(n_rep, int):
-            raise ValueError('The number of repetitions for the sample splitting must be of int type. '
-                             f'{str(n_rep)} of type {str(type(n_rep))} was passed.')
+            raise TypeError('The number of repetitions for the sample splitting must be of int type. '
+                            f'{str(n_rep)} of type {str(type(n_rep))} was passed.')
+        if n_rep < 1:
+            raise ValueError('The number of repetitions for the sample splitting must be positive. '
+                             f'{str(n_rep)} was passed.')
+
         if not isinstance(apply_cross_fitting, bool):
             raise TypeError('apply_cross_fitting must be True or False. '
                             f'got {str(apply_cross_fitting)}')
