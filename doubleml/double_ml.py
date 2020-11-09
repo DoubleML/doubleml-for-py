@@ -575,6 +575,10 @@ class DoubleML(ABC):
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before p_adjust()')
 
+        if not isinstance(method, str):
+            raise TypeError('The p_adjust method must be of str type. '
+                            f'{str(method)} of type {str(type(method))} was passed.')
+
         if method.lower() in ['rw', 'romano-wolf']:
             if (not hasattr(self, 'boot_coef')) or (self.boot_coef is None):
                 raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
