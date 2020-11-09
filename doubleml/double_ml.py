@@ -487,7 +487,16 @@ class DoubleML(ABC):
         if (not hasattr(self, 'coef')) or (self.coef is None):
             raise ValueError('apply fit() before bootstrap()')
 
-        dml_procedure = self.dml_procedure
+        if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
+            raise ValueError('method must be "Bayes", "normal" or "wild" '
+                             f' got {str(method)}')
+
+        if not isinstance(n_boot_rep, int):
+            raise TypeError('The number of bootstrap replications must be of int type. '
+                            f'{str(n_boot_rep)} of type {str(type(n_boot_rep))} was passed.')
+        if n_boot_rep < 1:
+            raise ValueError('The number of bootstrap replications must be positive. '
+                             f'{str(n_boot_rep)} was passed.')
 
         self._initialize_boot_arrays(n_boot_rep)
 
