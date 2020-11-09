@@ -695,7 +695,6 @@ class DoubleML(ABC):
             Returned if ``return_tune_res`` is ``False``.
         """
 
-        # check param_grids input
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
             raise ValueError('invalid param_grids ' + str(param_grids) +
                              '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
@@ -710,6 +709,41 @@ class DoubleML(ABC):
                 for learner in self.learner_names:
                     if learner not in scoring_methods:
                         scoring_methods[learner] = None
+
+        if not isinstance(tune_on_folds, bool):
+            raise TypeError('tune_on_folds must be True or False. '
+                            f'got {str(tune_on_folds)}')
+
+        if not isinstance(n_folds_tune, int):
+            raise TypeError('The number of folds used for tuning must be of int type. '
+                            f'{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed.')
+        if n_folds_tune < 2:
+            raise ValueError('The number of folds used for tuning must be at least two. '
+                             f'{str(n_folds_tune)} was passed.')
+
+        if (not isinstance(search_mode, str)) | (search_mode not in ['grid_search', 'randomized_search']):
+            raise ValueError('search_mode must be "grid_search" or "randomized_search" '
+                             f' got {str(search_mode)}')
+
+        if not isinstance(n_iter_randomized_search, int):
+            raise TypeError('The number of parameter settings sampled for the randomized search must be of int type. '
+                            f'{str(n_iter_randomized_search)} of type {str(type(n_iter_randomized_search))} was passed.')
+        if n_iter_randomized_search < 2:
+            raise ValueError('The number of parameter settings sampled for the randomized search must be at least two. '
+                             f'{str(n_iter_randomized_search)} was passed.')
+
+        if n_jobs_cv is not None:
+            if not isinstance(n_jobs_cv, int):
+                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
+                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
+
+        if not isinstance(set_as_params, bool):
+            raise TypeError('set_as_params must be True or False. '
+                            f'got {str(set_as_params)}')
+
+        if not isinstance(return_tune_res, bool):
+            raise TypeError('return_tune_res must be True or False. '
+                            f'got {str(return_tune_res)}')
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
@@ -854,7 +888,7 @@ class DoubleML(ABC):
                 raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict()')
             if not is_regressor(learner):
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor')
-        
+
         return learner
 
     def _initialize_arrays(self):
