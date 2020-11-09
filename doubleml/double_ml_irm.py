@@ -98,8 +98,8 @@ class DoubleMLIRM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': ml_g,
-                         'ml_m': ml_m}
+        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
+                         'ml_m': self._check_learner(ml_m, 'ml_m', classifier=True)}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']

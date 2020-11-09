@@ -3,6 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
+from sklearn.dummy import DummyRegressor
 
 from .double_ml import DoubleML, DoubleMLData
 from ._helper import _dml_cv_predict
@@ -97,9 +98,9 @@ class DoubleMLPLIV(DoubleML):
                          apply_cross_fitting)
         self.partialX = True
         self.partialZ = False
-        self._learner = {'ml_g': ml_g,
-                         'ml_m': ml_m,
-                         'ml_r': ml_r}
+        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
+                         'ml_m': self._check_learner(ml_m, 'ml_m'),
+                         'ml_r': self._check_learner(ml_r, 'ml_r')}
         self._initialize_ml_nuisance_params()
 
     @classmethod
@@ -124,6 +125,12 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj.partialX = True
+        obj.partialZ = False
+        obj._learner = {'ml_g': obj._check_learner(ml_g, 'ml_g'),
+                        'ml_m': obj._check_learner(ml_m, 'ml_m'),
+                        'ml_r': obj._check_learner(ml_r, 'ml_r')}
+        obj._initialize_ml_nuisance_params()
         return obj
 
     @classmethod
@@ -136,9 +143,10 @@ class DoubleMLPLIV(DoubleML):
                  dml_procedure='dml2',
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
+        # to pass the checks for the learners, we temporarily set ml_g and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
-                  None,
-                  None,
+                  DummyRegressor(),
+                  DummyRegressor(),
                   ml_r,
                   n_folds,
                   n_rep,
@@ -148,7 +156,7 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = False
         obj.partialZ = True
-        obj._learner = {'ml_r': ml_r}
+        obj._learner = {'ml_r': obj._check_learner(ml_r, 'ml_r')}
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -176,9 +184,9 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = True
         obj.partialZ = True
-        obj._learner = {'ml_g': ml_g,
-                        'ml_m': ml_m,
-                        'ml_r': ml_r}
+        obj._learner = {'ml_g': obj._check_learner(ml_g, 'ml_g'),
+                        'ml_m': obj._check_learner(ml_m, 'ml_m'),
+                        'ml_r': obj._check_learner(ml_r, 'ml_r')}
         obj._initialize_ml_nuisance_params()
         return obj
 
