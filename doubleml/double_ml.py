@@ -834,20 +834,27 @@ class DoubleML(ABC):
         err_msg_prefix = f'invalid learner provided for {learner_name}: '
         warn_msg_prefix = f'learner provided for {learner_name} is probably invalid: '
 
-        assert not isinstance(learner, type), err_msg_prefix + f'provide an instance of a learner instead of a class'
+        if isinstance(learner, type):
+            raise TypeError(err_msg_prefix + f'provide an instance of a learner instead of a class')
 
-        assert hasattr(learner, 'fit'), err_msg_prefix + f'{str(learner)} has no method .fit()'
-        assert hasattr(learner, 'set_params'), err_msg_prefix + f'{str(learner)} has no method .set_params()'
-        assert hasattr(learner, 'get_params'), err_msg_prefix + f'{str(learner)} has no method .get_params()'
+        if not hasattr(learner, 'fit'):
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit()')
+        if not hasattr(learner, 'set_params'):
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params()')
+        if not hasattr(learner, 'get_params'):
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params()')
 
         if classifier:
-            assert hasattr(learner, 'predict_proba'), err_msg_prefix + f'{str(learner)} has no method .predict_proba()'
+            if not hasattr(learner, 'predict_proba'):
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba()')
             if not is_classifier(learner):
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier')
         else:
-            assert hasattr(learner, 'predict'), err_msg_prefix + f'{str(learner)} has no method .predict()'
+            if not hasattr(learner, 'predict'):
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict()')
             if not is_regressor(learner):
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor')
+        
         return learner
 
     def _initialize_arrays(self):
