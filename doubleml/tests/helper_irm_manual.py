@@ -92,16 +92,24 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
                                u_hat0, u_hat1,
                                D[test_index], score)
     theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
+
+    u_hat0 = np.zeros_like(Y)
+    u_hat1 = np.zeros_like(Y)
+    g_hat0_all = np.zeros_like(Y)
+    g_hat1_all = np.zeros_like(Y)
+    m_hat_all = np.zeros_like(Y)
+    p_hat_all = np.zeros_like(Y)
     for idx, (train_index, test_index) in enumerate(smpls):
-        u_hat0 = Y[test_index] - g_hat0[idx]
-        u_hat1 = Y[test_index] - g_hat1[idx]
-        ses[idx] = var_irm(theta_hat, g_hat0[idx], g_hat1[idx],
-                           m_hat[idx], p_hat[idx],
-                           u_hat0, u_hat1,
-                           D[test_index], score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        u_hat0[test_index] = Y[test_index] - g_hat0[idx]
+        u_hat1[test_index] = Y[test_index] - g_hat1[idx]
+        g_hat0_all[test_index] = g_hat0[idx]
+        g_hat1_all[test_index] = g_hat1[idx]
+        m_hat_all[test_index] = m_hat[idx]
+        p_hat_all[test_index] = p_hat[idx]
+    se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
+                         m_hat_all, p_hat_all,
+                         u_hat0, u_hat1,
+                         D, score, n_obs))
     
     return theta_hat, se
 

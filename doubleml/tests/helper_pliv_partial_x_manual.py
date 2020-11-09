@@ -77,15 +77,13 @@ def pliv_partial_x_dml1(Y, X, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score):
         w_hat = D[test_index] - r_hat[idx]
         thetas[idx] = pliv_partial_x_orth(u_hat, w_hat, r_hat_tilde[test_index], D[test_index], score)
     theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
+
+    u_hat = np.zeros_like(Y)
+    w_hat = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
-        u_hat = Y[test_index] - g_hat[idx]
-        w_hat = D[test_index] - r_hat[idx]
-        ses[idx] = var_pliv_partial_x(theta_hat, D[test_index],
-                                      u_hat, w_hat, r_hat_tilde[test_index],
-                                      score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
+        w_hat[test_index] = D[test_index] - r_hat[idx]
+    se = np.sqrt(var_pliv_partial_x(theta_hat, D, u_hat, w_hat, r_hat_tilde, score, n_obs))
     
     return theta_hat, se
 
