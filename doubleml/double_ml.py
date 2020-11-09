@@ -36,10 +36,29 @@ class DoubleML(ABC):
         self._learner = None
         self._params = None
 
+        # check resampling specifications
+        if not isinstance(n_folds, int):
+            raise ValueError('The number of folds must be of int type. '
+                             f'{str(n_folds)} of type {str(type(n_folds))} was passed.')
+        if not isinstance(n_rep, int):
+            raise ValueError('The number of repetitions for the sample splitting must be of int type. '
+                             f'{str(n_rep)} of type {str(type(n_rep))} was passed.')
+        if not isinstance(apply_cross_fitting, bool):
+            raise TypeError('apply_cross_fitting must be True or False. '
+                            f'got {str(apply_cross_fitting)}')
+        if not isinstance(draw_sample_splitting, bool):
+            raise TypeError('draw_sample_splitting must be True or False. '
+                            f'got {str(draw_sample_splitting)}')
+
+        # set resampling specifications
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.apply_cross_fitting = apply_cross_fitting
 
+        # check and set dml_procedure and score
+        if not isinstance(dml_procedure, str) | (dml_procedure not in ['dml1', 'dml2']):
+            raise ValueError('dml_procedure must be "dml1" or "dml2" '
+                             f' got {str(dml_procedure)}')
         self.dml_procedure = dml_procedure
         self.score = self._check_score(score)
 
