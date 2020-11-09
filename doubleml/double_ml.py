@@ -253,7 +253,7 @@ class DoubleML(ABC):
     @property
     def all_dml1_se(self):
         """
-        Standard errors of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'`` and ``se_reestimate=False``.
+        Standard errors of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'``.
         """
         return self._all_dml1_se
 
@@ -368,16 +368,12 @@ class DoubleML(ABC):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_se[self._i_treat, self._i_rep, :] = value
 
-    def fit(self, se_reestimate=False, n_jobs_cv=None, keep_scores=True):
+    def fit(self, n_jobs_cv=None, keep_scores=True):
         """
         Estimate DoubleML models.
 
         Parameters
         ----------
-        se_reestimate : bool
-            Indicates whether standard errors should be reestimated (only relevant for ``dml_procedure='dml1'``.
-            Default is ``False``.
-
         n_jobs_cv : None or int
             The number of CPUs to use to fit the learners. ``None`` means ``1``.
             Default is ``None``.
@@ -390,11 +386,6 @@ class DoubleML(ABC):
         -------
         self : object
         """
-
-        if not self.apply_cross_fitting:
-            if se_reestimate:
-                # redirect to se_reestimate = False; se_reestimate is of no relevance without cross-fitting
-                se_reestimate = False
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -418,7 +409,7 @@ class DoubleML(ABC):
                 self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars(se_reestimate)
+                self.__all_se = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -844,27 +835,14 @@ class DoubleML(ABC):
 
         return coef
 
-    def _se_causal_pars(self, se_reestimate):
-        dml_procedure = self.dml_procedure
-        smpls = self.__smpls
-
-        if dml_procedure == 'dml1':
-            if se_reestimate:
-                se = np.sqrt(self._var_est())
-            else:
-                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-                variances = np.zeros(len(smpls))
-                for idx, (train_index, test_index) in enumerate(smpls):
-                    variances[idx] = self._var_est(test_index)
-                se = np.sqrt(np.mean(variances))
-
-                self.__all_dml1_se = np.sqrt(variances)
-
-        elif dml_procedure == 'dml2':
+    def _se_causal_pars(self):
+        if self.apply_cross_fitting:
             se = np.sqrt(self._var_est())
-
         else:
-            raise ValueError('invalid dml_procedure')
+            # In case of no-cross-fitting, the score function was only evaluated on the test data set
+            smpls = self.__smpls
+            test_index = smpls[0][1]
+            se = np.sqrt(self._var_est(test_index))
 
         return se
 
@@ -942,18 +920,16 @@ class DoubleML(ABC):
         psi = self.__psi
 
         if inds is not None:
+            assert not self.apply_cross_fitting
             psi_a = psi_a[inds]
             psi = psi[inds]
+            n_obs = len(inds)
+        else:
+            assert self.apply_cross_fitting
+            n_obs = self._dml_data.n_obs
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        if self.apply_cross_fitting:
-            n_obs = self._dml_data.n_obs
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            n_obs = len(test_index)
         J = np.mean(psi_a)
         sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
