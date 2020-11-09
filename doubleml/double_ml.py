@@ -528,6 +528,18 @@ class DoubleML(ABC):
         df_ci : pd.DataFrame
             A data frame with the confidence interval(s).
         """
+
+        if not isinstance(joint, bool):
+            raise TypeError('joint must be True or False. '
+                            f'got {str(joint)}')
+
+        if not isinstance(level, float):
+            raise TypeError('The confidence level must be of float type. '
+                            f'{str(level)} of type {str(type(level))} was passed.')
+        if (level <= 0) | (level >= 1):
+            raise ValueError('The confidence level must be in (0,1). '
+                             f'{str(level)} was passed.')
+
         a = (1 - level)
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
