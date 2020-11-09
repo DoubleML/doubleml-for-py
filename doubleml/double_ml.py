@@ -519,7 +519,7 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        if (not hasattr(self, 'coef')) or (self.coef is None):
+        if np.isnan(self.coef).all():
             raise ValueError('apply fit() before bootstrap()')
 
         if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
@@ -578,6 +578,8 @@ class DoubleML(ABC):
         a = (1 - level)
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
+            if np.isnan(self.boot_coef).all():
+                raise ValueError(f'apply fit() & bootstrap() before confint(joint=True)')
             sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1 - a)
             ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
@@ -615,7 +617,7 @@ class DoubleML(ABC):
                             f'{str(method)} of type {str(type(method))} was passed.')
 
         if method.lower() in ['rw', 'romano-wolf']:
-            if (not hasattr(self, 'boot_coef')) or (self.boot_coef is None):
+            if np.isnan(self.boot_coef).all():
                 raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
 
             pinit = np.full_like(self.pval, np.nan)
