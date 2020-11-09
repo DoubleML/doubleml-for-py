@@ -59,26 +59,26 @@ class DoubleML(ABC):
                             f'got {str(draw_sample_splitting)}')
 
         # set resampling specifications
-        self.n_folds = n_folds
-        self.n_rep = n_rep
-        self.apply_cross_fitting = apply_cross_fitting
+        self._n_folds = n_folds
+        self._n_rep = n_rep
+        self._apply_cross_fitting = apply_cross_fitting
 
         # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
             raise ValueError('dml_procedure must be "dml1" or "dml2" '
                              f' got {str(dml_procedure)}')
-        self.dml_procedure = dml_procedure
-        self.score = self._check_score(score)
+        self._dml_procedure = dml_procedure
+        self._score = self._check_score(score)
 
         if (self.n_folds == 1) & self.apply_cross_fitting:
             warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
-            self.apply_cross_fitting = False
+            self._apply_cross_fitting = False
 
         if not self.apply_cross_fitting:
             assert self.n_folds <= 2, 'Estimation without cross-fitting not supported for n_folds > 2.'
             if self.dml_procedure == 'dml2':
                 # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
-                self.dml_procedure = 'dml1'
+                self._dml_procedure = 'dml1'
 
         # perform sample splitting
         if draw_sample_splitting:
@@ -117,6 +117,41 @@ class DoubleML(ABC):
             '\n------------------ Resampling        ------------------\n' + resampling_info + \
             '\n------------------ Fit summary       ------------------\n' + fit_summary
         return res
+
+    @property
+    def n_folds(self):
+        """
+        Number of folds.
+        """
+        return self._n_folds
+
+    @property
+    def n_rep(self):
+        """
+        Number of repetitions for the sample splitting.
+        """
+        return self._n_rep
+
+    @property
+    def apply_cross_fitting(self):
+        """
+        Indicates whether cross-fitting should be applied.
+        """
+        return self._apply_cross_fitting
+
+    @property
+    def dml_procedure(self):
+        """
+        The double machine learning algorithm.
+        """
+        return self._dml_procedure
+
+    @property
+    def score(self):
+        """
+        The score function.
+        """
+        return self._score
 
     @property
     def learner(self):
@@ -896,6 +931,7 @@ class DoubleML(ABC):
         # TODO add an example to the documentation (maybe with only 5 observations)
         # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred external samples?
         # TODO check whether the provided samples are a partition --> set apply_cross_fitting accordingly
+        # TODO first check fitted and may re-initialize twice to prevent multiple warnings
         self.n_rep = len(all_smpls)
         n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
         assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
