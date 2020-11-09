@@ -251,13 +251,6 @@ class DoubleML(ABC):
         return self._all_dml1_coef
 
     @property
-    def all_dml1_se(self):
-        """
-        Standard errors of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'``.
-        """
-        return self._all_dml1_se
-
-    @property
     def summary(self):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
@@ -357,16 +350,6 @@ class DoubleML(ABC):
     def __all_dml1_coef(self, value):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
-
-    @property
-    def __all_dml1_se(self):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        return self._all_dml1_se[self._i_treat, self._i_rep, :]
-
-    @__all_dml1_se.setter
-    def __all_dml1_se(self, value):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        self._all_dml1_se[self._i_treat, self._i_rep, :] = value
 
     def fit(self, n_jobs_cv=None, keep_scores=True):
         """
@@ -753,10 +736,8 @@ class DoubleML(ABC):
         if self.dml_procedure == 'dml1':
             if self.apply_cross_fitting:
                 self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
-                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
             else:
                 self._all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
-                self._all_dml1_se = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
 
     def _initialize_boot_arrays(self, n_rep):
         self.n_rep_boot = n_rep
