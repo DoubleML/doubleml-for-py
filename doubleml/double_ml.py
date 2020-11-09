@@ -584,7 +584,7 @@ class DoubleML(ABC):
         p_val : np.array
             An array of adjusted p-values.
         """
-        if (not hasattr(self, 'coef')) or (self.coef is None):
+        if np.isnan(self.coef).all():
             raise ValueError('apply fit() before p_adjust()')
 
         if not isinstance(method, str):
