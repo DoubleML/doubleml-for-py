@@ -443,9 +443,6 @@ class DoubleML(ABC):
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
-                # if self._ml_nuiscance_params is not None:
-                #    self._set_ml_nuisance_params(self._ml_nuiscance_params[i_rep][i_d])
-
                 # this step could be skipped for the single treatment variable case
                 if self._dml_data.n_treat > 1:
                     self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
