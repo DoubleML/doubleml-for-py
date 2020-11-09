@@ -44,7 +44,7 @@ def tune_nuisance_plr(Y, X, D, ml_m, ml_g, smpls, n_folds_tune, param_grid_g, pa
     return g_best_params, m_best_params
 
 
-def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score, se_reestimate=False):
+def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     
@@ -54,7 +54,7 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score, se_reestimate=False):
         thetas[idx] = plr_orth(v_hat, u_hat, D[test_index], score)
     theta_hat = np.mean(thetas)
 
-    if se_reestimate:
+    if len(smpls) > 1:
         u_hat = np.zeros_like(Y)
         v_hat = np.zeros_like(D)
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -62,16 +62,15 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score, se_reestimate=False):
             u_hat[test_index] = Y[test_index] - g_hat[idx]
         se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
     else:
-        ses = np.zeros(len(smpls))
-        for idx, (train_index, test_index) in enumerate(smpls):
-            v_hat = D[test_index] - m_hat[idx]
-            u_hat = Y[test_index] - g_hat[idx]
-            ses[idx] = var_plr(theta_hat, D[test_index],
-                               u_hat, v_hat,
-                               score, n_obs)
-        se = np.sqrt(np.mean(ses))
+        assert len(smpls) == 1
+        test_index = smpls[0][1]
+        n_obs = len(test_index)
+        v_hat = D[test_index] - m_hat[0]
+        u_hat = Y[test_index] - g_hat[0]
+        se = np.sqrt(var_plr(theta_hat, D[test_index], u_hat, v_hat, score, n_obs))
     
     return theta_hat, se
+
 
 def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))

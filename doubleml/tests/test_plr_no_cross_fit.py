@@ -87,9 +87,6 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     res_manual, se_manual = plr_dml1(y, X, d,
                                      g_hat, m_hat,
                                      smpls, score)
-
-    # fix scaling for the no-cross-fitting case;
-    se_manual = se_manual*np.sqrt(len(y)/len(smpls[0][1]))
     
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
@@ -200,8 +197,6 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
         thetas[i_rep], ses[i_rep] = plr_dml1(y, X, d,
                                              all_g_hat[i_rep], all_m_hat[i_rep],
                                              smpls, score)
-        # fix scaling for the no-cross-fitting case;
-        ses[i_rep] = ses[i_rep]*np.sqrt(len(y)/len(smpls[0][1]))
 
     res_manual = np.median(thetas)
     se_manual = np.sqrt(np.median(np.power(ses, 2)*len(smpls[0][1]) + np.power(thetas - res_manual, 2))/len(smpls[0][1]))
@@ -337,9 +332,6 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
     res_manual, se_manual = plr_dml1(y, X, d,
                                      g_hat, m_hat,
                                      smpls, score)
-
-    # fix scaling for the no-cross-fitting case;
-    se_manual = se_manual*np.sqrt(len(y)/len(smpls[0][1]))
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
