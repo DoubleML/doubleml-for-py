@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import warnings
 
+from sklearn.base import is_regressor, is_classifier
+
 from scipy.stats import norm
 
 from statsmodels.stats.multitest import multipletests
@@ -747,6 +749,27 @@ class DoubleML(ABC):
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
         pass
+
+    @staticmethod
+    def _check_learner(learner, learner_name, classifier=False):
+        err_msg_prefix = f'invalid learner provided for {learner_name}: '
+        warn_msg_prefix = f'learner provided for {learner_name} is probably invalid: '
+
+        assert not isinstance(learner, type), err_msg_prefix + f'provide an instance of a learner instead of a class'
+
+        assert hasattr(learner, 'fit'), err_msg_prefix + f'{str(learner)} has no method .fit()'
+        assert hasattr(learner, 'set_params'), err_msg_prefix + f'{str(learner)} has no method .set_params()'
+        assert hasattr(learner, 'get_params'), err_msg_prefix + f'{str(learner)} has no method .get_params()'
+
+        if classifier:
+            assert hasattr(learner, 'predict_proba'), err_msg_prefix + f'{str(learner)} has no method .predict_proba()'
+            if not is_classifier(learner):
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier')
+        else:
+            assert hasattr(learner, 'predict'), err_msg_prefix + f'{str(learner)} has no method .predict()'
+            if not is_regressor(learner):
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor')
+        return learner
 
     def _initialize_arrays(self):
         self._psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)

@@ -87,8 +87,8 @@ class DoubleMLPLR(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': ml_g,
-                         'ml_m': ml_m}
+        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
+                         'ml_m': self._check_learner(ml_m, 'ml_m')}
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
@@ -107,7 +107,7 @@ class DoubleMLPLR(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.z_cols is None
+        assert obj_dml_data.z_cols is None, 'incompatible data provided: PLR model has no instrumental variable Z'
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
