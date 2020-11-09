@@ -420,6 +420,15 @@ class DoubleML(ABC):
         self : object
         """
 
+        if n_jobs_cv is not None:
+            if not isinstance(n_jobs_cv, int):
+                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
+                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
+
+        if not isinstance(keep_scores, bool):
+            raise TypeError('keep_scores must be True or False. '
+                            f'got {str(keep_scores)}')
+
         if not self.apply_cross_fitting:
             if se_reestimate:
                 # redirect to se_reestimate = False; se_reestimate is of no relevance without cross-fitting
