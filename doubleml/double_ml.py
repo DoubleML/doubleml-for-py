@@ -89,6 +89,10 @@ class DoubleML(ABC):
         # initialize arrays according to obj_dml_data and the resampling settings
         self._initialize_arrays()
 
+        # initialize instance attributes which are later used for iterating
+        self._i_rep = None
+        self._i_treat = None
+
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
