@@ -111,15 +111,15 @@ class DoubleMLPLR(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
         
         # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls, n_jobs=n_jobs_cv,
+        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'))
         
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], X, d, smpls=smpls, n_jobs=n_jobs_cv,
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))
 
         # compute residuals
@@ -144,8 +144,8 @@ class DoubleMLPLR(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
@@ -164,7 +164,7 @@ class DoubleMLPLR(DoubleML):
                                                    scoring=scoring_methods['ml_g'],
                                                    cv=g_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            g_tune_res.append(g_grid_search.fit(X[train_index, :], y[train_index]))
+            g_tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
         m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -179,7 +179,7 @@ class DoubleMLPLR(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res.append(m_grid_search.fit(X[train_index, :], d[train_index]))
+            m_tune_res.append(m_grid_search.fit(x[train_index, :], d[train_index]))
 
         g_best_params = [xx.best_params_ for xx in g_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]

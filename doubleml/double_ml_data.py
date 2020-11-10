@@ -79,13 +79,13 @@ class DoubleMLData:
                f'data:\n {data_info}'
 
     @classmethod
-    def from_arrays(cls, X, y, d, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
         Parameters
         ----------
-        X : :class:`numpy.ndarray`
+        x : :class:`numpy.ndarray`
             Array of covariates.
 
         y : :class:`numpy.ndarray`
@@ -109,21 +109,21 @@ class DoubleMLData:
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
-        X = check_array(X, ensure_2d=False, allow_nd=False)
+        x = check_array(x, ensure_2d=False, allow_nd=False)
         d = check_array(d, ensure_2d=False, allow_nd=False)
         y = column_or_1d(y, warn=True)
 
-        X = assure_2d_array(X)
+        x = assure_2d_array(x)
         d = assure_2d_array(d)
 
         y_col = 'y'
         if z is None:
-            check_consistent_length(X, y, d)
+            check_consistent_length(x, y, d)
             z_cols = None
         else:
             z = check_array(z, ensure_2d=False, allow_nd=False)
             z = assure_2d_array(z)
-            check_consistent_length(X, y, d, z)
+            check_consistent_length(x, y, d, z)
             if z.shape[1] == 1:
                 z_cols = ['z']
             else:
@@ -134,13 +134,13 @@ class DoubleMLData:
         else:
             d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
 
-        x_cols = [f'X{i+1}' for i in np.arange(X.shape[1])]
+        x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
 
         if z is None:
-            data = pd.DataFrame(np.column_stack((X, y, d)),
+            data = pd.DataFrame(np.column_stack((x, y, d)),
                                 columns=x_cols + [y_col] + d_cols)
         else:
-            data = pd.DataFrame(np.column_stack((X, y, d, z)),
+            data = pd.DataFrame(np.column_stack((x, y, d, z)),
                                 columns=x_cols + [y_col] + d_cols + z_cols)
 
         return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate)

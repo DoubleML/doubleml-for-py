@@ -147,27 +147,27 @@ class DoubleMLIIVM(DoubleML):
         return smpls_z0, smpls_z1
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, z = check_X_y(X, np.ravel(self._dml_data.z))
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z))
+        x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
         
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
+        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
-        g_hat1 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
+        g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'))
         
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], X, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]
         
         # nuisance r
-        r_hat0 = _dml_cv_predict(self._learner['ml_r'], X, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
+        r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_r0'))[:, 1]
-        r_hat1 = _dml_cv_predict(self._learner['ml_r'], X, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
+        r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_r1'))[:, 1]
 
         # compute residuals
@@ -198,9 +198,9 @@ class DoubleMLIIVM(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, z = check_X_y(X, self._dml_data.z)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, z = check_X_y(x, self._dml_data.z)
+        x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
@@ -224,7 +224,7 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=g0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z0 = smpls_z0[idx][0]
-            g0_tune_res.append(g0_grid_search.fit(X[train_index_z0, :], y[train_index_z0]))
+            g0_tune_res.append(g0_grid_search.fit(x[train_index_z0, :], y[train_index_z0]))
 
         g1_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -240,7 +240,7 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=g1_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z1 = smpls_z1[idx][0]
-            g1_tune_res.append(g1_grid_search.fit(X[train_index_z1, :], y[train_index_z1]))
+            g1_tune_res.append(g1_grid_search.fit(x[train_index_z1, :], y[train_index_z1]))
 
         m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -255,7 +255,7 @@ class DoubleMLIIVM(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res.append(m_grid_search.fit(X[train_index, :], z[train_index]))
+            m_tune_res.append(m_grid_search.fit(x[train_index, :], z[train_index]))
 
         r0_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -271,7 +271,7 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=r0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z0 = smpls_z0[idx][0]
-            r0_tune_res.append(r0_grid_search.fit(X[train_index_z0, :], d[train_index_z0]))
+            r0_tune_res.append(r0_grid_search.fit(x[train_index_z0, :], d[train_index_z0]))
 
         r1_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -287,7 +287,7 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=r1_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z1 = smpls_z1[idx][0]
-            r1_tune_res.append(r1_grid_search.fit(X[train_index_z1, :], d[train_index_z1]))
+            r1_tune_res.append(r1_grid_search.fit(x[train_index_z1, :], d[train_index_z1]))
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]

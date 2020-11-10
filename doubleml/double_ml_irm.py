@@ -141,8 +141,8 @@ class DoubleMLIRM(DoubleML):
         score = self.score
         self._check_score(score)
         
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
@@ -154,15 +154,15 @@ class DoubleMLIRM(DoubleML):
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
         g_hat1 = None
         if (score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
         
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]
 
         if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
@@ -197,8 +197,8 @@ class DoubleMLIRM(DoubleML):
                             search_mode, n_iter_randomized_search):
         score = self.score
 
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
 
@@ -220,7 +220,7 @@ class DoubleMLIRM(DoubleML):
                                                     cv=g0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_d0 = smpls_d0[idx][0]
-            g0_tune_res.append(g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0]))
+            g0_tune_res.append(g0_grid_search.fit(x[train_index_d0, :], y[train_index_d0]))
 
         g1_tune_res = list()
         if score == 'ATE':
@@ -237,7 +237,7 @@ class DoubleMLIRM(DoubleML):
                                                         cv=g1_tune_resampling, n_jobs=n_jobs_cv,
                                                         n_iter=n_iter_randomized_search)
                 train_index_d1 = smpls_d1[idx][0]
-                g1_tune_res.append(g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1]))
+                g1_tune_res.append(g1_grid_search.fit(x[train_index_d1, :], y[train_index_d1]))
 
         m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -252,7 +252,7 @@ class DoubleMLIRM(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res.append(m_grid_search.fit(X[train_index, :], d[train_index]))
+            m_tune_res.append(m_grid_search.fit(x[train_index, :], d[train_index]))
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
