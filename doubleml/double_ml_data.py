@@ -60,17 +60,8 @@ class DoubleMLData:
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
+        self.x_cols = x_cols
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
-        if x_cols is not None:
-            self.x_cols = x_cols
-        else:
-            # x_cols defaults to all columns but y_col, d_cols and z_cols
-            if self.z_cols is not None:
-                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_cols))
-                self.x_cols = [col for col in self.data.columns if col not in y_d_z]
-            else:
-                y_d = set.union(set(self.y_col), set(self.d_cols))
-                self.x_cols = [col for col in self.data.columns if col not in y_d]
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self._set_x_d(self.d_cols[0])
@@ -227,12 +218,26 @@ class DoubleMLData:
     
     @x_cols.setter
     def x_cols(self, value):
-        if isinstance(value, str):
-            value = [value]
-        if not isinstance(value, list):
-            raise TypeError('x_cols must be a list')
-        assert set(value).issubset(set(self.all_variables))
-        self._x_cols = value
+        if value is not None:
+            if isinstance(value, str):
+                value = [value]
+            if not isinstance(value, list):
+                raise TypeError('The covariates x_cols must be of str or list type (or None). '
+                                f'{str(value)} of type {str(type(value))} was passed.')
+            if not set(value).issubset(set(self.all_variables)):
+                raise ValueError('Invalid covariates x_cols. '
+                                 f'At least one covariate is no data column.')
+            assert set(value).issubset(set(self.all_variables))
+            self._x_cols = value
+        else:
+            # x_cols defaults to all columns but y_col, d_cols and z_cols
+            if self.z_cols is not None:
+                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_z]
+            else:
+                y_d = set.union(set(self.y_col), set(self.d_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d]
+            self._x_cols = x_cols
     
     @property
     def d_cols(self):
@@ -246,8 +251,11 @@ class DoubleMLData:
         if isinstance(value, str):
             value = [value]
         if not isinstance(value, list):
-            raise TypeError('d_cols must be a list')
-        assert set(value).issubset(set(self.all_variables))
+            raise TypeError('The treatment variable(s) d_cols must be of str or list type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if not set(value).issubset(set(self.all_variables)):
+            raise ValueError('Invalid treatment variable(s) d_cols. '
+                             f'At least one treatment variable is no data column.')
         self._d_cols = value
     
     @property
@@ -260,11 +268,11 @@ class DoubleMLData:
     @y_col.setter
     def y_col(self, value):
         if not isinstance(value, str):
-            raise TypeError('The outcome variable must be of str type. '
+            raise TypeError('The outcome variable y_col must be of str type. '
                             f'{str(value)} of type {str(type(value))} was passed.')
         if value not in self.all_variables:
-            raise ValueError('Invalid outcome variable. '
-                             f'{value} is no column of data')
+            raise ValueError('Invalid outcome variable y_col. '
+                             f'{value} is no data column.')
         self._y_col = value
     
     @property
@@ -280,11 +288,28 @@ class DoubleMLData:
             if isinstance(value, str):
                 value = [value]
             if not isinstance(value, list):
-                raise TypeError('z_cols must be a list')
-            assert set(value).issubset(set(self.all_variables))
+                raise TypeError('The instrumental variable(s) z_cols must be of str or list type (or None). '
+                                f'{str(value)} of type {str(type(value))} was passed.')
+            if not set(value).issubset(set(self.all_variables)):
+                raise ValueError('Invalid instrumental variable(s) z_cols. '
+                                 f'At least one instrumental variable is no data column.')
             self._z_cols = value
         else:
             self._z_cols = None
+
+    @property
+    def use_other_treat_as_covariate(self):
+        """
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        """
+        return self._use_other_treat_as_covariate
+
+    @use_other_treat_as_covariate.setter
+    def use_other_treat_as_covariate(self, value):
+        if not isinstance(value, bool):
+            raise TypeError('use_other_treat_as_covariate must be True or False. '
+                            f'got {str(value)}')
+        self._use_other_treat_as_covariate = value
     
     def _set_y_z(self):
         self._y = self.data.loc[:, self.y_col]
