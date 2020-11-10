@@ -147,7 +147,7 @@ class DoubleMLIIVM(DoubleML):
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, z = check_X_y(X, self._dml_data.z)
+        X, z = check_X_y(X, np.ravel(self._dml_data.z))
         X, d = check_X_y(X, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1

@@ -256,7 +256,7 @@ class DoubleMLPLIV(DoubleML):
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
-            X, z = check_X_y(X, self._dml_data.z)
+            X, z = check_X_y(X, np.ravel(self._dml_data.z))
             m_hat = _dml_cv_predict(self._learner['ml_m'], X, z, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'))
         else:
