@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
+from ._helper import _check_is_partition
 
 
 class DoubleML(ABC):
@@ -81,10 +82,9 @@ class DoubleML(ABC):
                 self._dml_procedure = 'dml1'
 
         # perform sample splitting
+        self._smpls = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
-        else:
-            self.smpls = None
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi, self._psi_a, self._psi_b,\
@@ -229,11 +229,6 @@ class DoubleML(ABC):
                              'or set external samples via .set_sample_splitting().')
         return self._smpls
 
-    @smpls.setter
-    def smpls(self, value):
-        # TODO add checks of dimensions vs properties
-        self._smpls = value
-
     @property
     def psi(self):
         """
@@ -354,7 +349,7 @@ class DoubleML(ABC):
 
     @property
     def __smpls(self):
-        return self.smpls[self._i_rep]
+        return self._smpls[self._i_rep]
 
     @property
     def __psi(self):
@@ -942,7 +937,7 @@ class DoubleML(ABC):
                                                 n_rep=self.n_rep,
                                                 n_obs=self._dml_data.n_obs,
                                                 apply_cross_fitting=self.apply_cross_fitting)
-        self.smpls = obj_dml_resampling.split_samples()
+        self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
@@ -963,15 +958,69 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        # TODO add an example to the documentation (maybe with only 5 observations)
-        # TODO warn if n_rep or n_folds is overwritten with different number induced by the transferred external samples?
-        # TODO check whether the provided samples are a partition --> set apply_cross_fitting accordingly
-        # TODO first check fitted and may re-initialize twice to prevent multiple warnings
-        self._n_rep = len(all_smpls)
-        n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
-        assert np.all(n_folds_each_smpl == n_folds_each_smpl[0]), 'Different number of folds for repeated cross-fitting'
-        self._n_folds = n_folds_each_smpl[0]
-        self.smpls = all_smpls
+        if isinstance(all_smpls, tuple):
+            if not len(all_smpls) == 2:
+                raise ValueError('Invalid partition provided. '
+                                 'Tuple for train_ind and test_ind must consist of exactly two elements.')
+            self._n_rep = 1
+            self._n_folds = 1
+            self._apply_cross_fitting = False
+            self._smpls = [[all_smpls]]
+        else:
+            if not isinstance(all_smpls, list):
+                raise TypeError('all_smpls must be of list or tuple type. '
+                                f'{str(all_smpls)} of type {str(type(all_smpls))} was passed.')
+            all_tuple = all([isinstance(tpl, tuple) for tpl in all_smpls])
+            if all_tuple:
+                if not all([len(tpl) == 2 for tpl in all_smpls]):
+                    raise ValueError('Invalid partition provided. '
+                                     'All tuples for train_ind and test_ind must consist of exactly two elements.')
+                self._n_rep = 1
+                if _check_is_partition(all_smpls, self._dml_data.n_obs):
+                    self._n_folds = len(all_smpls)
+                    self._apply_cross_fitting = True
+                    self._smpls = [all_smpls]
+                else:
+                    if not len(all_smpls) == 1:
+                        raise ValueError('Invalid partition provided. '
+                                         'Tuples for more than one fold provided that don\'t form a partition.')
+                    self._n_folds = 1
+                    self._apply_cross_fitting = False
+                    self._smpls = [all_smpls]
+            else:
+                all_list = all([isinstance(smpl, list) for smpl in all_smpls])
+                if not all_list:
+                    raise ValueError('Invalid partition provided. '
+                                     'all_smpls is a list where neither all elements are tuples '
+                                     'nor all elements are lists.')
+                all_tuple = all([all([isinstance(tpl, tuple) for tpl in smpl]) for smpl in all_smpls])
+                if not all_tuple:
+                    raise TypeError('For repeated sample splitting all_smpls must be list of lists of tuples.')
+                all_pairs = all([all([len(tpl) == 2 for tpl in smpl]) for smpl in all_smpls])
+                if not all_pairs:
+                    raise ValueError('Invalid partition provided. '
+                                     'All tuples for train_ind and test_ind must consist of exactly two elements.')
+                n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
+                if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
+                    raise ValueError('Invalid partition provided. '
+                                     'Different number of folds for repeated sample splitting.')
+                smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
+
+                if all(smpls_are_partitions):
+                    self._n_rep = len(all_smpls)
+                    self._n_folds = n_folds_each_smpl[0]
+                    self._apply_cross_fitting = True
+                    self._smpls = all_smpls
+                else:
+                    if not n_folds_each_smpl[0] == 1:
+                        raise ValueError('Invalid partition provided. '
+                                         'Tuples for more than one fold provided '
+                                         'but at least one does not form a partition.')
+                    self._n_rep = len(all_smpls)
+                    self._n_folds = n_folds_each_smpl[0]
+                    self._apply_cross_fitting = False
+                    self._smpls = all_smpls
+
         self._psi, self._psi_a, self._psi_b, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
