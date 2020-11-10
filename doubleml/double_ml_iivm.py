@@ -125,7 +125,7 @@ class DoubleMLIIVM(DoubleML):
             valid_score = ['LATE']
             if score not in valid_score:
                 raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + valid_score)
+                                 '\n valid score ' + ' or '.join(valid_score))
         else:
             if not callable(score):
                 raise ValueError('score should be either a string or a callable.'
