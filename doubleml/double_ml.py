@@ -90,6 +90,9 @@ class DoubleML(ABC):
         self._psi, self._psi_a, self._psi_b,\
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
 
+        # also initialize bootstrap arrays with the default number of bootstrap replications
+        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
+
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
         self._i_treat = None
@@ -146,6 +149,13 @@ class DoubleML(ABC):
         The double machine learning algorithm.
         """
         return self._dml_procedure
+
+    @property
+    def n_rep_boot(self):
+        """
+        The number of bootstrap replications.
+        """
+        return self._n_rep_boot
 
     @property
     def score(self):
@@ -508,14 +518,14 @@ class DoubleML(ABC):
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
 
-        self._initialize_boot_arrays(n_rep_boot)
+        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
-                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method, n_rep_boot)
+                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method)
 
         return self
 
@@ -913,9 +923,9 @@ class DoubleML(ABC):
         return psi, psi_a, psi_b, coef, se, all_coef, all_se, all_dml1_coef
 
     def _initialize_boot_arrays(self, n_rep_boot):
-        self.n_rep_boot = n_rep_boot
-        self._boot_coef = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
-        self._boot_t_stat = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
+        boot_coef = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
+        boot_t_stat = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
+        return n_rep_boot, boot_coef, boot_t_stat
 
     def draw_sample_splitting(self):
         """
