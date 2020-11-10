@@ -55,7 +55,8 @@ class DoubleMLData:
                  x_cols=None,
                  z_cols=None,
                  use_other_treat_as_covariate=True):
-        self.data = data
+        self._data = data
+
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
@@ -144,6 +145,13 @@ class DoubleMLData:
                                 columns=x_cols + [y_col] + d_cols + z_cols)
 
         return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate)
+
+    @property
+    def data(self):
+        """
+        The data.
+        """
+        return self._data
 
     @property
     def x(self):
