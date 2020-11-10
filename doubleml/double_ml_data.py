@@ -218,6 +218,7 @@ class DoubleMLData:
     
     @x_cols.setter
     def x_cols(self, value):
+        reset_value = hasattr(self, '_x_cols')
         if value is not None:
             if isinstance(value, str):
                 value = [value]
@@ -238,6 +239,9 @@ class DoubleMLData:
                 y_d = set.union(set(self.y_col), set(self.d_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]
             self._x_cols = x_cols
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self._set_x_d(self.d_cols[0])
     
     @property
     def d_cols(self):
@@ -248,6 +252,7 @@ class DoubleMLData:
     
     @d_cols.setter
     def d_cols(self, value):
+        reset_value = hasattr(self, '_d_cols')
         if isinstance(value, str):
             value = [value]
         if not isinstance(value, list):
@@ -257,6 +262,9 @@ class DoubleMLData:
             raise ValueError('Invalid treatment variable(s) d_cols. '
                              f'At least one treatment variable is no data column.')
         self._d_cols = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self._set_x_d(self.d_cols[0])
     
     @property
     def y_col(self):
@@ -267,6 +275,7 @@ class DoubleMLData:
     
     @y_col.setter
     def y_col(self, value):
+        reset_value = hasattr(self, '_y_col')
         if not isinstance(value, str):
             raise TypeError('The outcome variable y_col must be of str type. '
                             f'{str(value)} of type {str(type(value))} was passed.')
@@ -274,6 +283,8 @@ class DoubleMLData:
             raise ValueError('Invalid outcome variable y_col. '
                              f'{value} is no data column.')
         self._y_col = value
+        if reset_value:
+            self._set_y_z()
     
     @property
     def z_cols(self):
@@ -284,6 +295,7 @@ class DoubleMLData:
     
     @z_cols.setter
     def z_cols(self, value):
+        reset_value = hasattr(self, '_z_cols')
         if value is not None:
             if isinstance(value, str):
                 value = [value]
@@ -296,6 +308,8 @@ class DoubleMLData:
             self._z_cols = value
         else:
             self._z_cols = None
+        if reset_value:
+            self._set_y_z()
 
     @property
     def use_other_treat_as_covariate(self):
