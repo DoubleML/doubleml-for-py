@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
-from ._helper import _check_is_partition
+from ._helper import _check_is_partition, _check_all_smpls
 
 
 class DoubleML(ABC):
@@ -949,10 +949,24 @@ class DoubleML(ABC):
 
         Parameters
         ----------
-        all_smpls : list
-            A nested list of train and test sets.
-            The outer list needs to provide an entry per repeated sample splitting (length of list is set as ``n_rep``).
-            The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as ``n_folds``).
+        all_smpls : list or tuple
+            If nested list of lists of tuples:
+                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
+                ``n_rep``).
+                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
+                ``n_folds``). If tuples for more than one fold are provided, it must form a partition and
+                ``apply_cross_fitting`` is set to True. Otherwise ``apply_cross_fitting`` is set to False and
+                ``n_folds=2``.
+            If list of tuples:
+                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
+                ``n_folds``). If tuples for more than one fold are provided, it must form a partition and
+                ``apply_cross_fitting`` is set to True. Otherwise ``apply_cross_fitting`` is set to False and
+                ``n_folds=2``.
+                ``n_rep=1`` is always set.
+            If tuple:
+                Must be a tuple with two elements train_ind and test_ind. No sample splitting is achieved if train_ind
+                and test_ind are range(n_rep). Otherwise ``n_folds=2``.
+                ``apply_cross_fitting=False`` and ``n_rep=1`` is always set.
 
         Returns
         -------
@@ -962,10 +976,17 @@ class DoubleML(ABC):
             if not len(all_smpls) == 2:
                 raise ValueError('Invalid partition provided. '
                                  'Tuple for train_ind and test_ind must consist of exactly two elements.')
-            self._n_rep = 1
-            self._n_folds = 1
-            self._apply_cross_fitting = False
-            self._smpls = [[all_smpls]]
+            if (_check_is_partition([all_smpls], self._dml_data.n_obs) &
+                    _check_is_partition([(all_smpls[1], all_smpls[0])], self._dml_data.n_obs)):
+                self._n_rep = 1
+                self._n_folds = 1
+                self._apply_cross_fitting = False
+                self._smpls = [[all_smpls]]
+            else:
+                self._n_rep = 1
+                self._n_folds = 2
+                self._apply_cross_fitting = False
+                self._smpls = _check_all_smpls([[all_smpls]], self._dml_data.n_obs)
         else:
             if not isinstance(all_smpls, list):
                 raise TypeError('all_smpls must be of list or tuple type. '
@@ -979,14 +1000,14 @@ class DoubleML(ABC):
                 if _check_is_partition(all_smpls, self._dml_data.n_obs):
                     self._n_folds = len(all_smpls)
                     self._apply_cross_fitting = True
-                    self._smpls = [all_smpls]
+                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
                 else:
                     if not len(all_smpls) == 1:
                         raise ValueError('Invalid partition provided. '
                                          'Tuples for more than one fold provided that don\'t form a partition.')
-                    self._n_folds = 1
+                    self._n_folds = 2
                     self._apply_cross_fitting = False
-                    self._smpls = [all_smpls]
+                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
             else:
                 all_list = all([isinstance(smpl, list) for smpl in all_smpls])
                 if not all_list:
@@ -1010,16 +1031,16 @@ class DoubleML(ABC):
                     self._n_rep = len(all_smpls)
                     self._n_folds = n_folds_each_smpl[0]
                     self._apply_cross_fitting = True
-                    self._smpls = all_smpls
+                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
                 else:
                     if not n_folds_each_smpl[0] == 1:
                         raise ValueError('Invalid partition provided. '
                                          'Tuples for more than one fold provided '
                                          'but at least one does not form a partition.')
                     self._n_rep = len(all_smpls)
-                    self._n_folds = n_folds_each_smpl[0]
+                    self._n_folds = 2
                     self._apply_cross_fitting = False
-                    self._smpls = all_smpls
+                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
 
         self._psi, self._psi_a, self._psi_b, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
