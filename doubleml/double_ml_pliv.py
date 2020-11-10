@@ -198,9 +198,11 @@ class DoubleMLPLIV(DoubleML):
                 valid_learner = ['ml_g', 'ml_r'] + ['ml_m_' + z_col for z_col in self._dml_data.z_cols]
         elif (not self.partialX) & self.partialZ:
             valid_learner = ['ml_r']
-        elif self.partialX & self.partialZ:
+        else:
+            assert (self.partialX & self.partialZ)
             valid_learner = ['ml_g', 'ml_m', 'ml_r']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -226,7 +228,8 @@ class DoubleMLPLIV(DoubleML):
             psi_a, psi_b = self._ml_nuisance_and_score_elements_partialX(smpls, n_jobs_cv)
         elif (not self.partialX) & self.partialZ:
             psi_a, psi_b = self._ml_nuisance_and_score_elements_partialZ(smpls, n_jobs_cv)
-        elif self.partialX & self.partialZ:
+        else:
+            assert (self.partialX & self.partialZ)
             psi_a, psi_b = self._ml_nuisance_and_score_elements_partialXZ(smpls, n_jobs_cv)
 
         return psi_a, psi_b
@@ -239,9 +242,10 @@ class DoubleMLPLIV(DoubleML):
         elif (not self.partialX) & self.partialZ:
             res = self._ml_nuisance_tuning_partialZ(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                                     search_mode, n_iter_randomized_search)
-        elif self.partialX & self.partialZ:
+        else:
+            assert (self.partialX & self.partialZ)
             res = self._ml_nuisance_tuning_partialXZ(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                                    search_mode, n_iter_randomized_search)
+                                                     search_mode, n_iter_randomized_search)
 
         return res
 
@@ -277,6 +281,7 @@ class DoubleMLPLIV(DoubleML):
         w_hat = d - r_hat
         v_hat = z - m_hat
 
+        r_hat_tilde = None
         if self._dml_data.n_instr > 1:
             assert self.apply_cross_fitting
             # TODO check whether the no cross-fitting case can be supported here
@@ -287,16 +292,22 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
+            assert score == 'partialling out'
             if self._dml_data.n_instr == 1:
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
             else:
                 psi_a = -np.multiply(w_hat, r_hat_tilde)
                 psi_b = np.multiply(r_hat_tilde, u_hat)
-        elif callable(self.score):
-            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialX with several instruments'
-            psi_a, psi_b = self.score(y, z, d,
-                                      g_hat, m_hat, r_hat, smpls)
+        else:
+            assert callable(self.score)
+            if self._dml_data.n_instr > 1:
+                raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialX '
+                                          'with several instruments')
+            else:
+                assert self._dml_data.n_instr == 1
+                psi_a, psi_b = self.score(y, z, d,
+                                          g_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
@@ -312,10 +323,12 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
+            assert score == 'partialling out'
             psi_a = -np.multiply(r_hat, d)
             psi_b = np.multiply(r_hat, y)
-        elif callable(self.score):
-            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialZ'
+        else:
+            assert callable(self.score)
+            raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialZ')
 
         return psi_a, psi_b
 
@@ -344,10 +357,12 @@ class DoubleMLPLIV(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
+            assert score == 'partialling out'
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
-        elif callable(self.score):
-            assert self._dml_data.n_instr == 1, 'callable score not implemented for DoubleMLPLIV.partialXZ'
+        else:
+            assert callable(self.score)
+            raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialXZ')
 
         return psi_a, psi_b
 

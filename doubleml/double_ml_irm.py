@@ -111,7 +111,8 @@ class DoubleMLIRM(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -132,10 +133,8 @@ class DoubleMLIRM(DoubleML):
         return
     
     def _get_cond_smpls(self, smpls, d):
-        smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train),
-                      test) for train, test in smpls]
-        smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train),
-                      test) for train, test in smpls]
+        smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train), test) for train, test in smpls]
+        smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train), test) for train, test in smpls]
         return smpls_d0, smpls_d1
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
@@ -148,6 +147,7 @@ class DoubleMLIRM(DoubleML):
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
         # fraction of treated for ATTE
+        p_hat = None
         if score == 'ATTE':
             p_hat = np.zeros_like(d, dtype='float64')
             for _, test_index in smpls:
@@ -156,6 +156,7 @@ class DoubleMLIRM(DoubleML):
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
+        g_hat1 = None
         if (score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
@@ -170,21 +171,24 @@ class DoubleMLIRM(DoubleML):
 
         # compute residuals
         u_hat0 = y - g_hat0
+        u_hat1 = None
         if score == 'ATE':
             u_hat1 = y - g_hat1
         
         if isinstance(self.score, str):
             if score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(d, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
+                    + np.divide(np.multiply(d, u_hat1), m_hat) \
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
                 psi_a = np.full_like(m_hat, -1.0)
-            elif score == 'ATTE':
+            else:
+                assert score == 'ATTE'
                 psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                                            np.multiply(p_hat, (1.0 - m_hat)))
+                    - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
+                                np.multiply(p_hat, (1.0 - m_hat)))
                 psi_a = - np.divide(d, p_hat)
-        elif callable(self.score):
+        else:
+            assert callable(self.score)
             psi_a, psi_b = self.score(y, d, g_hat0, g_hat1, m_hat, smpls)
 
         return psi_a, psi_b
