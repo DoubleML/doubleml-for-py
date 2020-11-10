@@ -156,7 +156,7 @@ Boostrap standard errors and joint confidence intervals
 The ``bootstrap()`` method provides an implementation of a multiplier bootstrap for double machine learning models.
 For :math:`b=1, \ldots, B` weights :math:`\xi_{i, b}` are generated according to a normal (Gaussian) bootstrap, wild
 bootstrap or exponential bootstrap.
-The number of bootstrap samples is provided as input ``n_boot_rep`` and for ``method`` one can choose ``'Bayes'``,
+The number of bootstrap samples is provided as input ``n_rep_boot`` and for ``method`` one can choose ``'Bayes'``,
 ``'normal'`` or ``'wild'``.
 Based on the estimates of the standard errors given by
 
