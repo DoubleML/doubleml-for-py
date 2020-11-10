@@ -27,11 +27,11 @@ class DoubleMLData:
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrument variables ``z_cols`` are used as covariates.
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
         Default is ``None``.
 
     z_cols : None, str or list
-        The instrument variable(s).
+        The instrumental variable(s).
         Default is ``None``.
 
     use_other_treat_as_covariate : bool
@@ -65,7 +65,7 @@ class DoubleMLData:
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self._set_y_z()
         # by default, we initialize to the first treatment variable
-        self._set_x_d(self.d_cols[0])
+        self.set_x_d(self.d_cols[0])
 
     def __str__(self):
         buf = io.StringIO()
@@ -95,7 +95,7 @@ class DoubleMLData:
             Array of treatment variables.
 
         z : None or :class:`numpy.ndarray`
-            Array of instrument variables.
+            Array of instrumental variables.
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -182,7 +182,7 @@ class DoubleMLData:
     @property
     def z(self):
         """
-        Array of instrument variables.
+        Array of instrumental variables.
         """
         if self.z_cols is not None:
             return self._z.values
@@ -206,7 +206,7 @@ class DoubleMLData:
     @property
     def n_instr(self):
         """
-        The number of instrument variables.
+        The number of instruments.
         """
         return len(self.z_cols)
     
@@ -249,7 +249,7 @@ class DoubleMLData:
             self._x_cols = x_cols
         if reset_value:
             # by default, we initialize to the first treatment variable
-            self._set_x_d(self.d_cols[0])
+            self.set_x_d(self.d_cols[0])
     
     @property
     def d_cols(self):
@@ -272,7 +272,7 @@ class DoubleMLData:
         self._d_cols = value
         if reset_value:
             # by default, we initialize to the first treatment variable
-            self._set_x_d(self.d_cols[0])
+            self.set_x_d(self.d_cols[0])
     
     @property
     def y_col(self):
@@ -297,7 +297,7 @@ class DoubleMLData:
     @property
     def z_cols(self):
         """
-        The instrument variable(s).
+        The instrumental variable(s).
         """
         return self._z_cols
     
@@ -339,8 +339,16 @@ class DoubleMLData:
             self._z = None
         else:
             self._z = self.data.loc[:, self.z_cols]
-    
-    def _set_x_d(self, treatment_var):
+
+    def set_x_d(self, treatment_var):
+        """
+        Function that assigns the role for the treatment variables in the multiple-treatment case.
+
+        Parameters
+        ----------
+        treatment_var : str
+            Active treatment variable that will be set to d.
+        """
         if not isinstance(treatment_var, str):
             raise TypeError('treatment_var must be of str type. '
                             f'{str(treatment_var)} of type {str(type(treatment_var))} was passed.')

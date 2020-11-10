@@ -151,7 +151,7 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
         m_0(x_i) &= a_0 x_{i,1} + a_1 \\frac{\\exp(x_{i,3})}{1+\\exp(x_{i,3})},
 
-        g_0(X) &= b_0 \\frac{\\exp(x_{i,1})}{1+\\exp(x_{i,1})} + b_1 x_{i,3}.
+        g_0(x_i) &= b_0 \\frac{\\exp(x_{i,1})}{1+\\exp(x_{i,1})} + b_1 x_{i,3}.
 
     Parameters
     ----------
@@ -219,9 +219,9 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
     .. math::
 
-        m_0(x) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x-\\nu)},
+        m_0(x_i) &= \\frac{1}{2 \\pi} \\frac{\\sinh(\\gamma)}{\\cosh(\\gamma) - \\cos(x_i-\\nu)},
 
-        g_0(x) &= \\sin(x)^2.
+        g_0(x_i) &= \\sin(x_i)^2.
 
     Parameters
     ----------
@@ -380,7 +380,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
     ----------
     Farbmacher, H., Guber, R. and Klaaßen, S. (2020). Instrument Validity Tests with Causal Forests. MEA Discussion Paper No. 13-2020. Available at SSRN: http://dx.doi.org/10.2139/ssrn.3619201.
     """
-    # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201&download=yes
+    # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.3], [0.3, 1.]]),
                                        size=[n_obs, ])

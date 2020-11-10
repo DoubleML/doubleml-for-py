@@ -88,9 +88,21 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+        set.seed(3141)
+        data = make_plr_CCDDHNR2018(alpha=0.5, return_type='data.table')
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d")
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, dml_procedure="dml1")
+        dml_plr_obj$fit()
+
 
 The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -105,9 +117,7 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$coef
 
 Let :math:`k(i) = \lbrace k: i \in I_k \rbrace`.
 The values of the score function :math:`(\psi(W_i; \tilde{\theta}_0, \hat{\eta}_{0,k(i)}))_{i \in [N]}`
@@ -124,9 +134,7 @@ are stored in the attribute ``psi``.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$psi[1:5, ,1]
 
 
 For the DML1 algorithm, the estimates for the different folds
@@ -142,7 +150,5 @@ For the DML1 algorithm, the estimates for the different folds
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        dml_plr_obj$all_dml1_coef
 

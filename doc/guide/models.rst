@@ -36,9 +36,21 @@ Estimation is conducted via its ``fit()`` method:
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+        set.seed(1111)
+        data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20, return_type='data.table')
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d")
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj$fit()
+        print(dml_plr_obj)
 
 
 Partially linear IV regression model (PLIV)
@@ -76,9 +88,21 @@ Estimation is conducted via its ``fit()`` method:
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+
+        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+        ml_r = learner$clone()
+        set.seed(2222)
+        data = make_pliv_CHS2015(alpha=0.5, n_obs=500, dim_x=20, dim_z=1, return_type="data.table")
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_col = "d", z_cols= "Z1")
+        dml_pliv_obj = DoubleMLPLIV$new(obj_dml_data, ml_g, ml_m, ml_r)
+        dml_pliv_obj$fit()
+        print(dml_pliv_obj)
 
 
 Interactive regression model (IRM)
@@ -112,9 +136,20 @@ Estimation is conducted via its ``fit()`` method:
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+
+        set.seed(3333)
+        ml_g = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_m = lrn("classif.ranger", num.trees = 10, max.depth = 2)
+        data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type="data.table")
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d")
+        dml_irm_obj = DoubleMLIRM$new(obj_dml_data, ml_g, ml_m)
+        dml_irm_obj$fit()
+        print(dml_irm_obj)
+
 
 
 Interactive IV model (IIVM)
@@ -150,7 +185,19 @@ Estimation is conducted via its ``fit()`` method:
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+
+        set.seed(4444)
+        ml_g = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_m = lrn("classif.ranger", num.trees = 10, max.depth = 2)
+        ml_r = ml_m$clone()
+        data = make_iivm_data(theta=1, n_obs=500, dim_x=20, return_type="data.table")
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d", z_cols="z")
+        dml_iivm_obj = DoubleMLIIVM$new(obj_dml_data, ml_g, ml_m, ml_r)
+        dml_iivm_obj$fit()
+        print(dml_iivm_obj)
+
 
