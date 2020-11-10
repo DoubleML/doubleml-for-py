@@ -148,7 +148,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                            dml_procedure)
 
         np.random.seed(3141)
-        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta

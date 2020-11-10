@@ -257,7 +257,7 @@ and set the partition via the ``set_sample_splitting()`` method.
         from sklearn.model_selection import KFold
         np.random.seed(314)
         kf = KFold(n_splits=4, shuffle=True)
-        smpls = [[(train, test) for train, test in kf.split(obj_dml_data.x)]]
+        smpls = [(train, test) for train, test in kf.split(obj_dml_data.x)]
 
         dml_plr_obj_external.set_sample_splitting(smpls);
         print(dml_plr_obj_external.fit().summary)
@@ -322,8 +322,7 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
 
         from sklearn.model_selection import train_test_split
         smpls = train_test_split(np.arange(obj_dml_data.n_obs), train_size=0.8)
-        smpls = [np.sort(x) for x in smpls]  # only sorted indices are supported
-        dml_plr_obj_external.set_sample_splitting([[smpls]]);
+        dml_plr_obj_external.set_sample_splitting(tuple(smpls));
 
         print(dml_plr_obj_external.fit().summary)
 
