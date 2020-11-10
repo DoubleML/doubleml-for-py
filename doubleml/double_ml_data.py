@@ -249,7 +249,7 @@ class DoubleMLData:
             self._x_cols = x_cols
         if reset_value:
             # by default, we initialize to the first treatment variable
-            self._set_x_d(self.d_cols[0])
+            self.set_x_d(self.d_cols[0])
     
     @property
     def d_cols(self):
@@ -272,7 +272,7 @@ class DoubleMLData:
         self._d_cols = value
         if reset_value:
             # by default, we initialize to the first treatment variable
-            self._set_x_d(self.d_cols[0])
+            self.set_x_d(self.d_cols[0])
     
     @property
     def y_col(self):
