@@ -767,7 +767,7 @@ class DoubleML(ABC):
                 self._dml_data._set_x_d(self._dml_data.d_cols[i_d])
 
             if tune_on_folds:
-                nuisance_params = [None] * self.n_rep
+                nuisance_params = list()
                 for i_rep in range(self.n_rep):
                     self._i_rep = i_rep
 
@@ -779,7 +779,7 @@ class DoubleML(ABC):
                                                    search_mode, n_iter_randomized_search)
 
                     tuning_res[i_rep][i_d] = res
-                    nuisance_params[i_rep] = res['params']
+                    nuisance_params.append(res['params'])
 
                 if set_as_params:
                     for nuisance_model in nuisance_params[0].keys():
