@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import io
 
+from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
 from ._helper import assure_2d_array
 
 
@@ -108,14 +109,21 @@ class DoubleMLData:
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
+        X = check_array(X, ensure_2d=False, allow_nd=False)
+        d = check_array(d, ensure_2d=False, allow_nd=False)
+        y = column_or_1d(y, warn=True)
+
         X = assure_2d_array(X)
         d = assure_2d_array(d)
 
-        # assert single y variable here
         y_col = 'y'
         if z is None:
+            check_consistent_length(X, y, d)
             z_cols = None
         else:
+            z = check_array(z, ensure_2d=False, allow_nd=False)
+            z = assure_2d_array(z)
+            check_consistent_length(X, y, d, z)
             if z.shape[1] == 1:
                 z_cols = ['z']
             else:
