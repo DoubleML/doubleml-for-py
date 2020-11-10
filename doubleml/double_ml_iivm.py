@@ -118,7 +118,8 @@ class DoubleMLIIVM(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m', 'ml_r0', 'ml_r1']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -182,14 +183,15 @@ class DoubleMLIIVM(DoubleML):
         score = self.score
         self._check_score(score)
         if isinstance(self.score, str):
-            if score == 'LATE':
-                psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(z, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
-                psi_a = -1*(r_hat1 - r_hat0 \
-                                    + np.divide(np.multiply(z, w_hat1), m_hat) \
-                                    - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
-        elif callable(self.score):
+            assert score == 'LATE'
+            psi_b = g_hat1 - g_hat0 \
+                + np.divide(np.multiply(z, u_hat1), m_hat) \
+                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
+            psi_a = -1*(r_hat1 - r_hat0
+                        + np.divide(np.multiply(z, w_hat1), m_hat)
+                        - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
+        else:
+            assert callable(self.score)
             psi_a, psi_b = self.score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 
         return psi_a, psi_b
@@ -208,7 +210,7 @@ class DoubleMLIIVM(DoubleML):
                                'ml_m': None,
                                'ml_r': None}
 
-        g0_tune_res = [None] * len(smpls)
+        g0_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -222,9 +224,9 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=g0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z0 = smpls_z0[idx][0]
-            g0_tune_res[idx] = g0_grid_search.fit(X[train_index_z0, :], y[train_index_z0])
+            g0_tune_res.append(g0_grid_search.fit(X[train_index_z0, :], y[train_index_z0]))
 
-        g1_tune_res = [None] * len(smpls)
+        g1_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -238,9 +240,9 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=g1_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z1 = smpls_z1[idx][0]
-            g1_tune_res[idx] = g1_grid_search.fit(X[train_index_z1, :], y[train_index_z1])
+            g1_tune_res.append(g1_grid_search.fit(X[train_index_z1, :], y[train_index_z1]))
 
-        m_tune_res = [None] * len(smpls)
+        m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -253,9 +255,9 @@ class DoubleMLIIVM(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], z[train_index])
+            m_tune_res.append(m_grid_search.fit(X[train_index, :], z[train_index]))
 
-        r0_tune_res = [None] * len(smpls)
+        r0_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -269,9 +271,9 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=r0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z0 = smpls_z0[idx][0]
-            r0_tune_res[idx] = r0_grid_search.fit(X[train_index_z0, :], d[train_index_z0])
+            r0_tune_res.append(r0_grid_search.fit(X[train_index_z0, :], d[train_index_z0]))
 
-        r1_tune_res = [None] * len(smpls)
+        r1_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -285,7 +287,7 @@ class DoubleMLIIVM(DoubleML):
                                                     cv=r1_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_z1 = smpls_z1[idx][0]
-            r1_tune_res[idx] = r1_grid_search.fit(X[train_index_z1, :], d[train_index_z1])
+            r1_tune_res.append(r1_grid_search.fit(X[train_index_z1, :], d[train_index_z1]))
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
