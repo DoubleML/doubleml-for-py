@@ -477,7 +477,7 @@ class DoubleML(ABC):
 
         return self
 
-    def bootstrap(self, method='normal', n_boot_rep=500):
+    def bootstrap(self, method='normal', n_rep_boot=500):
         """
         Bootstrap for DoubleML models.
 
@@ -487,7 +487,7 @@ class DoubleML(ABC):
             A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the bootstrap method.
             Default is ``'normal'``
 
-        n_boot_rep : int
+        n_rep_boot : int
             The number of bootstrap replications.
 
         Returns
@@ -501,21 +501,21 @@ class DoubleML(ABC):
             raise ValueError('method must be "Bayes", "normal" or "wild" '
                              f' got {str(method)}')
 
-        if not isinstance(n_boot_rep, int):
+        if not isinstance(n_rep_boot, int):
             raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_boot_rep)} of type {str(type(n_boot_rep))} was passed.')
-        if n_boot_rep < 1:
+                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+        if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
-                             f'{str(n_boot_rep)} was passed.')
+                             f'{str(n_rep_boot)} was passed.')
 
-        self._initialize_boot_arrays(n_boot_rep)
+        self._initialize_boot_arrays(n_rep_boot)
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
 
-                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method, n_boot_rep)
+                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method, n_rep_boot)
 
         return self
 
@@ -912,10 +912,10 @@ class DoubleML(ABC):
 
         return psi, psi_a, psi_b, coef, se, all_coef, all_se, all_dml1_coef
 
-    def _initialize_boot_arrays(self, n_rep):
-        self.n_rep_boot = n_rep
-        self._boot_coef = np.full((self._dml_data.n_treat, n_rep * self.n_rep), np.nan)
-        self._boot_t_stat = np.full((self._dml_data.n_treat, n_rep * self.n_rep), np.nan)
+    def _initialize_boot_arrays(self, n_rep_boot):
+        self.n_rep_boot = n_rep_boot
+        self._boot_coef = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
+        self._boot_t_stat = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
 
     def draw_sample_splitting(self):
         """
@@ -1020,7 +1020,7 @@ class DoubleML(ABC):
         self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), n_obs) +
                                               np.power(self._all_coef - xx, 2), 1), n_obs))
 
-    def _compute_bootstrap(self, method, n_boot_rep):
+    def _compute_bootstrap(self, method):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
         if self.apply_cross_fitting:
@@ -1031,20 +1031,20 @@ class DoubleML(ABC):
             n_obs = len(test_index)
 
         if method == 'Bayes':
-            weights = np.random.exponential(scale=1.0, size=(n_boot_rep, n_obs)) - 1.
+            weights = np.random.exponential(scale=1.0, size=(self.n_rep_boot, n_obs)) - 1.
         elif method == 'normal':
-            weights = np.random.normal(loc=0.0, scale=1.0, size=(n_boot_rep, n_obs))
+            weights = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
         elif method == 'wild':
-            xx = np.random.normal(loc=0.0, scale=1.0, size=(n_boot_rep, n_obs))
-            yy = np.random.normal(loc=0.0, scale=1.0, size=(n_boot_rep, n_obs))
+            xx = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
+            yy = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
             weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1) / 2
         else:
             raise ValueError('invalid boot method')
 
         if self.apply_cross_fitting:
             if dml_procedure == 'dml1':
-                boot_coefs = np.full((n_boot_rep, self.n_folds), np.nan)
-                boot_t_stats = np.full((n_boot_rep, self.n_folds), np.nan)
+                boot_coefs = np.full((self.n_rep_boot, self.n_folds), np.nan)
+                boot_t_stats = np.full((self.n_rep_boot, self.n_folds), np.nan)
                 for idx, (_, test_index) in enumerate(smpls):
                     J = np.mean(self.__psi_a[test_index])
                     boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
