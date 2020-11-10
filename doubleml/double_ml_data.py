@@ -333,7 +333,12 @@ class DoubleMLData:
             self._z = self.data.loc[:, self.z_cols]
     
     def _set_x_d(self, treatment_var):
-        assert treatment_var in self.d_cols
+        if not isinstance(treatment_var, str):
+            raise TypeError('treatment_var must be of str type. '
+                            f'{str(treatment_var)} of type {str(type(treatment_var))} was passed.')
+        if treatment_var not in self.d_cols:
+            raise ValueError('Invalid treatment_var. '
+                             f'{treatment_var} is not in d_cols.')
         if self.use_other_treat_as_covariate:
             xd_list = self.x_cols + self.d_cols
             xd_list.remove(treatment_var)
