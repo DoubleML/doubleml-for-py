@@ -259,8 +259,12 @@ class DoubleMLData:
     
     @y_col.setter
     def y_col(self, value):
-        assert isinstance(value, str)
-        assert value in self.all_variables
+        if not isinstance(value, str):
+            raise TypeError('The outcome variable must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid outcome variable. '
+                             f'{value} is no column of data')
         self._y_col = value
     
     @property
