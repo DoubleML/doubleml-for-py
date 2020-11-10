@@ -73,21 +73,19 @@ def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
         thetas[idx] = pliv_partial_xz_orth(u_hat, v_hat, w_hat, D[test_index], score)
     theta_hat = np.mean(thetas)
     
-    ses = np.zeros(len(smpls))
+    u_hat = np.zeros_like(Y)
+    v_hat = np.zeros_like(D)
+    w_hat = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
-        u_hat = Y[test_index] - g_hat[idx]
-        v_hat = m_hat[idx] - m_hat_tilde[idx]
-        w_hat = D[test_index] - m_hat_tilde[idx]
-        ses[idx] = var_pliv_partial_xz(theta_hat, D[test_index],
-                                       u_hat, v_hat, w_hat,
-                                       score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
+        v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
+        w_hat[test_index] = D[test_index] - m_hat_tilde[idx]
+    se = np.sqrt(var_pliv_partial_xz(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
     
     return theta_hat, se
 
 
 def pliv_partial_xz_dml2(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
-    thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)

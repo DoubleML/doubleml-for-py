@@ -119,20 +119,30 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
                                 w_hat0, w_hat1,
                                 Z[test_index], score)
     theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
+
+    u_hat0 = np.zeros_like(Y)
+    u_hat1 = np.zeros_like(Y)
+    w_hat0 = np.zeros_like(Y)
+    w_hat1 = np.zeros_like(Y)
+    g_hat0_all = np.zeros_like(Y)
+    g_hat1_all = np.zeros_like(Y)
+    r_hat0_all = np.zeros_like(Y)
+    r_hat1_all = np.zeros_like(Y)
+    m_hat_all = np.zeros_like(Y)
     for idx, (train_index, test_index) in enumerate(smpls):
-        u_hat0 = Y[test_index] - g_hat0[idx]
-        u_hat1 = Y[test_index] - g_hat1[idx]
-        w_hat0 = D[test_index] - r_hat0[idx]
-        w_hat1 = D[test_index] - r_hat1[idx]
-        ses[idx] = var_iivm(theta_hat, g_hat0[idx], g_hat1[idx],
-                            m_hat[idx],
-                            r_hat0[idx], r_hat1[idx],
-                            u_hat0, u_hat1,
-                            w_hat0, w_hat1,
-                            Z[test_index], score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        u_hat0[test_index] = Y[test_index] - g_hat0[idx]
+        u_hat1[test_index] = Y[test_index] - g_hat1[idx]
+        w_hat0[test_index] = D[test_index] - r_hat0[idx]
+        w_hat1[test_index] = D[test_index] - r_hat1[idx]
+        g_hat0_all[test_index] = g_hat0[idx]
+        g_hat1_all[test_index] = g_hat1[idx]
+        r_hat0_all[test_index] = r_hat0[idx]
+        r_hat1_all[test_index] = r_hat1[idx]
+        m_hat_all[test_index] = m_hat[idx]
+    se = np.sqrt(var_iivm(theta_hat, g_hat0_all, g_hat1_all,
+                          m_hat_all, r_hat0_all, r_hat1_all,
+                          u_hat0, u_hat1, w_hat0, w_hat1,
+                          Z, score, n_obs))
     
     return theta_hat, se
 

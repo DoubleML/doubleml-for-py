@@ -81,12 +81,12 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
     
     for bootstrap in boot_methods:
         np.random.seed(314122)
-        dml_plr_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
+        dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         
         np.random.seed(314122)
-        dml_plr_obj_ext_set_par.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
+        dml_plr_obj_ext_set_par.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_coef
         res_dict['boot_t_stat' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_t_stat
     

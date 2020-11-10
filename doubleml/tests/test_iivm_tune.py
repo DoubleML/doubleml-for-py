@@ -158,7 +158,7 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner_g, learner_m, learner_r, s
                                             dml_procedure)
         
         np.random.seed(3141)
-        dml_iivm_obj.bootstrap(method=bootstrap, n_boot_rep=n_rep_boot)
+        dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta

@@ -17,6 +17,7 @@ Estimation is conducted via its ``fit()`` method:
 
     .. ipython:: python
 
+        import numpy as np
         import doubleml as dml
         from doubleml.datasets import make_plr_CCDDHNR2018
         from sklearn.ensemble import RandomForestRegressor
@@ -67,6 +68,7 @@ Estimation is conducted via its ``fit()`` method:
     .. ipython:: python
         :okwarning:
 
+        import numpy as np
         import doubleml as dml
         from doubleml.datasets import make_pliv_CHS2015
         from sklearn.ensemble import RandomForestRegressor
@@ -117,6 +119,7 @@ Estimation is conducted via its ``fit()`` method:
 
     .. ipython:: python
 
+        import numpy as np
         import doubleml as dml
         from doubleml.datasets import make_irm_data
         from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -164,6 +167,7 @@ Estimation is conducted via its ``fit()`` method:
     .. ipython:: python
         :okwarning:
 
+        import numpy as np
         import doubleml as dml
         from doubleml.datasets import make_iivm_data
         from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier

@@ -36,14 +36,56 @@ def _check_is_partition(smpls, n_obs):
     return True
 
 
-def _fit(estimator, X, y, train_index, idx=None):
-    estimator.fit(X[train_index, :], y[train_index])
+def _check_all_smpls(all_smpls, n_obs):
+    all_smpls_checked = list()
+    for smpl in all_smpls:
+        this_smpl_checked = list()
+        for tpl in smpl:
+            this_smpl_checked.append(_check_smpl_split_tpl(tpl, n_obs))
+        all_smpls_checked.append(this_smpl_checked)
+    return all_smpls_checked
+
+
+def _check_smpl_split_tpl(smpl, n_obs):
+    train_index = np.sort(np.array(smpl[0]))
+    test_index = np.sort(np.array(smpl[1]))
+
+    if not issubclass(train_index.dtype.type, np.integer):
+        raise TypeError('Invalid sample split. Train indices must be of type integer.')
+    if not issubclass(test_index.dtype.type, np.integer):
+        raise TypeError('Invalid sample split. Test indices must be of type integer.')
+
+    if set(train_index) & set(test_index):
+        raise ValueError('Invalid sample split. Intersection of train and test indices is not empty.')
+
+    if len(np.unique(train_index)) != len(train_index):
+        raise ValueError('Invalid sample split. Train indices contain non-unique entries.')
+    if len(np.unique(test_index)) != len(test_index):
+        raise ValueError('Invalid sample split. Test indices contain non-unique entries.')
+
+    # we sort the indices above
+    # if not np.all(np.diff(train_index) > 0):
+    #     raise NotImplementedError('Invalid sample split. Only sorted train indices are supported.')
+    # if not np.all(np.diff(test_index) > 0):
+    #     raise NotImplementedError('Invalid sample split. Only sorted test indices are supported.')
+
+    if not set(train_index).issubset(range(n_obs)):
+        raise ValueError('Invalid sample split. Train indices must be in [0, n_obs).')
+    if not set(test_index).issubset(range(n_obs)):
+        raise ValueError('Invalid sample split. Test indices must be in [0, n_obs).')
+
+
+    return train_index, test_index
+
+
+def _fit(estimator, x, y, train_index, idx=None):
+    estimator.fit(x[train_index, :], y[train_index])
     return estimator, idx
 
 
-def _dml_cv_predict(estimator, X, y, smpls=None,
+def _dml_cv_predict(estimator, x, y, smpls=None,
                     n_jobs=None, est_params=None, method='predict', return_train_preds=False):
-    n_obs = X.shape[0]
+    n_obs = x.shape[0]
 
     smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
@@ -53,11 +95,11 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
     if not manual_cv_predict:
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            return cross_val_predict(clone(estimator), X, y, cv=smpls, n_jobs=n_jobs, method=method)
+            return cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
         elif isinstance(est_params, dict):
             # if no fold-specific parameters we redirect to the standard method
             warnings.warn("Using the same (hyper-)parameters for all folds")
-            return cross_val_predict(clone(estimator).set_params(**est_params), X, y, cv=smpls, n_jobs=n_jobs,
+            return cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
                                      method=method)
     else:
         if not smpls_is_partition:
@@ -84,17 +126,17 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
 
         if est_params is None:
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator), X, y_list[idx], train_index, idx)
+                clone(estimator), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
         elif isinstance(est_params, dict):
             warnings.warn("Using the same (hyper-)parameters for all folds")
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator).set_params(**est_params), X, y_list[idx], train_index, idx)
+                clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
         else:
             assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator).set_params(**est_params[idx]), X, y_list[idx], train_index, idx)
+                clone(estimator).set_params(**est_params[idx]), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
 
         preds = np.full(n_obs, np.nan)
@@ -105,12 +147,12 @@ def _dml_cv_predict(estimator, X, y, smpls=None,
             assert idx == fitted_models[idx][1]
             pred_fun = getattr(fitted_models[idx][0], method)
             if method == 'predict_proba':
-                preds[test_index, :] = pred_fun(X[test_index, :])
+                preds[test_index, :] = pred_fun(x[test_index, :])
             else:
-                preds[test_index] = pred_fun(X[test_index, :])
+                preds[test_index] = pred_fun(x[test_index, :])
 
             if return_train_preds:
-                train_preds.append(pred_fun(X[train_index, :]))
+                train_preds.append(pred_fun(x[train_index, :]))
 
         if return_train_preds:
             return preds, train_preds
