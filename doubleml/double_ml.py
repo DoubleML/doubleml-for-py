@@ -971,6 +971,33 @@ class DoubleML(ABC):
         Returns
         -------
         self : object
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import doubleml as dml
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> from sklearn.ensemble import RandomForestRegressor
+        >>> from sklearn.base import clone
+        >>> np.random.seed(3141)
+        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        >>> ml_g = learner
+        >>> ml_m = learner
+        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
+        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+        >>> # simple sample splitting with two folds and without cross-fitting
+        >>> smpls = ([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
+        >>> dml_plr_obj.set_sample_splitting(smpls);
+        >>> # sample splitting with two folds and cross-fitting
+        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
+        >>> dml_plr_obj.set_sample_splitting(smpls);
+        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
+        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+        >>> dml_plr_obj.set_sample_splitting(smpls);
         """
         if isinstance(all_smpls, tuple):
             if not len(all_smpls) == 2:
