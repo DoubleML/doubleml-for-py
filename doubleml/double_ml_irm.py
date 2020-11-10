@@ -202,7 +202,7 @@ class DoubleMLIRM(DoubleML):
             scoring_methods = {'ml_g': None,
                                'ml_m': None}
 
-        g0_tune_res = [None] * len(smpls)
+        g0_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -216,10 +216,10 @@ class DoubleMLIRM(DoubleML):
                                                     cv=g0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_d0 = smpls_d0[idx][0]
-            g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
+            g0_tune_res.append(g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0]))
 
+        g1_tune_res = list()
         if score == 'ATE':
-            g1_tune_res = [None] * len(smpls)
             for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
@@ -233,9 +233,9 @@ class DoubleMLIRM(DoubleML):
                                                         cv=g1_tune_resampling, n_jobs=n_jobs_cv,
                                                         n_iter=n_iter_randomized_search)
                 train_index_d1 = smpls_d1[idx][0]
-                g1_tune_res[idx] = g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1])
+                g1_tune_res.append(g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1]))
 
-        m_tune_res = [None] * len(smpls)
+        m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -248,7 +248,7 @@ class DoubleMLIRM(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])
+            m_tune_res.append(m_grid_search.fit(X[train_index, :], d[train_index]))
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
