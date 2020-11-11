@@ -107,7 +107,11 @@ class DoubleMLPLR(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.z_cols is None, 'incompatible data provided: PLR model has no instrumental variable Z'
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data.\n'
+                             ' and '.join(obj_dml_data.z_cols) +
+                             'have been set as instrumental variable(s).\n'
+                             'To fit an partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):

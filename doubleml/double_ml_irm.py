@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
+from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
@@ -127,9 +128,19 @@ class DoubleMLIRM(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.z_cols is None
-        assert obj_dml_data.n_treat == 1
-        check_binary_vector(obj_dml_data.d, variable_name='d')
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data.\n'
+                             ' and '.join(obj_dml_data.z_cols) +
+                             'have been set as instrumental variable(s).\n'
+                             'To fit an interactiv IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
+        one_treat = (obj_dml_data.n_treat == 1)
+        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+        zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        if not(one_treat & binary_treat & zero_one_treat):
+            raise ValueError('Incompatible data.\n'
+                             'To fit an IIVM model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as treatment variable.')
         return
     
     def _get_cond_smpls(self, smpls, d):

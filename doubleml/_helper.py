@@ -17,14 +17,6 @@ def assure_2d_array(x):
     return x
 
 
-def check_binary_vector(x, variable_name=''):
-    # assure D binary
-    assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
-    
-    if np.any(np.power(x, 2) - x != 0):
-        raise ValueError('variable ' + variable_name + ' must be binary with values 0 and 1')
-
-
 def _check_is_partition(smpls, n_obs):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
     if len(test_indices) != n_obs:

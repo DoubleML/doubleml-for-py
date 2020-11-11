@@ -208,7 +208,11 @@ class DoubleMLData:
         """
         The number of instruments.
         """
-        return len(self.z_cols)
+        if self.z_cols is not None:
+            n_instr = len(self.z_cols)
+        else:
+            n_instr = 0
+        return n_instr
     
     @property 
     def n_obs(self):
