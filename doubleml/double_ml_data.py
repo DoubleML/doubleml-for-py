@@ -3,7 +3,7 @@ import pandas as pd
 import io
 
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
-from ._helper import assure_2d_array
+from ._helper import _assure_2d_array
 
 
 class DoubleMLData:
@@ -113,8 +113,8 @@ class DoubleMLData:
         d = check_array(d, ensure_2d=False, allow_nd=False)
         y = column_or_1d(y, warn=True)
 
-        x = assure_2d_array(x)
-        d = assure_2d_array(d)
+        x = _assure_2d_array(x)
+        d = _assure_2d_array(d)
 
         y_col = 'y'
         if z is None:
@@ -122,7 +122,7 @@ class DoubleMLData:
             z_cols = None
         else:
             z = check_array(z, ensure_2d=False, allow_nd=False)
-            z = assure_2d_array(z)
+            z = _assure_2d_array(z)
             check_consistent_length(x, y, d, z)
             if z.shape[1] == 1:
                 z_cols = ['z']
