@@ -104,7 +104,7 @@ class DoubleMLPLIV(DoubleML):
         self._initialize_ml_nuisance_params()
 
     @classmethod
-    def partialX(cls,
+    def _partialX(cls,
                  obj_dml_data,
                  ml_g,
                  ml_m,
@@ -134,7 +134,7 @@ class DoubleMLPLIV(DoubleML):
         return obj
 
     @classmethod
-    def partialZ(cls,
+    def _partialZ(cls,
                  obj_dml_data,
                  ml_r,
                  n_folds=5,
@@ -161,7 +161,7 @@ class DoubleMLPLIV(DoubleML):
         return obj
 
     @classmethod
-    def partialXZ(cls,
+    def _partialXZ(cls,
                   obj_dml_data,
                   ml_g,
                   ml_m,

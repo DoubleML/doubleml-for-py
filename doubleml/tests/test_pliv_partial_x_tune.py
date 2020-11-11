@@ -89,7 +89,7 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, idx, learner_g, lear
     ml_r = clone(learner_r)
 
     np.random.seed(3141)
-    dml_pliv_obj = dml.DoubleMLPLIV.partialX(obj_dml_data,
+    dml_pliv_obj = dml.DoubleMLPLIV._partialX(obj_dml_data,
                                              ml_g, ml_m, ml_r,
                                              n_folds,
                                              dml_procedure=dml_procedure)
