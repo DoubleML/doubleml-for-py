@@ -1,4 +1,4 @@
-# this is taken from sklearn: https://github.com/jnothman/scikit-learn/blob/master/doc/sphinxext/github_link.py
+# this is taken from sklearn: https://github.com/scikit-learn/scikit-learn/blob/master/doc/sphinxext/github_link.py
 
 from operator import attrgetter
 import inspect
@@ -13,7 +13,7 @@ REVISION_CMD = 'git rev-parse --short HEAD'
 def _get_git_revision():
     try:
         revision = subprocess.check_output(REVISION_CMD.split()).strip()
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         print('Failed to execute git to get revision')
         return None
     return revision.decode('utf-8')
@@ -40,11 +40,12 @@ def _linkcode_resolve(domain, info, package, url_fmt, revision):
         return
 
     class_name = info['fullname'].split('.')[0]
-    if type(class_name) != str:
-        # Python 2 only
-        class_name = class_name.encode('utf-8')
     module = __import__(info['module'], fromlist=[class_name])
     obj = attrgetter(info['fullname'])(module)
+
+    # Unwrap the object to get the correct source
+    # file in case that is wrapped by a decorator
+    obj = inspect.unwrap(obj)
 
     try:
         fn = inspect.getsourcefile(obj)
