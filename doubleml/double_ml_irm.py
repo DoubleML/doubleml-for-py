@@ -66,14 +66,14 @@ class DoubleMLIRM(DoubleML):
     >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
-    >>> ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
-    >>> data = make_irm_data(theta=0.5, return_type='DataFrame')
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
     >>> dml_irm_obj.fit().summary
-           coef   std err         t     P>|t|     2.5 %   97.5 %
-    d  0.184211  0.096047  1.917917  0.055122 -0.004039  0.37246
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.414073  0.238529  1.735941  0.082574 -0.053436  0.881581
 
     Notes
     -----

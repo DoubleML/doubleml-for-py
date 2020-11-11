@@ -63,7 +63,7 @@ class DoubleMLPLIV(DoubleML):
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
-    >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> ml_g = clone(learner)
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
@@ -72,7 +72,7 @@ class DoubleMLPLIV(DoubleML):
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_pliv_obj.fit().summary
            coef   std err         t         P>|t|     2.5 %    97.5 %
-    d  0.621559  0.076235  8.153229  3.543352e-16  0.472142  0.770976
+    d  0.522753  0.082263  6.354688  2.088504e-10  0.361521  0.683984
 
     Notes
     -----
