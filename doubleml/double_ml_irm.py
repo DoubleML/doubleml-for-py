@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict
+from ._helper import _dml_cv_predict, _get_cond_smpls
 
 
 class DoubleMLIRM(DoubleML):
@@ -141,11 +141,6 @@ class DoubleMLIRM(DoubleML):
                              'needs to be specified as treatment variable.')
         return
     
-    def _get_cond_smpls(self, smpls, d):
-        smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train), test) for train, test in smpls]
-        smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train), test) for train, test in smpls]
-        return smpls_d0, smpls_d1
-    
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         score = self.score
         self._check_score(score)
@@ -153,7 +148,7 @@ class DoubleMLIRM(DoubleML):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
         
         # fraction of treated for ATTE
         p_hat = None
@@ -209,7 +204,7 @@ class DoubleMLIRM(DoubleML):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,

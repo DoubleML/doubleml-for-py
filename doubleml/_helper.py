@@ -16,6 +16,11 @@ def assure_2d_array(x):
     return x
 
 
+def _get_cond_smpls(smpls, bin_var):
+    smpls_0 = [(np.intersect1d(np.where(bin_var == 0)[0], train), test) for train, test in smpls]
+    smpls_1 = [(np.intersect1d(np.where(bin_var == 1)[0], train), test) for train, test in smpls]
+    return smpls_0, smpls_1
+
 def _check_is_partition(smpls, n_obs):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
     if len(test_indices) != n_obs:

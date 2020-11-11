@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict
+from ._helper import _dml_cv_predict, _get_cond_smpls
 
 
 class DoubleMLIIVM(DoubleML):
@@ -151,20 +151,13 @@ class DoubleMLIIVM(DoubleML):
                              'needs to be specified as instrumental variable.')
         return
     
-    def _get_cond_smpls(self, smpls, z):
-        smpls_z0 = [(np.intersect1d(np.where(z == 0)[0], train),
-                     test) for train, test in smpls]
-        smpls_z1 = [(np.intersect1d(np.where(z == 1)[0], train),
-                     test) for train, test in smpls]
-        return smpls_z0, smpls_z1
-    
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, z = check_X_y(x, np.ravel(self._dml_data.z))
         x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
-        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
+        smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
         
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
@@ -215,7 +208,7 @@ class DoubleMLIIVM(DoubleML):
         x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
-        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
+        smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
