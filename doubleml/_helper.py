@@ -1,6 +1,5 @@
 import numpy as np
 
-from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
