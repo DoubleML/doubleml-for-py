@@ -66,16 +66,15 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
         w_hat = D[test_index] - r_hat[idx]
         thetas[idx] = pliv_orth(u_hat, v_hat, w_hat, D[test_index], score)
     theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
+
+    u_hat = np.zeros_like(Y)
+    v_hat = np.zeros_like(Z)
+    w_hat = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
-        u_hat = Y[test_index] - g_hat[idx]
-        v_hat = Z[test_index] - m_hat[idx]
-        w_hat = D[test_index] - r_hat[idx]
-        ses[idx] = var_pliv(theta_hat, D[test_index],
-                            u_hat, v_hat, w_hat,
-                            score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        u_hat[test_index] = Y[test_index] - g_hat[idx]
+        v_hat[test_index] = Z[test_index] - m_hat[idx]
+        w_hat[test_index] = D[test_index] - r_hat[idx]
+    se = np.sqrt(var_pliv(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
     
     return theta_hat, se
 

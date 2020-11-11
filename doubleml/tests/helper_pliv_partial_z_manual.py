@@ -37,13 +37,11 @@ def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):
     for idx, (train_index, test_index) in enumerate(smpls):
         thetas[idx] = pliv_partial_z_orth(r_hat[idx], Y[test_index], D[test_index], score)
     theta_hat = np.mean(thetas)
-    
-    ses = np.zeros(len(smpls))
+
+    r_hat_array = np.zeros_like(D)
     for idx, (train_index, test_index) in enumerate(smpls):
-        ses[idx] = var_pliv_partial_z(theta_hat,
-                                       r_hat[idx], Y[test_index], D[test_index],
-                                       score, n_obs)
-    se = np.sqrt(np.mean(ses))
+        r_hat_array[test_index] = r_hat[idx]
+    se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, Y, D, score, n_obs))
     
     return theta_hat, se
 

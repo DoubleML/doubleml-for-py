@@ -73,9 +73,21 @@ implemented in ``DoubleMLPLR``.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        library(DoubleML)
+        library(mlr3)
+        library(mlr3learners)
+        library(data.table)
+        lgr::get_logger("mlr3")$set_threshold("warn")
+
+        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        ml_g = learner$clone()
+        ml_m = learner$clone()
+        set.seed(3141)
+        data = make_plr_CCDDHNR2018(alpha=0.5, return_type='data.table')
+        obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d")
+        dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj$fit()
+        print(dml_plr_obj)
 
 The ``fit()`` method of ``DoubleMLPLR``
 stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
@@ -90,9 +102,7 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$coef)
 
 The values of the score function components :math:`\psi_a(W_i; \hat{\eta}_0)` and :math:`\psi_b(W_i; \hat{\eta}_0)`
 are stored in the attributes ``psi_a`` and ``psi_b``.
@@ -108,9 +118,7 @@ In the attribute ``psi`` the values of the score function :math:`\psi(W_i; \tild
 
     .. jupyter-execute::
 
-        X = c(1,4,5,6);
-        Y = c(5,3,5,7);
-        lm(Y~X)
+        print(dml_plr_obj$psi[1:5, ,1])
 
 
 Implemented Neyman orthogonal score functions
@@ -274,6 +282,18 @@ can be obtained with
             psi_a = -np.multiply(d, d)
             psi_b = np.multiply(d, u_hat)
             return psi_a, psi_b
+
+.. tabbed:: R
+
+    .. jupyter-execute::
+
+        non_orth_score = function(y, d, g_hat, m_hat, smpls) {
+            u_hat = y - g_hat
+            psi_a = -1*d*d
+            psi_b = d*u_hat
+            psis = list(psi_a = psi_a, psi_b = psi_b)
+            return(psis)
+        }
 
 Use ``DoubleMLPLR`` with ``inf_model=non_orth_score`` in order to obtain the estimator
 

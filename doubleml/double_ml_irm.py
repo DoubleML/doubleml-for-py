@@ -98,8 +98,8 @@ class DoubleMLIRM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': ml_g,
-                         'ml_m': ml_m}
+        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
+                         'ml_m': self._check_learner(ml_m, 'ml_m', classifier=True)}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -111,7 +111,8 @@ class DoubleMLIRM(DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -132,36 +133,36 @@ class DoubleMLIRM(DoubleML):
         return
     
     def _get_cond_smpls(self, smpls, d):
-        smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train),
-                      test) for train, test in smpls]
-        smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train),
-                      test) for train, test in smpls]
+        smpls_d0 = [(np.intersect1d(np.where(d == 0)[0], train), test) for train, test in smpls]
+        smpls_d1 = [(np.intersect1d(np.where(d == 1)[0], train), test) for train, test in smpls]
         return smpls_d0, smpls_d1
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         score = self.score
         self._check_score(score)
         
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
         
         # fraction of treated for ATTE
+        p_hat = None
         if score == 'ATTE':
             p_hat = np.zeros_like(d, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
+        g_hat1 = None
         if (score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], X, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
         
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], X, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]
 
         if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
@@ -170,21 +171,24 @@ class DoubleMLIRM(DoubleML):
 
         # compute residuals
         u_hat0 = y - g_hat0
+        u_hat1 = None
         if score == 'ATE':
             u_hat1 = y - g_hat1
         
         if isinstance(self.score, str):
             if score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
-                                + np.divide(np.multiply(d, u_hat1), m_hat) \
-                                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
+                    + np.divide(np.multiply(d, u_hat1), m_hat) \
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
                 psi_a = np.full_like(m_hat, -1.0)
-            elif score == 'ATTE':
+            else:
+                assert score == 'ATTE'
                 psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                                            np.multiply(p_hat, (1.0 - m_hat)))
+                    - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
+                                np.multiply(p_hat, (1.0 - m_hat)))
                 psi_a = - np.divide(d, p_hat)
-        elif callable(self.score):
+        else:
+            assert callable(self.score)
             psi_a, psi_b = self.score(y, d, g_hat0, g_hat1, m_hat, smpls)
 
         return psi_a, psi_b
@@ -193,8 +197,8 @@ class DoubleMLIRM(DoubleML):
                             search_mode, n_iter_randomized_search):
         score = self.score
 
-        X, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        X, d = check_X_y(X, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
+        x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = self._get_cond_smpls(smpls, d)
 
@@ -202,7 +206,7 @@ class DoubleMLIRM(DoubleML):
             scoring_methods = {'ml_g': None,
                                'ml_m': None}
 
-        g0_tune_res = [None] * len(smpls)
+        g0_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -216,10 +220,10 @@ class DoubleMLIRM(DoubleML):
                                                     cv=g0_tune_resampling, n_jobs=n_jobs_cv,
                                                     n_iter=n_iter_randomized_search)
             train_index_d0 = smpls_d0[idx][0]
-            g0_tune_res[idx] = g0_grid_search.fit(X[train_index_d0, :], y[train_index_d0])
+            g0_tune_res.append(g0_grid_search.fit(x[train_index_d0, :], y[train_index_d0]))
 
+        g1_tune_res = list()
         if score == 'ATE':
-            g1_tune_res = [None] * len(smpls)
             for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
@@ -233,9 +237,9 @@ class DoubleMLIRM(DoubleML):
                                                         cv=g1_tune_resampling, n_jobs=n_jobs_cv,
                                                         n_iter=n_iter_randomized_search)
                 train_index_d1 = smpls_d1[idx][0]
-                g1_tune_res[idx] = g1_grid_search.fit(X[train_index_d1, :], y[train_index_d1])
+                g1_tune_res.append(g1_grid_search.fit(x[train_index_d1, :], y[train_index_d1]))
 
-        m_tune_res = [None] * len(smpls)
+        m_tune_res = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
@@ -248,7 +252,7 @@ class DoubleMLIRM(DoubleML):
                                                    scoring=scoring_methods['ml_m'],
                                                    cv=m_tune_resampling, n_jobs=n_jobs_cv,
                                                    n_iter=n_iter_randomized_search)
-            m_tune_res[idx] = m_grid_search.fit(X[train_index, :], d[train_index])
+            m_tune_res.append(m_grid_search.fit(x[train_index, :], d[train_index]))
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
