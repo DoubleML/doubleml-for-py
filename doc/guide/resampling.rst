@@ -276,7 +276,7 @@ and set the partition via the ``set_sample_splitting()`` method.
         test_ids = lapply(1:4, function(x) my_sampling$test_set(x))
         smpls = list(list(train_ids = train_ids, test_ids = test_ids))
 
-        dml_plr_obj_external$set__samples(smpls)
+        dml_plr_obj_external$set_samples(smpls)
         dml_plr_obj_external$fit()
         dml_plr_obj_external$summary()
 
@@ -342,7 +342,7 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
         test_ids = list(my_sampling$test_set(1))
         smpls = list(list(train_ids = train_ids, test_ids = test_ids))
 
-        dml_plr_obj_external$set__samples(smpls)
+        dml_plr_obj_external$set_samples(smpls)
         dml_plr_obj_external$fit()
         dml_plr_obj_external$summary()
 
