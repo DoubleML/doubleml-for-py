@@ -27,7 +27,7 @@ implemented in ``DoubleMLPLR``.
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         ml_g = clone(learner)
         ml_m = clone(learner)
         np.random.seed(1234)
@@ -43,7 +43,7 @@ implemented in ``DoubleMLPLR``.
         library(mlr3learners)
         library(data.table)
 
-        learner = "regr.ranger"
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_g = learner
         ml_m = learner
         data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=100, return_type = "data.table")

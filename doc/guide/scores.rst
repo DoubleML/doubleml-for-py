@@ -61,13 +61,14 @@ implemented in ``DoubleMLPLR``.
         from sklearn.base import clone
 
         np.random.seed(3141)
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         ml_g = clone(learner)
         ml_m = clone(learner)
         data = make_plr_CCDDHNR2018(alpha=0.5, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
         dml_plr_obj.fit();
+        print(dml_plr_obj)
 
 .. tabbed:: R
 
@@ -79,7 +80,7 @@ implemented in ``DoubleMLPLR``.
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
 
-        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_g = learner$clone()
         ml_m = learner$clone()
         set.seed(3141)

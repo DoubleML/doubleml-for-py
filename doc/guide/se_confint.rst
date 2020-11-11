@@ -48,7 +48,7 @@ implemented in ``DoubleMLPLR``.
         from sklearn.base import clone
 
         np.random.seed(3141)
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         ml_g = clone(learner)
         ml_m = clone(learner)
         data = make_plr_CCDDHNR2018(alpha=0.5, return_type='DataFrame')
@@ -66,7 +66,7 @@ implemented in ``DoubleMLPLR``.
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
 
-        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_g = learner$clone()
         ml_m = learner$clone()
 
@@ -198,7 +198,7 @@ the method ``p_adjust``.
         import doubleml as dml
         import numpy as np
         from sklearn.base import clone
-        from sklearn.linear_model import Lasso
+        from sklearn.linear_model import LassoCV
 
         # Simulate data
         np.random.seed(1234)
@@ -210,7 +210,7 @@ the method ``p_adjust``.
 
         dml_data = dml.DoubleMLData.from_arrays(X[:, 10:], y, X[:, :10])
 
-        learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        learner = LassoCV()
         ml_g = clone(learner)
         ml_m = clone(learner)
         dml_plr = dml.DoubleMLPLR(dml_data, ml_g, ml_m)
