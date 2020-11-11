@@ -5,7 +5,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.dummy import DummyRegressor
 
-from .double_ml import DoubleML, DoubleMLData
+from .double_ml import DoubleML
 from ._helper import _dml_cv_predict
 
 
