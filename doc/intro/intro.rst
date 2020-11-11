@@ -78,8 +78,7 @@ The data-backend DoubleMLData
 Details on the data-backend and the interfaces can be found in the :ref:`user guide <data_backend>`.
 The ``DoubleMLData`` class serves as data-backend and can be initialized from a dataframe by
 specifying the column ``y_col='inuidur1'`` serving as outcome variable :math:`Y`, the column(s) ``d_cols = 'tg'``
-serving as treatment variable :math:`D` and the columns ``x_cols=['female', 'black', 'othrace', 'dep1', 'dep2', 'q2', 'q3', 'q4', 'q5', 'q6', 'agelt35', 'agegt54', 'durable', 'lusd', 'husd']``
-specifying the confounders.
+serving as treatment variable :math:`D` and the columns ``x_cols`` specifying the confounders.
 Alternatively an array interface can be used as shown below for the simulated data.
 
 .. tabbed:: Python

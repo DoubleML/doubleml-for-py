@@ -70,15 +70,15 @@ class DoubleMLIIVM(DoubleML):
     >>> from doubleml.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
-    >>> ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
-    >>> ml_r = RandomForestClassifier(max_depth=2, n_estimators=10)
-    >>> data = make_iivm_data(theta=1.0, return_type='DataFrame')
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_r = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, alpha_x=1.0, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
     >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_iivm_obj.fit().summary
-           coef   std err        t     P>|t|     2.5 %    97.5 %
-    d  1.847422  0.887744  2.08103  0.037431  0.107476  3.587368
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.378351  0.190648  1.984551  0.047194  0.004688  0.752015
 
     Notes
     -----

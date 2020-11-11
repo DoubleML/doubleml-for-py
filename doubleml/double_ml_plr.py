@@ -57,14 +57,14 @@ class DoubleMLPLR(DoubleML):
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
-    >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+    >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> ml_g = learner
     >>> ml_m = learner
-    >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5)
+    >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit().summary
-           coef   std err          t         P>|t|    2.5 %    97.5 %
-    d  0.495182  0.042772  11.577156  5.380159e-31  0.41135  0.579015
+           coef  std err          t         P>|t|     2.5 %    97.5 %
+    d  0.462321  0.04107  11.256983  2.139582e-29  0.381826  0.542816
 
     Notes
     -----

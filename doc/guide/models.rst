@@ -23,7 +23,7 @@ Estimation is conducted via its ``fit()`` method:
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         ml_g = clone(learner)
         ml_m = clone(learner)
         np.random.seed(1111)
@@ -42,7 +42,7 @@ Estimation is conducted via its ``fit()`` method:
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
 
-        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_g = learner$clone()
         ml_m = learner$clone()
         set.seed(1111)
@@ -74,7 +74,7 @@ Estimation is conducted via its ``fit()`` method:
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.base import clone
 
-        learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         ml_g = clone(learner)
         ml_m = clone(learner)
         ml_r = clone(learner)
@@ -93,7 +93,7 @@ Estimation is conducted via its ``fit()`` method:
         library(mlr3learners)
         library(data.table)
 
-        learner = lrn("regr.ranger", num.trees = 10, max.depth = 2)
+        learner = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_g = learner$clone()
         ml_m = learner$clone()
         ml_r = learner$clone()
@@ -124,8 +124,8 @@ Estimation is conducted via its ``fit()`` method:
         from doubleml.datasets import make_irm_data
         from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-        ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
-        ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
+        ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         np.random.seed(3333)
         data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
@@ -142,8 +142,8 @@ Estimation is conducted via its ``fit()`` method:
         library(data.table)
 
         set.seed(3333)
-        ml_g = lrn("regr.ranger", num.trees = 10, max.depth = 2)
-        ml_m = lrn("classif.ranger", num.trees = 10, max.depth = 2)
+        ml_g = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
+        ml_m = lrn("classif.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type="data.table")
         obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d")
         dml_irm_obj = DoubleMLIRM$new(obj_dml_data, ml_g, ml_m)
@@ -172,11 +172,11 @@ Estimation is conducted via its ``fit()`` method:
         from doubleml.datasets import make_iivm_data
         from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-        ml_g = RandomForestRegressor(max_depth=2, n_estimators=10)
-        ml_m = RandomForestClassifier(max_depth=2, n_estimators=10)
-        ml_r = RandomForestClassifier(max_depth=2, n_estimators=10)
+        ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        ml_r = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
         np.random.seed(4444)
-        data = make_iivm_data(theta=1., n_obs=500, dim_x=20, return_type='DataFrame')
+        data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, alpha_x=1.0, return_type='DataFrame')
         obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
         dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
         print(dml_iivm_obj.fit())
@@ -191,10 +191,10 @@ Estimation is conducted via its ``fit()`` method:
         library(data.table)
 
         set.seed(4444)
-        ml_g = lrn("regr.ranger", num.trees = 10, max.depth = 2)
-        ml_m = lrn("classif.ranger", num.trees = 10, max.depth = 2)
+        ml_g = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
+        ml_m = lrn("classif.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_r = ml_m$clone()
-        data = make_iivm_data(theta=1, n_obs=500, dim_x=20, return_type="data.table")
+        data = make_iivm_data(theta=0.5, n_obs=500, dim_x=20, alpha_x=0.5, return_type="data.table")
         obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d", z_cols="z")
         dml_iivm_obj = DoubleMLIIVM$new(obj_dml_data, ml_g, ml_m, ml_r)
         dml_iivm_obj$fit()
