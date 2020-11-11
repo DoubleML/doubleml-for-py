@@ -193,7 +193,7 @@ The minimum requirement for a learner to be used for nuisance models in the ``Do
       tasks (dependent variable is binary) or a regression problem (dependent variable is continuous) and specify the learners
       accordingly.
     * Hyperparameters of learners can either be set at instantiation in mlr3 or after instantiation using the
-      ``set__ml_nuisance_params()`` method.
+      ``set_ml_nuisance_params()`` method.
 
 
 A list of provided learners in the mlr3 and extension packages can be found on the package websites
@@ -238,7 +238,7 @@ Setting hyperparameters:
 
     * We can also use pre-parametrized learners ``lrn("regr.ranger", num.trees=10)``.
     * Alternatively, hyperparameters can be set after initialization via the method
-      ``set__ml_nuisance_params(learner, treat_var, params, set_fold_specific)``.
+      ``set_ml_nuisance_params(learner, treat_var, params, set_fold_specific)``.
 
 .. tabbed:: R
 
@@ -255,15 +255,15 @@ Setting hyperparameters:
         set.seed(3141)
         ml_g = lrn("regr.ranger")
         dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g , ml_m)
-        dml_plr_obj$set__ml_nuisance_params("ml_g", "d", list("num.trees"=10))
+        dml_plr_obj$set_ml_nuisance_params("ml_g", "d", list("num.trees"=10))
         dml_plr_obj$fit()
         dml_plr_obj$summary()
 
 Setting treatment-variable-specific or fold-specific hyperparameters:
 
-    * In the multiple-treatment case, the method ``set__ml_nuisance_params(learner, treat_var, params, set_fold_specific)``
+    * In the multiple-treatment case, the method ``set_ml_nuisance_params(learner, treat_var, params, set_fold_specific)``
       allows to set different hyperparameters for different treatment variables.
-    * The method ``set__ml_nuisance_params(learner, treat_var, params, set_fold_specific)`` accepts lists for ``params``.
+    * The method ``set_ml_nuisance_params(learner, treat_var, params, set_fold_specific)`` accepts lists for ``params``.
       The structure of the list depends on whether the same parameters should be provided for all folds or separate values
       are passed for specific folds.
     * Global parameter passing: The named list in the argument ``params`` should have entries with names corresponding to
@@ -291,8 +291,8 @@ Setting treatment-variable-specific or fold-specific hyperparameters:
 
         # Set globally
         params = list("num.trees"=10)
-        dml_plr_obj$set__ml_nuisance_params("ml_g", "d", params=params)
-        dml_plr_obj$set__ml_nuisance_params("ml_m", "d", params=params)
+        dml_plr_obj$set_ml_nuisance_params("ml_g", "d", params=params)
+        dml_plr_obj$set_ml_nuisance_params("ml_m", "d", params=params)
         dml_plr_obj$learner
         dml_plr_obj$params
         dml_plr_obj$fit()
@@ -312,9 +312,9 @@ The following example illustrates how to set parameters for each fold.
 
         # Set values for each fold
         params_exact = rep(list(rep(list(params), n_folds)), n_rep)
-        dml_plr_obj$set__ml_nuisance_params("ml_g", "d", params=params_exact,
+        dml_plr_obj$set_ml_nuisance_params("ml_g", "d", params=params_exact,
                                              set_fold_specific=TRUE)
-        dml_plr_obj$set__ml_nuisance_params("ml_m", "d", params=params_exact,
+        dml_plr_obj$set_ml_nuisance_params("ml_m", "d", params=params_exact,
                                              set_fold_specific=TRUE)
         dml_plr_obj$learner
         dml_plr_obj$params
