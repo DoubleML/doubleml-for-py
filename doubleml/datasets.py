@@ -47,8 +47,6 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
     else:
         raise ValueError('invalid return_type')
 
-    return data
-
 
 def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
     """
@@ -107,7 +105,6 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
         raise ValueError('invalid return_type')
-    return data
 
 
 def g(x):
