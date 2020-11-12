@@ -1,12 +1,11 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.base import clone
+from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
-from .double_ml import DoubleML, DoubleMLData
-from ._helper import check_binary_vector
-from ._helper import _dml_cv_predict
+from .double_ml import DoubleML
+from ._helper import _dml_cv_predict, _get_cond_smpls
 
 
 class DoubleMLIIVM(DoubleML):
@@ -134,17 +133,23 @@ class DoubleMLIIVM(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
-        assert obj_dml_data.n_treat == 1
-        check_binary_vector(obj_dml_data.d, variable_name='d')
-        check_binary_vector(obj_dml_data.z, variable_name='z')
+        one_treat = (obj_dml_data.n_treat == 1)
+        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+        zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        if not(one_treat & binary_treat & zero_one_treat):
+            raise ValueError('Incompatible data.\n'
+                             'To fit an IIVM model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as treatment variable.')
+        one_instr = (obj_dml_data.n_instr == 1)
+        binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
+        zero_one_instr = np.any((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
+        if not(one_instr & binary_instr & zero_one_instr):
+            raise ValueError('Incompatible data.\n'
+                             'To fit an IIVM model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as instrumental variable.')
         return
-    
-    def _get_cond_smpls(self, smpls, z):
-        smpls_z0 = [(np.intersect1d(np.where(z == 0)[0], train),
-                     test) for train, test in smpls]
-        smpls_z1 = [(np.intersect1d(np.where(z == 1)[0], train),
-                     test) for train, test in smpls]
-        return smpls_z0, smpls_z1
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
@@ -152,7 +157,7 @@ class DoubleMLIIVM(DoubleML):
         x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
-        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
+        smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
         
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
@@ -203,7 +208,7 @@ class DoubleMLIIVM(DoubleML):
         x, d = check_X_y(x, self._dml_data.d)
 
         # get train indices for z == 0 and z == 1
-        smpls_z0, smpls_z1 = self._get_cond_smpls(smpls, z)
+        smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,

@@ -59,7 +59,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner, score,
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, Z_cols)
-    dml_pliv_obj = dml.DoubleMLPLIV.partialZ(obj_dml_data,
+    dml_pliv_obj = dml.DoubleMLPLIV._partialZ(obj_dml_data,
                                              ml_r,
                                              n_folds,
                                              dml_procedure=dml_procedure)

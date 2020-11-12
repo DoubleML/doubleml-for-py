@@ -1,6 +1,5 @@
 import numpy as np
 
-from sklearn.utils.multiclass import type_of_target
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
@@ -9,7 +8,7 @@ import warnings
 from joblib import Parallel, delayed
 
 
-def assure_2d_array(x):
+def _assure_2d_array(x):
     if x.ndim == 1:
         x = x.reshape(-1, 1)
     elif x.ndim > 2:
@@ -17,12 +16,10 @@ def assure_2d_array(x):
     return x
 
 
-def check_binary_vector(x, variable_name=''):
-    # assure D binary
-    assert type_of_target(x) == 'binary', 'variable ' + variable_name  + ' must be binary'
-    
-    if np.any(np.power(x, 2) - x != 0):
-        raise ValueError('variable ' + variable_name + ' must be binary with values 0 and 1')
+def _get_cond_smpls(smpls, bin_var):
+    smpls_0 = [(np.intersect1d(np.where(bin_var == 0)[0], train), test) for train, test in smpls]
+    smpls_1 = [(np.intersect1d(np.where(bin_var == 1)[0], train), test) for train, test in smpls]
+    return smpls_0, smpls_1
 
 
 def _check_is_partition(smpls, n_obs):
@@ -73,7 +70,6 @@ def _check_smpl_split_tpl(smpl, n_obs):
         raise ValueError('Invalid sample split. Train indices must be in [0, n_obs).')
     if not set(test_index).issubset(range(n_obs)):
         raise ValueError('Invalid sample split. Test indices must be in [0, n_obs).')
-
 
     return train_index, test_index
 
