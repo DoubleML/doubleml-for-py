@@ -7,7 +7,7 @@ It is built on top of [scikit-learn](https://scikit-learn.org).
 Note that the Python package was developed together with an R twin based on [mlr3](https://mlr3.mlr-org.com/).
 The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r).
 
-## Documentation and maintanance
+## Documentation and maintenance
 
 Documentation and website: [http://doubleml.org/](http://doubleml.org/)
 
