@@ -15,14 +15,17 @@ There are three different ways to install the python package :ref:`DoubleML <dou
 
 - Install the latest official release via pip or conda. This is the recommended approach for most users.
 - Install a released version of DoubleML from a .whl file.
-- Install the package from source. This is recommended if you want to work with the latest development version of the package. This also the best way if you wish to contribute to DoubleML.
+- Building the package from source. This is recommended if you want to work with the latest development version of the package. This also the best way if you wish to contribute to DoubleML.
 
 .. warning::
     We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to pip and conda very soon.
     Until then the installation of a released version is only possible from .whl files available on
-    `GitHub <https://github.com/DoubleML/doubleml-for-py/releases>`_.
+    `GitHub Releases <https://github.com/DoubleML/doubleml-for-py/releases>`_.
     The developing version can be installed with the source code which is also available on
-    `GitHub <https://github.com/DoubleML/doubleml-for-py>`_.
+    `GitHub Source <https://github.com/DoubleML/doubleml-for-py>`_.
+
+Python: Installing the latest release from pip or conda
+-------------------------------------------------------
 
 .. tabbed:: Linux
 
@@ -84,55 +87,96 @@ There are three different ways to install the python package :ref:`DoubleML <dou
             $ python3 -m pip freeze # to see all installed packages
             $ python3 -c "import doubleml as dml; print(dml.__version__)"
 
-    .. dropdown:: conda
+    .. dropdown:: conda with environment
 
         Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
 
         To avoid potential conflicts with other packages it is recommended to use a conda environment.
 
-        .. dropdown:: with conda environment
-            :open:
+        :open:
 
-            We setup a conda environment named ``dml-venv`` and activate it
+        We setup a conda environment named ``dml-venv`` and activate it
 
-            .. code-block:: Bash
+        .. code-block:: Bash
 
-                $ conda create -n dml-venv
-                $ conda activate sklearn-env
+            $ conda create -n dml-venv
+            $ conda activate sklearn-env
 
-            To install :ref:`DoubleML <doubleml_package>` run
+        To install :ref:`DoubleML <doubleml_package>` run
 
-            .. code-block:: Bash
+        .. code-block:: Bash
 
-                $ conda install DoubleML
+            $ conda install DoubleML
 
-            To check your installation of :ref:`DoubleML <doubleml_package>` use
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
 
-            .. code-block:: Bash
+        .. code-block:: Bash
 
-                $ conda list DoubleML # to see which version and where DoubleML is installed
-                $ conda list # to see all packages installed in the active conda environment
-                $ python -c "import doubleml as dml; print(dml.__version__)"
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all packages installed in the active conda environment
+            $ python -c "import doubleml as dml; print(dml.__version__)"
 
-        .. dropdown:: without conda environment
+    .. dropdown:: conda without environment
 
-            To install :ref:`DoubleML <doubleml_package>` run
+        Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
 
-            .. code-block:: Bash
+        To install :ref:`DoubleML <doubleml_package>` run
 
-                $ conda install DoubleML
+        .. code-block:: Bash
 
-            To check your installation of :ref:`DoubleML <doubleml_package>` use
+            $ conda install DoubleML
 
-            .. code-block:: Bash
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
 
-                $ conda list DoubleML # to see which version and where DoubleML is installed
-                $ conda list # to see all installed packages
-                $ python -c "import doubleml as dml; print(dml.__version__)"
+        .. code-block:: Bash
+
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all installed packages
+            $ python -c "import doubleml as dml; print(dml.__version__)"
 
 .. tabbed:: Windows
 
     asdflkjasdlkfjdsaf
+
+
+Python: Installing a released version from a .whl file
+------------------------------------------------------
+
+Released versions of the DoubleML package in form of .whl files can be obtained from
+`GitHub Releases <https://github.com/DoubleML/doubleml-for-py/releases>`_.
+After setting up python and pip as described above use
+
+.. code-block:: Bash
+
+    $ pip install -U DoubleML-0.1.0-py3-none-any.whl
+
+Python: Building the package from source
+----------------------------------------
+
+This is recommended if you want to work with the latest development version of the package or wish to contribute to DoubleML.
+
+First download the latest source code from GitHub via
+
+.. code-block:: Bash
+
+    $ git clone git@github.com:DoubleML/doubleml-for-py.git
+    $ cd doubleml-for-py
+
+Then build the package from source using pip in the editable mode.
+The advantage of building the package with the flag ``--editable`` is that changes of the source code will immediately be
+re-interpreted when the python interpreter restarts without having to re-build the package
+:ref:`DoubleML <doubleml_package>`.
+
+.. code-block:: Bash
+
+    $ pip install --editable .
+
+An alternative to pip with the ``--editable`` flag is the ``develope`` mode of setuptools. To use it call
+
+.. code-block:: Bash
+
+    $ python setup.py develop
+
 
 .. _install_r:
 
