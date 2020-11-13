@@ -18,8 +18,10 @@ DoubleML package
 .. toctree::
    :maxdepth: 2
 
+    Install <intro/install>
     Getting started <intro/intro>
     User guide <guide/guide>
     Examples <auto_examples/index>
-    API reference <api/api>
+    Python API <api/api>
+    R API <http://doubleml.org>
     Release notes <release/release>
