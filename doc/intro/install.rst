@@ -29,7 +29,7 @@ Python: Installing the latest release from pip or conda
 
 .. tabbed:: Linux
 
-    .. dropdown:: pip with virtualenv
+    .. dropdown:: pip with virtual environment
         :open:
 
         Install ``python3`` and ``python3`` via the package manager of your distribution, e.g., with
@@ -63,7 +63,7 @@ Python: Installing the latest release from pip or conda
             $ python -m pip freeze # to see all packages installed in the active virtualenv
             $ python -c "import doubleml as dml; print(dml.__version__)"
 
-    .. dropdown:: pip without virtualenv
+    .. dropdown:: pip without virtual environment
 
         Install ``python3`` and ``python3`` via the package manager of your distribution, e.g., with
 
@@ -93,7 +93,97 @@ Python: Installing the latest release from pip or conda
 
         To avoid potential conflicts with other packages it is recommended to use a conda environment.
 
+        We setup a conda environment named ``dml-venv`` and activate it
+
+        .. code-block:: Bash
+
+            $ conda create -n dml-venv
+            $ conda activate sklearn-env
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ conda install DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all packages installed in the active conda environment
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: conda without environment
+
+        Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ conda install DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all installed packages
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+.. tabbed:: macOS
+
+    .. dropdown:: pip with virtual environment
         :open:
+
+        Install Python 3 using ``brew install python`` or from `<https://www.python.org/downloads/mac-osx/>`_.
+
+        To avoid potential conflicts with other packages it is recommended to use a virtual environment.
+        We setup a virtual environment named ``dml-venv`` and activate it
+
+        .. code-block:: Bash
+
+            $ python -m venv dml-venv
+            $ source dml-venv/bin/activate
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ pip install -U DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ python -m pip show DoubleML # to see which version and where DoubleML is installed
+            $ python -m pip freeze # to see all packages installed in the active virtualenv
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: pip without virtual environment
+
+        Install Python 3 using ``brew install python`` or from `<https://www.python.org/downloads/mac-osx/>`_.
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ pip install -U DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ python -m pip show DoubleML # to see which version and where DoubleML is installed
+            $ python -m pip freeze # to see all packages installed in the active virtualenv
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: conda with environment
+
+        Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
+
+        To avoid potential conflicts with other packages it is recommended to use a conda environment.
 
         We setup a conda environment named ``dml-venv`` and activate it
 
@@ -136,7 +226,96 @@ Python: Installing the latest release from pip or conda
 
 .. tabbed:: Windows
 
-    asdflkjasdlkfjdsaf
+    .. dropdown:: pip with virtualenv
+        :open:
+
+        Install Python 3. Releases are available here `<https://www.python.org/downloads/windows/>`_.
+
+        To avoid potential conflicts with other packages it is recommended to use a virtual environment.
+        We setup a virtual environment named ``dml-venv`` and activate it
+
+        .. code-block:: Bash
+
+            $ python -m venv dml-venv
+            $ dml-venv\Scripts\activate
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ pip install -U DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ python -m pip show DoubleML # to see which version and where DoubleML is installed
+            $ python -m pip freeze # to see all packages installed in the active virtualenv
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: pip without virtual environment
+
+        Install Python 3. Releases are available here `<https://www.python.org/downloads/windows/>`_.
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ pip install -U DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ python -m pip show DoubleML # to see which version and where DoubleML is installed
+            $ python -m pip freeze # to see all packages installed in the active virtualenv
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: conda with environment
+
+        Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
+
+        To avoid potential conflicts with other packages it is recommended to use a conda environment.
+
+        We setup a conda environment named ``dml-venv`` and activate it
+
+        .. code-block:: Bash
+
+            $ conda create -n dml-venv
+            $ conda activate sklearn-env
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ conda install DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all packages installed in the active conda environment
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
+    .. dropdown:: conda without environment
+
+        Install ``conda`` as described `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_.
+
+        To install :ref:`DoubleML <doubleml_package>` run
+
+        .. code-block:: Bash
+
+            $ conda install DoubleML
+
+        To check your installation of :ref:`DoubleML <doubleml_package>` use
+
+        .. code-block:: Bash
+
+            $ conda list DoubleML # to see which version and where DoubleML is installed
+            $ conda list # to see all installed packages
+            $ python -c "import doubleml as dml; print(dml.__version__)"
+
 
 
 Python: Installing a released version from a .whl file
