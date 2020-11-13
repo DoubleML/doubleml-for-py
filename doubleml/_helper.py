@@ -94,7 +94,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             return cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
         elif isinstance(est_params, dict):
             # if no fold-specific parameters we redirect to the standard method
-            warnings.warn("Using the same (hyper-)parameters for all folds")
+            # warnings.warn("Using the same (hyper-)parameters for all folds")
             return cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
                                      method=method)
     else:
@@ -125,7 +125,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
                 clone(estimator), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
         elif isinstance(est_params, dict):
-            warnings.warn("Using the same (hyper-)parameters for all folds")
+            # warnings.warn("Using the same (hyper-)parameters for all folds")
             fitted_models = parallel(delayed(_fit)(
                 clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))

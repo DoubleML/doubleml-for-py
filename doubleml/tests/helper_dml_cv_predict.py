@@ -61,7 +61,7 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
                                      for idx, (train_index, test_index) in enumerate(smpls))
     elif isinstance(est_params, dict):
         # if no fold-specific parameters we redirect to the standard method
-        warnings.warn("Using the same (hyper-)parameters for all folds")
+        # warnings.warn("Using the same (hyper-)parameters for all folds")
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             clone(estimator).set_params(**est_params),
             X, y, train_index, test_index, verbose, fit_params, method)
