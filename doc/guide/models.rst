@@ -194,7 +194,7 @@ Estimation is conducted via its ``fit()`` method:
         ml_g = lrn("regr.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_m = lrn("classif.ranger", num.trees = 100, mtry = 20, min.node.size = 2, max.depth = 5)
         ml_r = ml_m$clone()
-        data = make_iivm_data(theta=0.5, n_obs=500, dim_x=20, alpha_x=0.5, return_type="data.table")
+        data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, alpha_x=1, return_type="data.table")
         obj_dml_data = DoubleMLData$new(data, y_col="y", d_cols="d", z_cols="z")
         dml_iivm_obj = DoubleMLIIVM$new(obj_dml_data, ml_g, ml_m, ml_r)
         dml_iivm_obj$fit()

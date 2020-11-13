@@ -362,4 +362,38 @@ An alternative to pip with the ``--editable`` flag is the ``develope`` mode of s
 R: Installing DoubleML
 ^^^^^^^^^^^^^^^^^^^^^^
 
+R: Installing the latest release from CRAN
+------------------------------------------
+
+.. warning::
+    We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to CRAN very soon.
+    The developing version can be installed with the source code which is also available on
+    `GitHub Source <https://github.com/DoubleML/doubleml-for-r>`_.
+
+
+.. code-block:: R
+
+    install.packages("DoubleML")
+
+The package can be loaded after completed installation
+
+.. code-block:: R
+
+    library(DoubleML)
+
+R: Installing the development version from GitHub
+--------------------------------------------------
+
+The :ref:`DoubleML <doubleml_package>` package for R can be downloaded using the command (previous installation of the
+`remotes package <https://remotes.r-lib.org/index.html>`_  is required).
+
+.. code-block:: R
+
+    remotes::install_github("DoubleML/doubleml-for-r")
+
+Load the package after completed installation.
+
+.. code-block:: R
+
+    library(DoubleML)
 

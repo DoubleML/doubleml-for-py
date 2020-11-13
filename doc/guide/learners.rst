@@ -490,3 +490,12 @@ as provided by the ``ranger`` package.
         dml_plr_obj$fit()
         dml_plr_obj$summary()
 
+
+
+References
+++++++++++
+
+* Lang, M., Binder, M., Richter, J., Schratz, P., Pfisterer, F., Coors, S., Au, Q., Casalicchio, G., Kotthoff, L., Bischl, B. (2019), mlr3: A modern object-oriented machine learing framework in R. Journal of Open Source Software, `doi:10.21105/joss.01903 <(doi:10.21105/joss.01903)[10.21105/joss.01903]>`_.
+
+* Becker, M., Binder, M., Bischl, B., Lang, M., Pfisterer, F., Reich, N.G., Richter, J., Schratz, P., Sonabend, R. (2020), mlr3 book, available at `https://mlr3book.mlr-org.com <https://mlr3book.mlr-org.com>`_.
+
