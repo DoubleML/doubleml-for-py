@@ -7,9 +7,47 @@ It is built on top of [scikit-learn](https://scikit-learn.org).
 Note that the Python package was developed together with an R twin based on [mlr3](https://mlr3.mlr-org.com/).
 The R package is available at [https://github.com/DoubleML/doubleml-for-r](https://github.com/DoubleML/doubleml-for-r).
 
-## Installation
+## Main Features
 
-### Dependencies
+Double / debiased machine learning [(Chernozhukov et al. (2018))](https://doi.org/10.1111/ectj.12097) for 
+
+- Partially linear regression models (PLR)
+- Partially linear IV regression models (PLIV)
+- Interactive regression models (IRM)
+- Interactive IV regression models (IIVM)
+
+The object-oriented implementation of **DoubleML** is very flexible.
+The model classes `DoubleMLPLR`, `DoubleMLPLIV`, `DoubleMLIRM` and `DoubleIIVM` implement the estimation of the nuisance
+functions via machine learning methods and the computation of the Neyman orthogonal score function.
+All other functionalities are implemented in the abstract base class `DoubleML`.
+In particular functionalities to estimate double machine learning models and to perform statistical inference via the
+methods `fit`, `bootstrap`, `confint`, `p_adjust` and `tune`.
+This object-oriented implementation allows a high flexibility for the model specification in terms of ...
+
+- ... the machine learners for the nuisance functions,
+- ... the resampling schemes,
+- ... the double machine learning algorithm,
+- ... the Neyman orthogonal score functions.
+
+It further can be readily extended with regards to
+
+- ... new model classes that come with Neyman orthogonal score functions being linear in the target parameter,
+- ... alternative score functions via callables,
+- ... alternative resampling schemes,
+- ... 
+
+## Documentation and maintanance
+
+Documentation and website: [http://doubleml.org/](http://doubleml.org/)
+
+**DoubleML** is currently maintained by
+[@MalteKurz](https://github.com/MalteKurz) and
+[@PhilippBach](https://github.com/PhilippBach).
+
+Bugs can be reported to the issue tracker at
+[https://github.com/DoubleML/doubleml-for-py/issues](https://github.com/DoubleML/doubleml-for-py/issues).
+
+## Installation
 
 **DoubleML** requires
 
@@ -22,6 +60,7 @@ The R package is available at [https://github.com/DoubleML/doubleml-for-r](https
 - joblib
 
 We plan to push a first release of the DoubleML package to pip and conda very soon.
+
 Until then we recommend to install from source via
 
 ```
