@@ -415,7 +415,7 @@ class DoubleMLPLIV(DoubleML):
             # one instrument: just identified
             m_tune_res = list()
             for idx, (train_index, test_index) in enumerate(smpls):
-                x, z = check_X_y(x, self._dml_data.z)
+                x, z = check_X_y(x, np.ravel(self._dml_data.z))
                 m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
                     m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
