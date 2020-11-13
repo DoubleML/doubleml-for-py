@@ -190,7 +190,7 @@ Python: Installing the latest release from pip or conda
         .. code-block:: Bash
 
             $ conda create -n dml-venv
-            $ conda activate sklearn-env
+            $ conda activate dml-env
 
         To install :ref:`DoubleML <doubleml_package>` run
 
@@ -282,7 +282,7 @@ Python: Installing the latest release from pip or conda
         .. code-block:: Bash
 
             $ conda create -n dml-venv
-            $ conda activate sklearn-env
+            $ conda activate dml-env
 
         To install :ref:`DoubleML <doubleml_package>` run
 
