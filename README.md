@@ -2,7 +2,7 @@
 
 The Python package **DoubleML** provides an implementation of the double / debiased machine learning framework of
 [Chernozhukov et al. (2018)](https://doi.org/10.1111/ectj.12097).
-It is built on top of [scikit-learn](https://scikit-learn.org).
+It is built on top of [scikit-learn](https://scikit-learn.org) (Pedregosa et al., 2011).
 
 Note that the Python package was developed together with an R twin based on [mlr3](https://mlr3.mlr-org.com/).
 The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r).
@@ -76,3 +76,6 @@ pip install --editable .
 
 Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018),
 Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:[10.1111/ectj.12097](https://doi.org/10.1111/ectj.12097).
+
+Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M. and Duchesnay, E. (2011),
+Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12: 2825--2830, [https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html](https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html).
