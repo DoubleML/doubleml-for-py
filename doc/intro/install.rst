@@ -20,9 +20,9 @@ There are three different ways to install the python package :ref:`DoubleML <dou
 .. warning::
     We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to pip and conda very soon.
     Until then the installation of a released version is only possible from .whl files available on
-    `GitHub Releases <https://github.com/DoubleML/doubleml-for-py/releases>`_.
+    `GitHub releases <https://github.com/DoubleML/doubleml-for-py/releases>`_.
     The developing version can be installed with the source code which is also available on
-    `GitHub Source <https://github.com/DoubleML/doubleml-for-py>`_.
+    `GitHub Python source code <https://github.com/DoubleML/doubleml-for-py>`_.
 
 Python: Installing the latest release from pip or conda
 -------------------------------------------------------
@@ -368,7 +368,7 @@ R: Installing the latest release from CRAN
 .. warning::
     We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to CRAN very soon.
     The developing version can be installed with the source code which is also available on
-    `GitHub Source <https://github.com/DoubleML/doubleml-for-r>`_.
+    `GitHub R source code <https://github.com/DoubleML/doubleml-for-r>`_.
 
 
 .. code-block:: R
