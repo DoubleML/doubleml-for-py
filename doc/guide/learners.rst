@@ -355,10 +355,10 @@ The entries in the list specify options during parameter tuning with `mlr3tuning
 
     * ``algorithm``  sets the tuning algorithm, i.e., an argument used to initiate the
       `Tuner class <https://mlr3book.mlr-org.com/tuning.html#the-tuner-class>`_. ``algorithm`` is a ``character()`` that
-       is used as an argument in the wrapper `mlr3tuning <https://mlr3tuning.mlr-org.com/>`_ call ``tnr(algorithm)``.
-       ``resolution``  sets the number of grid points.
-       `The Tuner class in mlr3tuning <https://mlr3book.mlr-org.com/tuning.html#the-tuner-class>`_ supports grid search,
-       random search, generalized simulated annealing and non-linear optimization.
+      is used as an argument in the wrapper `mlr3tuning <https://mlr3tuning.mlr-org.com/>`_ call ``tnr(algorithm)``.
+      ``resolution``  sets the number of grid points.
+      `The Tuner class in mlr3tuning <https://mlr3book.mlr-org.com/tuning.html#the-tuner-class>`_ supports grid search,
+      random search, generalized simulated annealing and non-linear optimization.
     * ``rsmp_tune`` specifies the resampling method for evaluation, for example :math:`k`-fold cross-validation (``cv``)
       with :math:`k=` ``n_folds_tune`` or evaluation on a hold-out sample ``holdout``. Directly passing of a
       `mlr3 resampling object <https://mlr3.mlr-org.com/reference/Resampling.html>`_ is supported,
@@ -417,7 +417,7 @@ for tuning, each of the two folds would be split up into 5 subfolds and the erro
 
 
 Hyperparameter tuning can also be done with more sophisticated methods, for example by using built-in tuning
-paths of learners. For example, the learner `regr.cv_glmnet< https://mlr3learners.mlr-org.com/reference/mlr_learners_regr.cv_glmnet.html`_
+paths of learners. For example, the learner `regr.cv_glmnet <https://mlr3learners.mlr-org.com/reference/mlr_learners_regr.cv_glmnet.html>`_
 performs an internal cross-validated choice of the parameter ``lambda``.
 Alternatively, the powerful functionalities of the `mlr3tuning <https://mlr3tuning.mlr-org.com/>`_ package can be used for
 external parameter tuning of the nuisance parts. The optimally chosen parameters can then be passed to the
