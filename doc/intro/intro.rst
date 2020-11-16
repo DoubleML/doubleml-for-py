@@ -125,7 +125,8 @@ To estimate our partially linear regression (PLR) model with the double machine 
 specify machine learners to estimate :math:`m_0` and :math:`g_0`. For the bonus data we use a random forest
 regression model and for our simulated data from a sparse partially linear model we use a Lasso regression model.
 The implementation of :ref:`DoubleML <doubleml_package>` is based on the meta-packages
-`scikit-learn <https://scikit-learn.org/>`_ for Python and `mlr3 <https://mlr3.mlr-org.com/>`_ for R (Lang et al, 2019).
+`scikit-learn <https://scikit-learn.org/>`_ (Pedregosa et al., 2011) for Python
+and `mlr3 <https://mlr3.mlr-org.com/>`_ (Lang et al, 2019) for R.
 For details on the specification of learners and their hyperparameters we refer to the user guide :ref:`learners`.
 
 .. tabbed:: Python
@@ -134,13 +135,13 @@ For details on the specification of learners and their hyperparameters we refer 
 
         from sklearn.base import clone
         from sklearn.ensemble import RandomForestRegressor
-        from sklearn.linear_model import Lasso
+        from sklearn.linear_model import LassoCV
 
         learner = RandomForestRegressor(n_estimators = 500, max_features = 'sqrt', max_depth= 5)
         ml_g_bonus = clone(learner)
         ml_m_bonus = clone(learner)
 
-        learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        learner = LassoCV()
         ml_g_sim = clone(learner)
         ml_m_sim = clone(learner)
 
@@ -157,7 +158,7 @@ For details on the specification of learners and their hyperparameters we refer 
         ml_g_bonus = learner$clone()
         ml_m_bonus = learner$clone()
 
-        learner = lrn("regr.glmnet", lambda = sqrt(log(n_vars)/(n_obs)))
+        learner = lrn("regr.cv_glmnet", s="lambda.min")
         ml_g_sim = learner$clone()
         ml_m_sim = learner$clone()
 
@@ -218,5 +219,5 @@ References
 ++++++++++
 
 * Lang, M., Binder, M., Richter, J., Schratz, P., Pfisterer, F., Coors, S., Au, Q., Casalicchio, G., Kotthoff, L., Bischl, B. (2019), mlr3: A modern object-oriented machine learing framework in R. Journal of Open Source Software, `doi:10.21105/joss.01903 <(doi:10.21105/joss.01903)[10.21105/joss.01903]>`_.
-
+* Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer, P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M. and Duchesnay, E. (2011), Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12: 2825--2830, `https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html <https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html>`_.
 
