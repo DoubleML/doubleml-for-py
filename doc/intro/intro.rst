@@ -134,13 +134,13 @@ For details on the specification of learners and their hyperparameters we refer 
 
         from sklearn.base import clone
         from sklearn.ensemble import RandomForestRegressor
-        from sklearn.linear_model import Lasso
+        from sklearn.linear_model import LassoCV
 
         learner = RandomForestRegressor(n_estimators = 500, max_features = 'sqrt', max_depth= 5)
         ml_g_bonus = clone(learner)
         ml_m_bonus = clone(learner)
 
-        learner = Lasso(alpha=np.sqrt(np.log(n_vars)/(n_obs)))
+        learner = LassoCV()
         ml_g_sim = clone(learner)
         ml_m_sim = clone(learner)
 
@@ -157,7 +157,7 @@ For details on the specification of learners and their hyperparameters we refer 
         ml_g_bonus = learner$clone()
         ml_m_bonus = learner$clone()
 
-        learner = lrn("regr.glmnet", lambda = sqrt(log(n_vars)/(n_obs)))
+        learner = lrn("regr.cv_glmnet", s="lambda.min")
         ml_g_sim = learner$clone()
         ml_m_sim = learner$clone()
 
