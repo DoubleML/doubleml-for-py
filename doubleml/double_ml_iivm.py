@@ -190,10 +190,8 @@ class DoubleMLIIVM(DoubleML):
             m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
             m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'LATE'
+            assert self.score == 'LATE'
             psi_b = g_hat1 - g_hat0 \
                 + np.divide(np.multiply(z, u_hat1), m_hat) \
                 - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)

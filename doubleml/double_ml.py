@@ -29,7 +29,9 @@ class DoubleML(ABC):
                  draw_sample_splitting,
                  apply_cross_fitting):
         # check and pick up obj_dml_data
-        assert isinstance(obj_dml_data, DoubleMLData)
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
@@ -225,7 +227,7 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting()' +
+            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting() ' +
                              'or set external samples via .set_sample_splitting().')
         return self._smpls
 

@@ -142,9 +142,6 @@ class DoubleMLIRM(DoubleML):
         return
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        score = self.score
-        self._check_score(score)
-        
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -154,7 +151,7 @@ class DoubleMLIRM(DoubleML):
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
         g_hat1 = None
-        if (score == 'ATE') | callable(self.score):
+        if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
         
@@ -204,8 +201,6 @@ class DoubleMLIRM(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        score = self.score
-
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -232,7 +227,7 @@ class DoubleMLIRM(DoubleML):
             g0_tune_res.append(g0_grid_search.fit(x[train_index_d0, :], y[train_index_d0]))
 
         g1_tune_res = list()
-        if score == 'ATE':
+        if self.score == 'ATE':
             for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
@@ -265,7 +260,7 @@ class DoubleMLIRM(DoubleML):
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        if score == 'ATTE':
+        if self.score == 'ATTE':
             params = {'ml_g0': g0_best_params,
                       'ml_m': m_best_params}
             tune_res = {'g0_tune': g0_tune_res,
