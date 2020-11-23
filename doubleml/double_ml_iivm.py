@@ -175,6 +175,11 @@ class DoubleMLIIVM(DoubleML):
         r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_r1'))[:, 1]
 
+        psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+
+        return psi_a, psi_b
+
+    def _score_elements(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls):
         # compute residuals
         u_hat0 = y - g_hat0
         u_hat1 = y - g_hat1
