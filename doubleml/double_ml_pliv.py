@@ -105,16 +105,16 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialX(cls,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m,
-                 ml_r,
-                 n_folds=5,
-                 n_rep=1,
-                 score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                  obj_dml_data,
+                  ml_g,
+                  ml_m,
+                  ml_r,
+                  n_folds=5,
+                  n_rep=1,
+                  score='partialling out',
+                  dml_procedure='dml2',
+                  draw_sample_splitting=True,
+                  apply_cross_fitting=True):
         obj = cls(obj_dml_data,
                   ml_g,
                   ml_m,
@@ -135,14 +135,14 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialZ(cls,
-                 obj_dml_data,
-                 ml_r,
-                 n_folds=5,
-                 n_rep=1,
-                 score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                  obj_dml_data,
+                  ml_r,
+                  n_folds=5,
+                  n_rep=1,
+                  score='partialling out',
+                  dml_procedure='dml2',
+                  draw_sample_splitting=True,
+                  apply_cross_fitting=True):
         # to pass the checks for the learners, we temporarily set ml_g and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
                   DummyRegressor(),
@@ -162,16 +162,16 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialXZ(cls,
-                  obj_dml_data,
-                  ml_g,
-                  ml_m,
-                  ml_r,
-                  n_folds=5,
-                  n_rep=1,
-                  score='partialling out',
-                  dml_procedure='dml2',
-                  draw_sample_splitting=True,
-                  apply_cross_fitting=True):
+                   obj_dml_data,
+                   ml_g,
+                   ml_m,
+                   ml_r,
+                   n_folds=5,
+                   n_rep=1,
+                   score='partialling out',
+                   dml_procedure='dml2',
+                   draw_sample_splitting=True,
+                   apply_cross_fitting=True):
         obj = cls(obj_dml_data,
                   ml_g,
                   ml_m,
@@ -289,10 +289,8 @@ class DoubleMLPLIV(DoubleML):
             reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
             r_hat_tilde = reg.predict(v_hat)
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             if self._dml_data.n_instr == 1:
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
@@ -320,10 +318,8 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cv_predict(self._learner['ml_r'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'))
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             psi_a = -np.multiply(r_hat, d)
             psi_b = np.multiply(r_hat, y)
         else:
@@ -354,10 +350,8 @@ class DoubleMLPLIV(DoubleML):
         u_hat = y - g_hat
         w_hat = d - m_hat_tilde
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         else:

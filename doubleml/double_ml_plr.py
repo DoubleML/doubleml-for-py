@@ -131,13 +131,11 @@ class DoubleMLPLR(DoubleML):
         v_hat = d - m_hat
         v_hatd = np.multiply(v_hat, d)
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            if score == 'IV-type':
+            if self.score == 'IV-type':
                 psi_a = -v_hatd
             else:
-                assert score == 'partialling out'
+                assert self.score == 'partialling out'
                 psi_a = -np.multiply(v_hat, v_hat)
             psi_b = np.multiply(v_hat, u_hat)
         else:

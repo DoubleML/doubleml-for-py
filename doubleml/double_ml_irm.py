@@ -142,9 +142,6 @@ class DoubleMLIRM(DoubleML):
         return
     
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        score = self.score
-        self._check_score(score)
-        
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -152,7 +149,7 @@ class DoubleMLIRM(DoubleML):
         
         # fraction of treated for ATTE
         p_hat = None
-        if score == 'ATTE':
+        if self.score == 'ATTE':
             p_hat = np.zeros_like(d, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
@@ -161,7 +158,7 @@ class DoubleMLIRM(DoubleML):
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
         g_hat1 = None
-        if (score == 'ATE') | callable(self.score):
+        if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
         
@@ -176,17 +173,17 @@ class DoubleMLIRM(DoubleML):
         # compute residuals
         u_hat0 = y - g_hat0
         u_hat1 = None
-        if score == 'ATE':
+        if self.score == 'ATE':
             u_hat1 = y - g_hat1
         
         if isinstance(self.score, str):
-            if score == 'ATE':
+            if self.score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
                     + np.divide(np.multiply(d, u_hat1), m_hat) \
                     - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
                 psi_a = np.full_like(m_hat, -1.0)
             else:
-                assert score == 'ATTE'
+                assert self.score == 'ATTE'
                 psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
                     - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
                                 np.multiply(p_hat, (1.0 - m_hat)))
@@ -199,8 +196,6 @@ class DoubleMLIRM(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        score = self.score
-
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -227,7 +222,7 @@ class DoubleMLIRM(DoubleML):
             g0_tune_res.append(g0_grid_search.fit(x[train_index_d0, :], y[train_index_d0]))
 
         g1_tune_res = list()
-        if score == 'ATE':
+        if self.score == 'ATE':
             for idx, (train_index, test_index) in enumerate(smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
@@ -260,7 +255,7 @@ class DoubleMLIRM(DoubleML):
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        if score == 'ATTE':
+        if self.score == 'ATTE':
             params = {'ml_g0': g0_best_params,
                       'ml_m': m_best_params}
             tune_res = {'g0_tune': g0_tune_res,
