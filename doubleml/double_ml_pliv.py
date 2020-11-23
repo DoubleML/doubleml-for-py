@@ -105,16 +105,16 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialX(cls,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m,
-                 ml_r,
-                 n_folds=5,
-                 n_rep=1,
-                 score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                  obj_dml_data,
+                  ml_g,
+                  ml_m,
+                  ml_r,
+                  n_folds=5,
+                  n_rep=1,
+                  score='partialling out',
+                  dml_procedure='dml2',
+                  draw_sample_splitting=True,
+                  apply_cross_fitting=True):
         obj = cls(obj_dml_data,
                   ml_g,
                   ml_m,
@@ -135,14 +135,14 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialZ(cls,
-                 obj_dml_data,
-                 ml_r,
-                 n_folds=5,
-                 n_rep=1,
-                 score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                  obj_dml_data,
+                  ml_r,
+                  n_folds=5,
+                  n_rep=1,
+                  score='partialling out',
+                  dml_procedure='dml2',
+                  draw_sample_splitting=True,
+                  apply_cross_fitting=True):
         # to pass the checks for the learners, we temporarily set ml_g and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
                   DummyRegressor(),
@@ -162,16 +162,16 @@ class DoubleMLPLIV(DoubleML):
 
     @classmethod
     def _partialXZ(cls,
-                  obj_dml_data,
-                  ml_g,
-                  ml_m,
-                  ml_r,
-                  n_folds=5,
-                  n_rep=1,
-                  score='partialling out',
-                  dml_procedure='dml2',
-                  draw_sample_splitting=True,
-                  apply_cross_fitting=True):
+                   obj_dml_data,
+                   ml_g,
+                   ml_m,
+                   ml_r,
+                   n_folds=5,
+                   n_rep=1,
+                   score='partialling out',
+                   dml_procedure='dml2',
+                   draw_sample_splitting=True,
+                   apply_cross_fitting=True):
         obj = cls(obj_dml_data,
                   ml_g,
                   ml_m,
