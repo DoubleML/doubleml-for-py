@@ -129,7 +129,9 @@ It further can be readily extended with regards to
 - ... alternative resampling schemes,
 - ...
 
-
+.. image:: oop.svg
+    :width: 100%
+    :alt: OOP structure of the DoubleML package
 
 Source code and maintenance
 ---------------------------
