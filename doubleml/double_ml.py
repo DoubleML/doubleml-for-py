@@ -227,7 +227,7 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting()' +
+            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting() ' +
                              'or set external samples via .set_sample_splitting().')
         return self._smpls
 
