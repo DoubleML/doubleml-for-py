@@ -289,10 +289,8 @@ class DoubleMLPLIV(DoubleML):
             reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
             r_hat_tilde = reg.predict(v_hat)
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             if self._dml_data.n_instr == 1:
                 psi_a = -np.multiply(w_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
@@ -320,10 +318,8 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cv_predict(self._learner['ml_r'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'))
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             psi_a = -np.multiply(r_hat, d)
             psi_b = np.multiply(r_hat, y)
         else:
@@ -354,10 +350,8 @@ class DoubleMLPLIV(DoubleML):
         u_hat = y - g_hat
         w_hat = d - m_hat_tilde
 
-        score = self.score
-        self._check_score(score)
         if isinstance(self.score, str):
-            assert score == 'partialling out'
+            assert self.score == 'partialling out'
             psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         else:
