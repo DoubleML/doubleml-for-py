@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
-from doubleml.tests.helper_boot import boot_manual
+from doubleml.tests.helper_boot import boot_manual, draw_weights
 
 
 def fit_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):
@@ -120,6 +120,19 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, D, score):
 
 
 def boot_pliv_partial_xz(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score, se, bootstrap, n_rep, dml_procedure):
+    n_obs = len(Y)
+    weights = draw_weights(bootstrap, n_rep, n_obs)
+    if np.isscalar(theta):
+        n_d = 1
+    else:
+        n_d = len(theta)
+    assert n_d == 1
+    boot_theta, boot_t_stat = boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde,
+                                                                smpls, score, se, weights, n_rep, dml_procedure)
+    return boot_theta, boot_t_stat
+
+
+def boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score, se, weights, n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     w_hat = np.zeros_like(D)
@@ -142,6 +155,6 @@ def boot_pliv_partial_xz(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score
     else:
         raise ValueError('invalid score')
     
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 
     return boot_theta, boot_t_stat

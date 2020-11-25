@@ -3,7 +3,7 @@ import scipy
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
-from doubleml.tests.helper_boot import boot_manual
+from doubleml.tests.helper_boot import boot_manual, draw_weights
 
 def fit_nuisance_plr(Y, X, D, learner_m, learner_g, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
@@ -105,7 +105,45 @@ def plr_orth(v_hat, u_hat, D, score):
     
     return res
 
+
 def boot_plr(theta, Y, D, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting=True):
+    if apply_cross_fitting:
+        n_obs = len(Y)
+    else:
+        test_index = smpls[0][1]
+        n_obs = len(test_index)
+    weights = draw_weights(bootstrap, n_rep, n_obs)
+
+    if np.isscalar(theta):
+        n_d = 1
+    else:
+        n_d = len(theta)
+    if n_d > 1:
+        boot_theta = np.full((n_d, n_rep), np.nan)
+        boot_t_stat = np.full((n_d, n_rep), np.nan)
+        for i_d in range(n_d):
+            boot_theta[i_d, :], boot_t_stat[i_d, :] = boot_plr_single_treat(theta[i_d],
+                                                                            Y, D[:, i_d],
+                                                                            g_hat[i_d], m_hat[i_d],
+                                                                            smpls, score,
+                                                                            se[i_d],
+                                                                            weights, n_rep,
+                                                                            dml_procedure,
+                                                                            apply_cross_fitting)
+    else:
+        boot_theta, boot_t_stat = boot_plr_single_treat(theta,
+                                                        Y, D,
+                                                        g_hat, m_hat,
+                                                        smpls, score,
+                                                        se,
+                                                        weights, n_rep,
+                                                        dml_procedure,
+                                                        apply_cross_fitting)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_plr_single_treat(theta, Y, D, g_hat, m_hat, smpls, score, se, weights, n_rep, dml_procedure, apply_cross_fitting):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     n_folds = len(smpls)
@@ -132,6 +170,6 @@ def boot_plr(theta, Y, D, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
     else:
         raise ValueError('invalid score')
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fitting)
     
     return boot_theta, boot_t_stat
