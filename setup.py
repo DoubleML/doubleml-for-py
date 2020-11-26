@@ -15,7 +15,7 @@ setup(
     author='Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.',
     maintainer='Malte S. Kurz',
     maintainer_email='malte.simon.kurz@uni-hamburg.de',
-    description='Double Machine Learning',
+    description='Double Machine Learning in Python',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='http://doubleml.org',
