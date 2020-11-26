@@ -160,7 +160,7 @@ string-representation of the object.
 
 .. TODO: Add a documentation of the ``se_reestimate`` option here (especially for DML1 algorithm).
 
-Boostrap standard errors and joint confidence intervals
+Multiplier bootstrap and joint confidence intervals
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 The ``bootstrap()`` method provides an implementation of a multiplier bootstrap for double machine learning models.
