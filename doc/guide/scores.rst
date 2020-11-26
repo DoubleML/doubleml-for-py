@@ -246,7 +246,7 @@ we employ for ``score='LATE'`` the score function:
 
     =\; &\psi_a(W; \eta) \theta + \psi_b(W; \eta)
 
-with :math:`\eta=(g,m)` and where the components of the linear score are
+with :math:`\eta=(g, m, r)` and where the components of the linear score are
 
 .. math::
 
