@@ -1,7 +1,7 @@
 .. _se_confint:
 
-Variance estimation, confidence intervals and boostrap standard errors
-----------------------------------------------------------------------
+Variance estimation, confidence intervals and multiplier bootstrap
+------------------------------------------------------------------
 
 Variance estimation
 +++++++++++++++++++
