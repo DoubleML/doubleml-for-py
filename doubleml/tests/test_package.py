@@ -1,4 +1,4 @@
-"""Test the doubleml package."""
+import pytest
 
 
 @pytest.mark.ci
