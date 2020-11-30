@@ -32,11 +32,11 @@ jobs:
       with:
         r-version: 'release'
     - name: Install R kernel for Jupyter
-        run: |
-          install.packages('remotes')
-          install.packages('IRkernel')
-          IRkernel::installspec()
-        shell: Rscript {0}
+      run: |
+        install.packages('remotes')
+        install.packages('IRkernel')
+        IRkernel::installspec()
+      shell: Rscript {0}
     - name: Build docu with sphinx
       run: |
         make -C doc html # build docu
