@@ -25,6 +25,9 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
+    - name: Install graphviz
+      run: sudo apt-get install graphviz
+
     - name: Install python
       uses: actions/setup-python@v2
       with:
@@ -56,5 +59,7 @@ jobs:
         BRANCH: master
         FOLDER: doc/_build/html
         TARGET_FOLDER: dev
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
         CLEAN: true
         SSH: true
