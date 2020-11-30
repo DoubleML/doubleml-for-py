@@ -18,9 +18,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-    - name: Install SSH Client 🔑
+      with:
+        persist-credentials: false
+    - name: Install SSH Client
         uses: webfactory/ssh-agent@v0.4.1
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
@@ -49,7 +49,7 @@ jobs:
       run: |
         make -C doc html # build docu
 
-    - name: Deploy 🚀
+    - name: Deploy
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           REPOSITORY_NAME: DoubleML/doubleml.github.io
