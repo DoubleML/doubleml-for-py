@@ -83,12 +83,14 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, score, dml_procedure, n_
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_coef(dml_plr_smpls_fixture):
     assert math.isclose(dml_plr_smpls_fixture['coef'],
                         dml_plr_smpls_fixture['coef2'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_se(dml_plr_smpls_fixture):
     assert math.isclose(dml_plr_smpls_fixture['se'],
                         dml_plr_smpls_fixture['se2'],

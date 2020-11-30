@@ -93,6 +93,7 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
     return res_dict
 
 
+@pytest.mark.ci
 @pytest.mark.filterwarnings("ignore:Using the same")
 def test_dml_plr_coef(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['coef'],
@@ -100,6 +101,7 @@ def test_dml_plr_coef(dml_plr_fixture):
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 @pytest.mark.filterwarnings("ignore:Using the same")
 def test_dml_plr_se(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['se'],
@@ -107,6 +109,7 @@ def test_dml_plr_se(dml_plr_fixture):
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 @pytest.mark.filterwarnings("ignore:Using the same")
 def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
