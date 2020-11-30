@@ -36,6 +36,7 @@ implemented in ``DoubleMLPLR``.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -70,6 +71,7 @@ The default setting is ``n_folds = 5`` and ``n_rep = 1``, i.e.,
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 1)
         print(dml_plr_obj$n_folds)
@@ -90,6 +92,7 @@ The :math:`K`-fold random partition is stored in the ``smpls`` attribute of the 
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$smpls
 
@@ -116,6 +119,7 @@ stored in the attributes ``psi_a`` and ``psi_b``.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$fit()
         print(dml_plr_obj$psi_a[1:5, ,1])
@@ -138,6 +142,7 @@ It results in :math:`M` random :math:`K`-fold partitions being drawn.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 5, n_rep = 10)
         print(dml_plr_obj$n_folds)
@@ -165,6 +170,7 @@ The third dimension refers to the treatment variable and becomes non-singleton i
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$fit()
         print(dml_plr_obj$psi_a[1:5, ,1])
@@ -193,6 +199,7 @@ and the asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` in ``se``.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         print(dml_plr_obj$coef)
         print(dml_plr_obj$se)
@@ -211,6 +218,7 @@ The parameter estimates :math:`(\tilde{\theta}_{0,m})_{m \in [M]}` and asymptoti
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         print(dml_plr_obj$all_coef)
         print(dml_plr_obj$all_se)
@@ -238,6 +246,7 @@ initialization of the ``DoubleMLPLR`` object.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         set.seed(314)
         dml_plr_obj_internal = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, n_folds = 4)
@@ -264,6 +273,7 @@ and set the partition via the ``set_sample_splitting()`` method.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m, draw_sample_splitting = FALSE)
 
@@ -302,6 +312,7 @@ Note that cross-fitting performs well empirically and is recommended to remove b
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
                                                n_folds = 2, apply_cross_fitting = FALSE)
@@ -328,6 +339,7 @@ via ``set_sample_splitting()`` needs to be applied, like for example:
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj_external = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
                                                 n_folds = 2, apply_cross_fitting = FALSE,
@@ -369,6 +381,7 @@ justification, see also :ref:`bias_overfitting`.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_no_split = DoubleMLPLR$new(obj_dml_data, ml_g, ml_m,
                                            n_folds = 1, apply_cross_fitting = FALSE)
