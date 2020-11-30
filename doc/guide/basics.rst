@@ -78,7 +78,10 @@ The nuisance functions are given by
 OLS estimation
 ++++++++++++++
 
-A naive OLS regression of :math:`Y` on :math:`D` produces a significant bias.
+For comparison we run a simple OLS regression of :math:`Y` on :math:`D` and :math:`X`.
+As we will see in the following, due to the considered high-dimensional setting the variance of the unregularized OLS
+estimates is higher in comparison to the double machine learning estimates and therefore the estimates are also less
+efficient.
 
 .. tabbed:: Python
 
