@@ -27,6 +27,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
         pip install .
+    - name: Install R
+      uses: r-lib/actions/setup-r@v1
+      with:
+        r-version: 'release'
+    - name: Install R kernel for Jupyter
+        run: |
+          install.packages('remotes')
+          install.packages('IRkernel')
+          IRkernel::installspec()
+        shell: Rscript {0}
     - name: Build docu with sphinx
       run: |
         make -C doc html # build docu
