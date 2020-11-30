@@ -18,6 +18,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+    - name: Install SSH Client 🔑
+        uses: webfactory/ssh-agent@v0.4.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
     - name: Install python
       uses: actions/setup-python@v2
       with:
@@ -37,6 +44,17 @@ jobs:
         install.packages('IRkernel')
         IRkernel::installspec()
       shell: Rscript {0}
+
     - name: Build docu with sphinx
       run: |
         make -C doc html # build docu
+
+    - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          REPOSITORY_NAME: DoubleML/doubleml.github.io
+          BRANCH: master
+          FOLDER: doc/_build/html
+          TARGET_FOLDER: dev
+          CLEAN: true
+          SSH: true
