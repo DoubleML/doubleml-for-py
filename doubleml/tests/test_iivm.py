@@ -124,18 +124,21 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, tri
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_iivm_coef(dml_iivm_fixture):
     assert math.isclose(dml_iivm_fixture['coef'],
                         dml_iivm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_iivm_se(dml_iivm_fixture):
     assert math.isclose(dml_iivm_fixture['se'],
                         dml_iivm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_iivm_boot(dml_iivm_fixture):
     for bootstrap in dml_iivm_fixture['boot_methods']:
         assert np.allclose(dml_iivm_fixture['boot_coef' + bootstrap],

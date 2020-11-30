@@ -30,18 +30,21 @@ def dml_data_fixture(generate_data1, idx):
             'obj_from_pd': obj_from_pd}
 
 
+@pytest.mark.ci
 def test_dml_data_x(dml_data_fixture):
     assert np.allclose(dml_data_fixture['obj_from_np'].x,
                        dml_data_fixture['obj_from_pd'].x,
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_data_y(dml_data_fixture):
     assert np.allclose(dml_data_fixture['obj_from_np'].y,
                        dml_data_fixture['obj_from_pd'].y,
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_data_d(dml_data_fixture):
     assert np.allclose(dml_data_fixture['obj_from_np'].d,
                        dml_data_fixture['obj_from_pd'].d,

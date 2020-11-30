@@ -118,18 +118,21 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_pliv_coef(dml_pliv_fixture):
     assert math.isclose(dml_pliv_fixture['coef'],
                         dml_pliv_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_pliv_se(dml_pliv_fixture):
     assert math.isclose(dml_pliv_fixture['se'],
                         dml_pliv_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_pliv_boot(dml_pliv_fixture):
     for bootstrap in dml_pliv_fixture['boot_methods']:
         assert np.allclose(dml_pliv_fixture['boot_coef' + bootstrap],

@@ -115,18 +115,21 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_coef(dml_plr_no_cross_fit_fixture):
     assert math.isclose(dml_plr_no_cross_fit_fixture['coef'],
                         dml_plr_no_cross_fit_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_se(dml_plr_no_cross_fit_fixture):
     assert math.isclose(dml_plr_no_cross_fit_fixture['se'],
                         dml_plr_no_cross_fit_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_boot(dml_plr_no_cross_fit_fixture):
     for bootstrap in dml_plr_no_cross_fit_fixture['boot_methods']:
         assert np.allclose(dml_plr_no_cross_fit_fixture['boot_coef' + bootstrap],
@@ -238,18 +241,21 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_rep_no_cross_fit_coef(dml_plr_rep_no_cross_fit_fixture):
     assert math.isclose(dml_plr_rep_no_cross_fit_fixture['coef'],
                         dml_plr_rep_no_cross_fit_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_rep_no_cross_fit_se(dml_plr_rep_no_cross_fit_fixture):
     assert math.isclose(dml_plr_rep_no_cross_fit_fixture['se'],
                         dml_plr_rep_no_cross_fit_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_rep_no_cross_fit_boot(dml_plr_rep_no_cross_fit_fixture):
     for bootstrap in dml_plr_rep_no_cross_fit_fixture['boot_methods']:
         assert np.allclose(dml_plr_rep_no_cross_fit_fixture['boot_coef' + bootstrap],
@@ -360,18 +366,21 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_tune_coef(dml_plr_no_cross_fit_tune_fixture):
     assert math.isclose(dml_plr_no_cross_fit_tune_fixture['coef'],
                         dml_plr_no_cross_fit_tune_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_tune_se(dml_plr_no_cross_fit_tune_fixture):
     assert math.isclose(dml_plr_no_cross_fit_tune_fixture['se'],
                         dml_plr_no_cross_fit_tune_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_no_cross_fit_tune_boot(dml_plr_no_cross_fit_tune_fixture):
     for bootstrap in dml_plr_no_cross_fit_tune_fixture['boot_methods']:
         assert np.allclose(dml_plr_no_cross_fit_tune_fixture['boot_coef' + bootstrap],

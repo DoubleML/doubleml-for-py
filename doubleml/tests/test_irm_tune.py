@@ -159,18 +159,21 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_irm_coef(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['coef'],
                         dml_irm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_irm_se(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['se'],
                         dml_irm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_irm_boot(dml_irm_fixture):
     for bootstrap in dml_irm_fixture['boot_methods']:
         assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
