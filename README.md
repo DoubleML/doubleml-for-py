@@ -76,7 +76,7 @@ pip install --editable .
 
 ## Citation
 
-If you use the DoubleML package a citation is highly appreciated
+If you use the DoubleML package a citation is highly appreciated:
 
 Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
 DoubleML - Double Machine Learning in Python.

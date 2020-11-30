@@ -150,6 +150,43 @@ Bugs can be reported to the issue trackers:
 and `https://github.com/DoubleML/doubleml-for-r/issues <https://github.com/DoubleML/doubleml-for-r/issues>`_.
 
 
+Citation
+--------
+
+If you use the DoubleML package a citation is highly appreciated:
+
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
+DoubleML - Double Machine Learning in Python.
+URL: [https://github.com/DoubleML/doubleml-for-py](https://github.com/DoubleML/doubleml-for-py),
+Python-Package version 0.1.0.
+
+
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
+DoubleML - Double Machine Learning in Python.
+URL: [https://github.com/DoubleML/doubleml-for-r](https://github.com/DoubleML/doubleml-for-r),
+R-Package version 0.1.0.
+
+Bibtex-entries:
+
+```
+@Manual{DoubleML2020Python,
+  title = {DoubleML - Double Machine Learning in Python},
+  author = {Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.},
+  year = {2020},
+  note = {URL: \url{https://github.com/DoubleML/doubleml-for-py}, Python-Package version 0.1.0}
+}
+```
+
+```
+@Manual{DoubleML2020R,
+  title = {DoubleML - Double Machine Learning in R},
+  author = {Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.},
+  year = {2020},
+  note = {URL: \url{https://github.com/DoubleML/doubleml-for-r}, R-Package version 0.1.0}
+}
+```
+
+
 References
 ----------
 
