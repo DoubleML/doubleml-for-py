@@ -1,3 +1,6 @@
+import pytest
+
+rpy2 = pytest.importorskip("rpy2")
 from rpy2 import robjects
 from rpy2.robjects import ListVector
 from rpy2.robjects.vectors import IntVector
