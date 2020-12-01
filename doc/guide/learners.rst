@@ -216,6 +216,7 @@ package for R.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -243,6 +244,7 @@ Setting hyperparameters:
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         set.seed(3141)
         ml_g = lrn("regr.ranger", num.trees=10)
@@ -279,6 +281,7 @@ Setting treatment-variable-specific or fold-specific hyperparameters:
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         set.seed(3141)
         ml_g = lrn("regr.ranger")
@@ -304,6 +307,7 @@ The following example illustrates how to set parameters for each fold.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         learner = lrn("regr.ranger")
         ml_g = learner$clone()
@@ -336,6 +340,7 @@ To illustrate the parameter tuning, we generate data from a sparse partially lin
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -382,6 +387,7 @@ for tuning, each of the two folds would be split up into 5 subfolds and the erro
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -426,6 +432,7 @@ external parameter tuning of the nuisance parts. The optimally chosen parameters
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -451,6 +458,7 @@ as provided by the ``ranger`` package.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
