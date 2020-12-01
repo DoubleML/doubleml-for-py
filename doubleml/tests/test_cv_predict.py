@@ -64,6 +64,7 @@ def cv_predict_fixture(generate_data_cv_predict, idx, cross_fit, params):
     return res_dict
 
 
+@pytest.mark.ci
 def test_cv_predict(cv_predict_fixture):
     ind_nan_preds = np.isnan(cv_predict_fixture['preds'])
     ind_nan_preds_ut = np.isnan(cv_predict_fixture['preds_ut'])

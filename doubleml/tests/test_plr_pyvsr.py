@@ -9,6 +9,7 @@ import doubleml as dml
 from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pyvsr import export_smpl_split_to_r, r_MLPLR
 
+rpy2 = pytest.importorskip("rpy2")
 from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 
