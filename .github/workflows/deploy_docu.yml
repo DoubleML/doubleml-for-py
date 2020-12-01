@@ -66,6 +66,9 @@ jobs:
         CLEAN: true
         SSH: true
 
+    - name: Get tag
+      run: echo RELEASE_VERSION=${GITHUB_REF:10} >> $GITHUB_ENV
+
     - name: Deploy to version
       if: ${{ github.event_name == 'release'}}
       uses: JamesIves/github-pages-deploy-action@3.7.1
@@ -73,7 +76,7 @@ jobs:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
         FOLDER: doc/_build/html
-        TARGET_FOLDER: ${GITHUB_REF}
+        TARGET_FOLDER: ${{env.RELEASE_VERSION}}
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
         CLEAN: true
