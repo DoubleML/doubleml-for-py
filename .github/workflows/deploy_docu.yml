@@ -6,10 +6,11 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
+  release:
+    types:
+      - published
+
 
 jobs:
   build:
@@ -52,13 +53,40 @@ jobs:
       run: |
         make -C doc html # build docu
 
-    - name: Deploy
+    - name: Deploy to dev
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
       uses: JamesIves/github-pages-deploy-action@3.7.1
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
         FOLDER: doc/_build/html
         TARGET_FOLDER: dev
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
+        CLEAN: true
+        SSH: true
+
+    - name: Deploy to version
+      if: ${{ github.event_name == 'release'}}
+      uses: JamesIves/github-pages-deploy-action@3.7.1
+      with:
+        REPOSITORY_NAME: DoubleML/doubleml.github.io
+        BRANCH: master
+        FOLDER: doc/_build/html
+        TARGET_FOLDER: ${GITHUB_REF}
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
+        CLEAN: true
+        SSH: true
+
+    - name: Deploy to stable
+      if: ${{ github.event_name == 'release' }}
+      uses: JamesIves/github-pages-deploy-action@3.7.1
+      with:
+        REPOSITORY_NAME: DoubleML/doubleml.github.io
+        BRANCH: master
+        FOLDER: doc/_build/html
+        TARGET_FOLDER: stable
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
         CLEAN: true
