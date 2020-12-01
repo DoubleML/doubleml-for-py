@@ -35,6 +35,7 @@ example we simulate data from a partially linear regression model.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
 
@@ -103,6 +104,7 @@ Alternatively an array interface can be used as shown below for the simulated da
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         # Specify the data and variables for the causal model
         dml_data_bonus = DoubleMLData$new(df_bonus,
@@ -148,6 +150,7 @@ For details on the specification of learners and their hyperparameters we refer 
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(mlr3)
         library(mlr3learners)
@@ -205,6 +208,7 @@ statistical inference like ``bootstrap()``, ``confint()`` and ``p_adjust()``, fo
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         set.seed(3141)
         obj_dml_plr_bonus = DoubleMLPLR$new(dml_data_bonus, ml_g=ml_g_bonus, ml_m=ml_m_bonus)

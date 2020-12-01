@@ -87,6 +87,7 @@ The DML algorithm can be selected via parameter ``dml_procedure='dml1'`` vs. ``d
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -116,6 +117,7 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$coef
 
@@ -133,6 +135,7 @@ are stored in the attribute ``psi``.
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$psi[1:5, ,1]
 
@@ -149,6 +152,7 @@ For the DML1 algorithm, the estimates for the different folds
 .. tabbed:: R
 
     .. jupyter-execute::
+        :raises:
 
         dml_plr_obj$all_dml1_coef
 
