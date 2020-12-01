@@ -32,6 +32,7 @@ jobs:
 
     - name: Build package
       run: |
+        pip install wheel
         python setup.py sdist bdist_wheel
 
     - uses: actions/upload-artifact@v2
