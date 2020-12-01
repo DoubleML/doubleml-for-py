@@ -73,7 +73,7 @@ jobs:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
         FOLDER: doc/_build/html
-        TARGET_FOLDER: ${{ GITHUB_REF }}
+        TARGET_FOLDER: ${{ github.ref }}
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
         CLEAN: true
