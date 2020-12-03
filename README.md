@@ -9,7 +9,7 @@ The R package is also available on [GitHub](https://github.com/DoubleML/doubleml
 
 ## Documentation and maintenance
 
-Documentation and website: [http://doubleml.org/](http://doubleml.org/)
+Documentation and website: [http://docs.doubleml.org/](http://docs.doubleml.org/)
 
 **DoubleML** is currently maintained by
 [@MalteKurz](https://github.com/MalteKurz) and
