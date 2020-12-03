@@ -30,7 +30,7 @@ Contents
         :text: Python API
         :classes: btn-outline-primary btn-block
     ---
-    .. link-button:: http://doubleml.org
+    .. link-button:: http://docs.doubleml.org/r/stable/
         :type: url
         :text: R API
         :classes: btn-outline-primary btn-block
@@ -95,7 +95,7 @@ Contents
     User guide <guide/guide>
     Examples <auto_examples/index>
     Python API <api/api>
-    R API <http://doubleml.org>
+    R API <http://docs.doubleml.org/r/stable/>
     Release notes <release/release>
 
 Main Features
@@ -136,7 +136,7 @@ It further can be readily extended with regards to
 Source code and maintenance
 ---------------------------
 
-Documentation and website: `http://doubleml.org/ <http://doubleml.org/>`_
+Documentation and website: `http://docs.doubleml.org/ <http://docs.doubleml.org/>`_
 
 DoubleML is currently maintained by
 `@MalteKurz <https://github.com/MalteKurz>`_ and
