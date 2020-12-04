@@ -25,7 +25,6 @@ demonstrated in the following. We download the Bonus data set from the Pennsylva
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
 
@@ -70,7 +69,6 @@ serving as treatment variable :math:`D` and the columns ``x_cols=`` specifying t
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         # Specify the data and the variables for the causal model
 
@@ -132,7 +130,6 @@ variable ``y`` and a treatment variable ``d``
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         # Generate data
         set.seed(3141)
@@ -157,7 +154,6 @@ To specify the data and the variables for the causal model from arrays we call
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         obj_dml_data_sim = double_ml_data_from_matrix(X = X, y = y, d = d)
         obj_dml_data_sim

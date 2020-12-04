@@ -60,7 +60,6 @@ The nuisance functions are given by
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         set.seed(1234)
@@ -126,7 +125,6 @@ efficient.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(ggplot2)
 
@@ -219,7 +217,6 @@ other half of observations indexed with :math:`i \in I`
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         non_orth_score = function(y, d, g_hat, m_hat, smpls) {
          u_hat = y - g_hat
@@ -231,7 +228,6 @@ other half of observations indexed with :math:`i \in I`
 
 
     .. jupyter-execute::
-        :raises:
 
         library(mlr3)
         library(mlr3learners)
@@ -334,7 +330,6 @@ orthogonalized regressor :math:`V = D - m(X)`. We then use the final estimate
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(data.table)
         lgr::get_logger("mlr3")$set_threshold("warn")
@@ -412,7 +407,6 @@ induced by overfitting. Cross-fitting performs well empirically.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         set.seed(3333)
 
@@ -489,7 +483,6 @@ The third term :math:`c^*` vanishes in probability if sample splitting is applie
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         g_all = ggplot(data.frame(theta_ols, theta_nonorth, theta_orth_nosplit, theta_dml)) +
                     geom_density(aes(x = theta_ols), fill = "dark blue", alpha = 0.3, color = "dark blue") +
