@@ -48,7 +48,7 @@ It further can be readily extended with regards to
 - ... alternative resampling schemes,
 - ... 
 
-![OOP structure of the DoubleML package](/doc/oop.svg?raw=true)
+![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/master/doc/oop.svg](/doc/oop.svg?raw=true)
 
 ## Installation
 
