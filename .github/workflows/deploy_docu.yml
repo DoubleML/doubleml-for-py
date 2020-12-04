@@ -6,6 +6,9 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
   release:
     types:
@@ -54,6 +57,18 @@ jobs:
       run: |
         mkdir ${GITHUB_WORKSPACE}/tmp_r_libs_user
         echo R_LIBS_USER=${GITHUB_WORKSPACE}/tmp_r_libs_user >> $GITHUB_ENV
+
+    - name: Query R version
+      run: |
+        writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+      shell: Rscript {0}
+
+    - name: Cache R packages
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.R_LIBS_USER }}
+        key: doubleml-user-guide-${{ hashFiles('.github/R-version') }}
+
     - name: Install R kernel for Jupyter and the R package DoubleML
       run: |
         install.packages('remotes')
