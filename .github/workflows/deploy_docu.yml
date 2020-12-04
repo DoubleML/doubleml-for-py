@@ -22,10 +22,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        path: doubleml-for-py
     - name: Check out the repo containing the R docu
       uses: actions/checkout@master
       with:
         repository: DoubleML/doubleml-for-r
+        path: doubleml-for-r
 
     - name: Install SSH Client for deploying the docu to github pages
       uses: webfactory/ssh-agent@v0.4.1
@@ -42,8 +45,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
-        pip install .
+        pip install -r doubleml-for-py/requirements-dev.txt
+        pip install doubleml-for-py
 
     - name: Install R
       uses: r-lib/actions/setup-r@v1
@@ -83,7 +86,7 @@ jobs:
 
     - name: Build docu with sphinx
       run: |
-        make -C doc html # build docu
+        make -C doubleml-for-py/doc html # build docu
 
     - name: Deploy to dev
       if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
@@ -91,7 +94,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doc/_build/html
+        FOLDER: doubleml-for-py/doc/_build/html
         TARGET_FOLDER: dev
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
@@ -107,7 +110,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doc/_build/html
+        FOLDER: doubleml-for-py/doc/_build/html
         TARGET_FOLDER: ${{env.RELEASE_VERSION}}
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
@@ -120,7 +123,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doc/_build/html
+        FOLDER: doubleml-for-py/doc/_build/html
         TARGET_FOLDER: stable
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
