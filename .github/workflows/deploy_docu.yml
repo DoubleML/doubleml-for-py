@@ -21,14 +21,16 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        path: doubleml-for-py
-    - name: Check out the repo containing the R docu
+    - name: Check out the repo containing the R package
       uses: actions/checkout@master
       with:
         repository: DoubleML/doubleml-for-r
         path: doubleml-for-r
+    - name: Check out the repo containing the Python package
+      uses: actions/checkout@v2
+      with:
+        path: doubleml-for-py
+        persist-credentials: false
 
     - name: Install SSH Client for deploying the docu to github pages
       uses: webfactory/ssh-agent@v0.4.1
