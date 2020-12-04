@@ -67,7 +67,7 @@ jobs:
 
     - name: Build docu with sphinx
       run: |
-        make -C doubleml-for-py/doc html # build docu
+        make -C doc html # build docu
 
     - name: Deploy to dev
       if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
@@ -75,7 +75,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doubleml-for-py/doc/_build/html
+        FOLDER: doc/_build/html
         TARGET_FOLDER: dev
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
@@ -91,7 +91,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doubleml-for-py/doc/_build/html
+        FOLDER: doc/_build/html
         TARGET_FOLDER: ${{env.RELEASE_VERSION}}
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
@@ -104,7 +104,7 @@ jobs:
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
         BRANCH: master
-        FOLDER: doubleml-for-py/doc/_build/html
+        FOLDER: doc/_build/html
         TARGET_FOLDER: stable
         GIT_CONFIG_NAME: DoubleML Deploy Bot
         GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
