@@ -73,7 +73,6 @@ implemented in ``DoubleMLPLR``.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -103,7 +102,6 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj$coef)
 
@@ -120,7 +118,6 @@ In the attribute ``psi`` the values of the score function :math:`\psi(W_i; \tild
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj$psi[1:5, ,1])
 
@@ -290,7 +287,6 @@ can be obtained with
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         non_orth_score = function(y, d, g_hat, m_hat, smpls) {
             u_hat = y - g_hat
