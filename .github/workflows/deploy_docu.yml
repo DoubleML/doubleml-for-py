@@ -29,6 +29,19 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
+    - name: Install graphviz
+      run: sudo apt-get install graphviz
+
+    - name: Install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install -e .
+  
     - name: Add R repository
       run: |
         sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
@@ -47,19 +60,6 @@ jobs:
         install.packages('IRkernel')
         IRkernel::installspec()
       shell: sudo Rscript {0}
-
-    - name: Install graphviz
-      run: sudo apt-get install graphviz
-
-    - name: Install python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
-        pip install -e .
 
     - name: Build docu with sphinx
       run: |
