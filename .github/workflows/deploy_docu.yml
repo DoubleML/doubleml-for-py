@@ -46,7 +46,7 @@ jobs:
         remotes::install_github("DoubleML/doubleml-for-r")
         install.packages('IRkernel')
         IRkernel::installspec()
-      shell: Rscript {0}
+      shell: sudo Rscript {0}
 
     - name: Install graphviz
       run: sudo apt-get install graphviz
