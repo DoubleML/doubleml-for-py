@@ -61,6 +61,7 @@ jobs:
       run: |
         install.packages('remotes')
         remotes::install_github("DoubleML/doubleml-for-r")
+        install.packages("knitr", "rmarkdown", "testthat", "patrick", "mvtnorm", "dplyr", "glmnet", "lgr", "ggplot2", "ranger", "hdm", "sandwich", "AER", "rpart")
         install.packages('IRkernel')
         IRkernel::installspec()
       shell: Rscript {0}
