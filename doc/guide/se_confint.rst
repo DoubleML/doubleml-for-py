@@ -59,7 +59,6 @@ implemented in ``DoubleMLPLR``.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -89,7 +88,6 @@ stores the estimate :math:`\tilde{\theta}_0` in its ``coef`` attribute.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj$coef)
 
@@ -104,7 +102,6 @@ The asymptotic standard error :math:`\hat{\sigma}/\sqrt{N}` is stored in its ``s
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj$se)
 
@@ -121,7 +118,6 @@ Additionally, the value of the :math:`t`-statistic and the corresponding p-value
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj$t_stat)
         print(dml_plr_obj$pval)
@@ -143,7 +139,6 @@ Additionally, the value of the :math:`t`-statistic and the corresponding p-value
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         dml_plr_obj$summary()
         dml_plr_obj$confint()
@@ -160,7 +155,6 @@ string-representation of the object.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         print(dml_plr_obj)
 
@@ -227,7 +221,6 @@ the method ``p_adjust``.
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)

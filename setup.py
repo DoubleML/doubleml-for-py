@@ -4,9 +4,9 @@ with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 PROJECT_URLS = {
-    'Bug Tracker': 'https://github.com/DoubleML/doubleml-for-py/issues',
     'Documentation': 'http://docs.doubleml.org',
-    'Source Code': 'https://github.com/DoubleML/doubleml-for-py'
+    'Source Code': 'https://github.com/DoubleML/doubleml-for-py',
+    'Bug Tracker': 'https://github.com/DoubleML/doubleml-for-py/issues',
 }
 
 setup(
@@ -19,6 +19,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='http://docs.doubleml.org',
+    project_urls=PROJECT_URLS,
     packages=find_packages(),
     install_requires=[
         'joblib',

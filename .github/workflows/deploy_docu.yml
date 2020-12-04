@@ -15,13 +15,13 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        persist-credentials: false
-    - name: Install SSH Client
+    - name: Check out the repo containing the Python package
+      uses: actions/checkout@v2
+
+    - name: Install SSH Client for deploying the docu to github pages
       uses: webfactory/ssh-agent@v0.4.1
       with:
         ssh-private-key: ${{ secrets.DEPLOY_KEY }}
@@ -37,14 +37,40 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt
-        pip install .
+        pip install -e .
+
+    - name: Add R repository
+      run: |
+        sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+        sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
     - name: Install R
-      uses: r-lib/actions/setup-r@v1
+      run: |
+        sudo apt-get update
+        sudo apt-get install r-base
+        sudo apt-get install r-base-dev
+
+    - name: Get user library folder
+      run: |
+        mkdir ${GITHUB_WORKSPACE}/tmp_r_libs_user
+        echo R_LIBS_USER=${GITHUB_WORKSPACE}/tmp_r_libs_user >> $GITHUB_ENV
+
+    - name: Query R version
+      run: |
+        writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+      shell: Rscript {0}
+
+    - name: Cache R packages
+      uses: actions/cache@v2
       with:
-        r-version: 'release'
-    - name: Install R kernel for Jupyter
+        path: ${{ env.R_LIBS_USER }}
+        key: doubleml-user-guide-${{ hashFiles('.github/R-version') }}
+
+    - name: Install R kernel for Jupyter and the R package DoubleML
       run: |
         install.packages('remotes')
+        remotes::install_github("DoubleML/doubleml-for-r")
+        install.packages(c("knitr", "rmarkdown", "testthat", "patrick", "mvtnorm", "dplyr", "glmnet", "lgr", "ggplot2", "ranger", "hdm", "sandwich", "AER", "rpart"))
         install.packages('IRkernel')
         IRkernel::installspec()
       shell: Rscript {0}

@@ -35,7 +35,6 @@ Estimation is conducted via its ``fit()`` method:
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -88,7 +87,6 @@ Estimation is conducted via its ``fit()`` method:
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -137,7 +135,6 @@ Estimation is conducted via its ``fit()`` method:
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
@@ -187,7 +184,6 @@ Estimation is conducted via its ``fit()`` method:
 .. tabbed:: R
 
     .. jupyter-execute::
-        :raises:
 
         library(DoubleML)
         library(mlr3)
