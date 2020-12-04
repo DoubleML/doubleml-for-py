@@ -6,9 +6,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
   release:
     types:
@@ -62,15 +59,15 @@ jobs:
     - name: Query dependencies for r package DoubleML
       run: |
         install.packages('remotes')
-        saveRDS(remotes::dev_package_deps(pkgdir = "doubleml-for-r", dependencies = TRUE), ".github/depends.Rds", version = 2)
-        writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+        saveRDS(remotes::dev_package_deps(pkgdir = "doubleml-for-r", dependencies = TRUE), "doubleml-for-r/.github/depends.Rds", version = 2)
+        writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), "doubleml-for-r/.github/R-version")
       shell: Rscript {0}
     - name: Cache R packages
       uses: actions/cache@v2
       with:
         path: ${{ env.R_LIBS_USER }}
-        key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }}
-        restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-
+        key: ${{ runner.os }}-${{ hashFiles('doubleml-for-r/.github/R-version') }}-1-${{ hashFiles('doubleml-for-r/.github/depends.Rds') }}
+        restore-keys: ${{ runner.os }}-${{ hashFiles('doubleml-for-r/.github/R-version') }}-1-
     - name: Install system dependencies package
       run: |
         while read -r cmd
