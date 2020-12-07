@@ -66,9 +66,13 @@ It further can be readily extended with regards to
 - statsmodels
 - joblib
 
-We plan to push a first release of the DoubleML package to pip and conda very soon.
+To install DoubleML with pip use
 
-Until then we recommend to install from source via
+```
+pip install -U DoubleML
+```
+
+DoubleML can be installed from source via
 
 ```
 git clone git@github.com:DoubleML/doubleml-for-py.git
@@ -76,7 +80,7 @@ cd doubleml-for-py
 pip install --editable .
 ```
 
-<!--- TODO: Add a reference to the installation instructions here when the user guide is online. -->
+Detailed [installation instructions](http://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
 
 ## Citation
 
