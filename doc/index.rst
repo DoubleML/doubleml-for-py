@@ -3,6 +3,15 @@
 DoubleML
 ========
 
+.. |build| image:: https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg
+.. _build: https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild
+
+.. |PyPi| image:: https://badge.fury.io/py/DoubleML.svg
+.. _PyPi: https://badge.fury.io/py/DoubleML
+
+.. |PythonVersion| image:: https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue
+.. _PythonVersion: https://www.python.org/
+
 The Python and R package **DoubleML** provide an implementation of the double / debiased machine learning framework of
 `Chernozhukov et al. (2018) <https://doi.org/10.1111/ectj.12097>`_.
 The Python package is built on top of `scikit-learn <https://scikit-learn.org/>`_ (Pedregosa et al., 2011)
