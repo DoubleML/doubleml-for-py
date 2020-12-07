@@ -154,3 +154,18 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             return preds, train_preds
         else:
             return preds
+
+
+def _draw_weights(method, n_rep_boot, n_obs):
+    if method == 'Bayes':
+        weights = np.random.exponential(scale=1.0, size=(n_rep_boot, n_obs)) - 1.
+    elif method == 'normal':
+        weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+    elif method == 'wild':
+        xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+        yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+        weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1) / 2
+    else:
+        raise ValueError('invalid boot method')
+
+    return weights
