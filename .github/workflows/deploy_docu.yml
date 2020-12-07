@@ -1,0 +1,122 @@
+# Workflow based on https://github.com/actions/starter-workflows/blob/main/ci/python-package.yml
+
+name: CI deploy documentation
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check out the repo containing the Python package
+      uses: actions/checkout@v2
+
+    - name: Install SSH Client for deploying the docu to github pages
+      uses: webfactory/ssh-agent@v0.4.1
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+    - name: Install graphviz
+      run: sudo apt-get install graphviz
+
+    - name: Install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install -e .
+
+    - name: Add R repository
+      run: |
+        sudo apt install dirmngr gnupg apt-transport-https ca-certificates software-properties-common
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+        sudo add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/'
+    - name: Install R
+      run: |
+        sudo apt-get update
+        sudo apt-get install r-base
+        sudo apt-get install r-base-dev
+
+    - name: Get user library folder
+      run: |
+        mkdir ${GITHUB_WORKSPACE}/tmp_r_libs_user
+        echo R_LIBS_USER=${GITHUB_WORKSPACE}/tmp_r_libs_user >> $GITHUB_ENV
+
+    - name: Query R version
+      run: |
+        writeLines(sprintf("R-%i.%i", getRversion()$major, getRversion()$minor), ".github/R-version")
+      shell: Rscript {0}
+
+    - name: Cache R packages
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.R_LIBS_USER }}
+        key: doubleml-user-guide-${{ hashFiles('.github/R-version') }}
+
+    - name: Install R kernel for Jupyter and the R package DoubleML
+      run: |
+        install.packages('remotes')
+        remotes::install_github("DoubleML/doubleml-for-r")
+        install.packages(c("knitr", "rmarkdown", "testthat", "patrick", "mvtnorm", "dplyr", "glmnet", "lgr", "ggplot2", "ranger", "hdm", "sandwich", "AER", "rpart"))
+        install.packages('IRkernel')
+        IRkernel::installspec()
+      shell: Rscript {0}
+
+    - name: Build docu with sphinx
+      run: |
+        make -C doc html # build docu
+
+    - name: Deploy to dev
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+      uses: JamesIves/github-pages-deploy-action@3.7.1
+      with:
+        REPOSITORY_NAME: DoubleML/doubleml.github.io
+        BRANCH: master
+        FOLDER: doc/_build/html
+        TARGET_FOLDER: dev
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
+        CLEAN: true
+        SSH: true
+
+    - name: Get tag
+      run: echo RELEASE_VERSION=${GITHUB_REF:10} >> $GITHUB_ENV
+
+    - name: Deploy to version
+      if: ${{ github.event_name == 'release'}}
+      uses: JamesIves/github-pages-deploy-action@3.7.1
+      with:
+        REPOSITORY_NAME: DoubleML/doubleml.github.io
+        BRANCH: master
+        FOLDER: doc/_build/html
+        TARGET_FOLDER: ${{env.RELEASE_VERSION}}
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
+        CLEAN: true
+        SSH: true
+
+    - name: Deploy to stable
+      if: ${{ github.event_name == 'release' }}
+      uses: JamesIves/github-pages-deploy-action@3.7.1
+      with:
+        REPOSITORY_NAME: DoubleML/doubleml.github.io
+        BRANCH: master
+        FOLDER: doc/_build/html
+        TARGET_FOLDER: stable
+        GIT_CONFIG_NAME: DoubleML Deploy Bot
+        GIT_CONFIG_EMAIL: DoubleML@users.noreply.github.com
+        CLEAN: true
+        SSH: true

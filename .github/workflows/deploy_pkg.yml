@@ -1,0 +1,38 @@
+name: CI deploy package
+
+on:
+  release:
+    types:
+      - published
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+
+    - name: Install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install .
+
+    - name: Build package
+      run: |
+        pip install wheel
+        python setup.py sdist bdist_wheel
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: DoubleML-pkg
+        path: dist/

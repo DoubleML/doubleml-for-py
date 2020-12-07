@@ -22,7 +22,7 @@ copyright = '2020, Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.'
 author = 'Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.2.dev0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -66,6 +66,11 @@ autosummary_generate = True
 # a list of builtin themes.
 #
 html_theme = 'pydata_sphinx_theme'
+
+html_theme_options = {
+    'github_url': 'https://github.com/DoubleML/doubleml-for-py',
+    'navigation_with_keys': False,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
