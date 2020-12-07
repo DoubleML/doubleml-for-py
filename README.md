@@ -1,6 +1,6 @@
 # DoubleML - Double Machine Learning in Python
 
-![build](https://github.com/DoubleML/doubleml-for-py/workflows/CI%20unit%20tests/badge.svg)
+![build](https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg)
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
 [![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)
 
