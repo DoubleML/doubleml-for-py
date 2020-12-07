@@ -1,6 +1,6 @@
 # Workflow based on https://github.com/actions/starter-workflows/blob/main/ci/python-package.yml
 
-name: CI unit tests
+name: build
 
 on:
   push:
