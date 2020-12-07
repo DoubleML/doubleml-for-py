@@ -129,18 +129,21 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_multitreat_coef(dml_plr_multitreat_fixture):
     assert np.allclose(dml_plr_multitreat_fixture['coef'],
                        dml_plr_multitreat_fixture['coef_manual'],
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_multitreat_se(dml_plr_multitreat_fixture):
     assert np.allclose(dml_plr_multitreat_fixture['se'],
                        dml_plr_multitreat_fixture['se_manual'],
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
     for bootstrap in dml_plr_multitreat_fixture['boot_methods']:
         assert np.allclose(dml_plr_multitreat_fixture['boot_coef' + bootstrap],

@@ -13,5 +13,6 @@
           X [fillcolor="#D55E00"]
         }
         Y -> D -> V [dir="back"];
+        X -> D;
         Y -> X [dir="back"];
    }

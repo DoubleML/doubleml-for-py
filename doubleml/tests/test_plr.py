@@ -114,18 +114,21 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_coef(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['coef'],
                         dml_plr_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_se(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['se'],
                         dml_plr_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
         assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
@@ -223,18 +226,21 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_plr_ols_manual_coef(dml_plr_ols_manual_fixture):
     assert math.isclose(dml_plr_ols_manual_fixture['coef'],
                         dml_plr_ols_manual_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_ols_manual_se(dml_plr_ols_manual_fixture):
     assert math.isclose(dml_plr_ols_manual_fixture['se'],
                         dml_plr_ols_manual_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
     for bootstrap in dml_plr_ols_manual_fixture['boot_methods']:
         assert np.allclose(dml_plr_ols_manual_fixture['boot_coef' + bootstrap],

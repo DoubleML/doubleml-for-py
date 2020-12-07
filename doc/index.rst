@@ -3,6 +3,15 @@
 DoubleML
 ========
 
+.. |build| image:: https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg
+.. _build: https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild
+
+.. |PyPi| image:: https://badge.fury.io/py/DoubleML.svg
+.. _PyPi: https://badge.fury.io/py/DoubleML
+
+.. |PythonVersion| image:: https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue
+.. _PythonVersion: https://www.python.org/
+
 The Python and R package **DoubleML** provide an implementation of the double / debiased machine learning framework of
 `Chernozhukov et al. (2018) <https://doi.org/10.1111/ectj.12097>`_.
 The Python package is built on top of `scikit-learn <https://scikit-learn.org/>`_ (Pedregosa et al., 2011)
@@ -30,7 +39,7 @@ Contents
         :text: Python API
         :classes: btn-outline-primary btn-block
     ---
-    .. link-button:: http://doubleml.org
+    .. link-button:: http://docs.doubleml.org/r/stable/
         :type: url
         :text: R API
         :classes: btn-outline-primary btn-block
@@ -95,7 +104,7 @@ Contents
     User guide <guide/guide>
     Examples <auto_examples/index>
     Python API <api/api>
-    R API <http://doubleml.org>
+    R API <http://docs.doubleml.org/r/stable/>
     Release notes <release/release>
 
 Main Features
@@ -136,7 +145,7 @@ It further can be readily extended with regards to
 Source code and maintenance
 ---------------------------
 
-Documentation and website: `http://doubleml.org/ <http://doubleml.org/>`_
+Documentation and website: `http://docs.doubleml.org/ <http://docs.doubleml.org/>`_
 
 DoubleML is currently maintained by
 `@MalteKurz <https://github.com/MalteKurz>`_ and
@@ -149,6 +158,42 @@ Bugs can be reported to the issue trackers:
 `https://github.com/DoubleML/doubleml-for-py/issues <https://github.com/DoubleML/doubleml-for-py/issues>`_
 and `https://github.com/DoubleML/doubleml-for-r/issues <https://github.com/DoubleML/doubleml-for-r/issues>`_.
 
+
+Citation
+--------
+
+If you use the DoubleML package a citation is highly appreciated:
+
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
+DoubleML - Double Machine Learning in Python.
+URL: `https://github.com/DoubleML/doubleml-for-py <https://github.com/DoubleML/doubleml-for-py>`_,
+Python-Package version 0.1.0.
+
+
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
+DoubleML - Double Machine Learning in Python.
+URL: `https://github.com/DoubleML/doubleml-for-r <https://github.com/DoubleML/doubleml-for-r>`_,
+R-Package version 0.1.0.
+
+Bibtex-entries:
+
+.. code-block:: TeX
+
+    @Manual{DoubleML2020Python,
+        title = {DoubleML - Double Machine Learning in Python},
+        author = {Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.},
+        year = {2020},
+        note = {URL: \url{https://github.com/DoubleML/doubleml-for-py}, Python-Package version 0.1.0}
+    }
+
+.. code-block:: TeX
+
+    @Manual{DoubleML2020R,
+        title = {DoubleML - Double Machine Learning in R},
+        author = {Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.},
+        year = {2020},
+        note = {URL: \url{https://github.com/DoubleML/doubleml-for-r}, R-Package version 0.1.0}
+    }
 
 References
 ----------
