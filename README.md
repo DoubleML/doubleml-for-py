@@ -1,5 +1,9 @@
 # DoubleML - Double Machine Learning in Python
 
+![build](https://github.com/DoubleML/doubleml-for-py/workflows/CI%20unit%20tests/badge.svg)
+[![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
+[![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)
+
 The Python package **DoubleML** provides an implementation of the double / debiased machine learning framework of
 [Chernozhukov et al. (2018)](https://doi.org/10.1111/ectj.12097).
 It is built on top of [scikit-learn](https://scikit-learn.org) (Pedregosa et al., 2011).
