@@ -13,7 +13,7 @@ The R package is also available on [GitHub](https://github.com/DoubleML/doubleml
 
 ## Documentation and maintenance
 
-Documentation and website: [http://docs.doubleml.org/](http://docs.doubleml.org/)
+Documentation and website: [https://docs.doubleml.org/](https://docs.doubleml.org/)
 
 **DoubleML** is currently maintained by
 [@MalteKurz](https://github.com/MalteKurz) and
@@ -80,7 +80,7 @@ cd doubleml-for-py
 pip install --editable .
 ```
 
-Detailed [installation instructions](http://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
+Detailed [installation instructions](https://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
 
 ## Citation
 

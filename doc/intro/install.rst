@@ -101,7 +101,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
@@ -119,7 +119,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
@@ -193,7 +193,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
@@ -211,7 +211,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
@@ -285,7 +285,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
@@ -303,7 +303,7 @@ Python: Installing the latest release from pip or conda
 
         .. code-block:: Bash
 
-            $ conda install -c conda-forge DoubleML
+            $ conda install -c conda-forge doubleml
 
         To check your installation of :ref:`DoubleML <doubleml_package>` use
 
