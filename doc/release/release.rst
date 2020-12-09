@@ -8,9 +8,10 @@ Release notes
     **DoubleML 0.1.1**
 
     - Bug fix in the drawing of bootstrap weights for the multiple treatment case
-      (#66)[https://github.com/DoubleML/doubleml-for-py/pull/66] (see also https://github.com/DoubleML/doubleml-for-r/pull/28)
+      `#66 <https://github.com/DoubleML/doubleml-for-py/pull/66>`_ (see also https://github.com/DoubleML/doubleml-for-r/pull/28)
     - Update install instructions as DoubleML is now listed on pypi
     - Prepare submission to conda-forge: Include LICENSE file in source distribution
+    - Documentation is now served with HTTPS `https://docs.doubleml.org/ <https://docs.doubleml.org/>`_
 
     **DoubleML 0.1.0**
 
