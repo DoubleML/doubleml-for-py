@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
-from ._helper import _check_is_partition, _check_all_smpls
+from ._helper import _check_is_partition, _check_all_smpls, _draw_weights
 
 
 class DoubleML(ABC):
@@ -519,10 +519,20 @@ class DoubleML(ABC):
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
+
+            # draw weights for the bootstrap
+            if self.apply_cross_fitting:
+                n_obs = self._dml_data.n_obs
+            else:
+                # be prepared for the case of test sets of different size in repeated no-cross-fitting
+                smpls = self.__smpls
+                test_index = smpls[0][1]
+                n_obs = len(test_index)
+            weights = _draw_weights(method, n_rep_boot, n_obs)
+
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
-
-                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(method)
+                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(weights)
 
         return self
 
@@ -1147,26 +1157,9 @@ class DoubleML(ABC):
             # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
 
-    def _compute_bootstrap(self, method):
+    def _compute_bootstrap(self, weights):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
-        if self.apply_cross_fitting:
-            n_obs = self._dml_data.n_obs
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            test_index = smpls[0][1]
-            n_obs = len(test_index)
-
-        if method == 'Bayes':
-            weights = np.random.exponential(scale=1.0, size=(self.n_rep_boot, n_obs)) - 1.
-        elif method == 'normal':
-            weights = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
-        elif method == 'wild':
-            xx = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
-            yy = np.random.normal(loc=0.0, scale=1.0, size=(self.n_rep_boot, n_obs))
-            weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1) / 2
-        else:
-            raise ValueError('invalid boot method')
 
         if self.apply_cross_fitting:
             if dml_procedure == 'dml1':
@@ -1189,6 +1182,9 @@ class DoubleML(ABC):
             else:
                 raise ValueError('invalid dml_procedure')
         else:
+            # be prepared for the case of test sets of different size in repeated no-cross-fitting
+            smpls = self.__smpls
+            test_index = smpls[0][1]
             J = np.mean(self.__psi_a[test_index])
             boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * J)
             boot_t_stat = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
