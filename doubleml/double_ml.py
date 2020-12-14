@@ -455,29 +455,11 @@ class DoubleML(ABC):
             raise TypeError('keep_scores must be True or False. '
                             f'got {str(keep_scores)}')
 
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-            for i_d in range(self._dml_data.n_treat):
-                self._i_treat = i_d
+        # ml estimation of nuisance models and computation of score elements
+        self._ml_nuisance(n_jobs_cv)
 
-                # this step could be skipped for the single treatment variable case
-                if self._dml_data.n_treat > 1:
-                    self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
-
-                # ml estimation of nuisance models and computation of score elements
-                self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
-
-                # estimate the causal parameter
-                self.__all_coef = self._est_causal_pars()
-
-                # compute score (depends on estimated causal parameter)
-                self._compute_score()
-
-                # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
-
-        # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
+        # estimate causal parameters, standard errors, scores and aggregate from repeated cross-fitting
+        self._est_causal_pars_and_se()
 
         if not keep_scores:
             self._clean_scores()
@@ -1086,6 +1068,19 @@ class DoubleML(ABC):
         self._initialize_ml_nuisance_params()
 
         return self
+
+    def _ml_nuisance(self, n_jobs_cv):
+        for i_rep in range(self.n_rep):
+            self._i_rep = i_rep
+            for i_d in range(self._dml_data.n_treat):
+                self._i_treat = i_d
+
+                # this step could be skipped for the single treatment variable case
+                if self._dml_data.n_treat > 1:
+                    self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
+
+                # ml estimation of nuisance models and computation of score elements
+                self.__psi_a, self.__psi_b = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
 
     def _est_causal_pars(self):
         dml_procedure = self.dml_procedure
