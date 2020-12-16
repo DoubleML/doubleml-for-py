@@ -2,6 +2,7 @@
 
 [![build](https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg)](https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild)
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/doubleml.svg)](https://anaconda.org/conda-forge/doubleml)
 [![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)](https://www.python.org/)
 
 The Python package **DoubleML** provides an implementation of the double / debiased machine learning framework of
