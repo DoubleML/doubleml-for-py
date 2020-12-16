@@ -10,7 +10,8 @@ The Python package **DoubleML** provides an implementation of the double / debia
 It is built on top of [scikit-learn](https://scikit-learn.org) (Pedregosa et al., 2011).
 
 Note that the Python package was developed together with an R twin based on [mlr3](https://mlr3.mlr-org.com/).
-The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r).
+The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r) and 
+[![CRAN Version](https://www.r-pkg.org/badges/version/DoubleML)](https://cran.r-project.org/package=DoubleML).
 
 ## Documentation and maintenance
 
