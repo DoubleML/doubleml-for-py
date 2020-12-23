@@ -27,16 +27,21 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
         verbose = 0
         predictions = np.full(len(y), np.nan)
         if est_params is None:
-            xx, test_indices = _fit_and_predict(clone(estimator),
-                                                X, y, train_index, test_index, verbose, fit_params, method)
-        elif isinstance(est_params, dict):
-            xx, test_indices = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                                X, y, train_index, test_index, verbose, fit_params, method)
+            xx = _fit_and_predict(clone(estimator),
+                                  X, y, train_index, test_index, verbose, fit_params, method)
+        else:
+            assert isinstance(est_params, dict)
+            xx = _fit_and_predict(clone(estimator).set_params(**est_params),
+                                  X, y, train_index, test_index, verbose, fit_params, method)
 
         # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
         # inv_test_indices = np.argsort(test_indices)
-        assert np.all(np.diff(test_indices)>0), 'test_indices not sorted'
-        predictions[test_indices] = xx
+        assert np.all(np.diff(test_indices) > 0), 'test_indices not sorted'
+        if isinstance(xx, np.ndarray):
+            # this is sklearn >= 0.24
+            predictions[test_indices] = xx
+        else:
+            predictions[test_indices] = xx[0]
         return predictions
 
     # set some defaults aligned with cross_val_predict
@@ -74,9 +79,11 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
             for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions
-    predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
-    test_indices = np.concatenate([indices_i
-                                   for _, indices_i in prediction_blocks])
+    if isinstance(prediction_blocks[0], np.ndarray):
+        # this is sklearn >= 0.24
+        predictions = [pred_block_i for pred_block_i in prediction_blocks]
+    else:
+        predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
 
     if not _check_is_permutation(test_indices, _num_samples(X)):
         raise ValueError('_dml_cross_val_predict only works for partitions')
