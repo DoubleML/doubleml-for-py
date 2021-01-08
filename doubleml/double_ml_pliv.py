@@ -275,7 +275,12 @@ class DoubleMLPLIV(DoubleML):
         # nuisance r
         r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'))
-        
+
+        psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
+
+        return psi_a, psi_b
+
+    def _score_elements(self, y, z, d, g_hat, m_hat, r_hat, smpls):
         # compute residuals
         u_hat = y - g_hat
         w_hat = d - r_hat

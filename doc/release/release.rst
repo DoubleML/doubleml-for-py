@@ -31,6 +31,13 @@ Release notes
 
 .. tabbed:: R
 
+    **DoubleML 0.1.1**
+
+    - First release to CRAN `https://cran.r-project.org/package=DoubleML <https://cran.r-project.org/package=DoubleML>`_
+    - Clean up of imports
+    - Continuous integration was extended by unit tests on github actions
+      `https://github.com/DoubleML/doubleml-for-r/actions <https://github.com/DoubleML/doubleml-for-r/actions>`_
+
     **DoubleML 0.1.0**
 
     - Initial release

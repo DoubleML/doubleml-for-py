@@ -17,10 +17,6 @@ There are three different ways to install the python package :ref:`DoubleML <dou
 - Install a released version of DoubleML from a .whl file.
 - Building the package from source. This is recommended if you want to work with the latest development version of the package. This also the best way if you wish to contribute to DoubleML.
 
-.. warning::
-    We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to conda-forge very soon.
-    Until then the installation of a released version is only possible with pip via ``pip install -U DoubleML``.
-
 Python: Installing the latest release from pip or conda
 -------------------------------------------------------
 
@@ -362,11 +358,7 @@ R: Installing DoubleML
 R: Installing the latest release from CRAN
 ------------------------------------------
 
-.. warning::
-    We plan to push a first release of the :ref:`DoubleML <doubleml_package>` package to CRAN very soon.
-    The developing version can be installed with the source code which is also available on
-    `GitHub R source code <https://github.com/DoubleML/doubleml-for-r>`_.
-
+Install the last release from CRAN
 
 .. code-block:: R
 
