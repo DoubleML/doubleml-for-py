@@ -7,6 +7,8 @@ on:
     branches:
       - master
   workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1,3,5"
   release:
     types:
       - published
@@ -70,7 +72,7 @@ jobs:
       run: |
         install.packages('remotes')
         remotes::install_github("DoubleML/doubleml-for-r")
-        install.packages(c("knitr", "rmarkdown", "testthat", "patrick", "mvtnorm", "dplyr", "glmnet", "lgr", "ggplot2", "ranger", "hdm", "sandwich", "AER", "rpart"))
+        install.packages(c("knitr", "rmarkdown", "testthat", "patrick", "mlr3learners", "paradox", "dplyr", "glmnet", "lgr", "ranger", "sandwich", "AER", "rpart", "ggplot2", "mvtnorm", "hdm"))
         install.packages('IRkernel')
         IRkernel::installspec()
       shell: Rscript {0}
@@ -80,7 +82,7 @@ jobs:
         make -C doc html # build docu
 
     - name: Deploy to dev
-      if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
       uses: JamesIves/github-pages-deploy-action@3.7.1
       with:
         REPOSITORY_NAME: DoubleML/doubleml.github.io
