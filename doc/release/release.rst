@@ -7,11 +7,11 @@ Release notes
 
     **DoubleML 0.1.2**
 
-    - Fixed a compatibility issue with `scikit-learn` 0.24, which only affected some unit tests
+    - Fixed a compatibility issue with ``scikit-learn`` 0.24, which only affected some unit tests
       (`#70 <https://github.com/DoubleML/doubleml-for-py/issues/70>`_, `#71 <https://github.com/DoubleML/doubleml-for-py/pull/71>`_)
     - Added scheduled unit tests on github-action (three times a week) `#69 <https://github.com/DoubleML/doubleml-for-py/pull/69>`_
     - Split up estimation of nuisance functions and computation of score function components. Further introduced a
-      private method `_est_causal_pars_and_se()`, see `#72 <https://github.com/DoubleML/doubleml-for-py/pull/72>`_.
+      private method ``_est_causal_pars_and_se()``, see `#72 <https://github.com/DoubleML/doubleml-for-py/pull/72>`_.
       This is needed for the DoubleML-Serverless project: https://github.com/DoubleML/doubleml-serverless.
 
     **DoubleML 0.1.1**
