@@ -1139,6 +1139,24 @@ class DoubleML(ABC):
         self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), n_obs) +
                                               np.power(self._all_coef - xx, 2), 1), n_obs))
 
+    def _est_causal_pars_and_se(self):
+        for i_rep in range(self.n_rep):
+            self._i_rep = i_rep
+            for i_d in range(self._dml_data.n_treat):
+                self._i_treat = i_d
+
+                # estimate the causal parameter
+                self.__all_coef = self._est_causal_pars()
+
+                # compute score (depends on estimated causal parameter)
+                self._compute_score()
+
+                # compute standard errors for causal parameter
+                self.__all_se = self._se_causal_pars()
+
+            # aggregated parameter estimates and standard errors from repeated cross-fitting
+        self._agg_cross_fit()
+
     def _compute_bootstrap(self, weights):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls

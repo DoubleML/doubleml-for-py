@@ -146,13 +146,6 @@ class DoubleMLIRM(DoubleML):
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-        
-        # fraction of treated for ATTE
-        p_hat = None
-        if self.score == 'ATTE':
-            p_hat = np.zeros_like(d, dtype='float64')
-            for _, test_index in smpls:
-                p_hat[test_index] = np.mean(d[test_index])
 
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
@@ -166,6 +159,18 @@ class DoubleMLIRM(DoubleML):
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]
 
+        psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
+
+        return psi_a, psi_b
+
+    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
+        # fraction of treated for ATTE
+        p_hat = None
+        if self.score == 'ATTE':
+            p_hat = np.zeros_like(d, dtype='float64')
+            for _, test_index in smpls:
+                p_hat[test_index] = np.mean(d[test_index])
+
         if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
             m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
             m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
@@ -175,7 +180,7 @@ class DoubleMLIRM(DoubleML):
         u_hat1 = None
         if self.score == 'ATE':
             u_hat1 = y - g_hat1
-        
+
         if isinstance(self.score, str):
             if self.score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \

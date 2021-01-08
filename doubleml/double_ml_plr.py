@@ -126,6 +126,11 @@ class DoubleMLPLR(DoubleML):
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))
 
+        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
+
+        return psi_a, psi_b
+
+    def _score_elements(self, y, d, g_hat, m_hat, smpls):
         # compute residuals
         u_hat = y - g_hat
         v_hat = d - m_hat
@@ -141,7 +146,7 @@ class DoubleMLPLR(DoubleML):
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
-        
+
         return psi_a, psi_b
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
