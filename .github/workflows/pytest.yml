@@ -49,23 +49,23 @@ jobs:
 #        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       if: |
-        ${{ matrix.config.os }} != 'ubuntu-latest' ||
-        ${{ matrix.config.python-version }} != '3.8'
+        matrix.config.os != 'ubuntu-latest' ||
+        matrix.config.python-version != '3.8'
       run: |
         pytest -m ci
 
     - name: Test with pytest and coverage
       if: |
-        ${{ matrix.config.os }} == 'ubuntu-latest' ||
-        ${{ matrix.config.python-version }} == '3.8'
+        matrix.config.os == 'ubuntu-latest' &&
+        matrix.config.python-version == '3.8'
       run: |
         pip install pytest-cov
         pytest --cov=./ --cov-report=xml
 
     - name: Upload coverage to Codecov
       if: |
-        ${{ matrix.config.os }} == 'ubuntu-latest' &&
-        ${{ matrix.config.python-version }} == '3.8'
+        matrix.config.os == 'ubuntu-latest' &&
+        matrix.config.python-version == '3.8'
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
