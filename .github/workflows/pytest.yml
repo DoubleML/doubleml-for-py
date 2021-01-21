@@ -64,7 +64,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: |
-        ${{ matrix.config.os }} == 'ubuntu-latest' ||
+        ${{ matrix.config.os }} == 'ubuntu-latest' &&
         ${{ matrix.config.python-version }} == '3.8'
       uses: codecov/codecov-action@v1
       with:
