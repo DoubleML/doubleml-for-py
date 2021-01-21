@@ -31,6 +31,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 2
     - name: Set up Python ${{ matrix.config.python-version }}
       uses: actions/setup-python@v2
       with:
