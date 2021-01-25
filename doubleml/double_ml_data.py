@@ -161,14 +161,14 @@ class DoubleMLData:
         call ``obj.data[obj.x_cols].values``.
         """
         return self._X.values
-    
+
     @property
     def y(self):
         """
         Array of outcome variable.
         """
         return self._y.values
-    
+
     @property
     def d(self):
         """
@@ -178,7 +178,7 @@ class DoubleMLData:
         call ``obj.data[obj.d_cols].values``.
         """
         return self._d.values
-    
+
     @property
     def z(self):
         """
@@ -188,15 +188,15 @@ class DoubleMLData:
             return self._z.values
         else:
             return None
-    
-    @property 
+
+    @property
     def all_variables(self):
         """
         All variables available in the dataset.
         """
         return self.data.columns
-    
-    @property 
+
+    @property
     def n_treat(self):
         """
         The number of treatment variables.
@@ -213,21 +213,21 @@ class DoubleMLData:
         else:
             n_instr = 0
         return n_instr
-    
-    @property 
+
+    @property
     def n_obs(self):
         """
         The number of observations.
         """
         return self.data.shape[0]
-    
+
     @property
     def x_cols(self):
         """
         The covariates.
         """
         return self._x_cols
-    
+
     @x_cols.setter
     def x_cols(self, value):
         reset_value = hasattr(self, '_x_cols')
@@ -239,7 +239,7 @@ class DoubleMLData:
                                 f'{str(value)} of type {str(type(value))} was passed.')
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError('Invalid covariates x_cols. '
-                                 f'At least one covariate is no data column.')
+                                 'At least one covariate is no data column.')
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
         else:
@@ -254,14 +254,14 @@ class DoubleMLData:
         if reset_value:
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
-    
+
     @property
     def d_cols(self):
         """
         The treatment variable(s).
         """
         return self._d_cols
-    
+
     @d_cols.setter
     def d_cols(self, value):
         reset_value = hasattr(self, '_d_cols')
@@ -272,19 +272,19 @@ class DoubleMLData:
                             f'{str(value)} of type {str(type(value))} was passed.')
         if not set(value).issubset(set(self.all_variables)):
             raise ValueError('Invalid treatment variable(s) d_cols. '
-                             f'At least one treatment variable is no data column.')
+                             'At least one treatment variable is no data column.')
         self._d_cols = value
         if reset_value:
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
-    
+
     @property
     def y_col(self):
         """
         The outcome variable.
         """
         return self._y_col
-    
+
     @y_col.setter
     def y_col(self, value):
         reset_value = hasattr(self, '_y_col')
@@ -297,14 +297,14 @@ class DoubleMLData:
         self._y_col = value
         if reset_value:
             self._set_y_z()
-    
+
     @property
     def z_cols(self):
         """
         The instrumental variable(s).
         """
         return self._z_cols
-    
+
     @z_cols.setter
     def z_cols(self, value):
         reset_value = hasattr(self, '_z_cols')
@@ -316,7 +316,7 @@ class DoubleMLData:
                                 f'{str(value)} of type {str(type(value))} was passed.')
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError('Invalid instrumental variable(s) z_cols. '
-                                 f'At least one instrumental variable is no data column.')
+                                 'At least one instrumental variable is no data column.')
             self._z_cols = value
         else:
             self._z_cols = None
@@ -336,7 +336,7 @@ class DoubleMLData:
             raise TypeError('use_other_treat_as_covariate must be True or False. '
                             f'got {str(value)}')
         self._use_other_treat_as_covariate = value
-    
+
     def _set_y_z(self):
         self._y = self.data.loc[:, self.y_col]
         if self.z_cols is None:
