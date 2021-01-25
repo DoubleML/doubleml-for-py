@@ -40,6 +40,13 @@ Release notes
 
 .. tabbed:: R
 
+    **DoubleML 0.1.2**
+
+    - Adapt calls to ``mlr3tuning`` due to a change in their API (since version 0.6.0): fixes `#51 <https://github.com/DoubleML/doubleml-for-r/issues/51>`_
+    - Add ``bbotk`` to suggests: fixes R CMD check note `#47 <https://github.com/DoubleML/doubleml-for-r/issues/47>`_
+    - Use ``doi{}`` command: fixes R CMD check note `#54 <https://github.com/DoubleML/doubleml-for-r/issues/54>`_
+    - Minor docu updates as ``DoubleML`` is now available on CRAN
+
     **DoubleML 0.1.1**
 
     - First release to CRAN `https://cran.r-project.org/package=DoubleML <https://cran.r-project.org/package=DoubleML>`_
