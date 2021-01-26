@@ -4,7 +4,6 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 
-import warnings
 from joblib import Parallel, delayed
 
 
