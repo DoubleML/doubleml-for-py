@@ -4,6 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/doubleml.svg)](https://anaconda.org/conda-forge/doubleml)
 [![codecov](https://codecov.io/gh/DoubleML/doubleml-for-py/branch/master/graph/badge.svg?token=0BjlFPgdGk)](https://codecov.io/gh/DoubleML/doubleml-for-py)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/1c08ec7d782c451784293c996537de14)](https://www.codacy.com/gh/DoubleML/doubleml-for-py/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DoubleML/doubleml-for-py&amp;utm_campaign=Badge_Grade)
 [![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)](https://www.python.org/)
 
 The Python package **DoubleML** provides an implementation of the double / debiased machine learning framework of

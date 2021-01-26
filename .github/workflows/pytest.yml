@@ -72,3 +72,12 @@ jobs:
       with:
         file: ./coverage.xml
         flags: unittests
+
+    - name: Upload coverage to codacy
+      if: |
+        matrix.config.os == 'ubuntu-latest' &&
+        matrix.config.python-version == '3.8'
+      uses: codacy/codacy-coverage-reporter-action@master
+      with:
+        project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        coverage-reports: ./coverage.xml
