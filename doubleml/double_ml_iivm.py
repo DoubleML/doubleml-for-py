@@ -18,16 +18,16 @@ class DoubleMLIIVM(DoubleML):
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
-        for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
 
     ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
-        for the nuisance function :math:`m_0(X) = E[Z|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[Z|X]`.
 
     ml_r : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
-        for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
 
     n_folds : int
         Number of folds.
@@ -39,7 +39,8 @@ class DoubleMLIIVM(DoubleML):
 
     score : str or callable
         A str (``'LATE'`` is the only choice) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)``.
+        or a callable object / function with signature
+        ``psi_a, psi_b = score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)``.
         Default is ``'LATE'``.
 
     dml_procedure : str
@@ -150,7 +151,7 @@ class DoubleMLIIVM(DoubleML):
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as instrumental variable.')
         return
-    
+
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, z = check_X_y(x, np.ravel(self._dml_data.z))
@@ -158,17 +159,17 @@ class DoubleMLIIVM(DoubleML):
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
-        
+
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'))
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'))
-        
+
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]
-        
+
         # nuisance r
         r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_r0'))[:, 1]

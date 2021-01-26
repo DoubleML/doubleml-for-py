@@ -5,7 +5,7 @@ import math
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso, ElasticNet
+from sklearn.linear_model import ElasticNet
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
@@ -96,10 +96,10 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
                                     dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    res_tuning = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    _ = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     dml_pliv_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -130,7 +130,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
                                                 clone(learner_m), clone(learner_g), clone(learner_r),
                                                 smpls,
                                                 g_params * n_folds, m_params * n_folds, r_params * n_folds)
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = pliv_dml1(y, X, d,
                                           z,
@@ -141,13 +141,13 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
-    
+
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_pliv_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(res_manual,
@@ -158,14 +158,14 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
                                             se_manual,
                                             bootstrap, n_rep_boot,
                                             dml_procedure)
-        
+
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_pliv_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -192,4 +192,3 @@ def test_dml_pliv_boot(dml_pliv_fixture):
         assert np.allclose(dml_pliv_fixture['boot_t_stat' + bootstrap],
                            dml_pliv_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

@@ -19,28 +19,28 @@ n_datasets = get_n_datasets()
 
 
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [[LogisticRegression(solver='lbfgs', max_iter=250),
-                           LinearRegression()],
-                          [RandomForestClassifier(max_depth=2, n_estimators=10),
-                           RandomForestRegressor(max_depth=2, n_estimators=10)]])
+                params=[[LogisticRegression(solver='lbfgs', max_iter=250),
+                         LinearRegression()],
+                        [RandomForestClassifier(max_depth=2, n_estimators=10),
+                         RandomForestRegressor(max_depth=2, n_estimators=10)]])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['ATE', 'ATTE'])
+                params=['ATE', 'ATTE'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -74,17 +74,17 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimm
                                   trimming_threshold=trimming_threshold)
 
     dml_irm_obj.fit()
-    
+
     np.random.seed(3141)
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
-    
+
     g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
                                                     clone(learner[0]), clone(learner[1]), smpls,
                                                     score,
                                                     trimming_threshold=trimming_threshold)
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
@@ -93,13 +93,13 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimm
         res_manual, se_manual = irm_dml2(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
-    
+
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_irm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_irm(res_manual,
@@ -109,14 +109,14 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimm
                                            se_manual,
                                            bootstrap, n_rep_boot,
                                            dml_procedure)
-        
+
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -143,4 +143,3 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

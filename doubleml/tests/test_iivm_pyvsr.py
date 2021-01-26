@@ -18,27 +18,27 @@ pandas2ri.activate()
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['LATE'])
+                params=['LATE'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
 def dml_iivm_pyvsr_fixture(generate_data_iivm, idx, score, dml_procedure):
-    boot_methods = ['normal']
     n_folds = 2
 
     # collect data
@@ -86,4 +86,3 @@ def test_dml_iivm_pyvsr_se(dml_iivm_pyvsr_fixture):
     assert math.isclose(dml_iivm_pyvsr_fixture['se_py'],
                         dml_iivm_pyvsr_fixture['se_r'],
                         rel_tol=1e-4, abs_tol=1e-1)
-

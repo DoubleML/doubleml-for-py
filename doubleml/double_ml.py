@@ -322,7 +322,8 @@ class DoubleML(ABC):
     @property
     def all_dml1_coef(self):
         """
-        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit` with ``dml_procedure='dml1'``.
+        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit`
+        with ``dml_procedure='dml1'``.
         """
         return self._all_dml1_coef
 
@@ -571,7 +572,7 @@ class DoubleML(ABC):
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
             if np.isnan(self.boot_coef).all():
-                raise ValueError(f'apply fit() & bootstrap() before confint(joint=True)')
+                raise ValueError('apply fit() & bootstrap() before confint(joint=True)')
             sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1 - a)
             ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
@@ -886,7 +887,7 @@ class DoubleML(ABC):
         warn_msg_prefix = f'learner provided for {learner_name} is probably invalid: '
 
         if isinstance(learner, type):
-            raise TypeError(err_msg_prefix + f'provide an instance of a learner instead of a class')
+            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class')
 
         if not hasattr(learner, 'fit'):
             raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit()')

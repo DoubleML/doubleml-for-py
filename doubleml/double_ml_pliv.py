@@ -19,16 +19,16 @@ class DoubleMLPLIV(DoubleML):
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
-        for the nuisance function :math:`g_0(X) = E[Y|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
-        for the nuisance function :math:`m_0(X) = E[Z|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[Z|X]`.
 
     ml_r : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
-        for the nuisance function :math:`r_0(X) = E[D|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`r_0(X) = E[D|X]`.
 
     n_folds : int
         Number of folds.
@@ -252,11 +252,11 @@ class DoubleMLPLIV(DoubleML):
     def _ml_nuisance_and_score_elements_partial_x(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
-        
+
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'))
-        
+
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified

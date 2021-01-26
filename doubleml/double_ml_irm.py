@@ -18,12 +18,12 @@ class DoubleMLIRM(DoubleML):
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestRegressor`)
-        for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
 
     ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g. :py:class:`sklearn.ensemble.RandomForestClassifier`)
-        for the nuisance function :math:`m_0(X) = E[D|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
 
     n_folds : int
         Number of folds.
@@ -140,7 +140,7 @@ class DoubleMLIRM(DoubleML):
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
-    
+
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
@@ -154,7 +154,7 @@ class DoubleMLIRM(DoubleML):
         if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'))
-        
+
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'))[:, 1]

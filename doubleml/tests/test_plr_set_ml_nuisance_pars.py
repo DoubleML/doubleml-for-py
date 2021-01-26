@@ -13,20 +13,21 @@ from doubleml.tests.helper_general import get_n_datasets
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -39,7 +40,6 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
 
     # collect data
     data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     alpha = 0.05
     learner = Lasso(alpha=alpha)
@@ -72,24 +72,23 @@ def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_m', 'd', {'alpha': alpha})
     dml_plr_obj_ext_set_par.fit()
 
-    
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': dml_plr_obj_ext_set_par.coef,
                 'se': dml_plr_obj.se,
                 'se_manual': dml_plr_obj_ext_set_par.se,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(314122)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        
+
         np.random.seed(314122)
         dml_plr_obj_ext_set_par.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_coef
         res_dict['boot_t_stat' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_t_stat
-    
+
     return res_dict
 
 
@@ -119,4 +118,3 @@ def test_dml_plr_boot(dml_plr_fixture):
         assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
                            dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

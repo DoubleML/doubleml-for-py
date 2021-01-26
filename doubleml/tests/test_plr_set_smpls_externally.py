@@ -3,7 +3,7 @@ import pytest
 import math
 
 from sklearn.base import clone
-from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 
@@ -13,31 +13,33 @@ from doubleml.tests.helper_general import get_n_datasets
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [LinearRegression()])
+                params=[LinearRegression()])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
-                params = [1, 3])
+                params=[1, 3])
 def n_rep(request):
     return request.param
 
@@ -74,7 +76,7 @@ def dml_plr_smpls_fixture(generate_data1, idx, learner, score, dml_procedure, n_
                                    draw_sample_splitting=False)
     dml_plr_obj2.set_sample_splitting(smpls)
     dml_plr_obj2.fit()
-    
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef2': dml_plr_obj2.coef,
                 'se': dml_plr_obj.se,
@@ -95,4 +97,3 @@ def test_dml_plr_se(dml_plr_smpls_fixture):
     assert math.isclose(dml_plr_smpls_fixture['se'],
                         dml_plr_smpls_fixture['se2'],
                         rel_tol=1e-9, abs_tol=1e-4)
-

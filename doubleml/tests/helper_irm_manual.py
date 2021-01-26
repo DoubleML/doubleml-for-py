@@ -4,6 +4,7 @@ from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual, draw_weights
 
+
 def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
                      g0_params=None, g1_params=None, m_params=None,
                      trimming_threshold=1e-12):
@@ -16,7 +17,7 @@ def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
             ml_g0.set_params(**g0_params[idx])
         train_index0 = np.intersect1d(np.where(D == 0)[0], train_index)
         g_hat0.append(ml_g0.fit(X[train_index0], Y[train_index0]).predict(X[test_index]))
-    
+
     if score == 'ATE':
         for idx, (train_index, test_index) in enumerate(smpls):
             if g1_params is not None:
@@ -40,7 +41,7 @@ def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
             xx[xx < trimming_threshold] = trimming_threshold
             xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
         m_hat.append(xx)
-    
+
     return g_hat0, g_hat1, m_hat, p_hat
 
 
@@ -83,7 +84,7 @@ def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
 def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
-    
+
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
@@ -110,7 +111,7 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
                          m_hat_all, p_hat_all,
                          u_hat0, u_hat1,
                          D, score, n_obs))
-    
+
     return theta_hat, se
 
 
@@ -135,36 +136,38 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
                          m_hat_all, p_hat_all,
                          u_hat0, u_hat1,
                          D, score, n_obs))
-    
+
     return theta_hat, se
-    
+
+
 def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score, n_obs):
     if score == 'ATE':
-        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
-                      + np.divide(np.multiply(D, u_hat1), m_hat) \
-                      - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat) - theta, 2))
+        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0
+                                         + np.divide(np.multiply(D, u_hat1), m_hat)
+                                         - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat) - theta, 2))
     elif score == 'ATTE':
-        var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(D, u_hat0), p_hat) \
-                      - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
-                                  np.multiply(p_hat, (1.-m_hat))) \
-                      - theta * np.divide(D, p_hat), 2)) \
+        var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(D, u_hat0), p_hat)
+                                         - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
+                                                     np.multiply(p_hat, (1.-m_hat)))
+                                         - theta * np.divide(D, p_hat), 2)) \
               / np.power(np.mean(np.divide(D, p_hat)), 2)
     else:
         raise ValueError('invalid score')
-    
+
     return var
+
 
 def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score):
     if score == 'ATE':
-        res = np.mean(g_hat1 - g_hat0 \
-                      + np.divide(np.multiply(D, u_hat1), m_hat) \
+        res = np.mean(g_hat1 - g_hat0
+                      + np.divide(np.multiply(D, u_hat1), m_hat)
                       - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat))
     elif score == 'ATTE':
-        res = np.mean(np.divide(np.multiply(D, u_hat0), p_hat) \
+        res = np.mean(np.divide(np.multiply(D, u_hat0), p_hat)
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
                                   np.multiply(p_hat, (1.-m_hat)))) \
               / np.mean(np.divide(D, p_hat))
-    
+
     return res
 
 
@@ -208,7 +211,7 @@ def boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
             J = -1.0
         elif score == 'ATTE':
             J = np.mean(-np.divide(D, p_hat_all))
-    
+
     if score == 'ATE':
         psi = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(D, u_hat1), m_hat_all) \
@@ -222,5 +225,5 @@ def boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
         raise ValueError('invalid score')
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
-    
+
     return boot_theta, boot_t_stat

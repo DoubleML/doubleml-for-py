@@ -24,9 +24,12 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
 
     References
     ----------
-    Abadie, A. (2003), Semiparametric instrumental variable estimation of treatment response models. Journal of Econometrics, 113(2): 231-263.
+    Abadie, A. (2003), Semiparametric instrumental variable estimation of treatment response models. Journal of
+    Econometrics, 113(2): 231-263.
 
-    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018),
+    Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
+    doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     url = 'https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta'
     raw_data = pd.read_stata(url)
@@ -63,9 +66,12 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
 
     References
     ----------
-    Bilias Y. (2000), Sequential Testing of Duration Data: The Case of Pennsylvania 'Reemployment Bonus' Experiment. Journal of Applied Econometrics, 15(6): 575-594.
+    Bilias Y. (2000), Sequential Testing of Duration Data: The Case of Pennsylvania 'Reemployment Bonus' Experiment.
+    Journal of Applied Econometrics, 15(6): 575-594.
 
-    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018),
+    Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
+    doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
     raw_data = pd.read_csv(url, delim_whitespace=True)
@@ -166,7 +172,9 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
 
     References
     ----------
-    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018), Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68. doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
+    Chernozhukov, V., Chetverikov, D., Demirer, M., Duflo, E., Hansen, C., Newey, W. and Robins, J. (2018),
+    Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
+    doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     a_0 = kwargs.get('a_0', 1.)
     a_1 = kwargs.get('a_1', 0.25)
@@ -236,7 +244,9 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
 
     References
     ----------
-    Turrell, A. (2018), Econometrics in Python part I - Double machine learning, Markov Wanderer: A blog on economics, science, coding and data. `http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/ <http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/>`_.
+    Turrell, A. (2018), Econometrics in Python part I - Double machine learning, Markov Wanderer: A blog on economics,
+    science, coding and data. `http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/
+    <http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/>`_.
     """
     nu = kwargs.get('nu', 0.)
     gamma = kwargs.get('gamma', 1.)
@@ -271,7 +281,8 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
 
     .. math::
 
-        d_i &= 1\\left\\lbrace \\frac{\\exp(c_d x_i' \\beta)}{1+\\exp(c_d x_i' \\beta)} > v_i \\right\\rbrace, & &v_i \\sim \\mathcal{U}(0,1),
+        d_i &= 1\\left\\lbrace \\frac{\\exp(c_d x_i' \\beta)}{1+\\exp(c_d x_i' \\beta)} > v_i \\right\\rbrace, & &v_i
+        \\sim \\mathcal{U}(0,1),
 
         y_i &= \\theta d_i + c_y x_i' \\beta d_i + \\zeta_i, & &\\zeta_i \\sim \\mathcal{N}(0,1),
 
@@ -282,7 +293,8 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
 
     .. math::
 
-        c_y = \\sqrt{\\frac{R_y^2}{(1-R_y^2) \\beta' \\Sigma \\beta}}, \\qquad c_d = \\sqrt{\\frac{(\\pi^2 /3) R_d^2}{(1-R_d^2) \\beta' \\Sigma \\beta}}.
+        c_y = \\sqrt{\\frac{R_y^2}{(1-R_y^2) \\beta' \\Sigma \\beta}}, \\qquad c_d =
+        \\sqrt{\\frac{(\\pi^2 /3) R_d^2}{(1-R_d^2) \\beta' \\Sigma \\beta}}.
 
     The data generating process is inspired by a process used in the simulation experiment (see Appendix P) of Belloni
     et al. (2017).
@@ -304,7 +316,8 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
 
     References
     ----------
-    Belloni, A., Chernozhukov, V., Fernández‐Val, I. and Hansen, C. (2017). Program Evaluation and Causal Inference With High‐Dimensional Data. Econometrica, 85: 233-298.
+    Belloni, A., Chernozhukov, V., Fernández‐Val, I. and Hansen, C. (2017). Program Evaluation and Causal Inference With
+    High‐Dimensional Data. Econometrica, 85: 233-298.
     """
     # inspired by https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA12723, see suplement
     v = np.random.uniform(size=[n_obs, ])
@@ -352,10 +365,12 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
 
     .. math::
 
-        \\left(\\begin{matrix} u_i \\\\ v_i \\end{matrix} \\right) \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.3 \\\\ 0.3 & 1 \\end{matrix} \\right) \\right).
+        \\left(\\begin{matrix} u_i \\\\ v_i \\end{matrix} \\right) \\sim
+        \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.3 \\\\ 0.3 & 1 \\end{matrix} \\right) \\right).
 
     The covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
-    :math:`\\Sigma_{kj} = 0.5^{|j-k|}` and :math:`\\beta` is a `dim_x`-vector with entries :math:`\\beta_j=\\frac{1}{j^2}`.
+    :math:`\\Sigma_{kj} = 0.5^{|j-k|}` and :math:`\\beta` is a `dim_x`-vector with entries
+    :math:`\\beta_j=\\frac{1}{j^2}`.
 
     The data generating process is inspired by a process used in the simulation experiment of Farbmacher, Gruber and
     Klaaßen (2020).
@@ -375,7 +390,8 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
 
     References
     ----------
-    Farbmacher, H., Guber, R. and Klaaßen, S. (2020). Instrument Validity Tests with Causal Forests. MEA Discussion Paper No. 13-2020. Available at SSRN: http://dx.doi.org/10.2139/ssrn.3619201.
+    Farbmacher, H., Guber, R. and Klaaßen, S. (2020). Instrument Validity Tests with Causal Forests. MEA Discussion
+    Paper No. 13-2020. Available at SSRN: http://dx.doi.org/10.2139/ssrn.3619201.
     """
     # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201
     xx = np.random.multivariate_normal(np.zeros(2),
@@ -452,7 +468,9 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
 
     .. math::
 
-        \\left(\\begin{matrix} \\varepsilon_i \\\\ u_i \\\\ \\zeta_i \\\\ x_i \\end{matrix} \\right) \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.6 & 0 & 0 \\\\ 0.6 & 1 & 0 & 0 \\\\ 0 & 0 & 0.25 I_{p_n^z} & 0 \\\\ 0 & 0 & 0 & \\Sigma \\end{matrix} \\right) \\right)
+        \\left(\\begin{matrix} \\varepsilon_i \\\\ u_i \\\\ \\zeta_i \\\\ x_i \\end{matrix} \\right) \\sim
+        \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & 0.6 & 0 & 0 \\\\ 0.6 & 1 & 0 & 0 \\\\
+        0 & 0 & 0.25 I_{p_n^z} & 0 \\\\ 0 & 0 & 0 & \\Sigma \\end{matrix} \\right) \\right)
 
     where  :math:`\\Sigma` is a :math:`p_n^x \\times p_n^x` matrix with entries
     :math:`\\Sigma_{kj} = 0.5^{|j-k|}` and :math:`I_{p_n^z}` is the :math:`p_n^z \\times p_n^z` identity matrix.
@@ -475,15 +493,16 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
 
     References
     ----------
-    Chernozhukov, V., Hansen, C. and Spindler, M. (2015), Post-Selection and Post-Regularization Inference in Linear Models with Many Controls and Instruments. American Economic Review: Papers and Proceedings, 105 (5): 486-90.
+    Chernozhukov, V., Hansen, C. and Spindler, M. (2015), Post-Selection and Post-Regularization Inference in Linear
+    Models with Many Controls and Instruments. American Economic Review: Papers and Proceedings, 105 (5): 486-90.
     """
     assert dim_x >= dim_z
     # see https://assets.aeaweb.org/asset-server/articles-attachments/aer/app/10505/P2015_1022_app.pdf
     xx = np.random.multivariate_normal(np.zeros(2),
                                        np.array([[1., 0.6], [0.6, 1.]]),
                                        size=[n_obs, ])
-    epsilon = xx[:,0]
-    u = xx[:,1]
+    epsilon = xx[:, 0]
+    u = xx[:, 1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
     X = np.random.multivariate_normal(np.zeros(dim_x),
@@ -521,8 +540,8 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
 
 def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
     """
-    Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al. (2019).
-    The data generating process is defined as
+    Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al.
+    (2019). The data generating process is defined as
 
     .. math::
 
@@ -536,13 +555,17 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
 
     .. math::
 
-        X_{ij} &= (1 - \\omega_1^X - \\omega_2^X) \\alpha_{ij}^X + \\omega_1^X \\alpha_{i}^X + \\omega_2^X \\alpha_{j}^X,
+        X_{ij} &= (1 - \\omega_1^X - \\omega_2^X) \\alpha_{ij}^X
+        + \\omega_1^X \\alpha_{i}^X + \\omega_2^X \\alpha_{j}^X,
 
-        \\varepsilon_{ij} &= (1 - \\omega_1^\\varepsilon - \\omega_2^\\varepsilon) \\alpha_{ij}^\\varepsilon + \\omega_1^\\varepsilon \\alpha_{i}^\\varepsilon + \\omega_2^\\varepsilon \\alpha_{j}^\\varepsilon,
+        \\varepsilon_{ij} &= (1 - \\omega_1^\\varepsilon - \\omega_2^\\varepsilon) \\alpha_{ij}^\\varepsilon
+        + \\omega_1^\\varepsilon \\alpha_{i}^\\varepsilon + \\omega_2^\\varepsilon \\alpha_{j}^\\varepsilon,
 
-        v_{ij} &= (1 - \\omega_1^v - \\omega_2^v) \\alpha_{ij}^v + \\omega_1^v \\alpha_{i}^v + \\omega_2^v \\alpha_{j}^v,
+        v_{ij} &= (1 - \\omega_1^v - \\omega_2^v) \\alpha_{ij}^v
+        + \\omega_1^v \\alpha_{i}^v + \\omega_2^v \\alpha_{j}^v,
 
-        V_{ij} &= (1 - \\omega_1^V - \\omega_2^V) \\alpha_{ij}^V + \\omega_1^V \\alpha_{i}^V + \\omega_2^V \\alpha_{j}^V,
+        V_{ij} &= (1 - \\omega_1^V - \\omega_2^V) \\alpha_{ij}^V
+        + \\omega_1^V \\alpha_{i}^V + \\omega_2^V \\alpha_{j}^V,
 
     and :math:`\\alpha_{ij}^X, \\alpha_{i}^X, \\alpha_{j}^X \\sim \\mathcal{N}(0, \\Sigma)`
     where  :math:`\\Sigma` is a :math:`p_x \\times p_x` matrix with entries
@@ -551,7 +574,11 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
 
     .. math::
 
-        \\left(\\begin{matrix} \\alpha_{ij}^\\varepsilon \\\\ \\alpha_{ij}^v \\end{matrix}\\right), \\left(\\begin{matrix} \\alpha_{i}^\\varepsilon \\\\ \\alpha_{i}^v \\end{matrix}\\right), \\left(\\begin{matrix} \\alpha_{j}^\\varepsilon \\\\ \\alpha_{j}^v \\end{matrix}\\right) \\sim \\mathcal{N}\\left((0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\ s_{\\varepsilon v} & 1 \\end{matrix} \\right) \\right)
+        \\left(\\begin{matrix} \\alpha_{ij}^\\varepsilon \\\\ \\alpha_{ij}^v \\end{matrix}\\right),
+        \\left(\\begin{matrix} \\alpha_{i}^\\varepsilon \\\\ \\alpha_{i}^v \\end{matrix}\\right),
+        \\left(\\begin{matrix} \\alpha_{j}^\\varepsilon \\\\ \\alpha_{j}^v \\end{matrix}\\right)
+        \\sim \\mathcal{N}\\left((0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\
+        s_{\\varepsilon v} & 1 \\end{matrix} \\right) \\right)
 
 
     and :math:`\\alpha_{ij}^V, \\alpha_{i}^V, \\alpha_{j}^V \\sim \\mathcal{N}(0, 1)`.
@@ -567,7 +594,8 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     theta :
         The value of the causal parameter.
     return_type :
-        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object where ``DoubleMLData.data`` is a ``pd.DataFrame`` with multiindex.
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object where ``DoubleMLData.data`` is a
+        ``pd.DataFrame`` with multiindex.
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame`` with multiindex.
     **kwargs
@@ -578,7 +606,8 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
 
     References
     ----------
-    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2019), Multiway Cluster Robust Double/Debiased Machine Learning, arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
+    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2019), Multiway Cluster Robust Double/Debiased Machine Learning,
+    arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
     """
     # additional parameters specifiable via kwargs
     pi_10 = kwargs.get('pi_10', 1.0)
@@ -629,7 +658,7 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
         + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
     eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
-          + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
+        + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
 
     v = (1 - omega_v[0] - omega_v[1]) * alpha_v \
         + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j

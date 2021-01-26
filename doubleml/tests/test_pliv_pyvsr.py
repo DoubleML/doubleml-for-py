@@ -19,20 +19,21 @@ pandas2ri.activate()
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['partialling out'])
+                params=['partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -44,7 +45,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
     # collect data
     data = generate_data_iv[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    
+
     # Set machine learning methods for g, m & r
     learner = LinearRegression()
     ml_g = clone(learner)
@@ -60,7 +61,6 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
 
     dml_pliv_obj.fit()
 
-
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_pliv_obj.smpls[0])
 
@@ -73,7 +73,7 @@ def dml_pliv_pyvsr_fixture(generate_data_iv, idx, score, dml_procedure):
                 'coef_r': res_r[0],
                 'se_py': dml_pliv_obj.se,
                 'se_r': res_r[1]}
-    
+
     return res_dict
 
 
@@ -115,13 +115,12 @@ def dml_pliv_partial_x_pyvsr_fixture(generate_data_pliv_partialX, idx, score, dm
 
     dml_pliv_obj.fit()
 
-
     # fit the DML model in R
     all_train, all_test = export_smpl_split_to_r(dml_pliv_obj.smpls[0])
 
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLIV_PARTIAL_X(r_dataframe, 'partialling out', dml_procedure,
-                              all_train, all_test)
+                               all_train, all_test)
     print(res_r)
 
     res_dict = {'coef_py': dml_pliv_obj.coef,
@@ -173,7 +172,7 @@ def dml_pliv_partial_z_pyvsr_fixture(generate_data_pliv_partialZ, idx, score, dm
 
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLIV_PARTIAL_Z(r_dataframe, 'partialling out', dml_procedure,
-                     all_train, all_test)
+                               all_train, all_test)
     print(res_r)
 
     res_dict = {'coef_py': dml_pliv_obj.coef,
@@ -228,7 +227,7 @@ def dml_pliv_partial_xz_pyvsr_fixture(generate_data_pliv_partialXZ, idx, score, 
 
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLIV_PARTIAL_XZ(r_dataframe, 'partialling out', dml_procedure,
-                     all_train, all_test)
+                                all_train, all_test)
     print(res_r)
 
     res_dict = {'coef_py': dml_pliv_obj.coef,

@@ -17,29 +17,30 @@ from doubleml.tests.helper_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [[LogisticRegression(solver='lbfgs', max_iter=250),
-                           LinearRegression()],
-                          [RandomForestClassifier(max_depth=2, n_estimators=10),
-                           RandomForestRegressor(max_depth=2, n_estimators=10)]])
+                params=[[LogisticRegression(solver='lbfgs', max_iter=250),
+                         LinearRegression()],
+                        [RandomForestClassifier(max_depth=2, n_estimators=10),
+                         RandomForestRegressor(max_depth=2, n_estimators=10)]])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['LATE'])
+                params=['LATE'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -74,7 +75,7 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, tri
                                     trimming_threshold=trimming_threshold)
 
     dml_iivm_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -83,27 +84,26 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, tri
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
-    
+
     g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(y, X, d, z,
                                                               clone(learner[0]), clone(learner[1]), clone(learner[0]), smpls,
                                                               trimming_threshold=trimming_threshold)
-    
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = iivm_dml1(y, X, d, z,
-                                         g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                         smpls, score)
+                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                                          smpls, score)
     elif dml_procedure == 'dml2':
         res_manual, se_manual = iivm_dml2(y, X, d, z,
-                                         g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                         smpls, score)
-    
+                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                                          smpls, score)
+
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_iivm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_iivm(res_manual,
@@ -113,14 +113,14 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, tri
                                             se_manual,
                                             bootstrap, n_rep_boot,
                                             dml_procedure)
-        
+
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -147,4 +147,3 @@ def test_dml_iivm_boot(dml_iivm_fixture):
         assert np.allclose(dml_iivm_fixture['boot_t_stat' + bootstrap],
                            dml_iivm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

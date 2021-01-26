@@ -16,19 +16,21 @@ pandas2ri.activate()
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -36,12 +38,11 @@ def dml_procedure(request):
 @pytest.fixture(scope="module")
 def dml_plr_pyvsr_fixture(generate_data1, idx, score, dml_procedure):
     n_folds = 2
-    n_rep_boot = 483
 
     # collect data
     data = generate_data1[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    
+
     # Set machine learning methods for m & g
     learner = LinearRegression()
     ml_g = clone(learner)
@@ -54,7 +55,7 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, score, dml_procedure):
                                   score=score,
                                   dml_procedure=dml_procedure)
 
-    #np.random.seed(3141)
+    # np.random.seed(3141)
     dml_plr_obj.fit()
 
     # fit the DML model in R
@@ -63,13 +64,12 @@ def dml_plr_pyvsr_fixture(generate_data1, idx, score, dml_procedure):
     r_dataframe = pandas2ri.py2rpy(data)
     res_r = r_MLPLR(r_dataframe, score, dml_procedure,
                     all_train, all_test)
-    
+
     res_dict = {'coef_py': dml_plr_obj.coef,
                 'coef_r': res_r[0],
                 'se_py': dml_plr_obj.se,
                 'se_r': res_r[1]}
 
-    
     return res_dict
 
 

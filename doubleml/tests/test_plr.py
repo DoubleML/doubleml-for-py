@@ -18,28 +18,29 @@ from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_pl
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [RandomForestRegressor(max_depth=2, n_estimators=10),
-                          LinearRegression(),
-                          Lasso(alpha=0.1)])
+                params=[RandomForestRegressor(max_depth=2, n_estimators=10),
+                        LinearRegression(),
+                        Lasso(alpha=0.1)])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -67,7 +68,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
                                   dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -75,10 +76,10 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
-    
+
     g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                     clone(learner), clone(learner), smpls)
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
@@ -87,13 +88,13 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
         res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_plr_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(res_manual,
@@ -103,14 +104,14 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
                                            se_manual,
                                            bootstrap, n_rep_boot,
                                            dml_procedure)
-        
+
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -170,27 +171,27 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
     dml_plr_obj.set_sample_splitting(smpls)
 
     dml_plr_obj.fit()
-    
+
     y = data['y'].values
     X = data.loc[:, X_cols].values
     d = data['d'].values
-    
+
     # add column of ones for intercept
-    o = np.ones((N,1))
+    o = np.ones((N, 1))
     X = np.append(X, o, axis=1)
 
     smpls = dml_plr_obj.smpls[0]
-    
+
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
         ols_est = scipy.linalg.lstsq(X[train_index], y[train_index])[0]
         g_hat.append(np.dot(X[test_index], ols_est))
-    
+
     m_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
         ols_est = scipy.linalg.lstsq(X[train_index], d[train_index])[0]
         m_hat.append(np.dot(X[test_index], ols_est))
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,
                                          g_hat, m_hat,
@@ -199,13 +200,13 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
         res_manual, se_manual = plr_dml2(y, X, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_plr_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(res_manual,
@@ -215,14 +216,14 @@ def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
                                            se_manual,
                                            bootstrap, n_rep_boot,
                                            dml_procedure)
-        
+
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -249,4 +250,3 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
         assert np.allclose(dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap],
                            dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
@@ -18,32 +17,34 @@ from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_pl
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [RandomForestRegressor(max_depth=2, n_estimators=10),
-                          LinearRegression()])
+                params=[RandomForestRegressor(max_depth=2, n_estimators=10),
+                        LinearRegression()])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['IV-type', 'partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
-                params = [3])
+                params=[3])
 def n_rep(request):
     return request.param
 
@@ -57,7 +58,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
     # collect data
     data = generate_data1[idx]
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    
+
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
@@ -72,7 +73,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
                                   dml_procedure)
 
     dml_plr_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -109,14 +110,14 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
 
     res_manual = np.median(thetas)
     se_manual = np.sqrt(np.median(np.power(ses, 2)*n_obs + np.power(thetas - res_manual, 2))/n_obs)
-    
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_plr_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods
                 }
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         all_boot_theta = list()
@@ -142,7 +143,7 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 

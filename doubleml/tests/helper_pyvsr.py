@@ -29,21 +29,21 @@ r_MLPLR = robjects.r('''
             data = data.table(data)
             mlmethod_m = 'regr.lm'
             mlmethod_g = 'regr.lm'
-            
+
             Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames)
-            
+
             double_mlplr_obj = DoubleMLPLR$new(data_ml,
                                                n_folds = 2,
                                                ml_g = mlmethod_g,
                                                ml_m = mlmethod_m,
                                                dml_procedure = dml_procedure,
                                                score = score)
-            
+
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlplr_obj$set_sample_splitting(smpls)
-            
+
             double_mlplr_obj$fit()
             return(list(coef = double_mlplr_obj$coef,
                         se = double_mlplr_obj$se))
@@ -62,12 +62,12 @@ r_MLPLIV = robjects.r('''
             mlmethod_g = 'regr.lm'
             mlmethod_m = 'regr.lm'
             mlmethod_r = 'regr.lm'
-            
+
             Xnames = names(data)[names(data) %in% c("y", "d", "Z1") == FALSE]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames,
                                                      z_col = "Z1")
-            
+
             double_mlpliv_obj = DoubleMLPLIV$new(data_ml,
                                                  n_folds = 2,
                                                  ml_g = mlmethod_g,
@@ -75,10 +75,10 @@ r_MLPLIV = robjects.r('''
                                                  ml_r = mlmethod_r,
                                                  dml_procedure = dml_procedure,
                                                  score = score)
-            
+
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlpliv_obj$set_sample_splitting(smpls)
-            
+
             double_mlpliv_obj$fit()
             return(list(coef = double_mlpliv_obj$coef,
                         se = double_mlpliv_obj$se))
@@ -100,7 +100,7 @@ r_MLPLIV_PARTIAL_X = robjects.r('''
 
             Xnames = names(data)[grepl('X', names(data))]
             Znames = names(data)[grepl('Z', names(data))]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames,
                                                      z_col = Znames)
 
@@ -134,7 +134,7 @@ r_MLPLIV_PARTIAL_Z = robjects.r('''
 
             Xnames = names(data)[grepl('X', names(data))]
             Znames = names(data)[grepl('Z', names(data))]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames,
                                                      z_col = Znames)
 
@@ -168,7 +168,7 @@ r_MLPLIV_PARTIAL_XZ = robjects.r('''
 
             Xnames = names(data)[grepl('X', names(data))]
             Znames = names(data)[grepl('Z', names(data))]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames,
                                                      z_col = Znames)
 
@@ -200,21 +200,21 @@ r_IRM = robjects.r('''
             data = data.table(data)
             mlmethod_g = 'regr.lm'
             mlmethod_m = 'classif.log_reg'
-            
+
             Xnames = names(data)[names(data) %in% c("y", "d") == FALSE]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames)
-            
+
             double_mlirm_obj = DoubleMLIRM$new(data_ml,
                                                n_folds = 2,
                                                ml_g = mlmethod_g,
                                                ml_m = mlmethod_m,
                                                dml_procedure = dml_procedure,
                                                score = score)
-            
+
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mlirm_obj$set_sample_splitting(smpls)
-            
+
             double_mlirm_obj$fit()
             return(list(coef = double_mlirm_obj$coef,
                         se = double_mlirm_obj$se))
@@ -233,9 +233,9 @@ r_IIVM = robjects.r('''
             ml_g = 'regr.lm'
             ml_m = 'classif.log_reg'
             ml_r = 'classif.log_reg'
-            
+
             Xnames = names(data)[names(data) %in% c("y", "d", "z") == FALSE]
-            data_ml = double_ml_data_from_data_frame(data, y_col = "y", 
+            data_ml = double_ml_data_from_data_frame(data, y_col = "y",
                                                      d_cols = "d", x_cols = Xnames,
                                                      z_col = "z")
 
@@ -246,13 +246,12 @@ r_IIVM = robjects.r('''
                                                  ml_r = ml_r,
                                                  dml_procedure = dml_procedure,
                                                  score = score)
-            
+
             smpls = list(list(train_ids=train_ids, test_ids=test_ids))
             double_mliivm_obj$set_sample_splitting(smpls)
-            
+
             double_mliivm_obj$fit()
             return(list(coef = double_mliivm_obj$coef,
                         se = double_mliivm_obj$se))
         }
         ''')
-

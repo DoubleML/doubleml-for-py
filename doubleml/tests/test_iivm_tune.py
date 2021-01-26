@@ -5,7 +5,7 @@ import math
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
@@ -22,6 +22,7 @@ n_datasets = get_n_datasets()
                 params=range(n_datasets))
 def idx(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params=[RandomForestRegressor()])
@@ -94,10 +95,10 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner_g, learner_m, learner_r, s
                                     n_folds,
                                     dml_procedure=dml_procedure)
     # tune hyperparameters
-    res_tuning = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    _ = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     dml_iivm_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -140,13 +141,13 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner_g, learner_m, learner_r, s
         res_manual, se_manual = iivm_dml2(y, X, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
-    
+
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_iivm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_iivm(res_manual,
@@ -156,14 +157,14 @@ def dml_iivm_fixture(generate_data_iivm, idx, learner_g, learner_m, learner_r, s
                                             se_manual,
                                             bootstrap, n_rep_boot,
                                             dml_procedure)
-        
+
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -190,4 +191,3 @@ def test_dml_iivm_boot(dml_iivm_fixture):
         assert np.allclose(dml_iivm_fixture['boot_t_stat' + bootstrap],
                            dml_iivm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-
