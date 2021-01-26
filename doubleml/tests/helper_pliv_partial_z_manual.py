@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
-from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual, draw_weights
 
@@ -12,7 +11,7 @@ def fit_nuisance_pliv_partial_z(Y, X, D, Z, ml_r, smpls, r_params=None):
         if r_params is not None:
             ml_r.set_params(**r_params[idx])
         r_hat.append(ml_r.fit(XZ[train_index], D[train_index]).predict(XZ[test_index]))
-    
+
     return r_hat
 
 
@@ -33,7 +32,7 @@ def tune_nuisance_pliv_partial_z(Y, X, D, Z, ml_r, smpls, n_folds_tune, param_gr
 def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
-    
+
     for idx, (train_index, test_index) in enumerate(smpls):
         thetas[idx] = pliv_partial_z_orth(r_hat[idx], Y[test_index], D[test_index], score)
     theta_hat = np.mean(thetas)
@@ -42,7 +41,7 @@ def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):
     for idx, (train_index, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, Y, D, score, n_obs))
-    
+
     return theta_hat, se
 
 
@@ -53,7 +52,7 @@ def pliv_partial_z_dml2(Y, X, D, Z, r_hat, smpls, score):
         r_hat_array[test_index] = r_hat[idx]
     theta_hat = pliv_partial_z_orth(r_hat_array, Y, D, score)
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, Y, D, score, n_obs))
-    
+
     return theta_hat, se
 
 
@@ -63,7 +62,7 @@ def var_pliv_partial_z(theta, r_hat, y, d, score, n_obs):
               np.mean(np.power(np.multiply(y - d*theta, r_hat), 2))
     else:
         raise ValueError('invalid score')
-    
+
     return var
 
 
@@ -71,8 +70,8 @@ def pliv_partial_z_orth(r_hat, y, d, score):
     if score == 'partialling out':
         res = np.mean(np.multiply(r_hat, y))/np.mean(np.multiply(r_hat, d))
     else:
-      raise ValueError('invalid score')
-    
+        raise ValueError('invalid score')
+
     return res
 
 
@@ -107,7 +106,7 @@ def boot_pliv_partial_z_single_treat(theta, Y, D, Z, r_hat, smpls, score, se, we
         psi = np.multiply(Y - D*theta, r_hat_array)
     else:
         raise ValueError('invalid score')
-    
+
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 
     return boot_theta, boot_t_stat

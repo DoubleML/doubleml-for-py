@@ -1,7 +1,5 @@
 import numpy as np
 
-import warnings
-
 import scipy.sparse as sp
 from joblib import Parallel, delayed
 
@@ -12,7 +10,7 @@ from sklearn.model_selection._validation import _fit_and_predict, _check_is_perm
 
 
 def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
-                    n_jobs=None, est_params=None, method='predict'):
+                               n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
 

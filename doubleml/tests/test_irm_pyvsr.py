@@ -20,19 +20,19 @@ n_datasets = get_n_datasets()
 
 
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['ATE', 'ATTE'])
+                params=['ATE', 'ATTE'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -88,4 +88,3 @@ def test_dml_irm_pyvsr_se(dml_irm_pyvsr_fixture):
     assert math.isclose(dml_irm_pyvsr_fixture['se_py'],
                         dml_irm_pyvsr_fixture['se_r'],
                         rel_tol=1e-9, abs_tol=1e-4)
-

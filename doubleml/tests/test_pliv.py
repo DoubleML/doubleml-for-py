@@ -17,28 +17,29 @@ from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
+
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [RandomForestRegressor(max_depth=2, n_estimators=10),
-                          LinearRegression(),
-                          Lasso(alpha=0.1)])
+                params=[RandomForestRegressor(max_depth=2, n_estimators=10),
+                        LinearRegression(),
+                        Lasso(alpha=0.1)])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['partialling out'])
+                params=['partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = ['dml1', 'dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
@@ -66,7 +67,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
                                     dml_procedure=dml_procedure)
 
     dml_pliv_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -75,11 +76,11 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(X)]
-    
+
     g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,
                                             clone(learner), clone(learner), clone(learner),
                                             smpls)
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = pliv_dml1(y, X, d,
                                           z,
@@ -90,13 +91,13 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
-    
+
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_pliv_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(res_manual,
@@ -107,14 +108,14 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
                                             se_manual,
                                             bootstrap, n_rep_boot,
                                             dml_procedure)
-        
+
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_pliv_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -141,4 +142,3 @@ def test_dml_pliv_boot(dml_pliv_fixture):
         assert np.allclose(dml_pliv_fixture['boot_t_stat' + bootstrap],
                            dml_pliv_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

@@ -1,18 +1,16 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, Lasso
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
 from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr, tune_nuisance_plr
+from doubleml.tests.helper_plr_manual import plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
 
 
 # number of datasets per dgp
@@ -67,7 +65,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
                                   apply_cross_fitting=False)
 
     dml_plr_obj.fit()
-    
+
     np.random.seed(3141)
     y = data['y'].values
     X = data.loc[:, X_cols].values
@@ -79,7 +77,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
                            shuffle=True)
         smpls = [(train, test) for train, test in resampling.split(X)]
         smpls = [smpls[0]]
-    
+
     g_hat, m_hat = fit_nuisance_plr(y, X, d,
                                     clone(learner), clone(learner), smpls)
 
@@ -87,13 +85,13 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
     res_manual, se_manual = plr_dml1(y, X, d,
                                      g_hat, m_hat,
                                      smpls, score)
-    
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_plr_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(res_manual,
@@ -111,7 +109,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -300,7 +298,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
                                   apply_cross_fitting=False)
 
     # tune hyperparameters
-    res_tuning = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    _ = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     # fit with tuned parameters
     dml_plr_obj.fit()

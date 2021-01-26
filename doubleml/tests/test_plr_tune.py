@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import math
-import scipy
 
 from sklearn.model_selection import KFold
 from sklearn.base import clone
@@ -19,7 +18,7 @@ n_datasets = get_n_datasets()
 
 
 @pytest.fixture(scope='module',
-                params = range(n_datasets))
+                params=range(n_datasets))
 def idx(request):
     return request.param
 
@@ -45,13 +44,13 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params = ['dml2'])
+                params=['dml2'])
 def dml_procedure(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params = [True, False])
+                params=[True, False])
 def tune_on_folds(request):
     return request.param
 
@@ -89,7 +88,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    res_tuning = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    _ = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     # fit with tuned parameters
     dml_plr_obj.fit()
@@ -120,7 +119,6 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
                                         clone(learner_m), clone(learner_g),
                                         smpls,
                                         g_params * n_folds, m_params * n_folds)
-
 
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, X, d,

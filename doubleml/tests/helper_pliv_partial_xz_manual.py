@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
-from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual, draw_weights
 
@@ -21,13 +20,13 @@ def fit_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=N
         ml_m.fit(XZ[train_index], D[train_index])
         m_hat.append(ml_m.predict(XZ[test_index]))
         m_hat_train.append(ml_m.predict(XZ[train_index]))
-    
+
     m_hat_tilde = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if r_params is not None:
             ml_r.set_params(**r_params[idx])
         m_hat_tilde.append(ml_r.fit(X[train_index], m_hat_train[idx]).predict(X[test_index]))
-    
+
     return g_hat, m_hat, m_hat_tilde
 
 
@@ -65,14 +64,14 @@ def tune_nuisance_pliv_partial_xz(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_t
 def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
-    
+
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat = Y[test_index] - g_hat[idx]
         v_hat = m_hat[idx] - m_hat_tilde[idx]
         w_hat = D[test_index] - m_hat_tilde[idx]
         thetas[idx] = pliv_partial_xz_orth(u_hat, v_hat, w_hat, D[test_index], score)
     theta_hat = np.mean(thetas)
-    
+
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     w_hat = np.zeros_like(D)
@@ -81,7 +80,7 @@ def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = D[test_index] - m_hat_tilde[idx]
     se = np.sqrt(var_pliv_partial_xz(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
-    
+
     return theta_hat, se
 
 
@@ -96,7 +95,7 @@ def pliv_partial_xz_dml2(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
         w_hat[test_index] = D[test_index] - m_hat_tilde[idx]
     theta_hat = pliv_partial_xz_orth(u_hat, v_hat, w_hat, D, score)
     se = np.sqrt(var_pliv_partial_xz(theta_hat, D, u_hat, v_hat, w_hat, score, n_obs))
-    
+
     return theta_hat, se
 
 
@@ -106,7 +105,7 @@ def var_pliv_partial_xz(theta, d, u_hat, v_hat, w_hat, score, n_obs):
               np.mean(np.power(np.multiply(u_hat - w_hat*theta, v_hat), 2))
     else:
         raise ValueError('invalid score')
-    
+
     return var
 
 
@@ -114,8 +113,8 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, D, score):
     if score == 'partialling out':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, w_hat))
     else:
-      raise ValueError('invalid score')
-    
+        raise ValueError('invalid score')
+
     return res
 
 
@@ -132,7 +131,8 @@ def boot_pliv_partial_xz(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score
     return boot_theta, boot_t_stat
 
 
-def boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score, se, weights, n_rep, dml_procedure):
+def boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score, se, weights,
+                                      n_rep, dml_procedure):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     w_hat = np.zeros_like(D)
@@ -154,7 +154,7 @@ def boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde,
         psi = np.multiply(u_hat - w_hat*theta, v_hat)
     else:
         raise ValueError('invalid score')
-    
+
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 
     return boot_theta, boot_t_stat

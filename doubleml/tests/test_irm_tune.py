@@ -5,8 +5,8 @@ import math
 from sklearn.model_selection import KFold
 from sklearn.base import clone
 
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
@@ -88,10 +88,10 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    res_tuning = dml_irm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    _ = dml_irm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
 
     dml_irm_obj.fit()
-    
+
     np.random.seed(3141)
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
@@ -123,7 +123,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
                                                             clone(learner_m), clone(learner_g), smpls,
                                                             score,
                                                             g0_params * n_folds, None, m_params * n_folds)
-    
+
     if dml_procedure == 'dml1':
         res_manual, se_manual = irm_dml1(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
@@ -132,13 +132,13 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
         res_manual, se_manual = irm_dml2(y, X, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
-    
+
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual,
                 'se': dml_irm_obj.se,
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
-    
+
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_irm(res_manual,
@@ -148,14 +148,14 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
                                            se_manual,
                                            bootstrap, n_rep_boot,
                                            dml_procedure)
-        
+
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-    
+
     return res_dict
 
 
@@ -182,4 +182,3 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-

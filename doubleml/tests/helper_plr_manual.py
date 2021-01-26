@@ -5,6 +5,7 @@ from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual, draw_weights
 
+
 def fit_nuisance_plr(Y, X, D, learner_m, learner_g, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
     g_hat = []
@@ -19,7 +20,7 @@ def fit_nuisance_plr(Y, X, D, learner_m, learner_g, smpls, g_params=None, m_para
         if m_params is not None:
             ml_m.set_params(**m_params[idx])
         m_hat.append(ml_m.fit(X[train_index], D[train_index]).predict(X[test_index]))
-    
+
     return g_hat, m_hat
 
 
@@ -47,7 +48,7 @@ def tune_nuisance_plr(Y, X, D, ml_m, ml_g, smpls, n_folds_tune, param_grid_g, pa
 def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
-    
+
     for idx, (train_index, test_index) in enumerate(smpls):
         v_hat = D[test_index] - m_hat[idx]
         u_hat = Y[test_index] - g_hat[idx]
@@ -68,12 +69,11 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score):
         v_hat = D[test_index] - m_hat[0]
         u_hat = Y[test_index] - g_hat[0]
         se = np.sqrt(var_plr(theta_hat, D[test_index], u_hat, v_hat, score, n_obs))
-    
+
     return theta_hat, se
 
 
 def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
-    thetas = np.zeros(len(smpls))
     n_obs = len(Y)
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
@@ -84,7 +84,8 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
     se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
 
     return theta_hat, se
-    
+
+
 def var_plr(theta, d, u_hat, v_hat, score, n_obs):
     if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
@@ -94,15 +95,16 @@ def var_plr(theta, d, u_hat, v_hat, score, n_obs):
               np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
     else:
         raise ValueError('invalid score')
-    
+
     return var
+
 
 def plr_orth(v_hat, u_hat, D, score):
     if score == 'IV-type':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, D))
     elif score == 'partialling out':
         res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
-    
+
     return res
 
 
@@ -171,5 +173,5 @@ def boot_plr_single_treat(theta, Y, D, g_hat, m_hat, smpls, score, se, weights, 
         raise ValueError('invalid score')
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fitting)
-    
+
     return boot_theta, boot_t_stat

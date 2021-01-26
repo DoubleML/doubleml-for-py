@@ -4,6 +4,7 @@ from sklearn.base import clone
 
 from doubleml.tests.helper_boot import boot_manual, draw_weights
 
+
 def fit_nuisance_iivm(Y, X, D, Z, learner_m, learner_g, learner_r, smpls,
                       g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
                       trimming_threshold=1e-12):
@@ -106,7 +107,7 @@ def tune_nuisance_iivm(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune,
 def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
-    
+
     for idx, (train_index, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
@@ -143,8 +144,9 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
                           m_hat_all, r_hat0_all, r_hat1_all,
                           u_hat0, u_hat1, w_hat0, w_hat1,
                           Z, score, n_obs))
-    
+
     return theta_hat, se
+
 
 def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     n_obs = len(Y)
@@ -173,37 +175,39 @@ def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
                           m_hat_all, r_hat0_all, r_hat1_all,
                           u_hat0, u_hat1, w_hat0, w_hat1,
                           Z, score, n_obs))
-    
+
     return theta_hat, se
-    
+
+
 def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, score, n_obs):
     if score == 'LATE':
-        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0 \
-                            + np.divide(np.multiply(Z, u_hat1), m_hat) \
-                            - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat) \
-                        -theta*(r_hat1 - r_hat0 \
-                            + np.divide(np.multiply(Z, w_hat1), m_hat) \
-                            - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)) \
-                      / np.power(np.mean(r_hat1 - r_hat0 \
-                                + np.divide(np.multiply(Z, w_hat1), m_hat) \
-                                - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)
+        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0
+                                         + np.divide(np.multiply(Z, u_hat1), m_hat)
+                                         - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat)
+                                         - theta*(r_hat1 - r_hat0
+                                                  + np.divide(np.multiply(Z, w_hat1), m_hat)
+                                                  - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)) \
+              / np.power(np.mean(r_hat1 - r_hat0
+                                 + np.divide(np.multiply(Z, w_hat1), m_hat)
+                                 - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)
     else:
         raise ValueError('invalid score')
-    
+
     return var
 
+
 def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_hat1, Z, score):
-    
+
     if score == 'LATE':
-        res = np.mean(g_hat1 - g_hat0 \
-                      + np.divide(np.multiply(Z, u_hat1), m_hat) \
+        res = np.mean(g_hat1 - g_hat0
+                      + np.divide(np.multiply(Z, u_hat1), m_hat)
                       - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat)) \
-              / np.mean(r_hat1 - r_hat0 \
-                        + np.divide(np.multiply(Z, w_hat1), m_hat) \
+              / np.mean(r_hat1 - r_hat0
+                        + np.divide(np.multiply(Z, w_hat1), m_hat)
                         - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat))
     else:
         raise ValueError('invalid score')
-    
+
     return res
 
 
@@ -220,7 +224,8 @@ def boot_iivm(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, scor
     return boot_theta, boot_t_stat
 
 
-def boot_iivm_single_treat(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, weights, n_rep, dml_procedure):
+def boot_iivm_single_treat(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, weights,
+                           n_rep, dml_procedure):
     u_hat0 = np.zeros_like(Y)
     u_hat1 = np.zeros_like(Y)
     w_hat0 = np.zeros_like(Y)
@@ -244,26 +249,27 @@ def boot_iivm_single_treat(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
         m_hat_all[test_index] = m_hat[idx]
         if dml_procedure == 'dml1':
             if score == 'LATE':
-                J[idx] = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index] \
-                              + np.divide(np.multiply(Z[test_index], w_hat1[test_index]), m_hat_all[test_index]) \
-                              - np.divide(np.multiply(1. - Z[test_index], w_hat0[test_index]), 1. - m_hat_all[test_index])))
+                J[idx] = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index]
+                                   + np.divide(np.multiply(Z[test_index], w_hat1[test_index]), m_hat_all[test_index])
+                                   - np.divide(np.multiply(1. - Z[test_index], w_hat0[test_index]),
+                                               1. - m_hat_all[test_index])))
 
     if dml_procedure == 'dml2':
         if score == 'LATE':
-            J = np.mean(-(r_hat1_all - r_hat0_all \
-                          + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
+            J = np.mean(-(r_hat1_all - r_hat0_all
+                          + np.divide(np.multiply(Z, w_hat1), m_hat_all)
                           - np.divide(np.multiply(1. - Z, w_hat0), 1. - m_hat_all)))
 
     if score == 'LATE':
         psi = g_hat1_all - g_hat0_all \
-                + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
-                - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat_all) \
-                -theta*(r_hat1_all - r_hat0_all \
-                    + np.divide(np.multiply(Z, w_hat1), m_hat_all) \
-                    - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all))
+              + np.divide(np.multiply(Z, u_hat1), m_hat_all) \
+              - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat_all) \
+              - theta*(r_hat1_all - r_hat0_all
+                       + np.divide(np.multiply(Z, w_hat1), m_hat_all)
+                       - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat_all))
     else:
         raise ValueError('invalid score')
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
-    
+
     return boot_theta, boot_t_stat
