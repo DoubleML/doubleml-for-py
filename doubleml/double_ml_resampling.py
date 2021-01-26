@@ -3,7 +3,6 @@ import pandas as pd
 import warnings
 
 from sklearn.model_selection import KFold, RepeatedKFold
-from sklearn.model_selection import ShuffleSplit
 import itertools
 
 
