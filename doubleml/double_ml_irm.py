@@ -9,9 +9,7 @@ from ._helper import _dml_cv_predict, _get_cond_smpls
 
 
 class DoubleMLIRM(DoubleML):
-
-    """
-    Double machine learning for interactive regression models
+    """Double machine learning for interactive regression models
 
     Parameters
     ----------

@@ -10,9 +10,7 @@ from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLIV(DoubleML):
-
-    """
-    Double machine learning for partially linear IV regression models
+    """Double machine learning for partially linear IV regression models
 
     Parameters
     ----------
