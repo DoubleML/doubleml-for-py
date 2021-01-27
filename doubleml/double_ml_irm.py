@@ -137,7 +137,7 @@ class DoubleMLIRM(DoubleML):
         zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not(one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data.\n'
-                             'To fit an IIVM model with DML '
+                             'To fit an IRM model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
