@@ -221,7 +221,7 @@ class DoubleMLIIVM(DoubleML):
                                'ml_r': None}
 
         g0_tune_res = list()
-        for idx in range(self.n_rep):
+        for idx in range(self.n_folds):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -237,7 +237,7 @@ class DoubleMLIIVM(DoubleML):
             g0_tune_res.append(g0_grid_search.fit(x[train_index_z0, :], y[train_index_z0]))
 
         g1_tune_res = list()
-        for idx in range(self.n_rep):
+        for idx in range(self.n_folds):
             g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -253,7 +253,7 @@ class DoubleMLIIVM(DoubleML):
             g1_tune_res.append(g1_grid_search.fit(x[train_index_z1, :], y[train_index_z1]))
 
         m_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, _) in smpls:
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
@@ -268,7 +268,7 @@ class DoubleMLIIVM(DoubleML):
             m_tune_res.append(m_grid_search.fit(x[train_index, :], z[train_index]))
 
         r0_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for idx in range(self.n_folds):
             r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 r0_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
@@ -284,7 +284,7 @@ class DoubleMLIIVM(DoubleML):
             r0_tune_res.append(r0_grid_search.fit(x[train_index_z0, :], d[train_index_z0]))
 
         r1_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for idx in range(self.n_folds):
             r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 r1_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],

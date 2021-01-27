@@ -212,7 +212,7 @@ class DoubleMLIRM(DoubleML):
                                'ml_m': None}
 
         g0_tune_res = list()
-        for idx in range(self.n_rep):
+        for idx in range(self.n_folds):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -229,7 +229,7 @@ class DoubleMLIRM(DoubleML):
 
         g1_tune_res = list()
         if self.score == 'ATE':
-            for idx in range(self.n_rep):
+            for idx in range(self.n_folds):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
                     g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
