@@ -245,7 +245,7 @@ class DoubleMLIRM(DoubleML):
                 g1_tune_res.append(g1_grid_search.fit(x[train_index_d1, :], y[train_index_d1]))
 
         m_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, _) in smpls:
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
