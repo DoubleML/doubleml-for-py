@@ -7,6 +7,7 @@ from ._helper import _assure_2d_array
 
 
 class DoubleMLData:
+
     """
     Double machine learning data-backend.
 

@@ -8,6 +8,7 @@ from ._helper import _dml_cv_predict
 
 
 class DoubleMLPLR(DoubleML):
+
     """
     Double machine learning for partially linear regression models
 
