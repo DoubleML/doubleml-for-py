@@ -214,6 +214,7 @@ class DoubleMLIIVM(DoubleML):
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
+        n_smpls = len(smpls)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
@@ -221,7 +222,7 @@ class DoubleMLIIVM(DoubleML):
                                'ml_r': None}
 
         g0_tune_res = list()
-        for idx in range(self.n_folds):
+        for idx in range(n_smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -237,7 +238,7 @@ class DoubleMLIIVM(DoubleML):
             g0_tune_res.append(g0_grid_search.fit(x[train_index_z0, :], y[train_index_z0]))
 
         g1_tune_res = list()
-        for idx in range(self.n_folds):
+        for idx in range(n_smpls):
             g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -268,7 +269,7 @@ class DoubleMLIIVM(DoubleML):
             m_tune_res.append(m_grid_search.fit(x[train_index, :], z[train_index]))
 
         r0_tune_res = list()
-        for idx in range(self.n_folds):
+        for idx in range(n_smpls):
             r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 r0_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
@@ -284,7 +285,7 @@ class DoubleMLIIVM(DoubleML):
             r0_tune_res.append(r0_grid_search.fit(x[train_index_z0, :], d[train_index_z0]))
 
         r1_tune_res = list()
-        for idx in range(self.n_folds):
+        for idx in range(n_smpls):
             r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 r1_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],

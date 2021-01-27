@@ -206,13 +206,14 @@ class DoubleMLIRM(DoubleML):
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        n_smpls = len(smpls)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
                                'ml_m': None}
 
         g0_tune_res = list()
-        for idx in range(self.n_folds):
+        for idx in range(n_smpls):
             g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -229,7 +230,7 @@ class DoubleMLIRM(DoubleML):
 
         g1_tune_res = list()
         if self.score == 'ATE':
-            for idx in range(self.n_folds):
+            for idx in range(n_smpls):
                 g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
                     g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
