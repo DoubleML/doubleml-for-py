@@ -26,7 +26,7 @@ def boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fi
             if dml_procedure == 'dml1':
                 this_boot_theta = np.zeros(n_folds)
                 this_boot_t_stat = np.zeros(n_folds)
-                for idx, (train_index, test_index) in enumerate(smpls):
+                for idx, (_, test_index) in enumerate(smpls):
                     this_boot_theta[idx] = np.mean(np.multiply(this_weights[test_index],
                                                                psi[test_index] / J[idx]))
                     this_boot_t_stat[idx] = np.mean(np.multiply(np.divide(this_weights[test_index], se),

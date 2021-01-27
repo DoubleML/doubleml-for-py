@@ -376,7 +376,7 @@ class DoubleMLPLIV(DoubleML):
                                'ml_r': None}
 
         g_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -395,7 +395,7 @@ class DoubleMLPLIV(DoubleML):
             m_tune_res = {instr_var: list() for instr_var in self._dml_data.z_cols}
             z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
-                for idx, (train_index, test_index) in enumerate(smpls):
+                for (train_index, test_index) in smpls:
                     x, this_z = check_X_y(x, z[:, i_instr])
                     m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                     if search_mode == 'grid_search':
@@ -413,7 +413,7 @@ class DoubleMLPLIV(DoubleML):
         else:
             # one instrument: just identified
             m_tune_res = list()
-            for idx, (train_index, test_index) in enumerate(smpls):
+            for (train_index, test_index) in smpls:
                 x, z = check_X_y(x, np.ravel(self._dml_data.z))
                 m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
                 if search_mode == 'grid_search':
@@ -429,7 +429,7 @@ class DoubleMLPLIV(DoubleML):
                 m_tune_res.append(m_grid_search.fit(x[train_index, :], z[train_index]))
 
         r_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             r_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 r_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
@@ -474,7 +474,7 @@ class DoubleMLPLIV(DoubleML):
             scoring_methods = {'ml_r': None}
 
         m_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 m_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
@@ -512,7 +512,7 @@ class DoubleMLPLIV(DoubleML):
                                'ml_r': None}
 
         g_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -527,7 +527,7 @@ class DoubleMLPLIV(DoubleML):
             g_tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
         m_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],

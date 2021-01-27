@@ -39,7 +39,7 @@ def fit_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, g_params=No
 
 def tune_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
     g_tune_res = [None] * len(smpls)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (train_index, _) in enumerate(smpls):
         g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         g_grid_search = GridSearchCV(ml_g, param_grid_g,
                                      cv=g_tune_resampling)
@@ -47,14 +47,14 @@ def tune_nuisance_pliv_partial_x(Y, X, D, Z, ml_m, ml_g, ml_r, smpls, n_folds_tu
 
     m_tune_res = [[None] * len(smpls) for i in range(Z.shape[1])]
     for i_instr in range(Z.shape[1]):
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for idx, (train_index, _) in enumerate(smpls):
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             m_grid_search = GridSearchCV(ml_m, param_grid_m,
                                          cv=m_tune_resampling)
             m_tune_res[i_instr][idx] = m_grid_search.fit(X[train_index, :], Z[train_index, i_instr])
 
     r_tune_res = [None] * len(smpls)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (train_index, _) in enumerate(smpls):
         r_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         r_grid_search = GridSearchCV(ml_r, param_grid_r,
                                      cv=r_tune_resampling)

@@ -48,7 +48,7 @@ def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
 def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
                       param_grid_g, param_grid_m):
     g0_tune_res = [None] * len(smpls)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (train_index, _) in enumerate(smpls):
         g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         g0_grid_search = GridSearchCV(ml_g, param_grid_g,
                                       cv=g0_tune_resampling)
@@ -57,7 +57,7 @@ def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
 
     if score == 'ATE':
         g1_tune_res = [None] * len(smpls)
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for idx, (train_index, _) in enumerate(smpls):
             g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             g1_grid_search = GridSearchCV(ml_g, param_grid_g,
                                           cv=g1_tune_resampling)
@@ -65,7 +65,7 @@ def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
             g1_tune_res[idx] = g1_grid_search.fit(X[train_index1, :], Y[train_index1])
 
     m_tune_res = [None] * len(smpls)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (train_index, _) in enumerate(smpls):
         m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         m_grid_search = GridSearchCV(ml_m, param_grid_m,
                                      cv=m_tune_resampling)

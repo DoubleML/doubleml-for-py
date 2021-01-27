@@ -45,7 +45,7 @@ def generate_data1(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_plr_turrell2018(N, p, theta, return_type=pd.DataFrame)
         datasets.append(data)
 
@@ -64,7 +64,7 @@ def generate_data2(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_plr_turrell2018(N, p, theta)
         datasets.append(data)
 
@@ -85,7 +85,7 @@ def generate_data_bivariate(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         X = np.random.multivariate_normal(np.zeros(p), sigma, size=[N, ])
         G = g(np.dot(X, b))
         M0 = m(np.dot(X, b))
@@ -122,7 +122,7 @@ def generate_data_toeplitz(request, betamax=4, decay=0.99, threshold=0, noisevar
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         X = np.random.multivariate_normal(mu, sigma, size=[N, ])
         Y = np.dot(X, beta) + np.random.normal(loc=0.0, scale=np.sqrt(noisevar), size=[N, ])
         D = X[:, cols_treatment]
@@ -148,7 +148,7 @@ def generate_data_iv(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_pliv_CHS2015(n_obs=N, dim_x=p, alpha=theta, dim_z=1, return_type=pd.DataFrame)
         datasets.append(data)
 
@@ -169,7 +169,7 @@ def generate_data_irm(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_irm_data(N, p, theta, return_type='array')
         datasets.append(data)
 
@@ -189,7 +189,7 @@ def generate_data_iivm(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_iivm_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
         datasets.append(data)
 
@@ -207,7 +207,7 @@ def generate_data_pliv_partialXZ(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_pliv_CHS2015(N, alpha=theta)
         datasets.append(data)
 
@@ -225,7 +225,7 @@ def generate_data_pliv_partialX(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_pliv_CHS2015(N, alpha=theta, dim_z=5)
         datasets.append(data)
 
@@ -243,7 +243,7 @@ def generate_data_pliv_partialZ(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         data = make_data_pliv_partialZ(N, alpha=theta, dim_x=5)
         datasets.append(data)
 
@@ -297,7 +297,7 @@ def generate_data_cv_predict(request):
 
     # generating data
     datasets = []
-    for i in range(n_datasets):
+    for _ in range(n_datasets):
         x, y = make_regression(n_samples=n, n_features=p)
         datasets.append((x, y))
 

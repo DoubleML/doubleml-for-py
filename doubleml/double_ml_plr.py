@@ -159,7 +159,7 @@ class DoubleMLPLR(DoubleML):
                                'ml_m': None}
 
         g_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 g_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
@@ -174,7 +174,7 @@ class DoubleMLPLR(DoubleML):
             g_tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
         m_tune_res = list()
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for (train_index, test_index) in smpls:
             m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
             if search_mode == 'grid_search':
                 m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
