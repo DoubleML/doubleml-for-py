@@ -1,11 +1,9 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
-from sklearn.model_selection import KFold
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict, _get_cond_smpls
+from ._helper import _dml_cv_predict, _get_cond_smpls, _dml_tune
 
 
 class DoubleMLIIVM(DoubleML):
@@ -219,84 +217,25 @@ class DoubleMLIIVM(DoubleML):
                                'ml_m': None,
                                'ml_r': None}
 
-        g0_tune_res = list()
-        for idx in range(n_smpls):
-            g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == 'grid_search':
-                g0_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
-                                              scoring=scoring_methods['ml_g'],
-                                              cv=g0_tune_resampling, n_jobs=n_jobs_cv)
-            else:
-                assert search_mode == 'randomized_search'
-                g0_grid_search = RandomizedSearchCV(self._learner['ml_g'], param_grids['ml_g'],
-                                                    scoring=scoring_methods['ml_g'],
-                                                    cv=g0_tune_resampling, n_jobs=n_jobs_cv,
-                                                    n_iter=n_iter_randomized_search)
-            train_index_z0 = smpls_z0[idx][0]
-            g0_tune_res.append(g0_grid_search.fit(x[train_index_z0, :], y[train_index_z0]))
+        train_inds = [train_index for (train_index, _) in smpls]
+        train_inds_z0 = [train_index for (train_index, _) in smpls_z0]
+        train_inds_z1 = [train_index for (train_index, _) in smpls_z1]
 
-        g1_tune_res = list()
-        for idx in range(n_smpls):
-            g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == 'grid_search':
-                g1_grid_search = GridSearchCV(self._learner['ml_g'], param_grids['ml_g'],
-                                              scoring=scoring_methods['ml_g'],
-                                              cv=g1_tune_resampling, n_jobs=n_jobs_cv)
-            else:
-                assert search_mode == 'randomized_search'
-                g1_grid_search = RandomizedSearchCV(self._learner['ml_g'], param_grids['ml_g'],
-                                                    scoring=scoring_methods['ml_g'],
-                                                    cv=g1_tune_resampling, n_jobs=n_jobs_cv,
-                                                    n_iter=n_iter_randomized_search)
-            train_index_z1 = smpls_z1[idx][0]
-            g1_tune_res.append(g1_grid_search.fit(x[train_index_z1, :], y[train_index_z1]))
-
-        m_tune_res = list()
-        for (train_index, _) in smpls:
-            m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == 'grid_search':
-                m_grid_search = GridSearchCV(self._learner['ml_m'], param_grids['ml_m'],
-                                             scoring=scoring_methods['ml_m'],
-                                             cv=m_tune_resampling, n_jobs=n_jobs_cv)
-            else:
-                assert search_mode == 'randomized_search'
-                m_grid_search = RandomizedSearchCV(self._learner['ml_m'], param_grids['ml_m'],
-                                                   scoring=scoring_methods['ml_m'],
-                                                   cv=m_tune_resampling, n_jobs=n_jobs_cv,
-                                                   n_iter=n_iter_randomized_search)
-            m_tune_res.append(m_grid_search.fit(x[train_index, :], z[train_index]))
-
-        r0_tune_res = list()
-        for idx in range(n_smpls):
-            r0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == 'grid_search':
-                r0_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
-                                              scoring=scoring_methods['ml_r'],
-                                              cv=r0_tune_resampling, n_jobs=n_jobs_cv)
-            else:
-                assert search_mode == 'randomized_search'
-                r0_grid_search = RandomizedSearchCV(self._learner['ml_r'], param_grids['ml_r'],
-                                                    scoring=scoring_methods['ml_r'],
-                                                    cv=r0_tune_resampling, n_jobs=n_jobs_cv,
-                                                    n_iter=n_iter_randomized_search)
-            train_index_z0 = smpls_z0[idx][0]
-            r0_tune_res.append(r0_grid_search.fit(x[train_index_z0, :], d[train_index_z0]))
-
-        r1_tune_res = list()
-        for idx in range(n_smpls):
-            r1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == 'grid_search':
-                r1_grid_search = GridSearchCV(self._learner['ml_r'], param_grids['ml_r'],
-                                              scoring=scoring_methods['ml_r'],
-                                              cv=r1_tune_resampling, n_jobs=n_jobs_cv)
-            else:
-                assert search_mode == 'randomized_search'
-                r1_grid_search = RandomizedSearchCV(self._learner['ml_r'], param_grids['ml_r'],
-                                                    scoring=scoring_methods['ml_r'],
-                                                    cv=r1_tune_resampling, n_jobs=n_jobs_cv,
-                                                    n_iter=n_iter_randomized_search)
-            train_index_z1 = smpls_z1[idx][0]
-            r1_tune_res.append(r1_grid_search.fit(x[train_index_z1, :], d[train_index_z1]))
+        g0_tune_res = _dml_tune(y, x, train_inds_z0,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g1_tune_res = _dml_tune(y, x, train_inds_z1,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        m_tune_res = _dml_tune(z, x, train_inds,
+                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        r0_tune_res = _dml_tune(d, x, train_inds_z0,
+                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        r1_tune_res = _dml_tune(d, x, train_inds_z1,
+                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]

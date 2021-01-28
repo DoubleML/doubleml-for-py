@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from joblib import Parallel, delayed
 
@@ -153,6 +155,27 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             return preds, train_preds
         else:
             return preds
+
+
+def _dml_tune(y, x, train_inds,
+              learner, param_grid, scoring_method,
+              n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search):
+    tune_res = list()
+    for train_index in train_inds:
+        tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
+        if search_mode == 'grid_search':
+            g_grid_search = GridSearchCV(learner, param_grid,
+                                         scoring=scoring_method,
+                                         cv=tune_resampling, n_jobs=n_jobs_cv)
+        else:
+            assert search_mode == 'randomized_search'
+            g_grid_search = RandomizedSearchCV(learner, param_grid,
+                                               scoring=scoring_method,
+                                               cv=tune_resampling, n_jobs=n_jobs_cv,
+                                               n_iter=n_iter_randomized_search)
+        tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
+
+    return tune_res
 
 
 def _draw_weights(method, n_rep_boot, n_obs):

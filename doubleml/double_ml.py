@@ -16,7 +16,8 @@ from ._helper import _check_is_partition, _check_all_smpls, _draw_weights
 
 
 class DoubleML(ABC):
-    """Double Machine Learning"""
+    """Double Machine Learning.
+    """
 
     def __init__(self,
                  obj_dml_data,
