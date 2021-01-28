@@ -210,7 +210,6 @@ class DoubleMLIIVM(DoubleML):
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
-        n_smpls = len(smpls)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
