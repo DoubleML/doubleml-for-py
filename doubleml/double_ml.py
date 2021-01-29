@@ -16,8 +16,7 @@ from ._helper import _check_is_partition, _check_all_smpls, _draw_weights
 
 
 class DoubleML(ABC):
-    """
-    Double Machine Learning
+    """Double Machine Learning.
     """
 
     def __init__(self,
@@ -1095,7 +1094,7 @@ class DoubleML(ABC):
         if dml_procedure == 'dml1':
             # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
             thetas = np.zeros(len(smpls))
-            for idx, (train_index, test_index) in enumerate(smpls):
+            for idx, (_, test_index) in enumerate(smpls):
                 thetas[idx] = self._orth_est(test_index)
             theta_hat = np.mean(thetas)
             coef = theta_hat

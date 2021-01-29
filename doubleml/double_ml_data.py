@@ -7,8 +7,7 @@ from ._helper import _assure_2d_array
 
 
 class DoubleMLData:
-    """
-    Double machine learning data-backend.
+    """Double machine learning data-backend.
 
     :class:`DoubleMLData` objects can be initialized from
     :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
