@@ -385,9 +385,11 @@ class DoubleMLPLIV(DoubleML):
             z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
                 x, this_z = check_X_y(x, z[:, i_instr])
-                m_tune_res = _dml_tune(this_z, x, train_inds,
-                                       self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                                       n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                m_tune_res[self._dml_data.z_cols[i_instr]] = _dml_tune(this_z, x, train_inds,
+                                                                       self._learner['ml_m'], param_grids['ml_m'],
+                                                                       scoring_methods['ml_m'],
+                                                                       n_folds_tune, n_jobs_cv, search_mode,
+                                                                       n_iter_randomized_search)
         else:
             # one instrument: just identified
             x, z = check_X_y(x, np.ravel(self._dml_data.z))
