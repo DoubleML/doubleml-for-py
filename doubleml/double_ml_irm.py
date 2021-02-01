@@ -100,8 +100,8 @@ class DoubleMLIRM(DoubleML):
 
         valid_trimming_rule = ['truncate']
         if trimming_rule not in valid_trimming_rule:
-            raise ValueError('invalid trimming_rule ' + trimming_rule +
-                             '\n valid trimming_rule ' + ' or '.join(valid_trimming_rule))
+            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
+                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
@@ -114,25 +114,25 @@ class DoubleMLIRM(DoubleML):
         if isinstance(score, str):
             valid_score = ['ATE', 'ATTE']
             if score not in valid_score:
-                raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + ' or '.join(valid_score))
+                raise ValueError('Invalid score ' + score + '. ' +
+                                 'Valid score ' + ' or '.join(valid_score) + '.')
         else:
             if not callable(score):
-                raise ValueError('score should be either a string or a callable.'
-                                 ' %r was passed' % score)
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
         return score
 
     def _check_data(self, obj_dml_data):
         if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data.\n'
+            raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
-                             'have been set as instrumental variable(s).\n'
-                             'To fit an interactiv IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
+                             ' have been set as instrumental variable(s). '
+                             'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not(one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data.\n'
+            raise ValueError('Incompatible data. '
                              'To fit an IRM model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')

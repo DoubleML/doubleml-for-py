@@ -1,18 +1,72 @@
 import pytest
 import pandas as pd
 
-from doubleml import DoubleMLPLR, DoubleMLIRM
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
 
-dml_data = make_plr_CCDDHNR2018()
+dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 
-dml_data_irm = make_irm_data()
+dml_data_irm = make_irm_data(n_obs=10)
+dml_data_iivm = make_iivm_data(n_obs=10)
+dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_data():
+    msg = 'The data must be of DoubleMLData type.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLR(pd.DataFrame(), ml_g, ml_m)
+
+    msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
+           'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data_pliv, ml_g, ml_m)
+
+    msg = (r'Incompatible data. z have been set as instrumental variable\(s\). '
+           'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_iivm, Lasso(), LogisticRegression())
+    msg = ('Incompatible data. To fit an IRM model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_irm = dml_data_irm.data.copy()
+    df_irm['d'] = df_irm['d']*2
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
+                        Lasso(), LogisticRegression())
+
+
+
+@pytest.mark.ci
+def test_doubleml_exception_scores():
+    msg = 'Invalid score IV. Valid score IV-type or partialling out.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score='IV')
+    msg = 'score should be either a string or a callable. 0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score=0)
+
+    msg = 'Invalid score IV. Valid score ATE or ATTE.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), score='IV')
+    msg = 'score should be either a string or a callable. 0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), score=0)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_trimming_rule():
+    msg = 'Invalid trimming_rule discard. Valid trimming_rule truncate.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule='discard')
+
 
 
 @pytest.mark.ci

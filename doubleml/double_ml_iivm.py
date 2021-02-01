@@ -108,8 +108,8 @@ class DoubleMLIIVM(DoubleML):
 
         valid_trimming_rule = ['truncate']
         if trimming_rule not in valid_trimming_rule:
-            raise ValueError('invalid trimming_rule ' + trimming_rule +
-                             '\n valid trimming_rule ' + ' or '.join(valid_trimming_rule))
+            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
+                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 

@@ -95,20 +95,20 @@ class DoubleMLPLR(DoubleML):
         if isinstance(score, str):
             valid_score = ['IV-type', 'partialling out']
             if score not in valid_score:
-                raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + ' or '.join(valid_score))
+                raise ValueError('Invalid score ' + score + '. ' +
+                                 'Valid score ' + ' or '.join(valid_score) + '.')
         else:
             if not callable(score):
-                raise ValueError('score should be either a string or a callable.'
-                                 ' %r was passed' % score)
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
         return score
 
     def _check_data(self, obj_dml_data):
         if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data.\n'
+            raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
-                             'have been set as instrumental variable(s).\n'
-                             'To fit an partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
+                             ' have been set as instrumental variable(s). '
+                             'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
