@@ -133,7 +133,7 @@ class DoubleMLIIVM(DoubleML):
     def _check_data(self, obj_dml_data):
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not(one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data.\n'
                              'To fit an IIVM model with DML '
@@ -141,7 +141,7 @@ class DoubleMLIIVM(DoubleML):
                              'needs to be specified as treatment variable.')
         one_instr = (obj_dml_data.n_instr == 1)
         binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
-        zero_one_instr = np.any((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
+        zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
         if not(one_instr & binary_instr & zero_one_instr):
             raise ValueError('Incompatible data.\n'
                              'To fit an IIVM model with DML '

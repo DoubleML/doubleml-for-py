@@ -130,7 +130,7 @@ class DoubleMLIRM(DoubleML):
                              'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.any((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not(one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
                              'To fit an IRM model with DML '
