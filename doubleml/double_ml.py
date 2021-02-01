@@ -838,12 +838,12 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if learner not in valid_learner:
-            raise ValueError('invalid nuisance learner ' + learner +
-                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+            raise ValueError('Invalid nuisance learner ' + learner + '. ' +
+                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
 
         if treat_var not in self._dml_data.d_cols:
-            raise ValueError('invalid treatment variable' + treat_var +
-                             '\n valid treatment variable ' + ' or '.join(self._dml_data.d_cols))
+            raise ValueError('Invalid treatment variable ' + treat_var + '. ' +
+                             'Valid treatment variable ' + ' or '.join(self._dml_data.d_cols) + '.')
 
         if isinstance(params, dict):
             if self.apply_cross_fitting:
@@ -851,6 +851,7 @@ class DoubleML(ABC):
             else:
                 all_params = [[params] * 1] * self.n_rep
         else:
+            # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
             if self.apply_cross_fitting:
                 assert np.all(np.array([len(x) for x in params]) == self.n_folds)
@@ -885,29 +886,29 @@ class DoubleML(ABC):
 
     @staticmethod
     def _check_learner(learner, learner_name, classifier=False):
-        err_msg_prefix = f'invalid learner provided for {learner_name}: '
-        warn_msg_prefix = f'learner provided for {learner_name} is probably invalid: '
+        err_msg_prefix = f'Invalid learner provided for {learner_name}: '
+        warn_msg_prefix = f'Learner provided for {learner_name} is probably invalid: '
 
         if isinstance(learner, type):
-            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class')
+            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class.')
 
         if not hasattr(learner, 'fit'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit().')
         if not hasattr(learner, 'set_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params().')
         if not hasattr(learner, 'get_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params().')
 
         if classifier:
             if not hasattr(learner, 'predict_proba'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba()')
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
             if not is_classifier(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier')
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier.')
         else:
             if not hasattr(learner, 'predict'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict()')
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
             if not is_regressor(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor')
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor.')
 
         return learner
 

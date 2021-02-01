@@ -1,15 +1,18 @@
 import pytest
 import pandas as pd
 
-from doubleml import DoubleMLPLR
-from doubleml.datasets import make_plr_CCDDHNR2018
+from doubleml import DoubleMLPLR, DoubleMLIRM
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data
 
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.base import BaseEstimator
 
 dml_data = make_plr_CCDDHNR2018()
 ml_g = Lasso()
 ml_m = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
+
+dml_data_irm = make_irm_data()
 
 
 def test_doubleml_exception_resampling():
@@ -193,5 +196,62 @@ def test_doubleml_exception_tune():
     msg = 'return_tune_res must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, return_tune_res=1)
+
+
+def test_doubleml_exception_set_ml_nuisance_params():
+
+    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g or ml_m.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
+    msg = 'Invalid treatment variable y. Valid treatment variable d.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_ml_nuisance_params('ml_g', 'y', {'alpha': 0.1})
+
+
+class _DummyNoSetParams:
+    def fit(self):
+        pass
+
+
+class _DummyNoGetParams(_DummyNoSetParams):
+    def set_params(self):
+        pass
+
+
+class _DummyNoClassifier(_DummyNoGetParams):
+    def get_params(self):
+        pass
+
+    def predict_proba(self):
+        pass
+
+
+def test_doubleml_exception_learner():
+    err_msg_prefix = 'Invalid learner provided for ml_g: '
+    warn_msg_prefix = 'Learner provided for ml_g is probably invalid: '
+
+    msg = err_msg_prefix + r'BaseEstimator\(\) has no method .fit\(\).'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLR(dml_data, BaseEstimator(), ml_m)
+    # msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .set_params\(\).'
+    with pytest.raises(TypeError):
+        _ = DoubleMLPLR(dml_data, _DummyNoSetParams(), ml_m)
+    # msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .get_params\(\).'
+    with pytest.raises(TypeError):
+        _ = DoubleMLPLR(dml_data, _DummyNoGetParams(), ml_m)
+
+    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
+    # msg = 'Learner provided for ml_m is probably invalid: ' + r'_DummyNoClassifier\(\) is \(probably\) no classifier.'
+    with pytest.warns(UserWarning):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
+
+    # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
+    with pytest.raises(TypeError):
+        _ = DoubleMLPLR(dml_data_irm, _DummyNoClassifier(), Lasso())
+    msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLR(dml_data_irm, LogisticRegression(), Lasso())
 
 
