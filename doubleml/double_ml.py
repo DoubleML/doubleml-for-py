@@ -55,10 +55,10 @@ class DoubleML(ABC):
 
         if not isinstance(apply_cross_fitting, bool):
             raise TypeError('apply_cross_fitting must be True or False. '
-                            f'got {str(apply_cross_fitting)}')
+                            f'Got {str(apply_cross_fitting)}.')
         if not isinstance(draw_sample_splitting, bool):
             raise TypeError('draw_sample_splitting must be True or False. '
-                            f'got {str(draw_sample_splitting)}')
+                            f'Got {str(draw_sample_splitting)}.')
 
         # set resampling specifications
         self._n_folds = n_folds
@@ -67,8 +67,8 @@ class DoubleML(ABC):
 
         # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
-            raise ValueError('dml_procedure must be "dml1" or "dml2" '
-                             f' got {str(dml_procedure)}')
+            raise ValueError('dml_procedure must be "dml1" or "dml2". '
+                             f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
         self._score = self._check_score(score)
 
@@ -209,8 +209,8 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if (not isinstance(learner, str)) | (learner not in valid_learner):
-            raise ValueError('invalid nuisance learner ' + str(learner) +
-                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+            raise ValueError('Invalid nuisance learner ' + str(learner) + '. ' +
+                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
         return self._params[learner]
 
     # The private function _get_params delivers the single treatment, single (cross-fitting) sample subselection.
@@ -226,7 +226,7 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting() ' +
+            raise ValueError('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
                              'or set external samples via .set_sample_splitting().')
         return self._smpls
 
@@ -453,7 +453,7 @@ class DoubleML(ABC):
 
         if not isinstance(keep_scores, bool):
             raise TypeError('keep_scores must be True or False. '
-                            f'got {str(keep_scores)}')
+                            f'Got {str(keep_scores)}.')
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -502,11 +502,11 @@ class DoubleML(ABC):
         self : object
         """
         if np.isnan(self.coef).all():
-            raise ValueError('apply fit() before bootstrap()')
+            raise ValueError('Apply fit() before bootstrap().')
 
         if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
-            raise ValueError('method must be "Bayes", "normal" or "wild" '
-                             f' got {str(method)}')
+            raise ValueError('Method must be "Bayes", "normal" or "wild". '
+                             f'Got {str(method)}.')
 
         if not isinstance(n_rep_boot, int):
             raise TypeError('The number of bootstrap replications must be of int type. '
