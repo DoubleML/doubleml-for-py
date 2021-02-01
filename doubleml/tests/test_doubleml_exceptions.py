@@ -122,3 +122,22 @@ def test_doubleml_exception_confint():
     df_ci = dml_plr_confint.confint(joint=True)
     assert isinstance(df_ci, pd.DataFrame)
 
+
+def test_doubleml_exception_p_adjust():
+    dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_g, ml_m)
+
+    msg = r'Apply fit\(\) before p_adjust\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_p_adjust.p_adjust()
+    dml_plr_p_adjust.fit()
+    msg = r'Apply fit\(\) & bootstrap\(\) before p_adjust'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_p_adjust.p_adjust(method='romano-wolf')
+    dml_plr_p_adjust.bootstrap()
+    p_val = dml_plr_p_adjust.p_adjust(method='romano-wolf')
+    assert isinstance(p_val, pd.DataFrame)
+
+    msg = "The p_adjust method must be of str type. 0.05 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_p_adjust.p_adjust(method=0.05)
+

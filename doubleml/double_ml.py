@@ -604,7 +604,7 @@ class DoubleML(ABC):
             An array of adjusted p-values.
         """
         if np.isnan(self.coef).all():
-            raise ValueError('apply fit() before p_adjust()')
+            raise ValueError('Apply fit() before p_adjust().')
 
         if not isinstance(method, str):
             raise TypeError('The p_adjust method must be of str type. '
@@ -612,7 +612,7 @@ class DoubleML(ABC):
 
         if method.lower() in ['rw', 'romano-wolf']:
             if np.isnan(self.boot_coef).all():
-                raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
+                raise ValueError(f'Apply fit() & bootstrap() before p_adjust("{method}").')
 
             pinit = np.full_like(self.pval, np.nan)
             p_val_corrected = np.full_like(self.pval, np.nan)
