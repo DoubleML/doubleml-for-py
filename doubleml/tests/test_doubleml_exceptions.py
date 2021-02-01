@@ -141,3 +141,57 @@ def test_doubleml_exception_p_adjust():
     with pytest.raises(TypeError, match=msg):
         dml_plr_p_adjust.p_adjust(method=0.05)
 
+
+def test_doubleml_exception_tune():
+
+    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_g and ml_m'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune([0.05, 0.5])
+    msg = (r"Invalid param_grids {'ml_g': {'alpha': \[0.05, 0.5\]}}. "
+           "param_grids must be a dictionary with keys ml_g and ml_m.")
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]}})
+
+    param_grids = {'ml_g': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
+    msg = ('Invalid scoring_methods neg_mean_absolute_error. '
+           'scoring_methods must be a dictionary. '
+           'Valid keys are ml_g and ml_m.')
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune(param_grids, scoring_methods='neg_mean_absolute_error')
+
+    msg = 'tune_on_folds must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, tune_on_folds=1)
+
+    msg = 'The number of folds used for tuning must be at least two. 1 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune(param_grids, n_folds_tune=1)
+    msg = "The number of folds used for tuning must be of int type. 1.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, n_folds_tune=1.)
+
+    msg = 'search_mode must be "grid_search" or "randomized_search". Got gridsearch.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune(param_grids, search_mode='gridsearch')
+
+    msg = 'The number of parameter settings sampled for the randomized search must be at least two. 1 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.tune(param_grids, n_iter_randomized_search=1)
+    msg = ("The number of parameter settings sampled for the randomized search must be of int type. "
+           "1.0 of type <class 'float'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, n_iter_randomized_search=1.)
+
+    msg = "The number of CPUs used to fit the learners must be of int type. 5 of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, n_jobs_cv='5')
+
+    msg = 'set_as_params must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, set_as_params=1)
+
+    msg = 'return_tune_res must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, return_tune_res=1)
+
+

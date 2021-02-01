@@ -715,14 +715,14 @@ class DoubleML(ABC):
         """
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
-            raise ValueError('invalid param_grids ' + str(param_grids) +
-                             '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
+            raise ValueError('Invalid param_grids ' + str(param_grids) + '. '
+                             'param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names) + '.')
 
         if scoring_methods is not None:
             if (not isinstance(scoring_methods, dict)) | (not all(k in self.learner_names for k in scoring_methods)):
-                raise ValueError('invalid scoring_methods ' + str(scoring_methods) +
-                                 '\n scoring_methods must be a dictionary.' +
-                                 '\n Valid keys are ' + ' and '.join(self.learner_names))
+                raise ValueError('Invalid scoring_methods ' + str(scoring_methods) + '. ' +
+                                 'scoring_methods must be a dictionary. ' +
+                                 'Valid keys are ' + ' and '.join(self.learner_names) + '.')
             if not all(k in scoring_methods for k in self.learner_names):
                 # if there are learners for which no scoring_method was set, we fall back to None, i.e., default scoring
                 for learner in self.learner_names:
@@ -731,7 +731,7 @@ class DoubleML(ABC):
 
         if not isinstance(tune_on_folds, bool):
             raise TypeError('tune_on_folds must be True or False. '
-                            f'got {str(tune_on_folds)}')
+                            f'Got {str(tune_on_folds)}.')
 
         if not isinstance(n_folds_tune, int):
             raise TypeError('The number of folds used for tuning must be of int type. '
@@ -741,12 +741,13 @@ class DoubleML(ABC):
                              f'{str(n_folds_tune)} was passed.')
 
         if (not isinstance(search_mode, str)) | (search_mode not in ['grid_search', 'randomized_search']):
-            raise ValueError('search_mode must be "grid_search" or "randomized_search" '
-                             f' got {str(search_mode)}')
+            raise ValueError('search_mode must be "grid_search" or "randomized_search". '
+                             f'Got {str(search_mode)}.')
 
         if not isinstance(n_iter_randomized_search, int):
             raise TypeError('The number of parameter settings sampled for the randomized search must be of int type. '
-                            f'{str(n_iter_randomized_search)} of type {str(type(n_iter_randomized_search))} was passed.')
+                            f'{str(n_iter_randomized_search)} of type '
+                            f'{str(type(n_iter_randomized_search))} was passed.')
         if n_iter_randomized_search < 2:
             raise ValueError('The number of parameter settings sampled for the randomized search must be at least two. '
                              f'{str(n_iter_randomized_search)} was passed.')
@@ -758,11 +759,11 @@ class DoubleML(ABC):
 
         if not isinstance(set_as_params, bool):
             raise TypeError('set_as_params must be True or False. '
-                            f'got {str(set_as_params)}')
+                            f'Got {str(set_as_params)}.')
 
         if not isinstance(return_tune_res, bool):
             raise TypeError('return_tune_res must be True or False. '
-                            f'got {str(return_tune_res)}')
+                            f'Got {str(return_tune_res)}.')
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
