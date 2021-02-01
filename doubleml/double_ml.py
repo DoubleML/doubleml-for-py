@@ -1105,12 +1105,10 @@ class DoubleML(ABC):
 
             self.__all_dml1_coef = thetas
 
-        elif dml_procedure == 'dml2':
+        else:
+            assert dml_procedure == 'dml2'
             theta_hat = self._orth_est()
             coef = theta_hat
-
-        else:
-            raise ValueError('invalid dml_procedure')
 
         return coef
 
@@ -1178,13 +1176,12 @@ class DoubleML(ABC):
                 boot_coef = np.mean(boot_coefs, axis=1)
                 boot_t_stat = np.mean(boot_t_stats, axis=1)
 
-            elif dml_procedure == 'dml2':
+            else:
+                assert dml_procedure == 'dml2'
                 J = np.mean(self.__psi_a)
                 boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
                 boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
-            else:
-                raise ValueError('invalid dml_procedure')
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             smpls = self.__smpls
