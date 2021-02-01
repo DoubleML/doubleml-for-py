@@ -39,7 +39,34 @@ def test_doubleml_exception_data():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
                         Lasso(), LogisticRegression())
+    df_irm = dml_data_irm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', ['d', 'X1']),
+                        Lasso(), LogisticRegression())
 
+    msg = ('Incompatible data. To fit an IIVM model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_iivm = dml_data_iivm.data.copy()
+    df_iivm['d'] = df_iivm['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols='z'),
+                         Lasso(), LogisticRegression(), LogisticRegression())
+    df_iivm = dml_data_iivm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', ['d', 'X1'], z_cols='z'),
+                         Lasso(), LogisticRegression(), LogisticRegression())
+
+    msg = ('Incompatible data. To fit an IIVM model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as instrumental variable.')
+    df_iivm = dml_data_iivm.data.copy()
+    df_iivm['z'] = df_iivm['z'] * 2
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols='z'),
+                         Lasso(), LogisticRegression(), LogisticRegression())
+    df_iivm = dml_data_iivm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z', 'X1']),
+                         Lasso(), LogisticRegression(), LogisticRegression())
 
 
 @pytest.mark.ci
@@ -57,6 +84,20 @@ def test_doubleml_exception_scores():
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), score=0)
+
+    msg = 'Invalid score ATE. Valid score LATE.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), score='ATE')
+    msg = 'score should be either a string or a callable. 0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), score=0)
+
+    msg = 'Invalid score IV. Valid score partialling out.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score='IV')
+    msg = 'score should be either a string or a callable. 0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score=0)
 
 
 @pytest.mark.ci

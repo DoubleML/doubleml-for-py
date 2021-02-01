@@ -211,12 +211,12 @@ class DoubleMLPLIV(DoubleML):
             # however in the following paragraph it is explained that one might
             # still need to estimate the partialling out type first
             if score not in valid_score:
-                raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + 'partialling out')
+                raise ValueError('Invalid score ' + score + '. ' +
+                                 'Valid score ' + 'partialling out.')
         else:
             if not callable(score):
-                raise ValueError('score should be either a string or a callable.'
-                                 ' %r was passed' % score)
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
         return score
 
     def _check_data(self, obj_dml_data):

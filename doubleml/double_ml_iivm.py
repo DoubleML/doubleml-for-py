@@ -122,12 +122,12 @@ class DoubleMLIIVM(DoubleML):
         if isinstance(score, str):
             valid_score = ['LATE']
             if score not in valid_score:
-                raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + ' or '.join(valid_score))
+                raise ValueError('Invalid score ' + score + '. '
+                                 'Valid score ' + ' or '.join(valid_score) + '.')
         else:
             if not callable(score):
-                raise ValueError('score should be either a string or a callable.'
-                                 ' %r was passed' % score)
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
         return score
 
     def _check_data(self, obj_dml_data):
@@ -135,7 +135,7 @@ class DoubleMLIIVM(DoubleML):
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not(one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data.\n'
+            raise ValueError('Incompatible data. '
                              'To fit an IIVM model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
@@ -143,7 +143,7 @@ class DoubleMLIIVM(DoubleML):
         binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
         zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
         if not(one_instr & binary_instr & zero_one_instr):
-            raise ValueError('Incompatible data.\n'
+            raise ValueError('Incompatible data. '
                              'To fit an IIVM model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as instrumental variable.')
