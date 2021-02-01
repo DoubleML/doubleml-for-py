@@ -174,11 +174,10 @@ def test_doubleml_draw_vs_set():
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_g, ml_m,
                                 n_folds=1, n_rep=1, apply_cross_fitting=False)
-    # ToDO: Following cases are not implemented yet
-    # dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
-    # _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
-    # dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
-    # _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
+    dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
+    _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
+    dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
+    _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0][0])
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 

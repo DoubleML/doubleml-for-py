@@ -1041,9 +1041,15 @@ class DoubleML(ABC):
                                      'All tuples for train_ind and test_ind must consist of exactly two elements.')
                 self._n_rep = 1
                 if _check_is_partition(all_smpls, self._dml_data.n_obs):
-                    self._n_folds = len(all_smpls)
-                    self._apply_cross_fitting = True
-                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
+                    if ((len(all_smpls) == 1) &
+                            _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], self._dml_data.n_obs)):
+                        self._n_folds = 1
+                        self._apply_cross_fitting = False
+                        self._smpls = [all_smpls]
+                    else:
+                        self._n_folds = len(all_smpls)
+                        self._apply_cross_fitting = True
+                        self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
                 else:
                     if not len(all_smpls) == 1:
                         raise ValueError('Invalid partition provided. '
@@ -1071,10 +1077,17 @@ class DoubleML(ABC):
                 smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
 
                 if all(smpls_are_partitions):
-                    self._n_rep = len(all_smpls)
-                    self._n_folds = n_folds_each_smpl[0]
-                    self._apply_cross_fitting = True
-                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
+                    if ((len(all_smpls) == 1) & (len(all_smpls[0]) == 1) &
+                            _check_is_partition([(all_smpls[0][0][1], all_smpls[0][0][0])], self._dml_data.n_obs)):
+                        self._n_rep = 1
+                        self._n_folds = 1
+                        self._apply_cross_fitting = False
+                        self._smpls = all_smpls
+                    else:
+                        self._n_rep = len(all_smpls)
+                        self._n_folds = n_folds_each_smpl[0]
+                        self._apply_cross_fitting = True
+                        self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
                 else:
                     if not n_folds_each_smpl[0] == 1:
                         raise ValueError('Invalid partition provided. '
