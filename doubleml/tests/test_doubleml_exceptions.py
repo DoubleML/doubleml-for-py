@@ -117,8 +117,8 @@ def test_doubleml_exception_confint():
     msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_confint.confint(level='5%')
-    msg = 'The confidence level must be in (0,1). 0.0 was passed.'
-    with pytest.raises(TypeError, match=msg):
+    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(level=0.)
 
     msg = r'Apply fit\(\) before confint\(\).'
