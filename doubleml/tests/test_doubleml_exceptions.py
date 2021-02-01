@@ -15,6 +15,7 @@ dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 dml_data_irm = make_irm_data()
 
 
+@pytest.mark.ci
 def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -37,6 +38,7 @@ def test_doubleml_exception_resampling():
         _ = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting='true')
 
 
+@pytest.mark.ci
 def test_doubleml_exception_dml_procedure():
     msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
     with pytest.raises(ValueError, match=msg):
@@ -46,24 +48,28 @@ def test_doubleml_exception_dml_procedure():
         _ = DoubleMLPLR(dml_data, ml_g, ml_m, dml_procedure='dml')
 
 
+@pytest.mark.ci
 def test_doubleml_warning_crossfitting_onefold():
     msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=True, n_folds=1)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_no_cross_fit():
     msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
     with pytest.raises(AssertionError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=False)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_get_params():
     msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.get_params('ml_r')
 
 
+@pytest.mark.ci
 def test_doubleml_exception_smpls():
     msg = ('Sample splitting not specified. '
            r'Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\).')
@@ -72,6 +78,7 @@ def test_doubleml_exception_smpls():
         _ = dml_plr_no_smpls.smpls
 
 
+@pytest.mark.ci
 def test_doubleml_exception_fit():
     msg = "The number of CPUs used to fit the learners must be of int type. 5 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -81,6 +88,7 @@ def test_doubleml_exception_fit():
         dml_plr.fit(keep_scores=1)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_bootstrap():
     dml_plr_boot = DoubleMLPLR(dml_data, ml_g, ml_m)
     msg = r'Apply fit\(\) before bootstrap\(\).'
@@ -99,6 +107,7 @@ def test_doubleml_exception_bootstrap():
         dml_plr_boot.bootstrap(n_rep_boot=0)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_confint():
     dml_plr_confint = DoubleMLPLR(dml_data, ml_g, ml_m)
 
@@ -126,6 +135,7 @@ def test_doubleml_exception_confint():
     assert isinstance(df_ci, pd.DataFrame)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_p_adjust():
     dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_g, ml_m)
 
@@ -145,6 +155,7 @@ def test_doubleml_exception_p_adjust():
         dml_plr_p_adjust.p_adjust(method=0.05)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_tune():
 
     msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_g and ml_m'
@@ -198,6 +209,7 @@ def test_doubleml_exception_tune():
         dml_plr.tune(param_grids, return_tune_res=1)
 
 
+@pytest.mark.ci
 def test_doubleml_exception_set_ml_nuisance_params():
 
     msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g or ml_m.'
@@ -226,6 +238,7 @@ class _DummyNoClassifier(_DummyNoGetParams):
         pass
 
 
+@pytest.mark.ci
 def test_doubleml_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
     warn_msg_prefix = 'Learner provided for ml_g is probably invalid: '
