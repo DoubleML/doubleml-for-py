@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 
 from doubleml import DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018
@@ -93,3 +94,31 @@ def test_doubleml_exception_bootstrap():
     msg = 'The number of bootstrap replications must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot=0)
+
+
+def test_doubleml_exception_confint():
+    dml_plr_confint = DoubleMLPLR(dml_data, ml_g, ml_m)
+
+    msg = 'joint must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_confint.confint(joint=1)
+    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_confint.confint(level='5%')
+    msg = 'The confidence level must be in (0,1). 0.0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_confint.confint(level=0.)
+
+    msg = r'Apply fit\(\) before confint\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_confint.confint()
+    msg = r'Apply fit\(\) & bootstrap\(\) before confint\(joint=True\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_confint.confint(joint=True)
+    dml_plr_confint.fit()  # error message should still appear till bootstrap was applied as well
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_confint.confint(joint=True)
+    dml_plr_confint.bootstrap()
+    df_ci = dml_plr_confint.confint(joint=True)
+    assert isinstance(df_ci, pd.DataFrame)
+

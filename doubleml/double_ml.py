@@ -558,7 +558,7 @@ class DoubleML(ABC):
 
         if not isinstance(joint, bool):
             raise TypeError('joint must be True or False. '
-                            f'got {str(joint)}')
+                            f'Got {str(joint)}.')
 
         if not isinstance(level, float):
             raise TypeError('The confidence level must be of float type. '
@@ -571,11 +571,13 @@ class DoubleML(ABC):
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
             if np.isnan(self.boot_coef).all():
-                raise ValueError('apply fit() & bootstrap() before confint(joint=True)')
+                raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
             sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1 - a)
             ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
         else:
+            if np.isnan(self.coef).all():
+                raise ValueError('Apply fit() before confint().')
             fac = norm.ppf(ab)
             ci = np.vstack((self.coef + self.se * fac[0], self.coef + self.se * fac[1])).T
 
