@@ -600,8 +600,8 @@ class DoubleML(ABC):
 
         Returns
         -------
-        p_val : np.array
-            An array of adjusted p-values.
+        p_val : pd.DataFrame
+            A data frame with adjusted p-values.
         """
         if np.isnan(self.coef).all():
             raise ValueError('Apply fit() before p_adjust().')
