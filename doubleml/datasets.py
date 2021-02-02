@@ -40,7 +40,8 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
 
     data = raw_data.copy()
 
-    assert not polynomial_features, 'Not implemented yet'
+    if polynomial_features:
+        raise NotImplementedError('polynomial_features os not implemented yet for fetch_401K.')
 
     if return_type in _data_frame_alias + _dml_data_alias:
         if return_type in _data_frame_alias:
@@ -48,7 +49,7 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
@@ -110,7 +111,7 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def _g(x):
@@ -195,7 +196,7 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData', **kwargs):
@@ -263,7 +264,7 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type='DoubleMLData'):
@@ -339,7 +340,7 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
@@ -413,7 +414,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, 'z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
@@ -440,7 +441,7 @@ def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='Dou
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, 'z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='DoubleMLData'):
@@ -527,7 +528,7 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, z_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
@@ -674,4 +675,4 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
         else:
             return DoubleMLData(data, 'Y', 'D', x_cols, 'Z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
