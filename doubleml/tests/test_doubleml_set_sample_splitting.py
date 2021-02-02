@@ -23,10 +23,10 @@ def _assert_resampling_pars(dml_obj0, dml_obj1):
 
 def _assert_smpls_equal(smpls0, smpls1, apply_cross_fitting=True):
     assert len(smpls0) == len(smpls1)
-    for i_rep in range(len(smpls0)):
+    for i_rep, _ in enumerate(smpls0):
         assert len(smpls0[i_rep]) == len(smpls1[i_rep])
         if apply_cross_fitting:
-            for i_fold in range(len(smpls0[i_rep])):
+            for i_fold, _ in enumerate(smpls0[i_rep]):
                 assert np.array_equal(smpls0[i_rep][i_fold][0], smpls1[i_rep][i_fold][0])
                 assert np.array_equal(smpls0[i_rep][i_fold][1], smpls1[i_rep][i_fold][1])
         else:
