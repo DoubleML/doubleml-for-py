@@ -59,7 +59,7 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat = Y[test_index] - g_hat[idx]
         v_hat = Z[test_index] - m_hat[idx]
         w_hat = D[test_index] - r_hat[idx]
@@ -69,7 +69,7 @@ def pliv_dml1(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(Z)
     w_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
@@ -83,7 +83,7 @@ def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(Z)
     w_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
@@ -131,7 +131,7 @@ def boot_pliv_single_treat(theta, Y, D, Z, g_hat, m_hat, r_hat, smpls, score, se
     w_hat = np.zeros_like(D)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = Z[test_index] - m_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]

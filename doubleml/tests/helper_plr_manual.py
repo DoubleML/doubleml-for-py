@@ -49,7 +49,7 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         v_hat = D[test_index] - m_hat[idx]
         u_hat = Y[test_index] - g_hat[idx]
         thetas[idx] = plr_orth(v_hat, u_hat, D[test_index], score)
@@ -58,7 +58,7 @@ def plr_dml1(Y, X, D, g_hat, m_hat, smpls, score):
     if len(smpls) > 1:
         u_hat = np.zeros_like(Y)
         v_hat = np.zeros_like(D)
-        for idx, (train_index, test_index) in enumerate(smpls):
+        for idx, (_, test_index) in enumerate(smpls):
             v_hat[test_index] = D[test_index] - m_hat[idx]
             u_hat[test_index] = Y[test_index] - g_hat[idx]
         se = np.sqrt(var_plr(theta_hat, D, u_hat, v_hat, score, n_obs))
@@ -77,7 +77,7 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
     n_obs = len(Y)
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
     theta_hat = plr_orth(v_hat, u_hat, D, score)
@@ -150,7 +150,7 @@ def boot_plr_single_treat(theta, Y, D, g_hat, m_hat, smpls, score, se, weights, 
     v_hat = np.zeros_like(D)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         v_hat[test_index] = D[test_index] - m_hat[idx]
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         if dml_procedure == 'dml1':

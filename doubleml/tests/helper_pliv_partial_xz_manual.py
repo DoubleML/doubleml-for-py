@@ -65,7 +65,7 @@ def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat = Y[test_index] - g_hat[idx]
         v_hat = m_hat[idx] - m_hat_tilde[idx]
         w_hat = D[test_index] - m_hat_tilde[idx]
@@ -75,7 +75,7 @@ def pliv_partial_xz_dml1(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     w_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = D[test_index] - m_hat_tilde[idx]
@@ -89,7 +89,7 @@ def pliv_partial_xz_dml2(Y, X, D, Z, g_hat, m_hat, m_hat_tilde, smpls, score):
     u_hat = np.zeros_like(Y)
     v_hat = np.zeros_like(D)
     w_hat = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = D[test_index] - m_hat_tilde[idx]
@@ -138,7 +138,7 @@ def boot_pliv_partial_xz_single_treat(theta, Y, D, Z, g_hat, m_hat, m_hat_tilde,
     w_hat = np.zeros_like(D)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = D[test_index] - m_hat_tilde[idx]

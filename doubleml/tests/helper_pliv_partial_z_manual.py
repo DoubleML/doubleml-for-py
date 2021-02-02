@@ -33,12 +33,12 @@ def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = pliv_partial_z_orth(r_hat[idx], Y[test_index], D[test_index], score)
     theta_hat = np.mean(thetas)
 
     r_hat_array = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, Y, D, score, n_obs))
 
@@ -48,7 +48,7 @@ def pliv_partial_z_dml1(Y, X, D, Z, r_hat, smpls, score):
 def pliv_partial_z_dml2(Y, X, D, Z, r_hat, smpls, score):
     n_obs = len(Y)
     r_hat_array = np.zeros_like(D)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     theta_hat = pliv_partial_z_orth(r_hat_array, Y, D, score)
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, Y, D, score, n_obs))
@@ -92,7 +92,7 @@ def boot_pliv_partial_z_single_treat(theta, Y, D, Z, r_hat, smpls, score, se, we
     r_hat_array = np.zeros_like(D)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
         if dml_procedure == 'dml1':
             if score == 'partialling out':

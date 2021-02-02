@@ -85,7 +85,7 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
         thetas[idx] = irm_orth(g_hat0[idx], g_hat1[idx],
@@ -100,7 +100,7 @@ def irm_dml1(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
     p_hat_all = np.zeros_like(Y)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         g_hat0_all[test_index] = g_hat0[idx]
@@ -123,7 +123,7 @@ def irm_dml2(Y, X, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
     g_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
     p_hat_all = np.zeros_like(Y)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         g_hat0_all[test_index] = g_hat0[idx]
@@ -193,7 +193,7 @@ def boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
     p_hat_all = np.zeros_like(Y)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         g_hat0_all[test_index] = g_hat0[idx]

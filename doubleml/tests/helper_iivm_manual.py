@@ -108,7 +108,7 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(Y)
 
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0 = Y[test_index] - g_hat0[idx]
         u_hat1 = Y[test_index] - g_hat1[idx]
         w_hat0 = D[test_index] - r_hat0[idx]
@@ -130,7 +130,7 @@ def iivm_dml1(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     r_hat0_all = np.zeros_like(Y)
     r_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         w_hat0[test_index] = D[test_index] - r_hat0[idx]
@@ -159,7 +159,7 @@ def iivm_dml2(Y, X, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     r_hat0_all = np.zeros_like(Y)
     r_hat1_all = np.zeros_like(Y)
     m_hat_all = np.zeros_like(Y)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         w_hat0[test_index] = D[test_index] - r_hat0[idx]
@@ -237,7 +237,7 @@ def boot_iivm_single_treat(theta, Y, D, Z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
     m_hat_all = np.zeros_like(Y)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = Y[test_index] - g_hat0[idx]
         u_hat1[test_index] = Y[test_index] - g_hat1[idx]
         w_hat0[test_index] = D[test_index] - r_hat0[idx]
