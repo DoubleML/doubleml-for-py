@@ -417,7 +417,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
         raise ValueError('Invalid return_type.')
 
 
-def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
+def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
     b = [1/k for k in range(1, dim_x+1)]
     sigma = make_spd_matrix(dim_x)
 
