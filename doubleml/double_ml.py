@@ -332,7 +332,7 @@ class DoubleML(ABC):
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         col_names = ['coef', 'std err', 't', 'P>|t|']
-        if self._dml_data.d_cols is None:
+        if np.isnan(self.coef).all():
             df_summary = pd.DataFrame(columns=col_names)
         else:
             summary_stats = np.transpose(np.vstack(
