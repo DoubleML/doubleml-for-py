@@ -338,6 +338,9 @@ def test_doubleml_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
     warn_msg_prefix = 'Learner provided for ml_g is probably invalid: '
 
+    msg = err_msg_prefix + 'provide an instance of a learner instead of a class.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLR(dml_data, Lasso, ml_m)
     msg = err_msg_prefix + r'BaseEstimator\(\) has no method .fit\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(dml_data, BaseEstimator(), ml_m)
