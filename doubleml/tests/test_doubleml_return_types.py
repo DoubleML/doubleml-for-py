@@ -36,6 +36,7 @@ def test_plr_return_types():
     assert isinstance(dml_plr.confint(), pd.DataFrame)
     assert isinstance(dml_plr.p_adjust(), pd.DataFrame)
     assert isinstance(dml_plr.get_params('ml_m'), dict)
+    assert isinstance(dml_plr._dml_data.__str__(), str)
 
     # for the following checks we need additional inputs
     # assert isinstance(dml_plr.set_ml_nuisance_params(), DoubleMLPLR)
