@@ -3,10 +3,8 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLData
-from doubleml.datasets import *
-from doubleml.datasets import _make_pliv_data
-
-from sklearn.linear_model import Lasso, LogisticRegression
+from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
+    make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2019
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -35,7 +33,7 @@ def test_fetch_bonus_return_types():
         _ = fetch_bonus('matrix')
 
 
-def test_fetch_401K_poly():
+def test_fetch_bonus_poly():
     data_bonus_wo_poly = fetch_bonus(polynomial_features=False)
     n_x = len(data_bonus_wo_poly.x_cols)
     data_bonus_w_poly = fetch_bonus(polynomial_features=True)
@@ -44,11 +42,11 @@ def test_fetch_401K_poly():
 
 @pytest.mark.ci
 def test_make_plr_CCDDHNR2018_return_types():
-    res = make_plr_CCDDHNR2018(n_obs=100, return_type='DoubleMLData')
+    res = make_plr_CCDDHNR2018(n_obs=100, return_type=DoubleMLData)
     assert isinstance(res, DoubleMLData)
-    res = make_plr_CCDDHNR2018(n_obs=100, return_type='DataFrame')
+    res = make_plr_CCDDHNR2018(n_obs=100, return_type=pd.DataFrame)
     assert isinstance(res, pd.DataFrame)
-    x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type='array')
+    x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type=np.ndarray)
     assert isinstance(x, np.ndarray)
     assert isinstance(y, np.ndarray)
     assert isinstance(d, np.ndarray)
