@@ -113,20 +113,12 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
         raise ValueError('invalid return_type')
 
 
-def g(x):
+def _g(x):
     return np.power(np.sin(x), 2)
 
 
-def m(x, nu=0., gamma=1.):
+def _m(x, nu=0., gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
-
-
-def m2(x):
-    return np.power(x, 2)
-
-
-def m3(x, nu=0., gamma=1.):
-    return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
 _array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
@@ -255,8 +247,8 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     sigma = make_spd_matrix(dim_x)
 
     X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
-    M = m(np.dot(X, b), nu=nu, gamma=gamma)
+    G = _g(np.dot(X, b))
+    M = _m(np.dot(X, b), nu=nu, gamma=gamma)
     d = M + np.random.standard_normal(size=[n_obs, ])
     y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
@@ -429,11 +421,11 @@ def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='Dou
     sigma = make_spd_matrix(dim_x)
 
     X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
+    G = _g(np.dot(X, b))
     # instrument
-    Z = m(np.dot(X, b)) + np.random.standard_normal(size=[n_obs, ])
+    Z = _m(np.dot(X, b)) + np.random.standard_normal(size=[n_obs, ])
     # treatment
-    M = m(gamma_z * Z + np.dot(X, b))
+    M = _m(gamma_z * Z + np.dot(X, b))
     D = M + np.random.standard_normal(size=[n_obs, ])
     Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
 
