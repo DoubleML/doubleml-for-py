@@ -333,7 +333,7 @@ class DoubleMLData:
     def use_other_treat_as_covariate(self, value):
         if not isinstance(value, bool):
             raise TypeError('use_other_treat_as_covariate must be True or False. '
-                            f'got {str(value)}')
+                            f'Got {str(value)}.')
         self._use_other_treat_as_covariate = value
 
     def _set_y_z(self):
