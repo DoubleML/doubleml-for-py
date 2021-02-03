@@ -90,11 +90,10 @@ def var_plr(theta, d, u_hat, v_hat, score, n_obs):
     if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
               np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
-    elif score == 'IV-type':
+    else:
+        assert score == 'IV-type'
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
               np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
-    else:
-        raise ValueError('invalid score')
 
     return var
 
@@ -102,7 +101,8 @@ def var_plr(theta, d, u_hat, v_hat, score, n_obs):
 def plr_orth(v_hat, u_hat, D, score):
     if score == 'IV-type':
         res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, D))
-    elif score == 'partialling out':
+    else:
+        assert score == 'partialling out'
         res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
 
     return res
@@ -156,21 +156,22 @@ def boot_plr_single_treat(theta, Y, D, g_hat, m_hat, smpls, score, se, weights, 
         if dml_procedure == 'dml1':
             if score == 'partialling out':
                 J[idx] = np.mean(-np.multiply(v_hat[test_index], v_hat[test_index]))
-            elif score == 'IV-type':
+            else:
+                assert score == 'IV-type'
                 J[idx] = np.mean(-np.multiply(v_hat[test_index], D[test_index]))
 
     if dml_procedure == 'dml2':
         if score == 'partialling out':
             J = np.mean(-np.multiply(v_hat, v_hat))
-        elif score == 'IV-type':
+        else:
+            assert score == 'IV-type'
             J = np.mean(-np.multiply(v_hat, D))
 
     if score == 'partialling out':
         psi = np.multiply(u_hat - v_hat * theta, v_hat)
-    elif score == 'IV-type':
-        psi = np.multiply(u_hat - D * theta, v_hat)
     else:
-        raise ValueError('invalid score')
+        assert score == 'IV-type'
+        psi = np.multiply(u_hat - D * theta, v_hat)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fitting)
 

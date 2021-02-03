@@ -101,20 +101,16 @@ def pliv_partial_x_dml2(Y, X, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score):
 
 
 def var_pliv_partial_x(theta, d, u_hat, w_hat, r_hat_tilde, score, n_obs):
-    if score == 'partialling out':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(r_hat_tilde, w_hat)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - w_hat*theta, r_hat_tilde), 2))
-    else:
-        raise ValueError('invalid score')
+    assert score == 'partialling out'
+    var = 1/n_obs * 1/np.power(np.mean(np.multiply(r_hat_tilde, w_hat)), 2) * \
+          np.mean(np.power(np.multiply(u_hat - w_hat*theta, r_hat_tilde), 2))
 
     return var
 
 
 def pliv_partial_x_orth(u_hat, w_hat, r_hat_tilde, D, score):
-    if score == 'partialling out':
-        res = np.mean(np.multiply(r_hat_tilde, u_hat))/np.mean(np.multiply(r_hat_tilde, w_hat))
-    else:
-        raise ValueError('invalid score')
+    assert score == 'partialling out'
+    res = np.mean(np.multiply(r_hat_tilde, u_hat))/np.mean(np.multiply(r_hat_tilde, w_hat))
 
     return res
 
@@ -122,11 +118,7 @@ def pliv_partial_x_orth(u_hat, w_hat, r_hat_tilde, D, score):
 def boot_pliv_partial_x(theta, Y, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(Y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
-    if np.isscalar(theta):
-        n_d = 1
-    else:
-        n_d = len(theta)
-    assert n_d == 1
+    assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_partial_x_single_treat(theta, Y, D, Z, g_hat, r_hat, r_hat_tilde,
                                                                smpls, score, se, weights, n_rep, dml_procedure)
     return boot_theta, boot_t_stat
@@ -134,6 +126,7 @@ def boot_pliv_partial_x(theta, Y, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score,
 
 def boot_pliv_partial_x_single_treat(theta, Y, D, Z, g_hat, r_hat, r_hat_tilde, smpls, score, se, weights,
                                      n_rep, dml_procedure):
+    assert score == 'partialling out'
     u_hat = np.zeros_like(Y)
     w_hat = np.zeros_like(D)
     n_folds = len(smpls)
@@ -142,17 +135,12 @@ def boot_pliv_partial_x_single_treat(theta, Y, D, Z, g_hat, r_hat, r_hat_tilde, 
         u_hat[test_index] = Y[test_index] - g_hat[idx]
         w_hat[test_index] = D[test_index] - r_hat[idx]
         if dml_procedure == 'dml1':
-            if score == 'partialling out':
-                J[idx] = np.mean(-np.multiply(r_hat_tilde[test_index], w_hat[test_index]))
+            J[idx] = np.mean(-np.multiply(r_hat_tilde[test_index], w_hat[test_index]))
 
     if dml_procedure == 'dml2':
-        if score == 'partialling out':
-            J = np.mean(-np.multiply(r_hat_tilde, w_hat))
+        J = np.mean(-np.multiply(r_hat_tilde, w_hat))
 
-    if score == 'partialling out':
-        psi = np.multiply(u_hat - w_hat*theta, r_hat_tilde)
-    else:
-        raise ValueError('invalid score')
+    psi = np.multiply(u_hat - w_hat*theta, r_hat_tilde)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 

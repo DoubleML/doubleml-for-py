@@ -57,20 +57,16 @@ def pliv_partial_z_dml2(Y, X, D, Z, r_hat, smpls, score):
 
 
 def var_pliv_partial_z(theta, r_hat, y, d, score, n_obs):
-    if score == 'partialling out':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(r_hat, d)), 2) * \
-              np.mean(np.power(np.multiply(y - d*theta, r_hat), 2))
-    else:
-        raise ValueError('invalid score')
+    assert score == 'partialling out'
+    var = 1/n_obs * 1/np.power(np.mean(np.multiply(r_hat, d)), 2) * \
+          np.mean(np.power(np.multiply(y - d*theta, r_hat), 2))
 
     return var
 
 
 def pliv_partial_z_orth(r_hat, y, d, score):
-    if score == 'partialling out':
-        res = np.mean(np.multiply(r_hat, y))/np.mean(np.multiply(r_hat, d))
-    else:
-        raise ValueError('invalid score')
+    assert score == 'partialling out'
+    res = np.mean(np.multiply(r_hat, y))/np.mean(np.multiply(r_hat, d))
 
     return res
 
@@ -78,34 +74,26 @@ def pliv_partial_z_orth(r_hat, y, d, score):
 def boot_pliv_partial_z(theta, Y, D, Z, r_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(Y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
-    if np.isscalar(theta):
-        n_d = 1
-    else:
-        n_d = len(theta)
-    assert n_d == 1
+    assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_partial_z_single_treat(theta, Y, D, Z, r_hat,
                                                                smpls, score, se, weights, n_rep, dml_procedure)
     return boot_theta, boot_t_stat
 
 
 def boot_pliv_partial_z_single_treat(theta, Y, D, Z, r_hat, smpls, score, se, weights, n_rep, dml_procedure):
+    assert score == 'partialling out'
     r_hat_array = np.zeros_like(D)
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
         if dml_procedure == 'dml1':
-            if score == 'partialling out':
-                J[idx] = np.mean(-np.multiply(r_hat_array[test_index], D[test_index]))
+            J[idx] = np.mean(-np.multiply(r_hat_array[test_index], D[test_index]))
 
     if dml_procedure == 'dml2':
-        if score == 'partialling out':
-            J = np.mean(-np.multiply(r_hat_array, D))
+        J = np.mean(-np.multiply(r_hat_array, D))
 
-    if score == 'partialling out':
-        psi = np.multiply(Y - D*theta, r_hat_array)
-    else:
-        raise ValueError('invalid score')
+    psi = np.multiply(Y - D*theta, r_hat_array)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 

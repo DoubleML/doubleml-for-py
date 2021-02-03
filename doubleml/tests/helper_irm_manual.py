@@ -25,7 +25,8 @@ def fit_nuisance_irm(Y, X, D, learner_m, learner_g, smpls, score,
             train_index1 = np.intersect1d(np.where(D == 1)[0], train_index)
             g_hat1.append(ml_g1.fit(X[train_index1], Y[train_index1]).predict(X[test_index]))
     else:
-        for idx, (train_index, test_index) in enumerate(smpls):
+        assert score == 'ATTE'
+        for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
             g_hat1.append(np.zeros_like(g_hat0[idx]))
 
@@ -75,6 +76,7 @@ def tune_nuisance_irm(Y, X, D, ml_m, ml_g, smpls, score, n_folds_tune,
     if score == 'ATTE':
         g1_best_params = None
     else:
+        assert score == 'ATE'
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
@@ -145,14 +147,13 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score, n_obs
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0
                                          + np.divide(np.multiply(D, u_hat1), m_hat)
                                          - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat) - theta, 2))
-    elif score == 'ATTE':
+    else:
+        assert score == 'ATTE'
         var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(D, u_hat0), p_hat)
                                          - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
                                                      np.multiply(p_hat, (1.-m_hat)))
                                          - theta * np.divide(D, p_hat), 2)) \
               / np.power(np.mean(np.divide(D, p_hat)), 2)
-    else:
-        raise ValueError('invalid score')
 
     return var
 
@@ -162,7 +163,8 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score):
         res = np.mean(g_hat1 - g_hat0
                       + np.divide(np.multiply(D, u_hat1), m_hat)
                       - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat))
-    elif score == 'ATTE':
+    else:
+        assert score == 'ATTE'
         res = np.mean(np.divide(np.multiply(D, u_hat0), p_hat)
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
                                   np.multiply(p_hat, (1.-m_hat)))) \
@@ -174,11 +176,7 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score):
 def boot_irm(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(Y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
-    if np.isscalar(theta):
-        n_d = 1
-    else:
-        n_d = len(theta)
-    assert n_d == 1
+    assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat,
                                                     smpls, score, se, weights, n_rep, dml_procedure)
     return boot_theta, boot_t_stat
@@ -203,26 +201,27 @@ def boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
         if dml_procedure == 'dml1':
             if score == 'ATE':
                 J[idx] = -1.0
-            elif score == 'ATTE':
+            else:
+                assert score == 'ATTE'
                 J[idx] = np.mean(-np.divide(D[test_index], p_hat_all[test_index]))
 
     if dml_procedure == 'dml2':
         if score == 'ATE':
             J = -1.0
-        elif score == 'ATTE':
+        else:
+            assert score == 'ATTE'
             J = np.mean(-np.divide(D, p_hat_all))
 
     if score == 'ATE':
         psi = g_hat1_all - g_hat0_all \
                 + np.divide(np.multiply(D, u_hat1), m_hat_all) \
                 - np.divide(np.multiply(1.-D, u_hat0), 1.-m_hat_all) - theta
-    elif score == 'ATTE':
+    else:
+        assert score == 'ATTE'
         psi = np.divide(np.multiply(D, u_hat0), p_hat_all) \
                 - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
                             np.multiply(p_hat_all, (1.-m_hat_all))) \
                 - theta * np.divide(D, p_hat_all)
-    else:
-        raise ValueError('invalid score')
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 
