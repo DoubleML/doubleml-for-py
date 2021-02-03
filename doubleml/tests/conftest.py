@@ -23,10 +23,6 @@ def m2(x):
     return np.power(x, 2)
 
 
-def m3(x, nu=0., gamma=1.):
-    return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
-
-
 # number of datasets per dgp
 n_datasets = get_n_datasets()
 
