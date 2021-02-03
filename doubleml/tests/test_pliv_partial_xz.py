@@ -9,19 +9,8 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pliv_partial_xz_manual import pliv_partial_xz_dml1, pliv_partial_xz_dml2, \
     fit_nuisance_pliv_partial_xz, boot_pliv_partial_xz
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -43,13 +32,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner, score, dml_procedure):
+def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
 
     # collect data
-    obj_dml_data = generate_data_pliv_partialXZ[idx]
+    obj_dml_data = generate_data_pliv_partialXZ
 
     # Set machine learning methods for g, m & r
     ml_g = clone(learner)

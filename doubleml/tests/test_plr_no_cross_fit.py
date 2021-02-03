@@ -9,18 +9,7 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -42,13 +31,13 @@ def n_folds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
+def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     boot_methods = ['normal']
     n_rep_boot = 502
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
@@ -142,14 +131,14 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep):
+def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
@@ -271,7 +260,7 @@ def tune_on_folds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_on_folds):
+def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_folds):
     par_grid = {'ml_g': {'alpha': np.linspace(0.05, .95, 7)},
                 'ml_m': {'alpha': np.linspace(0.05, .95, 7)}}
     n_folds_tune = 3
@@ -281,7 +270,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g

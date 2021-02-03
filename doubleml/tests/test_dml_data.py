@@ -5,22 +5,10 @@ from doubleml import DoubleMLData, DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015
 from sklearn.linear_model import Lasso
 
-from doubleml.tests.helper_general import get_n_datasets
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
-
 
 @pytest.fixture(scope="module")
-def dml_data_fixture(generate_data1, idx):
-    data = generate_data1[idx]
+def dml_data_fixture(generate_data1):
+    data = generate_data1
     np.random.seed(3141)
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 

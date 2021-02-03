@@ -10,18 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -52,13 +41,13 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, idx, learner, score, dml_procedure, trimming_threshold):
+def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
 
     # collect data
-    data = generate_data_iivm[idx]
+    data = generate_data_iivm
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g

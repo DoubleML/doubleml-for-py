@@ -5,18 +5,8 @@ from sklearn.model_selection import KFold, train_test_split
 
 from sklearn.linear_model import Lasso
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_dml_cv_predict import _dml_cv_predict_ut_version
 from doubleml._helper import _dml_cv_predict
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -32,10 +22,10 @@ def params(request):
 
 
 @pytest.fixture(scope='module')
-def cv_predict_fixture(generate_data_cv_predict, idx, cross_fit, params):
+def cv_predict_fixture(generate_data_cv_predict, cross_fit, params):
     n_folds = 4
     # collect data
-    (x, y) = generate_data_cv_predict[idx]
+    (x, y) = generate_data_cv_predict
 
     if cross_fit:
         smpls = [(train, test) for train, test in KFold(n_splits=n_folds,

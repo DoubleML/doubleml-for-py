@@ -11,18 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -46,13 +35,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
+def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
@@ -141,14 +130,14 @@ def test_dml_plr_boot(dml_plr_fixture):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
+def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
     learner = LinearRegression()
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 501
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g

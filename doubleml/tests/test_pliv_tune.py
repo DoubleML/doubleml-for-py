@@ -10,18 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv, tune_nuisance_pliv
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -69,7 +58,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, score, dml_procedure, tune_on_folds):
+def dml_pliv_fixture(generate_data_iv, learner_g, learner_m, learner_r, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m),
                 'ml_r': get_par_grid(learner_r)}
@@ -80,7 +69,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner_g, learner_m, learner_r, sco
     n_rep_boot = 503
 
     # collect data
-    data = generate_data_iv[idx]
+    data = generate_data_iv
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for g, m & r

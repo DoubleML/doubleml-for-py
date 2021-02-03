@@ -7,7 +7,6 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
@@ -23,10 +22,6 @@ def m2(x):
     return np.power(x, 2)
 
 
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
 @pytest.fixture(scope='session',
                 params=[(500, 10),
                         (1000, 20),
@@ -40,12 +35,9 @@ def generate_data1(request):
     theta = 0.5
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_plr_turrell2018(N, p, theta, return_type=pd.DataFrame)
-        datasets.append(data)
+    data = make_plr_turrell2018(N, p, theta, return_type=pd.DataFrame)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -59,12 +51,9 @@ def generate_data2(request):
     theta = 0.5
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_plr_turrell2018(N, p, theta)
-        datasets.append(data)
+    data = make_plr_turrell2018(N, p, theta)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -80,23 +69,20 @@ def generate_data_bivariate(request):
     sigma = make_spd_matrix(p)
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        X = np.random.multivariate_normal(np.zeros(p), sigma, size=[N, ])
-        G = g(np.dot(X, b))
-        M0 = m(np.dot(X, b))
-        M1 = m2(np.dot(X, b))
-        D0 = M0 + np.random.standard_normal(size=[N, ])
-        D1 = M1 + np.random.standard_normal(size=[N, ])
-        Y = theta[0] * D0 + theta[1] * D1 + G + np.random.standard_normal(size=[N, ])
-        D = np.column_stack((D0, D1))
-        column_names = [f'X{i+1}' for i in np.arange(p)] + ['y'] + \
-                       [f'd{i+1}' for i in np.arange(2)]
-        data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns=column_names)
-        datasets.append(data)
+    X = np.random.multivariate_normal(np.zeros(p), sigma, size=[N, ])
+    G = g(np.dot(X, b))
+    M0 = m(np.dot(X, b))
+    M1 = m2(np.dot(X, b))
+    D0 = M0 + np.random.standard_normal(size=[N, ])
+    D1 = M1 + np.random.standard_normal(size=[N, ])
+    Y = theta[0] * D0 + theta[1] * D1 + G + np.random.standard_normal(size=[N, ])
+    D = np.column_stack((D0, D1))
+    column_names = [f'X{i+1}' for i in np.arange(p)] + ['y'] + \
+                   [f'd{i+1}' for i in np.arange(2)]
+    data = pd.DataFrame(np.column_stack((X, Y, D)),
+                        columns=column_names)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -117,19 +103,16 @@ def generate_data_toeplitz(request, betamax=4, decay=0.99, threshold=0, noisevar
     mu = np.zeros(p)
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        X = np.random.multivariate_normal(mu, sigma, size=[N, ])
-        Y = np.dot(X, beta) + np.random.normal(loc=0.0, scale=np.sqrt(noisevar), size=[N, ])
-        D = X[:, cols_treatment]
-        X = np.delete(X, cols_treatment, axis=1)
-        column_names = [f'X{i+1}' for i in np.arange(X.shape[1])] + \
-                       ['y'] + [f'd{i+1}' for i in np.arange(len(cols_treatment))]
-        data = pd.DataFrame(np.column_stack((X, Y, D)),
-                            columns=column_names)
-        datasets.append(data)
+    X = np.random.multivariate_normal(mu, sigma, size=[N, ])
+    Y = np.dot(X, beta) + np.random.normal(loc=0.0, scale=np.sqrt(noisevar), size=[N, ])
+    D = X[:, cols_treatment]
+    X = np.delete(X, cols_treatment, axis=1)
+    column_names = [f'X{i+1}' for i in np.arange(X.shape[1])] + \
+                   ['y'] + [f'd{i+1}' for i in np.arange(len(cols_treatment))]
+    data = pd.DataFrame(np.column_stack((X, Y, D)),
+                        columns=column_names)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -143,12 +126,9 @@ def generate_data_iv(request):
     theta = 0.5
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_pliv_CHS2015(n_obs=N, dim_x=p, alpha=theta, dim_z=1, return_type=pd.DataFrame)
-        datasets.append(data)
+    data = make_pliv_CHS2015(n_obs=N, dim_x=p, alpha=theta, dim_z=1, return_type=pd.DataFrame)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -164,12 +144,9 @@ def generate_data_irm(request):
     theta = 0.5
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_irm_data(N, p, theta, return_type='array')
-        datasets.append(data)
+    data = make_irm_data(N, p, theta, return_type='array')
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -184,12 +161,9 @@ def generate_data_iivm(request):
     gamma_z = 0.4
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_iivm_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
-        datasets.append(data)
+    data = make_iivm_data(N, p, theta, gamma_z, return_type=pd.DataFrame)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -202,12 +176,9 @@ def generate_data_pliv_partialXZ(request):
     theta = 1.
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_pliv_CHS2015(N, alpha=theta)
-        datasets.append(data)
+    data = make_pliv_CHS2015(N, alpha=theta)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -220,12 +191,9 @@ def generate_data_pliv_partialX(request):
     theta = 1.
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_pliv_CHS2015(N, alpha=theta, dim_z=5)
-        datasets.append(data)
+    data = make_pliv_CHS2015(N, alpha=theta, dim_z=5)
 
-    return datasets
+    return data
 
 
 @pytest.fixture(scope='session',
@@ -238,12 +206,9 @@ def generate_data_pliv_partialZ(request):
     theta = 1.
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        data = make_data_pliv_partialZ(N, alpha=theta, dim_x=5)
-        datasets.append(data)
+    data = make_data_pliv_partialZ(N, alpha=theta, dim_x=5)
 
-    return datasets
+    return data
 
 
 def make_data_pliv_partialZ(n_obs, alpha=1., dim_x=5, dim_z=150):
@@ -292,9 +257,7 @@ def generate_data_cv_predict(request):
     p = n_p[1]
 
     # generating data
-    datasets = []
-    for _ in range(n_datasets):
-        x, y = make_regression(n_samples=n, n_features=p)
-        datasets.append((x, y))
+    x, y = make_regression(n_samples=n, n_features=p)
+    data = (x, y)
 
-    return datasets
+    return data

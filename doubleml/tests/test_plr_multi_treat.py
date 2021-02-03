@@ -8,16 +8,11 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
 @pytest.fixture(scope='module',
-                params=range(2*n_datasets))
+                params=range(2))
 def idx(request):
     return request.param
 
@@ -47,10 +42,11 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     n_rep_boot = 483
 
     # collect data
-    if idx < n_datasets:
-        data = generate_data_bivariate[idx]
+    if idx == 0:
+        data = generate_data_bivariate
     else:
-        data = generate_data_toeplitz[idx-n_datasets]
+        assert idx == 1
+        data = generate_data_toeplitz
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     d_cols = data.columns[data.columns.str.startswith('d')].tolist()
 

@@ -10,19 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pliv_partial_xz_manual import pliv_partial_xz_dml1, pliv_partial_xz_dml2, \
     fit_nuisance_pliv_partial_xz, boot_pliv_partial_xz, tune_nuisance_pliv_partial_xz
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -70,7 +59,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, learner_m, learner_r, score,
+def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner_m, learner_r, score,
                                 dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m),
@@ -82,7 +71,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, idx, learner_g, le
     n_rep_boot = 503
 
     # collect data
-    obj_dml_data = generate_data_pliv_partialXZ[idx]
+    obj_dml_data = generate_data_pliv_partialXZ
 
     # Set machine learning methods for g, m & r
     ml_g = clone(learner_g)

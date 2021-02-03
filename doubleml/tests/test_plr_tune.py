@@ -9,18 +9,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -64,7 +53,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -74,7 +63,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
     n_rep_boot = 502
 
     # collect data
-    obj_dml_data = generate_data2[idx]
+    obj_dml_data = generate_data2
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)

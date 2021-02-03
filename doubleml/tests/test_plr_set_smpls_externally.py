@@ -7,18 +7,6 @@ from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
-
 
 @pytest.fixture(scope='module',
                 params=[LinearRegression()])
@@ -45,11 +33,11 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_smpls_fixture(generate_data1, idx, learner, score, dml_procedure, n_rep):
+def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     n_folds = 3
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g

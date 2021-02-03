@@ -10,18 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm, tune_nuisance_irm
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -63,7 +52,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -73,7 +62,7 @@ def dml_irm_fixture(generate_data_irm, idx, learner_g, learner_m, score, dml_pro
     n_rep_boot = 499
 
     # collect data
-    (X, y, d) = generate_data_irm[idx]
+    (X, y, d) = generate_data_irm
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)

@@ -9,19 +9,8 @@ from sklearn.linear_model import ElasticNet
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
 from doubleml.tests.helper_pliv_partial_z_manual import pliv_partial_z_dml1, pliv_partial_z_dml2, \
     fit_nuisance_pliv_partial_z, boot_pliv_partial_z, tune_nuisance_pliv_partial_z
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -55,7 +44,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, score, dml_procedure, tune_on_folds):
+def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
@@ -64,7 +53,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, idx, learner_r, scor
     n_rep_boot = 503
 
     # collect data
-    data = generate_data_pliv_partialZ[idx]
+    data = generate_data_pliv_partialZ
     X_cols = data.columns[data.columns.str.startswith('X')].tolist()
     Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
 
