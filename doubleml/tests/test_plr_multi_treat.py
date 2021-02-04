@@ -8,7 +8,7 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
 @pytest.fixture(scope='module',

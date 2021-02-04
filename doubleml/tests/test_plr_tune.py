@@ -9,7 +9,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
+from ._utils_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
 
 
 @pytest.fixture(scope='module',

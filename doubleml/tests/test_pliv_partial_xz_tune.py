@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_pliv_partial_xz_manual import pliv_partial_xz_dml1, pliv_partial_xz_dml2, \
+from ._utils_pliv_partial_xz_manual import pliv_partial_xz_dml1, pliv_partial_xz_dml2, \
     fit_nuisance_pliv_partial_xz, boot_pliv_partial_xz, tune_nuisance_pliv_partial_xz
 
 

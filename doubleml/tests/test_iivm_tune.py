@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm, tune_nuisance_iivm
+from ._utils_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm, tune_nuisance_iivm
 
 
 @pytest.fixture(scope='module',

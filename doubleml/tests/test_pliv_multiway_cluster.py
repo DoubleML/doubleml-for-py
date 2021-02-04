@@ -8,10 +8,10 @@ from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
-
-from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2019
 from doubleml.double_ml_resampling import DoubleMLMultiwayResampling
+
+from ._utils_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv
 
 np.random.seed(1234)
 # Set the simulation parameters

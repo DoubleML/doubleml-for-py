@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold, GridSearchCV
 
-from doubleml.tests.helper_boot import boot_manual, draw_weights
+from ._utils_boot import boot_manual, draw_weights
 
 
 def fit_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):

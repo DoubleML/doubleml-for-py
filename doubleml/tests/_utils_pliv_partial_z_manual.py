@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 
-from doubleml.tests.helper_boot import boot_manual, draw_weights
+from ._utils_boot import boot_manual, draw_weights
 
 
 def fit_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, r_params=None):

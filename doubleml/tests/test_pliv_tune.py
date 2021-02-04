@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv, tune_nuisance_pliv
+from ._utils_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv, tune_nuisance_pliv
 
 
 @pytest.fixture(scope='module',

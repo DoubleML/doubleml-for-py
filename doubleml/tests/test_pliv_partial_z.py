@@ -9,7 +9,7 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_pliv_partial_z_manual import pliv_partial_z_dml1, pliv_partial_z_dml2, \
+from ._utils_pliv_partial_z_manual import pliv_partial_z_dml1, pliv_partial_z_dml2, \
     fit_nuisance_pliv_partial_z, boot_pliv_partial_z
 
 

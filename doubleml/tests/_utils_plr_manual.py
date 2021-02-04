@@ -3,7 +3,7 @@ import scipy
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
-from doubleml.tests.helper_boot import boot_manual, draw_weights
+from ._utils_boot import boot_manual, draw_weights
 
 
 def fit_nuisance_plr(y, x, d, learner_m, learner_g, smpls, g_params=None, m_params=None):

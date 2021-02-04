@@ -5,7 +5,7 @@ from sklearn.model_selection import KFold, train_test_split
 
 from sklearn.linear_model import Lasso
 
-from doubleml.tests.helper_dml_cv_predict import _dml_cv_predict_ut_version
+from ._utils_dml_cv_predict import _dml_cv_predict_ut_version
 from doubleml._helper import _dml_cv_predict
 
 
