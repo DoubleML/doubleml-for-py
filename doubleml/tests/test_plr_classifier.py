@@ -3,22 +3,21 @@ import pytest
 import math
 
 from sklearn.model_selection import KFold
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier
 
 from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
-from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr, fit_nuisance_plr_classifier
 
 bonus_data = fetch_bonus()
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestRegressor(max_depth=2, n_estimators=10),
-                        Lasso(),
+                params=[Lasso(),
                         RandomForestClassifier(max_depth=2, n_estimators=10),
                         LogisticRegression()])
 def learner(request):
@@ -44,8 +43,8 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_rep_boot = 502
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = Lasso()
+    ml_g = Lasso()
+    ml_m = clone(learner)
 
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(bonus_data,
@@ -64,8 +63,12 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
                        shuffle=True)
     smpls = [(train, test) for train, test in resampling.split(x)]
 
-    g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                    clone(ml_m), clone(ml_g), smpls)
+    if is_classifier(ml_m):
+        g_hat, m_hat = fit_nuisance_plr_classifier(y, x, d,
+                                                   clone(ml_m), clone(ml_g), smpls)
+    else:
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
+                                        clone(ml_m), clone(ml_g), smpls)
 
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, x, d,
