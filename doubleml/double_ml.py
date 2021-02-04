@@ -909,6 +909,8 @@ class DoubleML(ABC):
                     raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
                 learner_is_classifier = False
             else:
+                if not hasattr(learner, 'predict'):
+                    raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) neither a regressor nor a classifier. ' +
                               'Method predict is used for prediction.')
                 learner_is_classifier = False
