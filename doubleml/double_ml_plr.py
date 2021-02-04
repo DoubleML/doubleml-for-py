@@ -86,11 +86,11 @@ class DoubleMLPLR(DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
         if obj_dml_data.binary_treats.all():
-            ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-            _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+            ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
             self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-            if ml_g_is_classifier:
-                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict'}
+            if ml_m_is_classifier:
+                self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
             else:
                 self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
         else:
@@ -131,17 +131,18 @@ class DoubleMLPLR(DoubleML):
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
-            binary_preds = (type_of_target(g_hat) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat, 2) - g_hat) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
-                                 'predictions obtained with the ml_g learner are also observed to be zero-one binary. '
-                                 'Make sure that for classifiers probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+
+        if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
+            binary_preds = (type_of_target(m_hat) == 'binary')
+            zero_one_preds = np.all((np.power(m_hat, 2) - m_hat) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
+                                 'predictions obtained with the ml_g learner are also observed to be zero-one binary. '
+                                 'Make sure that for classifiers probabilities and not labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
 
