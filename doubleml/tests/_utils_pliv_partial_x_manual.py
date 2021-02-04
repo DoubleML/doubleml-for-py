@@ -14,7 +14,7 @@ def fit_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=No
         g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
 
     m_hat = []
-    m_hat_array = np.zeros_like(z)
+    m_hat_array = np.zeros_like(z, dtype='float64')
     for i_instr in range(z.shape[1]):
         this_instr_m_hat = []
         for idx, (train_index, test_index) in enumerate(smpls):
@@ -25,7 +25,7 @@ def fit_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=No
         m_hat.append(this_instr_m_hat)
 
     r_hat = []
-    r_hat_array = np.zeros_like(d)
+    r_hat_array = np.zeros_like(d, dtype='float64')
     for idx, (train_index, test_index) in enumerate(smpls):
         if r_params is not None:
             ml_r.set_params(**r_params[idx])
@@ -77,8 +77,8 @@ def pliv_partial_x_dml1(y, x, d, z, g_hat, r_hat, r_hat_tilde, smpls, score):
         thetas[idx] = pliv_partial_x_orth(u_hat, w_hat, r_hat_tilde[test_index], d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    u_hat = np.zeros_like(y)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         w_hat[test_index] = d[test_index] - r_hat[idx]
@@ -89,8 +89,8 @@ def pliv_partial_x_dml1(y, x, d, z, g_hat, r_hat, r_hat_tilde, smpls, score):
 
 def pliv_partial_x_dml2(y, x, d, z, g_hat, r_hat, r_hat_tilde, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         w_hat[test_index] = d[test_index] - r_hat[idx]
@@ -127,8 +127,8 @@ def boot_pliv_partial_x(theta, y, d, z, g_hat, r_hat, r_hat_tilde, smpls, score,
 def boot_pliv_partial_x_single_treat(theta, y, d, z, g_hat, r_hat, r_hat_tilde, smpls, score, se, weights,
                                      n_rep, dml_procedure):
     assert score == 'partialling out'
-    u_hat = np.zeros_like(y)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):

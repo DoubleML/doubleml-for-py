@@ -121,15 +121,15 @@ def iivm_dml1(y, x, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
                                 z[test_index], score)
     theta_hat = np.mean(thetas)
 
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    w_hat0 = np.zeros_like(y)
-    w_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    r_hat0_all = np.zeros_like(y)
-    r_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    w_hat0 = np.zeros_like(y, dtype='float64')
+    w_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    r_hat0_all = np.zeros_like(y, dtype='float64')
+    r_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -150,15 +150,15 @@ def iivm_dml1(y, x, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
 
 def iivm_dml2(y, x, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
     n_obs = len(y)
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    w_hat0 = np.zeros_like(y)
-    w_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    r_hat0_all = np.zeros_like(y)
-    r_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    w_hat0 = np.zeros_like(y, dtype='float64')
+    w_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    r_hat0_all = np.zeros_like(y, dtype='float64')
+    r_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -218,15 +218,15 @@ def boot_iivm(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, scor
 def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, weights,
                            n_rep, dml_procedure):
     assert score == 'LATE'
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    w_hat0 = np.zeros_like(y)
-    w_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    r_hat0_all = np.zeros_like(y)
-    r_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    w_hat0 = np.zeros_like(y, dtype='float64')
+    w_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    r_hat0_all = np.zeros_like(y, dtype='float64')
+    r_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
