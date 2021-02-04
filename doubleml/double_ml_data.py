@@ -376,7 +376,7 @@ class DoubleMLData:
         self._X = self.data.loc[:, xd_list]
 
     def _check_binary_treats(self):
-        is_binary = pd.Series(index=self.d_cols)
+        is_binary = pd.Series(dtype=bool, index=self.d_cols)
         for treatment_var in self.d_cols:
             this_d = self.data.loc[:, treatment_var]
             binary_treat = (type_of_target(this_d) == 'binary')
