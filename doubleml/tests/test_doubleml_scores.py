@@ -22,18 +22,11 @@ dml_iivm.fit()
 
 
 @pytest.mark.ci
-def test_linear_score():
-    assert np.allclose(dml_plr.psi,
-                       dml_plr.psi_a * dml_plr.coef + dml_plr.psi_b,
-                       rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_pliv.psi,
-                       dml_pliv.psi_a * dml_pliv.coef + dml_pliv.psi_b,
-                       rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_irm.psi,
-                       dml_irm.psi_a * dml_irm.coef + dml_irm.psi_b,
-                       rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_iivm.psi,
-                       dml_iivm.psi_a * dml_iivm.coef + dml_iivm.psi_b,
+@pytest.mark.parametrize('dml_obj',
+                         [dml_plr, dml_pliv, dml_irm, dml_iivm])
+def test_linear_score(dml_obj):
+    assert np.allclose(dml_obj.psi,
+                       dml_obj.psi_a * dml_obj.coef + dml_obj.psi_b,
                        rtol=1e-9, atol=1e-4)
 
 
