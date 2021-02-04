@@ -46,14 +46,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
 
     # collect data
     data = generate_data1
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -65,14 +65,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     n_obs = len(y)
     all_smpls = []
     for i_rep in range(n_rep):
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         all_smpls.append(smpls)
 
     thetas = np.zeros(n_rep)
@@ -82,18 +82,18 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner), clone(learner), smpls)
 
         all_g_hat.append(g_hat)
         all_m_hat.append(m_hat)
 
         if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = plr_dml1(y, X, d,
+            thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
                                                  smpls, score)
         elif dml_procedure == 'dml2':
-            thetas[i_rep], ses[i_rep] = plr_dml2(y, X, d,
+            thetas[i_rep], ses[i_rep] = plr_dml2(y, x, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
                                                  smpls, score)
 

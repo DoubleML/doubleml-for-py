@@ -62,14 +62,14 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
     n_rep_boot = 499
 
     # collect data
-    (X, y, d) = generate_data_irm
+    (x, y, d) = generate_data_irm
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData.from_arrays(X, y, d)
+    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -84,41 +84,41 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
     np.random.seed(3141)
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     if tune_on_folds:
-        g0_params, g1_params, m_params = tune_nuisance_irm(y, X, d,
+        g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
                                                            clone(learner_m), clone(learner_g), smpls, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
                                                         clone(learner_m), clone(learner_g), smpls,
                                                         score,
                                                         g0_params, g1_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g0_params, g1_params, m_params = tune_nuisance_irm(y, X, d,
+        g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
                                                            clone(learner_m), clone(learner_g), xx, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
         if score == 'ATE':
-            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
                                                             clone(learner_m), clone(learner_g), smpls,
                                                             score,
                                                             g0_params * n_folds, g1_params * n_folds, m_params * n_folds)
         elif score == 'ATTE':
-            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
                                                             clone(learner_m), clone(learner_g), smpls,
                                                             score,
                                                             g0_params * n_folds, None, m_params * n_folds)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = irm_dml1(y, X, d,
+        res_manual, se_manual = irm_dml1(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = irm_dml2(y, X, d,
+        res_manual, se_manual = irm_dml2(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
 

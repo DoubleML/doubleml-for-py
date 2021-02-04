@@ -48,7 +48,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
 
     # collect data
     data = generate_data_iivm
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[1])
@@ -56,7 +56,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
     ml_r = clone(learner[0])
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'z')
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
@@ -67,23 +67,23 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
-    g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(y, X, d, z,
+    g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(y, x, d, z,
                                                               clone(learner[0]), clone(learner[1]), clone(learner[0]), smpls,
                                                               trimming_threshold=trimming_threshold)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = iivm_dml1(y, X, d, z,
+        res_manual, se_manual = iivm_dml1(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = iivm_dml2(y, X, d, z,
+        res_manual, se_manual = iivm_dml2(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
 

@@ -247,17 +247,17 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = _g(np.dot(X, b))
-    M = _m(np.dot(X, b), nu=nu, gamma=gamma)
+    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    G = _g(np.dot(x, b))
+    M = _m(np.dot(x, b), nu=nu, gamma=gamma)
     d = M + np.random.standard_normal(size=[n_obs, ])
     y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
-        return X, y, d
+        return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, y, d)),
+        data = pd.DataFrame(np.column_stack((x, y, d)),
                             columns=x_cols + ['y', 'd'])
         if return_type in _data_frame_alias:
             return data
@@ -421,20 +421,20 @@ def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='Do
     b = [1/k for k in range(1, dim_x+1)]
     sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = _g(np.dot(X, b))
+    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    G = _g(np.dot(x, b))
     # instrument
-    Z = _m(np.dot(X, b)) + np.random.standard_normal(size=[n_obs, ])
+    z = _m(np.dot(x, b)) + np.random.standard_normal(size=[n_obs, ])
     # treatment
-    M = _m(gamma_z * Z + np.dot(X, b))
-    D = M + np.random.standard_normal(size=[n_obs, ])
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
+    M = _m(gamma_z * z + np.dot(x, b))
+    d = M + np.random.standard_normal(size=[n_obs, ])
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
-        return X, Y, D, Z
+        return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['y', 'd', 'z'])
         if return_type in _data_frame_alias:
             return data
@@ -498,7 +498,7 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     u = xx[:, 1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
-    X = np.random.multivariate_normal(np.zeros(dim_x),
+    x = np.random.multivariate_normal(np.zeros(dim_x),
                                       sigma,
                                       size=[n_obs, ])
 
@@ -512,16 +512,16 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     delta = [1 / (k**2) for k in range(1, dim_z + 1)]
     Pi = np.hstack((I_z, np.zeros((dim_z, dim_x-dim_z))))
 
-    Z = np.dot(X, np.transpose(Pi)) + xi
-    D = np.dot(X, gamma) + np.dot(Z, delta) + u
-    Y = alpha * D + np.dot(X, beta) + epsilon
+    z = np.dot(x, np.transpose(Pi)) + xi
+    d = np.dot(x, gamma) + np.dot(z, delta) + u
+    y = alpha * d + np.dot(x, beta) + epsilon
 
     if return_type in _array_alias:
-        return X, Y, D, Z
+        return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         z_cols = [f'Z{i + 1}' for i in np.arange(dim_z)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['y', 'd'] + z_cols)
         if return_type in _data_frame_alias:
             return data
@@ -647,7 +647,7 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
                         (N, 1))
 
     # generate variables
-    X = (1 - omega_X[0] - omega_X[1]) * alpha_X \
+    x = (1 - omega_X[0] - omega_X[1]) * alpha_X \
         + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
     eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
@@ -659,15 +659,15 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     V = (1 - omega_V[0] - omega_V[1]) * alpha_V \
         + omega_V[0] * alpha_V_i + omega_V[1] * alpha_V_j
 
-    Z = np.matmul(X, xi_0) + V
-    D = Z * pi_10 + np.matmul(X, pi_20) + v
-    Y = D * theta + np.matmul(X, zeta_0) + eps
+    z = np.matmul(x, xi_0) + V
+    d = z * pi_10 + np.matmul(x, pi_20) + v
+    y = d * theta + np.matmul(x, zeta_0) + eps
 
     ind = pd.MultiIndex.from_product([range(N), range(M)])
 
     if return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['Y', 'D', 'Z'],
                             index=ind)
         if return_type in _data_frame_alias:

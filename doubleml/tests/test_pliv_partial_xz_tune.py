@@ -91,15 +91,15 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
     z = obj_dml_data.z
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     if tune_on_folds:
-        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, X, d, z,
+        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
                                                                      clone(learner_m),
                                                                      clone(learner_g),
                                                                      clone(learner_r),
@@ -108,13 +108,13 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
                                                                      par_grid['ml_m'],
                                                                      par_grid['ml_r'])
 
-        g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
+        g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, x, d, z,
                                                            clone(learner_m), clone(learner_g), clone(learner_r),
                                                            smpls,
                                                            g_params, m_params, r_params)
     else:
         xx = [(np.arange(len(y)), np.arange(len(y)))]
-        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, X, d, z,
+        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
                                                                      clone(learner_m),
                                                                      clone(learner_g),
                                                                      clone(learner_r),
@@ -123,18 +123,18 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
                                                                      par_grid['ml_m'],
                                                                      par_grid['ml_r'])
 
-        g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, X, d, z,
+        g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, x, d, z,
                                                            clone(learner_m), clone(learner_g), clone(learner_r),
                                                            smpls,
                                                            g_params * n_folds, m_params * n_folds, r_params * n_folds)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_partial_xz_dml1(y, X, d,
+        res_manual, se_manual = pliv_partial_xz_dml1(y, x, d,
                                                      z,
                                                      g_hat, m_hat, r_hat,
                                                      smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = pliv_partial_xz_dml2(y, X, d,
+        res_manual, se_manual = pliv_partial_xz_dml2(y, x, d,
                                                      z,
                                                      g_hat, m_hat, r_hat,
                                                      smpls, score)

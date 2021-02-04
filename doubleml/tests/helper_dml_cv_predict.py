@@ -9,13 +9,13 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection._validation import _fit_and_predict, _check_is_permutation
 
 
-def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
+def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
                                n_jobs=None, est_params=None, method='predict'):
     # this is an adapted version of the sklearn function cross_val_predict which allows to set fold-specific parameters
     # original https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/model_selection/_validation.py
 
     test_indices = np.concatenate([test_index for _, test_index in smpls])
-    smpls_is_partition = _check_is_permutation(test_indices, _num_samples(X))
+    smpls_is_partition = _check_is_permutation(test_indices, _num_samples(x))
 
     if not smpls_is_partition:
         assert len(smpls) == 1
@@ -26,11 +26,11 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
         predictions = np.full(len(y), np.nan)
         if est_params is None:
             xx = _fit_and_predict(clone(estimator),
-                                  X, y, train_index, test_index, verbose, fit_params, method)
+                                  x, y, train_index, test_index, verbose, fit_params, method)
         else:
             assert isinstance(est_params, dict)
             xx = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                  X, y, train_index, test_index, verbose, fit_params, method)
+                                  x, y, train_index, test_index, verbose, fit_params, method)
 
         # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
         # inv_test_indices = np.argsort(test_indices)
@@ -60,20 +60,20 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
     if est_params is None:
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             estimator,
-            X, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, verbose, fit_params, method)
                                      for idx, (train_index, test_index) in enumerate(smpls))
     elif isinstance(est_params, dict):
         # if no fold-specific parameters we redirect to the standard method
         # warnings.warn("Using the same (hyper-)parameters for all folds")
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             clone(estimator).set_params(**est_params),
-            X, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, verbose, fit_params, method)
                                      for idx, (train_index, test_index) in enumerate(smpls))
     else:
         assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
         prediction_blocks = parallel(delayed(_fit_and_predict)(
             clone(estimator).set_params(**est_params[idx]),
-            X, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, verbose, fit_params, method)
             for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions
@@ -83,7 +83,7 @@ def _dml_cv_predict_ut_version(estimator, X, y, smpls=None,
     else:
         predictions = [pred_block_i for pred_block_i, _ in prediction_blocks]
 
-    if not _check_is_permutation(test_indices, _num_samples(X)):
+    if not _check_is_permutation(test_indices, _num_samples(x)):
         raise ValueError('_dml_cross_val_predict only works for partitions')
 
     inv_test_indices = np.empty(len(test_indices), dtype=int)

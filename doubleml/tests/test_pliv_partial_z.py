@@ -39,14 +39,14 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_
 
     # collect data
     data = generate_data_pliv_partialZ
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
-    Z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    z_cols = data.columns[data.columns.str.startswith('Z')].tolist()
 
     # Set machine learning methods for r
     ml_r = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, Z_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, z_cols)
     dml_pliv_obj = dml.DoubleMLPLIV._partialZ(obj_dml_data,
                                               ml_r,
                                               n_folds,
@@ -56,24 +56,24 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
-    z = data.loc[:, Z_cols].values
+    z = data.loc[:, z_cols].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
-    r_hat = fit_nuisance_pliv_partial_z(y, X, d, z,
+    r_hat = fit_nuisance_pliv_partial_z(y, x, d, z,
                                         clone(learner),
                                         smpls)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_partial_z_dml1(y, X, d,
+        res_manual, se_manual = pliv_partial_z_dml1(y, x, d,
                                                     z,
                                                     r_hat,
                                                     smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = pliv_partial_z_dml2(y, X, d,
+        res_manual, se_manual = pliv_partial_z_dml2(y, x, d,
                                                     z,
                                                     r_hat,
                                                     smpls, score)

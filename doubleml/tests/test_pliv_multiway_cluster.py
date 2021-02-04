@@ -17,9 +17,9 @@ np.random.seed(1234)
 # Set the simulation parameters
 N = 25  # number of observations (first dimension)
 M = 25  # number of observations (second dimension)
-dim_X = 100  # dimension of X
+dim_x = 100  # dimension of x
 
-obj_dml_data = make_pliv_multiway_cluster_CKMS2019(N, M, dim_X)
+obj_dml_data = make_pliv_multiway_cluster_CKMS2019(N, M, dim_x)
 
 
 @pytest.fixture(scope='module',
@@ -68,21 +68,21 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
     z = np.ravel(obj_dml_data.z)
 
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,
+    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
                                             clone(learner), clone(learner), clone(learner),
                                             smpls_lin_ind)
 
     if dml_procedure == 'dml1':
-        res_manual, _ = pliv_dml1(y, X, d,
+        res_manual, _ = pliv_dml1(y, x, d,
                                   z,
                                   g_hat, m_hat, r_hat,
                                   smpls_lin_ind, score)
     elif dml_procedure == 'dml2':
-        res_manual, _ = pliv_dml2(y, X, d,
+        res_manual, _ = pliv_dml2(y, x, d,
                                   z,
                                   g_hat, m_hat, r_hat,
                                   smpls_lin_ind, score)

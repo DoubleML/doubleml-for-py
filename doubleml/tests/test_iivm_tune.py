@@ -70,7 +70,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
 
     # collect data
     data = generate_data_iivm
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m, g & r
     ml_g = clone(learner_g)
@@ -78,7 +78,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     ml_r = clone(learner_r)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'z')
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'z')
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
@@ -90,44 +90,44 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     if tune_on_folds:
         g0_params, g1_params, m_params,  r0_params, r1_params = \
-            tune_nuisance_iivm(y, X, d, z,
+            tune_nuisance_iivm(y, x, d, z,
                                clone(learner_m), clone(learner_g), clone(learner_r), smpls,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
 
         g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
-            fit_nuisance_iivm(y, X, d, z,
+            fit_nuisance_iivm(y, x, d, z,
                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
                               g0_params, g1_params, m_params,  r0_params, r1_params)
     else:
         xx = [(np.arange(data.shape[0]), np.array([]))]
         g0_params, g1_params, m_params,  r0_params, r1_params = \
-            tune_nuisance_iivm(y, X, d, z,
+            tune_nuisance_iivm(y, x, d, z,
                                clone(learner_m), clone(learner_g), clone(learner_r), xx,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
 
         g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
-            fit_nuisance_iivm(y, X, d, z,
+            fit_nuisance_iivm(y, x, d, z,
                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
                               g0_params * n_folds, g1_params * n_folds, m_params * n_folds,
                               r0_params * n_folds, r1_params * n_folds)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = iivm_dml1(y, X, d, z,
+        res_manual, se_manual = iivm_dml1(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = iivm_dml2(y, X, d, z,
+        res_manual, se_manual = iivm_dml2(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
 

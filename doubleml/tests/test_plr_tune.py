@@ -84,37 +84,37 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(learner_m), clone(learner_g), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner_m), clone(learner_g), smpls,
                                         g_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(learner_m), clone(learner_g), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner_m), clone(learner_g),
                                         smpls,
                                         g_params * n_folds, m_params * n_folds)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, X, d,
+        res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
     elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(y, X, d,
+        res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
 

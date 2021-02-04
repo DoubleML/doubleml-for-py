@@ -38,14 +38,14 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
 
     # collect data
     data = generate_data1
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -57,21 +57,21 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     if n_folds == 1:
         smpls = [(np.arange(len(y)), np.arange(len(y)))]
     else:
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         smpls = [smpls[0]]
 
-    g_hat, m_hat = fit_nuisance_plr(y, X, d,
+    g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                     clone(learner), clone(learner), smpls)
 
     assert dml_procedure == 'dml1'
-    res_manual, se_manual = plr_dml1(y, X, d,
+    res_manual, se_manual = plr_dml1(y, x, d,
                                      g_hat, m_hat,
                                      smpls, score)
 
@@ -139,14 +139,14 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
 
     # collect data
     data = generate_data1
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -159,13 +159,13 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     all_smpls = []
     for i_rep in range(n_rep):
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         all_smpls.append(smpls)
 
     # adapt to do no-cross-fitting in each repetition
@@ -178,13 +178,13 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner), clone(learner), smpls)
 
         all_g_hat.append(g_hat)
         all_m_hat.append(m_hat)
 
-        thetas[i_rep], ses[i_rep] = plr_dml1(y, X, d,
+        thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
                                              all_g_hat[i_rep], all_m_hat[i_rep],
                                              smpls, score)
 
@@ -271,14 +271,14 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
 
     # collect data
     data = generate_data1
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = Lasso()
     ml_m = Lasso()
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds=2,
@@ -294,35 +294,35 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
 
     resampling = KFold(n_splits=2,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
     smpls = [smpls[0]]
 
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(ml_m), clone(ml_g), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(ml_m), clone(ml_g), smpls,
                                         g_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(ml_m), clone(ml_g), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(ml_m), clone(ml_g),
                                         smpls,
                                         g_params, m_params)
 
     assert dml_procedure == 'dml1'
-    res_manual, se_manual = plr_dml1(y, X, d,
+    res_manual, se_manual = plr_dml1(y, x, d,
                                      g_hat, m_hat,
                                      smpls, score)
 
