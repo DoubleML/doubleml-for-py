@@ -89,11 +89,11 @@ def plr_dml2(Y, X, D, g_hat, m_hat, smpls, score):
 def var_plr(theta, d, u_hat, v_hat, score, n_obs):
     if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
+            np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
     else:
         assert score == 'IV-type'
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
-              np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
+            np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
 
     return var
 

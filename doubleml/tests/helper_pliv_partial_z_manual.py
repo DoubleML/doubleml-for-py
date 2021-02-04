@@ -59,7 +59,7 @@ def pliv_partial_z_dml2(Y, X, D, Z, r_hat, smpls, score):
 def var_pliv_partial_z(theta, r_hat, y, d, score, n_obs):
     assert score == 'partialling out'
     var = 1/n_obs * 1/np.power(np.mean(np.multiply(r_hat, d)), 2) * \
-          np.mean(np.power(np.multiply(y - d*theta, r_hat), 2))
+        np.mean(np.power(np.multiply(y - d*theta, r_hat), 2))
 
     return var
 

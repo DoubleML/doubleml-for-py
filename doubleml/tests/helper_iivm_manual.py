@@ -187,9 +187,9 @@ def var_iivm(theta, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat
                                      - theta*(r_hat1 - r_hat0
                                               + np.divide(np.multiply(Z, w_hat1), m_hat)
                                               - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)) \
-          / np.power(np.mean(r_hat1 - r_hat0
-                             + np.divide(np.multiply(Z, w_hat1), m_hat)
-                             - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)
+        / np.power(np.mean(r_hat1 - r_hat0
+                   + np.divide(np.multiply(Z, w_hat1), m_hat)
+                   - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat)), 2)
 
     return var
 
@@ -199,9 +199,9 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
     res = np.mean(g_hat1 - g_hat0
                   + np.divide(np.multiply(Z, u_hat1), m_hat)
                   - np.divide(np.multiply(1.-Z, u_hat0), 1.-m_hat)) \
-          / np.mean(r_hat1 - r_hat0
-                    + np.divide(np.multiply(Z, w_hat1), m_hat)
-                    - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat))
+        / np.mean(r_hat1 - r_hat0
+                  + np.divide(np.multiply(Z, w_hat1), m_hat)
+                  - np.divide(np.multiply(1.-Z, w_hat0), 1.-m_hat))
 
     return res
 

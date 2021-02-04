@@ -153,7 +153,7 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score, n_obs
                                          - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
                                                      np.multiply(p_hat, (1.-m_hat)))
                                          - theta * np.divide(D, p_hat), 2)) \
-              / np.power(np.mean(np.divide(D, p_hat)), 2)
+            / np.power(np.mean(np.divide(D, p_hat)), 2)
 
     return var
 
@@ -168,7 +168,7 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, D, score):
         res = np.mean(np.divide(np.multiply(D, u_hat0), p_hat)
                       - np.divide(np.multiply(m_hat, np.multiply(1.-D, u_hat0)),
                                   np.multiply(p_hat, (1.-m_hat)))) \
-              / np.mean(np.divide(D, p_hat))
+            / np.mean(np.divide(D, p_hat))
 
     return res
 
@@ -219,9 +219,9 @@ def boot_irm_single_treat(theta, Y, D, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
     else:
         assert score == 'ATTE'
         psi = np.divide(np.multiply(D, u_hat0), p_hat_all) \
-                - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
-                            np.multiply(p_hat_all, (1.-m_hat_all))) \
-                - theta * np.divide(D, p_hat_all)
+            - np.divide(np.multiply(m_hat_all, np.multiply(1.-D, u_hat0)),
+                        np.multiply(p_hat_all, (1.-m_hat_all))) \
+            - theta * np.divide(D, p_hat_all)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
 

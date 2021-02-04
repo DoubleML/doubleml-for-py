@@ -109,7 +109,6 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule='discard')
 
 
-
 @pytest.mark.ci
 def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
@@ -364,5 +363,3 @@ def test_doubleml_exception_learner():
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLPLR(dml_data_irm, LogisticRegression(), Lasso())
-
-

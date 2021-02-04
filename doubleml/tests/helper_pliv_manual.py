@@ -96,7 +96,7 @@ def pliv_dml2(Y, X, D, Z, g_hat, m_hat, r_hat, smpls, score):
 def var_pliv(theta, d, u_hat, v_hat, w_hat, score, n_obs):
     assert score == 'partialling out'
     var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, w_hat)), 2) * \
-          np.mean(np.power(np.multiply(u_hat - w_hat*theta, v_hat), 2))
+        np.mean(np.power(np.multiply(u_hat - w_hat*theta, v_hat), 2))
 
     return var
 
