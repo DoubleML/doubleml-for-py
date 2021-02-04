@@ -10,15 +10,15 @@ from sklearn.datasets import make_regression
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
-def g(x):
+def _g(x):
     return np.power(np.sin(x), 2)
 
 
-def m(x, nu=0., gamma=1.):
+def _m(x, nu=0., gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
-def m2(x):
+def _m2(x):
     return np.power(x, 2)
 
 
@@ -70,9 +70,9 @@ def generate_data_bivariate(request):
 
     # generating data
     x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
-    G = g(np.dot(x, b))
-    M0 = m(np.dot(x, b))
-    M1 = m2(np.dot(x, b))
+    G = _g(np.dot(x, b))
+    M0 = _m(np.dot(x, b))
+    M1 = _m2(np.dot(x, b))
     D0 = M0 + np.random.standard_normal(size=[n, ])
     D1 = M1 + np.random.standard_normal(size=[n, ])
     y = theta[0] * D0 + theta[1] * D1 + G + np.random.standard_normal(size=[n, ])
