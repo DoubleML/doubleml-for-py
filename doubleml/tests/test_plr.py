@@ -173,12 +173,12 @@ def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
     smpls = dml_plr_obj.smpls[0]
 
     g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for (train_index, test_index) in smpls:
         ols_est = scipy.linalg.lstsq(x[train_index], y[train_index])[0]
         g_hat.append(np.dot(x[test_index], ols_est))
 
     m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
+    for (train_index, test_index) in smpls:
         ols_est = scipy.linalg.lstsq(x[train_index], d[train_index])[0]
         m_hat.append(np.dot(x[test_index], ols_est))
 
