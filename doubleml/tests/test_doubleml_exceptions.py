@@ -359,7 +359,7 @@ def test_doubleml_exception_learner():
 
     # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
     with pytest.raises(TypeError):
-        _ = DoubleMLPLR(dml_data_irm, _DummyNoClassifier(), Lasso())
+        _ = DoubleMLPLR(dml_data, _DummyNoClassifier(), Lasso())
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data_irm, LogisticRegression(), Lasso())
+        _ = DoubleMLPLR(dml_data, LogisticRegression(), Lasso())
