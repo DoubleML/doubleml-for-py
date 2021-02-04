@@ -11,18 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
+from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
 @pytest.fixture(scope='module',
@@ -46,21 +35,21 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
+def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
 
     # collect data
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -71,21 +60,22 @@ def dml_plr_fixture(generate_data1, idx, learner, score, dml_procedure):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
-    g_hat, m_hat = fit_nuisance_plr(y, X, d,
+    g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                     clone(learner), clone(learner), smpls)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, X, d,
+        res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(y, X, d,
+    else:
+        assert dml_procedure == 'dml2'
+        res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
 
@@ -141,63 +131,64 @@ def test_dml_plr_boot(dml_plr_fixture):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_ols_manual_fixture(generate_data1, idx, score, dml_procedure):
+def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
     learner = LinearRegression()
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 501
 
     # collect data
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)
 
-    N = data.shape[0]
+    n = data.shape[0]
     this_smpl = list()
-    xx = int(N/2)
-    this_smpl.append((np.arange(xx, N), np.arange(0, xx)))
-    this_smpl.append((np.arange(0, xx), np.arange(xx, N)))
+    xx = int(n/2)
+    this_smpl.append((np.arange(xx, n), np.arange(0, xx)))
+    this_smpl.append((np.arange(0, xx), np.arange(xx, n)))
     smpls = [this_smpl]
     dml_plr_obj.set_sample_splitting(smpls)
 
     dml_plr_obj.fit()
 
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
 
     # add column of ones for intercept
-    o = np.ones((N, 1))
-    X = np.append(X, o, axis=1)
+    o = np.ones((n, 1))
+    x = np.append(x, o, axis=1)
 
     smpls = dml_plr_obj.smpls[0]
 
     g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        ols_est = scipy.linalg.lstsq(X[train_index], y[train_index])[0]
-        g_hat.append(np.dot(X[test_index], ols_est))
+    for (train_index, test_index) in smpls:
+        ols_est = scipy.linalg.lstsq(x[train_index], y[train_index])[0]
+        g_hat.append(np.dot(x[test_index], ols_est))
 
     m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        ols_est = scipy.linalg.lstsq(X[train_index], d[train_index])[0]
-        m_hat.append(np.dot(X[test_index], ols_est))
+    for (train_index, test_index) in smpls:
+        ols_est = scipy.linalg.lstsq(x[train_index], d[train_index])[0]
+        m_hat.append(np.dot(x[test_index], ols_est))
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, X, d,
+        res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(y, X, d,
+    else:
+        assert dml_procedure == 'dml2'
+        res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
 

@@ -9,18 +9,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
+from ._utils_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
 
 
 @pytest.fixture(scope='module',
@@ -58,13 +47,14 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ == Lasso:
         par_grid = {'alpha': np.linspace(0.05, .95, 7)}
-    elif learner.__class__ == ElasticNet:
+    else:
+        assert learner.__class__ == ElasticNet
         par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
     return par_grid
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -74,7 +64,7 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
     n_rep_boot = 502
 
     # collect data
-    obj_dml_data = generate_data2[idx]
+    obj_dml_data = generate_data2
 
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)
@@ -95,37 +85,38 @@ def dml_plr_fixture(generate_data2, idx, learner_g, learner_m, score, dml_proced
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(learner_m), clone(learner_g), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner_m), clone(learner_g), smpls,
                                         g_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(learner_m), clone(learner_g), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner_m), clone(learner_g),
                                         smpls,
                                         g_params * n_folds, m_params * n_folds)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, X, d,
+        res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
-        res_manual, se_manual = plr_dml2(y, X, d,
+    else:
+        assert dml_procedure == 'dml2'
+        res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
 

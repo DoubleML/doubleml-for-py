@@ -10,18 +10,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
+from ._utils_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv
 
 
 @pytest.fixture(scope='module',
@@ -45,14 +34,14 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
+def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
 
     # collect data
-    data = generate_data_iv[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data_iv
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for g, m & r
     ml_g = clone(learner)
@@ -60,7 +49,7 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
     ml_r = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols, 'Z1')
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
@@ -70,24 +59,25 @@ def dml_pliv_fixture(generate_data_iv, idx, learner, score, dml_procedure):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['Z1'].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, X, d, z,
+    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
                                             clone(learner), clone(learner), clone(learner),
                                             smpls)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_dml1(y, X, d,
+        res_manual, se_manual = pliv_dml1(y, x, d,
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
-    elif dml_procedure == 'dml2':
-        res_manual, se_manual = pliv_dml2(y, X, d,
+    else:
+        assert dml_procedure == 'dml2'
+        res_manual, se_manual = pliv_dml2(y, x, d,
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)

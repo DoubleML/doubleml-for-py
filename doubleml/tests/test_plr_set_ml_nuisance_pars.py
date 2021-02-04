@@ -7,18 +7,6 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
-
 
 @pytest.fixture(scope='module',
                 params=['IV-type', 'partialling out'])
@@ -33,13 +21,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, idx, score, dml_procedure):
+def dml_plr_fixture(generate_data1, score, dml_procedure):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
 
     # collect data
-    data = generate_data1[idx]
+    data = generate_data1
 
     alpha = 0.05
     learner = Lasso(alpha=alpha)

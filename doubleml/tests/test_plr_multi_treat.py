@@ -8,16 +8,11 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
+from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
 
 
 @pytest.fixture(scope='module',
-                params=range(2*n_datasets))
+                params=range(2))
 def idx(request):
     return request.param
 
@@ -47,11 +42,12 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     n_rep_boot = 483
 
     # collect data
-    if idx < n_datasets:
-        data = generate_data_bivariate[idx]
+    if idx == 0:
+        data = generate_data_bivariate
     else:
-        data = generate_data_toeplitz[idx-n_datasets]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+        assert idx == 1
+        data = generate_data_toeplitz
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
     d_cols = data.columns[data.columns.str.startswith('d')].tolist()
 
     # Set machine learning methods for m & g
@@ -59,7 +55,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -70,11 +66,11 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data.loc[:, d_cols].values
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
     n_d = d.shape[1]
 
@@ -86,7 +82,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
     for i_d in range(n_d):
 
-        Xd = np.hstack((X, np.delete(d, i_d, axis=1)))
+        Xd = np.hstack((x, np.delete(d, i_d, axis=1)))
 
         g_hat, m_hat = fit_nuisance_plr(y, Xd, d[:, i_d],
                                         clone(learner), clone(learner), smpls)
@@ -98,7 +94,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
             coef_manual[i_d], se_manual[i_d] = plr_dml1(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, score)
-        elif dml_procedure == 'dml2':
+        else:
+            assert dml_procedure == 'dml2'
             coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, score)

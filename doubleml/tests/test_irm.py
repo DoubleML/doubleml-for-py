@@ -10,18 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
+from ._utils_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm
 
 
 @pytest.fixture(scope='module',
@@ -52,20 +41,20 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimming_threshold):
+def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
 
     # collect data
-    (X, y, d) = generate_data_irm[idx]
+    (x, y, d) = generate_data_irm
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[1])
     ml_m = clone(learner[0])
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData.from_arrays(X, y, d)
+    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -78,19 +67,20 @@ def dml_irm_fixture(generate_data_irm, idx, learner, score, dml_procedure, trimm
     np.random.seed(3141)
     resampling = KFold(n_splits=n_folds,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
 
-    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, X, d,
+    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
                                                     clone(learner[0]), clone(learner[1]), smpls,
                                                     score,
                                                     trimming_threshold=trimming_threshold)
 
     if dml_procedure == 'dml1':
-        res_manual, se_manual = irm_dml1(y, X, d,
+        res_manual, se_manual = irm_dml1(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
-        res_manual, se_manual = irm_dml2(y, X, d,
+    else:
+        assert dml_procedure == 'dml2'
+        res_manual, se_manual = irm_dml2(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
 

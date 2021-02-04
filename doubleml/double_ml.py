@@ -55,10 +55,10 @@ class DoubleML(ABC):
 
         if not isinstance(apply_cross_fitting, bool):
             raise TypeError('apply_cross_fitting must be True or False. '
-                            f'got {str(apply_cross_fitting)}')
+                            f'Got {str(apply_cross_fitting)}.')
         if not isinstance(draw_sample_splitting, bool):
             raise TypeError('draw_sample_splitting must be True or False. '
-                            f'got {str(draw_sample_splitting)}')
+                            f'Got {str(draw_sample_splitting)}.')
 
         # set resampling specifications
         self._n_folds = n_folds
@@ -67,8 +67,8 @@ class DoubleML(ABC):
 
         # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
-            raise ValueError('dml_procedure must be "dml1" or "dml2" '
-                             f' got {str(dml_procedure)}')
+            raise ValueError('dml_procedure must be "dml1" or "dml2". '
+                             f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
         self._score = self._check_score(score)
 
@@ -209,8 +209,8 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if (not isinstance(learner, str)) | (learner not in valid_learner):
-            raise ValueError('invalid nuisance learner ' + str(learner) +
-                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+            raise ValueError('Invalid nuisance learner ' + str(learner) + '. ' +
+                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
         return self._params[learner]
 
     # The private function _get_params delivers the single treatment, single (cross-fitting) sample subselection.
@@ -226,7 +226,7 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            raise ValueError('sample splitting not specified\nEither draw samples via .draw_sample splitting() ' +
+            raise ValueError('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
                              'or set external samples via .set_sample_splitting().')
         return self._smpls
 
@@ -332,7 +332,7 @@ class DoubleML(ABC):
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         col_names = ['coef', 'std err', 't', 'P>|t|']
-        if self._dml_data.d_cols is None:
+        if np.isnan(self.coef).all():
             df_summary = pd.DataFrame(columns=col_names)
         else:
             summary_stats = np.transpose(np.vstack(
@@ -453,7 +453,7 @@ class DoubleML(ABC):
 
         if not isinstance(keep_scores, bool):
             raise TypeError('keep_scores must be True or False. '
-                            f'got {str(keep_scores)}')
+                            f'Got {str(keep_scores)}.')
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -502,11 +502,11 @@ class DoubleML(ABC):
         self : object
         """
         if np.isnan(self.coef).all():
-            raise ValueError('apply fit() before bootstrap()')
+            raise ValueError('Apply fit() before bootstrap().')
 
         if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
-            raise ValueError('method must be "Bayes", "normal" or "wild" '
-                             f' got {str(method)}')
+            raise ValueError('Method must be "Bayes", "normal" or "wild". '
+                             f'Got {str(method)}.')
 
         if not isinstance(n_rep_boot, int):
             raise TypeError('The number of bootstrap replications must be of int type. '
@@ -558,7 +558,7 @@ class DoubleML(ABC):
 
         if not isinstance(joint, bool):
             raise TypeError('joint must be True or False. '
-                            f'got {str(joint)}')
+                            f'Got {str(joint)}.')
 
         if not isinstance(level, float):
             raise TypeError('The confidence level must be of float type. '
@@ -571,11 +571,13 @@ class DoubleML(ABC):
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
             if np.isnan(self.boot_coef).all():
-                raise ValueError('apply fit() & bootstrap() before confint(joint=True)')
+                raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
             sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1 - a)
             ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
         else:
+            if np.isnan(self.coef).all():
+                raise ValueError('Apply fit() before confint().')
             fac = norm.ppf(ab)
             ci = np.vstack((self.coef + self.se * fac[0], self.coef + self.se * fac[1])).T
 
@@ -598,11 +600,11 @@ class DoubleML(ABC):
 
         Returns
         -------
-        p_val : np.array
-            An array of adjusted p-values.
+        p_val : pd.DataFrame
+            A data frame with adjusted p-values.
         """
         if np.isnan(self.coef).all():
-            raise ValueError('apply fit() before p_adjust()')
+            raise ValueError('Apply fit() before p_adjust().')
 
         if not isinstance(method, str):
             raise TypeError('The p_adjust method must be of str type. '
@@ -610,7 +612,7 @@ class DoubleML(ABC):
 
         if method.lower() in ['rw', 'romano-wolf']:
             if np.isnan(self.boot_coef).all():
-                raise ValueError(f'apply fit() & bootstrap() before p_adjust("{method}")')
+                raise ValueError(f'Apply fit() & bootstrap() before p_adjust("{method}").')
 
             pinit = np.full_like(self.pval, np.nan)
             p_val_corrected = np.full_like(self.pval, np.nan)
@@ -713,14 +715,14 @@ class DoubleML(ABC):
         """
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
-            raise ValueError('invalid param_grids ' + str(param_grids) +
-                             '\n param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names))
+            raise ValueError('Invalid param_grids ' + str(param_grids) + '. '
+                             'param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names) + '.')
 
         if scoring_methods is not None:
             if (not isinstance(scoring_methods, dict)) | (not all(k in self.learner_names for k in scoring_methods)):
-                raise ValueError('invalid scoring_methods ' + str(scoring_methods) +
-                                 '\n scoring_methods must be a dictionary.' +
-                                 '\n Valid keys are ' + ' and '.join(self.learner_names))
+                raise ValueError('Invalid scoring_methods ' + str(scoring_methods) + '. ' +
+                                 'scoring_methods must be a dictionary. ' +
+                                 'Valid keys are ' + ' and '.join(self.learner_names) + '.')
             if not all(k in scoring_methods for k in self.learner_names):
                 # if there are learners for which no scoring_method was set, we fall back to None, i.e., default scoring
                 for learner in self.learner_names:
@@ -729,7 +731,7 @@ class DoubleML(ABC):
 
         if not isinstance(tune_on_folds, bool):
             raise TypeError('tune_on_folds must be True or False. '
-                            f'got {str(tune_on_folds)}')
+                            f'Got {str(tune_on_folds)}.')
 
         if not isinstance(n_folds_tune, int):
             raise TypeError('The number of folds used for tuning must be of int type. '
@@ -739,12 +741,13 @@ class DoubleML(ABC):
                              f'{str(n_folds_tune)} was passed.')
 
         if (not isinstance(search_mode, str)) | (search_mode not in ['grid_search', 'randomized_search']):
-            raise ValueError('search_mode must be "grid_search" or "randomized_search" '
-                             f' got {str(search_mode)}')
+            raise ValueError('search_mode must be "grid_search" or "randomized_search". '
+                             f'Got {str(search_mode)}.')
 
         if not isinstance(n_iter_randomized_search, int):
             raise TypeError('The number of parameter settings sampled for the randomized search must be of int type. '
-                            f'{str(n_iter_randomized_search)} of type {str(type(n_iter_randomized_search))} was passed.')
+                            f'{str(n_iter_randomized_search)} of type '
+                            f'{str(type(n_iter_randomized_search))} was passed.')
         if n_iter_randomized_search < 2:
             raise ValueError('The number of parameter settings sampled for the randomized search must be at least two. '
                              f'{str(n_iter_randomized_search)} was passed.')
@@ -756,11 +759,11 @@ class DoubleML(ABC):
 
         if not isinstance(set_as_params, bool):
             raise TypeError('set_as_params must be True or False. '
-                            f'got {str(set_as_params)}')
+                            f'Got {str(set_as_params)}.')
 
         if not isinstance(return_tune_res, bool):
             raise TypeError('return_tune_res must be True or False. '
-                            f'got {str(return_tune_res)}')
+                            f'Got {str(return_tune_res)}.')
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
@@ -835,12 +838,12 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if learner not in valid_learner:
-            raise ValueError('invalid nuisance learner ' + learner +
-                             '\n valid nuisance learner ' + ' or '.join(valid_learner))
+            raise ValueError('Invalid nuisance learner ' + learner + '. ' +
+                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
 
         if treat_var not in self._dml_data.d_cols:
-            raise ValueError('invalid treatment variable' + treat_var +
-                             '\n valid treatment variable ' + ' or '.join(self._dml_data.d_cols))
+            raise ValueError('Invalid treatment variable ' + treat_var + '. ' +
+                             'Valid treatment variable ' + ' or '.join(self._dml_data.d_cols) + '.')
 
         if isinstance(params, dict):
             if self.apply_cross_fitting:
@@ -848,6 +851,7 @@ class DoubleML(ABC):
             else:
                 all_params = [[params] * 1] * self.n_rep
         else:
+            # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
             if self.apply_cross_fitting:
                 assert np.all(np.array([len(x) for x in params]) == self.n_folds)
@@ -882,29 +886,29 @@ class DoubleML(ABC):
 
     @staticmethod
     def _check_learner(learner, learner_name, classifier=False):
-        err_msg_prefix = f'invalid learner provided for {learner_name}: '
-        warn_msg_prefix = f'learner provided for {learner_name} is probably invalid: '
+        err_msg_prefix = f'Invalid learner provided for {learner_name}: '
+        warn_msg_prefix = f'Learner provided for {learner_name} is probably invalid: '
 
         if isinstance(learner, type):
-            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class')
+            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class.')
 
         if not hasattr(learner, 'fit'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit().')
         if not hasattr(learner, 'set_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params().')
         if not hasattr(learner, 'get_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params()')
+            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params().')
 
         if classifier:
             if not hasattr(learner, 'predict_proba'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba()')
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
             if not is_classifier(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier')
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier.')
         else:
             if not hasattr(learner, 'predict'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict()')
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
             if not is_regressor(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor')
+                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor.')
 
         return learner
 
@@ -1037,9 +1041,15 @@ class DoubleML(ABC):
                                      'All tuples for train_ind and test_ind must consist of exactly two elements.')
                 self._n_rep = 1
                 if _check_is_partition(all_smpls, self._dml_data.n_obs):
-                    self._n_folds = len(all_smpls)
-                    self._apply_cross_fitting = True
-                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
+                    if ((len(all_smpls) == 1) &
+                            _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], self._dml_data.n_obs)):
+                        self._n_folds = 1
+                        self._apply_cross_fitting = False
+                        self._smpls = [all_smpls]
+                    else:
+                        self._n_folds = len(all_smpls)
+                        self._apply_cross_fitting = True
+                        self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
                 else:
                     if not len(all_smpls) == 1:
                         raise ValueError('Invalid partition provided. '
@@ -1067,10 +1077,17 @@ class DoubleML(ABC):
                 smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
 
                 if all(smpls_are_partitions):
-                    self._n_rep = len(all_smpls)
-                    self._n_folds = n_folds_each_smpl[0]
-                    self._apply_cross_fitting = True
-                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
+                    if ((len(all_smpls) == 1) & (len(all_smpls[0]) == 1) &
+                            _check_is_partition([(all_smpls[0][0][1], all_smpls[0][0][0])], self._dml_data.n_obs)):
+                        self._n_rep = 1
+                        self._n_folds = 1
+                        self._apply_cross_fitting = False
+                        self._smpls = all_smpls
+                    else:
+                        self._n_rep = len(all_smpls)
+                        self._n_folds = n_folds_each_smpl[0]
+                        self._apply_cross_fitting = True
+                        self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
                 else:
                     if not n_folds_each_smpl[0] == 1:
                         raise ValueError('Invalid partition provided. '
@@ -1101,12 +1118,10 @@ class DoubleML(ABC):
 
             self.__all_dml1_coef = thetas
 
-        elif dml_procedure == 'dml2':
+        else:
+            assert dml_procedure == 'dml2'
             theta_hat = self._orth_est()
             coef = theta_hat
-
-        else:
-            raise ValueError('invalid dml_procedure')
 
         return coef
 
@@ -1174,13 +1189,12 @@ class DoubleML(ABC):
                 boot_coef = np.mean(boot_coefs, axis=1)
                 boot_t_stat = np.mean(boot_t_stats, axis=1)
 
-            elif dml_procedure == 'dml2':
+            else:
+                assert dml_procedure == 'dml2'
                 J = np.mean(self.__psi_a)
                 boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
                 boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
-            else:
-                raise ValueError('invalid dml_procedure')
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             smpls = self.__smpls

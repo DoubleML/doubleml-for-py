@@ -9,18 +9,7 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from doubleml.tests.helper_general import get_n_datasets
-from doubleml.tests.helper_plr_manual import plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
-
-
-# number of datasets per dgp
-n_datasets = get_n_datasets()
-
-
-@pytest.fixture(scope='module',
-                params=range(n_datasets))
-def idx(request):
-    return request.param
+from ._utils_plr_manual import plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
 
 
 @pytest.fixture(scope='module',
@@ -42,21 +31,21 @@ def n_folds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
+def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     boot_methods = ['normal']
     n_rep_boot = 502
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -68,21 +57,21 @@ def dml_plr_no_cross_fit_fixture(generate_data1, idx, learner, score, n_folds):
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     if n_folds == 1:
         smpls = [(np.arange(len(y)), np.arange(len(y)))]
     else:
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         smpls = [smpls[0]]
 
-    g_hat, m_hat = fit_nuisance_plr(y, X, d,
+    g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                     clone(learner), clone(learner), smpls)
 
     assert dml_procedure == 'dml1'
-    res_manual, se_manual = plr_dml1(y, X, d,
+    res_manual, se_manual = plr_dml1(y, x, d,
                                      g_hat, m_hat,
                                      smpls, score)
 
@@ -142,22 +131,22 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep):
+def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = clone(learner)
     ml_m = clone(learner)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -170,13 +159,13 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
 
     np.random.seed(3141)
     y = data['y'].values
-    X = data.loc[:, X_cols].values
+    x = data.loc[:, x_cols].values
     d = data['d'].values
     all_smpls = []
     for i_rep in range(n_rep):
         resampling = KFold(n_splits=n_folds,
                            shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(X)]
+        smpls = [(train, test) for train, test in resampling.split(x)]
         all_smpls.append(smpls)
 
     # adapt to do no-cross-fitting in each repetition
@@ -189,13 +178,13 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, idx, learner, score, n_rep)
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(learner), clone(learner), smpls)
 
         all_g_hat.append(g_hat)
         all_m_hat.append(m_hat)
 
-        thetas[i_rep], ses[i_rep] = plr_dml1(y, X, d,
+        thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
                                              all_g_hat[i_rep], all_m_hat[i_rep],
                                              smpls, score)
 
@@ -271,7 +260,7 @@ def tune_on_folds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_on_folds):
+def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_folds):
     par_grid = {'ml_g': {'alpha': np.linspace(0.05, .95, 7)},
                 'ml_m': {'alpha': np.linspace(0.05, .95, 7)}}
     n_folds_tune = 3
@@ -281,15 +270,15 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
     dml_procedure = 'dml1'
 
     # collect data
-    data = generate_data1[idx]
-    X_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
     ml_g = Lasso()
     ml_m = Lasso()
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], X_cols)
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds=2,
@@ -305,35 +294,35 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, idx, learner, score, tune_
 
     np.random.seed(3141)
     y = obj_dml_data.y
-    X = obj_dml_data.x
+    x = obj_dml_data.x
     d = obj_dml_data.d
 
     resampling = KFold(n_splits=2,
                        shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(X)]
+    smpls = [(train, test) for train, test in resampling.split(x)]
     smpls = [smpls[0]]
 
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(ml_m), clone(ml_g), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(ml_m), clone(ml_g), smpls,
                                         g_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, X, d,
+        g_params, m_params = tune_nuisance_plr(y, x, d,
                                                clone(ml_m), clone(ml_g), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
-        g_hat, m_hat = fit_nuisance_plr(y, X, d,
+        g_hat, m_hat = fit_nuisance_plr(y, x, d,
                                         clone(ml_m), clone(ml_g),
                                         smpls,
                                         g_params, m_params)
 
     assert dml_procedure == 'dml1'
-    res_manual, se_manual = plr_dml1(y, X, d,
+    res_manual, se_manual = plr_dml1(y, x, d,
                                      g_hat, m_hat,
                                      smpls, score)
 

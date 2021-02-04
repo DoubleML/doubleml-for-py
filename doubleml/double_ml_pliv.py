@@ -211,12 +211,12 @@ class DoubleMLPLIV(DoubleML):
             # however in the following paragraph it is explained that one might
             # still need to estimate the partialling out type first
             if score not in valid_score:
-                raise ValueError('invalid score ' + score +
-                                 '\n valid score ' + 'partialling out')
+                raise ValueError('Invalid score ' + score + '. ' +
+                                 'Valid score ' + 'partialling out.')
         else:
             if not callable(score):
-                raise ValueError('score should be either a string or a callable.'
-                                 ' %r was passed' % score)
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
         return score
 
     def _check_data(self, obj_dml_data):
@@ -304,8 +304,8 @@ class DoubleMLPLIV(DoubleML):
         else:
             assert callable(self.score)
             if self._dml_data.n_instr > 1:
-                raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialX '
-                                          'with several instruments')
+                raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialX '
+                                          'with several instruments.')
             else:
                 assert self._dml_data.n_instr == 1
                 psi_a, psi_b = self.score(y, z, d,
@@ -328,7 +328,7 @@ class DoubleMLPLIV(DoubleML):
             psi_b = np.multiply(r_hat, y)
         else:
             assert callable(self.score)
-            raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialZ')
+            raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialZ.')
 
         return psi_a, psi_b
 
@@ -360,7 +360,7 @@ class DoubleMLPLIV(DoubleML):
             psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         else:
             assert callable(self.score)
-            raise NotImplementedError('callable score not implemented for DoubleMLPLIV.partialXZ')
+            raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
         return psi_a, psi_b
 

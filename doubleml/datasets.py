@@ -40,7 +40,8 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
 
     data = raw_data.copy()
 
-    assert not polynomial_features, 'Not implemented yet'
+    if polynomial_features:
+        raise NotImplementedError('polynomial_features os not implemented yet for fetch_401K.')
 
     if return_type in _data_frame_alias + _dml_data_alias:
         if return_type in _data_frame_alias:
@@ -48,7 +49,7 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
@@ -110,23 +111,15 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
-def g(x):
+def _g(x):
     return np.power(np.sin(x), 2)
 
 
-def m(x, nu=0., gamma=1.):
+def _m(x, nu=0., gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
-
-
-def m2(x):
-    return np.power(x, 2)
-
-
-def m3(x, nu=0., gamma=1.):
-    return 1./np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
 
 
 _array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
@@ -203,7 +196,7 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData', **kwargs):
@@ -254,24 +247,24 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
-    M = m(np.dot(X, b), nu=nu, gamma=gamma)
+    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    G = _g(np.dot(x, b))
+    M = _m(np.dot(x, b), nu=nu, gamma=gamma)
     d = M + np.random.standard_normal(size=[n_obs, ])
     y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
-        return X, y, d
+        return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, y, d)),
+        data = pd.DataFrame(np.column_stack((x, y, d)),
                             columns=x_cols + ['y', 'd'])
         if return_type in _data_frame_alias:
             return data
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type='DoubleMLData'):
@@ -347,7 +340,7 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
         else:
             return DoubleMLData(data, 'y', 'd', x_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
@@ -421,34 +414,34 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, 'z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
-def make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
+def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
     b = [1/k for k in range(1, dim_x+1)]
     sigma = make_spd_matrix(dim_x)
 
-    X = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
-    G = g(np.dot(X, b))
+    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    G = _g(np.dot(x, b))
     # instrument
-    Z = m(np.dot(X, b)) + np.random.standard_normal(size=[n_obs, ])
+    z = _m(np.dot(x, b)) + np.random.standard_normal(size=[n_obs, ])
     # treatment
-    M = m(gamma_z * Z + np.dot(X, b))
-    D = M + np.random.standard_normal(size=[n_obs, ])
-    Y = np.dot(theta, D) + G + np.random.standard_normal(size=[n_obs, ])
+    M = _m(gamma_z * z + np.dot(x, b))
+    d = M + np.random.standard_normal(size=[n_obs, ])
+    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
 
     if return_type in _array_alias:
-        return X, Y, D, Z
+        return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['y', 'd', 'z'])
         if return_type in _data_frame_alias:
             return data
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, 'z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='DoubleMLData'):
@@ -505,7 +498,7 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     u = xx[:, 1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
-    X = np.random.multivariate_normal(np.zeros(dim_x),
+    x = np.random.multivariate_normal(np.zeros(dim_x),
                                       sigma,
                                       size=[n_obs, ])
 
@@ -519,23 +512,23 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     delta = [1 / (k**2) for k in range(1, dim_z + 1)]
     Pi = np.hstack((I_z, np.zeros((dim_z, dim_x-dim_z))))
 
-    Z = np.dot(X, np.transpose(Pi)) + xi
-    D = np.dot(X, gamma) + np.dot(Z, delta) + u
-    Y = alpha * D + np.dot(X, beta) + epsilon
+    z = np.dot(x, np.transpose(Pi)) + xi
+    d = np.dot(x, gamma) + np.dot(z, delta) + u
+    y = alpha * d + np.dot(x, beta) + epsilon
 
     if return_type in _array_alias:
-        return X, Y, D, Z
+        return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         z_cols = [f'Z{i + 1}' for i in np.arange(dim_z)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['y', 'd'] + z_cols)
         if return_type in _data_frame_alias:
             return data
         else:
             return DoubleMLData(data, 'y', 'd', x_cols, z_cols)
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
 
 
 def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
@@ -654,7 +647,7 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
                         (N, 1))
 
     # generate variables
-    X = (1 - omega_X[0] - omega_X[1]) * alpha_X \
+    x = (1 - omega_X[0] - omega_X[1]) * alpha_X \
         + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
     eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
@@ -666,15 +659,15 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     V = (1 - omega_V[0] - omega_V[1]) * alpha_V \
         + omega_V[0] * alpha_V_i + omega_V[1] * alpha_V_j
 
-    Z = np.matmul(X, xi_0) + V
-    D = Z * pi_10 + np.matmul(X, pi_20) + v
-    Y = D * theta + np.matmul(X, zeta_0) + eps
+    z = np.matmul(x, xi_0) + V
+    d = z * pi_10 + np.matmul(x, pi_20) + v
+    y = d * theta + np.matmul(x, zeta_0) + eps
 
     ind = pd.MultiIndex.from_product([range(N), range(M)])
 
     if return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
-        data = pd.DataFrame(np.column_stack((X, Y, D, Z)),
+        data = pd.DataFrame(np.column_stack((x, y, d, z)),
                             columns=x_cols + ['Y', 'D', 'Z'],
                             index=ind)
         if return_type in _data_frame_alias:
@@ -682,4 +675,4 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
         else:
             return DoubleMLData(data, 'Y', 'D', x_cols, 'Z')
     else:
-        raise ValueError('invalid return_type')
+        raise ValueError('Invalid return_type.')
