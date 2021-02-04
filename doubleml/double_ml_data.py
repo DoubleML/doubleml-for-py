@@ -3,6 +3,7 @@ import pandas as pd
 import io
 
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
+from sklearn.utils.multiclass import type_of_target
 from ._helper import _assure_2d_array
 
 
@@ -62,6 +63,7 @@ class DoubleMLData:
         self.z_cols = z_cols
         self.x_cols = x_cols
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
+        self._binary_treats = self._check_binary_treats()
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self.set_x_d(self.d_cols[0])
@@ -221,6 +223,13 @@ class DoubleMLData:
         return self.data.shape[0]
 
     @property
+    def binary_treats(self):
+        """
+        Series with logical indicating whether the treatment variable(s) are zero-one binary.
+        """
+        return self._binary_treats
+
+    @property
     def x_cols(self):
         """
         The covariates.
@@ -365,3 +374,12 @@ class DoubleMLData:
             xd_list = self.x_cols
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
+
+    def _check_binary_treats(self):
+        is_binary = pd.Series(index=self.d_cols)
+        for treatment_var in self.d_cols:
+            this_d = self.data.loc[:, treatment_var]
+            binary_treat = (type_of_target(this_d) == 'binary')
+            zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
+            is_binary[treatment_var] = (binary_treat & zero_one_treat)
+        return is_binary

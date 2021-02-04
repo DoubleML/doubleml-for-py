@@ -94,8 +94,10 @@ class DoubleMLIRM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
-                         'ml_m': self._check_learner(ml_m, 'ml_m', classifier=True)}
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -146,15 +148,15 @@ class DoubleMLIRM(DoubleML):
 
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'))
+                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
         g_hat1 = None
         if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'))
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
 
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'))[:, 1]
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
 

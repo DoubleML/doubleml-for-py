@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
+from sklearn.base import is_classifier
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _dml_tune
@@ -84,8 +85,20 @@ class DoubleMLPLR(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
-                         'ml_m': self._check_learner(ml_m, 'ml_m')}
+        if obj_dml_data.binary_treats.all():
+            ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+            _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+            if ml_g_is_classifier:
+                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict'}
+            else:
+                self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
+        else:
+            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+            _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
+
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
@@ -117,11 +130,11 @@ class DoubleMLPLR(DoubleML):
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'))
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'))
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
 
