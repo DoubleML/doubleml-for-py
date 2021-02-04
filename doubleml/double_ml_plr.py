@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
-from sklearn.base import is_classifier
+from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _dml_tune
@@ -131,6 +131,13 @@ class DoubleMLPLR(DoubleML):
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+        if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
+            binary_preds = (type_of_target(g_hat) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat, 2) - g_hat) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
+                                 'predictions obtained with the ml_g learner are also observed to be zero-one binary. '
+                                 'Make sure that for classifiers probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
