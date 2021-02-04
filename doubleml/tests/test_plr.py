@@ -73,7 +73,8 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
         res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
@@ -185,7 +186,8 @@ def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
         res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)

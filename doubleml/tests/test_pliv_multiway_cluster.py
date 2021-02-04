@@ -81,7 +81,8 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
                                   z,
                                   g_hat, m_hat, r_hat,
                                   smpls_lin_ind, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, _ = pliv_dml2(y, x, d,
                                   z,
                                   g_hat, m_hat, r_hat,

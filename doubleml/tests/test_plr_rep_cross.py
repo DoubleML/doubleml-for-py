@@ -92,7 +92,8 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
             thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
                                                  smpls, score)
-        elif dml_procedure == 'dml2':
+        else:
+            assert dml_procedure == 'dml2'
             thetas[i_rep], ses[i_rep] = plr_dml2(y, x, d,
                                                  all_g_hat[i_rep], all_m_hat[i_rep],
                                                  smpls, score)

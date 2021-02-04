@@ -53,7 +53,8 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ == RandomForestRegressor:
         par_grid = {'n_estimators': [5, 10, 20]}
-    elif learner.__class__ == ElasticNet:
+    else:
+        assert learner.__class__ == ElasticNet
         par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
     return par_grid
 
@@ -135,7 +136,8 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner_g, learner_m
                                                     z,
                                                     g_hat, r_hat, r_hat_tilde,
                                                     smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = pliv_partial_x_dml2(y, x, d,
                                                     z,
                                                     g_hat, r_hat, r_hat_tilde,

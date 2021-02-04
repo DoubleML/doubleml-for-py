@@ -52,7 +52,8 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ in [RandomForestRegressor, RandomForestClassifier]:
         par_grid = {'n_estimators': [5, 10, 20]}
-    elif learner.__class__ in [LogisticRegression]:
+    else:
+        assert learner.__class__ in [LogisticRegression]
         par_grid = {'C': np.logspace(-4, 2, 10)}
     return par_grid
 
@@ -126,7 +127,8 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
         res_manual, se_manual = iivm_dml1(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = iivm_dml2(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)

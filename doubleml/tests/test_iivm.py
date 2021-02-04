@@ -82,7 +82,8 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
         res_manual, se_manual = iivm_dml1(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = iivm_dml2(y, x, d, z,
                                           g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                           smpls, score)

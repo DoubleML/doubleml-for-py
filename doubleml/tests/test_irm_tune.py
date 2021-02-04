@@ -46,7 +46,8 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ in [RandomForestRegressor]:
         par_grid = {'n_estimators': [5, 10, 20]}
-    elif learner.__class__ in [LogisticRegression]:
+    else:
+        assert learner.__class__ in [LogisticRegression]
         par_grid = {'C': np.logspace(-4, 2, 10)}
     return par_grid
 
@@ -107,7 +108,8 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
                                                             clone(learner_m), clone(learner_g), smpls,
                                                             score,
                                                             g0_params * n_folds, g1_params * n_folds, m_params * n_folds)
-        elif score == 'ATTE':
+        else:
+            assert score == 'ATTE'
             g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
                                                             clone(learner_m), clone(learner_g), smpls,
                                                             score,
@@ -117,7 +119,8 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
         res_manual, se_manual = irm_dml1(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = irm_dml2(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)

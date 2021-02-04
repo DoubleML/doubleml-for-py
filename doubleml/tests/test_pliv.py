@@ -75,7 +75,8 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
                                           z,
                                           g_hat, m_hat, r_hat,
                                           smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = pliv_dml2(y, x, d,
                                           z,
                                           g_hat, m_hat, r_hat,

@@ -78,7 +78,8 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_t
         res_manual, se_manual = irm_dml1(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = irm_dml2(y, x, d,
                                          g_hat0, g_hat1, m_hat, p_hat,
                                          smpls, score)

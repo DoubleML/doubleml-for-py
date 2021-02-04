@@ -94,7 +94,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
             coef_manual[i_d], se_manual[i_d] = plr_dml1(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, score)
-        elif dml_procedure == 'dml2':
+        else:
+            assert dml_procedure == 'dml2'
             coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
                                                         g_hat, m_hat,
                                                         smpls, score)

@@ -71,7 +71,8 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner, score, dml_
                                                     z,
                                                     g_hat, r_hat, r_hat_tilde,
                                                     smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = pliv_partial_x_dml2(y, x, d,
                                                     z,
                                                     g_hat, r_hat, r_hat_tilde,

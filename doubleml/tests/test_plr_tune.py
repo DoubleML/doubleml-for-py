@@ -47,7 +47,8 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ == Lasso:
         par_grid = {'alpha': np.linspace(0.05, .95, 7)}
-    elif learner.__class__ == ElasticNet:
+    else:
+        assert learner.__class__ == ElasticNet
         par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
     return par_grid
 
@@ -113,7 +114,8 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
         res_manual, se_manual = plr_dml1(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)
-    elif dml_procedure == 'dml2':
+    else:
+        assert dml_procedure == 'dml2'
         res_manual, se_manual = plr_dml2(y, x, d,
                                          g_hat, m_hat,
                                          smpls, score)

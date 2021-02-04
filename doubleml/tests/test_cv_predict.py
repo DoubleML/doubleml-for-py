@@ -39,7 +39,8 @@ def cv_predict_fixture(generate_data_cv_predict, cross_fit, params):
         est_params = None
     elif params == 'global':
         est_params = {'alpha': 0.5}
-    elif params == 'per_fold':
+    else:
+        assert params == 'per_fold'
         if cross_fit:
             est_params = [{'alpha': np.random.uniform()} for i in range(n_folds)]
         else:
