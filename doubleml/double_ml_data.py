@@ -225,7 +225,7 @@ class DoubleMLData:
     @property
     def binary_treats(self):
         """
-        Series with logical indicating whether the treatment variable(s) are zero-one binary.
+        Series with logical indicating whether the treatment variable(s) are binary with values 0 and 1.
         """
         return self._binary_treats
 

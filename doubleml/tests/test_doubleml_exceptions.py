@@ -362,7 +362,7 @@ def test_doubleml_exception_learner():
 
     # we allow classifiers for ml_m in PLR, but only for binary treatment variables
     msg = (r'The ml_m learner LogisticRegression\(\) was identified as classifier '
-           'but at least one treatment variable is not zero-one binary.')
+           'but at least one treatment variable is not binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
 
@@ -375,8 +375,8 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning, match=msg):
         dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
     msg = (r'For the binary treatment variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
-           'are also observed to be zero-one binary. Make sure that for classifiers probabilities and not labels are '
-           'predicted.')
+           'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
+           'labels are predicted.')
     with pytest.raises(ValueError, match=msg):
         dml_plr_hidden_classifier.fit()
 

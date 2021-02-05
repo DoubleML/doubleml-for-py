@@ -97,7 +97,7 @@ class DoubleMLPLR(DoubleML):
                 self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
             else:
                 raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
-                                 'but at least one treatment variable is not zero-one binary.')
+                                 'but at least one treatment variable is not binary with values 0 and 1.')
         else:
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
 
@@ -144,8 +144,8 @@ class DoubleMLPLR(DoubleML):
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
                                  f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
-                                 'observed to be zero-one binary. Make sure that for classifiers probabilities and not '
-                                 'labels are predicted.')
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
 
