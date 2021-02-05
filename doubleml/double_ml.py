@@ -901,32 +901,30 @@ class DoubleML(ABC):
 
         if regressor & classifier:
             if is_classifier(learner):
-                if not hasattr(learner, 'predict_proba'):
-                    raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
                 learner_is_classifier = True
             elif is_regressor(learner):
-                if not hasattr(learner, 'predict'):
-                    raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
                 learner_is_classifier = False
             else:
-                if not hasattr(learner, 'predict'):
-                    raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) neither a regressor nor a classifier. ' +
                               'Method predict is used for prediction.')
                 learner_is_classifier = False
         elif classifier:
-            if not hasattr(learner, 'predict_proba'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
             if not is_classifier(learner):
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier.')
             learner_is_classifier = True
         else:
             assert regressor  # classifier, regressor or both must be True
-            if not hasattr(learner, 'predict'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
             if not is_regressor(learner):
                 warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor.')
             learner_is_classifier = False
+
+        # check existence of the prediction method
+        if learner_is_classifier:
+            if not hasattr(learner, 'predict_proba'):
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
+        else:
+            if not hasattr(learner, 'predict'):
+                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
 
         return learner_is_classifier
 
