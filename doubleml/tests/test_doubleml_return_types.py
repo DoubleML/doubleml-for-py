@@ -121,6 +121,9 @@ def test_plr_property_types_and_shapes(dml_obj):
     assert isinstance(dml_obj.t_stat, np.ndarray)
     assert dml_obj.t_stat.shape == (n_treat, )
 
+    assert isinstance(dml_obj._dml_data.binary_treats, pd.Series)
+    assert len(dml_obj._dml_data.binary_treats) == n_treat
+
     assert isinstance(dml_obj.smpls, list)
     assert len(dml_obj.smpls) == n_rep
     all_tuple = all([all([isinstance(tpl, tuple) for tpl in smpl]) for smpl in dml_obj.smpls])
