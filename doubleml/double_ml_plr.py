@@ -85,18 +85,17 @@ class DoubleMLPLR(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        if obj_dml_data.binary_treats.all():
-            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-            ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
-            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-            if ml_m_is_classifier:
+
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        if ml_m_is_classifier:
+            if obj_dml_data.binary_treats.all():
                 self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
             else:
-                self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
+                raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
+                                 'but at least one treatment variable is not zero-one binary.')
         else:
-            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-            _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
-            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
 
         self._initialize_ml_nuisance_params()
@@ -141,8 +140,9 @@ class DoubleMLPLR(DoubleML):
             zero_one_preds = np.all((np.power(m_hat, 2) - m_hat) == 0)
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
-                                 'predictions obtained with the ml_g learner are also observed to be zero-one binary. '
-                                 'Make sure that for classifiers probabilities and not labels are predicted.')
+                                 f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
+                                 'observed to be zero-one binary. Make sure that for classifiers probabilities and not '
+                                 'labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
 
