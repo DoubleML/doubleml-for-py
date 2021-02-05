@@ -21,6 +21,9 @@ class DoubleMLPLR(DoubleML):
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+        For binary treatment variables :math:`D` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
 
     n_folds : int
         Number of folds.
