@@ -350,16 +350,10 @@ def test_doubleml_exception_learner():
     with pytest.raises(TypeError):
         _ = DoubleMLPLR(dml_data, _DummyNoGetParams(), ml_m)
 
-    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
     # msg = 'Learner provided for ml_m is probably invalid: ' + r'_DummyNoClassifier\(\) is \(probably\) no classifier.'
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
 
-    # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
-    with pytest.raises(TypeError):
-        _ = DoubleMLPLR(dml_data, _DummyNoClassifier(), Lasso())
     # ToDo: Currently for ml_g (and others) we only check whether the learner can be identified as regressor. However,
     # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
@@ -385,3 +379,14 @@ def test_doubleml_exception_learner():
            'predicted.')
     with pytest.raises(ValueError, match=msg):
         dml_plr_hidden_classifier.fit()
+
+
+@pytest.mark.ci
+@pytest.mark.filterwarnings("ignore:Learner provided for")
+def test_doubleml_exception_and_warning_learner():
+    # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
+    with pytest.raises(TypeError):
+        _ = DoubleMLPLR(dml_data, _DummyNoClassifier(), Lasso())
+    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
