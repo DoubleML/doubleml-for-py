@@ -1,5 +1,5 @@
-API reference
-=============
+Python API reference
+====================
 
 Double machine learning data class
 ----------------------------------
