@@ -34,17 +34,9 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
-    'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
-    'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive',
-    'matplotlib.sphinxext.plot_directive',
-    'sphinx_gallery.gen_gallery',
-    'sphinx_copybutton',
-    'sphinx_panels',
-    'jupyter_sphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,7 +45,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'shared/*']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 master_doc = 'index'
 
@@ -70,6 +62,7 @@ html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
     'github_url': 'https://github.com/DoubleML/doubleml-for-py',
     'navigation_with_keys': False,
+    'show_toc_level': 0
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -79,16 +72,6 @@ html_theme_options = {
 
 # -- Extension configuration -------------------------------------------------
 
-copybutton_prompt_text = r'>>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: | {2,5}\.\.\.\.:'
-copybutton_prompt_is_regexp = True
-
-# config of sphinx gallery for examples
-sphinx_gallery_conf = {
-     'examples_dirs': '../examples',   # path to your example scripts
-     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
-     'filename_pattern': '/double_ml_',     # example .py files starting with double_ml_ are executed during build
-}
-
 # intersphinx configuration
 intersphinx_mapping = {
     'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
@@ -97,9 +80,3 @@ intersphinx_mapping = {
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
     'statsmodels': ('https://www.statsmodels.org/stable/', None),
 }
-
-# To execute R code via jupyter-execute one needs to install the R kernel for jupyter
-# https://github.com/IRkernel/IRkernel
-
-jupyter_execute_default_kernel = 'ir'
-jupyter_sphinx_linenos = True

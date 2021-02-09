@@ -158,7 +158,11 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
     alpha :
         The value of the causal parameter.
     return_type :
-        .. include:: ../../shared/dgp/return_type.rst
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d)``.
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
         :math:`a_0=1`, :math:`a_1=0.25`, :math:`s_1=1`, :math:`b_0=1`, :math:`b_1=0.25` or :math:`s_2=1`.
@@ -230,7 +234,11 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     theta :
         The value of the causal parameter.
     return_type :
-        .. include:: ../../shared/dgp/return_type.rst
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d)``.
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
         :math:`\\nu=0`, or :math:`\\gamma=1`.
@@ -305,7 +313,11 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
     R2_y :
         The value of the parameter :math:`R_y^2`.
     return_type :
-        .. include:: ../../shared/dgp/return_type.rst
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d)``.
 
     References
     ----------
@@ -379,7 +391,11 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
     alpha_x :
         The value of the parameter :math:`\\alpha_x`.
     return_type :
-        .. include:: ../../shared/dgp/return_type_iv.rst
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d, z)``.
 
     References
     ----------
@@ -482,7 +498,11 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     dim_z :
         The number of instruments.
     return_type :
-        .. include:: ../../shared/dgp/return_type_iv.rst
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d, z)``.
 
     References
     ----------
