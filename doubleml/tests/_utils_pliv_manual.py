@@ -66,9 +66,9 @@ def pliv_dml1(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
         thetas[idx] = pliv_orth(u_hat, v_hat, w_hat, d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(z)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(z, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = z[test_index] - m_hat[idx]
@@ -80,9 +80,9 @@ def pliv_dml1(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
 
 def pliv_dml2(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(z)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(z, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = z[test_index] - m_hat[idx]
@@ -119,9 +119,9 @@ def boot_pliv(theta, y, d, z, g_hat, m_hat, r_hat, smpls, score, se, bootstrap, 
 
 def boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat, smpls, score, se, weights, n_rep, dml_procedure):
     assert score == 'partialling out'
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(z)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(z, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):

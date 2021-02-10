@@ -24,6 +24,24 @@ def fit_nuisance_plr(y, x, d, learner_m, learner_g, smpls, g_params=None, m_para
     return g_hat, m_hat
 
 
+def fit_nuisance_plr_classifier(y, x, d, learner_m, learner_g, smpls, g_params=None, m_params=None):
+    ml_g = clone(learner_g)
+    g_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        if g_params is not None:
+            ml_g.set_params(**g_params[idx])
+        g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
+
+    ml_m = clone(learner_m)
+    m_hat = []
+    for idx, (train_index, test_index) in enumerate(smpls):
+        if m_params is not None:
+            ml_m.set_params(**m_params[idx])
+        m_hat.append(ml_m.fit(x[train_index], d[train_index]).predict_proba(x[test_index])[:, 1])
+
+    return g_hat, m_hat
+
+
 def tune_nuisance_plr(y, x, d, ml_m, ml_g, smpls, n_folds_tune, param_grid_g, param_grid_m):
     g_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):
@@ -56,8 +74,8 @@ def plr_dml1(y, x, d, g_hat, m_hat, smpls, score):
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        u_hat = np.zeros_like(y)
-        v_hat = np.zeros_like(d)
+        u_hat = np.zeros_like(y, dtype='float64')
+        v_hat = np.zeros_like(d, dtype='float64')
         for idx, (_, test_index) in enumerate(smpls):
             v_hat[test_index] = d[test_index] - m_hat[idx]
             u_hat[test_index] = y[test_index] - g_hat[idx]
@@ -75,8 +93,8 @@ def plr_dml1(y, x, d, g_hat, m_hat, smpls, score):
 
 def plr_dml2(y, x, d, g_hat, m_hat, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         v_hat[test_index] = d[test_index] - m_hat[idx]
         u_hat[test_index] = y[test_index] - g_hat[idx]
@@ -146,8 +164,8 @@ def boot_plr(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
 
 
 def boot_plr_single_treat(theta, y, d, g_hat, m_hat, smpls, score, se, weights, n_rep, dml_procedure, apply_cross_fitting):
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):

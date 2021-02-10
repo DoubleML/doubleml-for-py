@@ -108,9 +108,11 @@ class DoubleMLPLIV(DoubleML):
                          apply_cross_fitting)
         self.partialX = True
         self.partialZ = False
-        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
-                         'ml_m': self._check_learner(ml_m, 'ml_m'),
-                         'ml_r': self._check_learner(ml_r, 'ml_r')}
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+        _ = self._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
+        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         self._initialize_ml_nuisance_params()
 
     @classmethod
@@ -137,9 +139,11 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = True
         obj.partialZ = False
-        obj._learner = {'ml_g': obj._check_learner(ml_g, 'ml_g'),
-                        'ml_m': obj._check_learner(ml_m, 'ml_m'),
-                        'ml_r': obj._check_learner(ml_r, 'ml_r')}
+        _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        _ = obj._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+        _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
+        obj._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
+        obj._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -166,7 +170,9 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = False
         obj.partialZ = True
-        obj._learner = {'ml_r': obj._check_learner(ml_r, 'ml_r')}
+        _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
+        obj._learner = {'ml_r': ml_r}
+        obj._predict_method = {'ml_r': 'predict'}
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -194,9 +200,11 @@ class DoubleMLPLIV(DoubleML):
                   apply_cross_fitting)
         obj.partialX = True
         obj.partialZ = True
-        obj._learner = {'ml_g': obj._check_learner(ml_g, 'ml_g'),
-                        'ml_m': obj._check_learner(ml_m, 'ml_m'),
-                        'ml_r': obj._check_learner(ml_r, 'ml_r')}
+        _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        _ = obj._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
+        _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
+        obj._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
+        obj._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -265,14 +273,14 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'))
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
 
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
             x, z = check_X_y(x, np.ravel(self._dml_data.z))
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'))
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
         else:
             # several instruments: 2SLS
             m_hat = np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan)
@@ -280,11 +288,12 @@ class DoubleMLPLIV(DoubleML):
             for i_instr in range(self._dml_data.n_instr):
                 x, this_z = check_X_y(x, z[:, i_instr])
                 m_hat[:, i_instr] = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                    est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]))
+                                                    est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
+                                                    method=self._predict_method['ml_m'])
 
         # nuisance r
         r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_r'))
+                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
 
@@ -331,7 +340,7 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance m
         r_hat = _dml_cv_predict(self._learner['ml_r'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_r'))
+                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
@@ -351,15 +360,16 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'))
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
 
         # nuisance m
         m_hat, m_hat_on_train = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                                est_params=self._get_params('ml_m'), return_train_preds=True)
+                                                est_params=self._get_params('ml_m'), return_train_preds=True,
+                                                method=self._predict_method['ml_m'])
 
         # nuisance r
         m_hat_tilde = _dml_cv_predict(self._learner['ml_r'], x, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_r'))
+                                      est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
 
         # compute residuals
         u_hat = y - g_hat

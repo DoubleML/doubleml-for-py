@@ -92,12 +92,17 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
     if not manual_cv_predict:
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            return cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
-        elif isinstance(est_params, dict):
+            preds = cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+        else:
+            assert isinstance(est_params, dict)
             # if no fold-specific parameters we redirect to the standard method
             # warnings.warn("Using the same (hyper-)parameters for all folds")
-            return cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
-                                     method=method)
+            preds = cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
+                                      method=method)
+        if method == 'predict_proba':
+            return preds[:, 1]
+        else:
+            return preds
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
@@ -137,14 +142,12 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
                                      for idx, (train_index, test_index) in enumerate(smpls))
 
         preds = np.full(n_obs, np.nan)
-        if method == 'predict_proba':
-            preds = np.full((n_obs, 2), np.nan)
         train_preds = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             assert idx == fitted_models[idx][1]
             pred_fun = getattr(fitted_models[idx][0], method)
             if method == 'predict_proba':
-                preds[test_index, :] = pred_fun(x[test_index, :])
+                preds[test_index] = pred_fun(x[test_index, :])[:, 1]
             else:
                 preds[test_index] = pred_fun(x[test_index, :])
 

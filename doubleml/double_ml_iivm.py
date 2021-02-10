@@ -127,9 +127,11 @@ class DoubleMLIIVM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
-                         'ml_m': self._check_learner(ml_m, 'ml_m', classifier=True),
-                         'ml_r':  self._check_learner(ml_r, 'ml_r', classifier=True)}
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        _ = self._check_learner(ml_r, 'ml_r', regressor=False, classifier=True)
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
+        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba', 'ml_r': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -185,19 +187,19 @@ class DoubleMLIIVM(DoubleML):
 
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'))
+                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g1'))
+                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
 
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, method='predict_proba', n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'))[:, 1]
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         # nuisance r
-        r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, method='predict_proba', n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r0'))[:, 1]
-        r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, method='predict_proba', n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r1'))[:, 1]
+        r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
+        r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
 

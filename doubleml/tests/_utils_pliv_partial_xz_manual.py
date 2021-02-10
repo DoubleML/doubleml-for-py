@@ -72,9 +72,9 @@ def pliv_partial_xz_dml1(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
         thetas[idx] = pliv_partial_xz_orth(u_hat, v_hat, w_hat, d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(d)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
@@ -86,9 +86,9 @@ def pliv_partial_xz_dml1(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
 
 def pliv_partial_xz_dml2(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(d)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
@@ -126,9 +126,9 @@ def boot_pliv_partial_xz(theta, y, d, z, g_hat, m_hat, m_hat_tilde, smpls, score
 def boot_pliv_partial_xz_single_treat(theta, y, d, z, g_hat, m_hat, m_hat_tilde, smpls, score, se, weights,
                                       n_rep, dml_procedure):
     assert score == 'partialling out'
-    u_hat = np.zeros_like(y)
-    v_hat = np.zeros_like(d)
-    w_hat = np.zeros_like(d)
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
+    w_hat = np.zeros_like(d, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):

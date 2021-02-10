@@ -44,6 +44,7 @@ def test_dml_data_d(dml_data_fixture):
 
 @pytest.mark.ci
 def test_obj_vs_from_arrays():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     dml_data_from_array = DoubleMLData.from_arrays(dml_data.data[dml_data.x_cols],
                                                    dml_data.data[dml_data.y_col],
@@ -77,6 +78,7 @@ def test_obj_vs_from_arrays():
 @pytest.mark.ci
 def test_add_vars_in_df():
     # additional variables in the df shouldn't affect results
+    np.random.seed(3141)
     df = make_plr_CCDDHNR2018(n_obs=100, return_type='DataFrame')
     dml_data_full_df = DoubleMLData(df, 'y', 'd', ['X1', 'X11', 'X13'])
     dml_data_subset = DoubleMLData(df[['X1', 'X11', 'X13'] + ['y', 'd']], 'y', 'd', ['X1', 'X11', 'X13'])
@@ -91,6 +93,7 @@ def test_add_vars_in_df():
 
 @pytest.mark.ci
 def test_dml_data_no_instr():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
@@ -103,6 +106,7 @@ def test_dml_data_no_instr():
 
 @pytest.mark.ci
 def test_x_cols_setter():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     orig_x_cols = dml_data.x_cols
 
@@ -133,6 +137,7 @@ def test_x_cols_setter():
 
 @pytest.mark.ci
 def test_d_cols_setter():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
     df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'd1', 'd2']
@@ -163,6 +168,7 @@ def test_d_cols_setter():
 
 @pytest.mark.ci
 def test_z_cols_setter():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
     df.columns = [f'X{i + 1}' for i in np.arange(4)] + [f'z{i + 1}' for i in np.arange(3)] + ['y', 'd1', 'd2']
@@ -199,6 +205,7 @@ def test_z_cols_setter():
 
 @pytest.mark.ci
 def test_y_col_setter():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
     df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'y123', 'd']
@@ -221,6 +228,7 @@ def test_y_col_setter():
 
 @pytest.mark.ci
 def test_use_other_treat_as_covariate():
+    np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
     df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'd1', 'd2']

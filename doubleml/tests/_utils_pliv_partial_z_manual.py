@@ -37,7 +37,7 @@ def pliv_partial_z_dml1(y, x, d, z, r_hat, smpls, score):
         thetas[idx] = pliv_partial_z_orth(r_hat[idx], y[test_index], d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    r_hat_array = np.zeros_like(d)
+    r_hat_array = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, y, d, score, n_obs))
@@ -47,7 +47,7 @@ def pliv_partial_z_dml1(y, x, d, z, r_hat, smpls, score):
 
 def pliv_partial_z_dml2(y, x, d, z, r_hat, smpls, score):
     n_obs = len(y)
-    r_hat_array = np.zeros_like(d)
+    r_hat_array = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     theta_hat = pliv_partial_z_orth(r_hat_array, y, d, score)
@@ -82,7 +82,7 @@ def boot_pliv_partial_z(theta, y, d, z, r_hat, smpls, score, se, bootstrap, n_re
 
 def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat, smpls, score, se, weights, n_rep, dml_procedure):
     assert score == 'partialling out'
-    r_hat_array = np.zeros_like(d)
+    r_hat_array = np.zeros_like(d, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):

@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.utils import check_X_y
+from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _dml_tune
@@ -20,6 +21,9 @@ class DoubleMLPLR(DoubleML):
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+        For binary treatment variables :math:`D` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
 
     n_folds : int
         Number of folds.
@@ -94,8 +98,19 @@ class DoubleMLPLR(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        self._learner = {'ml_g': self._check_learner(ml_g, 'ml_g'),
-                         'ml_m': self._check_learner(ml_m, 'ml_m')}
+
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        if ml_m_is_classifier:
+            if obj_dml_data.binary_treats.all():
+                self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
+                                 'but at least one treatment variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
+
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
@@ -127,11 +142,20 @@ class DoubleMLPLR(DoubleML):
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'))
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'))
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+
+        if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
+            binary_preds = (type_of_target(m_hat) == 'binary')
+            zero_one_preds = np.all((np.power(m_hat, 2) - m_hat) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
+                                 f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
 

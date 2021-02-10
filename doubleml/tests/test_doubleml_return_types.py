@@ -7,6 +7,7 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 
 from sklearn.linear_model import Lasso, LogisticRegression
 
+np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
 dml_data_pliv = make_pliv_CHS2015(n_obs=100, dim_z=1)
 dml_data_irm = make_irm_data(n_obs=100)
@@ -120,6 +121,9 @@ def test_plr_property_types_and_shapes(dml_obj):
 
     assert isinstance(dml_obj.t_stat, np.ndarray)
     assert dml_obj.t_stat.shape == (n_treat, )
+
+    assert isinstance(dml_obj._dml_data.binary_treats, pd.Series)
+    assert len(dml_obj._dml_data.binary_treats) == n_treat
 
     assert isinstance(dml_obj.smpls, list)
     assert len(dml_obj.smpls) == n_rep

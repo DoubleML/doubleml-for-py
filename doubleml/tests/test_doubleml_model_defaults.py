@@ -1,10 +1,12 @@
 import pytest
+import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
 
+np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
 dml_data_pliv = make_pliv_CHS2015(n_obs=100, dim_z=1)
 dml_data_irm = make_irm_data(n_obs=100)

@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
@@ -7,6 +8,7 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
 
+np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
@@ -350,16 +352,43 @@ def test_doubleml_exception_learner():
     with pytest.raises(TypeError):
         _ = DoubleMLPLR(dml_data, _DummyNoGetParams(), ml_m)
 
-    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
     # msg = 'Learner provided for ml_m is probably invalid: ' + r'_DummyNoClassifier\(\) is \(probably\) no classifier.'
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
 
-    # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
-    with pytest.raises(TypeError):
-        _ = DoubleMLPLR(dml_data_irm, _DummyNoClassifier(), Lasso())
+    # ToDo: Currently for ml_g (and others) we only check whether the learner can be identified as regressor. However,
+    # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data_irm, LogisticRegression(), Lasso())
+        _ = DoubleMLPLR(dml_data, LogisticRegression(), Lasso())
+
+    # we allow classifiers for ml_m in PLR, but only for binary treatment variables
+    msg = (r'The ml_m learner LogisticRegression\(\) was identified as classifier '
+           'but at least one treatment variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
+
+    # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
+    # it then predicts labels and therefore an exception will be thrown
+    log_reg = LogisticRegression()
+    log_reg._estimator_type = None
+    msg = (r'Learner provided for ml_m is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor '
+           'nor a classifier. Method predict is used for prediction.')
+    with pytest.warns(UserWarning, match=msg):
+        dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
+    msg = (r'For the binary treatment variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
+           'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
+           'labels are predicted.')
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_hidden_classifier.fit()
+
+
+@pytest.mark.ci
+@pytest.mark.filterwarnings("ignore:Learner provided for")
+def test_doubleml_exception_and_warning_learner():
+    # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
+    with pytest.raises(TypeError):
+        _ = DoubleMLPLR(dml_data, _DummyNoClassifier(), Lasso())
+    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())

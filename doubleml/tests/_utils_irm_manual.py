@@ -28,7 +28,7 @@ def fit_nuisance_irm(y, x, d, learner_m, learner_g, smpls, score,
         assert score == 'ATTE'
         for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
-            g_hat1.append(np.zeros_like(g_hat0[idx]))
+            g_hat1.append(np.zeros_like(g_hat0[idx], dtype='float64'))
 
     ml_m = clone(learner_m)
     m_hat = []
@@ -96,12 +96,12 @@ def irm_dml1(y, x, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
                                d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
-    p_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
+    p_hat_all = np.zeros_like(y, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -119,12 +119,12 @@ def irm_dml1(y, x, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
 
 def irm_dml2(y, x, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
     n_obs = len(y)
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
-    p_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
+    p_hat_all = np.zeros_like(y, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -183,12 +183,12 @@ def boot_irm(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootst
 
 
 def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, weights, n_rep, dml_procedure):
-    u_hat0 = np.zeros_like(y)
-    u_hat1 = np.zeros_like(y)
-    g_hat0_all = np.zeros_like(y)
-    g_hat1_all = np.zeros_like(y)
-    m_hat_all = np.zeros_like(y)
-    p_hat_all = np.zeros_like(y)
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0_all = np.zeros_like(y, dtype='float64')
+    g_hat1_all = np.zeros_like(y, dtype='float64')
+    m_hat_all = np.zeros_like(y, dtype='float64')
+    p_hat_all = np.zeros_like(y, dtype='float64')
     n_folds = len(smpls)
     J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
