@@ -6,6 +6,7 @@ from doubleml.datasets import make_plr_CCDDHNR2018
 
 from sklearn.linear_model import Lasso
 
+np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
@@ -170,6 +171,7 @@ def test_doubleml_set_sample_splitting_all_list():
 
 @pytest.mark.ci
 def test_doubleml_draw_vs_set():
+    np.random.seed(3141)
     dml_plr_set = DoubleMLPLR(dml_data, ml_g, ml_m, n_folds=7, n_rep=8)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_g, ml_m,

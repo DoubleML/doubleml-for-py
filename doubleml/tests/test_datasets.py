@@ -42,6 +42,7 @@ def test_fetch_bonus_poly():
 
 @pytest.mark.ci
 def test_make_plr_CCDDHNR2018_return_types():
+    np.random.seed(3141)
     res = make_plr_CCDDHNR2018(n_obs=100, return_type=DoubleMLData)
     assert isinstance(res, DoubleMLData)
     res = make_plr_CCDDHNR2018(n_obs=100, return_type=pd.DataFrame)
@@ -56,6 +57,7 @@ def test_make_plr_CCDDHNR2018_return_types():
 
 @pytest.mark.ci
 def test_make_plr_turrell2018_return_types():
+    np.random.seed(3141)
     res = make_plr_turrell2018(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = make_plr_turrell2018(n_obs=100, return_type='DataFrame')
@@ -70,6 +72,7 @@ def test_make_plr_turrell2018_return_types():
 
 @pytest.mark.ci
 def test_make_irm_data_return_types():
+    np.random.seed(3141)
     res = make_irm_data(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = make_irm_data(n_obs=100, return_type='DataFrame')
@@ -84,6 +87,7 @@ def test_make_irm_data_return_types():
 
 @pytest.mark.ci
 def test_make_iivm_data_return_types():
+    np.random.seed(3141)
     res = make_iivm_data(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = make_iivm_data(n_obs=100, return_type='DataFrame')
@@ -99,6 +103,7 @@ def test_make_iivm_data_return_types():
 
 @pytest.mark.ci
 def test_make_pliv_data_return_types():
+    np.random.seed(3141)
     res = _make_pliv_data(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = _make_pliv_data(n_obs=100, return_type='DataFrame')
@@ -114,6 +119,7 @@ def test_make_pliv_data_return_types():
 
 @pytest.mark.ci
 def test_make_pliv_CHS2015_return_types():
+    np.random.seed(3141)
     res = make_pliv_CHS2015(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = make_pliv_CHS2015(n_obs=100, return_type='DataFrame')
@@ -129,6 +135,7 @@ def test_make_pliv_CHS2015_return_types():
 
 @pytest.mark.ci
 def test_make_pliv_multiway_cluster_CKMS2019_return_types():
+    np.random.seed(3141)
     res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DoubleMLData')
     assert isinstance(res, DoubleMLData)
     res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DataFrame')

@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
@@ -7,6 +8,7 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
 
+np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
