@@ -158,8 +158,10 @@ class DoubleMLPLR(DoubleML):
                                  'probabilities and not labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat}
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _score_elements(self, y, d, g_hat, m_hat, smpls):
         # compute residuals
