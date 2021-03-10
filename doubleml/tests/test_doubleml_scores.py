@@ -47,6 +47,25 @@ def test_plr_callable_vs_str_score():
 
 
 @pytest.mark.ci
+def test_plr_callable_vs_pred_export():
+    plr_score = dml_plr._score_elements
+    dml_plr_callable_score = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(),
+                                         score=plr_score, draw_sample_splitting=False)
+    dml_plr_callable_score.set_sample_splitting(dml_plr.smpls)
+    dml_plr_callable_score.fit(store_predictions=True)
+    preds = dml_plr_callable_score.predictions
+    g_hat = preds['ml_g'].squeeze()
+    m_hat = preds['ml_m'].squeeze()
+    psi_a, psi_b = plr_score(dml_data_plr.y, dml_data_plr.d, g_hat, m_hat, dml_plr_callable_score.smpls[0])
+    assert np.allclose(dml_plr.psi_a.squeeze(),
+                       psi_a,
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_plr.psi_b.squeeze(),
+                       psi_b,
+                       rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
 def test_irm_callable_vs_str_score():
     irm_score = dml_irm._score_elements
     dml_irm_callable_score = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
