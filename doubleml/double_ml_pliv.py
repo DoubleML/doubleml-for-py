@@ -250,7 +250,7 @@ class DoubleMLPLIV(DoubleML):
             assert (self.partialX & self.partialZ)
             psi_a, psi_b, preds = self._ml_nuisance_and_score_elements_partial_xz(smpls, n_jobs_cv)
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
