@@ -980,10 +980,10 @@ class DoubleML(ABC):
 
     def _initialize_predictions(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-                       for learner in self.learner_names}
+                             for learner in self.params_names}
 
     def _store_predictions(self, preds):
-        for learner in self.learner_names:
+        for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
 
     def draw_sample_splitting(self):
