@@ -1,4 +1,4 @@
-# DoubleML - Double Machine Learning in Python
+# DoubleML - Double Machine Learning in Python <a href="https://github.com/DoubleML/doubleml-for-py"><img src="doc/logo.png" align="right" width = "120" /></a>
 
 [![build](https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg)](https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild)
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
