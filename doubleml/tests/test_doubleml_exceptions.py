@@ -182,6 +182,9 @@ def test_doubleml_exception_fit():
     msg = 'keep_scores must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_plr.fit(keep_scores=1)
+    msg = 'store_predictions must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.fit(store_predictions=1)
 
 
 @pytest.mark.ci
