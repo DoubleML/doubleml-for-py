@@ -243,14 +243,14 @@ class DoubleMLPLIV(DoubleML):
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         if self.partialX & (not self.partialZ):
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partial_x(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._ml_nuisance_and_score_elements_partial_x(smpls, n_jobs_cv)
         elif (not self.partialX) & self.partialZ:
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partial_z(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._ml_nuisance_and_score_elements_partial_z(smpls, n_jobs_cv)
         else:
             assert (self.partialX & self.partialZ)
-            psi_a, psi_b = self._ml_nuisance_and_score_elements_partial_xz(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._ml_nuisance_and_score_elements_partial_xz(smpls, n_jobs_cv)
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
@@ -296,8 +296,11 @@ class DoubleMLPLIV(DoubleML):
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat,
+                 'ml_r': r_hat}
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _score_elements(self, y, z, d, g_hat, m_hat, r_hat, smpls):
         # compute residuals
@@ -350,7 +353,9 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialZ.')
 
-        return psi_a, psi_b
+        preds = {'ml_r': r_hat}
+
+        return psi_a, psi_b, preds
 
     def _ml_nuisance_and_score_elements_partial_xz(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
@@ -383,7 +388,11 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
-        return psi_a, psi_b
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat,
+                 'ml_r': m_hat_tilde}
+
+        return psi_a, psi_b, preds
 
     def _ml_nuisance_tuning_partial_x(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                       search_mode, n_iter_randomized_search):

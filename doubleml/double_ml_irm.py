@@ -179,8 +179,11 @@ class DoubleMLIRM(DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
+        preds = {'ml_g0': g_hat0,
+                 'ml_g1': g_hat1,
+                 'ml_m': m_hat}
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
         # fraction of treated for ATTE

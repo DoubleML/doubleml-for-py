@@ -202,8 +202,13 @@ class DoubleMLIIVM(DoubleML):
                                  est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+        preds = {'ml_g0': g_hat0,
+                 'ml_g1': g_hat1,
+                 'ml_m': m_hat,
+                 'ml_r0': r_hat0,
+                 'ml_r1': r_hat1}
 
-        return psi_a, psi_b
+        return psi_a, psi_b, preds
 
     def _score_elements(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls):
         # compute residuals
