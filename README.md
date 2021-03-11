@@ -1,4 +1,4 @@
-# DoubleML - Double Machine Learning in Python <a href="https://docs.doubleml.org"><img src="doc/logo.png" align="right" width = "120" /></a>
+# DoubleML - Double Machine Learning in Python <a href="https://docs.doubleml.org"><img src="https://raw.githubusercontent.com/DoubleML/doubleml-for-py/master/doc/logo.png" align="right" width = "120" /></a>
 
 [![build](https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg)](https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild)
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
@@ -56,7 +56,7 @@ It further can be readily extended with regards to
 - ... alternative resampling schemes,
 - ... 
 
-![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/master/doc/oop.svg](/doc/oop.svg?raw=true)
+![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/master/doc/oop.svg](https://raw.githubusercontent.com/DoubleML/doubleml-for-py/master/doc/oop.svg)
 
 ## Installation
 
