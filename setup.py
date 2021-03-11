@@ -11,7 +11,7 @@ PROJECT_URLS = {
 
 setup(
     name='DoubleML',
-    version='0.2.0',
+    version='0.2.1',
     author='Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.',
     maintainer='Malte S. Kurz',
     maintainer_email='malte.simon.kurz@uni-hamburg.de',
