@@ -160,7 +160,7 @@ class DoubleMLIRM(DoubleML):
                              'needs to be specified as treatment variable.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -178,12 +178,14 @@ class DoubleMLIRM(DoubleML):
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
-        preds = {'ml_g0': g_hat0,
-                 'ml_g1': g_hat1,
-                 'ml_m': m_hat}
+        res = dict()
+        res['psi_a'], res['psi_b'] = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
+        if store_predictions:
+            res['preds'] = {'ml_g0': g_hat0,
+                            'ml_g1': g_hat1,
+                            'ml_m': m_hat}
 
-        return psi_a, psi_b, preds
+        return res
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
         # fraction of treated for ATTE

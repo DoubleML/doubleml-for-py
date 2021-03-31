@@ -177,7 +177,7 @@ class DoubleMLIIVM(DoubleML):
                              'needs to be specified as instrumental variable.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, z = check_X_y(x, np.ravel(self._dml_data.z))
         x, d = check_X_y(x, self._dml_data.d)
@@ -201,14 +201,16 @@ class DoubleMLIIVM(DoubleML):
         r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
 
-        psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
-        preds = {'ml_g0': g_hat0,
-                 'ml_g1': g_hat1,
-                 'ml_m': m_hat,
-                 'ml_r0': r_hat0,
-                 'ml_r1': r_hat1}
+        res = dict()
+        res['psi_a'], res['psi_b'] = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+        if store_predictions:
+            res['preds'] = {'ml_g0': g_hat0,
+                            'ml_g1': g_hat1,
+                            'ml_m': m_hat,
+                            'ml_r0': r_hat0,
+                            'ml_r1': r_hat1}
 
-        return psi_a, psi_b, preds
+        return res
 
     def _score_elements(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls):
         # compute residuals

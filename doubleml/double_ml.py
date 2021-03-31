@@ -486,10 +486,12 @@ class DoubleML(ABC):
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__psi_a, self.__psi_b, preds = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
+                ml_nuisance = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv, store_predictions)
+                self.__psi_a = ml_nuisance['psi_a']
+                self.__psi_b = ml_nuisance['psi_b']
 
                 if store_predictions:
-                    self._store_predictions(preds)
+                    self._store_predictions(ml_nuisance['preds'])
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()
@@ -900,7 +902,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
         pass
 
     @abstractmethod

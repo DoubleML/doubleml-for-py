@@ -136,7 +136,7 @@ class DoubleMLPLR(DoubleML):
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
 
@@ -157,11 +157,13 @@ class DoubleMLPLR(DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
-        preds = {'ml_g': g_hat,
-                 'ml_m': m_hat}
+        res = dict()
+        res['psi_a'], res['psi_b'] = self._score_elements(y, d, g_hat, m_hat, smpls)
+        if store_predictions:
+            res['preds'] = {'ml_g': g_hat,
+                            'ml_m': m_hat}
 
-        return psi_a, psi_b, preds
+        return res
 
     def _score_elements(self, y, d, g_hat, m_hat, smpls):
         # compute residuals
