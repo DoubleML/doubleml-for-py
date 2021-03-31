@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -209,6 +210,7 @@ class DoubleMLIIVM(DoubleML):
                             'ml_m': m_hat,
                             'ml_r0': r_hat0,
                             'ml_r1': r_hat1}
+            res['pred_metrics'] = pd.DataFrame()
 
         return res
 

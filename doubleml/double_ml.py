@@ -40,6 +40,7 @@ class DoubleML(ABC):
 
         # initialize predictions to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
+        self._pred_metrics = None
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -202,6 +203,13 @@ class DoubleML(ABC):
         The predictions of the nuisance models.
         """
         return self._predictions
+
+    @property
+    def prediction_metrics(self):
+        """
+        Prediction metrics for the nuisance models.
+        """
+        return self._pred_metrics
 
     def get_params(self, learner):
         """
@@ -475,6 +483,7 @@ class DoubleML(ABC):
 
         if store_predictions:
             self._initialize_predictions()
+            self._pred_metrics = pd.DataFrame()
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -492,6 +501,7 @@ class DoubleML(ABC):
 
                 if store_predictions:
                     self._store_predictions(ml_nuisance['preds'])
+                    self._pred_metrics = pd.concat((self._pred_metrics, ml_nuisance['pred_metrics']), axis=1)
 
                 # estimate the causal parameter
                 self.__all_coef = self._est_causal_pars()

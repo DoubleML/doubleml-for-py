@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
@@ -301,6 +302,7 @@ class DoubleMLPLIV(DoubleML):
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat,
                             'ml_r': r_hat}
+            res['pred_metrics'] = pd.DataFrame()
 
         return res
 
@@ -358,6 +360,7 @@ class DoubleMLPLIV(DoubleML):
 
         if store_predictions:
             res['preds'] = {'ml_r': r_hat}
+            res['pred_metrics'] = pd.DataFrame()
 
         return res
 
@@ -397,6 +400,7 @@ class DoubleMLPLIV(DoubleML):
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat,
                             'ml_r': m_hat_tilde}
+            res['pred_metrics'] = pd.DataFrame()
 
         return res
 

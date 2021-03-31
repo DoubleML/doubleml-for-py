@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _dml_tune
@@ -162,6 +164,7 @@ class DoubleMLPLR(DoubleML):
         if store_predictions:
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat}
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics(g_hat, m_hat)
 
         return res
 
@@ -213,4 +216,44 @@ class DoubleMLPLR(DoubleML):
         res = {'params': params,
                'tune_res': tune_res}
 
+        return res
+
+    def _ml_nuisance_pred_metrics(self, g_hat, m_hat):
+        g_hat_metrics = {'variable_name': 'y',
+                         'variable_column': self._dml_data.y_col,
+                         'prediction': 'g(X)',
+                         'i_rep': 1,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(self._dml_data.y,
+                                                     g_hat,
+                                                     squared=False)
+                         }
+        m_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'm(X)',
+                         'i_rep': 1,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(self._dml_data.d,
+                                                     m_hat,
+                                                     squared=False)
+                         }
+        if self._predict_method['ml_m'] == 'predict_proba':
+            m_hat_labels = np.zeros_like(self._dml_data.d)
+            m_hat_labels[m_hat > 0.5] = 1
+            m_hat_labels_metrics = {'variable_name': 'd',
+                                    'variable_column': self._dml_data.d_cols[self._i_treat],
+                                    'prediction': 'm(X)>0.5',
+                                    'i_rep': 1,
+                                    'error_type': 'Accuracy',
+                                    'value': accuracy_score(self._dml_data.d,
+                                                            m_hat_labels)
+                                    }
+            res = pd.concat((pd.Series(g_hat_metrics),
+                             pd.Series(m_hat_metrics),
+                             pd.Series(m_hat_labels_metrics)),
+                            axis=1).transpose()
+        else:
+            res = pd.concat((pd.Series(g_hat_metrics),
+                             pd.Series(m_hat_metrics)),
+                            axis=1).transpose()
         return res
