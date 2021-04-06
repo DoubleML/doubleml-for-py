@@ -44,6 +44,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
+                params=[{'always_takers': True, 'never_takers': True},
+                        {'always_takers': False, 'never_takers': False}])
+def subgroups(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[True, False])
 def tune_on_folds(request):
     return request.param
@@ -59,7 +66,8 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, dml_procedure, tune_on_folds):
+def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, dml_procedure, subgroups,
+                     tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m),
                 'ml_r': get_par_grid(learner_r)}
@@ -83,6 +91,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
+                                    subgroups=subgroups,
                                     dml_procedure=dml_procedure)
     # tune hyperparameters
     _ = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
@@ -103,25 +112,37 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
             tune_nuisance_iivm(y, x, d, z,
                                clone(learner_m), clone(learner_g), clone(learner_r), smpls,
                                n_folds_tune,
-                               par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
+                               par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
+                               always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
         g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
             fit_nuisance_iivm(y, x, d, z,
                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
-                              g0_params, g1_params, m_params,  r0_params, r1_params)
+                              g0_params, g1_params, m_params,  r0_params, r1_params,
+                              always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
     else:
         xx = [(np.arange(data.shape[0]), np.array([]))]
         g0_params, g1_params, m_params,  r0_params, r1_params = \
             tune_nuisance_iivm(y, x, d, z,
                                clone(learner_m), clone(learner_g), clone(learner_r), xx,
                                n_folds_tune,
-                               par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
+                               par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
+                               always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
+        if subgroups['always_takers']:
+            r0_params_rep = r0_params * n_folds
+        else:
+            r0_params_rep = r0_params
+        if subgroups['never_takers']:
+            r1_params_rep = r1_params * n_folds
+        else:
+            r1_params_rep = r1_params
 
         g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
             fit_nuisance_iivm(y, x, d, z,
                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
                               g0_params * n_folds, g1_params * n_folds, m_params * n_folds,
-                              r0_params * n_folds, r1_params * n_folds)
+                              r0_params_rep, r1_params_rep,
+                              always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
     if dml_procedure == 'dml1':
         res_manual, se_manual = iivm_dml1(y, x, d, z,

@@ -869,7 +869,9 @@ class DoubleML(ABC):
             raise ValueError('Invalid treatment variable ' + treat_var + '. ' +
                              'Valid treatment variable ' + ' or '.join(self._dml_data.d_cols) + '.')
 
-        if isinstance(params, dict):
+        if params is None:
+            all_params = [None] * self.n_rep
+        elif isinstance(params, dict):
             if self.apply_cross_fitting:
                 all_params = [[params] * self.n_folds] * self.n_rep
             else:
