@@ -7,7 +7,7 @@ from ._utils_boot import boot_manual, draw_weights
 
 def fit_nuisance_iivm(y, x, d, z, learner_m, learner_g, learner_r, smpls,
                       g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
-                      trimming_threshold=1e-12):
+                      trimming_threshold=1e-12, always_takers=True, never_takers=True):
     ml_g0 = clone(learner_g)
     g_hat0 = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -41,7 +41,10 @@ def fit_nuisance_iivm(y, x, d, z, learner_m, learner_g, learner_r, smpls,
         if r0_params is not None:
             ml_r0.set_params(**r0_params[idx])
         train_index0 = np.intersect1d(np.where(z == 0)[0], train_index)
-        r_hat0.append(ml_r0.fit(x[train_index0], d[train_index0]).predict_proba(x[test_index])[:, 1])
+        if always_takers:
+            r_hat0.append(ml_r0.fit(x[train_index0], d[train_index0]).predict_proba(x[test_index])[:, 1])
+        else:
+            r_hat0.append(np.zeros_like(d[test_index]))
 
     ml_r1 = clone(learner_r)
     r_hat1 = []
@@ -49,7 +52,10 @@ def fit_nuisance_iivm(y, x, d, z, learner_m, learner_g, learner_r, smpls,
         if r1_params is not None:
             ml_r1.set_params(**r1_params[idx])
         train_index1 = np.intersect1d(np.where(z == 1)[0], train_index)
-        r_hat1.append(ml_r1.fit(x[train_index1], d[train_index1]).predict_proba(x[test_index])[:, 1])
+        if never_takers:
+            r_hat1.append(ml_r1.fit(x[train_index1], d[train_index1]).predict_proba(x[test_index])[:, 1])
+        else:
+            r_hat1.append(np.ones_like(d[test_index]))
 
     return g_hat0, g_hat1, m_hat, r_hat0, r_hat1
 
