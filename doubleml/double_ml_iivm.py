@@ -158,10 +158,10 @@ class DoubleMLIIVM(DoubleML):
                 raise ValueError('Invalid subgroups ' + str(subgroups) + '. ' +
                                  'subgroups must be a dictionary with keys always_takers and never_takers.')
             if not isinstance(subgroups['always_takers'], bool):
-                raise TypeError('subgroups["always_takers"] must be True or False. '
+                raise TypeError("subgroups['always_takers'] must be True or False. "
                                 f'Got {str(subgroups["always_takers"])}.')
             if not isinstance(subgroups['never_takers'], bool):
-                raise TypeError('subgroups["never_takers"] must be True or False. '
+                raise TypeError("subgroups['never_takers'] must be True or False. "
                                 f'Got {str(subgroups["never_takers"])}.')
         self.subgroups = subgroups
         self.trimming_rule = trimming_rule

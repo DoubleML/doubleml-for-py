@@ -112,6 +112,36 @@ def test_doubleml_exception_trimming_rule():
 
 
 @pytest.mark.ci
+def test_doubleml_exception_subgroups():
+    msg = 'Invalid subgroups True. subgroups must be of type dictionary.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups=True)
+    msg = "Invalid subgroups {'abs': True}. subgroups must be a dictionary with keys always_takers and never_takers."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups={'abs': True})
+    msg = ("Invalid subgroups {'always_takers': True, 'never_takers': False, 'abs': 5}. "
+           "subgroups must be a dictionary with keys always_takers and never_takers.")
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups={'always_takers': True, 'never_takers': False, 'abs': 5})
+    msg = ("Invalid subgroups {'always_takers': True}. "
+           "subgroups must be a dictionary with keys always_takers and never_takers.")
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups={'always_takers': True})
+    msg = r"subgroups\['always_takers'\] must be True or False. Got 5."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups={'always_takers': 5, 'never_takers': False})
+    msg = r"subgroups\['never_takers'\] must be True or False. Got 5."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         subgroups={'always_takers': True, 'never_takers': 5})
+
+
+@pytest.mark.ci
 def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
