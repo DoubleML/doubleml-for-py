@@ -222,10 +222,16 @@ class DoubleMLIIVM(DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         # nuisance r
-        r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
-        r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
+        if self.subgroups['always_takers']:
+            r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
+        else:
+            r_hat0 = np.zeros_like(d)
+        if self.subgroups['never_takers']:
+            r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
+        else:
+            r_hat1 = np.ones_like(d)
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
         preds = {'ml_g0': g_hat0,
