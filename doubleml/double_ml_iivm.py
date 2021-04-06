@@ -115,6 +115,7 @@ class DoubleMLIIVM(DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='LATE',
+                 subgroups=None,
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-12,
@@ -138,6 +139,24 @@ class DoubleMLIIVM(DoubleML):
         if trimming_rule not in valid_trimming_rule:
             raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
                              'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+
+        if subgroups is None:
+            subgroups = {'always_takers': True, 'never_takers': False}
+        else:
+            if not isinstance(subgroups, dict):
+                raise TypeError('Invalid subgroups ' + str(subgroups) + '. ' +
+                                'subgroups must be of type dictionary.')
+            if (not all(k in subgroups for k in ['always_takers', 'never_takers']))\
+                    | (not all(k in ['always_takers', 'never_takers'] for k in subgroups)):
+                raise ValueError('Invalid subgroups ' + str(subgroups) + '. ' +
+                                 'subgroups must be a dictionary with keys always_takers and never_takers.')
+            if not isinstance(subgroups['always_takers'], bool):
+                raise TypeError('subgroups["always_takers"] must be True or False. '
+                                f'Got {str(subgroups["always_takers"])}.')
+            if not isinstance(subgroups['never_takers'], bool):
+                raise TypeError('subgroups["never_takers"] must be True or False. '
+                                f'Got {str(subgroups["never_takers"])}.')
+        self.subgroups = subgroups
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
