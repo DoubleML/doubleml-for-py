@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import pandas as pd
 
 from doubleml import DoubleMLData, DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015
@@ -102,6 +103,14 @@ def test_dml_data_no_instr():
     dml_data = DoubleMLData.from_arrays(x, y, d)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
+
+
+@pytest.mark.ci
+def test_x_cols_setter_defaults():
+    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd')
+    assert dml_data.x_cols == ['xx1', 'xx2']
 
 
 @pytest.mark.ci
@@ -262,3 +271,32 @@ def test_use_other_treat_as_covariate():
     msg = r"treatment_var must be of str type. \['d1', 'd2'\] of type <class 'list'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.set_x_d(['d1', 'd2'])
+
+
+@pytest.mark.ci
+def test_disjoint_sets():
+    np.random.seed(3141)
+    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
+                      columns=['yy', 'dd1', 'xx1', 'xx2'])
+
+    msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and as covariate\(``x_cols``\). '
+           'Consider using parameter ``use_other_treat_as_covariate``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1', 'xx1'], x_cols=['xx1', 'xx2'])
+    msg = 'yy cannot be set as outcome variable ``y_col`` and treatment variable in ``d_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1', 'yy'], x_cols=['xx1', 'xx2'])
+    msg = 'yy cannot be set as outcome variable ``y_col`` and covariate in ``x_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'yy', 'xx2'])
+    msg = 'yy cannot be set as outcome variable ``y_col`` and instrumental variable in ``z_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='yy')
+    msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and instrumental variable in '
+           '``z_cols``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols=['dd1'])
+    msg = (r'At least one variable/column is set as covariate \(``x_cols``\) and instrumental variable in '
+           '``z_cols``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
