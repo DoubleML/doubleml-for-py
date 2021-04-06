@@ -412,3 +412,6 @@ class DoubleMLData:
             if not d_cols_set.isdisjoint(z_cols_set):
                 raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and '
                                  'instrumental variable in ``z_cols``.')
+            if not x_cols_set.isdisjoint(z_cols_set):
+                raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
+                                 'variable in ``z_cols``.')
