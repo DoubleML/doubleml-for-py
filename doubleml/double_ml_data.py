@@ -373,6 +373,8 @@ class DoubleMLData:
             raise ValueError('Invalid treatment_var. '
                              f'{treatment_var} is not in d_cols.')
         if self.use_other_treat_as_covariate:
+            # note that the following line needs to be adapted in case an intersection of x_cols and d_cols as allowed
+            # (see https://github.com/DoubleML/doubleml-for-py/issues/83)
             xd_list = self.x_cols + self.d_cols
             xd_list.remove(treatment_var)
         else:
@@ -400,6 +402,8 @@ class DoubleMLData:
         if not y_col_set.isdisjoint(d_cols_set):
             raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in '
                              '``d_cols``.')
+        # note that the line xd_list = self.x_cols + self.d_cols in method set_x_d needs adaption if an intersection of
+        # x_cols and d_cols as allowed (see https://github.com/DoubleML/doubleml-for-py/issues/83)
         if not d_cols_set.isdisjoint(x_cols_set):
             raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
                              '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
