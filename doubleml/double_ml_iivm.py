@@ -40,6 +40,12 @@ class DoubleMLIIVM(DoubleML):
         ``psi_a, psi_b = score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)``.
         Default is ``'LATE'``.
 
+    subgroups: dict or None
+        Dictionary with options to adapt to cases with and without the subgroups of always-takers and never-takes. The
+        logical item ``always_takers`` speficies whether there are always takers in the sample. The logical item
+        ``never_takers`` speficies whether there are never takers in the sample.
+        Default is ``{'always_takers': True, 'never_takers': True}``.
+
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
@@ -141,7 +147,8 @@ class DoubleMLIIVM(DoubleML):
                              'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
 
         if subgroups is None:
-            subgroups = {'always_takers': True, 'never_takers': False}
+            # this is the default for subgroups; via None to prevent a mutable default argument
+            subgroups = {'always_takers': True, 'never_takers': True}
         else:
             if not isinstance(subgroups, dict):
                 raise TypeError('Invalid subgroups ' + str(subgroups) + '. ' +
