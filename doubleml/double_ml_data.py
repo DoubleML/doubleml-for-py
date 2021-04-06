@@ -253,10 +253,10 @@ class DoubleMLData:
         else:
             # x_cols defaults to all columns but y_col, d_cols and z_cols
             if self.z_cols is not None:
-                y_d_z = set.union(set(self.y_col), set(self.d_cols), set(self.z_cols))
+                y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d_z]
             else:
-                y_d = set.union(set(self.y_col), set(self.d_cols))
+                y_d = set.union({self.y_col}, set(self.d_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]
             self._x_cols = x_cols
         if reset_value:
