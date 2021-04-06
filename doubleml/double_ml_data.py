@@ -62,6 +62,7 @@ class DoubleMLData:
         self.d_cols = d_cols
         self.z_cols = z_cols
         self.x_cols = x_cols
+        self._check_disjoint_sets()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self._binary_treats = self._check_binary_treats()
         self._set_y_z()
@@ -260,6 +261,7 @@ class DoubleMLData:
                 x_cols = [col for col in self.data.columns if col not in y_d]
             self._x_cols = x_cols
         if reset_value:
+            self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
@@ -283,6 +285,7 @@ class DoubleMLData:
                              'At least one treatment variable is no data column.')
         self._d_cols = value
         if reset_value:
+            self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
@@ -304,6 +307,7 @@ class DoubleMLData:
                              f'{value} is no data column.')
         self._y_col = value
         if reset_value:
+            self._check_disjoint_sets()
             self._set_y_z()
 
     @property
@@ -329,6 +333,7 @@ class DoubleMLData:
         else:
             self._z_cols = None
         if reset_value:
+            self._check_disjoint_sets()
             self._set_y_z()
 
     @property
@@ -383,3 +388,27 @@ class DoubleMLData:
             zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
             is_binary[treatment_var] = (binary_treat & zero_one_treat)
         return is_binary
+
+    def _check_disjoint_sets(self):
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in '
+                             '``x_cols``.')
+        if not y_col_set.isdisjoint(d_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in '
+                             '``d_cols``.')
+        if not d_cols_set.isdisjoint(x_cols_set):
+            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
+                             '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
+
+        if self.z_cols is not None:
+            z_cols_set = set(self.z_cols)
+            if not y_col_set.isdisjoint(z_cols_set):
+                raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and instrumental '
+                                 'variable in ``z_cols``.')
+            if not d_cols_set.isdisjoint(z_cols_set):
+                raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and '
+                                 'instrumental variable in ``z_cols``.')
