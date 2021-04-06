@@ -294,18 +294,27 @@ class DoubleMLIIVM(DoubleML):
         m_tune_res = _dml_tune(z, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        r0_tune_res = _dml_tune(d, x, train_inds_z0,
-                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        r1_tune_res = _dml_tune(d, x, train_inds_z1,
-                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        if self.subgroups['always_takers']:
+            r0_tune_res = _dml_tune(d, x, train_inds_z0,
+                                    self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+            r0_best_params = [xx.best_params_ for xx in r0_tune_res]
+        else:
+            r0_tune_res = None
+            r0_best_params = [None] * len(smpls)
+        if self.subgroups['never_takers']:
+            r1_tune_res = _dml_tune(d, x, train_inds_z1,
+                                    self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+            r1_best_params = [xx.best_params_ for xx in r1_tune_res]
+        else:
+            r1_tune_res = None
+            r1_best_params = [None] * len(smpls)
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        r0_best_params = [xx.best_params_ for xx in r0_tune_res]
-        r1_best_params = [xx.best_params_ for xx in r1_tune_res]
 
         params = {'ml_g0': g0_best_params,
                   'ml_g1': g1_best_params,
