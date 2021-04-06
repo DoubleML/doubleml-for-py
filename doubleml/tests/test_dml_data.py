@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import pandas as pd
 
 from doubleml import DoubleMLData, DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015
@@ -102,6 +103,14 @@ def test_dml_data_no_instr():
     dml_data = DoubleMLData.from_arrays(x, y, d)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
+
+
+@pytest.mark.ci
+def test_x_cols_setter_defaults():
+    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd')
+    assert dml_data.x_cols == ['xx1', 'xx2']
 
 
 @pytest.mark.ci
