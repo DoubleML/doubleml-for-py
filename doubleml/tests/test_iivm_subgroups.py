@@ -26,7 +26,7 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
+                params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
 
