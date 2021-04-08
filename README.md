@@ -90,19 +90,21 @@ Detailed [installation instructions](https://docs.doubleml.org/stable/intro/inst
 
 If you use the DoubleML package a citation is highly appreciated:
 
-Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2020),
-DoubleML - Double Machine Learning in Python.
-URL: [https://github.com/DoubleML/doubleml-for-py](https://github.com/DoubleML/doubleml-for-py),
-Python-Package version 0.2.0.
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2021), DoubleML - An
+Object-Oriented Implementation of Double Machine Learning in Python,
+arXiv:[2104.03220](https://arxiv.org/abs/2104.03220).
 
 Bibtex-entry:
 
 ```
-@Manual{DoubleML2020,
-  title = {DoubleML - Double Machine Learning in Python},
-  author = {Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.},
-  year = {2020},
-  note = {URL: \url{https://github.com/DoubleML/doubleml-for-py}, Python-Package version 0.2.0}
+@misc{bach2021doubleml,
+      title={DoubleML -- An Object-Oriented Implementation of Double Machine Learning in Python}, 
+      author={Philipp Bach and Victor Chernozhukov and Malte S. Kurz and Martin Spindler},
+      year={2021},
+      eprint={2104.03220},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      note={arXiv:\href{https://arxiv.org/abs/2104.03220}{2104.03220} [stat.ML]}
 }
 ```
 
