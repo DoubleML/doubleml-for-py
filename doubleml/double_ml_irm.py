@@ -5,6 +5,7 @@ from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _get_cond_smpls, _dml_tune
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 
 class DoubleMLIRM(DoubleML):
@@ -185,7 +186,7 @@ class DoubleMLIRM(DoubleML):
             res['preds'] = {'ml_g0': g_hat0,
                             'ml_g1': g_hat1,
                             'ml_m': m_hat}
-            res['pred_metrics'] = pd.DataFrame()
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, d, g_hat0, g_hat1, m_hat)
 
         return res
 
@@ -270,5 +271,44 @@ class DoubleMLIRM(DoubleML):
 
         res = {'params': params,
                'tune_res': tune_res}
+
+        return res
+
+    def _ml_nuisance_pred_metrics(self, y, d, g_hat0, g_hat1, m_hat):
+        m_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'm(X)',
+                         'i_rep': 1,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(d, m_hat, squared=False)
+                         }
+
+        m_hat_labels = np.zeros_like(self._dml_data.d)
+        m_hat_labels[m_hat > 0.5] = 1
+        m_hat_labels_metrics = {'variable_name': 'd',
+                                'variable_column': self._dml_data.d_cols[self._i_treat],
+                                'prediction': 'm(X)>0.5',
+                                'i_rep': 1,
+                                'error_type': 'Accuracy',
+                                'value': accuracy_score(d, m_hat_labels)
+                                }
+
+        if self.score == 'ATE':
+            g_hat = np.multiply(self._dml_data.d, g_hat1) + np.multiply(1 - self._dml_data.d, g_hat0)
+            g_hat_metrics = {'variable_name': 'y',
+                             'variable_column': self._dml_data.y_col,
+                             'prediction': 'D * g(D=1, X) + (1-D) * g(D=0, X)',
+                             'i_rep': 1,
+                             'error_type': 'RMSE',
+                             'value': mean_squared_error(y, g_hat, squared=False)
+                             }
+            res = pd.concat((pd.Series(g_hat_metrics),
+                             pd.Series(m_hat_metrics),
+                             pd.Series(m_hat_labels_metrics)),
+                            axis=1).transpose()
+        else:
+            res = pd.concat((pd.Series(m_hat_metrics),
+                             pd.Series(m_hat_labels_metrics)),
+                            axis=1).transpose()
 
         return res
