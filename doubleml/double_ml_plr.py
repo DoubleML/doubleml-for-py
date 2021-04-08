@@ -164,7 +164,7 @@ class DoubleMLPLR(DoubleML):
         if store_predictions:
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics(g_hat, m_hat)
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, d, g_hat, m_hat)
 
         return res
 
@@ -218,24 +218,20 @@ class DoubleMLPLR(DoubleML):
 
         return res
 
-    def _ml_nuisance_pred_metrics(self, g_hat, m_hat):
+    def _ml_nuisance_pred_metrics(self, y, d, g_hat, m_hat):
         g_hat_metrics = {'variable_name': 'y',
                          'variable_column': self._dml_data.y_col,
                          'prediction': 'g(X)',
                          'i_rep': 1,
                          'error_type': 'RMSE',
-                         'value': mean_squared_error(self._dml_data.y,
-                                                     g_hat,
-                                                     squared=False)
+                         'value': mean_squared_error(y, g_hat, squared=False)
                          }
         m_hat_metrics = {'variable_name': 'd',
                          'variable_column': self._dml_data.d_cols[self._i_treat],
                          'prediction': 'm(X)',
                          'i_rep': 1,
                          'error_type': 'RMSE',
-                         'value': mean_squared_error(self._dml_data.d,
-                                                     m_hat,
-                                                     squared=False)
+                         'value': mean_squared_error(d, m_hat, squared=False)
                          }
         if self._predict_method['ml_m'] == 'predict_proba':
             m_hat_labels = np.zeros_like(self._dml_data.d)
@@ -245,8 +241,7 @@ class DoubleMLPLR(DoubleML):
                                     'prediction': 'm(X)>0.5',
                                     'i_rep': 1,
                                     'error_type': 'Accuracy',
-                                    'value': accuracy_score(self._dml_data.d,
-                                                            m_hat_labels)
+                                    'value': accuracy_score(d, m_hat_labels)
                                     }
             res = pd.concat((pd.Series(g_hat_metrics),
                              pd.Series(m_hat_metrics),
