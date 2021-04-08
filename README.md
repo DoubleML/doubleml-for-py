@@ -97,7 +97,7 @@ arXiv:[2104.03220](https://arxiv.org/abs/2104.03220).
 Bibtex-entry:
 
 ```
-@misc{DoubleML2020,
+@misc{DoubleML2021,
       title={{DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython}, 
       author={Philipp Bach and Victor Chernozhukov and Malte S. Kurz and Martin Spindler},
       year={2021},
