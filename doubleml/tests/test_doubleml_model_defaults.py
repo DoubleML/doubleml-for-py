@@ -54,6 +54,7 @@ def test_irm_defaults():
 def test_iivm_defaults():
     _assert_resampling_default_settings(dml_iivm)
     assert dml_iivm.score == 'LATE'
+    assert dml_iivm.subgroups == {'always_takers': True, 'never_takers': True}
     assert dml_iivm.dml_procedure == 'dml2'
     assert dml_iivm.trimming_rule == 'truncate'
     assert dml_iivm.trimming_threshold == 1e-12

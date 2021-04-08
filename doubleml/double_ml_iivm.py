@@ -41,6 +41,12 @@ class DoubleMLIIVM(DoubleML):
         ``psi_a, psi_b = score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)``.
         Default is ``'LATE'``.
 
+    subgroups: dict or None
+        Dictionary with options to adapt to cases with and without the subgroups of always-takers and never-takes. The
+        logical item ``always_takers`` speficies whether there are always takers in the sample. The logical item
+        ``never_takers`` speficies whether there are never takers in the sample.
+        Default is ``{'always_takers': True, 'never_takers': True}``.
+
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
@@ -116,6 +122,7 @@ class DoubleMLIIVM(DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='LATE',
+                 subgroups=None,
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-12,
@@ -139,6 +146,25 @@ class DoubleMLIIVM(DoubleML):
         if trimming_rule not in valid_trimming_rule:
             raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
                              'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+
+        if subgroups is None:
+            # this is the default for subgroups; via None to prevent a mutable default argument
+            subgroups = {'always_takers': True, 'never_takers': True}
+        else:
+            if not isinstance(subgroups, dict):
+                raise TypeError('Invalid subgroups ' + str(subgroups) + '. ' +
+                                'subgroups must be of type dictionary.')
+            if (not all(k in subgroups for k in ['always_takers', 'never_takers']))\
+                    | (not all(k in ['always_takers', 'never_takers'] for k in subgroups)):
+                raise ValueError('Invalid subgroups ' + str(subgroups) + '. ' +
+                                 'subgroups must be a dictionary with keys always_takers and never_takers.')
+            if not isinstance(subgroups['always_takers'], bool):
+                raise TypeError("subgroups['always_takers'] must be True or False. "
+                                f'Got {str(subgroups["always_takers"])}.')
+            if not isinstance(subgroups['never_takers'], bool):
+                raise TypeError("subgroups['never_takers'] must be True or False. "
+                                f'Got {str(subgroups["never_takers"])}.')
+        self.subgroups = subgroups
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
@@ -197,10 +223,16 @@ class DoubleMLIIVM(DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
         # nuisance r
-        r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
-        r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
+        if self.subgroups['always_takers']:
+            r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
+        else:
+            r_hat0 = np.zeros_like(d)
+        if self.subgroups['never_takers']:
+            r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
+        else:
+            r_hat1 = np.ones_like(d)
 
         res = dict()
         res['psi_a'], res['psi_b'] = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
@@ -266,18 +298,27 @@ class DoubleMLIIVM(DoubleML):
         m_tune_res = _dml_tune(z, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        r0_tune_res = _dml_tune(d, x, train_inds_z0,
-                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        r1_tune_res = _dml_tune(d, x, train_inds_z1,
-                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        if self.subgroups['always_takers']:
+            r0_tune_res = _dml_tune(d, x, train_inds_z0,
+                                    self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+            r0_best_params = [xx.best_params_ for xx in r0_tune_res]
+        else:
+            r0_tune_res = None
+            r0_best_params = [None] * len(smpls)
+        if self.subgroups['never_takers']:
+            r1_tune_res = _dml_tune(d, x, train_inds_z1,
+                                    self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+            r1_best_params = [xx.best_params_ for xx in r1_tune_res]
+        else:
+            r1_tune_res = None
+            r1_best_params = [None] * len(smpls)
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        r0_best_params = [xx.best_params_ for xx in r0_tune_res]
-        r1_best_params = [xx.best_params_ for xx in r1_tune_res]
 
         params = {'ml_g0': g0_best_params,
                   'ml_g1': g1_best_params,
