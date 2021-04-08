@@ -278,27 +278,27 @@ class DoubleMLIRM(DoubleML):
         m_hat_metrics = {'variable_name': 'd',
                          'variable_column': self._dml_data.d_cols[self._i_treat],
                          'prediction': 'm(X)',
-                         'i_rep': 1,
+                         'i_rep': self._i_rep,
                          'error_type': 'RMSE',
                          'value': mean_squared_error(d, m_hat, squared=False)
                          }
 
-        m_hat_labels = np.zeros_like(self._dml_data.d)
+        m_hat_labels = np.zeros_like(d)
         m_hat_labels[m_hat > 0.5] = 1
         m_hat_labels_metrics = {'variable_name': 'd',
                                 'variable_column': self._dml_data.d_cols[self._i_treat],
-                                'prediction': 'm(X)>0.5',
-                                'i_rep': 1,
+                                'prediction': 'm(X) > 0.5',
+                                'i_rep': self._i_rep,
                                 'error_type': 'Accuracy',
                                 'value': accuracy_score(d, m_hat_labels)
                                 }
 
         if self.score == 'ATE':
-            g_hat = np.multiply(self._dml_data.d, g_hat1) + np.multiply(1 - self._dml_data.d, g_hat0)
+            g_hat = np.multiply(d, g_hat1) + np.multiply(1 - d, g_hat0)
             g_hat_metrics = {'variable_name': 'y',
                              'variable_column': self._dml_data.y_col,
                              'prediction': 'D * g(D=1, X) + (1-D) * g(D=0, X)',
-                             'i_rep': 1,
+                             'i_rep': self._i_rep,
                              'error_type': 'RMSE',
                              'value': mean_squared_error(y, g_hat, squared=False)
                              }
