@@ -5,6 +5,7 @@ from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _get_cond_smpls, _dml_tune
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 
 class DoubleMLIIVM(DoubleML):
@@ -242,7 +243,7 @@ class DoubleMLIIVM(DoubleML):
                             'ml_m': m_hat,
                             'ml_r0': r_hat0,
                             'ml_r1': r_hat1}
-            res['pred_metrics'] = pd.DataFrame()
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1)
 
         return res
 
@@ -334,5 +335,61 @@ class DoubleMLIIVM(DoubleML):
 
         res = {'params': params,
                'tune_res': tune_res}
+
+        return res
+
+    def _ml_nuisance_pred_metrics(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1):
+        g_hat = np.multiply(z, g_hat1) + np.multiply(1 - z, g_hat0)
+        g_hat_metrics = {'variable_name': 'y',
+                         'variable_column': self._dml_data.y_col,
+                         'prediction': 'Z * g(Z=1, X) + (1-Z) * g(Z=0, X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(y, g_hat, squared=False)
+                         }
+
+        m_hat_metrics = {'variable_name': 'z',
+                         'variable_column': self._dml_data.z_cols[0],
+                         'prediction': 'm(X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(z, m_hat, squared=False)
+                         }
+
+        m_hat_labels = np.zeros_like(z)
+        m_hat_labels[m_hat > 0.5] = 1
+        m_hat_labels_metrics = {'variable_name': 'z',
+                                'variable_column': self._dml_data.z_cols[0],
+                                'prediction': 'm(X) > 0.5',
+                                'i_rep': self._i_rep,
+                                'error_type': 'Accuracy',
+                                'value': accuracy_score(z, m_hat_labels)
+                                }
+
+        r_hat = np.multiply(z, r_hat1) + np.multiply(1 - z, r_hat0)
+        r_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'Z * r(Z=1, X) + (1-Z) * r(Z=0, X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(d, r_hat, squared=False)
+                         }
+
+        r_hat_labels = np.zeros_like(d)
+        r_hat_labels[r_hat > 0.5] = 1
+        r_hat_labels_metrics = {'variable_name': 'd',
+                                'variable_column': self._dml_data.d_cols[self._i_treat],
+                                'prediction': 'Z * r(Z=1, X) + (1-Z) * r(Z=0, X) > 0.5',
+                                'i_rep': self._i_rep,
+                                'error_type': 'Accuracy',
+                                'value': accuracy_score(d, r_hat_labels)
+                                }
+
+        res = pd.concat((pd.Series(g_hat_metrics),
+                         pd.Series(m_hat_metrics),
+                         pd.Series(m_hat_labels_metrics),
+                         pd.Series(r_hat_metrics),
+                         pd.Series(r_hat_labels_metrics)),
+                        axis=1).transpose()
 
         return res
