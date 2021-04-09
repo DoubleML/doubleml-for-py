@@ -5,6 +5,7 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.dummy import DummyRegressor
+from sklearn.metrics import mean_squared_error
 
 from .double_ml import DoubleML
 from ._helper import _dml_cv_predict, _dml_tune
@@ -302,7 +303,7 @@ class DoubleMLPLIV(DoubleML):
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat,
                             'ml_r': r_hat}
-            res['pred_metrics'] = pd.DataFrame()
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_x(y, z, d, g_hat, m_hat, r_hat)
 
         return res
 
@@ -360,7 +361,7 @@ class DoubleMLPLIV(DoubleML):
 
         if store_predictions:
             res['preds'] = {'ml_r': r_hat}
-            res['pred_metrics'] = pd.DataFrame()
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_z(d, r_hat)
 
         return res
 
@@ -400,7 +401,7 @@ class DoubleMLPLIV(DoubleML):
             res['preds'] = {'ml_g': g_hat,
                             'ml_m': m_hat,
                             'ml_r': m_hat_tilde}
-            res['pred_metrics'] = pd.DataFrame()
+            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_xz(y, d, g_hat, m_hat, m_hat_tilde)
 
         return res
 
@@ -537,5 +538,97 @@ class DoubleMLPLIV(DoubleML):
 
         res = {'params': params,
                'tune_res': tune_res}
+
+        return res
+
+    def _ml_nuisance_pred_metrics_partial_x(self, y, z, d, g_hat, m_hat, r_hat):
+        g_hat_metrics = {'variable_name': 'y',
+                         'variable_column': self._dml_data.y_col,
+                         'prediction': 'g(X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(y, g_hat, squared=False)
+                         }
+
+        if self._dml_data.n_instr == 1:
+            m_hat_metrics = {'variable_name': 'z',
+                             'variable_column': self._dml_data.z_cols[0],
+                             'prediction': 'm(X)',
+                             'i_rep': self._i_rep,
+                             'error_type': 'RMSE',
+                             'value': mean_squared_error(z, m_hat, squared=False)
+                             }
+        else:
+            # several instruments: 2SLS
+            all_m_hat_metrics = list()
+            for i_instr in range(self._dml_data.n_instr):
+                all_m_hat_metrics.append(pd.Series(
+                    {'variable_name': 'z_' + str(i_instr),
+                     'variable_column': self._dml_data.z_cols[i_instr],
+                     'prediction': 'm(X)',
+                     'i_rep': self._i_rep,
+                     'error_type': 'RMSE',
+                     'value': mean_squared_error(z[:, i_instr], m_hat[:, i_instr], squared=False)
+                     }))
+            m_hat_metrics = pd.concat(all_m_hat_metrics, axis=1).transpose()
+
+        r_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'r(X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(d, r_hat, squared=False)
+                         }
+
+        res = pd.concat((pd.Series(g_hat_metrics),
+                         pd.Series(m_hat_metrics),
+                         pd.Series(r_hat_metrics)),
+                        axis=1).transpose()
+
+        return res
+
+    def _ml_nuisance_pred_metrics_partial_z(self, d, r_hat):
+        r_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'r(X, Z)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(d, r_hat, squared=False)
+                         }
+
+        res = pd.concat((pd.Series(r_hat_metrics)),
+                        axis=1).transpose()
+
+        return res
+
+    def _ml_nuisance_pred_metrics_partial_xz(self, y, d, g_hat, m_hat, m_hat_tilde):
+        g_hat_metrics = {'variable_name': 'y',
+                         'variable_column': self._dml_data.y_col,
+                         'prediction': 'g(X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(y, g_hat, squared=False)
+                         }
+
+        m_hat_metrics = {'variable_name': 'd',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'm(X, Z)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(d, m_hat, squared=False)
+                         }
+
+        r_hat_metrics = {'variable_name': 'm(X, Z)',
+                         'variable_column': self._dml_data.d_cols[self._i_treat],
+                         'prediction': 'r(X)',
+                         'i_rep': self._i_rep,
+                         'error_type': 'RMSE',
+                         'value': mean_squared_error(m_hat, m_hat_tilde, squared=False)
+                         }
+
+        res = pd.concat((pd.Series(g_hat_metrics),
+                         pd.Series(m_hat_metrics),
+                         pd.Series(r_hat_metrics)),
+                        axis=1).transpose()
 
         return res
