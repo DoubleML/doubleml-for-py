@@ -56,6 +56,12 @@ class DoubleMLData:
                  x_cols=None,
                  z_cols=None,
                  use_other_treat_as_covariate=True):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
         self._data = data
 
         self.y_col = y_col
@@ -246,6 +252,9 @@ class DoubleMLData:
             if not isinstance(value, list):
                 raise TypeError('The covariates x_cols must be of str or list type (or None). '
                                 f'{str(value)} of type {str(type(value))} was passed.')
+            if not len(set(value)) == len(value):
+                raise ValueError('Invalid covariates x_cols: '
+                                 'Contains duplicate values.')
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError('Invalid covariates x_cols. '
                                  'At least one covariate is no data column.')
@@ -280,6 +289,9 @@ class DoubleMLData:
         if not isinstance(value, list):
             raise TypeError('The treatment variable(s) d_cols must be of str or list type. '
                             f'{str(value)} of type {str(type(value))} was passed.')
+        if not len(set(value)) == len(value):
+            raise ValueError('Invalid treatment variable(s) d_cols: '
+                             'Contains duplicate values.')
         if not set(value).issubset(set(self.all_variables)):
             raise ValueError('Invalid treatment variable(s) d_cols. '
                              'At least one treatment variable is no data column.')
@@ -326,6 +338,9 @@ class DoubleMLData:
             if not isinstance(value, list):
                 raise TypeError('The instrumental variable(s) z_cols must be of str or list type (or None). '
                                 f'{str(value)} of type {str(type(value))} was passed.')
+            if not len(set(value)) == len(value):
+                raise ValueError('Invalid instrumental variable(s) z_cols: '
+                                 'Contains duplicate values.')
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError('Invalid instrumental variable(s) z_cols. '
                                  'At least one instrumental variable is no data column.')

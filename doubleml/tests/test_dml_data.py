@@ -300,3 +300,42 @@ def test_disjoint_sets():
            '``z_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
+
+
+@pytest.mark.ci
+def test_duplicates():
+    np.random.seed(3141)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+
+    msg = r'Invalid treatment variable\(s\) d_cols: Contains duplicate values.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(dml_data.data, y_col='y', d_cols=['d', 'd', 'X1'], x_cols=['X3', 'X2'])
+    with pytest.raises(ValueError, match=msg):
+        dml_data.d_cols = ['d', 'd', 'X1']
+
+    msg = 'Invalid covariates x_cols: Contains duplicate values.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(dml_data.data, y_col='y', d_cols=['d'], x_cols=['X3', 'X2', 'X3'])
+    with pytest.raises(ValueError, match=msg):
+        dml_data.x_cols=['X3', 'X2', 'X3']
+
+    msg = r'Invalid instrumental variable\(s\) z_cols: Contains duplicate values.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(dml_data.data, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'],
+                         z_cols=['X15', 'X12', 'X12', 'X15'])
+    with pytest.raises(ValueError, match=msg):
+        dml_data.z_cols = ['X15', 'X12', 'X12', 'X15']
+
+    msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
+                         y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
+
+
+@pytest.mark.ci
+def test_dml_datatype():
+    data_array = np.zeros((100, 10))
+    # msg = ('data must be of pd.DataFrame type. '
+    #        f'{str(data_array)} of type {str(type(data_array))} was passed.')
+    with pytest.raises(TypeError):
+        _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
