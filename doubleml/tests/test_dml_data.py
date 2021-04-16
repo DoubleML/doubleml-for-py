@@ -325,3 +325,17 @@ def test_duplicates():
                          z_cols=['X15', 'X12', 'X12', 'X15'])
     with pytest.raises(ValueError, match=msg):
         dml_data.z_cols = ['X15', 'X12', 'X12', 'X15']
+
+    msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
+                         y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
+
+
+@pytest.mark.ci
+def test_dml_datatype():
+    data_array = np.zeros((100, 10))
+    # msg = ('data must be of pd.DataFrame type. '
+    #        f'{str(data_array)} of type {str(type(data_array))} was passed.')
+    with pytest.raises(TypeError):
+        _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
