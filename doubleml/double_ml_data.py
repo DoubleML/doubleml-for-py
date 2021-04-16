@@ -56,6 +56,12 @@ class DoubleMLData:
                  x_cols=None,
                  z_cols=None,
                  use_other_treat_as_covariate=True):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
         self._data = data
 
         self.y_col = y_col
