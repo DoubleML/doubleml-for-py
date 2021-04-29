@@ -62,7 +62,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)
 
-    res_manual = fit_plr(y, x, d, clone(ml_m), clone(ml_g),
+    res_manual = fit_plr(y, x, d, clone(ml_g), clone(ml_m),
                          all_smpls, dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,

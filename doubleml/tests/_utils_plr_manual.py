@@ -6,7 +6,7 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 
 
-def fit_plr(y, x, d, learner_m, learner_g, all_smpls, dml_procedure, score,
+def fit_plr(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, score,
             n_rep=1, g_params=None, m_params=None):
     n_obs = len(y)
 
@@ -19,11 +19,11 @@ def fit_plr(y, x, d, learner_m, learner_g, all_smpls, dml_procedure, score,
 
         if is_classifier(learner_m):
             g_hat, m_hat = fit_nuisance_plr_classifier(y, x, d,
-                                                       learner_m, learner_g, smpls,
+                                                       learner_g, learner_m, smpls,
                                                        g_params, m_params)
         else:
             g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                            learner_m, learner_g, smpls,
+                                            learner_g, learner_m, smpls,
                                             g_params, m_params)
 
         all_g_hat.append(g_hat)
@@ -49,7 +49,7 @@ def fit_plr(y, x, d, learner_m, learner_g, all_smpls, dml_procedure, score,
     return res
 
 
-def fit_nuisance_plr(y, x, d, learner_m, learner_g, smpls, g_params=None, m_params=None):
+def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -67,7 +67,7 @@ def fit_nuisance_plr(y, x, d, learner_m, learner_g, smpls, g_params=None, m_para
     return g_hat, m_hat
 
 
-def fit_nuisance_plr_classifier(y, x, d, learner_m, learner_g, smpls, g_params=None, m_params=None):
+def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -85,7 +85,7 @@ def fit_nuisance_plr_classifier(y, x, d, learner_m, learner_g, smpls, g_params=N
     return g_hat, m_hat
 
 
-def tune_nuisance_plr(y, x, d, ml_m, ml_g, smpls, n_folds_tune, param_grid_g, param_grid_m):
+def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_m):
     g_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):
         g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)

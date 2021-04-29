@@ -93,17 +93,17 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
 
     if tune_on_folds:
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_m), clone(learner_g), smpls, n_folds_tune,
+                                               clone(learner_g), clone(learner_m), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_m), clone(learner_g), xx, n_folds_tune,
+                                               clone(learner_g), clone(learner_m), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
         g_params = g_params * n_folds
         m_params = m_params * n_folds
 
-    res_manual = fit_plr(y, x, d, clone(learner_m), clone(learner_g),
+    res_manual = fit_plr(y, x, d, clone(learner_g), clone(learner_m),
                          all_smpls, dml_procedure, score,
                          g_params=g_params, m_params=m_params)
 

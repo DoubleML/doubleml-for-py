@@ -278,12 +278,12 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
 
     if tune_on_folds:
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_m), clone(ml_g), smpls, n_folds_tune,
+                                               clone(ml_g), clone(ml_m), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_m), clone(ml_g), xx, n_folds_tune,
+                                               clone(ml_g), clone(ml_m), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
 
     res_manual = fit_plr(y, x, d, clone(ml_m), clone(ml_g),
