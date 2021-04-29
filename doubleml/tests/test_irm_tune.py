@@ -89,13 +89,13 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
 
     if tune_on_folds:
         g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
-                                                           clone(learner_m), clone(learner_g), smpls, score,
+                                                           clone(learner_g), clone(learner_m), smpls, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
-                                                           clone(learner_m), clone(learner_g), xx, score,
+                                                           clone(learner_g), clone(learner_m), xx, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
         g0_params = g0_params * n_folds

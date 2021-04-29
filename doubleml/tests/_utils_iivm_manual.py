@@ -109,7 +109,7 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
     return g_hat0, g_hat1, m_hat, r_hat0, r_hat1
 
 
-def tune_nuisance_iivm(y, x, d, z, ml_m, ml_g, ml_r, smpls, n_folds_tune,
+def tune_nuisance_iivm(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
                        param_grid_g, param_grid_m, param_grid_r,
                        always_takers=True, never_takers=True):
     g0_tune_res = [None] * len(smpls)

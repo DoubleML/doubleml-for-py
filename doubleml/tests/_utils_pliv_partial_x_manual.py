@@ -19,7 +19,7 @@ def fit_pliv_partial_x(y, x, d, z,
         smpls = all_smpls[i_rep]
 
         g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_x(y, x, d, z,
-                                                          learner_m, learner_g, learner_r,
+                                                          learner_g, learner_m, learner_r,
                                                           smpls,
                                                           g_params, m_params, r_params)
 
@@ -49,7 +49,7 @@ def fit_pliv_partial_x(y, x, d, z,
     return res
 
 
-def fit_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):
+def fit_nuisance_pliv_partial_x(y, x, d, z, ml_g, ml_m, ml_r, smpls, g_params=None, m_params=None, r_params=None):
     assert z.ndim == 2
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -81,7 +81,8 @@ def fit_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=No
     return g_hat, r_hat, r_hat_tilde
 
 
-def tune_nuisance_pliv_partial_x(y, x, d, z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
+def tune_nuisance_pliv_partial_x(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
+                                 param_grid_g, param_grid_m, param_grid_r):
     g_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):
         g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)

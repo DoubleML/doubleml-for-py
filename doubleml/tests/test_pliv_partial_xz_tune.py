@@ -100,8 +100,8 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
 
     if tune_on_folds:
         g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
-                                                                     clone(learner_m),
                                                                      clone(learner_g),
+                                                                     clone(learner_m),
                                                                      clone(learner_r),
                                                                      smpls, n_folds_tune,
                                                                      par_grid['ml_g'],
@@ -110,8 +110,8 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
     else:
         xx = [(np.arange(len(y)), np.arange(len(y)))]
         g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
-                                                                     clone(learner_m),
                                                                      clone(learner_g),
+                                                                     clone(learner_m),
                                                                      clone(learner_r),
                                                                      xx, n_folds_tune,
                                                                      par_grid['ml_g'],

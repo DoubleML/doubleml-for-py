@@ -100,8 +100,8 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner_g, learner_m
 
     if tune_on_folds:
         g_params, m_params, r_params = tune_nuisance_pliv_partial_x(y, x, d, z,
-                                                                    clone(learner_m),
                                                                     clone(learner_g),
+                                                                    clone(learner_m),
                                                                     clone(learner_r),
                                                                     smpls, n_folds_tune,
                                                                     par_grid['ml_g'],
@@ -110,8 +110,8 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner_g, learner_m
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params, r_params = tune_nuisance_pliv_partial_x(y, x, d, z,
-                                                                    clone(learner_m),
                                                                     clone(learner_g),
+                                                                    clone(learner_m),
                                                                     clone(learner_r),
                                                                     xx, n_folds_tune,
                                                                     par_grid['ml_g'],
@@ -122,7 +122,7 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner_g, learner_m
         r_params = r_params * n_folds
 
     res_manual = fit_pliv_partial_x(y, x, d, z,
-                                    clone(learner_m), clone(learner_g), clone(learner_r),
+                                    clone(learner_g), clone(learner_m), clone(learner_r),
                                     all_smpls, dml_procedure, score,
                                     g_params=g_params, m_params=m_params, r_params=r_params)
 

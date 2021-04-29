@@ -48,7 +48,7 @@ def fit_pliv(y, x, d, z,
     return res
 
 
-def fit_nuisance_pliv(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):
+def fit_nuisance_pliv(y, x, d, z, ml_g, ml_m, ml_r, smpls, g_params=None, m_params=None, r_params=None):
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if g_params is not None:
@@ -70,7 +70,7 @@ def fit_nuisance_pliv(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=None, m_para
     return g_hat, m_hat, r_hat
 
 
-def tune_nuisance_pliv(y, x, d, z, ml_m, ml_g, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
+def tune_nuisance_pliv(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
     g_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):
         g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)

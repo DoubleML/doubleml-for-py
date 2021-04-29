@@ -101,20 +101,20 @@ def dml_pliv_fixture(generate_data_iv, learner_g, learner_m, learner_r, score, d
 
     if tune_on_folds:
         g_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_m), clone(learner_g), clone(learner_r),
+                                                          clone(learner_g), clone(learner_m), clone(learner_r),
                                                           smpls, n_folds_tune,
                                                           par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_m), clone(learner_g), clone(learner_r),
+                                                          clone(learner_g), clone(learner_m), clone(learner_r),
                                                           xx, n_folds_tune,
                                                           par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
         g_params = g_params * n_folds
         m_params = m_params * n_folds
         r_params = r_params * n_folds
 
-    res_manual = fit_pliv(y, x, d, z, clone(learner_m), clone(learner_g), clone(learner_r),
+    res_manual = fit_pliv(y, x, d, z, clone(learner_g), clone(learner_m), clone(learner_r),
                           all_smpls, dml_procedure, score,
                           g_params=g_params, m_params=m_params, r_params=r_params)
 

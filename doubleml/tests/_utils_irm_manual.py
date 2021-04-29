@@ -92,7 +92,7 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
     return g_hat0, g_hat1, m_hat, p_hat
 
 
-def tune_nuisance_irm(y, x, d, ml_m, ml_g, smpls, score, n_folds_tune,
+def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
                       param_grid_g, param_grid_m):
     g0_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):

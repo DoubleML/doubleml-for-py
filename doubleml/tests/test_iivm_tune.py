@@ -110,7 +110,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     if tune_on_folds:
         g0_params, g1_params, m_params,  r0_params, r1_params = \
             tune_nuisance_iivm(y, x, d, z,
-                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
+                               clone(learner_g), clone(learner_m), clone(learner_r), smpls,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
                                always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
@@ -118,7 +118,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
         xx = [(np.arange(data.shape[0]), np.array([]))]
         g0_params, g1_params, m_params,  r0_params, r1_params = \
             tune_nuisance_iivm(y, x, d, z,
-                               clone(learner_m), clone(learner_g), clone(learner_r), xx,
+                               clone(learner_g), clone(learner_m), clone(learner_r), xx,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
                                always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])

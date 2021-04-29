@@ -14,10 +14,10 @@ from ._utils_iivm_manual import fit_iivm, boot_iivm
 
 
 @pytest.fixture(scope='module',
-                params=[[LogisticRegression(solver='lbfgs', max_iter=250),
-                         LinearRegression()],
-                        [RandomForestClassifier(max_depth=2, n_estimators=10),
-                         RandomForestRegressor(max_depth=2, n_estimators=10)]])
+                params=[[LinearRegression(),
+                         LogisticRegression(solver='lbfgs', max_iter=250)],
+                        [RandomForestRegressor(max_depth=2, n_estimators=10),
+                         RandomForestClassifier(max_depth=2, n_estimators=10)]])
 def learner(request):
     return request.param
 
@@ -51,9 +51,9 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner[1])
-    ml_m = clone(learner[0])
-    ml_r = clone(learner[0])
+    ml_g = clone(learner[0])
+    ml_m = clone(learner[1])
+    ml_r = clone(learner[1])
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'z')
@@ -74,7 +74,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
     all_smpls = draw_smpls(n_obs, n_folds)
 
     res_manual = fit_iivm(y, x, d, z,
-                          clone(learner[1]), clone(learner[0]), clone(learner[0]),
+                          clone(learner[0]), clone(learner[1]), clone(learner[1]),
                           all_smpls, dml_procedure, score, trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_iivm_obj.coef,
