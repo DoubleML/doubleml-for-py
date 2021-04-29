@@ -11,7 +11,7 @@ import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2019
 from doubleml.double_ml_resampling import DoubleMLMultiwayResampling
 
-from ._utils_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv
+from ._utils_pliv_manual import fit_pliv
 
 np.random.seed(1234)
 # Set the simulation parameters
@@ -72,24 +72,12 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
     d = obj_dml_data.d
     z = np.ravel(obj_dml_data.z)
 
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
-                                            clone(learner), clone(learner), clone(learner),
-                                            smpls_lin_ind)
-
-    if dml_procedure == 'dml1':
-        res_manual, _ = pliv_dml1(y, x, d,
-                                  z,
-                                  g_hat, m_hat, r_hat,
-                                  smpls_lin_ind, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, _ = pliv_dml2(y, x, d,
-                                  z,
-                                  g_hat, m_hat, r_hat,
-                                  smpls_lin_ind, score)
+    res_manual = fit_pliv(y, x, d, z,
+                          clone(learner), clone(learner), clone(learner),
+                          [smpls_lin_ind], dml_procedure, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual}
+                'coef_manual': res_manual['theta']}
 
     return res_dict
 

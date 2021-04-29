@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -10,7 +9,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm
+from ._utils import draw_smpls
+from ._utils_irm_manual import fit_irm, boot_irm
 
 
 @pytest.fixture(scope='module',
@@ -65,40 +65,25 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_t
     dml_irm_obj.fit()
 
     np.random.seed(3141)
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
 
-    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
-                                                    clone(learner[0]), clone(learner[1]), smpls,
-                                                    score,
-                                                    trimming_threshold=trimming_threshold)
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = irm_dml1(y, x, d,
-                                         g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = irm_dml2(y, x, d,
-                                         g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, score)
+    res_manual = fit_irm(y, x, d,
+                         clone(learner[1]), clone(learner[0]),
+                         all_smpls, dml_procedure, score, trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_irm_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_irm_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_irm(res_manual,
-                                           y, d,
-                                           g_hat0, g_hat1, m_hat, p_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot,
-                                           dml_procedure)
+        boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                           res_manual['all_m_hat'], res_manual['all_p_hat'],
+                                           all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

@@ -5,7 +5,53 @@ from sklearn.base import clone
 from ._utils_boot import boot_manual, draw_weights
 
 
-def fit_nuisance_irm(y, x, d, learner_m, learner_g, smpls, score,
+def fit_irm(y, x, d,
+            learner_g, learner_m, all_smpls, dml_procedure, score,
+            n_rep=1, g0_params=None, g1_params=None, m_params=None,
+            trimming_threshold=1e-12):
+    n_obs = len(y)
+
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
+    all_g_hat0 = list()
+    all_g_hat1 = list()
+    all_m_hat = list()
+    all_p_hat = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+
+        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
+                                                        learner_g, learner_m, smpls,
+                                                        score,
+                                                        g0_params=g0_params, g1_params=g1_params, m_params=m_params,
+                                                        trimming_threshold=trimming_threshold)
+
+        all_g_hat0.append(g_hat0)
+        all_g_hat1.append(g_hat1)
+        all_m_hat.append(m_hat)
+        all_p_hat.append(p_hat)
+
+        if dml_procedure == 'dml1':
+            thetas[i_rep], ses[i_rep] = irm_dml1(y, x, d,
+                                                 g_hat0, g_hat1, m_hat, p_hat,
+                                                 smpls, score)
+        else:
+            assert dml_procedure == 'dml2'
+            thetas[i_rep], ses[i_rep] = irm_dml2(y, x, d,
+                                                 g_hat0, g_hat1, m_hat, p_hat,
+                                                 smpls, score)
+
+    theta = np.median(thetas)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+
+    res = {'theta': theta, 'se': se,
+           'thetas': thetas, 'ses': ses,
+           'all_g_hat0': all_g_hat0, 'all_g_hat1': all_g_hat1, 'all_m_hat': all_m_hat, 'all_p_hat': all_p_hat}
+
+    return res
+
+
+def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
                      g0_params=None, g1_params=None, m_params=None,
                      trimming_threshold=1e-12):
     ml_g0 = clone(learner_g)
@@ -173,7 +219,26 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
     return res
 
 
-def boot_irm(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
+             all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+             n_rep=1):
+    all_boot_theta = list()
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        boot_theta, boot_t_stat = boot_irm_single_split(
+            thetas[i_rep], y, d,
+            all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_p_hat[i_rep], all_smpls[i_rep],
+            score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure)
+        all_boot_theta.append(boot_theta)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_theta = np.hstack(all_boot_theta)
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_irm_single_split(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)

@@ -4,6 +4,46 @@ from sklearn.model_selection import KFold, GridSearchCV
 from ._utils_boot import boot_manual, draw_weights
 
 
+def fit_pliv_partial_z(y, x, d, z,
+                       learner_r, all_smpls, dml_procedure, score,
+                       n_rep=1, r_params=None):
+    n_obs = len(y)
+
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
+    all_r_hat = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+
+        r_hat = fit_nuisance_pliv_partial_z(y, x, d, z,
+                                            learner_r,
+                                            smpls,
+                                            r_params)
+
+        all_r_hat.append(r_hat)
+
+        if dml_procedure == 'dml1':
+            thetas[i_rep], ses[i_rep] = pliv_partial_z_dml1(y, x, d,
+                                                            z,
+                                                            r_hat,
+                                                            smpls, score)
+        else:
+            assert dml_procedure == 'dml2'
+            thetas[i_rep], ses[i_rep] = pliv_partial_z_dml2(y, x, d,
+                                                            z,
+                                                            r_hat,
+                                                            smpls, score)
+
+    theta = np.median(thetas)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+
+    res = {'theta': theta, 'se': se,
+           'thetas': thetas, 'ses': ses,
+           'all_r_hat': all_r_hat}
+
+    return res
+
+
 def fit_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, r_params=None):
     XZ = np.hstack((x, z))
     r_hat = []
@@ -71,7 +111,25 @@ def pliv_partial_z_orth(r_hat, y, d, score):
     return res
 
 
-def boot_pliv_partial_z(theta, y, d, z, r_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_pliv_partial_z(y, d, z, thetas, ses, all_r_hat,
+                        all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+                        n_rep=1):
+    all_boot_theta = list()
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        boot_theta, boot_t_stat = boot_pliv_partial_z_single_split(
+            thetas[i_rep], y, d, z, all_r_hat[i_rep], all_smpls[i_rep],
+            score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure)
+        all_boot_theta.append(boot_theta)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_theta = np.hstack(all_boot_theta)
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_pliv_partial_z_single_split(theta, y, d, z, r_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)

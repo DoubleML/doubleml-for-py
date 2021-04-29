@@ -5,7 +5,56 @@ from sklearn.base import clone
 from ._utils_boot import boot_manual, draw_weights
 
 
-def fit_nuisance_iivm(y, x, d, z, learner_m, learner_g, learner_r, smpls,
+def fit_iivm(y, x, d, z,
+             learner_g, learner_m, learner_r, all_smpls, dml_procedure, score,
+             n_rep=1, g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
+             trimming_threshold=1e-12, always_takers=True, never_takers=True):
+    n_obs = len(y)
+
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
+    all_g_hat0 = list()
+    all_g_hat1 = list()
+    all_m_hat = list()
+    all_r_hat0 = list()
+    all_r_hat1 = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+
+        g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = fit_nuisance_iivm(
+            y, x, d, z,
+            learner_g, learner_m, learner_r, smpls,
+            g0_params=g0_params, g1_params=g1_params, m_params=m_params, r0_params=r0_params, r1_params=r1_params,
+            trimming_threshold=trimming_threshold, always_takers=always_takers, never_takers=never_takers)
+
+        all_g_hat0.append(g_hat0)
+        all_g_hat1.append(g_hat1)
+        all_m_hat.append(m_hat)
+        all_r_hat0.append(r_hat0)
+        all_r_hat1.append(r_hat1)
+
+        if dml_procedure == 'dml1':
+            thetas[i_rep], ses[i_rep] = iivm_dml1(y, x, d, z,
+                                                  g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                                                  smpls, score)
+        else:
+            assert dml_procedure == 'dml2'
+            thetas[i_rep], ses[i_rep] = iivm_dml2(y, x, d, z,
+                                                  g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                                                  smpls, score)
+
+    theta = np.median(thetas)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+
+    res = {'theta': theta, 'se': se,
+           'thetas': thetas, 'ses': ses,
+           'all_g_hat0': all_g_hat0, 'all_g_hat1': all_g_hat1,
+           'all_m_hat': all_m_hat, 'all_r_hat0': all_r_hat0, 'all_r_hat1': all_r_hat1}
+
+    return res
+
+
+def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
                       g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
                       trimming_threshold=1e-12, always_takers=True, never_takers=True):
     ml_g0 = clone(learner_g)
@@ -219,7 +268,27 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
     return res
 
 
-def boot_iivm(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_iivm(y, d, z, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_r_hat0, all_r_hat1,
+              all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+              n_rep=1):
+    all_boot_theta = list()
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        boot_theta, boot_t_stat = boot_iivm_single_split(
+            thetas[i_rep], y, d, z,
+            all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_r_hat0[i_rep], all_r_hat1[i_rep],
+            all_smpls[i_rep], score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure)
+        all_boot_theta.append(boot_theta)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_theta = np.hstack(all_boot_theta)
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_iivm_single_split(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                           smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)

@@ -2,15 +2,14 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import ElasticNet
 
 import doubleml as dml
 
-from ._utils_pliv_partial_z_manual import pliv_partial_z_dml1, pliv_partial_z_dml2, \
-    fit_nuisance_pliv_partial_z, boot_pliv_partial_z, tune_nuisance_pliv_partial_z
+from ._utils import draw_smpls
+from ._utils_pliv_partial_z_manual import fit_pliv_partial_z, boot_pliv_partial_z, tune_nuisance_pliv_partial_z
 
 
 @pytest.fixture(scope='module',
@@ -77,60 +76,39 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dm
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data.loc[:, z_cols].values
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
 
     if tune_on_folds:
         r_params = tune_nuisance_pliv_partial_z(y, x, d, z,
                                                 clone(learner_r),
                                                 smpls, n_folds_tune,
                                                 par_grid['ml_r'])
-
-        r_hat = fit_nuisance_pliv_partial_z(y, x, d, z,
-                                            clone(learner_r),
-                                            smpls,
-                                            r_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         r_params = tune_nuisance_pliv_partial_z(y, x, d, z,
                                                 clone(learner_r),
                                                 xx, n_folds_tune,
                                                 par_grid['ml_r'])
+        r_params = r_params * n_folds
 
-        r_hat = fit_nuisance_pliv_partial_z(y, x, d, z,
-                                            clone(learner_r),
-                                            smpls,
-                                            r_params * n_folds)
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_partial_z_dml1(y, x, d,
-                                                    z,
-                                                    r_hat,
-                                                    smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = pliv_partial_z_dml2(y, x, d,
-                                                    z,
-                                                    r_hat,
-                                                    smpls, score)
+    res_manual = fit_pliv_partial_z(y, x, d, z,
+                                    clone(learner_r),
+                                    all_smpls, dml_procedure, score,
+                                    r_params=r_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_pliv_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv_partial_z(res_manual,
-                                                      y, d,
-                                                      z,
-                                                      r_hat,
-                                                      smpls, score,
-                                                      se_manual,
-                                                      bootstrap, n_rep_boot,
-                                                      dml_procedure)
+        boot_theta, boot_t_stat = boot_pliv_partial_z(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                                      res_manual['all_r_hat'],
+                                                      all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

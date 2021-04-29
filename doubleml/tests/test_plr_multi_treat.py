@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from ._utils import draw_smpls
+from ._utils_plr_manual import fit_plr, boot_plr_single_split
 
 
 @pytest.fixture(scope='module',
@@ -68,9 +68,8 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     y = data['y'].values
     x = data.loc[:, x_cols].values
     d = data.loc[:, d_cols].values
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
 
     n_d = d.shape[1]
 
@@ -84,21 +83,14 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
         Xd = np.hstack((x, np.delete(d, i_d, axis=1)))
 
-        g_hat, m_hat = fit_nuisance_plr(y, Xd, d[:, i_d],
-                                        clone(learner), clone(learner), smpls)
+        res_manual = fit_plr(y, Xd, d[:, i_d],
+                             clone(learner), clone(learner),
+                             all_smpls, dml_procedure, score)
 
-        all_g_hat.append(g_hat)
-        all_m_hat.append(m_hat)
-
-        if dml_procedure == 'dml1':
-            coef_manual[i_d], se_manual[i_d] = plr_dml1(y, Xd, d[:, i_d],
-                                                        g_hat, m_hat,
-                                                        smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            coef_manual[i_d], se_manual[i_d] = plr_dml2(y, Xd, d[:, i_d],
-                                                        g_hat, m_hat,
-                                                        smpls, score)
+        coef_manual[i_d] = res_manual['theta']
+        se_manual[i_d] = res_manual['se']
+        all_g_hat.append(res_manual['all_g_hat'][0])
+        all_m_hat.append(res_manual['all_m_hat'][0])
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': coef_manual,
@@ -108,13 +100,13 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr(coef_manual,
-                                           y, d,
-                                           all_g_hat, all_m_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot,
-                                           dml_procedure)
+        boot_theta, boot_t_stat = boot_plr_single_split(coef_manual,
+                                                        y, d,
+                                                        all_g_hat, all_m_hat,
+                                                        all_smpls[0], score,
+                                                        se_manual,
+                                                        bootstrap, n_rep_boot,
+                                                        dml_procedure)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

@@ -4,6 +4,50 @@ from sklearn.model_selection import KFold, GridSearchCV
 from ._utils_boot import boot_manual, draw_weights
 
 
+def fit_pliv_partial_xz(y, x, d, z,
+                        learner_g, learner_m, learner_r, all_smpls, dml_procedure, score,
+                        n_rep=1, g_params=None, m_params=None, r_params=None):
+    n_obs = len(y)
+
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
+    all_g_hat = list()
+    all_m_hat = list()
+    all_r_hat = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+
+        g_hat, m_hat, r_hat = fit_nuisance_pliv_partial_xz(y, x, d, z,
+                                                           learner_m, learner_g, learner_r,
+                                                           smpls,
+                                                           g_params, m_params, r_params)
+
+        all_g_hat.append(g_hat)
+        all_m_hat.append(m_hat)
+        all_r_hat.append(r_hat)
+
+        if dml_procedure == 'dml1':
+            thetas[i_rep], ses[i_rep] = pliv_partial_xz_dml1(y, x, d,
+                                                             z,
+                                                             g_hat, m_hat, r_hat,
+                                                             smpls, score)
+        else:
+            assert dml_procedure == 'dml2'
+            thetas[i_rep], ses[i_rep] = pliv_partial_xz_dml2(y, x, d,
+                                                             z,
+                                                             g_hat, m_hat, r_hat,
+                                                             smpls, score)
+
+    theta = np.median(thetas)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+
+    res = {'theta': theta, 'se': se,
+           'thetas': thetas, 'ses': ses,
+           'all_g_hat': all_g_hat, 'all_m_hat': all_m_hat, 'all_r_hat': all_r_hat}
+
+    return res
+
+
 def fit_nuisance_pliv_partial_xz(y, x, d, z, ml_m, ml_g, ml_r, smpls, g_params=None, m_params=None, r_params=None):
     g_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
@@ -114,7 +158,26 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, d, score):
     return res
 
 
-def boot_pliv_partial_xz(theta, y, d, z, g_hat, m_hat, m_hat_tilde, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_pliv_partial_xz(y, d, z, thetas, ses, all_g_hat, all_m_hat, all_r_hat,
+                         all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+                         n_rep=1):
+    all_boot_theta = list()
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        boot_theta, boot_t_stat = boot_pliv_partial_xz_single_split(
+            thetas[i_rep], y, d, z, all_g_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_smpls[i_rep],
+            score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure)
+        all_boot_theta.append(boot_theta)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_theta = np.hstack(all_boot_theta)
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_pliv_partial_xz_single_split(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
+                                      smpls, score, se, bootstrap, n_rep, dml_procedure):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)

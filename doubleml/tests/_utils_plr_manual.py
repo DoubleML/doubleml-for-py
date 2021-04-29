@@ -1,9 +1,52 @@
 import numpy as np
 import scipy
 from sklearn.model_selection import KFold, GridSearchCV
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
+
+
+def fit_plr(y, x, d, learner_m, learner_g, all_smpls, dml_procedure, score,
+            n_rep=1, g_params=None, m_params=None):
+    n_obs = len(y)
+
+    thetas = np.zeros(n_rep)
+    ses = np.zeros(n_rep)
+    all_g_hat = list()
+    all_m_hat = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+
+        if is_classifier(learner_m):
+            g_hat, m_hat = fit_nuisance_plr_classifier(y, x, d,
+                                                       learner_m, learner_g, smpls,
+                                                       g_params, m_params)
+        else:
+            g_hat, m_hat = fit_nuisance_plr(y, x, d,
+                                            learner_m, learner_g, smpls,
+                                            g_params, m_params)
+
+        all_g_hat.append(g_hat)
+        all_m_hat.append(m_hat)
+
+        if dml_procedure == 'dml1':
+            thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
+                                                 all_g_hat[i_rep], all_m_hat[i_rep],
+                                                 smpls, score)
+        else:
+            assert dml_procedure == 'dml2'
+            thetas[i_rep], ses[i_rep] = plr_dml2(y, x, d,
+                                                 all_g_hat[i_rep], all_m_hat[i_rep],
+                                                 smpls, score)
+
+    theta = np.median(thetas)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+
+    res = {'theta': theta, 'se': se,
+           'thetas': thetas, 'ses': ses,
+           'all_g_hat': all_g_hat, 'all_m_hat': all_m_hat}
+
+    return res
 
 
 def fit_nuisance_plr(y, x, d, learner_m, learner_g, smpls, g_params=None, m_params=None):
@@ -126,7 +169,25 @@ def plr_orth(v_hat, u_hat, d, score):
     return res
 
 
-def boot_plr(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting=True):
+def boot_plr(y, d, thetas, ses, all_g_hat, all_m_hat, all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+             n_rep=1, apply_cross_fitting=True):
+    all_boot_theta = list()
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        boot_theta, boot_t_stat = boot_plr_single_split(
+            thetas[i_rep], y, d, all_g_hat[i_rep], all_m_hat[i_rep], all_smpls[i_rep],
+            score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure, apply_cross_fitting)
+        all_boot_theta.append(boot_theta)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_theta = np.hstack(all_boot_theta)
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_theta, boot_t_stat
+
+
+def boot_plr_single_split(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_procedure,
+                          apply_cross_fitting=True):
     if apply_cross_fitting:
         n_obs = len(y)
     else:
