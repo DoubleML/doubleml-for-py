@@ -4,11 +4,12 @@ import pytest
 from sklearn.base import clone
 
 from sklearn.linear_model import Lasso
+from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
 from ._utils import draw_smpls
-from ._utils_plr_manual import fit_plr, boot_plr_single_split
+from ._utils_plr_manual import fit_plr_multitreat, boot_plr_multitreat
 
 
 @pytest.fixture(scope='module',
@@ -18,7 +19,8 @@ def idx(request):
 
 
 @pytest.fixture(scope='module',
-                params=[Lasso(alpha=0.1)])
+                params=[Lasso(alpha=0.1),
+                        RandomForestRegressor(max_depth=2, n_estimators=10)])
 def learner(request):
     return request.param
 
@@ -35,8 +37,15 @@ def dml_procedure(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[1, 3])
+def n_rep(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner, score, dml_procedure):
+def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner,
+                               score, dml_procedure, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 483
@@ -58,7 +67,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
-                                  n_folds,
+                                  n_folds, n_rep,
                                   score=score,
                                   dml_procedure=dml_procedure)
 
@@ -69,44 +78,27 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     x = data.loc[:, x_cols].values
     d = data.loc[:, d_cols].values
     n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
-    n_d = d.shape[1]
-
-    coef_manual = np.full(n_d, np.nan)
-    se_manual = np.full(n_d, np.nan)
-
-    all_g_hat = []
-    all_m_hat = []
-
-    for i_d in range(n_d):
-
-        Xd = np.hstack((x, np.delete(d, i_d, axis=1)))
-
-        res_manual = fit_plr(y, Xd, d[:, i_d],
-                             clone(learner), clone(learner),
-                             all_smpls, dml_procedure, score)
-
-        coef_manual[i_d] = res_manual['theta']
-        se_manual[i_d] = res_manual['se']
-        all_g_hat.append(res_manual['all_g_hat'][0])
-        all_m_hat.append(res_manual['all_m_hat'][0])
+    res_manual = fit_plr_multitreat(y, x, d,
+                                    clone(learner), clone(learner),
+                                    all_smpls, dml_procedure, score,
+                                    n_rep=n_rep)
 
     res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': coef_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_plr_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr_single_split(coef_manual,
-                                                        y, d,
-                                                        all_g_hat, all_m_hat,
-                                                        all_smpls[0], score,
-                                                        se_manual,
-                                                        bootstrap, n_rep_boot,
-                                                        dml_procedure)
+        boot_theta, boot_t_stat = boot_plr_multitreat(
+            y, d,
+            res_manual['thetas'], res_manual['ses'],
+            res_manual['all_g_hat'], res_manual['all_m_hat'],
+            all_smpls, dml_procedure, score,
+            bootstrap, n_rep_boot, n_rep)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
