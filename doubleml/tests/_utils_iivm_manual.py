@@ -219,17 +219,18 @@ def iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1, u_hat0, u_hat1, w_hat0, w_h
     return res
 
 
-def boot_iivm(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_iivm(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+              smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                                     smpls, score, se, weights, n_rep, dml_procedure)
+                                                     smpls, score, se, weights, n_rep, apply_cross_fitting)
     return boot_theta, boot_t_stat
 
 
-def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score, se, weights,
-                           n_rep, dml_procedure):
+def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+                           smpls, score, se, weights, n_rep, apply_cross_fitting):
     assert score == 'LATE'
     u_hat0 = np.zeros_like(y, dtype='float64')
     u_hat1 = np.zeros_like(y, dtype='float64')
@@ -240,8 +241,6 @@ def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
     r_hat0_all = np.zeros_like(y, dtype='float64')
     r_hat1_all = np.zeros_like(y, dtype='float64')
     m_hat_all = np.zeros_like(y, dtype='float64')
-    n_folds = len(smpls)
-    J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -252,16 +251,17 @@ def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
         r_hat0_all[test_index] = r_hat0[idx]
         r_hat1_all[test_index] = r_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
-        if dml_procedure == 'dml1':
-            J[idx] = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index]
-                               + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat_all[test_index])
-                               - np.divide(np.multiply(1. - z[test_index], w_hat0[test_index]),
-                                           1. - m_hat_all[test_index])))
 
-    if dml_procedure == 'dml2':
+    if apply_cross_fitting:
         J = np.mean(-(r_hat1_all - r_hat0_all
                       + np.divide(np.multiply(z, w_hat1), m_hat_all)
                       - np.divide(np.multiply(1. - z, w_hat0), 1. - m_hat_all)))
+    else:
+        test_index = smpls[0][1]
+        J = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index]
+                      + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat_all[test_index])
+                      - np.divide(np.multiply(1. - z[test_index], w_hat0[test_index]),
+                                  1. - m_hat_all[test_index])))
 
     psi = g_hat1_all - g_hat0_all \
         + np.divide(np.multiply(z, u_hat1), m_hat_all) \
@@ -270,6 +270,6 @@ def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
                  + np.divide(np.multiply(z, w_hat1), m_hat_all)
                  - np.divide(np.multiply(1.-z, w_hat0), 1.-m_hat_all))
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
 
     return boot_theta, boot_t_stat

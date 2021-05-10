@@ -138,8 +138,7 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
                                            g_hat0, g_hat1, m_hat, p_hat,
                                            smpls, score,
                                            se_manual,
-                                           bootstrap, n_rep_boot,
-                                           dml_procedure)
+                                           bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

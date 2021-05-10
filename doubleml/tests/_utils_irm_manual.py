@@ -173,24 +173,24 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
     return res
 
 
-def boot_irm(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_irm(theta, y, d, g_hat0, g_hat1, m_hat, p_hat,
+             smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat,
-                                                    smpls, score, se, weights, n_rep, dml_procedure)
+                                                    smpls, score, se, weights, n_rep, apply_cross_fitting)
     return boot_theta, boot_t_stat
 
 
-def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score, se, weights, n_rep, dml_procedure):
+def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat,
+                          smpls, score, se, weights, n_rep, apply_cross_fitting):
     u_hat0 = np.zeros_like(y, dtype='float64')
     u_hat1 = np.zeros_like(y, dtype='float64')
     g_hat0_all = np.zeros_like(y, dtype='float64')
     g_hat1_all = np.zeros_like(y, dtype='float64')
     m_hat_all = np.zeros_like(y, dtype='float64')
     p_hat_all = np.zeros_like(y, dtype='float64')
-    n_folds = len(smpls)
-    J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0[idx]
         u_hat1[test_index] = y[test_index] - g_hat1[idx]
@@ -198,19 +198,20 @@ def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
         g_hat1_all[test_index] = g_hat1[idx]
         m_hat_all[test_index] = m_hat[idx]
         p_hat_all[test_index] = p_hat[idx]
-        if dml_procedure == 'dml1':
-            if score == 'ATE':
-                J[idx] = -1.0
-            else:
-                assert score == 'ATTE'
-                J[idx] = np.mean(-np.divide(d[test_index], p_hat_all[test_index]))
 
-    if dml_procedure == 'dml2':
+    if apply_cross_fitting:
         if score == 'ATE':
             J = -1.0
         else:
             assert score == 'ATTE'
             J = np.mean(-np.divide(d, p_hat_all))
+    else:
+        test_index = smpls[0][1]
+        if score == 'ATE':
+            J = -1.0
+        else:
+            assert score == 'ATTE'
+            J = np.mean(-np.divide(d[test_index], p_hat_all[test_index]))
 
     if score == 'ATE':
         psi = g_hat1_all - g_hat0_all \
@@ -223,6 +224,6 @@ def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat, smpls, scor
                         np.multiply(p_hat_all, (1.-m_hat_all))) \
             - theta * np.divide(d, p_hat_all)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
 
     return boot_theta, boot_t_stat

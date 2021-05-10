@@ -89,7 +89,6 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
                                            smpls, score,
                                            se_manual,
                                            bootstrap, n_rep_boot,
-                                           dml_procedure,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)
@@ -210,7 +209,6 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
                                                smpls, score,
                                                ses[i_rep],
                                                bootstrap, n_rep_boot,
-                                               dml_procedure,
                                                apply_cross_fitting=False)
             all_boot_theta.append(boot_theta)
             all_boot_t_stat.append(boot_t_stat)
@@ -340,7 +338,6 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
                                            smpls, score,
                                            se_manual,
                                            bootstrap, n_rep_boot,
-                                           dml_procedure,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)

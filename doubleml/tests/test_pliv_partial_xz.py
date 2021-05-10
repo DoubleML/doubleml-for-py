@@ -92,8 +92,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dm
                                                        g_hat, m_hat, r_hat,
                                                        smpls, score,
                                                        se_manual,
-                                                       bootstrap, n_rep_boot,
-                                                       dml_procedure)
+                                                       bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

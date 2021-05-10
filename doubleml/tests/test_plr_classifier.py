@@ -93,8 +93,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
                                            g_hat, m_hat,
                                            smpls, score,
                                            se_manual,
-                                           bootstrap, n_rep_boot,
-                                           dml_procedure)
+                                           bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

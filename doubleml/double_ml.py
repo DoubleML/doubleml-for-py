@@ -1223,27 +1223,10 @@ class DoubleML(ABC):
         self._agg_cross_fit()
 
     def _compute_bootstrap(self, weights):
-        dml_procedure = self.dml_procedure
-        smpls = self.__smpls
-
         if self.apply_cross_fitting:
-            if dml_procedure == 'dml1':
-                boot_coefs = np.full((self.n_rep_boot, self.n_folds), np.nan)
-                boot_t_stats = np.full((self.n_rep_boot, self.n_folds), np.nan)
-                for idx, (_, test_index) in enumerate(smpls):
-                    J = np.mean(self.__psi_a[test_index])
-                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                            len(test_index) * J)
-                    boot_t_stats[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                            len(test_index) * self.__all_se * J)
-                boot_coef = np.mean(boot_coefs, axis=1)
-                boot_t_stat = np.mean(boot_t_stats, axis=1)
-
-            else:
-                assert dml_procedure == 'dml2'
-                J = np.mean(self.__psi_a)
-                boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
-                boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
+            J = np.mean(self.__psi_a)
+            boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
+            boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting

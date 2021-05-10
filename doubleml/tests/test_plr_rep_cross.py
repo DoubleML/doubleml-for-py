@@ -119,8 +119,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
                                                all_g_hat[i_rep], all_m_hat[i_rep],
                                                smpls, score,
                                                ses[i_rep],
-                                               bootstrap, n_rep_boot,
-                                               dml_procedure)
+                                               bootstrap, n_rep_boot)
             all_boot_theta.append(boot_theta)
             all_boot_t_stat.append(boot_t_stat)
 
