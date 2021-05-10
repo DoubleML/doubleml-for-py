@@ -167,15 +167,15 @@ def tune_nuisance_iivm(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
 
 
 def compute_iivm_residuals(y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls):
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    w_hat0 = np.zeros_like(y, dtype='float64')
-    w_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0 = np.zeros_like(y, dtype='float64')
-    g_hat1 = np.zeros_like(y, dtype='float64')
-    r_hat0 = np.zeros_like(y, dtype='float64')
-    r_hat1 = np.zeros_like(y, dtype='float64')
-    m_hat = np.zeros_like(y, dtype='float64')
+    u_hat0 = np.full_like(y, np.nan, dtype='float64')
+    u_hat1 = np.full_like(y, np.nan, dtype='float64')
+    w_hat0 = np.full_like(y, np.nan, dtype='float64')
+    w_hat1 = np.full_like(y, np.nan, dtype='float64')
+    g_hat0 = np.full_like(y, np.nan, dtype='float64')
+    g_hat1 = np.full_like(y, np.nan, dtype='float64')
+    r_hat0 = np.full_like(y, np.nan, dtype='float64')
+    r_hat1 = np.full_like(y, np.nan, dtype='float64')
+    m_hat = np.full_like(y, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0_list[idx]
         u_hat1[test_index] = y[test_index] - g_hat1_list[idx]

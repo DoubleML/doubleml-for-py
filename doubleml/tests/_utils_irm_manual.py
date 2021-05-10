@@ -130,12 +130,12 @@ def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
 
 
 def compute_iivm_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls):
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0 = np.zeros_like(y, dtype='float64')
-    g_hat1 = np.zeros_like(y, dtype='float64')
-    m_hat = np.zeros_like(y, dtype='float64')
-    p_hat = np.zeros_like(y, dtype='float64')
+    u_hat0 = np.full_like(y, np.nan, dtype='float64')
+    u_hat1 = np.full_like(y, np.nan, dtype='float64')
+    g_hat0 = np.full_like(y, np.nan, dtype='float64')
+    g_hat1 = np.full_like(y, np.nan, dtype='float64')
+    m_hat = np.full_like(y, np.nan, dtype='float64')
+    p_hat = np.full_like(y, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat0[test_index] = y[test_index] - g_hat0_list[idx]
         u_hat1[test_index] = y[test_index] - g_hat1_list[idx]

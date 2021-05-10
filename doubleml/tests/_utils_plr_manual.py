@@ -160,8 +160,8 @@ def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, pa
 
 
 def compute_plr_residuals(y, d, g_hat, m_hat, smpls):
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
+    u_hat = np.full_like(y, np.nan, dtype='float64')
+    v_hat = np.full_like(d, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = d[test_index] - m_hat[idx]
