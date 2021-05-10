@@ -56,40 +56,40 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
                      trimming_threshold=1e-12):
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
-    g_hat0 = []
-    g_hat1 = []
+    g_hat0_list = []
+    g_hat1_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if g0_params is not None:
             ml_g0.set_params(**g0_params[idx])
         train_index0 = np.intersect1d(np.where(d == 0)[0], train_index)
-        g_hat0.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
+        g_hat0_list.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
 
     if score == 'ATE':
         for idx, (train_index, test_index) in enumerate(smpls):
             if g1_params is not None:
                 ml_g1.set_params(**g1_params[idx])
             train_index1 = np.intersect1d(np.where(d == 1)[0], train_index)
-            g_hat1.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
+            g_hat1_list.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
     else:
         assert score == 'ATTE'
         for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
-            g_hat1.append(np.zeros_like(g_hat0[idx], dtype='float64'))
+            g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
 
     ml_m = clone(learner_m)
-    m_hat = []
-    p_hat = []
+    m_hat_list = []
+    p_hat_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if m_params is not None:
             ml_m.set_params(**m_params[idx])
-        p_hat.append(np.mean(d[test_index]))
+        p_hat_list.append(np.mean(d[test_index]))
         xx = ml_m.fit(x[train_index], d[train_index]).predict_proba(x[test_index])[:, 1]
         if trimming_threshold > 0:
             xx[xx < trimming_threshold] = trimming_threshold
             xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
-        m_hat.append(xx)
+        m_hat_list.append(xx)
 
-    return g_hat0, g_hat1, m_hat, p_hat
+    return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 
 
 def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
@@ -129,70 +129,62 @@ def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
     return g0_best_params, g1_best_params, m_best_params
 
 
-def irm_dml1(y, x, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
+def compute_iivm_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls):
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0 = np.zeros_like(y, dtype='float64')
+    g_hat1 = np.zeros_like(y, dtype='float64')
+    m_hat = np.zeros_like(y, dtype='float64')
+    p_hat = np.zeros_like(y, dtype='float64')
+    for idx, (_, test_index) in enumerate(smpls):
+        u_hat0[test_index] = y[test_index] - g_hat0_list[idx]
+        u_hat1[test_index] = y[test_index] - g_hat1_list[idx]
+        g_hat0[test_index] = g_hat0_list[idx]
+        g_hat1[test_index] = g_hat1_list[idx]
+        m_hat[test_index] = m_hat_list[idx]
+        p_hat[test_index] = p_hat_list[idx]
+
+    return u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat
+
+
+def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
+    u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
+        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        u_hat0 = y[test_index] - g_hat0[idx]
-        u_hat1 = y[test_index] - g_hat1[idx]
-        thetas[idx] = irm_orth(g_hat0[idx], g_hat1[idx],
-                               m_hat[idx], p_hat[idx],
-                               u_hat0, u_hat1,
+        thetas[idx] = irm_orth(g_hat0[test_index], g_hat1[test_index],
+                               m_hat[test_index], p_hat[test_index],
+                               u_hat0[test_index], u_hat1[test_index],
                                d[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        u_hat0 = np.zeros_like(y, dtype='float64')
-        u_hat1 = np.zeros_like(y, dtype='float64')
-        g_hat0_all = np.zeros_like(y, dtype='float64')
-        g_hat1_all = np.zeros_like(y, dtype='float64')
-        m_hat_all = np.zeros_like(y, dtype='float64')
-        p_hat_all = np.zeros_like(y, dtype='float64')
-        for idx, (_, test_index) in enumerate(smpls):
-            u_hat0[test_index] = y[test_index] - g_hat0[idx]
-            u_hat1[test_index] = y[test_index] - g_hat1[idx]
-            g_hat0_all[test_index] = g_hat0[idx]
-            g_hat1_all[test_index] = g_hat1[idx]
-            m_hat_all[test_index] = m_hat[idx]
-            p_hat_all[test_index] = p_hat[idx]
-        se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
-                             m_hat_all, p_hat_all,
+        se = np.sqrt(var_irm(theta_hat, g_hat0, g_hat1,
+                             m_hat, p_hat,
                              u_hat0, u_hat1,
                              d, score, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
-        u_hat0 = y[test_index] - g_hat0[0]
-        u_hat1 = y[test_index] - g_hat1[0]
-        se = np.sqrt(var_irm(theta_hat, g_hat0[0], g_hat1[0],
-                             m_hat[0], p_hat[0],
-                             u_hat0, u_hat1,
+        se = np.sqrt(var_irm(theta_hat, g_hat0[test_index], g_hat1[test_index],
+                             m_hat[test_index], p_hat[test_index],
+                             u_hat0[test_index], u_hat1[test_index],
                              d[test_index], score, n_obs))
 
     return theta_hat, se
 
 
-def irm_dml2(y, x, d, g_hat0, g_hat1, m_hat, p_hat, smpls, score):
+def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
     n_obs = len(y)
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0_all = np.zeros_like(y, dtype='float64')
-    g_hat1_all = np.zeros_like(y, dtype='float64')
-    m_hat_all = np.zeros_like(y, dtype='float64')
-    p_hat_all = np.zeros_like(y, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat0[test_index] = y[test_index] - g_hat0[idx]
-        u_hat1[test_index] = y[test_index] - g_hat1[idx]
-        g_hat0_all[test_index] = g_hat0[idx]
-        g_hat1_all[test_index] = g_hat1[idx]
-        m_hat_all[test_index] = m_hat[idx]
-        p_hat_all[test_index] = p_hat[idx]
-    theta_hat = irm_orth(g_hat0_all, g_hat1_all, m_hat_all, p_hat_all,
+    u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
+        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+    theta_hat = irm_orth(g_hat0, g_hat1, m_hat, p_hat,
                          u_hat0, u_hat1, d, score)
-    se = np.sqrt(var_irm(theta_hat, g_hat0_all, g_hat1_all,
-                         m_hat_all, p_hat_all,
+    se = np.sqrt(var_irm(theta_hat, g_hat0, g_hat1,
+                         m_hat, p_hat,
                          u_hat0, u_hat1,
                          d, score, n_obs))
 
@@ -263,46 +255,35 @@ def boot_irm_single_split(theta, y, d, g_hat0, g_hat1, m_hat, p_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_irm_single_treat(theta, y, d, g_hat0, g_hat1, m_hat, p_hat,
+def boot_irm_single_treat(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list,
                           smpls, score, se, weights, n_rep, apply_cross_fitting):
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0_all = np.zeros_like(y, dtype='float64')
-    g_hat1_all = np.zeros_like(y, dtype='float64')
-    m_hat_all = np.zeros_like(y, dtype='float64')
-    p_hat_all = np.zeros_like(y, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat0[test_index] = y[test_index] - g_hat0[idx]
-        u_hat1[test_index] = y[test_index] - g_hat1[idx]
-        g_hat0_all[test_index] = g_hat0[idx]
-        g_hat1_all[test_index] = g_hat1[idx]
-        m_hat_all[test_index] = m_hat[idx]
-        p_hat_all[test_index] = p_hat[idx]
+    u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
+        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
     if apply_cross_fitting:
         if score == 'ATE':
             J = -1.0
         else:
             assert score == 'ATTE'
-            J = np.mean(-np.divide(d, p_hat_all))
+            J = np.mean(-np.divide(d, p_hat))
     else:
         test_index = smpls[0][1]
         if score == 'ATE':
             J = -1.0
         else:
             assert score == 'ATTE'
-            J = np.mean(-np.divide(d[test_index], p_hat_all[test_index]))
+            J = np.mean(-np.divide(d[test_index], p_hat[test_index]))
 
     if score == 'ATE':
-        psi = g_hat1_all - g_hat0_all \
-                + np.divide(np.multiply(d, u_hat1), m_hat_all) \
-                - np.divide(np.multiply(1.-d, u_hat0), 1.-m_hat_all) - theta
+        psi = g_hat1 - g_hat0 \
+                + np.divide(np.multiply(d, u_hat1), m_hat) \
+                - np.divide(np.multiply(1.-d, u_hat0), 1.-m_hat) - theta
     else:
         assert score == 'ATTE'
-        psi = np.divide(np.multiply(d, u_hat0), p_hat_all) \
-            - np.divide(np.multiply(m_hat_all, np.multiply(1.-d, u_hat0)),
-                        np.multiply(p_hat_all, (1.-m_hat_all))) \
-            - theta * np.divide(d, p_hat_all)
+        psi = np.divide(np.multiply(d, u_hat0), p_hat) \
+            - np.divide(np.multiply(m_hat, np.multiply(1.-d, u_hat0)),
+                        np.multiply(p_hat, (1.-m_hat))) \
+            - theta * np.divide(d, p_hat)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
