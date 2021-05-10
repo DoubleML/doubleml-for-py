@@ -99,6 +99,8 @@ class DoubleMLPLR(DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
 
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
@@ -126,7 +128,7 @@ class DoubleMLPLR(DoubleML):
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
                                 '%r was passed.' % score)
-        return score
+        return
 
     def _check_data(self, obj_dml_data):
         if obj_dml_data.z_cols is not None:
