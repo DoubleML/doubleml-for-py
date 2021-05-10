@@ -159,41 +159,38 @@ def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, pa
     return g_best_params, m_best_params
 
 
+def compute_plr_residuals(y, d, g_hat, m_hat, smpls):
+    u_hat = np.zeros_like(y, dtype='float64')
+    v_hat = np.zeros_like(d, dtype='float64')
+    for idx, (_, test_index) in enumerate(smpls):
+        v_hat[test_index] = d[test_index] - m_hat[idx]
+        u_hat[test_index] = y[test_index] - g_hat[idx]
+    return v_hat, v_hat
+
+
 def plr_dml1(y, x, d, g_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
+    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, m_hat, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        v_hat = d[test_index] - m_hat[idx]
-        u_hat = y[test_index] - g_hat[idx]
-        thetas[idx] = plr_orth(v_hat, u_hat, d[test_index], score)
+        thetas[idx] = plr_orth(v_hat[test_index], u_hat[test_index], d[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        u_hat = np.zeros_like(y, dtype='float64')
-        v_hat = np.zeros_like(d, dtype='float64')
-        for idx, (_, test_index) in enumerate(smpls):
-            v_hat[test_index] = d[test_index] - m_hat[idx]
-            u_hat[test_index] = y[test_index] - g_hat[idx]
         se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, score, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
-        v_hat = d[test_index] - m_hat[0]
-        u_hat = y[test_index] - g_hat[0]
-        se = np.sqrt(var_plr(theta_hat, d[test_index], u_hat, v_hat, score, n_obs))
+        se = np.sqrt(var_plr(theta_hat, d[test_index], u_hat[test_index], v_hat[test_index], score, n_obs))
 
     return theta_hat, se
 
 
 def plr_dml2(y, x, d, g_hat, m_hat, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        v_hat[test_index] = d[test_index] - m_hat[idx]
-        u_hat[test_index] = y[test_index] - g_hat[idx]
+    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, m_hat, smpls)
     theta_hat = plr_orth(v_hat, u_hat, d, score)
     se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, score, n_obs))
 
@@ -297,11 +294,7 @@ def boot_plr_single_split(weights, theta, y, d, g_hat, m_hat, smpls, score, se, 
 
 def boot_plr_single_treat(theta, y, d, g_hat, m_hat,
                           smpls, score, se, weights, n_rep, apply_cross_fitting):
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        v_hat[test_index] = d[test_index] - m_hat[idx]
-        u_hat[test_index] = y[test_index] - g_hat[idx]
+    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, m_hat, smpls)
 
     if apply_cross_fitting:
         if score == 'partialling out':
