@@ -99,38 +99,43 @@ def tune_nuisance_pliv(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune, param_
     return g_best_params, m_best_params, r_best_params
 
 
-def pliv_dml1(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat = y[test_index] - g_hat[idx]
-        v_hat = z[test_index] - m_hat[idx]
-        w_hat = d[test_index] - r_hat[idx]
-        thetas[idx] = pliv_orth(u_hat, v_hat, w_hat, d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(z, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
+def compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls):
+    u_hat = np.full_like(y, np.nan, dtype='float64')
+    v_hat = np.full_like(z, np.nan, dtype='float64')
+    w_hat = np.full_like(d, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = z[test_index] - m_hat[idx]
         w_hat[test_index] = d[test_index] - r_hat[idx]
-    se = np.sqrt(var_pliv(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
+
+    return u_hat, v_hat, w_hat
+
+
+def pliv_dml1(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
+    thetas = np.zeros(len(smpls))
+    n_obs = len(y)
+    u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls)
+
+    for idx, (_, test_index) in enumerate(smpls):
+        thetas[idx] = pliv_orth(u_hat[test_index], v_hat[test_index], w_hat[test_index], d[test_index], score)
+    theta_hat = np.mean(thetas)
+
+    if len(smpls) > 1:
+        se = np.sqrt(var_pliv(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
+    else:
+        assert len(smpls) == 1
+        test_index = smpls[0][1]
+        n_obs = len(test_index)
+        se = np.sqrt(var_pliv(theta_hat, d[test_index],
+                              u_hat[test_index], v_hat[test_index], w_hat[test_index],
+                              score, n_obs))
 
     return theta_hat, se
 
 
 def pliv_dml2(y, x, d, z, g_hat, m_hat, r_hat, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(z, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat[test_index] = y[test_index] - g_hat[idx]
-        v_hat[test_index] = z[test_index] - m_hat[idx]
-        w_hat[test_index] = d[test_index] - r_hat[idx]
+    u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls)
     theta_hat = pliv_orth(u_hat, v_hat, w_hat, d, score)
     se = np.sqrt(var_pliv(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
 
@@ -187,13 +192,7 @@ def boot_pliv_single_split(theta, y, d, z, g_hat, m_hat, r_hat,
 def boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
                            smpls, score, se, weights, n_rep, apply_cross_fitting):
     assert score == 'partialling out'
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(z, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat[test_index] = y[test_index] - g_hat[idx]
-        v_hat[test_index] = z[test_index] - m_hat[idx]
-        w_hat[test_index] = d[test_index] - r_hat[idx]
+    u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls)
 
     if apply_cross_fitting:
         J = np.mean(-np.multiply(v_hat, w_hat))

@@ -105,24 +105,28 @@ def tune_nuisance_pliv_partial_xz(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_t
     return g_best_params, m_best_params, r_best_params
 
 
-def pliv_partial_xz_dml1(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat = y[test_index] - g_hat[idx]
-        v_hat = m_hat[idx] - m_hat_tilde[idx]
-        w_hat = d[test_index] - m_hat_tilde[idx]
-        thetas[idx] = pliv_partial_xz_orth(u_hat, v_hat, w_hat, d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
+def compute_pliv_partial_xz_residuals(y, d, g_hat, m_hat, m_hat_tilde, smpls):
+    u_hat = np.full_like(y, np.nan, dtype='float64')
+    v_hat = np.full_like(y, np.nan, dtype='float64')
+    w_hat = np.full_like(y, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         u_hat[test_index] = y[test_index] - g_hat[idx]
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = d[test_index] - m_hat_tilde[idx]
+
+    return u_hat, v_hat, w_hat
+
+
+def pliv_partial_xz_dml1(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
+    thetas = np.zeros(len(smpls))
+    n_obs = len(y)
+    u_hat, v_hat, w_hat = compute_pliv_partial_xz_residuals(y, d, g_hat, m_hat, m_hat_tilde, smpls)
+
+    for idx, (_, test_index) in enumerate(smpls):
+        thetas[idx] = pliv_partial_xz_orth(u_hat[test_index], v_hat[test_index], w_hat[test_index],
+                                           d[test_index], score)
+    theta_hat = np.mean(thetas)
+
     se = np.sqrt(var_pliv_partial_xz(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
 
     return theta_hat, se
@@ -130,13 +134,7 @@ def pliv_partial_xz_dml1(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
 
 def pliv_partial_xz_dml2(y, x, d, z, g_hat, m_hat, m_hat_tilde, smpls, score):
     n_obs = len(y)
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat[test_index] = y[test_index] - g_hat[idx]
-        v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
-        w_hat[test_index] = d[test_index] - m_hat_tilde[idx]
+    u_hat, v_hat, w_hat = compute_pliv_partial_xz_residuals(y, d, g_hat, m_hat, m_hat_tilde, smpls)
     theta_hat = pliv_partial_xz_orth(u_hat, v_hat, w_hat, d, score)
     se = np.sqrt(var_pliv_partial_xz(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
 
@@ -189,13 +187,7 @@ def boot_pliv_partial_xz_single_split(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
 def boot_pliv_partial_xz_single_treat(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
                                       smpls, score, se, weights, n_rep):
     assert score == 'partialling out'
-    u_hat = np.zeros_like(y, dtype='float64')
-    v_hat = np.zeros_like(d, dtype='float64')
-    w_hat = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat[test_index] = y[test_index] - g_hat[idx]
-        v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
-        w_hat[test_index] = d[test_index] - m_hat_tilde[idx]
+    u_hat, v_hat, w_hat = compute_pliv_partial_xz_residuals(y, d, g_hat, m_hat, m_hat_tilde, smpls)
 
     J = np.mean(-np.multiply(v_hat, w_hat))
 

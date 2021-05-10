@@ -69,17 +69,22 @@ def tune_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, n_folds_tune, param_gr
     return r_best_params
 
 
+def compute_pliv_partial_z_residuals(y, r_hat, smpls):
+    r_hat_array = np.full_like(y, np.nan, dtype='float64')
+    for idx, (_, test_index) in enumerate(smpls):
+        r_hat_array[test_index] = r_hat[idx]
+    return r_hat_array
+
+
 def pliv_partial_z_dml1(y, x, d, z, r_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
+    r_hat_array = compute_pliv_partial_z_residuals(y, r_hat, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = pliv_partial_z_orth(r_hat[idx], y[test_index], d[test_index], score)
+        thetas[idx] = pliv_partial_z_orth(r_hat_array[test_index], y[test_index], d[test_index], score)
     theta_hat = np.mean(thetas)
 
-    r_hat_array = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        r_hat_array[test_index] = r_hat[idx]
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, y, d, score, n_obs))
 
     return theta_hat, se
@@ -87,9 +92,7 @@ def pliv_partial_z_dml1(y, x, d, z, r_hat, smpls, score):
 
 def pliv_partial_z_dml2(y, x, d, z, r_hat, smpls, score):
     n_obs = len(y)
-    r_hat_array = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        r_hat_array[test_index] = r_hat[idx]
+    r_hat_array = compute_pliv_partial_z_residuals(y, r_hat, smpls)
     theta_hat = pliv_partial_z_orth(r_hat_array, y, d, score)
     se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, y, d, score, n_obs))
 
@@ -142,9 +145,7 @@ def boot_pliv_partial_z_single_split(theta, y, d, z, r_hat,
 def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
                                      smpls, score, se, weights, n_rep):
     assert score == 'partialling out'
-    r_hat_array = np.zeros_like(d, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        r_hat_array[test_index] = r_hat[idx]
+    r_hat_array = compute_pliv_partial_z_residuals(y, r_hat, smpls)
 
     J = np.mean(-np.multiply(r_hat_array, d))
 
