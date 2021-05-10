@@ -126,7 +126,8 @@ def plr_orth(v_hat, u_hat, d, score):
     return res
 
 
-def boot_plr(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_procedure, apply_cross_fitting=True):
+def boot_plr(theta, y, d, g_hat, m_hat,
+             smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
     if apply_cross_fitting:
         n_obs = len(y)
     else:
@@ -148,7 +149,6 @@ def boot_plr(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
                                                                             smpls, score,
                                                                             se[i_d],
                                                                             weights, n_rep,
-                                                                            dml_procedure,
                                                                             apply_cross_fitting)
     else:
         boot_theta, boot_t_stat = boot_plr_single_treat(theta,
@@ -157,33 +157,32 @@ def boot_plr(theta, y, d, g_hat, m_hat, smpls, score, se, bootstrap, n_rep, dml_
                                                         smpls, score,
                                                         se,
                                                         weights, n_rep,
-                                                        dml_procedure,
                                                         apply_cross_fitting)
 
     return boot_theta, boot_t_stat
 
 
-def boot_plr_single_treat(theta, y, d, g_hat, m_hat, smpls, score, se, weights, n_rep, dml_procedure, apply_cross_fitting):
+def boot_plr_single_treat(theta, y, d, g_hat, m_hat,
+                          smpls, score, se, weights, n_rep, apply_cross_fitting):
     u_hat = np.zeros_like(y, dtype='float64')
     v_hat = np.zeros_like(d, dtype='float64')
-    n_folds = len(smpls)
-    J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         v_hat[test_index] = d[test_index] - m_hat[idx]
         u_hat[test_index] = y[test_index] - g_hat[idx]
-        if dml_procedure == 'dml1':
-            if score == 'partialling out':
-                J[idx] = np.mean(-np.multiply(v_hat[test_index], v_hat[test_index]))
-            else:
-                assert score == 'IV-type'
-                J[idx] = np.mean(-np.multiply(v_hat[test_index], d[test_index]))
 
-    if dml_procedure == 'dml2':
+    if apply_cross_fitting:
         if score == 'partialling out':
             J = np.mean(-np.multiply(v_hat, v_hat))
         else:
             assert score == 'IV-type'
             J = np.mean(-np.multiply(v_hat, d))
+    else:
+        test_index = smpls[0][1]
+        if score == 'partialling out':
+            J = np.mean(-np.multiply(v_hat[test_index], v_hat[test_index]))
+        else:
+            assert score == 'IV-type'
+            J = np.mean(-np.multiply(v_hat[test_index], d[test_index]))
 
     if score == 'partialling out':
         psi = np.multiply(u_hat - v_hat * theta, v_hat)
@@ -191,6 +190,6 @@ def boot_plr_single_treat(theta, y, d, g_hat, m_hat, smpls, score, se, weights, 
         assert score == 'IV-type'
         psi = np.multiply(u_hat - d * theta, v_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fitting)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
     return boot_theta, boot_t_stat

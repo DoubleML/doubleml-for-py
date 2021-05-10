@@ -115,8 +115,7 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
                                             g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                                             smpls, score,
                                             se_manual,
-                                            bootstrap, n_rep_boot,
-                                            dml_procedure)
+                                            bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
