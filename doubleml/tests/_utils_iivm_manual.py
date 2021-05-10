@@ -58,23 +58,23 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
                       g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
                       trimming_threshold=1e-12, always_takers=True, never_takers=True):
     ml_g0 = clone(learner_g)
-    g_hat0 = []
+    g_hat0_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if g0_params is not None:
             ml_g0.set_params(**g0_params[idx])
         train_index0 = np.intersect1d(np.where(z == 0)[0], train_index)
-        g_hat0.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
+        g_hat0_list.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
 
     ml_g1 = clone(learner_g)
-    g_hat1 = []
+    g_hat1_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if g1_params is not None:
             ml_g1.set_params(**g1_params[idx])
         train_index1 = np.intersect1d(np.where(z == 1)[0], train_index)
-        g_hat1.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
+        g_hat1_list.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
 
     ml_m = clone(learner_m)
-    m_hat = []
+    m_hat_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if m_params is not None:
             ml_m.set_params(**m_params[idx])
@@ -82,31 +82,31 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
         if trimming_threshold > 0:
             xx[xx < trimming_threshold] = trimming_threshold
             xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
-        m_hat.append(xx)
+        m_hat_list.append(xx)
 
     ml_r0 = clone(learner_r)
-    r_hat0 = []
+    r_hat0_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if r0_params is not None:
             ml_r0.set_params(**r0_params[idx])
         train_index0 = np.intersect1d(np.where(z == 0)[0], train_index)
         if always_takers:
-            r_hat0.append(ml_r0.fit(x[train_index0], d[train_index0]).predict_proba(x[test_index])[:, 1])
+            r_hat0_list.append(ml_r0.fit(x[train_index0], d[train_index0]).predict_proba(x[test_index])[:, 1])
         else:
-            r_hat0.append(np.zeros_like(d[test_index]))
+            r_hat0_list.append(np.zeros_like(d[test_index]))
 
     ml_r1 = clone(learner_r)
-    r_hat1 = []
+    r_hat1_list = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if r1_params is not None:
             ml_r1.set_params(**r1_params[idx])
         train_index1 = np.intersect1d(np.where(z == 1)[0], train_index)
         if never_takers:
-            r_hat1.append(ml_r1.fit(x[train_index1], d[train_index1]).predict_proba(x[test_index])[:, 1])
+            r_hat1_list.append(ml_r1.fit(x[train_index1], d[train_index1]).predict_proba(x[test_index])[:, 1])
         else:
-            r_hat1.append(np.ones_like(d[test_index]))
+            r_hat1_list.append(np.ones_like(d[test_index]))
 
-    return g_hat0, g_hat1, m_hat, r_hat0, r_hat1
+    return g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list
 
 
 def tune_nuisance_iivm(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
@@ -166,88 +166,70 @@ def tune_nuisance_iivm(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
     return g0_best_params, g1_best_params, m_best_params, r0_best_params, r1_best_params
 
 
-def iivm_dml1(y, x, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
+def compute_iivm_residuals(y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls):
+    u_hat0 = np.zeros_like(y, dtype='float64')
+    u_hat1 = np.zeros_like(y, dtype='float64')
+    w_hat0 = np.zeros_like(y, dtype='float64')
+    w_hat1 = np.zeros_like(y, dtype='float64')
+    g_hat0 = np.zeros_like(y, dtype='float64')
+    g_hat1 = np.zeros_like(y, dtype='float64')
+    r_hat0 = np.zeros_like(y, dtype='float64')
+    r_hat1 = np.zeros_like(y, dtype='float64')
+    m_hat = np.zeros_like(y, dtype='float64')
+    for idx, (_, test_index) in enumerate(smpls):
+        u_hat0[test_index] = y[test_index] - g_hat0_list[idx]
+        u_hat1[test_index] = y[test_index] - g_hat1_list[idx]
+        w_hat0[test_index] = d[test_index] - r_hat0_list[idx]
+        w_hat1[test_index] = d[test_index] - r_hat1_list[idx]
+        g_hat0[test_index] = g_hat0_list[idx]
+        g_hat1[test_index] = g_hat1_list[idx]
+        m_hat[test_index] = m_hat_list[idx]
+        r_hat0[test_index] = r_hat0_list[idx]
+        r_hat1[test_index] = r_hat1_list[idx]
+
+    return u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
+
+
+def iivm_dml1(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
+    u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
+        y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        u_hat0 = y[test_index] - g_hat0[idx]
-        u_hat1 = y[test_index] - g_hat1[idx]
-        w_hat0 = d[test_index] - r_hat0[idx]
-        w_hat1 = d[test_index] - r_hat1[idx]
-        thetas[idx] = iivm_orth(g_hat0[idx], g_hat1[idx],
-                                m_hat[idx],
-                                r_hat0[idx], r_hat1[idx],
-                                u_hat0, u_hat1,
-                                w_hat0, w_hat1,
+        thetas[idx] = iivm_orth(g_hat0[test_index], g_hat1[test_index],
+                                m_hat[test_index],
+                                r_hat0[test_index], r_hat1[test_index],
+                                u_hat0[test_index], u_hat1[test_index],
+                                w_hat0[test_index], w_hat1[test_index],
                                 z[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        u_hat0 = np.zeros_like(y, dtype='float64')
-        u_hat1 = np.zeros_like(y, dtype='float64')
-        w_hat0 = np.zeros_like(y, dtype='float64')
-        w_hat1 = np.zeros_like(y, dtype='float64')
-        g_hat0_all = np.zeros_like(y, dtype='float64')
-        g_hat1_all = np.zeros_like(y, dtype='float64')
-        r_hat0_all = np.zeros_like(y, dtype='float64')
-        r_hat1_all = np.zeros_like(y, dtype='float64')
-        m_hat_all = np.zeros_like(y, dtype='float64')
-        for idx, (_, test_index) in enumerate(smpls):
-            u_hat0[test_index] = y[test_index] - g_hat0[idx]
-            u_hat1[test_index] = y[test_index] - g_hat1[idx]
-            w_hat0[test_index] = d[test_index] - r_hat0[idx]
-            w_hat1[test_index] = d[test_index] - r_hat1[idx]
-            g_hat0_all[test_index] = g_hat0[idx]
-            g_hat1_all[test_index] = g_hat1[idx]
-            r_hat0_all[test_index] = r_hat0[idx]
-            r_hat1_all[test_index] = r_hat1[idx]
-            m_hat_all[test_index] = m_hat[idx]
-        se = np.sqrt(var_iivm(theta_hat, g_hat0_all, g_hat1_all,
-                              m_hat_all, r_hat0_all, r_hat1_all,
+        se = np.sqrt(var_iivm(theta_hat, g_hat0, g_hat1,
+                              m_hat, r_hat0, r_hat1,
                               u_hat0, u_hat1, w_hat0, w_hat1,
                               z, score, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
-        u_hat0 = y[test_index] - g_hat0[0]
-        u_hat1 = y[test_index] - g_hat1[0]
-        w_hat0 = d[test_index] - r_hat0[0]
-        w_hat1 = d[test_index] - r_hat1[0]
-        se = np.sqrt(var_iivm(theta_hat, g_hat0[0], g_hat1[0],
-                              m_hat[0], r_hat0[0], r_hat1[0],
-                              u_hat0, u_hat1, w_hat0, w_hat1,
+        se = np.sqrt(var_iivm(theta_hat, g_hat0[test_index], g_hat1[test_index],
+                              m_hat[test_index], r_hat0[test_index], r_hat1[test_index],
+                              u_hat0[test_index], u_hat1[test_index], w_hat0[test_index], w_hat1[test_index],
                               z[test_index], score, n_obs))
 
     return theta_hat, se
 
 
-def iivm_dml2(y, x, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls, score):
+def iivm_dml2(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls, score):
     n_obs = len(y)
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    w_hat0 = np.zeros_like(y, dtype='float64')
-    w_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0_all = np.zeros_like(y, dtype='float64')
-    g_hat1_all = np.zeros_like(y, dtype='float64')
-    r_hat0_all = np.zeros_like(y, dtype='float64')
-    r_hat1_all = np.zeros_like(y, dtype='float64')
-    m_hat_all = np.zeros_like(y, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat0[test_index] = y[test_index] - g_hat0[idx]
-        u_hat1[test_index] = y[test_index] - g_hat1[idx]
-        w_hat0[test_index] = d[test_index] - r_hat0[idx]
-        w_hat1[test_index] = d[test_index] - r_hat1[idx]
-        g_hat0_all[test_index] = g_hat0[idx]
-        g_hat1_all[test_index] = g_hat1[idx]
-        r_hat0_all[test_index] = r_hat0[idx]
-        r_hat1_all[test_index] = r_hat1[idx]
-        m_hat_all[test_index] = m_hat[idx]
-    theta_hat = iivm_orth(g_hat0_all, g_hat1_all, m_hat_all, r_hat0_all, r_hat1_all,
+    u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
+        y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
+    theta_hat = iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                           u_hat0, u_hat1, w_hat0, w_hat1, z, score)
-    se = np.sqrt(var_iivm(theta_hat, g_hat0_all, g_hat1_all,
-                          m_hat_all, r_hat0_all, r_hat1_all,
+    se = np.sqrt(var_iivm(theta_hat, g_hat0, g_hat1,
+                          m_hat, r_hat0, r_hat1,
                           u_hat0, u_hat1, w_hat0, w_hat1,
                           z, score, n_obs))
 
@@ -314,46 +296,29 @@ def boot_iivm_single_split(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1
     return boot_theta, boot_t_stat
 
 
-def boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+def boot_iivm_single_treat(theta, y, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list,
                            smpls, score, se, weights, n_rep, apply_cross_fitting):
     assert score == 'LATE'
-    u_hat0 = np.zeros_like(y, dtype='float64')
-    u_hat1 = np.zeros_like(y, dtype='float64')
-    w_hat0 = np.zeros_like(y, dtype='float64')
-    w_hat1 = np.zeros_like(y, dtype='float64')
-    g_hat0_all = np.zeros_like(y, dtype='float64')
-    g_hat1_all = np.zeros_like(y, dtype='float64')
-    r_hat0_all = np.zeros_like(y, dtype='float64')
-    r_hat1_all = np.zeros_like(y, dtype='float64')
-    m_hat_all = np.zeros_like(y, dtype='float64')
-    for idx, (_, test_index) in enumerate(smpls):
-        u_hat0[test_index] = y[test_index] - g_hat0[idx]
-        u_hat1[test_index] = y[test_index] - g_hat1[idx]
-        w_hat0[test_index] = d[test_index] - r_hat0[idx]
-        w_hat1[test_index] = d[test_index] - r_hat1[idx]
-        g_hat0_all[test_index] = g_hat0[idx]
-        g_hat1_all[test_index] = g_hat1[idx]
-        r_hat0_all[test_index] = r_hat0[idx]
-        r_hat1_all[test_index] = r_hat1[idx]
-        m_hat_all[test_index] = m_hat[idx]
+    u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
+        y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
     if apply_cross_fitting:
-        J = np.mean(-(r_hat1_all - r_hat0_all
-                      + np.divide(np.multiply(z, w_hat1), m_hat_all)
-                      - np.divide(np.multiply(1. - z, w_hat0), 1. - m_hat_all)))
+        J = np.mean(-(r_hat1 - r_hat0
+                      + np.divide(np.multiply(z, w_hat1), m_hat)
+                      - np.divide(np.multiply(1. - z, w_hat0), 1. - m_hat)))
     else:
         test_index = smpls[0][1]
-        J = np.mean(-(r_hat1_all[test_index] - r_hat0_all[test_index]
-                      + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat_all[test_index])
+        J = np.mean(-(r_hat1[test_index] - r_hat0[test_index]
+                      + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat[test_index])
                       - np.divide(np.multiply(1. - z[test_index], w_hat0[test_index]),
-                                  1. - m_hat_all[test_index])))
+                                  1. - m_hat[test_index])))
 
-    psi = g_hat1_all - g_hat0_all \
-        + np.divide(np.multiply(z, u_hat1), m_hat_all) \
-        - np.divide(np.multiply(1.-z, u_hat0), 1.-m_hat_all) \
-        - theta*(r_hat1_all - r_hat0_all
-                 + np.divide(np.multiply(z, w_hat1), m_hat_all)
-                 - np.divide(np.multiply(1.-z, w_hat0), 1.-m_hat_all))
+    psi = g_hat1 - g_hat0 \
+        + np.divide(np.multiply(z, u_hat1), m_hat) \
+        - np.divide(np.multiply(1.-z, u_hat0), 1.-m_hat) \
+        - theta*(r_hat1 - r_hat0
+                 + np.divide(np.multiply(z, w_hat1), m_hat)
+                 - np.divide(np.multiply(1.-z, w_hat0), 1.-m_hat))
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
