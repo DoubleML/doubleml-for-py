@@ -106,6 +106,9 @@ class DoubleMLPLIV(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         self.partialX = True
         self.partialZ = False
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -137,6 +140,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = False
         _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -168,6 +173,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = False
         obj.partialZ = True
         _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
@@ -198,6 +205,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = True
         _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
