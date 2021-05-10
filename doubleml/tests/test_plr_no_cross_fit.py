@@ -19,7 +19,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
