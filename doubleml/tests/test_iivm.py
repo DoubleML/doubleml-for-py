@@ -88,7 +88,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
+                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

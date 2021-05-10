@@ -15,33 +15,21 @@ def draw_weights(method, n_rep_boot, n_obs):
     return weights
 
 
-def boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure, apply_cross_fitting=True):
-    n_folds = len(smpls)
+def boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting=True):
     boot_theta = np.zeros(n_rep)
     boot_t_stat = np.zeros(n_rep)
     for i_rep in range(n_rep):
         this_weights = weights[i_rep, :]
         if apply_cross_fitting:
-            if dml_procedure == 'dml1':
-                this_boot_theta = np.zeros(n_folds)
-                this_boot_t_stat = np.zeros(n_folds)
-                for idx, (_, test_index) in enumerate(smpls):
-                    this_boot_theta[idx] = np.mean(np.multiply(this_weights[test_index],
-                                                               psi[test_index] / J[idx]))
-                    this_boot_t_stat[idx] = np.mean(np.multiply(np.divide(this_weights[test_index], se),
-                                                                psi[test_index] / J[idx]))
-                boot_theta[i_rep] = np.mean(this_boot_theta)
-                boot_t_stat[i_rep] = np.mean(this_boot_t_stat)
-            elif dml_procedure == 'dml2':
-                boot_theta[i_rep] = np.mean(np.multiply(this_weights,
-                                                        psi / J))
-                boot_t_stat[i_rep] = np.mean(np.multiply(np.divide(this_weights, se),
-                                                         psi / J))
+            boot_theta[i_rep] = np.mean(np.multiply(this_weights,
+                                                    psi / J))
+            boot_t_stat[i_rep] = np.mean(np.multiply(np.divide(this_weights, se),
+                                                     psi / J))
         else:
             test_index = smpls[0][1]
             boot_theta[i_rep] = np.mean(np.multiply(this_weights,
-                                                    psi[test_index] / J[0]))
+                                                    psi[test_index] / J))
             boot_t_stat[i_rep] = np.mean(np.multiply(np.divide(this_weights, se),
-                                                     psi[test_index] / J[0]))
+                                                     psi[test_index] / J))
 
     return boot_theta, boot_t_stat

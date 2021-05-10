@@ -97,7 +97,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
             y, d,
             res_manual['thetas'], res_manual['ses'],
             res_manual['all_g_hat'], res_manual['all_m_hat'],
-            all_smpls, dml_procedure, score,
+            all_smpls, score,
             bootstrap, n_rep_boot, n_rep)
 
         np.random.seed(3141)

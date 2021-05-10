@@ -19,7 +19,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['partialling out'])
+                params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
@@ -80,7 +80,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
                                            res_manual['all_g_hat'], res_manual['all_m_hat'],
-                                           [smpls], dml_procedure, score, bootstrap, n_rep_boot,
+                                           [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)
@@ -189,7 +189,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, thetas, ses,
                                            all_g_hat, all_m_hat,
-                                           all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+                                           all_smpls, score, bootstrap, n_rep_boot,
                                            n_rep=n_rep, apply_cross_fitting=False)
 
         np.random.seed(3141)
@@ -299,7 +299,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
                                            res_manual['all_g_hat'], res_manual['all_m_hat'],
-                                           [smpls], dml_procedure, score, bootstrap, n_rep_boot,
+                                           [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)

@@ -75,7 +75,7 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner, score, dml_
         boot_theta, boot_t_stat = boot_pliv_partial_x(y, d, z, res_manual['thetas'], res_manual['ses'],
                                                       res_manual['all_g_hat'], res_manual['all_m_hat'],
                                                       res_manual['all_r_hat'],
-                                                      all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
+                                                      all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

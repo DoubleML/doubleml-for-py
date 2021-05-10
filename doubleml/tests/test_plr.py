@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 
 from ._utils import draw_smpls
-from ._utils_plr_manual import fit_plr, plr_dml1, plr_dml2, boot_plr, boot_plr_single_split
+from ._utils_plr_manual import fit_plr, plr_dml1, plr_dml2, boot_plr
 
 
 @pytest.fixture(scope='module',
@@ -78,7 +78,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
                                            res_manual['all_g_hat'], res_manual['all_m_hat'],
-                                           all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
+                                           all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
@@ -185,13 +185,9 @@ def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr_single_split(res_manual,
-                                                        y, d,
-                                                        g_hat, m_hat,
-                                                        smpls, score,
-                                                        se_manual,
-                                                        bootstrap, n_rep_boot,
-                                                        dml_procedure)
+        boot_theta, boot_t_stat = boot_plr(y, d, [res_manual], [se_manual],
+                                           [g_hat], [m_hat],
+                                           [smpls], score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

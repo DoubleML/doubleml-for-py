@@ -128,7 +128,7 @@ def dml_pliv_fixture(generate_data_iv, learner_g, learner_m, learner_r, score, d
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
-                                            all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
+                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

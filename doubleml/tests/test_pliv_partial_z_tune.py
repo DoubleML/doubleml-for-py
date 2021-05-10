@@ -108,7 +108,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dm
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv_partial_z(y, d, z, res_manual['thetas'], res_manual['ses'],
                                                       res_manual['all_r_hat'],
-                                                      all_smpls, dml_procedure, score, bootstrap, n_rep_boot)
+                                                      all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

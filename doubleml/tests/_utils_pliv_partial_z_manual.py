@@ -112,14 +112,14 @@ def pliv_partial_z_orth(r_hat, y, d, score):
 
 
 def boot_pliv_partial_z(y, d, z, thetas, ses, all_r_hat,
-                        all_smpls, dml_procedure, score, bootstrap, n_rep_boot,
+                        all_smpls, score, bootstrap, n_rep_boot,
                         n_rep=1):
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         boot_theta, boot_t_stat = boot_pliv_partial_z_single_split(
             thetas[i_rep], y, d, z, all_r_hat[i_rep], all_smpls[i_rep],
-            score, ses[i_rep], bootstrap, n_rep_boot, dml_procedure)
+            score, ses[i_rep], bootstrap, n_rep_boot)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -129,30 +129,27 @@ def boot_pliv_partial_z(y, d, z, thetas, ses, all_r_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_pliv_partial_z_single_split(theta, y, d, z, r_hat, smpls, score, se, bootstrap, n_rep, dml_procedure):
+def boot_pliv_partial_z_single_split(theta, y, d, z, r_hat,
+                                     smpls, score, se, bootstrap, n_rep):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
-                                                               smpls, score, se, weights, n_rep, dml_procedure)
+                                                               smpls, score, se, weights, n_rep)
     return boot_theta, boot_t_stat
 
 
-def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat, smpls, score, se, weights, n_rep, dml_procedure):
+def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
+                                     smpls, score, se, weights, n_rep):
     assert score == 'partialling out'
     r_hat_array = np.zeros_like(d, dtype='float64')
-    n_folds = len(smpls)
-    J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
-        if dml_procedure == 'dml1':
-            J[idx] = np.mean(-np.multiply(r_hat_array[test_index], d[test_index]))
 
-    if dml_procedure == 'dml2':
-        J = np.mean(-np.multiply(r_hat_array, d))
+    J = np.mean(-np.multiply(r_hat_array, d))
 
     psi = np.multiply(y - d*theta, r_hat_array)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, dml_procedure)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
 
     return boot_theta, boot_t_stat
