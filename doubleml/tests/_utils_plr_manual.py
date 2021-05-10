@@ -163,9 +163,9 @@ def compute_plr_residuals(y, d, g_hat, m_hat, smpls):
     u_hat = np.zeros_like(y, dtype='float64')
     v_hat = np.zeros_like(d, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
-        v_hat[test_index] = d[test_index] - m_hat[idx]
         u_hat[test_index] = y[test_index] - g_hat[idx]
-    return v_hat, v_hat
+        v_hat[test_index] = d[test_index] - m_hat[idx]
+    return u_hat, v_hat
 
 
 def plr_dml1(y, x, d, g_hat, m_hat, smpls, score):
