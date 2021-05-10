@@ -110,7 +110,11 @@ def pliv_orth(u_hat, v_hat, w_hat, d, score):
 
 def boot_pliv(theta, y, d, z, g_hat, m_hat, r_hat,
               smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
-    n_obs = len(y)
+    if apply_cross_fitting:
+        n_obs = len(y)
+    else:
+        test_index = smpls[0][1]
+        n_obs = len(test_index)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
@@ -137,6 +141,6 @@ def boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
 
     psi = np.multiply(u_hat - w_hat*theta, v_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
     return boot_theta, boot_t_stat

@@ -115,17 +115,17 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, d, score):
 
 
 def boot_pliv_partial_xz(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
-                         smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
+                         smpls, score, se, bootstrap, n_rep):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_partial_xz_single_treat(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
-                                                                smpls, score, se, weights, n_rep, apply_cross_fitting)
+                                                                smpls, score, se, weights, n_rep)
     return boot_theta, boot_t_stat
 
 
 def boot_pliv_partial_xz_single_treat(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
-                                      smpls, score, se, weights, n_rep, apply_cross_fitting):
+                                      smpls, score, se, weights, n_rep):
     assert score == 'partialling out'
     u_hat = np.zeros_like(y, dtype='float64')
     v_hat = np.zeros_like(d, dtype='float64')
@@ -135,11 +135,7 @@ def boot_pliv_partial_xz_single_treat(theta, y, d, z, g_hat, m_hat, m_hat_tilde,
         v_hat[test_index] = m_hat[idx] - m_hat_tilde[idx]
         w_hat[test_index] = d[test_index] - m_hat_tilde[idx]
 
-    if apply_cross_fitting:
-        J = np.mean(-np.multiply(v_hat, w_hat))
-    else:
-        test_index = smpls[0][1]
-        J = np.mean(-np.multiply(v_hat[test_index], w_hat[test_index]))
+    J = np.mean(-np.multiply(v_hat, w_hat))
 
     psi = np.multiply(u_hat - w_hat*theta, v_hat)
 

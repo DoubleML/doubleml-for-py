@@ -72,29 +72,23 @@ def pliv_partial_z_orth(r_hat, y, d, score):
 
 
 def boot_pliv_partial_z(theta, y, d, z, r_hat,
-                        smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
+                        smpls, score, se, bootstrap, n_rep):
     n_obs = len(y)
     weights = draw_weights(bootstrap, n_rep, n_obs)
     assert np.isscalar(theta)
     boot_theta, boot_t_stat = boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
-                                                               smpls, score, se, weights, n_rep, apply_cross_fitting)
+                                                               smpls, score, se, weights, n_rep)
     return boot_theta, boot_t_stat
 
 
 def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
-                                     smpls, score, se, weights, n_rep, apply_cross_fitting):
+                                     smpls, score, se, weights, n_rep):
     assert score == 'partialling out'
     r_hat_array = np.zeros_like(d, dtype='float64')
-    n_folds = len(smpls)
-    J = np.zeros(n_folds)
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
 
-    if apply_cross_fitting:
-        J = np.mean(-np.multiply(r_hat_array, d))
-    else:
-        test_index = smpls[0][1]
-        J = np.mean(-np.multiply(r_hat_array[test_index], d[test_index]))
+    J = np.mean(-np.multiply(r_hat_array, d))
 
     psi = np.multiply(y - d*theta, r_hat_array)
 
