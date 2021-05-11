@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
