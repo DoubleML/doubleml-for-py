@@ -4,6 +4,7 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict, fit_predict_proba
 
 
 def fit_plr_multitreat(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, score,
@@ -104,36 +105,20 @@ def fit_plr_single_split(y, x, d, learner_g, learner_m, smpls, dml_procedure, sc
 
 def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g_params is not None:
-            ml_g.set_params(**g_params[idx])
-        g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
+    g_hat = fit_predict(y, x, ml_g, g_params, smpls)
 
     ml_m = clone(learner_m)
-    m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if m_params is not None:
-            ml_m.set_params(**m_params[idx])
-        m_hat.append(ml_m.fit(x[train_index], d[train_index]).predict(x[test_index]))
+    m_hat = fit_predict(d, x, ml_m, m_params, smpls)
 
     return g_hat, m_hat
 
 
 def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, g_params=None, m_params=None):
     ml_g = clone(learner_g)
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g_params is not None:
-            ml_g.set_params(**g_params[idx])
-        g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
+    g_hat = fit_predict(y, x, ml_g, g_params, smpls)
 
     ml_m = clone(learner_m)
-    m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if m_params is not None:
-            ml_m.set_params(**m_params[idx])
-        m_hat.append(ml_m.fit(x[train_index], d[train_index]).predict_proba(x[test_index])[:, 1])
+    m_hat = fit_predict_proba(d, x, ml_m, m_params, smpls)
 
     return g_hat, m_hat
 

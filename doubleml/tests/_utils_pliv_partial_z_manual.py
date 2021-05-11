@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict
 
 
 def fit_pliv_partial_z(y, x, d, z,
@@ -45,12 +46,8 @@ def fit_pliv_partial_z(y, x, d, z,
 
 
 def fit_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, r_params=None):
-    XZ = np.hstack((x, z))
-    r_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if r_params is not None:
-            ml_r.set_params(**r_params[idx])
-        r_hat.append(ml_r.fit(XZ[train_index], d[train_index]).predict(XZ[test_index]))
+    xz = np.hstack((x, z))
+    r_hat = fit_predict(d, xz, ml_r, r_params, smpls)
 
     return r_hat
 

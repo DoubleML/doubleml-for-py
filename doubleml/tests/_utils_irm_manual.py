@@ -3,6 +3,7 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict, fit_predict_proba
 
 
 def fit_irm(y, x, d,
@@ -56,38 +57,28 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
                      trimming_threshold=1e-12):
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
-    g_hat0_list = []
-    g_hat1_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g0_params is not None:
-            ml_g0.set_params(**g0_params[idx])
-        train_index0 = np.intersect1d(np.where(d == 0)[0], train_index)
-        g_hat0_list.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
+    train_cond0 = np.where(d == 0)[0]
+    g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
+                              train_cond=train_cond0)
 
     if score == 'ATE':
-        for idx, (train_index, test_index) in enumerate(smpls):
-            if g1_params is not None:
-                ml_g1.set_params(**g1_params[idx])
-            train_index1 = np.intersect1d(np.where(d == 1)[0], train_index)
-            g_hat1_list.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
+        train_cond1 = np.where(d == 1)[0]
+        g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+                                  train_cond=train_cond1)
     else:
         assert score == 'ATTE'
+        g_hat1_list = list()
         for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
             g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
 
     ml_m = clone(learner_m)
-    m_hat_list = []
+    m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
+                                   trimming_threshold=trimming_threshold)
+
     p_hat_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if m_params is not None:
-            ml_m.set_params(**m_params[idx])
+    for (_, test_index) in smpls:
         p_hat_list.append(np.mean(d[test_index]))
-        xx = ml_m.fit(x[train_index], d[train_index]).predict_proba(x[test_index])[:, 1]
-        if trimming_threshold > 0:
-            xx[xx < trimming_threshold] = trimming_threshold
-            xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
-        m_hat_list.append(xx)
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 

@@ -3,6 +3,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold, GridSearchCV
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict
 
 
 def fit_pliv_partial_x(y, x, d, z,
@@ -51,30 +52,23 @@ def fit_pliv_partial_x(y, x, d, z,
 
 def fit_nuisance_pliv_partial_x(y, x, d, z, ml_g, ml_m, ml_r, smpls, g_params=None, m_params=None, r_params=None):
     assert z.ndim == 2
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g_params is not None:
-            ml_g.set_params(**g_params[idx])
-        g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
+    g_hat = fit_predict(y, x, ml_g, g_params, smpls)
 
-    m_hat = []
-    m_hat_array = np.zeros_like(z, dtype='float64')
+    m_hat = list()
     for i_instr in range(z.shape[1]):
-        this_instr_m_hat = []
-        for idx, (train_index, test_index) in enumerate(smpls):
-            if m_params is not None:
-                ml_m.set_params(**m_params[i_instr][idx])
-            this_instr_m_hat.append(ml_m.fit(x[train_index], z[train_index, i_instr]).predict(x[test_index]))
-            m_hat_array[test_index, i_instr] = this_instr_m_hat[idx]
-        m_hat.append(this_instr_m_hat)
+        if m_params is not None:
+            m_hat.append(fit_predict(z[:, i_instr], x, ml_m, m_params[i_instr], smpls))
+        else:
+            m_hat.append(fit_predict(z[:, i_instr], x, ml_m, None, smpls))
 
-    r_hat = []
+    r_hat = fit_predict(d, x, ml_r, r_params, smpls)
+
     r_hat_array = np.zeros_like(d, dtype='float64')
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if r_params is not None:
-            ml_r.set_params(**r_params[idx])
-        r_hat.append(ml_r.fit(x[train_index], d[train_index]).predict(x[test_index]))
+    m_hat_array = np.zeros_like(z, dtype='float64')
+    for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
+        for i_instr in range(z.shape[1]):
+            m_hat_array[test_index, i_instr] = m_hat[i_instr][idx]
 
     r_hat_tilde = LinearRegression(fit_intercept=True).fit(z - m_hat_array, d - r_hat_array).predict(z - m_hat_array)
 

@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict
 
 
 def fit_pliv(y, x, d, z,
@@ -49,23 +50,11 @@ def fit_pliv(y, x, d, z,
 
 
 def fit_nuisance_pliv(y, x, d, z, ml_g, ml_m, ml_r, smpls, g_params=None, m_params=None, r_params=None):
-    g_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g_params is not None:
-            ml_g.set_params(**g_params[idx])
-        g_hat.append(ml_g.fit(x[train_index], y[train_index]).predict(x[test_index]))
+    g_hat = fit_predict(y, x, ml_g, g_params, smpls)
 
-    m_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if m_params is not None:
-            ml_m.set_params(**m_params[idx])
-        m_hat.append(ml_m.fit(x[train_index], z[train_index]).predict(x[test_index]))
+    m_hat = fit_predict(z, x, ml_m, m_params, smpls)
 
-    r_hat = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if r_params is not None:
-            ml_r.set_params(**r_params[idx])
-        r_hat.append(ml_r.fit(x[train_index], d[train_index]).predict(x[test_index]))
+    r_hat = fit_predict(d, x, ml_r, r_params, smpls)
 
     return g_hat, m_hat, r_hat
 

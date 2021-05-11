@@ -3,6 +3,7 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
 from ._utils_boot import boot_manual, draw_weights
+from ._utils import fit_predict, fit_predict_proba
 
 
 def fit_iivm(y, x, d, z,
@@ -58,52 +59,35 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
                       g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
                       trimming_threshold=1e-12, always_takers=True, never_takers=True):
     ml_g0 = clone(learner_g)
-    g_hat0_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g0_params is not None:
-            ml_g0.set_params(**g0_params[idx])
-        train_index0 = np.intersect1d(np.where(z == 0)[0], train_index)
-        g_hat0_list.append(ml_g0.fit(x[train_index0], y[train_index0]).predict(x[test_index]))
+    train_cond0 = np.where(z == 0)[0]
+    g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
+                              train_cond=train_cond0)
 
     ml_g1 = clone(learner_g)
-    g_hat1_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if g1_params is not None:
-            ml_g1.set_params(**g1_params[idx])
-        train_index1 = np.intersect1d(np.where(z == 1)[0], train_index)
-        g_hat1_list.append(ml_g1.fit(x[train_index1], y[train_index1]).predict(x[test_index]))
+    train_cond1 = np.where(z == 1)[0]
+    g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+                              train_cond=train_cond1)
 
     ml_m = clone(learner_m)
-    m_hat_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if m_params is not None:
-            ml_m.set_params(**m_params[idx])
-        xx = ml_m.fit(x[train_index], z[train_index]).predict_proba(x[test_index])[:, 1]
-        if trimming_threshold > 0:
-            xx[xx < trimming_threshold] = trimming_threshold
-            xx[xx > 1 - trimming_threshold] = 1 - trimming_threshold
-        m_hat_list.append(xx)
+    m_hat_list = fit_predict_proba(z, x, ml_m, m_params, smpls,
+                                   trimming_threshold=trimming_threshold)
 
     ml_r0 = clone(learner_r)
-    r_hat0_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if r0_params is not None:
-            ml_r0.set_params(**r0_params[idx])
-        train_index0 = np.intersect1d(np.where(z == 0)[0], train_index)
-        if always_takers:
-            r_hat0_list.append(ml_r0.fit(x[train_index0], d[train_index0]).predict_proba(x[test_index])[:, 1])
-        else:
+    if always_takers:
+        r_hat0_list = fit_predict_proba(d, x, ml_r0, r0_params, smpls,
+                                        train_cond=train_cond0)
+    else:
+        r_hat0_list = []
+        for (_, test_index) in smpls:
             r_hat0_list.append(np.zeros_like(d[test_index]))
 
     ml_r1 = clone(learner_r)
-    r_hat1_list = []
-    for idx, (train_index, test_index) in enumerate(smpls):
-        if r1_params is not None:
-            ml_r1.set_params(**r1_params[idx])
-        train_index1 = np.intersect1d(np.where(z == 1)[0], train_index)
-        if never_takers:
-            r_hat1_list.append(ml_r1.fit(x[train_index1], d[train_index1]).predict_proba(x[test_index])[:, 1])
-        else:
+    if never_takers:
+        r_hat1_list = fit_predict_proba(d, x, ml_r1, r1_params, smpls,
+                                        train_cond=train_cond1)
+    else:
+        r_hat1_list = []
+        for (_, test_index) in smpls:
             r_hat1_list.append(np.ones_like(d[test_index]))
 
     return g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list
