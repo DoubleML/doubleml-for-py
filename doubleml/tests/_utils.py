@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, GridSearchCV
 
 
 def draw_smpls(n_obs, n_folds, n_rep=1):
@@ -43,3 +43,18 @@ def fit_predict_proba(y, x, ml_model, params, smpls, trimming_threshold=0, train
         y_hat.append(preds)
 
     return y_hat
+
+
+def tune_grid_search(y, x, ml_model, smpls, param_grid, n_folds_tune, train_cond=None):
+    tune_res = [None] * len(smpls)
+    for idx, (train_index, _) in enumerate(smpls):
+        g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
+        g_grid_search = GridSearchCV(ml_model, param_grid,
+                                     cv=g_tune_resampling)
+        if train_cond is None:
+            tune_res[idx] = g_grid_search.fit(x[train_index, :], y[train_index])
+        else:
+            train_index_cond = np.intersect1d(train_cond, train_index)
+            tune_res[idx] = g_grid_search.fit(x[train_index_cond, :], y[train_index_cond])
+
+    return tune_res

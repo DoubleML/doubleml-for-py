@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 
 from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict
+from ._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv_partial_z(y, x, d, z,
@@ -53,13 +53,8 @@ def fit_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, r_params=None):
 
 
 def tune_nuisance_pliv_partial_z(y, x, d, z, ml_r, smpls, n_folds_tune, param_grid_r):
-    XZ = np.hstack((x, z))
-    r_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        r_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        r_grid_search = GridSearchCV(ml_r, param_grid_r,
-                                     cv=r_tune_resampling)
-        r_tune_res[idx] = r_grid_search.fit(XZ[train_index, :], d[train_index])
+    xz = np.hstack((x, z))
+    r_tune_res = tune_grid_search(d, xz, ml_r, smpls, param_grid_r, n_folds_tune)
 
     r_best_params = [xx.best_params_ for xx in r_tune_res]
 

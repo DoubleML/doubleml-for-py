@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict, fit_predict_proba
+from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_plr_multitreat(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, score,
@@ -124,19 +124,9 @@ def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, g_params=N
 
 
 def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_m):
-    g_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        g_grid_search = GridSearchCV(ml_g, param_grid_g,
-                                     cv=g_tune_resampling)
-        g_tune_res[idx] = g_grid_search.fit(x[train_index, :], y[train_index])
+    g_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune)
 
-    m_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        m_grid_search = GridSearchCV(ml_m, param_grid_m,
-                                     cv=m_tune_resampling)
-        m_tune_res[idx] = m_grid_search.fit(x[train_index, :], d[train_index])
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g_best_params = [xx.best_params_ for xx in g_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]

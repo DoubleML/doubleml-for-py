@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
 
 from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict
+from ._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv_partial_xz(y, x, d, z,
@@ -71,21 +71,12 @@ def fit_nuisance_pliv_partial_xz(y, x, d, z, ml_g, ml_m, ml_r, smpls, g_params=N
     return g_hat, m_hat, m_hat_tilde
 
 
-def tune_nuisance_pliv_partial_xz(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune, param_grid_g, param_grid_m, param_grid_r):
-    xz = np.hstack((x, z))
-    g_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        g_grid_search = GridSearchCV(ml_g, param_grid_g,
-                                     cv=g_tune_resampling)
-        g_tune_res[idx] = g_grid_search.fit(x[train_index, :], y[train_index])
+def tune_nuisance_pliv_partial_xz(y, x, d, z, ml_g, ml_m, ml_r, smpls, n_folds_tune,
+                                  param_grid_g, param_grid_m, param_grid_r):
+    g_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune)
 
-    m_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        m_grid_search = GridSearchCV(ml_m, param_grid_m,
-                                     cv=m_tune_resampling)
-        m_tune_res[idx] = m_grid_search.fit(xz[train_index, :], d[train_index])
+    xz = np.hstack((x, z))
+    m_tune_res = tune_grid_search(d, xz, ml_m, smpls, param_grid_m, n_folds_tune)
 
     r_tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):

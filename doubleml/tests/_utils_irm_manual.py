@@ -3,7 +3,7 @@ from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.base import clone
 
 from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict, fit_predict_proba
+from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_irm(y, x, d,
@@ -85,36 +85,21 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
 
 def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
                       param_grid_g, param_grid_m):
-    g0_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        g0_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        g0_grid_search = GridSearchCV(ml_g, param_grid_g,
-                                      cv=g0_tune_resampling)
-        train_index0 = np.intersect1d(np.where(d == 0)[0], train_index)
-        g0_tune_res[idx] = g0_grid_search.fit(x[train_index0, :], y[train_index0])
+    train_cond0 = np.where(d == 0)[0]
+    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond0)
 
     if score == 'ATE':
-        g1_tune_res = [None] * len(smpls)
-        for idx, (train_index, _) in enumerate(smpls):
-            g1_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            g1_grid_search = GridSearchCV(ml_g, param_grid_g,
-                                          cv=g1_tune_resampling)
-            train_index1 = np.intersect1d(np.where(d == 1)[0], train_index)
-            g1_tune_res[idx] = g1_grid_search.fit(x[train_index1, :], y[train_index1])
+        train_cond1 = np.where(d == 1)[0]
+        g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                       train_cond=train_cond1)
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    else:
+        g1_best_params = None
 
-    m_tune_res = [None] * len(smpls)
-    for idx, (train_index, _) in enumerate(smpls):
-        m_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        m_grid_search = GridSearchCV(ml_m, param_grid_m,
-                                     cv=m_tune_resampling)
-        m_tune_res[idx] = m_grid_search.fit(x[train_index, :], d[train_index])
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-    if score == 'ATTE':
-        g1_best_params = None
-    else:
-        assert score == 'ATE'
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g0_best_params, g1_best_params, m_best_params
