@@ -208,9 +208,9 @@ def boot_plr(y, d, thetas, ses, all_g_hat, all_m_hat,
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
 
         boot_theta, boot_t_stat = boot_plr_single_split(
-            weights,
             thetas[i_rep], y, d, all_g_hat[i_rep], all_m_hat[i_rep], smpls,
-            score, ses[i_rep], n_rep_boot, apply_cross_fitting)
+            score, ses[i_rep],
+            weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -239,10 +239,10 @@ def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_m_hat,
         boot_t_stat = np.full((n_d, n_rep_boot), np.nan)
         for i_d in range(n_d):
             boot_theta[i_d, :], boot_t_stat[i_d, :] = boot_plr_single_split(
-                weights,
                 thetas[i_rep][i_d], y, d[:, i_d],
                 all_g_hat[i_rep][i_d], all_m_hat[i_rep][i_d],
-                smpls, score, ses[i_rep][i_d], n_rep_boot, apply_cross_fitting)
+                smpls, score, ses[i_rep][i_d],
+                weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -252,21 +252,7 @@ def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_m_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_plr_single_split(weights, theta, y, d, g_hat, m_hat, smpls, score, se, n_rep_boot,
-                          apply_cross_fitting=True):
-
-    boot_theta, boot_t_stat = boot_plr_single_treat(theta,
-                                                    y, d,
-                                                    g_hat, m_hat,
-                                                    smpls, score,
-                                                    se,
-                                                    weights, n_rep_boot,
-                                                    apply_cross_fitting)
-
-    return boot_theta, boot_t_stat
-
-
-def boot_plr_single_treat(theta, y, d, g_hat, m_hat,
+def boot_plr_single_split(theta, y, d, g_hat, m_hat,
                           smpls, score, se, weights, n_rep, apply_cross_fitting):
     u_hat, v_hat = compute_plr_residuals(y, d, g_hat, m_hat, smpls)
 

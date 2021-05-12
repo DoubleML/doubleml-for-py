@@ -229,10 +229,17 @@ def boot_iivm(y, d, z, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_r_hat
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+        if apply_cross_fitting:
+            n_obs = len(y)
+        else:
+            test_index = smpls[0][1]
+            n_obs = len(test_index)
+        weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_theta, boot_t_stat = boot_iivm_single_split(
             thetas[i_rep], y, d, z,
             all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_r_hat0[i_rep], all_r_hat1[i_rep],
-            all_smpls[i_rep], score, ses[i_rep], bootstrap, n_rep_boot, apply_cross_fitting)
+            smpls, score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -242,21 +249,7 @@ def boot_iivm(y, d, z, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_r_hat
     return boot_theta, boot_t_stat
 
 
-def boot_iivm_single_split(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                           smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
-    if apply_cross_fitting:
-        n_obs = len(y)
-    else:
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-    weights = draw_weights(bootstrap, n_rep, n_obs)
-    assert np.isscalar(theta)
-    boot_theta, boot_t_stat = boot_iivm_single_treat(theta, y, d, z, g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                                     smpls, score, se, weights, n_rep, apply_cross_fitting)
-    return boot_theta, boot_t_stat
-
-
-def boot_iivm_single_treat(theta, y, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list,
+def boot_iivm_single_split(theta, y, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list,
                            smpls, score, se, weights, n_rep, apply_cross_fitting):
     assert score == 'LATE'
     u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(

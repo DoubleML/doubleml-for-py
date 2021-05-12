@@ -136,9 +136,16 @@ def boot_pliv(y, d, z, thetas, ses, all_g_hat, all_m_hat, all_r_hat,
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+        if apply_cross_fitting:
+            n_obs = len(y)
+        else:
+            test_index = smpls[0][1]
+            n_obs = len(test_index)
+        weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_theta, boot_t_stat = boot_pliv_single_split(
-            thetas[i_rep], y, d, z, all_g_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_smpls[i_rep],
-            score, ses[i_rep], bootstrap, n_rep_boot, apply_cross_fitting)
+            thetas[i_rep], y, d, z, all_g_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], smpls,
+            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -149,21 +156,7 @@ def boot_pliv(y, d, z, thetas, ses, all_g_hat, all_m_hat, all_r_hat,
 
 
 def boot_pliv_single_split(theta, y, d, z, g_hat, m_hat, r_hat,
-                           smpls, score, se, bootstrap, n_rep, apply_cross_fitting=True):
-    if apply_cross_fitting:
-        n_obs = len(y)
-    else:
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-    weights = draw_weights(bootstrap, n_rep, n_obs)
-    assert np.isscalar(theta)
-    boot_theta, boot_t_stat = boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
-                                                     smpls, score, se, weights, n_rep, apply_cross_fitting)
-    return boot_theta, boot_t_stat
-
-
-def boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
-                           smpls, score, se, weights, n_rep, apply_cross_fitting):
+                           smpls, score, se, weights, n_rep_boot, apply_cross_fitting):
     assert score == 'partialling out'
     u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls)
 
@@ -175,6 +168,6 @@ def boot_pliv_single_treat(theta, y, d, z, g_hat, m_hat, r_hat,
 
     psi = np.multiply(u_hat - w_hat*theta, v_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
     return boot_theta, boot_t_stat

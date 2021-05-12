@@ -111,9 +111,11 @@ def boot_pliv_partial_z(y, d, z, thetas, ses, all_r_hat,
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
+        n_obs = len(y)
+        weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_theta, boot_t_stat = boot_pliv_partial_z_single_split(
             thetas[i_rep], y, d, z, all_r_hat[i_rep], all_smpls[i_rep],
-            score, ses[i_rep], bootstrap, n_rep_boot)
+            score, ses[i_rep], weights, n_rep_boot)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -124,17 +126,7 @@ def boot_pliv_partial_z(y, d, z, thetas, ses, all_r_hat,
 
 
 def boot_pliv_partial_z_single_split(theta, y, d, z, r_hat,
-                                     smpls, score, se, bootstrap, n_rep):
-    n_obs = len(y)
-    weights = draw_weights(bootstrap, n_rep, n_obs)
-    assert np.isscalar(theta)
-    boot_theta, boot_t_stat = boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
-                                                               smpls, score, se, weights, n_rep)
-    return boot_theta, boot_t_stat
-
-
-def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
-                                     smpls, score, se, weights, n_rep):
+                                     smpls, score, se, weights, n_rep_boot):
     assert score == 'partialling out'
     r_hat_array = compute_pliv_partial_z_residuals(y, r_hat, smpls)
 
@@ -142,6 +134,6 @@ def boot_pliv_partial_z_single_treat(theta, y, d, z, r_hat,
 
     psi = np.multiply(y - d*theta, r_hat_array)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
 
     return boot_theta, boot_t_stat

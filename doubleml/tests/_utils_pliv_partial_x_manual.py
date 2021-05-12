@@ -146,9 +146,11 @@ def boot_pliv_partial_x(y, d, z, thetas, ses, all_g_hat, all_m_hat, all_r_hat,
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
+        n_obs = len(y)
+        weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_theta, boot_t_stat = boot_pliv_partial_x_single_split(
             thetas[i_rep], y, d, z, all_g_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_smpls[i_rep],
-            score, ses[i_rep], bootstrap, n_rep_boot)
+            score, ses[i_rep], weights, n_rep_boot)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -159,17 +161,7 @@ def boot_pliv_partial_x(y, d, z, thetas, ses, all_g_hat, all_m_hat, all_r_hat,
 
 
 def boot_pliv_partial_x_single_split(theta, y, d, z, g_hat, r_hat, r_hat_tilde,
-                                     smpls, score, se, bootstrap, n_rep):
-    n_obs = len(y)
-    weights = draw_weights(bootstrap, n_rep, n_obs)
-    assert np.isscalar(theta)
-    boot_theta, boot_t_stat = boot_pliv_partial_x_single_treat(theta, y, d, z, g_hat, r_hat, r_hat_tilde,
-                                                               smpls, score, se, weights, n_rep)
-    return boot_theta, boot_t_stat
-
-
-def boot_pliv_partial_x_single_treat(theta, y, d, z, g_hat, r_hat, r_hat_tilde,
-                                     smpls, score, se, weights, n_rep):
+                                     smpls, score, se, weights, n_rep_boot):
     assert score == 'partialling out'
     u_hat, w_hat = compute_pliv_partial_x_residuals(y, d, g_hat, r_hat, smpls)
 
@@ -177,6 +169,6 @@ def boot_pliv_partial_x_single_treat(theta, y, d, z, g_hat, r_hat, r_hat_tilde,
 
     psi = np.multiply(u_hat - w_hat*theta, r_hat_tilde)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep)
+    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
 
     return boot_theta, boot_t_stat
