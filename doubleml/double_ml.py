@@ -382,11 +382,6 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    @property
-    def __all_dml1_coef(self):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        return self._all_dml1_coef[self._i_treat, self._i_rep, :]
-
     def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False):
         """
         Estimate DoubleML models.
