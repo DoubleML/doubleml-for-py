@@ -31,7 +31,6 @@ class DoubleML(ABC):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
         # initialize learners and parameters which are set model specific
@@ -73,7 +72,7 @@ class DoubleML(ABC):
             raise ValueError('dml_procedure must be "dml1" or "dml2". '
                              f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
-        self._score = self._check_score(score)
+        self._score = score
 
         if (self.n_folds == 1) & self.apply_cross_fitting:
             warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
@@ -891,14 +890,6 @@ class DoubleML(ABC):
 
     @abstractmethod
     def _initialize_ml_nuisance_params(self):
-        pass
-
-    @abstractmethod
-    def _check_score(self, score):
-        pass
-
-    @abstractmethod
-    def _check_data(self, obj_dml_data):
         pass
 
     @abstractmethod
