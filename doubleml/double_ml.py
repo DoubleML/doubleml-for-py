@@ -366,75 +366,26 @@ class DoubleML(ABC):
     def __psi(self):
         return self._psi[:, self._i_rep, self._i_treat]
 
-    @__psi.setter
-    def __psi(self, value):
-        self._psi[:, self._i_rep, self._i_treat] = value
-
     @property
     def __psi_a(self):
         return self._psi_a[:, self._i_rep, self._i_treat]
-
-    @__psi_a.setter
-    def __psi_a(self, value):
-        self._psi_a[:, self._i_rep, self._i_treat] = value
 
     @property
     def __psi_b(self):
         return self._psi_b[:, self._i_rep, self._i_treat]
 
-    @__psi_b.setter
-    def __psi_b(self, value):
-        self._psi_b[:, self._i_rep, self._i_treat] = value
-
-    @property
-    def __boot_coef(self):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        return self._boot_coef[self._i_treat, ind_start:ind_end]
-
-    @__boot_coef.setter
-    def __boot_coef(self, value):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        self._boot_coef[self._i_treat, ind_start:ind_end] = value
-
-    @property
-    def __boot_t_stat(self):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        return self._boot_t_stat[self._i_treat, ind_start:ind_end]
-
-    @__boot_t_stat.setter
-    def __boot_t_stat(self, value):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        self._boot_t_stat[self._i_treat, ind_start:ind_end] = value
-
     @property
     def __all_coef(self):
         return self._all_coef[self._i_treat, self._i_rep]
-
-    @__all_coef.setter
-    def __all_coef(self, value):
-        self._all_coef[self._i_treat, self._i_rep] = value
 
     @property
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    @__all_se.setter
-    def __all_se(self, value):
-        self._all_se[self._i_treat, self._i_rep] = value
-
     @property
     def __all_dml1_coef(self):
         assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
         return self._all_dml1_coef[self._i_treat, self._i_rep, :]
-
-    @__all_dml1_coef.setter
-    def __all_dml1_coef(self, value):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
 
     def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False):
         """
@@ -485,19 +436,20 @@ class DoubleML(ABC):
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self.__psi_a, self.__psi_b, preds = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
+                self._psi_a[:, self._i_rep, self._i_treat], self._psi_b[:, self._i_rep, self._i_treat], preds =\
+                    self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
 
                 if store_predictions:
                     self._store_predictions(preds)
 
                 # estimate the causal parameter
-                self.__all_coef = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
 
                 # compute score (depends on estimated causal parameter)
-                self._compute_score()
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -555,7 +507,10 @@ class DoubleML(ABC):
 
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
-                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(weights)
+                i_start = self._i_rep * self.n_rep_boot
+                i_end = (self._i_rep + 1) * self.n_rep_boot
+                self._boot_coef[self._i_treat, i_start:i_end], self._boot_t_stat[self._i_treat, i_start:i_end] =\
+                    self._compute_bootstrap(weights)
 
         return self
 
@@ -1157,7 +1112,7 @@ class DoubleML(ABC):
             theta_hat = np.mean(thetas)
             coef = theta_hat
 
-            self.__all_dml1_coef = thetas
+            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
 
         else:
             assert dml_procedure == 'dml2'
@@ -1202,13 +1157,13 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self.__all_coef = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
 
                 # compute score (depends on estimated causal parameter)
-                self._compute_score()
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
             # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -1268,7 +1223,8 @@ class DoubleML(ABC):
         return theta
 
     def _compute_score(self):
-        self.__psi = self.__psi_a * self.__all_coef + self.__psi_b
+        psi = self.__psi_a * self.__all_coef + self.__psi_b
+        return psi
 
     def _clean_scores(self):
         del self._psi
