@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import ElasticNet
@@ -10,7 +9,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_pliv_manual import pliv_dml1, pliv_dml2, fit_nuisance_pliv, boot_pliv, tune_nuisance_pliv
+from ._utils import draw_smpls
+from ._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
 
 
 @pytest.fixture(scope='module',
@@ -95,59 +95,40 @@ def dml_pliv_fixture(generate_data_iv, learner_g, learner_m, learner_r, score, d
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['Z1'].values
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
 
     if tune_on_folds:
         g_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_m), clone(learner_g), clone(learner_r),
+                                                          clone(learner_g), clone(learner_m), clone(learner_r),
                                                           smpls, n_folds_tune,
                                                           par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
-
-        g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
-                                                clone(learner_m), clone(learner_g), clone(learner_r),
-                                                smpls,
-                                                g_params, m_params, r_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_m), clone(learner_g), clone(learner_r),
+                                                          clone(learner_g), clone(learner_m), clone(learner_r),
                                                           xx, n_folds_tune,
                                                           par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'])
+        g_params = g_params * n_folds
+        m_params = m_params * n_folds
+        r_params = r_params * n_folds
 
-        g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
-                                                clone(learner_m), clone(learner_g), clone(learner_r),
-                                                smpls,
-                                                g_params * n_folds, m_params * n_folds, r_params * n_folds)
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = pliv_dml1(y, x, d,
-                                          z,
-                                          g_hat, m_hat, r_hat,
-                                          smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = pliv_dml2(y, x, d,
-                                          z,
-                                          g_hat, m_hat, r_hat,
-                                          smpls, score)
+    res_manual = fit_pliv(y, x, d, z, clone(learner_g), clone(learner_m), clone(learner_r),
+                          all_smpls, dml_procedure, score,
+                          g_params=g_params, m_params=m_params, r_params=r_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_pliv_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv(res_manual,
-                                            y, d,
-                                            z,
-                                            g_hat, m_hat, r_hat,
-                                            smpls, score,
-                                            se_manual,
-                                            bootstrap, n_rep_boot)
+        boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

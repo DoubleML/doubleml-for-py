@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
-from sklearn.base import clone, is_classifier
+from sklearn.base import clone
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -11,7 +10,8 @@ from sklearn.ensemble import RandomForestClassifier
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
-from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr, fit_nuisance_plr_classifier
+from ._utils import draw_smpls
+from ._utils_plr_manual import fit_plr, boot_plr
 
 bonus_data = fetch_bonus()
 
@@ -59,41 +59,23 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     y = bonus_data.y
     x = bonus_data.x
     d = bonus_data.d
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
 
-    if is_classifier(ml_m):
-        g_hat, m_hat = fit_nuisance_plr_classifier(y, x, d,
-                                                   clone(ml_m), clone(ml_g), smpls)
-    else:
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(ml_m), clone(ml_g), smpls)
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, x, d,
-                                         g_hat, m_hat,
-                                         smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = plr_dml2(y, x, d,
-                                         g_hat, m_hat,
-                                         smpls, score)
+    res_manual = fit_plr(y, x, d, clone(ml_g), clone(ml_m),
+                         all_smpls, dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_plr_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr(res_manual,
-                                           y, d,
-                                           g_hat, m_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot)
+        boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

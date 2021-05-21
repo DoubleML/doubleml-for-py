@@ -2,14 +2,14 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_pliv_manual import pliv_dml1, fit_nuisance_pliv, boot_pliv
+from ._utils import draw_smpls
+from ._utils_pliv_manual import fit_pliv, boot_pliv
 
 
 @pytest.fixture(scope='module',
@@ -63,36 +63,25 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     if n_folds == 1:
         smpls = [(np.arange(len(y)), np.arange(len(y)))]
     else:
-        resampling = KFold(n_splits=n_folds,
-                           shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(x)]
+        n_obs = len(y)
+        all_smpls = draw_smpls(n_obs, n_folds)
+        smpls = all_smpls[0]
         smpls = [smpls[0]]
 
-    g_hat, m_hat, r_hat = fit_nuisance_pliv(y, x, d, z,
-                                            clone(learner), clone(learner), clone(learner),
-                                            smpls)
-
-    assert dml_procedure == 'dml1'
-    res_manual, se_manual = pliv_dml1(y, x, d,
-                                      z,
-                                      g_hat, m_hat, r_hat,
-                                      smpls, score)
+    res_manual = fit_pliv(y, x, d, z,
+                          clone(learner), clone(learner), clone(learner), [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_pliv_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv(res_manual,
-                                            y, d,
-                                            z,
-                                            g_hat, m_hat, r_hat,
-                                            smpls, score,
-                                            se_manual,
-                                            bootstrap, n_rep_boot,
+        boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            [smpls], score, bootstrap, n_rep_boot,
                                             apply_cross_fitting=False)
 
         np.random.seed(3141)
