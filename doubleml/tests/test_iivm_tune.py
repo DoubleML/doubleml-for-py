@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression
@@ -10,7 +9,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_iivm_manual import iivm_dml1, iivm_dml2, fit_nuisance_iivm, boot_iivm, tune_nuisance_iivm
+from ._utils import draw_smpls
+from ._utils_iivm_manual import fit_iivm, boot_iivm, tune_nuisance_iivm
 
 
 @pytest.fixture(scope='module',
@@ -103,71 +103,56 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
 
     if tune_on_folds:
         g0_params, g1_params, m_params,  r0_params, r1_params = \
             tune_nuisance_iivm(y, x, d, z,
-                               clone(learner_m), clone(learner_g), clone(learner_r), smpls,
+                               clone(learner_g), clone(learner_m), clone(learner_r), smpls,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
                                always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
-
-        g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
-            fit_nuisance_iivm(y, x, d, z,
-                              clone(learner_m), clone(learner_g), clone(learner_r), smpls,
-                              g0_params, g1_params, m_params,  r0_params, r1_params,
-                              always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
     else:
         xx = [(np.arange(data.shape[0]), np.array([]))]
         g0_params, g1_params, m_params,  r0_params, r1_params = \
             tune_nuisance_iivm(y, x, d, z,
-                               clone(learner_m), clone(learner_g), clone(learner_r), xx,
+                               clone(learner_g), clone(learner_m), clone(learner_r), xx,
                                n_folds_tune,
                                par_grid['ml_g'], par_grid['ml_m'], par_grid['ml_r'],
                                always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
+        g0_params = g0_params * n_folds
+        g1_params = g1_params * n_folds
+        m_params = m_params * n_folds
         if subgroups['always_takers']:
-            r0_params_rep = r0_params * n_folds
+            r0_params = r0_params * n_folds
         else:
-            r0_params_rep = r0_params
+            r0_params = r0_params
         if subgroups['never_takers']:
-            r1_params_rep = r1_params * n_folds
+            r1_params = r1_params * n_folds
         else:
-            r1_params_rep = r1_params
+            r1_params = r1_params
 
-        g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = \
-            fit_nuisance_iivm(y, x, d, z,
-                              clone(learner_m), clone(learner_g), clone(learner_r), smpls,
-                              g0_params * n_folds, g1_params * n_folds, m_params * n_folds,
-                              r0_params_rep, r1_params_rep,
-                              always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = iivm_dml1(y, x, d, z,
-                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                          smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = iivm_dml2(y, x, d, z,
-                                          g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                          smpls, score)
+    res_manual = fit_iivm(y, x, d, z,
+                          clone(learner_g), clone(learner_m), clone(learner_r),
+                          all_smpls, dml_procedure, score,
+                          g0_params=g0_params, g1_params=g1_params,
+                          m_params=m_params, r0_params=r0_params, r1_params=r1_params,
+                          always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
     res_dict = {'coef': dml_iivm_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_iivm_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_iivm(res_manual,
-                                            y, d, z,
-                                            g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
-                                            smpls, score,
-                                            se_manual,
-                                            bootstrap, n_rep_boot)
+        boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                            res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
+                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

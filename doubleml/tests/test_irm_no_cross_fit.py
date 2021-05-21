@@ -2,19 +2,19 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_irm_manual import irm_dml1, fit_nuisance_irm, boot_irm
+from ._utils import draw_smpls
+from ._utils_irm_manual import fit_irm, boot_irm
 
 
 @pytest.fixture(scope='module',
-                params=[[RandomForestClassifier(max_depth=2, n_estimators=10),
-                         RandomForestRegressor(max_depth=2, n_estimators=10)]])
+                params=[[RandomForestRegressor(max_depth=2, n_estimators=10),
+                         RandomForestClassifier(max_depth=2, n_estimators=10)]])
 def learner(request):
     return request.param
 
@@ -41,8 +41,8 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
     (x, y, d) = generate_data_irm
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner[1])
-    ml_m = clone(learner[0])
+    ml_g = clone(learner[0])
+    ml_m = clone(learner[1])
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
@@ -59,34 +59,27 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
     if n_folds == 1:
         smpls = [(np.arange(len(y)), np.arange(len(y)))]
     else:
-        resampling = KFold(n_splits=n_folds,
-                           shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(x)]
+        n_obs = len(y)
+        all_smpls = draw_smpls(n_obs, n_folds)
+        smpls = all_smpls[0]
         smpls = [smpls[0]]
 
-    g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
-                                                    clone(learner[0]), clone(learner[1]), smpls,
-                                                    score)
-
-    assert dml_procedure == 'dml1'
-    res_manual, se_manual = irm_dml1(y, x, d,
-                                     g_hat0, g_hat1, m_hat, p_hat,
-                                     smpls, score)
+    res_manual = fit_irm(y, x, d,
+                         clone(learner[0]), clone(learner[1]),
+                         [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_irm_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_irm_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_irm(res_manual,
-                                           y, d,
-                                           g_hat0, g_hat1, m_hat, p_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot,
+        boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                           res_manual['all_m_hat'], res_manual['all_p_hat'],
+                                           [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)

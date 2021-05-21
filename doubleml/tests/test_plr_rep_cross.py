@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LinearRegression
@@ -10,7 +9,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_plr_manual import plr_dml1, plr_dml2, fit_nuisance_plr, boot_plr
+from ._utils import draw_smpls
+from ._utils_plr_manual import fit_plr, boot_plr
 
 
 @pytest.fixture(scope='module',
@@ -68,63 +68,23 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     x = data.loc[:, x_cols].values
     d = data['d'].values
     n_obs = len(y)
-    all_smpls = []
-    for i_rep in range(n_rep):
-        resampling = KFold(n_splits=n_folds,
-                           shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(x)]
-        all_smpls.append(smpls)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
-    thetas = np.zeros(n_rep)
-    ses = np.zeros(n_rep)
-    all_g_hat = list()
-    all_m_hat = list()
-    for i_rep in range(n_rep):
-        smpls = all_smpls[i_rep]
-
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(learner), clone(learner), smpls)
-
-        all_g_hat.append(g_hat)
-        all_m_hat.append(m_hat)
-
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
-                                                 all_g_hat[i_rep], all_m_hat[i_rep],
-                                                 smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = plr_dml2(y, x, d,
-                                                 all_g_hat[i_rep], all_m_hat[i_rep],
-                                                 smpls, score)
-
-    res_manual = np.median(thetas)
-    se_manual = np.sqrt(np.median(np.power(ses, 2)*n_obs + np.power(thetas - res_manual, 2))/n_obs)
+    res_manual = fit_plr(y, x, d, clone(learner), clone(learner),
+                         all_smpls, dml_procedure, score, n_rep)
 
     res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_plr_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods
                 }
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        all_boot_theta = list()
-        all_boot_t_stat = list()
-        for i_rep in range(n_rep):
-            smpls = all_smpls[i_rep]
-            boot_theta, boot_t_stat = boot_plr(thetas[i_rep],
-                                               y, d,
-                                               all_g_hat[i_rep], all_m_hat[i_rep],
-                                               smpls, score,
-                                               ses[i_rep],
-                                               bootstrap, n_rep_boot)
-            all_boot_theta.append(boot_theta)
-            all_boot_t_stat.append(boot_t_stat)
-
-        boot_theta = np.hstack(all_boot_theta)
-        boot_t_stat = np.hstack(all_boot_t_stat)
+        boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           all_smpls, score, bootstrap, n_rep_boot, n_rep)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

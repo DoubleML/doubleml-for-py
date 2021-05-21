@@ -2,14 +2,14 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from ._utils_plr_manual import plr_dml1, plr_dml2, boot_plr, tune_nuisance_plr, fit_nuisance_plr
+from ._utils import draw_smpls
+from ._utils_plr_manual import fit_plr, boot_plr, tune_nuisance_plr
 
 
 @pytest.fixture(scope='module',
@@ -87,53 +87,37 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
     y = obj_dml_data.y
     x = obj_dml_data.x
     d = obj_dml_data.d
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
 
     if tune_on_folds:
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_m), clone(learner_g), smpls, n_folds_tune,
+                                               clone(learner_g), clone(learner_m), smpls, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
-
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(learner_m), clone(learner_g), smpls,
-                                        g_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_m), clone(learner_g), xx, n_folds_tune,
+                                               clone(learner_g), clone(learner_m), xx, n_folds_tune,
                                                par_grid['ml_g'], par_grid['ml_m'])
+        g_params = g_params * n_folds
+        m_params = m_params * n_folds
 
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(learner_m), clone(learner_g),
-                                        smpls,
-                                        g_params * n_folds, m_params * n_folds)
-
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = plr_dml1(y, x, d,
-                                         g_hat, m_hat,
-                                         smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = plr_dml2(y, x, d,
-                                         g_hat, m_hat,
-                                         smpls, score)
+    res_manual = fit_plr(y, x, d, clone(learner_g), clone(learner_m),
+                         all_smpls, dml_procedure, score,
+                         g_params=g_params, m_params=m_params)
 
     res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_plr_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr(res_manual,
-                                           y, d,
-                                           g_hat, m_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot)
+        boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
