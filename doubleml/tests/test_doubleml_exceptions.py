@@ -30,6 +30,13 @@ def test_doubleml_exception_data():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data_pliv, ml_g, ml_m)
 
+    msg = ('Incompatible data. '
+           'At least one variable must be set as instrumental variable. '
+           r'To fit a partially linear regression model without instrumental variable\(s\) '
+           'use DoubleMLPLR instead of DoubleMLPLIV.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLIV(dml_data, Lasso(), Lasso(), Lasso())
+
     msg = (r'Incompatible data. z have been set as instrumental variable\(s\). '
            'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
     with pytest.raises(ValueError, match=msg):

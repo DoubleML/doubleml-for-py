@@ -248,6 +248,11 @@ class DoubleMLPLIV(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
+        if obj_dml_data.n_instr == 0:
+            raise ValueError('Incompatible data. ' +
+                             'At least one variable must be set as instrumental variable. '
+                             'To fit a partially linear regression model without instrumental variable(s) '
+                             'use DoubleMLPLR instead of DoubleMLPLIV.')
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
