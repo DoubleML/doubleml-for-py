@@ -197,13 +197,17 @@ class DoubleMLIIVM(DoubleML):
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         one_instr = (obj_dml_data.n_instr == 1)
-        binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
-        zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
-        if not(one_instr & binary_instr & zero_one_instr):
-            raise ValueError('Incompatible data. '
-                             'To fit an IIVM model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as instrumental variable.')
+        err_msg = ('Incompatible data. '
+                   'To fit an IIVM model with DML '
+                   'exactly one binary variable with values 0 and 1 '
+                   'needs to be specified as instrumental variable.')
+        if one_instr:
+            binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
+            zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
+            if not(one_instr & binary_instr & zero_one_instr):
+                raise ValueError(err_msg)
+        else:
+            raise ValueError(err_msg)
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):

@@ -25,11 +25,21 @@ def test_doubleml_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_g, ml_m)
 
+    # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
            'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data_pliv, ml_g, ml_m)
 
+    # PLIV without IV
+    msg = ('Incompatible data. '
+           'At least one variable must be set as instrumental variable. '
+           r'To fit a partially linear regression model without instrumental variable\(s\) '
+           'use DoubleMLPLR instead of DoubleMLPLIV.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLIV(dml_data, Lasso(), Lasso(), Lasso())
+
+    # IRM with IV
     msg = (r'Incompatible data. z have been set as instrumental variable\(s\). '
            'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
     with pytest.raises(ValueError, match=msg):
@@ -39,10 +49,12 @@ def test_doubleml_exception_data():
     df_irm = dml_data_irm.data.copy()
     df_irm['d'] = df_irm['d']*2
     with pytest.raises(ValueError, match=msg):
+        # non-binary D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
                         Lasso(), LogisticRegression())
     df_irm = dml_data_irm.data.copy()
     with pytest.raises(ValueError, match=msg):
+        # multiple D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', ['d', 'X1']),
                         Lasso(), LogisticRegression())
 
@@ -51,22 +63,30 @@ def test_doubleml_exception_data():
     df_iivm = dml_data_iivm.data.copy()
     df_iivm['d'] = df_iivm['d'] * 2
     with pytest.raises(ValueError, match=msg):
+        # non-binary D for IIVM
         _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols='z'),
                          Lasso(), LogisticRegression(), LogisticRegression())
     df_iivm = dml_data_iivm.data.copy()
     with pytest.raises(ValueError, match=msg):
+        # multiple D for IIVM
         _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', ['d', 'X1'], z_cols='z'),
                          Lasso(), LogisticRegression(), LogisticRegression())
 
     msg = ('Incompatible data. To fit an IIVM model with DML exactly one binary variable with values 0 and 1 '
            'needs to be specified as instrumental variable.')
+    with pytest.raises(ValueError, match=msg):
+        # IIVM without IV
+        _ = DoubleMLIIVM(dml_data_irm,
+                         Lasso(), LogisticRegression(), LogisticRegression())
     df_iivm = dml_data_iivm.data.copy()
     df_iivm['z'] = df_iivm['z'] * 2
     with pytest.raises(ValueError, match=msg):
+        # non-binary Z for IIVM
         _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols='z'),
                          Lasso(), LogisticRegression(), LogisticRegression())
     df_iivm = dml_data_iivm.data.copy()
     with pytest.raises(ValueError, match=msg):
+        # multiple Z for IIVM
         _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z', 'X1']),
                          Lasso(), LogisticRegression(), LogisticRegression())
 
