@@ -4,7 +4,7 @@ import io
 
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
 from sklearn.utils.multiclass import type_of_target
-from ._helper import _assure_2d_array
+from ._utils import _assure_2d_array
 
 
 class DoubleMLData:
