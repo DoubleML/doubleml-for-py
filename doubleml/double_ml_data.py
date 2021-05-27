@@ -84,7 +84,7 @@ class DoubleMLData:
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         df_info = buf.getvalue()
-        res = f'================== DoubleMLData Object ==================\n' + \
+        res = '================== DoubleMLData Object ==================\n' + \
               '\n------------------ Data summary      ------------------\n' + data_info + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
