@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
-from ._helper import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
+from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
 class DoubleML(ABC):
