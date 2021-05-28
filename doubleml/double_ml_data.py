@@ -76,15 +76,18 @@ class DoubleMLData:
         self.set_x_d(self.d_cols[0])
 
     def __str__(self):
+        data_info = f'Outcome variable: {self.y_col}\n' \
+                    f'Treatment variable(s): {self.d_cols}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'Instrument variable(s): {self.z_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
-        data_info = buf.getvalue()
-        return f'=== DoubleMLData Object ===\n' \
-               f'y_col: {self.y_col}\n' \
-               f'd_cols: {self.d_cols}\n' \
-               f'x_cols: {self.x_cols}\n' \
-               f'z_cols: {self.z_cols}\n' \
-               f'data:\n {data_info}'
+        df_info = buf.getvalue()
+        res = '================== DoubleMLData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
 
     @classmethod
     def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True):
