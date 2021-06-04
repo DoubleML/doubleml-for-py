@@ -192,7 +192,7 @@ class DoubleMLIRM(DoubleML):
         # fraction of treated for ATTE
         p_hat = None
         if self.score == 'ATTE':
-            p_hat = np.zeros_like(d, dtype='float64')
+            p_hat = np.full_like(d, np.nan, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
