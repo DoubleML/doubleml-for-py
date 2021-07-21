@@ -476,17 +476,17 @@ class DoubleMLClusterData(DoubleMLData):
         return res
 
     @classmethod
-    def from_arrays(cls, x, y, d, cluster_var, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
         """
         dml_data = super(cls).from_arrays(x, y, d, z, use_other_treat_as_covariate)
-        if cluster_var.shape[1] == 1:
+        if cluster_vars.shape[1] == 1:
             cluster_cols = ['cluster_var']
         else:
-            cluster_cols = [f'cluster_var{i + 1}' for i in np.arange(cluster_var.shape[1])]
+            cluster_cols = [f'cluster_var{i + 1}' for i in np.arange(cluster_vars.shape[1])]
 
-        data = dml_data.data.append(pd.DataFrame(cluster_var, columns=cluster_cols))
+        data = dml_data.data.append(pd.DataFrame(cluster_vars, columns=cluster_cols))
 
         return(cls(data, dml_data.y_col, dml_data.d_cols,
                    cluster_cols,
