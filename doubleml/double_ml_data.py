@@ -506,6 +506,13 @@ class DoubleMLClusterData(DoubleMLData):
         """
         return self._cluster_cols
 
+    @property
+    def n_cluster_vars(self):
+        """
+        The number of cluster variables.
+        """
+        return len(self.cluster_cols)
+
     @cluster_cols.setter
     def cluster_cols(self, value):
         reset_value = hasattr(self, '_cluster_cols')
