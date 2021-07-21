@@ -1233,9 +1233,12 @@ class DoubleML(ABC):
         if isinstance(self._dml_data, DoubleMLClusterData):
             if self._dml_data.n_cluster_vars > 1:
                 raise NotImplementedError('Multi-way clustering not yet implemented with clustering.')
-            xx = np.tile(self._dml_data.cluster_vars[:, 0], (self._dml_data.n_obs, 1))
-            selection_matrix = xx == np.transpose(xx)
-            omega = np.mean(np.multiply(np.matmul(psi, selection_matrix), psi))
+            this_cluster_var = self._dml_data.cluster_vars[:, 0]
+            clusters = np.unique(this_cluster_var)
+            omega = 0
+            for cluster_value in clusters:
+                ind_cluster = this_cluster_var == cluster_value
+                omega += np.mean(np.outer(psi[ind_cluster], psi[ind_cluster]))
             sigma2_hat = 1 / n_obs * omega / np.power(J, 2)
         else:
             sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
