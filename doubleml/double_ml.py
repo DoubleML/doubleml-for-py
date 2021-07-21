@@ -11,7 +11,7 @@ from statsmodels.stats.multitest import multipletests
 from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .double_ml_resampling import DoubleMLResampling
+from .double_ml_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
@@ -86,6 +86,7 @@ class DoubleML(ABC):
 
         # perform sample splitting
         self._smpls = None
+        self._smpls_cluster = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -240,6 +241,16 @@ class DoubleML(ABC):
         return self._smpls
 
     @property
+    def smpls_cluster(self):
+        """
+        The partition of clusters used for cross-fitting.
+        """
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            if self._smpls_cluster is None:
+                raise ValueError('Sample splitting not specified. Draw samples via .draw_sample splitting().')
+        return self._smpls_cluster
+
+    @property
     def psi(self):
         """
         Values of the score function :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`
@@ -363,6 +374,10 @@ class DoubleML(ABC):
         return self._smpls[self._i_rep]
 
     @property
+    def __smpls_cluster(self):
+        return self._smpls_cluster[self._i_rep]
+
+    @property
     def __psi(self):
         return self._psi[:, self._i_rep, self._i_treat]
 
@@ -484,6 +499,8 @@ class DoubleML(ABC):
         if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
 
@@ -941,7 +958,11 @@ class DoubleML(ABC):
         self : object
         """
         if isinstance(self._dml_data, DoubleMLClusterData):
-            raise NotImplementedError()
+            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self.n_folds,
+                                                           n_rep=self.n_rep,
+                                                           n_obs=self._dml_data.n_obs,
+                                                           apply_cross_fitting=self.apply_cross_fitting)
+            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
@@ -1009,6 +1030,9 @@ class DoubleML(ABC):
         >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            raise NotImplementedError('Externally setting the sample splitting for DoubleML is '
+                                      'not yet implemented with clustering.')
         if isinstance(all_smpls, tuple):
             if not len(all_smpls) == 2:
                 raise ValueError('Invalid partition provided. '
