@@ -484,4 +484,30 @@ class DoubleMLClusterData(DoubleMLData):
         self._cluster_cols = value
         if reset_value:
             self._check_disjoint_sets()
-            # check whether we also set a array version of the cluster variable
+            # TODO: check whether we also set an array-version of the cluster variable
+
+    def _check_disjoint_sets(self):
+        # apply the standard checks from the DoubleMLData class
+        super(DoubleMLClusterData, self)._check_disjoint_sets()
+
+        # special checks for the additional cluster variables
+        cluster_cols_set = set(self.cluster_cols)
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(cluster_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster '
+                             'variable in ``cluster_cols``.')
+        if not d_cols_set.isdisjoint(cluster_cols_set):
+            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and '
+                             'cluster variable in ``cluster_cols``.')
+        # TODO: Is the following combination allowed, or not?
+        if not x_cols_set.isdisjoint(cluster_cols_set):
+            raise ValueError('At least one variable/column is set as covariate (``x_cols``) and cluster '
+                             'variable in ``cluster_cols``.')
+        if self.z_cols is not None:
+            z_cols_set = set(self.z_cols)
+            if not z_cols_set.isdisjoint(cluster_cols_set):
+                raise ValueError('At least one variable/column is set as instrumental variable (``z_cols``) and '
+                                 'cluster variable in ``cluster_cols``.')
