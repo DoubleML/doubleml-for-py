@@ -451,14 +451,21 @@ class DoubleMLClusterData(DoubleMLData):
                  x_cols=None,
                  z_cols=None,
                  use_other_treat_as_covariate=True):
+        # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
+        self._data = data
+        self.cluster_cols = cluster_cols
         super().__init__(data,
                          y_col,
                          d_cols,
                          x_cols,
                          z_cols,
                          use_other_treat_as_covariate)
-
-        self.cluster_cols = cluster_cols
 
     def __str__(self):
         data_info = f'Outcome variable: {self.y_col}\n' \
@@ -517,6 +524,21 @@ class DoubleMLClusterData(DoubleMLData):
         if reset_value:
             self._check_disjoint_sets()
             # TODO: check whether we also set an array-version of the cluster variable
+
+    @DoubleMLData.x_cols.setter
+    def x_cols(self, value):
+        if value is not None:
+            # this call might become much easier with https://github.com/python/cpython/pull/26194
+            super(self.__class__, self.__class__).x_cols.__set__(self, value)
+        else:
+            if self.z_cols is not None:
+                y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_z]
+            else:
+                y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d]
+            # this call might become much easier with https://github.com/python/cpython/pull/26194
+            super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
 
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class
