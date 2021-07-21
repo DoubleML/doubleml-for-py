@@ -437,3 +437,51 @@ class DoubleMLData:
             if not x_cols_set.isdisjoint(z_cols_set):
                 raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
                                  'variable in ``z_cols``.')
+
+
+class DoubleMLClusterData(DoubleMLData):
+    """Double machine learning data-backend for data with cluster variables.
+
+    """
+    def __init__(self,
+                 data,
+                 cluster_cols,
+                 y_col,
+                 d_cols,
+                 x_cols=None,
+                 z_cols=None,
+                 use_other_treat_as_covariate=True):
+        super().__init__(data,
+                         y_col,
+                         d_cols,
+                         x_cols,
+                         z_cols,
+                         use_other_treat_as_covariate)
+
+        self.cluster_cols = cluster_cols
+
+    @property
+    def cluster_cols(self):
+        """
+        The cluster variable(s).
+        """
+        return self._cluster_cols
+
+    @cluster_cols.setter
+    def cluster_cols(self, value):
+        reset_value = hasattr(self, '_cluster_cols')
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, list):
+            raise TypeError('The cluster variable(s) cluster_cols must be of str or list type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if not len(set(value)) == len(value):
+            raise ValueError('Invalid cluster variable(s) cluster_cols: '
+                             'Contains duplicate values.')
+        if not set(value).issubset(set(self.all_variables)):
+            raise ValueError('Invalid cluster variable(s) cluster_cols. '
+                             'At least one cluster variable is no data column.')
+        self._cluster_cols = value
+        if reset_value:
+            self._check_disjoint_sets()
+            # check whether we also set a array version of the cluster variable
