@@ -961,7 +961,9 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLClusterResampling(n_folds=self.n_folds,
                                                            n_rep=self.n_rep,
                                                            n_obs=self._dml_data.n_obs,
-                                                           apply_cross_fitting=self.apply_cross_fitting)
+                                                           apply_cross_fitting=self.apply_cross_fitting,
+                                                           n_cluster_vars=self._dml_data.n_cluster_vars,
+                                                           cluster_vars=self._dml_data.cluster_vars)
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
@@ -1228,7 +1230,15 @@ class DoubleML(ABC):
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         J = np.mean(psi_a)
-        sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            if self._dml_data.n_cluster_vars > 1:
+                raise NotImplementedError('Multi-way clustering not yet implemented with clustering.')
+            xx = np.tile(self._dml_data.cluster_vars[:, 0], (self._dml_data.n_obs, 1))
+            selection_matrix = xx == np.transpose(xx)
+            omega = np.mean(np.multiply(np.matmul(psi, selection_matrix), psi))
+            sigma2_hat = 1 / n_obs * omega / np.power(J, 2)
+        else:
+            sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
         return sigma2_hat
 

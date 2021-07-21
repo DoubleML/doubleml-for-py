@@ -460,6 +460,7 @@ class DoubleMLClusterData(DoubleMLData):
                              'Contains duplicate column names.')
         self._data = data
         self.cluster_cols = cluster_cols
+        self._set_cluster_vars()
         super().__init__(data,
                          y_col,
                          d_cols,
@@ -506,13 +507,6 @@ class DoubleMLClusterData(DoubleMLData):
         """
         return self._cluster_cols
 
-    @property
-    def n_cluster_vars(self):
-        """
-        The number of cluster variables.
-        """
-        return len(self.cluster_cols)
-
     @cluster_cols.setter
     def cluster_cols(self, value):
         reset_value = hasattr(self, '_cluster_cols')
@@ -530,7 +524,22 @@ class DoubleMLClusterData(DoubleMLData):
         self._cluster_cols = value
         if reset_value:
             self._check_disjoint_sets()
+            self._set_cluster_vars()
             # TODO: check whether we also set an array-version of the cluster variable
+
+    @property
+    def n_cluster_vars(self):
+        """
+        The number of cluster variables.
+        """
+        return len(self.cluster_cols)
+
+    @property
+    def cluster_vars(self):
+        """
+        Array of cluster variable(s).
+        """
+        return self._cluster_vars.values
 
     @DoubleMLData.x_cols.setter
     def x_cols(self, value):
@@ -572,3 +581,6 @@ class DoubleMLClusterData(DoubleMLData):
             if not z_cols_set.isdisjoint(cluster_cols_set):
                 raise ValueError('At least one variable/column is set as instrumental variable (``z_cols``) and '
                                  'cluster variable in ``cluster_cols``.')
+
+    def _set_cluster_vars(self):
+        self._cluster_vars = self.data.loc[:, self.cluster_cols]
