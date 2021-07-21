@@ -10,7 +10,7 @@ from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
 
-from .double_ml_data import DoubleMLData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_resampling import DoubleMLResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
@@ -940,11 +940,14 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep=self.n_rep,
-                                                n_obs=self._dml_data.n_obs,
-                                                apply_cross_fitting=self.apply_cross_fitting)
-        self._smpls = obj_dml_resampling.split_samples()
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            raise NotImplementedError()
+        else:
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                    n_rep=self.n_rep,
+                                                    n_obs=self._dml_data.n_obs,
+                                                    apply_cross_fitting=self.apply_cross_fitting)
+            self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
