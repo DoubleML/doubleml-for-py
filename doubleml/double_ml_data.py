@@ -460,6 +460,21 @@ class DoubleMLClusterData(DoubleMLData):
 
         self.cluster_cols = cluster_cols
 
+    def __str__(self):
+        data_info = f'Outcome variable: {self.y_col}\n' \
+                    f'Treatment variable(s): {self.d_cols}\n' \
+                    f'Cluster variable(s): {self.cluster_cols}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'Instrument variable(s): {self.z_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLClusterData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
     @property
     def cluster_cols(self):
         """
