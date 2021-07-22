@@ -1,9 +1,7 @@
 import numpy as np
-import pandas as pd
 import warnings
 
 from sklearn.model_selection import KFold, RepeatedKFold
-import itertools
 
 
 class DoubleMLResampling:
