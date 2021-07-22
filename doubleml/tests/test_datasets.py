@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
     make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2019
 
@@ -43,8 +43,8 @@ def test_fetch_bonus_poly():
 @pytest.mark.ci
 def test_make_plr_CCDDHNR2018_return_types():
     np.random.seed(3141)
-    res = make_plr_CCDDHNR2018(n_obs=100, return_type=DoubleMLData)
-    assert isinstance(res, DoubleMLData)
+    res = make_plr_CCDDHNR2018(n_obs=100, return_type=DoubleMLClusterData)
+    assert isinstance(res, DoubleMLClusterData)
     res = make_plr_CCDDHNR2018(n_obs=100, return_type=pd.DataFrame)
     assert isinstance(res, pd.DataFrame)
     x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type=np.ndarray)
