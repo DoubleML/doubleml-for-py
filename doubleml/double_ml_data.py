@@ -441,7 +441,7 @@ class DoubleMLData:
 
 class DoubleMLClusterData(DoubleMLData):
     """Double machine learning data-backend for data with cluster variables.
-
+    TODO: Add documentation
     """
     def __init__(self,
                  data,
@@ -487,6 +487,7 @@ class DoubleMLClusterData(DoubleMLData):
     def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
+        TODO: add documentation of inputs / outputs
         """
         dml_data = super(cls).from_arrays(x, y, d, z, use_other_treat_as_covariate)
         if cluster_vars.shape[1] == 1:
