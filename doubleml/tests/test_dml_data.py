@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR
-from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData
+from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
+    make_pliv_multiway_cluster_CKMS2019
 from sklearn.linear_model import Lasso
 
 
@@ -74,6 +75,19 @@ def test_obj_vs_from_arrays():
                                                    dml_data.data[dml_data.y_col],
                                                    dml_data.data[dml_data.d_cols])
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
+
+    dml_data = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
+    dml_data_from_array = DoubleMLClusterData.from_arrays(dml_data.data[dml_data.x_cols],
+                                                          dml_data.data[dml_data.y_col],
+                                                          dml_data.data[dml_data.d_cols],
+                                                          dml_data.data[dml_data.cluster_cols],
+                                                          dml_data.data[dml_data.z_cols])
+    df = dml_data.data.copy()
+    df.rename(columns={'cluster_var_i': 'cluster_var1',
+                       'cluster_var_j': 'cluster_var2',
+                       'Y': 'y', 'D': 'd', 'Z': 'z'},
+              inplace=True)
+    assert dml_data_from_array.data.equals(df)
 
 
 @pytest.mark.ci

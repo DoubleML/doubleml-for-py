@@ -489,13 +489,15 @@ class DoubleMLClusterData(DoubleMLData):
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
         TODO: add documentation of inputs / outputs
         """
-        dml_data = super(cls).from_arrays(x, y, d, z, use_other_treat_as_covariate)
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate)
+        cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
+        cluster_vars = _assure_2d_array(cluster_vars)
         if cluster_vars.shape[1] == 1:
             cluster_cols = ['cluster_var']
         else:
             cluster_cols = [f'cluster_var{i + 1}' for i in np.arange(cluster_vars.shape[1])]
 
-        data = dml_data.data.append(pd.DataFrame(cluster_vars, columns=cluster_cols))
+        data = pd.concat((pd.DataFrame(cluster_vars, columns=cluster_cols), dml_data.data), axis=1)
 
         return(cls(data, dml_data.y_col, dml_data.d_cols,
                    cluster_cols,
