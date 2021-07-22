@@ -63,7 +63,11 @@ class DoubleML(ABC):
                             f'Got {str(draw_sample_splitting)}.')
 
         # set resampling specifications
-        self._n_folds = n_folds
+        if isinstance(self._dml_data, DoubleMLClusterData):
+            self._n_folds_per_cluster = n_folds
+            self._n_folds = n_folds ** self._dml_data.n_cluster_vars
+        else:
+            self._n_folds = n_folds
         self._n_rep = n_rep
         self._apply_cross_fitting = apply_cross_fitting
 
@@ -958,7 +962,7 @@ class DoubleML(ABC):
         self : object
         """
         if isinstance(self._dml_data, DoubleMLClusterData):
-            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self.n_folds,
+            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
                                                            n_rep=self.n_rep,
                                                            n_obs=self._dml_data.n_obs,
                                                            apply_cross_fitting=self.apply_cross_fitting,
@@ -1229,18 +1233,48 @@ class DoubleML(ABC):
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        J = np.mean(psi_a)
         if isinstance(self._dml_data, DoubleMLClusterData):
-            if self._dml_data.n_cluster_vars > 1:
+            if self._dml_data.n_cluster_vars == 1:
+                this_cluster_var = self._dml_data.cluster_vars[:, 0]
+                clusters = np.unique(this_cluster_var)
+                gamma_hat = 0
+                const = 1 / len(clusters)
+                for cluster_value in clusters:
+                    ind_cluster = this_cluster_var == cluster_value
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat = np.sum(psi_a) / len(clusters)
+                gamma_hat = gamma_hat / self._n_folds_per_cluster
+                j_hat = j_hat / self._n_folds_per_cluster
+                c_ = len(clusters)
+                sigma2_hat = gamma_hat / (j_hat ** 2) / c_
+            elif self._dml_data.n_cluster_vars == 2:
+                first_cluster_var = self._dml_data.cluster_vars[:, 0]
+                second_cluster_var = self._dml_data.cluster_vars[:, 1]
+                gamma_hat = 0
+                j_hat = 0
+                for i_split, this_split_ind in enumerate(self.smpls_cluster[0]):
+                    test_inds = self.smpls[0][i_split][1]
+                    test_cluster_inds = self.smpls_cluster[0][i_split][1]
+                    I_k = test_cluster_inds[0]
+                    J_l = test_cluster_inds[1]
+                    const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
+                    for cluster_value in I_k:
+                        ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
+                        gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                    for cluster_value in J_l:
+                        ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
+                        gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                    j_hat += np.sum(psi_a[test_inds])/(len(I_k) * len(J_l))
+                gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
+                j_hat = j_hat / (self._n_folds_per_cluster ** 2)
+                n_first_clusters = len(np.unique(first_cluster_var))
+                n_second_clusters = len(np.unique(second_cluster_var))
+                c_ = min(n_first_clusters, n_second_clusters)
+                sigma2_hat = gamma_hat / (j_hat ** 2) / c_
+            else:
                 raise NotImplementedError('Multi-way clustering not yet implemented with clustering.')
-            this_cluster_var = self._dml_data.cluster_vars[:, 0]
-            clusters = np.unique(this_cluster_var)
-            omega = 0
-            for cluster_value in clusters:
-                ind_cluster = this_cluster_var == cluster_value
-                omega += np.mean(np.outer(psi[ind_cluster], psi[ind_cluster]))
-            sigma2_hat = 1 / n_obs * omega / np.power(J, 2)
         else:
+            J = np.mean(psi_a)
             sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
         return sigma2_hat
