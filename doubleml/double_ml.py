@@ -31,6 +31,7 @@ class DoubleML(ABC):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._dml_data = obj_dml_data
 
         # initialize learners and parameters which are set model specific
@@ -63,7 +64,7 @@ class DoubleML(ABC):
                             f'Got {str(draw_sample_splitting)}.')
 
         # set resampling specifications
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             self._n_folds_per_cluster = n_folds
             self._n_folds = n_folds ** self._dml_data.n_cluster_vars
         else:
@@ -249,7 +250,7 @@ class DoubleML(ABC):
         """
         The partition of clusters used for cross-fitting.
         """
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             if self._smpls_cluster is None:
                 raise ValueError('Sample splitting not specified. Draw samples via .draw_sample splitting().')
         return self._smpls_cluster
@@ -503,7 +504,7 @@ class DoubleML(ABC):
         if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
@@ -961,7 +962,7 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
                                                            n_rep=self.n_rep,
                                                            n_obs=self._dml_data.n_obs,
@@ -1036,7 +1037,7 @@ class DoubleML(ABC):
         >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             raise NotImplementedError('Externally setting the sample splitting for DoubleML is '
                                       'not yet implemented with clustering.')
         if isinstance(all_smpls, tuple):
@@ -1233,7 +1234,7 @@ class DoubleML(ABC):
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
         # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        if isinstance(self._dml_data, DoubleMLClusterData):
+        if self._is_cluster_data:
             if self._dml_data.n_cluster_vars == 1:
                 this_cluster_var = self._dml_data.cluster_vars[:, 0]
                 clusters = np.unique(this_cluster_var)
