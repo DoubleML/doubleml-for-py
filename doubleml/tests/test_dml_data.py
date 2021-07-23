@@ -364,6 +364,22 @@ def test_disjoint_sets():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
 
+    msg = 'yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], cluster_cols='yy')
+    msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and cluster variable in '
+           '``cluster_cols``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], cluster_cols='dd1')
+    msg = (r'At least one variable/column is set as covariate \(``x_cols``\) and cluster variable in '
+           '``cluster_cols``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], cluster_cols='xx2')
+    msg = (r'At least one variable/column is set as instrumental variable \(``z_cols``\) and cluster variable in '
+           '``cluster_cols``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols = ['xx2'], cluster_cols='xx2')
+
 
 @pytest.mark.ci
 def test_duplicates():
