@@ -31,7 +31,9 @@ class DoubleML(ABC):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
+        self._is_cluster_data = False
+        if isinstance(obj_dml_data, DoubleMLClusterData):
+            self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
         # initialize learners and parameters which are set model specific
@@ -119,9 +121,15 @@ class DoubleML(ABC):
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
-        resampling_info = f'No. folds: {self.n_folds}\n' \
-                          f'No. repeated sample splits: {self.n_rep}\n' \
-                          f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+        if self._is_cluster_data:
+            resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
+                              f'No. folds: {self.n_folds}\n' \
+                              f'No. repeated sample splits: {self.n_rep}\n' \
+                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+        else:
+            resampling_info = f'No. folds: {self.n_folds}\n' \
+                              f'No. repeated sample splits: {self.n_rep}\n' \
+                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
         fit_summary = str(self.summary)
         res = header + \
             '\n------------------ Data summary      ------------------\n' + data_info + \
