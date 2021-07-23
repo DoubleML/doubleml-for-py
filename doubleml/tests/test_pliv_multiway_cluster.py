@@ -21,6 +21,14 @@ dim_x = 100  # dimension of x
 
 obj_dml_cluster_data = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x)
 
+obj_dml_oneway_cluster_data = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x,
+                                                                  omega_X=np.array([0.25, 0]),
+                                                                  omega_epsilon=np.array([0.25, 0]),
+                                                                  omega_v=np.array([0.25, 0]),
+                                                                  omega_V=np.array([0.25, 0]))
+# only the first cluster variable is relevant with the weight setting above
+obj_dml_oneway_cluster_data.cluster_cols = 'cluster_var_i'
+
 
 @pytest.fixture(scope='module',
                 params=[RandomForestRegressor(max_depth=2, n_estimators=10),
@@ -115,6 +123,7 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     res_manual = fit_pliv(y, x, d, z,
                           clone(learner), clone(learner), clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score)
+    # TODO: Add a manual implementation of two-way cluster-robust standard errors
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta']}
@@ -126,4 +135,48 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
 def test_dml_pliv_multiway_cluster_coef(dml_pliv_multiway_cluster_fixture):
     assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'],
                         dml_pliv_multiway_cluster_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.fixture(scope='module')
+def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
+    n_folds = 3
+    score = 'partialling out'
+
+    # Set machine learning methods for g, m & r
+    ml_g = clone(learner)
+    ml_m = clone(learner)
+    ml_r = clone(learner)
+
+    np.random.seed(3141)
+    dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_oneway_cluster_data,
+                                    ml_g, ml_m, ml_r,
+                                    n_folds,
+                                    score=score,
+                                    dml_procedure=dml_procedure)
+
+    np.random.seed(3141)
+    dml_pliv_obj.fit()
+
+    np.random.seed(3141)
+    y = obj_dml_oneway_cluster_data.y
+    x = obj_dml_oneway_cluster_data.x
+    d = obj_dml_oneway_cluster_data.d
+    z = np.ravel(obj_dml_oneway_cluster_data.z)
+
+    res_manual = fit_pliv(y, x, d, z,
+                          clone(learner), clone(learner), clone(learner),
+                          dml_pliv_obj.smpls, dml_procedure, score)
+    # TODO: Add a manual implementation of one-way cluster-robust standard errors
+
+    res_dict = {'coef': dml_pliv_obj.coef,
+                'coef_manual': res_manual['theta']}
+
+    return res_dict
+
+
+@pytest.mark.ci
+def test_dml_pliv_oneway_cluster_coef(dml_pliv_oneway_cluster_fixture):
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'],
+                        dml_pliv_oneway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
