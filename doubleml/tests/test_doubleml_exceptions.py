@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+    make_pliv_multiway_cluster_CKMS2019
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
@@ -12,11 +13,13 @@ np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
+ml_r = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
+dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
 
 
 @pytest.mark.ci
@@ -222,6 +225,12 @@ def test_doubleml_exception_smpls():
     dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
+    msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
+    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r, draw_sample_splitting=False)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster_no_smpls.smpls_cluster
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster_no_smpls.smpls
 
 
 @pytest.mark.ci
