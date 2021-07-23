@@ -140,6 +140,22 @@ def test_x_cols_setter_defaults():
 
 
 @pytest.mark.ci
+def test_x_cols_setter_defaults_w_cluster():
+    df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'xx3', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1')
+    assert dml_data.x_cols == ['xx1', 'xx2', 'xx3']
+    dml_data.x_cols = ['xx1', 'xx3']
+    assert dml_data.x_cols == ['xx1', 'xx3']
+    dml_data.x_cols = None
+    assert dml_data.x_cols == ['xx1', 'xx2', 'xx3']
+    df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'z', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', z_cols='z')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+
+@pytest.mark.ci
 def test_x_cols_setter():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
