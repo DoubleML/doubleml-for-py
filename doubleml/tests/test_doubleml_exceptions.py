@@ -19,7 +19,7 @@ dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
-dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
+dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2019(N=10, M=10)
 
 
 @pytest.mark.ci

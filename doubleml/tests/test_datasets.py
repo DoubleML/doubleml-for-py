@@ -136,9 +136,9 @@ def test_make_pliv_CHS2015_return_types():
 @pytest.mark.ci
 def test_make_pliv_multiway_cluster_CKMS2019_return_types():
     np.random.seed(3141)
-    res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DoubleMLClusterData')
+    res = make_pliv_multiway_cluster_CKMS2019(N=10, M=10, return_type='DoubleMLClusterData')
     assert isinstance(res, DoubleMLClusterData)
-    res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DataFrame')
+    res = make_pliv_multiway_cluster_CKMS2019(N=10, M=10, return_type='DataFrame')
     assert isinstance(res, pd.DataFrame)
     with pytest.raises(ValueError, match=msg_inv_return_type):
-        _ = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='array')
+        _ = make_pliv_multiway_cluster_CKMS2019(N=10, M=10, return_type='array')

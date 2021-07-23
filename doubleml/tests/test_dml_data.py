@@ -76,7 +76,7 @@ def test_obj_vs_from_arrays():
                                                    dml_data.data[dml_data.d_cols])
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
-    dml_data = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
+    dml_data = make_pliv_multiway_cluster_CKMS2019(N=10, M=10)
     dml_data_from_array = DoubleMLClusterData.from_arrays(dml_data.data[dml_data.x_cols],
                                                           dml_data.data[dml_data.y_col],
                                                           dml_data.data[dml_data.d_cols],
@@ -401,7 +401,7 @@ def test_disjoint_sets():
 def test_duplicates():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
-    dml_cluster_data = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
+    dml_cluster_data = make_pliv_multiway_cluster_CKMS2019(N=10, M=10)
 
     msg = r'Invalid treatment variable\(s\) d_cols: Contains duplicate values.'
     with pytest.raises(ValueError, match=msg):
