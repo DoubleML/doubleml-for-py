@@ -385,6 +385,7 @@ def test_disjoint_sets():
 def test_duplicates():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
+    dml_cluster_data = make_pliv_multiway_cluster_CKMS2019(n_obs=100)
 
     msg = r'Invalid treatment variable\(s\) d_cols: Contains duplicate values.'
     with pytest.raises(ValueError, match=msg):
@@ -396,7 +397,7 @@ def test_duplicates():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(dml_data.data, y_col='y', d_cols=['d'], x_cols=['X3', 'X2', 'X3'])
     with pytest.raises(ValueError, match=msg):
-        dml_data.x_cols=['X3', 'X2', 'X3']
+        dml_data.x_cols = ['X3', 'X2', 'X3']
 
     msg = r'Invalid instrumental variable\(s\) z_cols: Contains duplicate values.'
     with pytest.raises(ValueError, match=msg):
@@ -404,6 +405,12 @@ def test_duplicates():
                          z_cols=['X15', 'X12', 'X12', 'X15'])
     with pytest.raises(ValueError, match=msg):
         dml_data.z_cols = ['X15', 'X12', 'X12', 'X15']
+
+    msg = r'Invalid cluster variable\(s\) cluster_cols: Contains duplicate values.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(dml_cluster_data.data, y_col='y', d_cols=['d'], cluster_cols=['X3', 'X2', 'X3'])
+    with pytest.raises(ValueError, match=msg):
+        dml_cluster_data.cluster_cols = ['X3', 'X2', 'X3']
 
     msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
     with pytest.raises(ValueError, match=msg):
