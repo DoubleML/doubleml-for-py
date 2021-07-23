@@ -381,6 +381,9 @@ def test_duplicates():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
                          y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
+                                y_col='y', d_cols=['d'], cluster_cols=['X2'])
 
 
 @pytest.mark.ci
@@ -390,3 +393,5 @@ def test_dml_datatype():
     #        f'{str(data_array)} of type {str(type(data_array))} was passed.')
     with pytest.raises(TypeError):
         _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
+    with pytest.raises(TypeError):
+        _ = DoubleMLClusterData(data_array, y_col='y', d_cols=['d'], cluster_cols=['X3', 'X2'])
