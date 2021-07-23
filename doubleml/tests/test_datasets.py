@@ -146,3 +146,5 @@ def test_make_pliv_multiway_cluster_CKMS2021_return_types():
     assert isinstance(d, np.ndarray)
     assert isinstance(cluster_vars, np.ndarray)
     assert isinstance(z, np.ndarray)
+    with pytest.raises(ValueError, match=msg_inv_return_type):
+        _ = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='matrix')
