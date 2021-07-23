@@ -1265,9 +1265,9 @@ class DoubleML(ABC):
                 second_cluster_var = self._dml_data.cluster_vars[:, 1]
                 gamma_hat = 0
                 j_hat = 0
-                for i_split, this_split_ind in enumerate(self.smpls_cluster[0]):
-                    test_inds = self.smpls[0][i_split][1]
-                    test_cluster_inds = self.smpls_cluster[0][i_split][1]
+                for i_fold in range(self.n_folds):
+                    test_inds = self.__smpls[i_fold][1]
+                    test_cluster_inds = self.__smpls_cluster[i_fold][1]
                     I_k = test_cluster_inds[0]
                     J_l = test_cluster_inds[1]
                     const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
