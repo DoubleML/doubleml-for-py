@@ -89,6 +89,18 @@ def test_obj_vs_from_arrays():
               inplace=True)
     assert dml_data_from_array.data.equals(df)
 
+    # with a single cluster variable
+    dml_data_from_array = DoubleMLClusterData.from_arrays(dml_data.data[dml_data.x_cols],
+                                                          dml_data.data[dml_data.y_col],
+                                                          dml_data.data[dml_data.d_cols],
+                                                          dml_data.data[dml_data.cluster_cols[1]],
+                                                          dml_data.data[dml_data.z_cols])
+    df = dml_data.data.copy().drop(columns='cluster_var_i')
+    df.rename(columns={'cluster_var_j': 'cluster_var',
+                       'Y': 'y', 'D': 'd', 'Z': 'z'},
+              inplace=True)
+    assert dml_data_from_array.data.equals(df)
+
 
 @pytest.mark.ci
 def test_add_vars_in_df():
