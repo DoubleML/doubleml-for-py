@@ -611,6 +611,9 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
         ``DoubleMLClusterData.data`` is a ``pd.DataFrame``.
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s
+        ``(x, y, d, cluster_vars, z)``.
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
         :math:`\\pi_{10}=1.0`, :math:`\\omega_X = \\omega_{\\varepsilon} = \\omega_V = \\omega_v = (0.25, 0.25)`,
@@ -689,7 +692,9 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
     cluster_cols = ['cluster_var_i', 'cluster_var_j']
     cluster_vars = pd.MultiIndex.from_product([range(N), range(M)]).to_frame(name=cluster_cols).reset_index(drop=True)
 
-    if return_type in _data_frame_alias + _dml_cluster_data_alias:
+    if return_type in _array_alias:
+        return x, y, d, cluster_vars.values, z
+    elif return_type in _data_frame_alias + _dml_cluster_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
         data = pd.concat((cluster_vars,
                           pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ['Y', 'D', 'Z'])),
