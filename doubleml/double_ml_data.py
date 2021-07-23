@@ -441,7 +441,48 @@ class DoubleMLData:
 
 class DoubleMLClusterData(DoubleMLData):
     """Double machine learning data-backend for data with cluster variables.
-    TODO: Add documentation
+
+    :class:`DoubleMLClusterData` objects can be initialized from
+    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The outcome variable.
+
+    d_cols : str or list
+        The treatment variable(s).
+
+    cluster_cols : str or list
+        The cluster variable(s).
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
+        Default is ``None``.
+
+    z_cols : None, str or list
+        The instrumental variable(s).
+        Default is ``None``.
+
+    use_other_treat_as_covariate : bool
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        Default is ``True``.
+
+    Examples
+    --------
+    >>> from doubleml import DoubleMLClusterData
+    >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+    >>> # initialization from pandas.DataFrame
+    >>> df = make_pliv_multiway_cluster_CKMS2021(return_type='DataFrame')
+    >>> obj_dml_data_from_df = DoubleMLClusterData(df, 'Y', 'D', ['cluster_var_i', 'cluster_var_j'], z_cols='Z')
+    >>> # initialization from np.ndarray
+    >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
+    >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
     """
     def __init__(self,
                  data,
@@ -486,8 +527,36 @@ class DoubleMLClusterData(DoubleMLData):
     @classmethod
     def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
         """
-        Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
-        TODO: add documentation of inputs / outputs
+        Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y : :class:`numpy.ndarray`
+            Array of the outcome variable.
+
+        d : :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        cluster_vars : :class:`numpy.ndarray`
+            Array of cluster variables.
+
+        z : None or :class:`numpy.ndarray`
+            Array of instrumental variables.
+            Default is ``None``.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLClusterData
+        >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+        >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
         dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate)
         cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
