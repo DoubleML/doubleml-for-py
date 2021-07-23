@@ -140,8 +140,6 @@ def test_make_pliv_multiway_cluster_CKMS2021_return_types():
     assert isinstance(res, DoubleMLClusterData)
     res = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='DataFrame')
     assert isinstance(res, pd.DataFrame)
-    with pytest.raises(ValueError, match=msg_inv_return_type):
-        _ = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='array')
     x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='array')
     assert isinstance(x, np.ndarray)
     assert isinstance(y, np.ndarray)
