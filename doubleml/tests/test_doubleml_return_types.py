@@ -25,7 +25,7 @@ dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRe
                           (dml_pliv, DoubleMLPLIV),
                           (dml_irm, DoubleMLIRM),
                           (dml_iivm, DoubleMLIIVM)])
-def test_plr_return_types(dml_obj, cls):
+def test_return_types(dml_obj, cls):
     # ToDo: A second test case with multiple treatment variables would be helpful
     assert isinstance(dml_obj.__str__(), str)
     assert isinstance(dml_obj.summary, pd.DataFrame)
@@ -75,7 +75,7 @@ iivm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 @pytest.mark.ci
 @pytest.mark.parametrize('dml_obj',
                          [plr_dml1, pliv_dml1,  irm_dml1,  iivm_dml1])
-def test_plr_property_types_and_shapes(dml_obj):
+def test_property_types_and_shapes(dml_obj):
     # not checked: apply_cross_fitting, dml_procedure, learner, learner_names, params, params_names, score
     # already checked: summary
 
