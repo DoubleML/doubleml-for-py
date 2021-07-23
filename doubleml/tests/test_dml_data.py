@@ -182,7 +182,7 @@ def test_d_cols_setter():
     with pytest.raises(TypeError, match=msg):
         dml_data.d_cols = 5
 
-    # check single covariate
+    # check single treatment variable
     d_comp = dml_data.data['d2'].values
     dml_data.d_cols = 'd2'
     assert np.array_equal(dml_data.d, d_comp)
@@ -224,6 +224,43 @@ def test_z_cols_setter():
     dml_data.z_cols = None
     assert dml_data.n_instr == 0
     assert dml_data.z is None
+
+
+@pytest.mark.ci
+def test_cluster_cols_setter():
+    np.random.seed(3141)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'd1', 'd2']
+    dml_data = DoubleMLClusterData(df, 'y', ['d1', 'd2'],
+                                   cluster_cols=[f'X{i + 1}' for i in [5, 6]],
+                                   x_cols=[f'X{i + 1}' for i in np.arange(5)])
+
+    cluster_vars = df[['X6', 'X7']].values
+    assert np.array_equal(dml_data.cluster_vars, cluster_vars)
+    assert dml_data.n_cluster_vars == 2
+
+    # check that after changing cluster_cols, the cluster_vars array gets updated
+    cluster_vars = df[['X7', 'X6']].values
+    dml_data.cluster_cols = ['X7', 'X6']
+    assert np.array_equal(dml_data.cluster_vars, cluster_vars)
+
+    msg = r'Invalid cluster variable\(s\) cluster_cols. At least one cluster variable is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.cluster_cols = ['X6', 'X13']
+    with pytest.raises(ValueError, match=msg):
+        dml_data.cluster_cols = 'X13'
+
+    msg = (r'The cluster variable\(s\) cluster_cols must be of str or list type. '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.cluster_cols = 5
+
+    # check single cluster variable
+    cluster_vars = df[['X7']].values
+    dml_data.cluster_cols = 'X7'
+    assert np.array_equal(dml_data.cluster_vars, cluster_vars)
+    assert dml_data.n_cluster_vars == 1
 
 
 @pytest.mark.ci
