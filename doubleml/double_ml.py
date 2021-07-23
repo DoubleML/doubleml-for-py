@@ -33,6 +33,8 @@ class DoubleML(ABC):
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
+            if obj_dml_data.n_cluster_vars > 2:
+                raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented with clustering.')
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
@@ -67,6 +69,10 @@ class DoubleML(ABC):
 
         # set resampling specifications
         if self._is_cluster_data:
+            if (n_folds == 1) | (not apply_cross_fitting) | (n_rep > 1):
+                raise NotImplementedError('Repeated cross-fitting (`n_rep > 1`) '
+                                          'and no cross-fitting (`apply_cross_fitting = False`) '
+                                          'are not yet implemented with clustering.')
             self._n_folds_per_cluster = n_folds
             self._n_folds = n_folds ** self._dml_data.n_cluster_vars
         else:
@@ -1260,7 +1266,8 @@ class DoubleML(ABC):
                 j_hat = j_hat / self._n_folds_per_cluster
                 c_ = len(clusters)
                 sigma2_hat = gamma_hat / (j_hat ** 2) / c_
-            elif self._dml_data.n_cluster_vars == 2:
+            else:
+                assert self._dml_data.n_cluster_vars == 2
                 first_cluster_var = self._dml_data.cluster_vars[:, 0]
                 second_cluster_var = self._dml_data.cluster_vars[:, 1]
                 gamma_hat = 0
@@ -1284,8 +1291,6 @@ class DoubleML(ABC):
                 n_second_clusters = len(np.unique(second_cluster_var))
                 c_ = min(n_first_clusters, n_second_clusters)
                 sigma2_hat = gamma_hat / (j_hat ** 2) / c_
-            else:
-                raise NotImplementedError('Multi-way clustering not yet implemented with clustering.')
         else:
             J = np.mean(psi_a)
             sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)

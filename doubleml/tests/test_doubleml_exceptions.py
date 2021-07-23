@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
     make_pliv_multiway_cluster_CKMS2019
 
@@ -454,3 +454,40 @@ def test_doubleml_exception_and_warning_learner():
     msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
+
+
+@pytest.mark.ci
+def test_doubleml_cluster_not_yet_implemented():
+    dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
+    dml_pliv_cluster.fit()
+    msg = 'bootstrap not yet implemented with clustering.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv_cluster.bootstrap()
+
+    smpls = dml_plr.smpls
+    msg = ('Externally setting the sample splitting for DoubleML is '
+           'not yet implemented with clustering.')
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(smpls)
+
+    df = dml_cluster_data_pliv.data.copy()
+    df['cluster_var_k'] = df['cluster_var_i'] + df['cluster_var_j'] - 2
+    dml_cluster_data_multiway = DoubleMLClusterData(df, y_col='Y', d_cols='D', x_cols=['X1', 'X5'], z_cols='Z',
+                                                    cluster_cols=['cluster_var_i', 'cluster_var_j', 'cluster_var_k'])
+    assert dml_cluster_data_multiway.n_cluster_vars == 3
+    msg = r'Multi-way \(n_ways > 2\) clustering not yet implemented with clustering.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_multiway, ml_g, ml_m, ml_r)
+
+    msg = (r'Repeated cross-fitting \(`n_rep > 1`\) '
+           r'and no cross-fitting \(`apply_cross_fitting = False`\) '
+           'are not yet implemented with clustering.')
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
+                         n_folds=1)
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
+                         apply_cross_fitting=False, n_folds=2)
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
+                         n_rep=10)
