@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2019
+from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from ._utils_cluster import DoubleMLMultiwayResampling
 from ._utils_pliv_manual import fit_pliv
@@ -19,7 +19,7 @@ N = 25  # number of observations (first dimension)
 M = 25  # number of observations (second dimension)
 dim_x = 100  # dimension of x
 
-obj_dml_cluster_data = make_pliv_multiway_cluster_CKMS2019(N, M, dim_x)
+obj_dml_cluster_data = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x)
 
 
 @pytest.fixture(scope='module',

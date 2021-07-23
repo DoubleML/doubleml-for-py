@@ -551,10 +551,10 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
         raise ValueError('Invalid return_type.')
 
 
-def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLClusterData', **kwargs):
+def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLClusterData', **kwargs):
     """
     Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al.
-    (2019). The data generating process is defined as
+    (2021). The data generating process is defined as
 
     .. math::
 
@@ -620,7 +620,9 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
 
     References
     ----------
-    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2019), Multiway Cluster Robust Double/Debiased Machine Learning,
+    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2021), Multiway Cluster Robust Double/Debiased Machine Learning,
+    Journal of Business & Economic Statistics,
+    doi: `10.1080/07350015.2021.1895815 <https://doi.org/10.1080/07350015.2021.1895815>`_,
     arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
     """
     # additional parameters specifiable via kwargs
