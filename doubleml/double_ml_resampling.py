@@ -57,10 +57,9 @@ class DoubleMLClusterResampling:
                  apply_cross_fitting,
                  n_cluster_vars,
                  cluster_vars):
-        if (n_folds == 1) | (not apply_cross_fitting) | (n_rep > 1):
-            raise NotImplementedError('Repeated cross-fitting (`n_rep > 1`) '
-                                      'and no cross-fitting (`apply_cross_fitting = False`) '
-                                      'are not yet implemented with clustering.')
+        if (n_folds == 1) | (not apply_cross_fitting):
+            raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
+                                      'is not yet implemented with clustering.')
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs
@@ -73,35 +72,40 @@ class DoubleMLClusterResampling:
         self.resampling = KFold(n_splits=n_folds, shuffle=True)
 
     def split_samples(self):
-        smpls_cluster_vars = []
-        for i_var in range(self.n_cluster_vars):
-            this_cluster_var = self.cluster_vars[:, i_var]
-            clusters = np.unique(this_cluster_var)
-            n_clusters = len(clusters)
-            smpls_cluster_vars.append([(clusters[train], clusters[test])
-                                       for train, test in self.resampling.split(np.zeros(n_clusters))])
-
-        smpls = []
-        smpls_cluster = []
-        # build the cartesian product
-        cart = np.array(np.meshgrid(*[np.arange(self.n_folds)
-                                      for i in range(self.n_cluster_vars)])).T.reshape(-1, self.n_cluster_vars)
-        for i_smpl in range(cart.shape[0]):
-            ind_train = np.full(self.n_obs, True)
-            ind_test = np.full(self.n_obs, True)
-            this_cluster_smpl_train = []
-            this_cluster_smpl_test = []
+        all_smpls = []
+        all_smpls_cluster = []
+        for i_rep in range(self.n_rep):
+            smpls_cluster_vars = []
             for i_var in range(self.n_cluster_vars):
-                i_fold = cart[i_smpl, i_var]
-                train_clusters = smpls_cluster_vars[i_var][i_fold][0]
-                test_clusters = smpls_cluster_vars[i_var][i_fold][1]
-                this_cluster_smpl_train.append(train_clusters)
-                this_cluster_smpl_test.append(test_clusters)
-                ind_train = ind_train & np.in1d(self.cluster_vars[:, i_var], train_clusters)
-                ind_test = ind_test & np.in1d(self.cluster_vars[:, i_var], test_clusters)
-            train_set = np.arange(self.n_obs)[ind_train]
-            test_set = np.arange(self.n_obs)[ind_test]
-            smpls.append((train_set, test_set))
-            smpls_cluster.append((this_cluster_smpl_train, this_cluster_smpl_test))
+                this_cluster_var = self.cluster_vars[:, i_var]
+                clusters = np.unique(this_cluster_var)
+                n_clusters = len(clusters)
+                smpls_cluster_vars.append([(clusters[train], clusters[test])
+                                           for train, test in self.resampling.split(np.zeros(n_clusters))])
 
-        return [smpls], [smpls_cluster]
+            smpls = []
+            smpls_cluster = []
+            # build the cartesian product
+            cart = np.array(np.meshgrid(*[np.arange(self.n_folds)
+                                          for i in range(self.n_cluster_vars)])).T.reshape(-1, self.n_cluster_vars)
+            for i_smpl in range(cart.shape[0]):
+                ind_train = np.full(self.n_obs, True)
+                ind_test = np.full(self.n_obs, True)
+                this_cluster_smpl_train = []
+                this_cluster_smpl_test = []
+                for i_var in range(self.n_cluster_vars):
+                    i_fold = cart[i_smpl, i_var]
+                    train_clusters = smpls_cluster_vars[i_var][i_fold][0]
+                    test_clusters = smpls_cluster_vars[i_var][i_fold][1]
+                    this_cluster_smpl_train.append(train_clusters)
+                    this_cluster_smpl_test.append(test_clusters)
+                    ind_train = ind_train & np.in1d(self.cluster_vars[:, i_var], train_clusters)
+                    ind_test = ind_test & np.in1d(self.cluster_vars[:, i_var], test_clusters)
+                train_set = np.arange(self.n_obs)[ind_train]
+                test_set = np.arange(self.n_obs)[ind_test]
+                smpls.append((train_set, test_set))
+                smpls_cluster.append((this_cluster_smpl_train, this_cluster_smpl_test))
+            all_smpls.append(smpls)
+            all_smpls_cluster.append(smpls_cluster)
+
+        return all_smpls, all_smpls_cluster

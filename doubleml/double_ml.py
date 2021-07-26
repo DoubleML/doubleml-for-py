@@ -34,7 +34,7 @@ class DoubleML(ABC):
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
             if obj_dml_data.n_cluster_vars > 2:
-                raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented with clustering.')
+                raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented.')
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
@@ -69,10 +69,9 @@ class DoubleML(ABC):
 
         # set resampling specifications
         if self._is_cluster_data:
-            if (n_folds == 1) | (not apply_cross_fitting) | (n_rep > 1):
-                raise NotImplementedError('Repeated cross-fitting (`n_rep > 1`) '
-                                          'and no cross-fitting (`apply_cross_fitting = False`) '
-                                          'are not yet implemented with clustering.')
+            if (n_folds == 1) | (not apply_cross_fitting):
+                raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
+                                          'is not yet implemented with clustering.')
             self._n_folds_per_cluster = n_folds
             self._n_folds = n_folds ** self._dml_data.n_cluster_vars
         else:
@@ -1172,13 +1171,7 @@ class DoubleML(ABC):
         return coef
 
     def _se_causal_pars(self):
-        if self.apply_cross_fitting:
-            se = np.sqrt(self._var_est())
-        else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            se = np.sqrt(self._var_est(test_index))
+        se = np.sqrt(self._var_est())
 
         return se
 
@@ -1188,17 +1181,12 @@ class DoubleML(ABC):
         self.coef = np.median(self._all_coef, 1)
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        if self.apply_cross_fitting:
-            n_obs = self._dml_data.n_obs
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            n_obs = len(test_index)
+        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
+        # TODO: In the edge case of repeated no-cross-fitting, the test sets might have different size and therefore
+        #  it would note be valid to always use the same self._var_scaling_factor
         xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), n_obs) +
-                                              np.power(self._all_coef - xx, 2), 1), n_obs))
+        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), self._var_scaling_factor) +
+                                              np.power(self._all_coef - xx, 2), 1), self._var_scaling_factor))
 
     def _est_causal_pars_and_se(self):
         for i_rep in range(self.n_rep):
@@ -1234,24 +1222,25 @@ class DoubleML(ABC):
 
         return boot_coef, boot_t_stat
 
-    def _var_est(self, inds=None):
+    def _var_est(self):
         """
         Estimate the standard errors of the structural parameter
         """
         psi_a = self.__psi_a
         psi = self.__psi
 
-        if inds is not None:
-            assert not self.apply_cross_fitting
-            psi_a = psi_a[inds]
-            psi = psi[inds]
-            n_obs = len(inds)
+        if self.apply_cross_fitting:
+            self._var_scaling_factor = self._dml_data.n_obs
         else:
-            assert self.apply_cross_fitting
-            n_obs = self._dml_data.n_obs
+            # In case of no-cross-fitting, the score function was only evaluated on the test data set
+            smpls = self.__smpls
+            test_index = smpls[0][1]
+            psi_a = psi_a[test_index]
+            psi = psi[test_index]
+            self._var_scaling_factor = len(test_index)
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
+        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         if self._is_cluster_data:
             if self._dml_data.n_cluster_vars == 1:
                 this_cluster_var = self._dml_data.cluster_vars[:, 0]
@@ -1264,8 +1253,8 @@ class DoubleML(ABC):
                 j_hat = np.sum(psi_a) / len(clusters)
                 gamma_hat = gamma_hat / self._n_folds_per_cluster
                 j_hat = j_hat / self._n_folds_per_cluster
-                c_ = len(clusters)
-                sigma2_hat = gamma_hat / (j_hat ** 2) / c_
+                self._var_scaling_factor = len(clusters)
+                sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
             else:
                 assert self._dml_data.n_cluster_vars == 2
                 first_cluster_var = self._dml_data.cluster_vars[:, 0]
@@ -1289,11 +1278,11 @@ class DoubleML(ABC):
                 j_hat = j_hat / (self._n_folds_per_cluster ** 2)
                 n_first_clusters = len(np.unique(first_cluster_var))
                 n_second_clusters = len(np.unique(second_cluster_var))
-                c_ = min(n_first_clusters, n_second_clusters)
-                sigma2_hat = gamma_hat / (j_hat ** 2) / c_
+                self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
+                sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
         else:
             J = np.mean(psi_a)
-            sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
+            sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
         return sigma2_hat
 
