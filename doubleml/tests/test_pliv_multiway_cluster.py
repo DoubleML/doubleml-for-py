@@ -96,7 +96,8 @@ def test_dml_pliv_multiway_cluster_old_vs_new_coef(dml_pliv_multiway_cluster_old
 
 @pytest.fixture(scope='module')
 def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
-    n_folds = 3
+    n_folds = 2
+    n_rep = 2
     score = 'partialling out'
 
     # Set machine learning methods for g, m & r
@@ -108,6 +109,7 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_cluster_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
+                                    n_rep=n_rep,
                                     score=score,
                                     dml_procedure=dml_procedure)
 
@@ -122,7 +124,8 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
 
     res_manual = fit_pliv(y, x, d, z,
                           clone(learner), clone(learner), clone(learner),
-                          dml_pliv_obj.smpls, dml_procedure, score)
+                          dml_pliv_obj.smpls, dml_procedure, score,
+                          n_rep=n_rep)
     # TODO: Add a manual implementation of two-way cluster-robust standard errors
 
     res_dict = {'coef': dml_pliv_obj.coef,
