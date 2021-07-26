@@ -597,7 +597,6 @@ class DoubleMLClusterData(DoubleMLData):
         if reset_value:
             self._check_disjoint_sets()
             self._set_cluster_vars()
-            # TODO: check whether we also set an array-version of the cluster variable
 
     @property
     def n_cluster_vars(self):
