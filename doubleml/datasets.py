@@ -590,7 +590,7 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
         \\left(\\begin{matrix} \\alpha_{ij}^\\varepsilon \\\\ \\alpha_{ij}^v \\end{matrix}\\right),
         \\left(\\begin{matrix} \\alpha_{i}^\\varepsilon \\\\ \\alpha_{i}^v \\end{matrix}\\right),
         \\left(\\begin{matrix} \\alpha_{j}^\\varepsilon \\\\ \\alpha_{j}^v \\end{matrix}\\right)
-        \\sim \\mathcal{N}\\left((0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\
+        \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\
         s_{\\varepsilon v} & 1 \\end{matrix} \\right) \\right)
 
 
