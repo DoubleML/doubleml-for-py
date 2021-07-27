@@ -74,7 +74,7 @@ class DoubleMLClusterResampling:
     def split_samples(self):
         all_smpls = []
         all_smpls_cluster = []
-        for i_rep in range(self.n_rep):
+        for _ in range(self.n_rep):
             smpls_cluster_vars = []
             for i_var in range(self.n_cluster_vars):
                 this_cluster_var = self.cluster_vars[:, i_var]
