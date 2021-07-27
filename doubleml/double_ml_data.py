@@ -68,7 +68,7 @@ class DoubleMLData:
         self.d_cols = d_cols
         self.z_cols = z_cols
         self.x_cols = x_cols
-        self._check_disjoint_sets()
+        self._check_disjoint_sets_y_d_x_z()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self._binary_treats = self._check_binary_treats()
         self._set_y_z()
@@ -410,6 +410,10 @@ class DoubleMLData:
         return is_binary
 
     def _check_disjoint_sets(self):
+        # this function can be extended in inherited subclasses
+        self._check_disjoint_sets_y_d_x_z()
+
+    def _check_disjoint_sets_y_d_x_z(self):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
@@ -508,6 +512,7 @@ class DoubleMLClusterData(DoubleMLData):
                          x_cols,
                          z_cols,
                          use_other_treat_as_covariate)
+        self._check_disjoint_sets_cluster_cols()
 
     def __str__(self):
         data_info = f'Outcome variable: {self.y_col}\n' \
@@ -628,6 +633,11 @@ class DoubleMLClusterData(DoubleMLData):
             super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
 
     def _check_disjoint_sets(self):
+        # apply the standard checks from the DoubleMLData class
+        super(DoubleMLClusterData, self)._check_disjoint_sets()
+        self._check_disjoint_sets_cluster_cols()
+
+    def _check_disjoint_sets_cluster_cols(self):
         # apply the standard checks from the DoubleMLData class
         super(DoubleMLClusterData, self)._check_disjoint_sets()
 
