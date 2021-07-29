@@ -183,3 +183,59 @@ def test_dml_pliv_oneway_cluster_coef(dml_pliv_oneway_cluster_fixture):
     assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'],
                         dml_pliv_oneway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.fixture(scope="module")
+def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
+    # in the one-way cluster case with exactly one observation per cluster, we get the same result w & w/o clustering
+    n_folds = 2
+
+    # collect data
+    data = generate_data1
+    x_cols = data.columns[data.columns.str.startswith('X')].tolist()
+
+    # Set machine learning methods for m & g
+    ml_g = clone(learner)
+    ml_m = clone(learner)
+
+    obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
+    np.random.seed(3141)
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_g, ml_m,
+                                  n_folds,
+                                  dml_procedure=dml_procedure)
+    dml_plr_obj.fit()
+
+    df = data.reset_index()
+    dml_cluster_data = dml.DoubleMLClusterData(df,
+                                               y_col='y',
+                                               d_cols='d',
+                                               x_cols=x_cols,
+                                               cluster_cols='index')
+    np.random.seed(3141)
+    dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data,
+                                          ml_g, ml_m,
+                                          n_folds,
+                                          dml_procedure=dml_procedure)
+    dml_plr_cluster_obj.fit()
+
+    res_dict = {'coef': dml_plr_obj.coef,
+                'coef_manual': dml_plr_cluster_obj.coef,
+                'se': dml_plr_obj.se,
+                'se_manual': dml_plr_cluster_obj.se}
+
+    return res_dict
+
+
+@pytest.mark.ci
+def test_dml_plr_cluster_with_index(dml_plr_cluster_with_index):
+    assert math.isclose(dml_plr_cluster_with_index['coef'],
+                        dml_plr_cluster_with_index['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_plr_cluster_with_index(dml_plr_cluster_with_index):
+    assert math.isclose(dml_plr_cluster_with_index['se'],
+                        dml_plr_cluster_with_index['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
