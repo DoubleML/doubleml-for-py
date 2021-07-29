@@ -10,8 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
-from ._utils_cluster import DoubleMLMultiwayResampling
-from ._utils_pliv_manual import fit_pliv
+from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster
+from ._utils_pliv_manual import fit_pliv, compute_pliv_residuals
 
 np.random.seed(1234)
 # Set the simulation parameters
@@ -170,10 +170,23 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     res_manual = fit_pliv(y, x, d, z,
                           clone(learner), clone(learner), clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score)
-    # TODO: Add a manual implementation of one-way cluster-robust standard errors
+    g_hat = res_manual['all_g_hat'][0]
+    m_hat = res_manual['all_m_hat'][0]
+    r_hat = res_manual['all_r_hat'][0]
+    smpls_one_split = dml_pliv_obj.smpls[0]
+    u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls_one_split)
+
+    psi_a = -np.multiply(v_hat, w_hat)
+    psi = np.multiply(u_hat - w_hat * res_manual['theta'], v_hat)
+    var = var_one_way_cluster(psi, psi_a,
+                              obj_dml_oneway_cluster_data.cluster_vars[:, 0],
+                              smpls_one_split)
+    se = np.sqrt(var)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual['theta']}
+                'se': dml_pliv_obj.se,
+                'coef_manual': res_manual['theta'],
+                'se_manual': se}
 
     return res_dict
 
@@ -182,6 +195,13 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
 def test_dml_pliv_oneway_cluster_coef(dml_pliv_oneway_cluster_fixture):
     assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'],
                         dml_pliv_oneway_cluster_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_pliv_oneway_cluster_se(dml_pliv_oneway_cluster_fixture):
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['se'],
+                        dml_pliv_oneway_cluster_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 

@@ -39,3 +39,22 @@ class DoubleMLMultiwayResampling:
                           multi_to_lin_ind.loc[x[1]].values) for x in smpls_multi_ind]
 
         return smpls_multi_ind, smpls_lin_ind
+
+
+def var_one_way_cluster(psi, psi_a, cluster_var, smpls_one_split):
+    gamma_hat = 0
+    j_hat = 0
+    for (_, test_index) in smpls_one_split:
+        clusters = np.unique(cluster_var[test_index])
+        const = 1/len(clusters)
+        for i in clusters:
+            ind = cluster_var == i
+            for val_i in psi[ind]:
+                for val_j in psi[ind]:
+                    gamma_hat += const * val_i * val_j
+        j_hat += np.sum(psi_a[test_index])/len(clusters)
+    n_folds = len(smpls_one_split)
+    gamma_hat = gamma_hat/n_folds
+    j_hat = j_hat/n_folds
+    var = gamma_hat / (j_hat ** 2) / len(np.unique(cluster_var))
+    return var
