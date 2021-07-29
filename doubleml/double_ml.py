@@ -1239,8 +1239,6 @@ class DoubleML(ABC):
             psi = psi[test_index]
             self._var_scaling_factor = len(test_index)
 
-        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         if self._is_cluster_data:
             if self._dml_data.n_cluster_vars == 1:
                 this_cluster_var = self._dml_data.cluster_vars[:, 0]
