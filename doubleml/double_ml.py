@@ -1246,13 +1246,6 @@ class DoubleML(ABC):
                 this_cluster_var = self._dml_data.cluster_vars[:, 0]
                 clusters = np.unique(this_cluster_var)
                 gamma_hat = 0
-
-                # const = 1 / len(clusters)
-                # for cluster_value in clusters:
-                #     ind_cluster = this_cluster_var == cluster_value
-                #     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                # j_hat = np.sum(psi_a) / len(clusters)
-
                 j_hat = 0
                 for i_fold in range(self.n_folds):
                     test_inds = self.__smpls[i_fold][1]
