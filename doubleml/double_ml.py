@@ -1165,8 +1165,19 @@ class DoubleML(ABC):
 
         else:
             assert dml_procedure == 'dml2'
-            theta_hat = self._orth_est()
-            coef = theta_hat
+            if self._is_cluster_data:
+                # See Chiang et al. (2021) Algorithm 1
+                psi_a = self.__psi_a
+                psi_b = self.__psi_b
+                psi_a_subsample_mean = 0.
+                psi_b_subsample_mean = 0.
+                for idx, (_, test_index) in enumerate(smpls):
+                    psi_a_subsample_mean += np.mean(psi_a[test_index])
+                    psi_b_subsample_mean += np.mean(psi_b[test_index])
+                coef = -np.sum(psi_b_subsample_mean) / np.sum(psi_a_subsample_mean)
+            else:
+                theta_hat = self._orth_est()
+                coef = theta_hat
 
         return coef
 
