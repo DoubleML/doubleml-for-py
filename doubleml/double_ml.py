@@ -1341,7 +1341,7 @@ class DoubleML(ABC):
                 scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
                 psi_a_subsample_mean += scaling_factor * np.sum(psi_a[test_index])
                 psi_b_subsample_mean += scaling_factor * np.sum(psi_b[test_index])
-            theta = -np.sum(psi_b_subsample_mean) / np.sum(psi_a_subsample_mean)
+            theta = -psi_b_subsample_mean / psi_a_subsample_mean
 
         return theta
 
