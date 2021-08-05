@@ -297,14 +297,14 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
 
 
 @pytest.mark.ci
-def test_dml_plr_cluster_with_index(dml_plr_cluster_with_index):
+def test_dml_plr_cluster_with_index_coef(dml_plr_cluster_with_index):
     assert math.isclose(dml_plr_cluster_with_index['coef'],
                         dml_plr_cluster_with_index['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_plr_cluster_with_index(dml_plr_cluster_with_index):
+def test_dml_plr_cluster_with_index_se(dml_plr_cluster_with_index):
     assert math.isclose(dml_plr_cluster_with_index['se'],
                         dml_plr_cluster_with_index['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
