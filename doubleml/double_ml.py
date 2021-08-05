@@ -11,7 +11,7 @@ from statsmodels.stats.multitest import multipletests
 from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .double_ml_resampling import DoubleMLResampling, DoubleMLClusterResampling
+from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
