@@ -1153,31 +1153,22 @@ class DoubleML(ABC):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
-        if dml_procedure == 'dml1':
-            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-            thetas = np.zeros(len(smpls))
-            for idx, (_, test_index) in enumerate(smpls):
-                thetas[idx] = self._orth_est(test_index)
-            theta_hat = np.mean(thetas)
-            coef = theta_hat
-
-            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
-
-        else:
-            assert dml_procedure == 'dml2'
-            if self._is_cluster_data:
-                # See Chiang et al. (2021) Algorithm 1
-                psi_a = self.__psi_a
-                psi_b = self.__psi_b
-                psi_a_subsample_mean = 0.
-                psi_b_subsample_mean = 0.
+        if not self._is_cluster_data:
+            if dml_procedure == 'dml1':
+                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+                thetas = np.zeros(len(smpls))
                 for idx, (_, test_index) in enumerate(smpls):
-                    psi_a_subsample_mean += np.mean(psi_a[test_index])
-                    psi_b_subsample_mean += np.mean(psi_b[test_index])
-                coef = -np.sum(psi_b_subsample_mean) / np.sum(psi_a_subsample_mean)
+                    thetas[idx] = self._orth_est(test_index)
+                theta_hat = np.mean(thetas)
+                coef = theta_hat
+
+                self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
             else:
+                assert dml_procedure == 'dml2'
                 theta_hat = self._orth_est()
                 coef = theta_hat
+        else:
+            coef = self._orth_est_cluster_data()
 
         return coef
 
@@ -1313,6 +1304,35 @@ class DoubleML(ABC):
             psi_b = psi_b[inds]
 
         theta = -np.mean(psi_b) / np.mean(psi_a)
+
+        return theta
+
+    def _orth_est_cluster_data(self):
+        dml_procedure = self.dml_procedure
+        smpls = self.__smpls
+        psi_a = self.__psi_a
+        psi_b = self.__psi_b
+
+        if dml_procedure == 'dml1':
+            # note that in the dml1 case we could also simply apply the standard function without cluster adjustment
+            thetas = np.zeros(len(smpls))
+            for i_fold, (_, test_index) in enumerate(smpls):
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                thetas[i_fold] = - (scaling_factor * np.sum(psi_b[test_index])) / \
+                    (scaling_factor * np.sum(psi_a[test_index]))
+            theta = np.mean(thetas)
+        else:
+            assert dml_procedure == 'dml2'
+            # See Chiang et al. (2021) Algorithm 1
+            psi_a_subsample_mean = 0.
+            psi_b_subsample_mean = 0.
+            for i_fold, (_, test_index) in enumerate(smpls):
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                psi_a_subsample_mean += scaling_factor * np.sum(psi_a[test_index])
+                psi_b_subsample_mean += scaling_factor * np.sum(psi_b[test_index])
+            theta = -np.sum(psi_b_subsample_mean) / np.sum(psi_a_subsample_mean)
 
         return theta
 

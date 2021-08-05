@@ -10,7 +10,8 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
-from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster
+from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2,\
+    est_two_way_cluster_dml2, var_two_way_cluster
 from ._utils_pliv_manual import fit_pliv, compute_pliv_residuals
 
 np.random.seed(1234)
@@ -45,8 +46,9 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner, dml_procedure):
+def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
     n_folds = 3
+    dml_procedure = 'dml1'  # same results are only obtained for dml1
 
     np.random.seed(3141)
     smpl_sizes = [N, M]
@@ -126,10 +128,43 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
                           clone(learner), clone(learner), clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score,
                           n_rep=n_rep)
-    # TODO: Add a manual implementation of two-way cluster-robust standard errors
+    thetas = np.full(n_rep, np.nan)
+    ses = np.full(n_rep, np.nan)
+    for i_rep in range(n_rep):
+        g_hat = res_manual['all_g_hat'][i_rep]
+        m_hat = res_manual['all_m_hat'][i_rep]
+        r_hat = res_manual['all_r_hat'][i_rep]
+        smpls_one_split = dml_pliv_obj.smpls[i_rep]
+        u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls_one_split)
+
+        psi_a = -np.multiply(v_hat, w_hat)
+        if dml_procedure == 'dml2':
+            psi_b = np.multiply(v_hat, u_hat)
+            theta = est_two_way_cluster_dml2(psi_a, psi_b,
+                                             obj_dml_cluster_data.cluster_vars[:, 0],
+                                             obj_dml_cluster_data.cluster_vars[:, 1],
+                                             smpls_one_split)
+        else:
+            theta = res_manual['thetas'][i_rep]
+        psi = np.multiply(u_hat - w_hat * theta, v_hat)
+        var = var_two_way_cluster(psi, psi_a,
+                                  obj_dml_cluster_data.cluster_vars[:, 0],
+                                  obj_dml_cluster_data.cluster_vars[:, 1],
+                                  smpls_one_split)
+        se = np.sqrt(var)
+        thetas[i_rep] = theta
+        ses[i_rep] = se
+
+    theta = np.median(thetas)
+    n_clusters1 = len(np.unique(obj_dml_cluster_data.cluster_vars[:, 0]))
+    n_clusters2 = len(np.unique(obj_dml_cluster_data.cluster_vars[:, 1]))
+    var_scaling_factor = min(n_clusters1, n_clusters2)
+    se = np.sqrt(np.median(np.power(ses, 2) * var_scaling_factor + np.power(thetas - theta, 2)) / var_scaling_factor)
 
     res_dict = {'coef': dml_pliv_obj.coef,
-                'coef_manual': res_manual['theta']}
+                'se': dml_pliv_obj.se,
+                'coef_manual': theta,
+                'se_manual': se}
 
     return res_dict
 
@@ -138,6 +173,13 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
 def test_dml_pliv_multiway_cluster_coef(dml_pliv_multiway_cluster_fixture):
     assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'],
                         dml_pliv_multiway_cluster_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_pliv_multiway_cluster_se(dml_pliv_multiway_cluster_fixture):
+    assert math.isclose(dml_pliv_multiway_cluster_fixture['se'],
+                        dml_pliv_multiway_cluster_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -177,7 +219,14 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls_one_split)
 
     psi_a = -np.multiply(v_hat, w_hat)
-    psi = np.multiply(u_hat - w_hat * res_manual['theta'], v_hat)
+    if dml_procedure == 'dml2':
+        psi_b = np.multiply(v_hat, u_hat)
+        theta = est_one_way_cluster_dml2(psi_a, psi_b,
+                                         obj_dml_oneway_cluster_data.cluster_vars[:, 0],
+                                         smpls_one_split)
+    else:
+        theta = res_manual['theta']
+    psi = np.multiply(u_hat - w_hat * theta, v_hat)
     var = var_one_way_cluster(psi, psi_a,
                               obj_dml_oneway_cluster_data.cluster_vars[:, 0],
                               smpls_one_split)
@@ -185,7 +234,7 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'se': dml_pliv_obj.se,
-                'coef_manual': res_manual['theta'],
+                'coef_manual': theta,
                 'se_manual': se}
 
     return res_dict
