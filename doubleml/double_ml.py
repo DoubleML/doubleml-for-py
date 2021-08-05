@@ -1173,7 +1173,10 @@ class DoubleML(ABC):
         return coef
 
     def _se_causal_pars(self):
-        se = np.sqrt(self._var_est())
+        if not self._is_cluster_data:
+            se = np.sqrt(self._var_est())
+        else:
+            se = np.sqrt(self._var_est_cluster_data())
 
         return se
 
@@ -1241,54 +1244,59 @@ class DoubleML(ABC):
             psi = psi[test_index]
             self._var_scaling_factor = len(test_index)
 
-        if self._is_cluster_data:
-            if self._dml_data.n_cluster_vars == 1:
-                this_cluster_var = self._dml_data.cluster_vars[:, 0]
-                clusters = np.unique(this_cluster_var)
-                gamma_hat = 0
-                j_hat = 0
-                for i_fold in range(self.n_folds):
-                    test_inds = self.__smpls[i_fold][1]
-                    test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                    I_k = test_cluster_inds[0]
-                    const = 1 / len(I_k)
-                    for cluster_value in I_k:
-                        ind_cluster = (this_cluster_var == cluster_value)
-                        gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                    j_hat += np.sum(psi_a[test_inds])/len(I_k)
+        J = np.mean(psi_a)
+        sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
-                gamma_hat = gamma_hat / self._n_folds_per_cluster
-                j_hat = j_hat / self._n_folds_per_cluster
-                self._var_scaling_factor = len(clusters)
-                sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
-            else:
-                assert self._dml_data.n_cluster_vars == 2
-                first_cluster_var = self._dml_data.cluster_vars[:, 0]
-                second_cluster_var = self._dml_data.cluster_vars[:, 1]
-                gamma_hat = 0
-                j_hat = 0
-                for i_fold in range(self.n_folds):
-                    test_inds = self.__smpls[i_fold][1]
-                    test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                    I_k = test_cluster_inds[0]
-                    J_l = test_cluster_inds[1]
-                    const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
-                    for cluster_value in I_k:
-                        ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
-                        gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                    for cluster_value in J_l:
-                        ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
-                        gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                    j_hat += np.sum(psi_a[test_inds])/(len(I_k) * len(J_l))
-                gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
-                j_hat = j_hat / (self._n_folds_per_cluster ** 2)
-                n_first_clusters = len(np.unique(first_cluster_var))
-                n_second_clusters = len(np.unique(second_cluster_var))
-                self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
-                sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
+        return sigma2_hat
+
+    def _var_est_cluster_data(self):
+        psi_a = self.__psi_a
+        psi = self.__psi
+
+        if self._dml_data.n_cluster_vars == 1:
+            this_cluster_var = self._dml_data.cluster_vars[:, 0]
+            clusters = np.unique(this_cluster_var)
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(self.n_folds):
+                test_inds = self.__smpls[i_fold][1]
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                const = 1 / len(I_k)
+                for cluster_value in I_k:
+                    ind_cluster = (this_cluster_var == cluster_value)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_a[test_inds]) / len(I_k)
+
+            gamma_hat = gamma_hat / self._n_folds_per_cluster
+            j_hat = j_hat / self._n_folds_per_cluster
+            self._var_scaling_factor = len(clusters)
+            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
         else:
-            J = np.mean(psi_a)
-            sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
+            assert self._dml_data.n_cluster_vars == 2
+            first_cluster_var = self._dml_data.cluster_vars[:, 0]
+            second_cluster_var = self._dml_data.cluster_vars[:, 1]
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(self.n_folds):
+                test_inds = self.__smpls[i_fold][1]
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                J_l = test_cluster_inds[1]
+                const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
+                for cluster_value in I_k:
+                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                for cluster_value in J_l:
+                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_a[test_inds]) / (len(I_k) * len(J_l))
+            gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
+            j_hat = j_hat / (self._n_folds_per_cluster ** 2)
+            n_first_clusters = len(np.unique(first_cluster_var))
+            n_second_clusters = len(np.unique(second_cluster_var))
+            self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
+            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
 
         return sigma2_hat
 
