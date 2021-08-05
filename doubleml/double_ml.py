@@ -1330,6 +1330,7 @@ class DoubleML(ABC):
                 thetas[i_fold] = - (scaling_factor * np.sum(psi_b[test_index])) / \
                     (scaling_factor * np.sum(psi_a[test_index]))
             theta = np.mean(thetas)
+            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
         else:
             assert dml_procedure == 'dml2'
             # See Chiang et al. (2021) Algorithm 1
