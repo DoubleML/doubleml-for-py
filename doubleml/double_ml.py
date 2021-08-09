@@ -116,10 +116,15 @@ class DoubleML(ABC):
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
+        if self._is_cluster_data:
+            cluster_info = f'Cluster variable(s): {self._dml_data.cluster_cols}\n'
+        else:
+            cluster_info = ''
         data_info = f'Outcome variable: {self._dml_data.y_col}\n' \
                     f'Treatment variable(s): {self._dml_data.d_cols}\n' \
                     f'Covariates: {self._dml_data.x_cols}\n' \
                     f'Instrument variable(s): {self._dml_data.z_cols}\n' \
+                    + cluster_info +\
                     f'No. Observations: {self._dml_data.n_obs}\n'
         score_info = f'Score function: {str(self.score)}\n' \
                      f'DML algorithm: {self.dml_procedure}\n'
