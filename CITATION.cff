@@ -1,0 +1,61 @@
+cff-version: 1.2.0
+message: "If you use the DoubleML package a citation is highly appreciated."
+authors:
+- family-names: "Bach"
+  given-names: "Philipp"
+- family-names: "Chernozhukov"
+  given-names: "Victor"
+- family-names: "Kurz"
+  given-names: "Malte S."
+- family-names: "Spindler"
+  given-names: "Martin"
+title: DoubleML - Double Machine Learning in Python
+version: 0.3.0
+url: https://github.com/DoubleML/doubleml-for-py
+preferred-citation:
+  - type: misc
+  authors:
+    - family-names: "Bach"
+      given-names: "Philipp"
+    - family-names: "Chernozhukov"
+      given-names: "Victor"
+    - family-names: "Kurz"
+      given-names: "Malte S."
+    - family-names: "Spindler"
+      given-names: "Martin"
+  title: {DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython
+  year: 2021
+  eprint: 2104.03220
+  archivePrefix: arXiv
+  primaryClass: stat.ML
+  note: arXiv:\href{https://arxiv.org/abs/2104.03220}{2104.03220} [stat.ML]
+references:
+  - type: misc
+  authors:
+    - family-names: "Bach"
+      given-names: "Philipp"
+    - family-names: "Chernozhukov"
+      given-names: "Victor"
+    - family-names: "Kurz"
+      given-names: "Malte S."
+    - family-names: "Spindler"
+      given-names: "Martin"
+  title: {DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython
+  year: 2021
+  eprint: 2104.03220
+  archivePrefix: arXiv
+  primaryClass: stat.ML
+  note: arXiv:\href{https://arxiv.org/abs/2104.03220}{2104.03220} [stat.ML]
+  - type: software
+  authors:
+    - family-names: "Bach"
+      given-names: "Philipp"
+    - family-names: "Chernozhukov"
+      given-names: "Victor"
+    - family-names: "Kurz"
+      given-names: "Malte S."
+    - family-names: "Spindler"
+      given-names: "Martin"
+  title: {DoubleML} -- {D}ouble Machine Learning in {P}ython
+  version: 0.3.0
+  url: https://github.com/DoubleML/doubleml-for-py
