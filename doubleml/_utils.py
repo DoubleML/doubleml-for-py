@@ -34,27 +34,32 @@ def _check_is_partition(smpls, n_obs):
     return True
 
 
-def _check_all_smpls(all_smpls, n_obs):
+def _check_all_smpls(all_smpls, n_obs, check_intersect=False):
     all_smpls_checked = list()
     for smpl in all_smpls:
-        this_smpl_checked = list()
-        for tpl in smpl:
-            this_smpl_checked.append(_check_smpl_split_tpl(tpl, n_obs))
-        all_smpls_checked.append(this_smpl_checked)
+        all_smpls_checked.append(_check_smpl_split(smpl, n_obs, check_intersect))
     return all_smpls_checked
 
 
-def _check_smpl_split_tpl(smpl, n_obs):
-    train_index = np.sort(np.array(smpl[0]))
-    test_index = np.sort(np.array(smpl[1]))
+def _check_smpl_split(smpl, n_obs, check_intersect=False):
+    smpl_checked = list()
+    for tpl in smpl:
+        smpl_checked.append(_check_smpl_split_tpl(tpl, n_obs, check_intersect))
+    return smpl_checked
+
+
+def _check_smpl_split_tpl(tpl, n_obs, check_intersect=False):
+    train_index = np.sort(np.array(tpl[0]))
+    test_index = np.sort(np.array(tpl[1]))
 
     if not issubclass(train_index.dtype.type, np.integer):
         raise TypeError('Invalid sample split. Train indices must be of type integer.')
     if not issubclass(test_index.dtype.type, np.integer):
         raise TypeError('Invalid sample split. Test indices must be of type integer.')
 
-    if set(train_index) & set(test_index):
-        raise ValueError('Invalid sample split. Intersection of train and test indices is not empty.')
+    if check_intersect:
+        if set(train_index) & set(test_index):
+            raise ValueError('Invalid sample split. Intersection of train and test indices is not empty.')
 
     if len(np.unique(train_index)) != len(train_index):
         raise ValueError('Invalid sample split. Train indices contain non-unique entries.')

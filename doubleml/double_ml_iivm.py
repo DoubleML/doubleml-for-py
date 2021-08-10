@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict, _get_cond_smpls, _dml_tune
-from sklearn.metrics import mean_squared_error, accuracy_score
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune
 
 
 class DoubleMLIIVM(DoubleML):
@@ -136,6 +136,9 @@ class DoubleMLIIVM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         _ = self._check_learner(ml_r, 'ml_r', regressor=False, classifier=True)
@@ -184,7 +187,7 @@ class DoubleMLIIVM(DoubleML):
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
                                 '%r was passed.' % score)
-        return score
+        return
 
     def _check_data(self, obj_dml_data):
         one_treat = (obj_dml_data.n_treat == 1)
@@ -196,16 +199,20 @@ class DoubleMLIIVM(DoubleML):
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         one_instr = (obj_dml_data.n_instr == 1)
-        binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
-        zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
-        if not(one_instr & binary_instr & zero_one_instr):
-            raise ValueError('Incompatible data. '
-                             'To fit an IIVM model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as instrumental variable.')
+        err_msg = ('Incompatible data. '
+                   'To fit an IIVM model with DML '
+                   'exactly one binary variable with values 0 and 1 '
+                   'needs to be specified as instrumental variable.')
+        if one_instr:
+            binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
+            zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
+            if not(one_instr & binary_instr & zero_one_instr):
+                raise ValueError(err_msg)
+        else:
+            raise ValueError(err_msg)
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, z = check_X_y(x, np.ravel(self._dml_data.z))
         x, d = check_X_y(x, self._dml_data.d)
@@ -235,17 +242,15 @@ class DoubleMLIIVM(DoubleML):
         else:
             r_hat1 = np.ones_like(d)
 
-        res = dict()
-        res['psi_a'], res['psi_b'] = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
-        if store_predictions:
-            res['preds'] = {'ml_g0': g_hat0,
-                            'ml_g1': g_hat1,
-                            'ml_m': m_hat,
-                            'ml_r0': r_hat0,
-                            'ml_r1': r_hat1}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1)
+        psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+        preds = {'ml_g0': g_hat0,
+                 'ml_g1': g_hat1,
+                 'ml_m': m_hat,
+                 'ml_r0': r_hat0,
+                 'ml_r1': r_hat1}
+        pred_metrics = self._ml_nuisance_pred_metrics(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _score_elements(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls):
         # compute residuals

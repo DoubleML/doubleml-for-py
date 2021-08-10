@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+from sklearn.metrics import mean_squared_error, accuracy_score
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict, _get_cond_smpls, _dml_tune
-from sklearn.metrics import mean_squared_error, accuracy_score
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune
 
 
 class DoubleMLIRM(DoubleML):
@@ -116,6 +116,9 @@ class DoubleMLIRM(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
@@ -144,7 +147,7 @@ class DoubleMLIRM(DoubleML):
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
                                 '%r was passed.' % score)
-        return score
+        return
 
     def _check_data(self, obj_dml_data):
         if obj_dml_data.z_cols is not None:
@@ -162,7 +165,7 @@ class DoubleMLIRM(DoubleML):
                              'needs to be specified as treatment variable.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
         # get train indices for d == 0 and d == 1
@@ -180,21 +183,19 @@ class DoubleMLIRM(DoubleML):
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
 
-        res = dict()
-        res['psi_a'], res['psi_b'] = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
-        if store_predictions:
-            res['preds'] = {'ml_g0': g_hat0,
-                            'ml_g1': g_hat1,
-                            'ml_m': m_hat}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, d, g_hat0, g_hat1, m_hat)
+        psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
+        preds = {'ml_g0': g_hat0,
+                 'ml_g1': g_hat1,
+                 'ml_m': m_hat}
+        pred_metrics = self._ml_nuisance_pred_metrics(y, d, g_hat0, g_hat1, m_hat)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
         # fraction of treated for ATTE
         p_hat = None
         if self.score == 'ATTE':
-            p_hat = np.zeros_like(d, dtype='float64')
+            p_hat = np.full_like(d, np.nan, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 

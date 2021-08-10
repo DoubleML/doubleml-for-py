@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.model_selection import KFold
 from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression
@@ -10,7 +9,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils_irm_manual import irm_dml1, irm_dml2, fit_nuisance_irm, boot_irm, tune_nuisance_irm
+from ._utils import draw_smpls
+from ._utils_irm_manual import fit_irm, boot_irm, tune_nuisance_irm
 
 
 @pytest.fixture(scope='module',
@@ -83,63 +83,45 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
     dml_irm_obj.fit()
 
     np.random.seed(3141)
-    resampling = KFold(n_splits=n_folds,
-                       shuffle=True)
-    smpls = [(train, test) for train, test in resampling.split(x)]
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
 
     if tune_on_folds:
         g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
-                                                           clone(learner_m), clone(learner_g), smpls, score,
+                                                           clone(learner_g), clone(learner_m), smpls, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
-
-        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
-                                                        clone(learner_m), clone(learner_g), smpls,
-                                                        score,
-                                                        g0_params, g1_params, m_params)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         g0_params, g1_params, m_params = tune_nuisance_irm(y, x, d,
-                                                           clone(learner_m), clone(learner_g), xx, score,
+                                                           clone(learner_g), clone(learner_m), xx, score,
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
+        g0_params = g0_params * n_folds
+        m_params = m_params * n_folds
         if score == 'ATE':
-            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
-                                                            clone(learner_m), clone(learner_g), smpls,
-                                                            score,
-                                                            g0_params * n_folds, g1_params * n_folds, m_params * n_folds)
+            g1_params = g1_params * n_folds
         else:
             assert score == 'ATTE'
-            g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_irm(y, x, d,
-                                                            clone(learner_m), clone(learner_g), smpls,
-                                                            score,
-                                                            g0_params * n_folds, None, m_params * n_folds)
+            g1_params = None
 
-    if dml_procedure == 'dml1':
-        res_manual, se_manual = irm_dml1(y, x, d,
-                                         g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        res_manual, se_manual = irm_dml2(y, x, d,
-                                         g_hat0, g_hat1, m_hat, p_hat,
-                                         smpls, score)
+    res_manual = fit_irm(y, x, d, clone(learner_g), clone(learner_m),
+                         all_smpls, dml_procedure, score,
+                         g0_params=g0_params, g1_params=g1_params, m_params=m_params)
 
     res_dict = {'coef': dml_irm_obj.coef,
-                'coef_manual': res_manual,
+                'coef_manual': res_manual['theta'],
                 'se': dml_irm_obj.se,
-                'se_manual': se_manual,
+                'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_irm(res_manual,
-                                           y, d,
-                                           g_hat0, g_hat1, m_hat, p_hat,
-                                           smpls, score,
-                                           se_manual,
-                                           bootstrap, n_rep_boot,
-                                           dml_procedure)
+        boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                           res_manual['all_m_hat'], res_manual['all_p_hat'],
+                                           all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

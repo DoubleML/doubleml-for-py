@@ -8,7 +8,7 @@ from sklearn.dummy import DummyRegressor
 from sklearn.metrics import mean_squared_error
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict, _dml_tune
+from ._utils import _dml_cv_predict, _dml_tune
 
 
 class DoubleMLPLIV(DoubleML):
@@ -108,6 +108,9 @@ class DoubleMLPLIV(DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
+
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         self.partialX = True
         self.partialZ = False
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -139,6 +142,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = False
         _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -170,6 +175,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = False
         obj.partialZ = True
         _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
@@ -200,6 +207,8 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure,
                   draw_sample_splitting,
                   apply_cross_fitting)
+        obj._check_data(obj._dml_data)
+        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = True
         _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -241,18 +250,23 @@ class DoubleMLPLIV(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
+        if obj_dml_data.n_instr == 0:
+            raise ValueError('Incompatible data. ' +
+                             'At least one variable must be set as instrumental variable. '
+                             'To fit a partially linear regression model without instrumental variable(s) '
+                             'use DoubleMLPLR instead of DoubleMLPLIV.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         if self.partialX & (not self.partialZ):
-            res = self._ml_nuisance_and_score_elements_partial_x(smpls, n_jobs_cv, store_predictions)
+            psi_a, psi_b, preds, pred_metrics = self._ml_nuisance_and_score_elements_partial_x(smpls, n_jobs_cv)
         elif (not self.partialX) & self.partialZ:
-            res = self._ml_nuisance_and_score_elements_partial_z(smpls, n_jobs_cv, store_predictions)
+            psi_a, psi_b, preds, pred_metrics = self._ml_nuisance_and_score_elements_partial_z(smpls, n_jobs_cv)
         else:
             assert (self.partialX & self.partialZ)
-            res = self._ml_nuisance_and_score_elements_partial_xz(smpls, n_jobs_cv, store_predictions)
+            psi_a, psi_b, preds, pred_metrics = self._ml_nuisance_and_score_elements_partial_xz(smpls, n_jobs_cv)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
@@ -269,7 +283,7 @@ class DoubleMLPLIV(DoubleML):
 
         return res
 
-    def _ml_nuisance_and_score_elements_partial_x(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements_partial_x(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
 
@@ -297,15 +311,13 @@ class DoubleMLPLIV(DoubleML):
         r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
 
-        res = dict()
-        res['psi_a'], res['psi_b'] = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
-        if store_predictions:
-            res['preds'] = {'ml_g': g_hat,
-                            'ml_m': m_hat,
-                            'ml_r': r_hat}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_x(y, z, d, g_hat, m_hat, r_hat)
+        psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat,
+                 'ml_r': r_hat}
+        pred_metrics = self._ml_nuisance_pred_metrics_partial_x(y, z, d, g_hat, m_hat, r_hat)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _score_elements(self, y, z, d, g_hat, m_hat, r_hat, smpls):
         # compute residuals
@@ -341,7 +353,7 @@ class DoubleMLPLIV(DoubleML):
 
         return psi_a, psi_b
 
-    def _ml_nuisance_and_score_elements_partial_z(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements_partial_z(self, smpls, n_jobs_cv):
         y = self._dml_data.y
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
                           self._dml_data.d)
@@ -352,20 +364,18 @@ class DoubleMLPLIV(DoubleML):
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
-            res = dict()
-            res['psi_a'] = -np.multiply(r_hat, d)
-            res['psi_b'] = np.multiply(r_hat, y)
+            psi_a = -np.multiply(r_hat, d)
+            psi_b = np.multiply(r_hat, y)
         else:
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialZ.')
 
-        if store_predictions:
-            res['preds'] = {'ml_r': r_hat}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_z(d, r_hat)
+        preds = {'ml_r': r_hat}
+        pred_metrics = self._ml_nuisance_pred_metrics_partial_z(d, r_hat)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
-    def _ml_nuisance_and_score_elements_partial_xz(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements_partial_xz(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
                           self._dml_data.d)
@@ -390,20 +400,18 @@ class DoubleMLPLIV(DoubleML):
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
-            res = dict()
-            res['psi_a'] = -np.multiply(w_hat, (m_hat-m_hat_tilde))
-            res['psi_b'] = np.multiply((m_hat-m_hat_tilde), u_hat)
+            psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
+            psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
         else:
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
-        if store_predictions:
-            res['preds'] = {'ml_g': g_hat,
-                            'ml_m': m_hat,
-                            'ml_r': m_hat_tilde}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics_partial_xz(y, d, g_hat, m_hat, m_hat_tilde)
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat,
+                 'ml_r': m_hat_tilde}
+        pred_metrics = self._ml_nuisance_pred_metrics_partial_xz(y, d, g_hat, m_hat, m_hat_tilde)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _ml_nuisance_tuning_partial_x(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                       search_mode, n_iter_randomized_search):

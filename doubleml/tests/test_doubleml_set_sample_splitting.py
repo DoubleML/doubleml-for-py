@@ -215,3 +215,63 @@ def test_doubleml_draw_vs_set():
                                 n_folds=2, n_rep=4, apply_cross_fitting=False)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
+
+
+@pytest.mark.ci
+def test_doubleml_set_sample_splitting_invalid_sets():
+    # sample splitting with two folds and repeated cross-fitting with n_rep = 2
+    smpls = [[([0, 1.2, 2, 3, 4], [5, 6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = 'Invalid sample split. Train indices must be of type integer.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 6, 8], [1, 3.5, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = 'Invalid sample split. Test indices must be of type integer.'
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 3, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = 'Invalid sample split. Intersection of train and test indices is not empty.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+              ([5, 6, 7, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = 'Invalid sample split. Train indices contain non-unique entries.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 4], [5, 5, 6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = 'Invalid sample split. Test indices contain non-unique entries.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 20], [5, 6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = r'Invalid sample split. Train indices must be in \[0, n_obs\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
+
+    smpls = [[([0, 1, 2, 3, 4], [5, -6, 7, 8, 9]),
+              ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+             [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+              ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+    msg = r'Invalid sample split. Test indices must be in \[0, n_obs\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)

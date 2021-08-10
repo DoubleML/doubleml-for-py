@@ -5,7 +5,7 @@ from sklearn.utils.multiclass import type_of_target
 from sklearn.metrics import mean_squared_error, accuracy_score
 
 from .double_ml import DoubleML
-from ._helper import _dml_cv_predict, _dml_tune
+from ._utils import _dml_cv_predict, _dml_tune
 
 
 class DoubleMLPLR(DoubleML):
@@ -101,6 +101,8 @@ class DoubleMLPLR(DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
 
+        self._check_data(self._dml_data)
+        self._check_score(self.score)
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
@@ -128,7 +130,7 @@ class DoubleMLPLR(DoubleML):
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
                                 '%r was passed.' % score)
-        return score
+        return
 
     def _check_data(self, obj_dml_data):
         if obj_dml_data.z_cols is not None:
@@ -138,7 +140,7 @@ class DoubleMLPLR(DoubleML):
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, d = check_X_y(x, self._dml_data.d)
 
@@ -159,14 +161,12 @@ class DoubleMLPLR(DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        res = dict()
-        res['psi_a'], res['psi_b'] = self._score_elements(y, d, g_hat, m_hat, smpls)
-        if store_predictions:
-            res['preds'] = {'ml_g': g_hat,
-                            'ml_m': m_hat}
-            res['pred_metrics'] = self._ml_nuisance_pred_metrics(y, d, g_hat, m_hat)
+        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
+        preds = {'ml_g': g_hat,
+                 'ml_m': m_hat}
+        pred_metrics = self._ml_nuisance_pred_metrics(y, d, g_hat, m_hat)
 
-        return res
+        return psi_a, psi_b, preds, pred_metrics
 
     def _score_elements(self, y, d, g_hat, m_hat, smpls):
         # compute residuals

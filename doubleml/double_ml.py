@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLData
 from .double_ml_resampling import DoubleMLResampling
-from ._helper import _check_is_partition, _check_all_smpls, _draw_weights
+from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
 class DoubleML(ABC):
@@ -31,7 +31,6 @@ class DoubleML(ABC):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
 
         # initialize learners and parameters which are set model specific
@@ -74,7 +73,7 @@ class DoubleML(ABC):
             raise ValueError('dml_procedure must be "dml1" or "dml2". '
                              f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
-        self._score = self._check_score(score)
+        self._score = score
 
         if (self.n_folds == 1) & self.apply_cross_fitting:
             warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
@@ -375,75 +374,21 @@ class DoubleML(ABC):
     def __psi(self):
         return self._psi[:, self._i_rep, self._i_treat]
 
-    @__psi.setter
-    def __psi(self, value):
-        self._psi[:, self._i_rep, self._i_treat] = value
-
     @property
     def __psi_a(self):
         return self._psi_a[:, self._i_rep, self._i_treat]
-
-    @__psi_a.setter
-    def __psi_a(self, value):
-        self._psi_a[:, self._i_rep, self._i_treat] = value
 
     @property
     def __psi_b(self):
         return self._psi_b[:, self._i_rep, self._i_treat]
 
-    @__psi_b.setter
-    def __psi_b(self, value):
-        self._psi_b[:, self._i_rep, self._i_treat] = value
-
-    @property
-    def __boot_coef(self):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        return self._boot_coef[self._i_treat, ind_start:ind_end]
-
-    @__boot_coef.setter
-    def __boot_coef(self, value):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        self._boot_coef[self._i_treat, ind_start:ind_end] = value
-
-    @property
-    def __boot_t_stat(self):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        return self._boot_t_stat[self._i_treat, ind_start:ind_end]
-
-    @__boot_t_stat.setter
-    def __boot_t_stat(self, value):
-        ind_start = self._i_rep * self.n_rep_boot
-        ind_end = (self._i_rep + 1) * self.n_rep_boot
-        self._boot_t_stat[self._i_treat, ind_start:ind_end] = value
-
     @property
     def __all_coef(self):
         return self._all_coef[self._i_treat, self._i_rep]
 
-    @__all_coef.setter
-    def __all_coef(self, value):
-        self._all_coef[self._i_treat, self._i_rep] = value
-
     @property
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
-
-    @__all_se.setter
-    def __all_se(self, value):
-        self._all_se[self._i_treat, self._i_rep] = value
-
-    @property
-    def __all_dml1_coef(self):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        return self._all_dml1_coef[self._i_treat, self._i_rep, :]
-
-    @__all_dml1_coef.setter
-    def __all_dml1_coef(self, value):
-        assert self.dml_procedure == 'dml1', 'only available for dml_procedure `dml1`'
-        self._all_dml1_coef[self._i_treat, self._i_rep, :] = value
 
     def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False):
         """
@@ -495,22 +440,23 @@ class DoubleML(ABC):
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                ml_nuisance = self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv, store_predictions)
-                self.__psi_a = ml_nuisance['psi_a']
-                self.__psi_b = ml_nuisance['psi_b']
+                self._psi_a[:, self._i_rep, self._i_treat],\
+                    self._psi_b[:, self._i_rep, self._i_treat],\
+                    preds, pred_metrics =\
+                    self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
 
                 if store_predictions:
-                    self._store_predictions(ml_nuisance['preds'])
-                    self._pred_metrics = pd.concat((self._pred_metrics, ml_nuisance['pred_metrics']), axis=1)
+                    self._store_predictions(preds)
+                    self._store_pred_metrics(pred_metrics)
 
                 # estimate the causal parameter
-                self.__all_coef = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
 
                 # compute score (depends on estimated causal parameter)
-                self._compute_score()
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -568,7 +514,10 @@ class DoubleML(ABC):
 
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
-                self.__boot_coef, self.__boot_t_stat = self._compute_bootstrap(weights)
+                i_start = self._i_rep * self.n_rep_boot
+                i_end = (self._i_rep + 1) * self.n_rep_boot
+                self._boot_coef[self._i_treat, i_start:i_end], self._boot_t_stat[self._i_treat, i_start:i_end] =\
+                    self._compute_bootstrap(weights)
 
         return self
 
@@ -906,15 +855,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _check_score(self, score):
-        pass
-
-    @abstractmethod
-    def _check_data(self, obj_dml_data):
-        pass
-
-    @abstractmethod
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv, store_predictions):
+    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         pass
 
     @abstractmethod
@@ -1000,6 +941,9 @@ class DoubleML(ABC):
         for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
 
+    def _store_pred_metrics(self, pred_metrics):
+        self._pred_metrics = pd.concat((self._pred_metrics, pred_metrics), axis=1)
+
     def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.
@@ -1081,6 +1025,7 @@ class DoubleML(ABC):
             if not len(all_smpls) == 2:
                 raise ValueError('Invalid partition provided. '
                                  'Tuple for train_ind and test_ind must consist of exactly two elements.')
+            all_smpls = _check_smpl_split_tpl(all_smpls, self._dml_data.n_obs)
             if (_check_is_partition([all_smpls], self._dml_data.n_obs) &
                     _check_is_partition([(all_smpls[1], all_smpls[0])], self._dml_data.n_obs)):
                 self._n_rep = 1
@@ -1091,7 +1036,7 @@ class DoubleML(ABC):
                 self._n_rep = 1
                 self._n_folds = 2
                 self._apply_cross_fitting = False
-                self._smpls = _check_all_smpls([[all_smpls]], self._dml_data.n_obs)
+                self._smpls = _check_all_smpls([[all_smpls]], self._dml_data.n_obs, check_intersect=True)
         else:
             if not isinstance(all_smpls, list):
                 raise TypeError('all_smpls must be of list or tuple type. '
@@ -1102,6 +1047,7 @@ class DoubleML(ABC):
                     raise ValueError('Invalid partition provided. '
                                      'All tuples for train_ind and test_ind must consist of exactly two elements.')
                 self._n_rep = 1
+                all_smpls = _check_smpl_split(all_smpls, self._dml_data.n_obs)
                 if _check_is_partition(all_smpls, self._dml_data.n_obs):
                     if ((len(all_smpls) == 1) &
                             _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], self._dml_data.n_obs)):
@@ -1111,14 +1057,14 @@ class DoubleML(ABC):
                     else:
                         self._n_folds = len(all_smpls)
                         self._apply_cross_fitting = True
-                        self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
+                        self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs, check_intersect=True)
                 else:
                     if not len(all_smpls) == 1:
                         raise ValueError('Invalid partition provided. '
                                          'Tuples for more than one fold provided that don\'t form a partition.')
                     self._n_folds = 2
                     self._apply_cross_fitting = False
-                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs)
+                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs, check_intersect=True)
             else:
                 all_list = all([isinstance(smpl, list) for smpl in all_smpls])
                 if not all_list:
@@ -1136,6 +1082,7 @@ class DoubleML(ABC):
                 if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
                     raise ValueError('Invalid partition provided. '
                                      'Different number of folds for repeated sample splitting.')
+                all_smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
                 smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
 
                 if all(smpls_are_partitions):
@@ -1149,7 +1096,7 @@ class DoubleML(ABC):
                         self._n_rep = len(all_smpls)
                         self._n_folds = n_folds_each_smpl[0]
                         self._apply_cross_fitting = True
-                        self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
+                        self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
                 else:
                     if not n_folds_each_smpl[0] == 1:
                         raise ValueError('Invalid partition provided. '
@@ -1158,7 +1105,7 @@ class DoubleML(ABC):
                     self._n_rep = len(all_smpls)
                     self._n_folds = 2
                     self._apply_cross_fitting = False
-                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
+                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
 
         self._psi, self._psi_a, self._psi_b, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
@@ -1178,7 +1125,7 @@ class DoubleML(ABC):
             theta_hat = np.mean(thetas)
             coef = theta_hat
 
-            self.__all_dml1_coef = thetas
+            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
 
         else:
             assert dml_procedure == 'dml2'
@@ -1223,39 +1170,22 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self.__all_coef = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
 
                 # compute score (depends on estimated causal parameter)
-                self._compute_score()
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
 
                 # compute standard errors for causal parameter
-                self.__all_se = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
             # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
 
     def _compute_bootstrap(self, weights):
-        dml_procedure = self.dml_procedure
-        smpls = self.__smpls
-
         if self.apply_cross_fitting:
-            if dml_procedure == 'dml1':
-                boot_coefs = np.full((self.n_rep_boot, self.n_folds), np.nan)
-                boot_t_stats = np.full((self.n_rep_boot, self.n_folds), np.nan)
-                for idx, (_, test_index) in enumerate(smpls):
-                    J = np.mean(self.__psi_a[test_index])
-                    boot_coefs[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                            len(test_index) * J)
-                    boot_t_stats[:, idx] = np.matmul(weights[:, test_index], self.__psi[test_index]) / (
-                            len(test_index) * self.__all_se * J)
-                boot_coef = np.mean(boot_coefs, axis=1)
-                boot_t_stat = np.mean(boot_t_stats, axis=1)
-
-            else:
-                assert dml_procedure == 'dml2'
-                J = np.mean(self.__psi_a)
-                boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
-                boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
+            J = np.mean(self.__psi_a)
+            boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
+            boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
         else:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
@@ -1306,7 +1236,8 @@ class DoubleML(ABC):
         return theta
 
     def _compute_score(self):
-        self.__psi = self.__psi_a * self.__all_coef + self.__psi_b
+        psi = self.__psi_a * self.__all_coef + self.__psi_b
+        return psi
 
     def _clean_scores(self):
         del self._psi

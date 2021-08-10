@@ -26,30 +26,16 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
-                params=[0.01])
-def trimming_threshold(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
-                params=[{'always_takers': True, 'never_takers': True},
-                        {'always_takers': False, 'never_takers': True},
-                        {'always_takers': True, 'never_takers': False}])
-def subgroups(request):
+                params=[1, 2])
+def n_folds(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure, trimming_threshold, subgroups):
+def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
     boot_methods = ['normal']
-    n_folds = 2
     n_rep_boot = 491
+    dml_procedure = 'dml1'
 
     # collect data
     data = generate_data_iivm
@@ -65,43 +51,41 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
-                                    subgroups=subgroups,
                                     dml_procedure=dml_procedure,
-                                    trimming_threshold=trimming_threshold)
+                                    apply_cross_fitting=False)
 
-    dml_iivm_obj.fit(store_predictions=True)
+    dml_iivm_obj.fit()
 
     np.random.seed(3141)
     y = data['y'].values
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
+    if n_folds == 1:
+        smpls = [(np.arange(len(y)), np.arange(len(y)))]
+    else:
+        n_obs = len(y)
+        all_smpls = draw_smpls(n_obs, n_folds)
+        smpls = all_smpls[0]
+        smpls = [smpls[0]]
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                          all_smpls, dml_procedure, score, trimming_threshold=trimming_threshold,
-                          always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
+                          [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual['theta'],
                 'se': dml_iivm_obj.se,
                 'se_manual': res_manual['se'],
-                'boot_methods': boot_methods,
-                'always_takers': subgroups['always_takers'],
-                'never_takers': subgroups['never_takers'],
-                'rhat0': dml_iivm_obj.predictions['ml_r0'],
-                'rhat1': dml_iivm_obj.predictions['ml_r1'],
-                'z': z
-                }
+                'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot)
+                                            [smpls], score, bootstrap, n_rep_boot,
+                                            apply_cross_fitting=False)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
@@ -114,33 +98,25 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
 
 
 @pytest.mark.ci
-def test_dml_iivm_subgroups_coef(dml_iivm_subgroups_fixture):
-    assert math.isclose(dml_iivm_subgroups_fixture['coef'],
-                        dml_iivm_subgroups_fixture['coef_manual'],
+def test_dml_iivm_no_cross_fit_coef(dml_iivm_no_cross_fit_fixture):
+    assert math.isclose(dml_iivm_no_cross_fit_fixture['coef'],
+                        dml_iivm_no_cross_fit_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_iivm_subgroups_se(dml_iivm_subgroups_fixture):
-    assert math.isclose(dml_iivm_subgroups_fixture['se'],
-                        dml_iivm_subgroups_fixture['se_manual'],
+def test_dml_iivm_no_cross_fit_se(dml_iivm_no_cross_fit_fixture):
+    assert math.isclose(dml_iivm_no_cross_fit_fixture['se'],
+                        dml_iivm_no_cross_fit_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_iivm_subgroups_boot(dml_iivm_subgroups_fixture):
-    for bootstrap in dml_iivm_subgroups_fixture['boot_methods']:
-        assert np.allclose(dml_iivm_subgroups_fixture['boot_coef' + bootstrap],
-                           dml_iivm_subgroups_fixture['boot_coef' + bootstrap + '_manual'],
+def test_dml_iivm_no_cross_fit_boot(dml_iivm_no_cross_fit_fixture):
+    for bootstrap in dml_iivm_no_cross_fit_fixture['boot_methods']:
+        assert np.allclose(dml_iivm_no_cross_fit_fixture['boot_coef' + bootstrap],
+                           dml_iivm_no_cross_fit_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-        assert np.allclose(dml_iivm_subgroups_fixture['boot_t_stat' + bootstrap],
-                           dml_iivm_subgroups_fixture['boot_t_stat' + bootstrap + '_manual'],
+        assert np.allclose(dml_iivm_no_cross_fit_fixture['boot_t_stat' + bootstrap],
+                           dml_iivm_no_cross_fit_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-
-
-@pytest.mark.ci
-def test_dml_iivm_subgroups(dml_iivm_subgroups_fixture):
-    if not dml_iivm_subgroups_fixture['always_takers']:
-        assert np.all(dml_iivm_subgroups_fixture['rhat0'] == 0)
-    if not dml_iivm_subgroups_fixture['never_takers']:
-        assert np.all(dml_iivm_subgroups_fixture['rhat1'] == 1)
