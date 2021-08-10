@@ -428,7 +428,6 @@ class DoubleML(ABC):
 
         if store_predictions:
             self._initialize_predictions()
-            self._pred_metrics = pd.DataFrame()
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -936,6 +935,7 @@ class DoubleML(ABC):
     def _initialize_predictions(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
                              for learner in self.params_names}
+        self._pred_metrics = pd.DataFrame()
 
     def _store_predictions(self, preds):
         for learner in self.params_names:
