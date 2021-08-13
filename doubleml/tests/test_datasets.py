@@ -2,9 +2,9 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
-    make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2019
+    make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -134,11 +134,17 @@ def test_make_pliv_CHS2015_return_types():
 
 
 @pytest.mark.ci
-def test_make_pliv_multiway_cluster_CKMS2019_return_types():
+def test_make_pliv_multiway_cluster_CKMS2021_return_types():
     np.random.seed(3141)
-    res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DoubleMLData')
-    assert isinstance(res, DoubleMLData)
-    res = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='DataFrame')
+    res = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='DoubleMLClusterData')
+    assert isinstance(res, DoubleMLClusterData)
+    res = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='DataFrame')
     assert isinstance(res, pd.DataFrame)
+    x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='array')
+    assert isinstance(x, np.ndarray)
+    assert isinstance(y, np.ndarray)
+    assert isinstance(d, np.ndarray)
+    assert isinstance(cluster_vars, np.ndarray)
+    assert isinstance(z, np.ndarray)
     with pytest.raises(ValueError, match=msg_inv_return_type):
-        _ = make_pliv_multiway_cluster_CKMS2019(n_obs=100, return_type='array')
+        _ = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='matrix')

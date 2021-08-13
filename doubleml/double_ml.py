@@ -10,8 +10,8 @@ from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
 
-from .double_ml_data import DoubleMLData
-from .double_ml_resampling import DoubleMLResampling
+from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
@@ -31,6 +31,11 @@ class DoubleML(ABC):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        self._is_cluster_data = False
+        if isinstance(obj_dml_data, DoubleMLClusterData):
+            if obj_dml_data.n_cluster_vars > 2:
+                raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented.')
+            self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
         # initialize learners and parameters which are set model specific
@@ -63,7 +68,14 @@ class DoubleML(ABC):
                             f'Got {str(draw_sample_splitting)}.')
 
         # set resampling specifications
-        self._n_folds = n_folds
+        if self._is_cluster_data:
+            if (n_folds == 1) | (not apply_cross_fitting):
+                raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
+                                          'is not yet implemented with clustering.')
+            self._n_folds_per_cluster = n_folds
+            self._n_folds = n_folds ** self._dml_data.n_cluster_vars
+        else:
+            self._n_folds = n_folds
         self._n_rep = n_rep
         self._apply_cross_fitting = apply_cross_fitting
 
@@ -86,6 +98,7 @@ class DoubleML(ABC):
 
         # perform sample splitting
         self._smpls = None
+        self._smpls_cluster = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -103,19 +116,30 @@ class DoubleML(ABC):
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
+        if self._is_cluster_data:
+            cluster_info = f'Cluster variable(s): {self._dml_data.cluster_cols}\n'
+        else:
+            cluster_info = ''
         data_info = f'Outcome variable: {self._dml_data.y_col}\n' \
                     f'Treatment variable(s): {self._dml_data.d_cols}\n' \
                     f'Covariates: {self._dml_data.x_cols}\n' \
                     f'Instrument variable(s): {self._dml_data.z_cols}\n' \
+                    + cluster_info +\
                     f'No. Observations: {self._dml_data.n_obs}\n'
         score_info = f'Score function: {str(self.score)}\n' \
                      f'DML algorithm: {self.dml_procedure}\n'
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
-        resampling_info = f'No. folds: {self.n_folds}\n' \
-                          f'No. repeated sample splits: {self.n_rep}\n' \
-                          f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+        if self._is_cluster_data:
+            resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
+                              f'No. folds: {self.n_folds}\n' \
+                              f'No. repeated sample splits: {self.n_rep}\n' \
+                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+        else:
+            resampling_info = f'No. folds: {self.n_folds}\n' \
+                              f'No. repeated sample splits: {self.n_rep}\n' \
+                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
         fit_summary = str(self.summary)
         res = header + \
             '\n------------------ Data summary      ------------------\n' + data_info + \
@@ -235,9 +259,23 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            raise ValueError('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
-                             'or set external samples via .set_sample_splitting().')
+            if self._is_cluster_data:
+                err_msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
+            else:
+                err_msg = ('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
+                           'or set external samples via .set_sample_splitting().')
+            raise ValueError(err_msg)
         return self._smpls
+
+    @property
+    def smpls_cluster(self):
+        """
+        The partition of clusters used for cross-fitting.
+        """
+        if self._is_cluster_data:
+            if self._smpls_cluster is None:
+                raise ValueError('Sample splitting not specified. Draw samples via .draw_sample splitting().')
+        return self._smpls_cluster
 
     @property
     def psi(self):
@@ -363,6 +401,10 @@ class DoubleML(ABC):
         return self._smpls[self._i_rep]
 
     @property
+    def __smpls_cluster(self):
+        return self._smpls_cluster[self._i_rep]
+
+    @property
     def __psi(self):
         return self._psi[:, self._i_rep, self._i_treat]
 
@@ -484,6 +526,8 @@ class DoubleML(ABC):
         if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
+        if self._is_cluster_data:
+            raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
 
@@ -940,11 +984,20 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep=self.n_rep,
-                                                n_obs=self._dml_data.n_obs,
-                                                apply_cross_fitting=self.apply_cross_fitting)
-        self._smpls = obj_dml_resampling.split_samples()
+        if self._is_cluster_data:
+            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
+                                                           n_rep=self.n_rep,
+                                                           n_obs=self._dml_data.n_obs,
+                                                           apply_cross_fitting=self.apply_cross_fitting,
+                                                           n_cluster_vars=self._dml_data.n_cluster_vars,
+                                                           cluster_vars=self._dml_data.cluster_vars)
+            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
+        else:
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                    n_rep=self.n_rep,
+                                                    n_obs=self._dml_data.n_obs,
+                                                    apply_cross_fitting=self.apply_cross_fitting)
+            self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
@@ -1006,6 +1059,9 @@ class DoubleML(ABC):
         >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
+        if self._is_cluster_data:
+            raise NotImplementedError('Externally setting the sample splitting for DoubleML is '
+                                      'not yet implemented with clustering.')
         if isinstance(all_smpls, tuple):
             if not len(all_smpls) == 2:
                 raise ValueError('Invalid partition provided. '
@@ -1102,31 +1158,30 @@ class DoubleML(ABC):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
-        if dml_procedure == 'dml1':
-            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-            thetas = np.zeros(len(smpls))
-            for idx, (_, test_index) in enumerate(smpls):
-                thetas[idx] = self._orth_est(test_index)
-            theta_hat = np.mean(thetas)
-            coef = theta_hat
+        if not self._is_cluster_data:
+            if dml_procedure == 'dml1':
+                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+                thetas = np.zeros(len(smpls))
+                for idx, (_, test_index) in enumerate(smpls):
+                    thetas[idx] = self._orth_est(test_index)
+                theta_hat = np.mean(thetas)
+                coef = theta_hat
 
-            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
-
+                self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
+            else:
+                assert dml_procedure == 'dml2'
+                theta_hat = self._orth_est()
+                coef = theta_hat
         else:
-            assert dml_procedure == 'dml2'
-            theta_hat = self._orth_est()
-            coef = theta_hat
+            coef = self._orth_est_cluster_data()
 
         return coef
 
     def _se_causal_pars(self):
-        if self.apply_cross_fitting:
+        if not self._is_cluster_data:
             se = np.sqrt(self._var_est())
         else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            se = np.sqrt(self._var_est(test_index))
+            se = np.sqrt(self._var_est_cluster_data())
 
         return se
 
@@ -1136,17 +1191,12 @@ class DoubleML(ABC):
         self.coef = np.median(self._all_coef, 1)
 
         # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        if self.apply_cross_fitting:
-            n_obs = self._dml_data.n_obs
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            n_obs = len(test_index)
+        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
+        # TODO: In the edge case of repeated no-cross-fitting, the test sets might have different size and therefore
+        #  it would note be valid to always use the same self._var_scaling_factor
         xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), n_obs) +
-                                              np.power(self._all_coef - xx, 2), 1), n_obs))
+        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), self._var_scaling_factor) +
+                                              np.power(self._all_coef - xx, 2), 1), self._var_scaling_factor))
 
     def _est_causal_pars_and_se(self):
         for i_rep in range(self.n_rep):
@@ -1182,26 +1232,76 @@ class DoubleML(ABC):
 
         return boot_coef, boot_t_stat
 
-    def _var_est(self, inds=None):
+    def _var_est(self):
         """
         Estimate the standard errors of the structural parameter
         """
         psi_a = self.__psi_a
         psi = self.__psi
 
-        if inds is not None:
-            assert not self.apply_cross_fitting
-            psi_a = psi_a[inds]
-            psi = psi[inds]
-            n_obs = len(inds)
+        if self.apply_cross_fitting:
+            self._var_scaling_factor = self._dml_data.n_obs
         else:
-            assert self.apply_cross_fitting
-            n_obs = self._dml_data.n_obs
+            # In case of no-cross-fitting, the score function was only evaluated on the test data set
+            smpls = self.__smpls
+            test_index = smpls[0][1]
+            psi_a = psi_a[test_index]
+            psi = psi[test_index]
+            self._var_scaling_factor = len(test_index)
 
-        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        # the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
         J = np.mean(psi_a)
-        sigma2_hat = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
+        sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
+
+        return sigma2_hat
+
+    def _var_est_cluster_data(self):
+        psi_a = self.__psi_a
+        psi = self.__psi
+
+        if self._dml_data.n_cluster_vars == 1:
+            this_cluster_var = self._dml_data.cluster_vars[:, 0]
+            clusters = np.unique(this_cluster_var)
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(self.n_folds):
+                test_inds = self.__smpls[i_fold][1]
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                const = 1 / len(I_k)
+                for cluster_value in I_k:
+                    ind_cluster = (this_cluster_var == cluster_value)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_a[test_inds]) / len(I_k)
+
+            gamma_hat = gamma_hat / self._n_folds_per_cluster
+            j_hat = j_hat / self._n_folds_per_cluster
+            self._var_scaling_factor = len(clusters)
+            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
+        else:
+            assert self._dml_data.n_cluster_vars == 2
+            first_cluster_var = self._dml_data.cluster_vars[:, 0]
+            second_cluster_var = self._dml_data.cluster_vars[:, 1]
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(self.n_folds):
+                test_inds = self.__smpls[i_fold][1]
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                J_l = test_cluster_inds[1]
+                const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
+                for cluster_value in I_k:
+                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                for cluster_value in J_l:
+                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_a[test_inds]) / (len(I_k) * len(J_l))
+            gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
+            j_hat = j_hat / (self._n_folds_per_cluster ** 2)
+            n_first_clusters = len(np.unique(first_cluster_var))
+            n_second_clusters = len(np.unique(second_cluster_var))
+            self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
+            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
 
         return sigma2_hat
 
@@ -1217,6 +1317,36 @@ class DoubleML(ABC):
             psi_b = psi_b[inds]
 
         theta = -np.mean(psi_b) / np.mean(psi_a)
+
+        return theta
+
+    def _orth_est_cluster_data(self):
+        dml_procedure = self.dml_procedure
+        smpls = self.__smpls
+        psi_a = self.__psi_a
+        psi_b = self.__psi_b
+
+        if dml_procedure == 'dml1':
+            # note that in the dml1 case we could also simply apply the standard function without cluster adjustment
+            thetas = np.zeros(len(smpls))
+            for i_fold, (_, test_index) in enumerate(smpls):
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                thetas[i_fold] = - (scaling_factor * np.sum(psi_b[test_index])) / \
+                    (scaling_factor * np.sum(psi_a[test_index]))
+            theta = np.mean(thetas)
+            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
+        else:
+            assert dml_procedure == 'dml2'
+            # See Chiang et al. (2021) Algorithm 1
+            psi_a_subsample_mean = 0.
+            psi_b_subsample_mean = 0.
+            for i_fold, (_, test_index) in enumerate(smpls):
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                psi_a_subsample_mean += scaling_factor * np.sum(psi_a[test_index])
+                psi_b_subsample_mean += scaling_factor * np.sum(psi_b[test_index])
+            theta = -psi_b_subsample_mean / psi_a_subsample_mean
 
         return theta
 

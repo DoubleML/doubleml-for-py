@@ -11,6 +11,7 @@ Double machine learning data class
     :template: class.rst
 
     DoubleMLData
+    DoubleMLClusterData
 
 Double machine learning models
 ------------------------------
@@ -55,4 +56,4 @@ Dataset generators
    datasets.make_irm_data
    datasets.make_iivm_data
    datasets.make_plr_turrell2018
-   datasets.make_pliv_multiway_cluster_CKMS2019
+   datasets.make_pliv_multiway_cluster_CKMS2021

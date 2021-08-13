@@ -2,8 +2,9 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+    make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
@@ -12,11 +13,13 @@ np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
 ml_g = Lasso()
 ml_m = Lasso()
+ml_r = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
+dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 
 
 @pytest.mark.ci
@@ -222,6 +225,12 @@ def test_doubleml_exception_smpls():
     dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
+    msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
+    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r, draw_sample_splitting=False)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster_no_smpls.smpls_cluster
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster_no_smpls.smpls
 
 
 @pytest.mark.ci
@@ -445,3 +454,36 @@ def test_doubleml_exception_and_warning_learner():
     msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
+
+
+@pytest.mark.ci
+def test_doubleml_cluster_not_yet_implemented():
+    dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
+    dml_pliv_cluster.fit()
+    msg = 'bootstrap not yet implemented with clustering.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv_cluster.bootstrap()
+
+    smpls = dml_plr.smpls
+    msg = ('Externally setting the sample splitting for DoubleML is '
+           'not yet implemented with clustering.')
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(smpls)
+
+    df = dml_cluster_data_pliv.data.copy()
+    df['cluster_var_k'] = df['cluster_var_i'] + df['cluster_var_j'] - 2
+    dml_cluster_data_multiway = DoubleMLClusterData(df, y_col='Y', d_cols='D', x_cols=['X1', 'X5'], z_cols='Z',
+                                                    cluster_cols=['cluster_var_i', 'cluster_var_j', 'cluster_var_k'])
+    assert dml_cluster_data_multiway.n_cluster_vars == 3
+    msg = r'Multi-way \(n_ways > 2\) clustering not yet implemented.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_multiway, ml_g, ml_m, ml_r)
+
+    msg = (r'No cross-fitting \(`apply_cross_fitting = False`\) '
+           'is not yet implemented with clustering.')
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
+                         n_folds=1)
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
+                         apply_cross_fitting=False, n_folds=2)

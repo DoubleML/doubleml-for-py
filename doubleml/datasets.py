@@ -6,7 +6,12 @@ from scipy.linalg import toeplitz
 from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
 
-from .double_ml_data import DoubleMLData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData
+
+_array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
+_data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
+_dml_data_alias = ['DoubleMLData', DoubleMLData]
+_dml_cluster_data_alias = ['DoubleMLClusterData', DoubleMLClusterData]
 
 
 def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
@@ -120,11 +125,6 @@ def _g(x):
 
 def _m(x, nu=0., gamma=1.):
     return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
-
-
-_array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
-_data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
-_dml_data_alias = ['DoubleMLData', DoubleMLData]
 
 
 def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
@@ -551,10 +551,10 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
         raise ValueError('Invalid return_type.')
 
 
-def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLData', **kwargs):
+def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLClusterData', **kwargs):
     """
     Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al.
-    (2019). The data generating process is defined as
+    (2021). The data generating process is defined as
 
     .. math::
 
@@ -590,7 +590,7 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
         \\left(\\begin{matrix} \\alpha_{ij}^\\varepsilon \\\\ \\alpha_{ij}^v \\end{matrix}\\right),
         \\left(\\begin{matrix} \\alpha_{i}^\\varepsilon \\\\ \\alpha_{i}^v \\end{matrix}\\right),
         \\left(\\begin{matrix} \\alpha_{j}^\\varepsilon \\\\ \\alpha_{j}^v \\end{matrix}\\right)
-        \\sim \\mathcal{N}\\left((0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\
+        \\sim \\mathcal{N}\\left(0, \\left(\\begin{matrix} 1 & s_{\\varepsilon v} \\\\
         s_{\\varepsilon v} & 1 \\end{matrix} \\right) \\right)
 
 
@@ -607,19 +607,25 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     theta :
         The value of the causal parameter.
     return_type :
-        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object where ``DoubleMLData.data`` is a
-        ``pd.DataFrame`` with multiindex.
+        If ``'DoubleMLClusterData'`` or ``DoubleMLClusterData``, returns a ``DoubleMLClusterData`` object where
+        ``DoubleMLClusterData.data`` is a ``pd.DataFrame``.
 
-        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame`` with multiindex.
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s
+        ``(x, y, d, cluster_vars, z)``.
     **kwargs
         Additional keyword arguments to set non-default values for the parameters
         :math:`\\pi_{10}=1.0`, :math:`\\omega_X = \\omega_{\\varepsilon} = \\omega_V = \\omega_v = (0.25, 0.25)`,
         :math:`s_X = s_{\\varepsilon v} = 0.25`,
-        or the :math:`p_x`-vectors :math:`\\zeta_0 = \\pi_{20} = \\xi_0` with default entries :math:`(\\zeta_{0})_j = 0.5^j`.
+        or the :math:`p_x`-vectors :math:`\\zeta_0 = \\pi_{20} = \\xi_0` with default entries
+        :math:`(\\zeta_{0})_j = 0.5^j`.
 
     References
     ----------
-    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2019), Multiway Cluster Robust Double/Debiased Machine Learning,
+    Chiang, H. D., Kato K., Ma, Y. and Sasaki, Y. (2021), Multiway Cluster Robust Double/Debiased Machine Learning,
+    Journal of Business & Economic Statistics,
+    doi: `10.1080/07350015.2021.1895815 <https://doi.org/10.1080/07350015.2021.1895815>`_,
     arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
     """
     # additional parameters specifiable via kwargs
@@ -683,16 +689,19 @@ def make_pliv_multiway_cluster_CKMS2019(N=25, M=25, dim_X=100, theta=1., return_
     d = z * pi_10 + np.matmul(x, pi_20) + v
     y = d * theta + np.matmul(x, zeta_0) + eps
 
-    ind = pd.MultiIndex.from_product([range(N), range(M)])
+    cluster_cols = ['cluster_var_i', 'cluster_var_j']
+    cluster_vars = pd.MultiIndex.from_product([range(N), range(M)]).to_frame(name=cluster_cols).reset_index(drop=True)
 
-    if return_type in _data_frame_alias + _dml_data_alias:
+    if return_type in _array_alias:
+        return x, y, d, cluster_vars.values, z
+    elif return_type in _data_frame_alias + _dml_cluster_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
-        data = pd.DataFrame(np.column_stack((x, y, d, z)),
-                            columns=x_cols + ['Y', 'D', 'Z'],
-                            index=ind)
+        data = pd.concat((cluster_vars,
+                          pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ['Y', 'D', 'Z'])),
+                         axis=1)
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'Y', 'D', x_cols, 'Z')
+            return DoubleMLClusterData(data, 'Y', 'D', cluster_cols, x_cols, 'Z')
     else:
         raise ValueError('Invalid return_type.')

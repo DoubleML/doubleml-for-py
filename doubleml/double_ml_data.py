@@ -68,7 +68,7 @@ class DoubleMLData:
         self.d_cols = d_cols
         self.z_cols = z_cols
         self.x_cols = x_cols
-        self._check_disjoint_sets()
+        self._check_disjoint_sets_y_d_x_z()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self._binary_treats = self._check_binary_treats()
         self._set_y_z()
@@ -410,6 +410,10 @@ class DoubleMLData:
         return is_binary
 
     def _check_disjoint_sets(self):
+        # this function can be extended in inherited subclasses
+        self._check_disjoint_sets_y_d_x_z()
+
+    def _check_disjoint_sets_y_d_x_z(self):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
@@ -437,3 +441,227 @@ class DoubleMLData:
             if not x_cols_set.isdisjoint(z_cols_set):
                 raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
                                  'variable in ``z_cols``.')
+
+
+class DoubleMLClusterData(DoubleMLData):
+    """Double machine learning data-backend for data with cluster variables.
+
+    :class:`DoubleMLClusterData` objects can be initialized from
+    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The outcome variable.
+
+    d_cols : str or list
+        The treatment variable(s).
+
+    cluster_cols : str or list
+        The cluster variable(s).
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
+        Default is ``None``.
+
+    z_cols : None, str or list
+        The instrumental variable(s).
+        Default is ``None``.
+
+    use_other_treat_as_covariate : bool
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        Default is ``True``.
+
+    Examples
+    --------
+    >>> from doubleml import DoubleMLClusterData
+    >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+    >>> # initialization from pandas.DataFrame
+    >>> df = make_pliv_multiway_cluster_CKMS2021(return_type='DataFrame')
+    >>> obj_dml_data_from_df = DoubleMLClusterData(df, 'Y', 'D', ['cluster_var_i', 'cluster_var_j'], z_cols='Z')
+    >>> # initialization from np.ndarray
+    >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
+    >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
+    """
+    def __init__(self,
+                 data,
+                 y_col,
+                 d_cols,
+                 cluster_cols,
+                 x_cols=None,
+                 z_cols=None,
+                 use_other_treat_as_covariate=True):
+        # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
+        self._data = data
+        self.cluster_cols = cluster_cols
+        self._set_cluster_vars()
+        super().__init__(data,
+                         y_col,
+                         d_cols,
+                         x_cols,
+                         z_cols,
+                         use_other_treat_as_covariate)
+        self._check_disjoint_sets_cluster_cols()
+
+    def __str__(self):
+        data_info = f'Outcome variable: {self.y_col}\n' \
+                    f'Treatment variable(s): {self.d_cols}\n' \
+                    f'Cluster variable(s): {self.cluster_cols}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'Instrument variable(s): {self.z_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLClusterData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    @classmethod
+    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
+        """
+        Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y : :class:`numpy.ndarray`
+            Array of the outcome variable.
+
+        d : :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        cluster_vars : :class:`numpy.ndarray`
+            Array of cluster variables.
+
+        z : None or :class:`numpy.ndarray`
+            Array of instrumental variables.
+            Default is ``None``.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLClusterData
+        >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+        >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
+        """
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate)
+        cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
+        cluster_vars = _assure_2d_array(cluster_vars)
+        if cluster_vars.shape[1] == 1:
+            cluster_cols = ['cluster_var']
+        else:
+            cluster_cols = [f'cluster_var{i + 1}' for i in np.arange(cluster_vars.shape[1])]
+
+        data = pd.concat((pd.DataFrame(cluster_vars, columns=cluster_cols), dml_data.data), axis=1)
+
+        return(cls(data, dml_data.y_col, dml_data.d_cols,
+                   cluster_cols,
+                   dml_data.x_cols, dml_data.z_cols, dml_data.use_other_treat_as_covariate))
+
+    @property
+    def cluster_cols(self):
+        """
+        The cluster variable(s).
+        """
+        return self._cluster_cols
+
+    @cluster_cols.setter
+    def cluster_cols(self, value):
+        reset_value = hasattr(self, '_cluster_cols')
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, list):
+            raise TypeError('The cluster variable(s) cluster_cols must be of str or list type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if not len(set(value)) == len(value):
+            raise ValueError('Invalid cluster variable(s) cluster_cols: '
+                             'Contains duplicate values.')
+        if not set(value).issubset(set(self.all_variables)):
+            raise ValueError('Invalid cluster variable(s) cluster_cols. '
+                             'At least one cluster variable is no data column.')
+        self._cluster_cols = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_cluster_vars()
+
+    @property
+    def n_cluster_vars(self):
+        """
+        The number of cluster variables.
+        """
+        return len(self.cluster_cols)
+
+    @property
+    def cluster_vars(self):
+        """
+        Array of cluster variable(s).
+        """
+        return self._cluster_vars.values
+
+    @DoubleMLData.x_cols.setter
+    def x_cols(self, value):
+        if value is not None:
+            # this call might become much easier with https://github.com/python/cpython/pull/26194
+            super(self.__class__, self.__class__).x_cols.__set__(self, value)
+        else:
+            if self.z_cols is not None:
+                y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_z]
+            else:
+                y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d]
+            # this call might become much easier with https://github.com/python/cpython/pull/26194
+            super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
+
+    def _check_disjoint_sets(self):
+        # apply the standard checks from the DoubleMLData class
+        super(DoubleMLClusterData, self)._check_disjoint_sets()
+        self._check_disjoint_sets_cluster_cols()
+
+    def _check_disjoint_sets_cluster_cols(self):
+        # apply the standard checks from the DoubleMLData class
+        super(DoubleMLClusterData, self)._check_disjoint_sets()
+
+        # special checks for the additional cluster variables
+        cluster_cols_set = set(self.cluster_cols)
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(cluster_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster '
+                             'variable in ``cluster_cols``.')
+        if not d_cols_set.isdisjoint(cluster_cols_set):
+            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and '
+                             'cluster variable in ``cluster_cols``.')
+        # TODO: Is the following combination allowed, or not?
+        if not x_cols_set.isdisjoint(cluster_cols_set):
+            raise ValueError('At least one variable/column is set as covariate (``x_cols``) and cluster '
+                             'variable in ``cluster_cols``.')
+        if self.z_cols is not None:
+            z_cols_set = set(self.z_cols)
+            if not z_cols_set.isdisjoint(cluster_cols_set):
+                raise ValueError('At least one variable/column is set as instrumental variable (``z_cols``) and '
+                                 'cluster variable in ``cluster_cols``.')
+
+    def _set_cluster_vars(self):
+        self._cluster_vars = self.data.loc[:, self.cluster_cols]
