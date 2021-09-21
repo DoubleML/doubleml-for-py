@@ -164,8 +164,10 @@ class DoubleMLIRM(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
@@ -226,8 +228,10 @@ class DoubleMLIRM(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
