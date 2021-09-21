@@ -3,6 +3,7 @@ import pandas as pd
 import io
 
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
+from sklearn.utils import check_X_y, assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from ._utils import _assure_2d_array
 
@@ -55,7 +56,8 @@ class DoubleMLData:
                  d_cols,
                  x_cols=None,
                  z_cols=None,
-                 use_other_treat_as_covariate=True):
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
         if not isinstance(data, pd.DataFrame):
             raise TypeError('data must be of pd.DataFrame type. '
                             f'{str(data)} of type {str(type(data))} was passed.')
@@ -70,6 +72,7 @@ class DoubleMLData:
         self.x_cols = x_cols
         self._check_disjoint_sets_y_d_x_z()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
+        self.force_all_x_finite = force_all_x_finite
         self._binary_treats = self._check_binary_treats()
         self._set_y_z()
         # by default, we initialize to the first treatment variable
@@ -90,7 +93,8 @@ class DoubleMLData:
         return res
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
@@ -154,7 +158,7 @@ class DoubleMLData:
             data = pd.DataFrame(np.column_stack((x, y, d, z)),
                                 columns=x_cols + [y_col] + d_cols + z_cols)
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate)
+        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def data(self):
@@ -369,10 +373,12 @@ class DoubleMLData:
         self._use_other_treat_as_covariate = value
 
     def _set_y_z(self):
+        assert_all_finite(self.data.loc[:, self.y_col])
         self._y = self.data.loc[:, self.y_col]
         if self.z_cols is None:
             self._z = None
         else:
+            assert_all_finite(self.data.loc[:, self.z_cols])
             self._z = self.data.loc[:, self.z_cols]
 
     def set_x_d(self, treatment_var):
@@ -397,8 +403,9 @@ class DoubleMLData:
             xd_list.remove(treatment_var)
         else:
             xd_list = self.x_cols
-        self._d = self.data.loc[:, treatment_var]
-        self._X = self.data.loc[:, xd_list]
+        self._d, self._X = check_X_y(self.data.loc[:, xd_list],
+                                     self.data.loc[:, treatment_var],
+                                     force_all_finite=self.force_all_x_finite)
 
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
