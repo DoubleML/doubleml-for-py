@@ -284,8 +284,8 @@ def generate_data_irm_w_missings(request):
 
     # randomly set some entries to np.nan
     ind = np.random.choice(np.arange(x.size), replace=False,
-                           size=int(x.size * 0.2))
-    x[ind] = np.nan
+                           size=int(x.size * 0.05))
+    x[np.unravel_index(ind, x.shape)] = np.nan
     data = (x, y, d)
 
     return data
