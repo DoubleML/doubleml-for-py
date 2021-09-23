@@ -124,7 +124,8 @@ class DoubleMLData:
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
-        x = check_array(x, ensure_2d=False, allow_nd=False)
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
         d = check_array(d, ensure_2d=False, allow_nd=False)
         y = column_or_1d(y, warn=True)
 
