@@ -2,6 +2,7 @@
 # test
 pytest
 rpy2
+xgboost
 
 # doc
 sphinx
