@@ -403,9 +403,12 @@ class DoubleMLData:
             xd_list.remove(treatment_var)
         else:
             xd_list = self.x_cols
-        self._d, self._X = check_X_y(self.data.loc[:, xd_list],
-                                     self.data.loc[:, treatment_var],
-                                     force_all_finite=self.force_all_x_finite)
+        assert_all_finite(self.data.loc[:, treatment_var])
+        if self.force_all_x_finite:
+            assert_all_finite(self.data.loc[:, xd_list],
+                              allow_nan=self.force_all_x_finite == 'allow-nan')
+        self._d = self.data.loc[:, treatment_var]
+        self._X = self.data.loc[:, xd_list]
 
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
