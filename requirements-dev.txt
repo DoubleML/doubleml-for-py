@@ -1,15 +1,8 @@
 
 # test
 pytest
-rpy2
 xgboost
 
 # doc
 sphinx
-sphinx-copybutton
-sphinx-gallery
-sphinx-panels
-jupyter-sphinx
 pydata-sphinx-theme
-matplotlib
-seaborn
