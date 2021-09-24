@@ -506,7 +506,8 @@ class DoubleMLClusterData(DoubleMLData):
                  cluster_cols,
                  x_cols=None,
                  z_cols=None,
-                 use_other_treat_as_covariate=True):
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
         # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
         if not isinstance(data, pd.DataFrame):
             raise TypeError('data must be of pd.DataFrame type. '
@@ -522,7 +523,8 @@ class DoubleMLClusterData(DoubleMLData):
                          d_cols,
                          x_cols,
                          z_cols,
-                         use_other_treat_as_covariate)
+                         use_other_treat_as_covariate,
+                         force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
 
     def __str__(self):
@@ -541,7 +543,8 @@ class DoubleMLClusterData(DoubleMLData):
         return res
 
     @classmethod
-    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
 
@@ -574,7 +577,7 @@ class DoubleMLClusterData(DoubleMLData):
         >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
-        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate)
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate, force_all_x_finite)
         cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
         cluster_vars = _assure_2d_array(cluster_vars)
         if cluster_vars.shape[1] == 1:
@@ -586,7 +589,8 @@ class DoubleMLClusterData(DoubleMLData):
 
         return(cls(data, dml_data.y_col, dml_data.d_cols,
                    cluster_cols,
-                   dml_data.x_cols, dml_data.z_cols, dml_data.use_other_treat_as_covariate))
+                   dml_data.x_cols, dml_data.z_cols,
+                   dml_data.use_other_treat_as_covariate, dml_data.force_all_x_finite))
 
     @property
     def cluster_cols(self):
@@ -675,4 +679,5 @@ class DoubleMLClusterData(DoubleMLData):
                                  'cluster variable in ``cluster_cols``.')
 
     def _set_cluster_vars(self):
+        assert_all_finite(self.data.loc[:, self.cluster_cols])
         self._cluster_vars = self.data.loc[:, self.cluster_cols]
