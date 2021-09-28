@@ -446,3 +446,38 @@ def test_dml_datatype():
         _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
     with pytest.raises(TypeError):
         _ = DoubleMLClusterData(data_array, y_col='y', d_cols=['d'], cluster_cols=['X3', 'X2'])
+
+
+@pytest.mark.ci
+def test_dml_data_w_missings(generate_data_irm_w_missings):
+    (x, y, d) = generate_data_irm_w_missings
+
+    _ = DoubleMLData.from_arrays(x, y, d,
+                                 force_all_x_finite=False)
+
+    _ = DoubleMLData.from_arrays(x, y, d,
+                                 force_all_x_finite='allow-nan')
+
+    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, d,
+                                     force_all_x_finite=True)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, x[:, 0], d,
+                                     force_all_x_finite=False)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, x[:, 0],
+                                     force_all_x_finite=False)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, d, x[:, 0],
+                                     force_all_x_finite=False)
+
+    msg = r"Input contains infinity or a value too large for dtype\('float64'\)."
+    xx = x
+    xx[0, 0] = np.inf
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(xx, y, d,
+                                     force_all_x_finite='allow-nan')
