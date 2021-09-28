@@ -142,6 +142,14 @@ class DoubleMLData:
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
         x = check_array(x, ensure_2d=False, allow_nd=False,
                         force_all_finite=force_all_x_finite)
         d = check_array(d, ensure_2d=False, allow_nd=False)
@@ -410,7 +418,7 @@ class DoubleMLData:
                 raise ValueError("Invalid force_all_x_finite " + value + ". " +
                                  "force_all_x_finite must be True, False or 'allow-nan'.")
         elif not isinstance(value, bool):
-            raise TypeError("Invalid force_all_x_finite." +
+            raise TypeError("Invalid force_all_x_finite. " +
                             "force_all_x_finite must be True, False or 'allow-nan'.")
         self._force_all_x_finite = value
         if reset_value:
