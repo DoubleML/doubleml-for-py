@@ -43,7 +43,7 @@ class DoubleMLData:
         Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
         Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
         allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-        Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
         for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
         in the covariates ``x``.
         Default is ``True``.
@@ -130,7 +130,7 @@ class DoubleMLData:
             Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
             Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
             allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-            Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
             for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
             in the covariates ``x``.
             Default is ``True``.
@@ -544,7 +544,7 @@ class DoubleMLClusterData(DoubleMLData):
         Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
         Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
         allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-        Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
         for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
         in the covariates ``x``.
         Default is ``True``.
@@ -635,7 +635,7 @@ class DoubleMLClusterData(DoubleMLData):
             Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
             Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
             allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-            Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
             for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
             in the covariates ``x``.
             Default is ``True``.
