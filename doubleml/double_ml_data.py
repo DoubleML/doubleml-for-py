@@ -368,10 +368,14 @@ class DoubleMLData:
 
     @use_other_treat_as_covariate.setter
     def use_other_treat_as_covariate(self, value):
+        reset_value = hasattr(self, '_use_other_treat_as_covariate')
         if not isinstance(value, bool):
             raise TypeError('use_other_treat_as_covariate must be True or False. '
                             f'Got {str(value)}.')
         self._use_other_treat_as_covariate = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
 
     def _set_y_z(self):
         assert_all_finite(self.data.loc[:, self.y_col])
