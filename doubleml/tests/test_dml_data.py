@@ -480,7 +480,7 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
                                      force_all_x_finite=False)
 
     msg = r"Input contains infinity or a value too large for dtype\('float64'\)."
-    xx = x
+    xx = np.copy(x)
     xx[0, 0] = np.inf
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData.from_arrays(xx, y, d,
