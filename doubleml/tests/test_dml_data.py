@@ -338,6 +338,10 @@ def test_use_other_treat_as_covariate():
     assert np.array_equal(dml_data.d, df['d2'].values)
     assert np.array_equal(dml_data.x, df[[f'X{i + 1}' for i in np.arange(7)]].values)
 
+    dml_data.use_other_treat_as_covariate = True
+    assert np.array_equal(dml_data.d, df['d1'].values)
+    assert np.array_equal(dml_data.x, df[[f'X{i + 1}' for i in np.arange(7)] + ['d2']].values)
+
     msg = 'use_other_treat_as_covariate must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLData(df, 'y', ['d1', 'd2'], [f'X{i + 1}' for i in np.arange(7)],
