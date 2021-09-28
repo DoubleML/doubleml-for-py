@@ -50,7 +50,7 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm_w_missings, learner_xgboost, score, dml_procedure, trimming_threshold):
+def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -64,7 +64,7 @@ def dml_irm_fixture(generate_data_irm_w_missings, learner_xgboost, score, dml_pr
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d,
-                                                force_all_x_finite=False)
+                                                force_all_x_finite='allow-nan')
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
@@ -106,27 +106,27 @@ def dml_irm_fixture(generate_data_irm_w_missings, learner_xgboost, score, dml_pr
 
 
 @pytest.mark.ci
-def test_dml_irm_coef(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['coef'],
-                        dml_irm_fixture['coef_manual'],
+def test_dml_irm_w_missing_coef(dml_irm_w_missing_fixture):
+    assert math.isclose(dml_irm_w_missing_fixture['coef'],
+                        dml_irm_w_missing_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_irm_se(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['se'],
-                        dml_irm_fixture['se_manual'],
+def test_dml_irm_w_missing_se(dml_irm_w_missing_fixture):
+    assert math.isclose(dml_irm_w_missing_fixture['se'],
+                        dml_irm_w_missing_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_irm_boot(dml_irm_fixture):
-    for bootstrap in dml_irm_fixture['boot_methods']:
-        assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
-                           dml_irm_fixture['boot_coef' + bootstrap + '_manual'],
+def test_dml_irm_w_missing_boot(dml_irm_w_missing_fixture):
+    for bootstrap in dml_irm_w_missing_fixture['boot_methods']:
+        assert np.allclose(dml_irm_w_missing_fixture['boot_coef' + bootstrap],
+                           dml_irm_w_missing_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-        assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
-                           dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
+        assert np.allclose(dml_irm_w_missing_fixture['boot_t_stat' + bootstrap],
+                           dml_irm_w_missing_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
 
 
@@ -140,7 +140,7 @@ def test_irm_exception_with_missings(generate_data_irm_w_missings, learner_sklea
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d,
-                                                force_all_x_finite=False)
+                                                force_all_x_finite='allow-nan')
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_g, ml_m)
 
