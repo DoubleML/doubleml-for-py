@@ -144,13 +144,19 @@ class DoubleMLPLR(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
+        test_indices = np.concatenate([test_index for _, test_index in smpls])
+
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+        if not np.all(np.isfinite(g_hat[test_indices])):
+            raise ValueError(f'Prediction from learner {str(self._learner["ml_g"])} for ml_g are not finite.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+        if not np.all(np.isfinite(m_hat[test_indices])):
+            raise ValueError(f'Prediction from learner {str(self._learner["ml_m"])} for ml_m are not finite.')
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
             binary_preds = (type_of_target(m_hat) == 'binary')
