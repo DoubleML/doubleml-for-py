@@ -171,8 +171,6 @@ class DoubleMLIRM(DoubleML):
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
-        test_indices = np.concatenate([test_index for _, test_index in smpls])
-
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
