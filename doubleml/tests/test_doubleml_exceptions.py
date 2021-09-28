@@ -487,3 +487,37 @@ def test_doubleml_cluster_not_yet_implemented():
     with pytest.raises(NotImplementedError, match=msg):
         _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
                          apply_cross_fitting=False, n_folds=2)
+
+
+class LassoWithNanPred(Lasso):
+    def predict(self, X):
+        preds = super().predict(X)
+        n_obs = len(preds)
+        preds[np.random.randint(0, n_obs, 1)] = np.nan
+        return preds
+
+
+class LassoWithInfPred(Lasso):
+    def predict(self, X):
+        preds = super().predict(X)
+        n_obs = len(preds)
+        preds[np.random.randint(0, n_obs, 1)] = np.inf
+        return preds
+
+
+@pytest.mark.ci
+def test_doubleml_nan_prediction():
+
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g are not finite.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, LassoWithNanPred(), ml_m).fit()
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g are not finite.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, LassoWithInfPred(), ml_m).fit()
+
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_m are not finite.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g, LassoWithNanPred()).fit()
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g, LassoWithInfPred()).fit()

@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
 class DoubleMLIIVM(DoubleML):
@@ -211,9 +211,12 @@ class DoubleMLIIVM(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z))
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z),
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
@@ -221,12 +224,15 @@ class DoubleMLIIVM(DoubleML):
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
+        _check_finite_predictions(g_hat0, self._learner['ml_g'], 'ml_g', smpls)
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
+        _check_finite_predictions(g_hat1, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         if self.subgroups['always_takers']:
@@ -234,11 +240,14 @@ class DoubleMLIIVM(DoubleML):
                                      est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
         else:
             r_hat0 = np.zeros_like(d)
+        _check_finite_predictions(r_hat0, self._learner['ml_r'], 'ml_r', smpls)
+
         if self.subgroups['never_takers']:
             r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
         else:
             r_hat1 = np.ones_like(d)
+        _check_finite_predictions(r_hat1, self._learner['ml_r'], 'ml_r', smpls)
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
         preds = {'ml_g0': g_hat0,
@@ -276,9 +285,12 @@ class DoubleMLIIVM(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z))
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z),
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)

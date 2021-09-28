@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _dml_tune
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
 class DoubleMLPLR(DoubleML):
@@ -139,16 +139,20 @@ class DoubleMLPLR(DoubleML):
         return
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
             binary_preds = (type_of_target(m_hat) == 'binary')
@@ -186,8 +190,10 @@ class DoubleMLPLR(DoubleML):
 
     def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                             search_mode, n_iter_randomized_search):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y)
-        x, d = check_X_y(x, self._dml_data.d)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,

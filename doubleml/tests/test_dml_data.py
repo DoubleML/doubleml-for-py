@@ -338,6 +338,10 @@ def test_use_other_treat_as_covariate():
     assert np.array_equal(dml_data.d, df['d2'].values)
     assert np.array_equal(dml_data.x, df[[f'X{i + 1}' for i in np.arange(7)]].values)
 
+    dml_data.use_other_treat_as_covariate = True
+    assert np.array_equal(dml_data.d, df['d1'].values)
+    assert np.array_equal(dml_data.x, df[[f'X{i + 1}' for i in np.arange(7)] + ['d2']].values)
+
     msg = 'use_other_treat_as_covariate must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLData(df, 'y', ['d1', 'd2'], [f'X{i + 1}' for i in np.arange(7)],
@@ -446,3 +450,66 @@ def test_dml_datatype():
         _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
     with pytest.raises(TypeError):
         _ = DoubleMLClusterData(data_array, y_col='y', d_cols=['d'], cluster_cols=['X3', 'X2'])
+
+
+@pytest.mark.ci
+def test_dml_data_w_missings(generate_data_irm_w_missings):
+    (x, y, d) = generate_data_irm_w_missings
+
+    dml_data = DoubleMLData.from_arrays(x, y, d,
+                                        force_all_x_finite=False)
+
+    _ = DoubleMLData.from_arrays(x, y, d,
+                                 force_all_x_finite='allow-nan')
+
+    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, d,
+                                     force_all_x_finite=True)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, x[:, 0], d,
+                                     force_all_x_finite=False)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, x[:, 0],
+                                     force_all_x_finite=False)
+
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(x, y, d, x[:, 0],
+                                     force_all_x_finite=False)
+
+    msg = r"Input contains infinity or a value too large for dtype\('float64'\)."
+    xx = np.copy(x)
+    xx[0, 0] = np.inf
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(xx, y, d,
+                                     force_all_x_finite='allow-nan')
+
+    msg = "Invalid force_all_x_finite. force_all_x_finite must be True, False or 'allow-nan'."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData.from_arrays(xx, y, d,
+                                     force_all_x_finite=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData(dml_data.data,
+                         y_col='y', d_cols='d',
+                         force_all_x_finite=1)
+
+    msg = "Invalid force_all_x_finite allownan. force_all_x_finite must be True, False or 'allow-nan'."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(xx, y, d,
+                                     force_all_x_finite='allownan')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(dml_data.data,
+                         y_col='y', d_cols='d',
+                         force_all_x_finite='allownan')
+
+    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.force_all_x_finite = True
+
+    assert dml_data.force_all_x_finite is True
+    dml_data.force_all_x_finite = False
+    assert dml_data.force_all_x_finite is False
+    dml_data.force_all_x_finite = 'allow-nan'
+    assert dml_data.force_all_x_finite == 'allow-nan'

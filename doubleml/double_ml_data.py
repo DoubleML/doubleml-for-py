@@ -3,6 +3,7 @@ import pandas as pd
 import io
 
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
+from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from ._utils import _assure_2d_array
 
@@ -38,6 +39,15 @@ class DoubleMLData:
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
 
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLData
@@ -55,7 +65,8 @@ class DoubleMLData:
                  d_cols,
                  x_cols=None,
                  z_cols=None,
-                 use_other_treat_as_covariate=True):
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
         if not isinstance(data, pd.DataFrame):
             raise TypeError('data must be of pd.DataFrame type. '
                             f'{str(data)} of type {str(type(data))} was passed.')
@@ -70,6 +81,7 @@ class DoubleMLData:
         self.x_cols = x_cols
         self._check_disjoint_sets_y_d_x_z()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
+        self.force_all_x_finite = force_all_x_finite
         self._binary_treats = self._check_binary_treats()
         self._set_y_z()
         # by default, we initialize to the first treatment variable
@@ -90,7 +102,8 @@ class DoubleMLData:
         return res
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
@@ -113,6 +126,15 @@ class DoubleMLData:
             Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
             Default is ``True``.
 
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
         Examples
         --------
         >>> from doubleml import DoubleMLData
@@ -120,7 +142,16 @@ class DoubleMLData:
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
         """
-        x = check_array(x, ensure_2d=False, allow_nd=False)
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
         d = check_array(d, ensure_2d=False, allow_nd=False)
         y = column_or_1d(y, warn=True)
 
@@ -154,7 +185,7 @@ class DoubleMLData:
             data = pd.DataFrame(np.column_stack((x, y, d, z)),
                                 columns=x_cols + [y_col] + d_cols + z_cols)
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate)
+        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def data(self):
@@ -363,16 +394,44 @@ class DoubleMLData:
 
     @use_other_treat_as_covariate.setter
     def use_other_treat_as_covariate(self, value):
+        reset_value = hasattr(self, '_use_other_treat_as_covariate')
         if not isinstance(value, bool):
             raise TypeError('use_other_treat_as_covariate must be True or False. '
                             f'Got {str(value)}.')
         self._use_other_treat_as_covariate = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
+
+    @property
+    def force_all_x_finite(self):
+        """
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        """
+        return self._force_all_x_finite
+
+    @force_all_x_finite.setter
+    def force_all_x_finite(self, value):
+        reset_value = hasattr(self, '_force_all_x_finite')
+        if isinstance(value, str):
+            if value != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + value + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(value, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+        self._force_all_x_finite = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
 
     def _set_y_z(self):
+        assert_all_finite(self.data.loc[:, self.y_col])
         self._y = self.data.loc[:, self.y_col]
         if self.z_cols is None:
             self._z = None
         else:
+            assert_all_finite(self.data.loc[:, self.z_cols])
             self._z = self.data.loc[:, self.z_cols]
 
     def set_x_d(self, treatment_var):
@@ -397,6 +456,10 @@ class DoubleMLData:
             xd_list.remove(treatment_var)
         else:
             xd_list = self.x_cols
+        assert_all_finite(self.data.loc[:, treatment_var])
+        if self.force_all_x_finite:
+            assert_all_finite(self.data.loc[:, xd_list],
+                              allow_nan=self.force_all_x_finite == 'allow-nan')
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
 
@@ -477,6 +540,15 @@ class DoubleMLClusterData(DoubleMLData):
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
 
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLClusterData
@@ -495,7 +567,8 @@ class DoubleMLClusterData(DoubleMLData):
                  cluster_cols,
                  x_cols=None,
                  z_cols=None,
-                 use_other_treat_as_covariate=True):
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
         # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
         if not isinstance(data, pd.DataFrame):
             raise TypeError('data must be of pd.DataFrame type. '
@@ -511,7 +584,8 @@ class DoubleMLClusterData(DoubleMLData):
                          d_cols,
                          x_cols,
                          z_cols,
-                         use_other_treat_as_covariate)
+                         use_other_treat_as_covariate,
+                         force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
 
     def __str__(self):
@@ -530,7 +604,8 @@ class DoubleMLClusterData(DoubleMLData):
         return res
 
     @classmethod
-    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True):
+    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
 
@@ -556,6 +631,15 @@ class DoubleMLClusterData(DoubleMLData):
             Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
             Default is ``True``.
 
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
         Examples
         --------
         >>> from doubleml import DoubleMLClusterData
@@ -563,7 +647,7 @@ class DoubleMLClusterData(DoubleMLData):
         >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
-        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate)
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate, force_all_x_finite)
         cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
         cluster_vars = _assure_2d_array(cluster_vars)
         if cluster_vars.shape[1] == 1:
@@ -575,7 +659,8 @@ class DoubleMLClusterData(DoubleMLData):
 
         return(cls(data, dml_data.y_col, dml_data.d_cols,
                    cluster_cols,
-                   dml_data.x_cols, dml_data.z_cols, dml_data.use_other_treat_as_covariate))
+                   dml_data.x_cols, dml_data.z_cols,
+                   dml_data.use_other_treat_as_covariate, dml_data.force_all_x_finite))
 
     @property
     def cluster_cols(self):
@@ -664,4 +749,5 @@ class DoubleMLClusterData(DoubleMLData):
                                  'cluster variable in ``cluster_cols``.')
 
     def _set_cluster_vars(self):
+        assert_all_finite(self.data.loc[:, self.cluster_cols])
         self._cluster_vars = self.data.loc[:, self.cluster_cols]

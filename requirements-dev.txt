@@ -1,6 +1,7 @@
 
 # test
 pytest
+xgboost
 
 # doc
 sphinx
