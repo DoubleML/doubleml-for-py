@@ -456,8 +456,8 @@ def test_dml_datatype():
 def test_dml_data_w_missings(generate_data_irm_w_missings):
     (x, y, d) = generate_data_irm_w_missings
 
-    _ = DoubleMLData.from_arrays(x, y, d,
-                                 force_all_x_finite=False)
+    dml_data = DoubleMLData.from_arrays(x, y, d,
+                                        force_all_x_finite=False)
 
     _ = DoubleMLData.from_arrays(x, y, d,
                                  force_all_x_finite='allow-nan')
@@ -485,3 +485,22 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData.from_arrays(xx, y, d,
                                      force_all_x_finite='allow-nan')
+
+    msg = "Invalid force_all_x_finite. force_all_x_finite must be True, False or 'allow-nan'."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData.from_arrays(xx, y, d,
+                                     force_all_x_finite=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData(dml_data.data,
+                         y_col='y', d_cols='d',
+                         force_all_x_finite=1)
+
+    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.force_all_x_finite = True
+
+    assert dml_data.force_all_x_finite is True
+    dml_data.force_all_x_finite = False
+    assert dml_data.force_all_x_finite is False
+    dml_data.force_all_x_finite = 'allow-nan'
+    assert dml_data.force_all_x_finite == 'allow-nan'
