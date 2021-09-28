@@ -491,17 +491,17 @@ def test_doubleml_cluster_not_yet_implemented():
 
 class LassoWithNanPred(Lasso):
     def predict(self, X):
-        preds = super(Lasso, self).predict(X)
+        preds = super().predict(X)
         n_obs = len(preds)
-        preds[np.random.randint(0, n_obs, 2)] = np.nan
+        preds[np.random.randint(0, n_obs, 1)] = np.nan
         return preds
 
 
 class LassoWithInfPred(Lasso):
     def predict(self, X):
-        preds = super(Lasso, self).predict(X)
+        preds = super().predict(X)
         n_obs = len(preds)
-        preds[np.random.randint(0, n_obs, 2)] = np.inf
+        preds[np.random.randint(0, n_obs, 1)] = np.inf
         return preds
 
 
