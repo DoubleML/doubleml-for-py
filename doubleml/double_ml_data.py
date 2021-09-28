@@ -39,6 +39,15 @@ class DoubleMLData:
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
 
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLData
@@ -115,6 +124,15 @@ class DoubleMLData:
 
         use_other_treat_as_covariate : bool
             Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
             Default is ``True``.
 
         Examples
@@ -377,6 +395,28 @@ class DoubleMLData:
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
+    @property
+    def force_all_x_finite(self):
+        """
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        """
+        return self._force_all_x_finite
+
+    @force_all_x_finite.setter
+    def force_all_x_finite(self, value):
+        reset_value = hasattr(self, '_force_all_x_finite')
+        if isinstance(value, str):
+            if value != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + value + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(value, bool):
+            raise TypeError("Invalid force_all_x_finite." +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+        self._force_all_x_finite = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
+
     def _set_y_z(self):
         assert_all_finite(self.data.loc[:, self.y_col])
         self._y = self.data.loc[:, self.y_col]
@@ -492,6 +532,15 @@ class DoubleMLClusterData(DoubleMLData):
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
 
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLClusterData
@@ -572,6 +621,15 @@ class DoubleMLClusterData(DoubleMLData):
 
         use_other_treat_as_covariate : bool
             Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``allow-nan`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
             Default is ``True``.
 
         Examples
