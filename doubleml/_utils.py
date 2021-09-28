@@ -199,3 +199,10 @@ def _draw_weights(method, n_rep_boot, n_obs):
         raise ValueError('invalid boot method')
 
     return weights
+
+
+def _check_finite_predictions(preds, learner, learner_name, smpls):
+    test_indices = np.concatenate([test_index for _, test_index in smpls])
+    if not np.all(np.isfinite(preds[test_indices])):
+        raise ValueError(f'Predictions from learner {str(learner)} for {learner_name} are not finite.')
+    return

@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.dummy import DummyRegressor
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _dml_tune
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
 class DoubleMLPLIV(DoubleML):
@@ -287,13 +287,10 @@ class DoubleMLPLIV(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        test_indices = np.concatenate([test_index for _, test_index in smpls])
-
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        if not np.all(np.isfinite(g_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_g"])} for ml_g are not finite.')
+        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         if self._dml_data.n_instr == 1:
@@ -312,14 +309,12 @@ class DoubleMLPLIV(DoubleML):
                 m_hat[:, i_instr] = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
                                                     est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
                                                     method=self._predict_method['ml_m'])
-        if not np.all(np.isfinite(m_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_m"])} for ml_m are not finite.')
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        if not np.all(np.isfinite(r_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_r"])} for ml_r are not finite.')
+        _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
         preds = {'ml_g': g_hat,
@@ -368,13 +363,10 @@ class DoubleMLPLIV(DoubleML):
                           self._dml_data.d,
                           force_all_finite=False)
 
-        test_indices = np.concatenate([test_index for _, test_index in smpls])
-
         # nuisance m
         r_hat = _dml_cv_predict(self._learner['ml_r'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        if not np.all(np.isfinite(r_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_r"])} for ml_r are not finite.')
+        _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
@@ -397,28 +389,21 @@ class DoubleMLPLIV(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        test_indices = np.concatenate([test_index for _, test_index in smpls])
-
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        if not np.all(np.isfinite(g_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_g"])} for ml_g are not finite.')
+        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat, m_hat_on_train = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
                                                 est_params=self._get_params('ml_m'), return_train_preds=True,
                                                 method=self._predict_method['ml_m'])
-        if not np.all(np.isfinite(m_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_m"])} for ml_m are not finite.')
-        if not np.all(np.isfinite(m_hat_on_train[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_m"])} for ml_m are not finite.')
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         m_hat_tilde = _dml_cv_predict(self._learner['ml_r'], x, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
                                       est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        if not np.all(np.isfinite(m_hat_tilde[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_r"])} for ml_r are not finite.')
+        _check_finite_predictions(m_hat_tilde, self._learner['ml_r'], 'ml_r', smpls)
 
         # compute residuals
         u_hat = y - g_hat

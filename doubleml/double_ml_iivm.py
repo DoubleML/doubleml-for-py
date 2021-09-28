@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
 class DoubleMLIIVM(DoubleML):
@@ -221,23 +221,18 @@ class DoubleMLIIVM(DoubleML):
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
 
-        test_indices = np.concatenate([test_index for _, test_index in smpls])
-
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
-        if not np.all(np.isfinite(g_hat0[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_g"])} for ml_g are not finite.')
+        _check_finite_predictions(g_hat0, self._learner['ml_g'], 'ml_g', smpls)
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
-        if not np.all(np.isfinite(g_hat1[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_g"])} for ml_g are not finite.')
+        _check_finite_predictions(g_hat1, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
-        if not np.all(np.isfinite(m_hat[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_m"])} for ml_m are not finite.')
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         if self.subgroups['always_takers']:
@@ -245,16 +240,14 @@ class DoubleMLIIVM(DoubleML):
                                      est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
         else:
             r_hat0 = np.zeros_like(d)
-        if not np.all(np.isfinite(r_hat0[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_r"])} for ml_r are not finite.')
+        _check_finite_predictions(r_hat0, self._learner['ml_r'], 'ml_r', smpls)
 
         if self.subgroups['never_takers']:
             r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
         else:
             r_hat1 = np.ones_like(d)
-        if not np.all(np.isfinite(r_hat1[test_indices])):
-            raise ValueError(f'Prediction from learner {str(self._learner["ml_r"])} for ml_r are not finite.')
+        _check_finite_predictions(r_hat1, self._learner['ml_r'], 'ml_r', smpls)
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
         preds = {'ml_g0': g_hat0,
