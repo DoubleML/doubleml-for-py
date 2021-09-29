@@ -728,7 +728,7 @@ class DoubleML(ABC):
 
         tune_res: list
             A list containing detailed tuning results and the proposed hyperparameters.
-            Returned if ``return_tune_res`` is ``False``.
+            Returned if ``return_tune_res`` is ``True``.
         """
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
