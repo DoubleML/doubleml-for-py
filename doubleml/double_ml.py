@@ -424,7 +424,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False):
+    def fit(self, n_jobs_cv=None, store_predictions=False):
         """
         Estimate DoubleML models.
 
@@ -433,10 +433,6 @@ class DoubleML(ABC):
         n_jobs_cv : None or int
             The number of CPUs to use to fit the learners. ``None`` means ``1``.
             Default is ``None``.
-
-        keep_scores : bool
-            Indicates whether the score function evaluations should be stored in ``psi``, ``psi_a`` and ``psi_b``.
-            Default is ``True``.
 
         store_predictions : bool
             Indicates whether the predictions for the nuisance functions should be be stored in ``predictions``.
@@ -451,10 +447,6 @@ class DoubleML(ABC):
             if not isinstance(n_jobs_cv, int):
                 raise TypeError('The number of CPUs used to fit the learners must be of int type. '
                                 f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
-
-        if not isinstance(keep_scores, bool):
-            raise TypeError('keep_scores must be True or False. '
-                            f'Got {str(keep_scores)}.')
 
         if not isinstance(store_predictions, bool):
             raise TypeError('store_predictions must be True or False. '
@@ -483,16 +475,14 @@ class DoubleML(ABC):
                 self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
 
                 # compute score (depends on estimated causal parameter)
-                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
+                    self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
-
-        if not keep_scores:
-            self._clean_scores()
 
         return self
 
@@ -1350,9 +1340,20 @@ class DoubleML(ABC):
 
         return theta
 
-    def _compute_score(self):
-        psi = self.__psi_a * self.__all_coef + self.__psi_b
+    def _compute_score(self, coef, inds=None):
+        psi_a = self.__psi_a
+        psi_b = self.__psi_b
+        if inds is not None:
+            psi_a = psi_a[inds]
+            psi_b = psi_b[inds]
+        psi = psi_a * coef + psi_b
         return psi
+
+    def _compute_score_deriv(self, coef, inds=None):
+        psi_a = self.__psi_a
+        if inds is not None:
+            psi_a = psi_a[inds]
+        return psi_a
 
     def _clean_scores(self):
         del self._psi
