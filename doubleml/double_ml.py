@@ -280,8 +280,8 @@ class DoubleML(ABC):
     @property
     def psi(self):
         """
-        Values of the score function after calling :meth:`fit`.
-        For models (e.g., PLR, IRM, PLIV, IIVM) with linear (in the parameter) score
+        Values of the score function after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
         """
         return self._psi
@@ -290,8 +290,8 @@ class DoubleML(ABC):
     def psi_deriv(self):
         """
         Values of the derivative of the score function with respect to the parameter :math:`\\theta`
-        after calling :meth:`fit`.
-        For models (e.g., PLR, IRM, PLIV, IIVM) with linear (in the parameter) score
+        after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi_a(W; \\eta)`.
         """
         return self._psi_deriv
@@ -299,9 +299,9 @@ class DoubleML(ABC):
     @property
     def psi_elements(self):
         """
-        Values of the score function components after calling :meth:`fit`.
-        For models (e.g., PLR, IRM, PLIV, IIVM) with linear (in the parameter) score a dict with entries ``psi_a`` and
-        ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
+        Values of the score function components after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter) a dictionary with entries ``psi_a``
+        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
         """
         return self._psi_elements
 
