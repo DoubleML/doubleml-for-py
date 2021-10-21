@@ -12,8 +12,7 @@ class LinearScoreMixin:
     def _score_element_names(self):
         return ['psi_a', 'psi_b']
 
-    @staticmethod
-    def _compute_score(psi_elements, coef, inds=None):
+    def _compute_score(self, psi_elements, coef, inds=None):
         psi_a = psi_elements['psi_a']
         psi_b = psi_elements['psi_b']
         if inds is not None:
@@ -22,8 +21,7 @@ class LinearScoreMixin:
         psi = psi_a * coef + psi_b
         return psi
 
-    @staticmethod
-    def _compute_score_deriv(psi_elements, coef, inds=None):
+    def _compute_score_deriv(self, psi_elements, coef, inds=None):
         psi_a = psi_elements['psi_a']
         if inds is not None:
             psi_a = psi_a[inds]
@@ -40,8 +38,7 @@ class LinearScoreMixin:
 
         return coef
 
-    @staticmethod
-    def _est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster):
+    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
         psi_a = psi_elements['psi_a']
         psi_b = psi_elements['psi_b']
         dml1_coefs = None
