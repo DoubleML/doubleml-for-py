@@ -144,7 +144,7 @@ def coef_bounds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_procedure):
+def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_procedure, coef_bounds):
     n_folds = 3
 
     # collect data
@@ -171,7 +171,7 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
                                                       n_folds=n_folds,
                                                       score=score,
                                                       dml_procedure=dml_procedure)
-    dml_plr_obj2._coef_bounds # use different settings to also unit test the solver for bounded problems
+    dml_plr_obj2._coef_bounds = coef_bounds  # use different settings to also unit test the solver for bounded problems
     dml_plr_obj2.fit()
 
     res_dict = {'coef': dml_plr_obj.coef,
