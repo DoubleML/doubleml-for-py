@@ -1201,10 +1201,20 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+                    self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+                if self.dml_procedure == 'dml1':
+                    self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
 
-                # compute score (depends on estimated causal parameter)
-                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
+                # compute score (depends on the estimated causal parameter)
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
+
+                # compute score (can depend on the estimated causal parameter)
+                self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
