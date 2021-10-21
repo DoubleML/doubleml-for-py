@@ -280,22 +280,28 @@ class DoubleML(ABC):
     @property
     def psi(self):
         """
-        Values of the score function :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`
-        after calling :meth:`fit`.
+        Values of the score function after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
+        :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
         """
         return self._psi
 
     @property
     def psi_deriv(self):
         """
-        TODO
+        Values of the derivative of the score function with respect to the parameter :math:`\\theta`
+        after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
+        :math:`\\psi_a(W; \\eta)`.
         """
         return self._psi_deriv
 
     @property
     def psi_elements(self):
         """
-        TODO
+        Values of the score function components after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter) a dictionary with entries ``psi_a``
+        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
         """
         return self._psi_elements
 
@@ -411,10 +417,6 @@ class DoubleML(ABC):
     @property
     def __psi_deriv(self):
         return self._psi_deriv[:, self._i_rep, self._i_treat]
-
-    @property
-    def __all_coef(self):
-        return self._all_coef[self._i_treat, self._i_rep]
 
     @property
     def __all_se(self):
