@@ -77,14 +77,12 @@ class NonLinearScoreMixin:
     def _score_element_names(self):
         pass
 
-    @staticmethod
     @abstractmethod
-    def _compute_score(psi_elements, coef, inds=None):
+    def _compute_score(self, psi_elements, coef, inds=None):
         pass
 
-    @staticmethod
     @abstractmethod
-    def _compute_score_deriv(psi_elements, coef, inds=None):
+    def _compute_score_deriv(self, psi_elements, coef, inds=None):
         pass
 
     def _est_coef(self, psi_elements, inds=None):
