@@ -419,10 +419,6 @@ class DoubleML(ABC):
         return self._psi_deriv[:, self._i_rep, self._i_treat]
 
     @property
-    def __all_coef(self):
-        return self._all_coef[self._i_treat, self._i_rep]
-
-    @property
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
