@@ -75,6 +75,11 @@ class NonLinearScoreMixin:
     _coef_start_val = np.nan
     _coef_bounds = None
 
+    @property
+    @abstractmethod
+    def _score_element_names(self):
+        pass
+
     @staticmethod
     @abstractmethod
     def _compute_score(psi_elements, coef, inds=None):
