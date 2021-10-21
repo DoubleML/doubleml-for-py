@@ -1,5 +1,9 @@
 import numpy as np
 
+from scipy.optimize import fmin_l_bfgs_b, root_scalar
+
+from abc import abstractmethod
+
 
 class LinearScoreMixin:
     _score_type = 'linear'
@@ -64,3 +68,85 @@ class LinearScoreMixin:
             coef = -psi_b_subsample_mean / psi_a_subsample_mean
 
         return coef, dml1_coefs
+
+
+class NonLinearScoreMixin:
+    _score_type = 'nonlinear'
+    _coef_start_val = np.nan
+    _coef_bounds = None
+
+    @staticmethod
+    @abstractmethod
+    def _compute_score(psi_elements, coef, inds=None):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def _compute_score_deriv(psi_elements, coef, inds=None):
+        pass
+
+    def _est_coef(self, psi_elements, inds=None):
+        def score(theta, ii):
+            res = np.mean(self._compute_score(psi_elements, theta, ii))
+            return res
+
+        def score_deriv(theta, ii):
+            res = np.mean(self._compute_score_deriv(psi_elements, theta, ii))
+            return res
+
+        if self._coef_bounds is None:
+            bounded = False
+        else:
+            bounded = (self._coef_bounds[0] > -np.inf) & (self._coef_bounds[1] < np.inf)
+
+        if not bounded:
+            root_res = root_scalar(score, (inds,),
+                                   x0=self._coef_start_val,
+                                   fprime=score_deriv,
+                                   method='newton')
+            theta_hat = root_res.root
+        else:
+            def get_bracket_guess(coef_start, coef_bounds):
+                max_bracket_length = coef_bounds[1] - coef_bounds[0]
+                b_guess = coef_bounds
+                delta = 0.1
+                s_different = False
+                while (not s_different) & (delta <= 1.0):
+                    a = np.maximum(coef_start - delta * max_bracket_length/2, coef_bounds[0])
+                    b = np.minimum(coef_start + delta * max_bracket_length/2, coef_bounds[1])
+                    b_guess = (a, b)
+                    f_a = score(b_guess[0], inds)
+                    f_b = score(b_guess[1], inds)
+                    s_different = (np.sign(f_a) != np.sign(f_b))
+                    delta += 0.1
+                return s_different, b_guess
+
+            signs_different, bracket_guess = get_bracket_guess(self._coef_start_val, self._coef_bounds)
+
+            if signs_different:
+                root_res = root_scalar(score, (inds,),
+                                       bracket=bracket_guess,
+                                       method='brentq')
+                theta_hat = root_res.root
+            else:
+                # try to find an alternative start value
+                def score_squared(theta, ii):
+                    res = np.power(np.mean(self._compute_score(psi_elements, theta, ii)), 2)
+                    return res
+                # def score_squared_deriv(theta, inds):
+                #     res = 2 * np.mean(self._compute_score(psi_elements, theta, inds)) * \
+                #           np.mean(self._compute_score_deriv(psi_elements, theta, inds))
+                #     return res
+                alt_coef_start, _, _ = fmin_l_bfgs_b(score_squared,
+                                                     self._coef_start_val,
+                                                     args=(inds, ),
+                                                     approx_grad=True,
+                                                     bounds=[self._coef_bounds])
+                signs_different, bracket_guess = get_bracket_guess(alt_coef_start, self._coef_bounds)
+                # TODO check signs_different again
+                root_res = root_scalar(score, (inds,),
+                                       bracket=bracket_guess,
+                                       method='brentq')
+                theta_hat = root_res.root
+
+        return theta_hat
