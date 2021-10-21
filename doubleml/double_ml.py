@@ -1301,9 +1301,8 @@ class DoubleML(ABC):
 
         return sigma2_hat
 
-    @staticmethod
     @abstractmethod
-    def _est_coef(psi_elements, inds=None):
+    def _est_coef(self, psi_elements, inds=None):
         pass
 
     # @abstractmethod: We do not enforce the implementation of _est_coef_cluster_data for all inherited classes

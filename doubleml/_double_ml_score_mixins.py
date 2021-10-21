@@ -25,8 +25,7 @@ class LinearScoreMixin:
             psi_a = psi_a[inds]
         return psi_a
 
-    @staticmethod
-    def _est_coef(psi_elements, inds=None):
+    def _est_coef(self, psi_elements, inds=None):
         psi_a = psi_elements['psi_a']
         psi_b = psi_elements['psi_b']
         if inds is not None:
