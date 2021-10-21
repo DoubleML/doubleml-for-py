@@ -9,6 +9,7 @@ from sklearn.utils.multiclass import type_of_target
 
 import doubleml as dml
 from doubleml.double_ml import DoubleML
+from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 from doubleml._utils import _dml_cv_predict, _check_finite_predictions
 from doubleml._double_ml_score_mixins import NonLinearScoreMixin
 
@@ -220,3 +221,16 @@ def test_dml_plr_se(dml_plr_w_nonlinear_mixin_fixture):
     assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['se'],
                         dml_plr_w_nonlinear_mixin_fixture['se2'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_doubleml_cluster_not_implemented_exception():
+    np.random.seed(3141)
+    dml_data = make_pliv_multiway_cluster_CKMS2021()
+    dml_data.z_cols = None
+    ml_g = LinearRegression()
+    ml_m = LinearRegression()
+    dml_plr = DoubleMLPLRWithNonLinearScoreMixin(dml_data, ml_g, ml_m)
+    msg = 'Estimation with clustering not implemented.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_plr.fit()
