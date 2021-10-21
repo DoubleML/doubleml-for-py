@@ -162,13 +162,15 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[1, 3])
-def n_rep(request):
+                params=[(-np.inf, np.inf),
+                        (0, 5)])
+def coef_bounds(request):
     return request.param
 
 
+
 @pytest.fixture(scope="module")
-def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_procedure, n_rep):
+def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_procedure):
     n_folds = 3
 
     # collect data
@@ -183,20 +185,19 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m,
-                                  n_folds,
-                                  n_rep,
-                                  score,
-                                  dml_procedure)
+                                  n_folds=n_folds,
+                                  score=score,
+                                  dml_procedure=dml_procedure)
 
     dml_plr_obj.fit()
 
     np.random.seed(3141)
     dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data,
                                                       ml_g, ml_m,
-                                                      n_folds,
-                                                      n_rep,
-                                                      score,
-                                                      dml_procedure)
+                                                      n_folds=n_folds,
+                                                      score=score,
+                                                      dml_procedure=dml_procedure)
+    dml_plr_obj2._coef_bounds # use different settings to also unit test the solver for bounded problems
     dml_plr_obj2.fit()
 
     res_dict = {'coef': dml_plr_obj.coef,
