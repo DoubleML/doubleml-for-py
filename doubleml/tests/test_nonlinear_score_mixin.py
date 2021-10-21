@@ -68,24 +68,10 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
 
     def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['IV-type', 'partialling out']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
-        return
+        pass
 
     def _check_data(self, obj_dml_data):
-        if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). '
-                             'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
-        return
+        pass
 
     def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -103,15 +89,6 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
         _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
-        if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
-            binary_preds = (type_of_target(m_hat) == 'binary')
-            zero_one_preds = np.all((np.power(m_hat, 2) - m_hat) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
-                                 f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
-
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
@@ -126,16 +103,13 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
         v_hat = d - m_hat
         v_hatd = np.multiply(v_hat, d)
 
-        if isinstance(self.score, str):
-            if self.score == 'IV-type':
-                psi_a = -v_hatd
-            else:
-                assert self.score == 'partialling out'
-                psi_a = -np.multiply(v_hat, v_hat)
-            psi_b = np.multiply(v_hat, u_hat)
+        assert isinstance(self.score, str)
+        if self.score == 'IV-type':
+            psi_a = -v_hatd
         else:
-            assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
+            assert self.score == 'partialling out'
+            psi_a = -np.multiply(v_hat, v_hat)
+        psi_b = np.multiply(v_hat, u_hat)
 
         return psi_a, psi_b
 
@@ -167,7 +141,6 @@ def dml_procedure(request):
                         (0, 5)])
 def coef_bounds(request):
     return request.param
-
 
 
 @pytest.fixture(scope="module")
