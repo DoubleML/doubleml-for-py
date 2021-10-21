@@ -3,10 +3,11 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
+from ._double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
-class DoubleMLIRM(DoubleML):
+class DoubleMLIRM(LinearScoreMixin, DoubleML):
     """Double machine learning for interactive regression models
 
     Parameters
@@ -188,11 +189,13 @@ class DoubleMLIRM(DoubleML):
         _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
         psi_a, psi_b = self._score_elements(y, d, g_hat0, g_hat1, m_hat, smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'ml_g0': g_hat0,
                  'ml_g1': g_hat1,
                  'ml_m': m_hat}
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
         # fraction of treated for ATTE

@@ -46,7 +46,7 @@ dml_iivm_callable_score.fit(store_predictions=True)
                          [dml_plr, dml_pliv, dml_irm, dml_iivm])
 def test_linear_score(dml_obj):
     assert np.allclose(dml_obj.psi,
-                       dml_obj.psi_a * dml_obj.coef + dml_obj.psi_b,
+                       dml_obj.psi_elements['psi_a'] * dml_obj.coef + dml_obj.psi_elements['psi_b'],
                        rtol=1e-9, atol=1e-4)
 
 
@@ -68,10 +68,10 @@ def test_plr_callable_vs_pred_export():
     psi_a, psi_b = plr_score(dml_data_plr.y, dml_data_plr.d,
                              g_hat, m_hat,
                              dml_plr_callable_score.smpls[0])
-    assert np.allclose(dml_plr.psi_a.squeeze(),
+    assert np.allclose(dml_plr.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_plr.psi_b.squeeze(),
+    assert np.allclose(dml_plr.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
@@ -95,10 +95,10 @@ def test_irm_callable_vs_pred_export():
     psi_a, psi_b = irm_score(dml_data_irm.y, dml_data_irm.d,
                              g_hat0, g_hat1, m_hat,
                              dml_irm_callable_score.smpls[0])
-    assert np.allclose(dml_irm.psi_a.squeeze(),
+    assert np.allclose(dml_irm.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_irm.psi_b.squeeze(),
+    assert np.allclose(dml_irm.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
@@ -124,10 +124,10 @@ def test_iivm_callable_vs_pred_export():
     psi_a, psi_b = iivm_score(dml_data_iivm.y, dml_data_iivm.z.squeeze(), dml_data_iivm.d,
                               g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
                               dml_iivm_callable_score.smpls[0])
-    assert np.allclose(dml_iivm.psi_a.squeeze(),
+    assert np.allclose(dml_iivm.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_iivm.psi_b.squeeze(),
+    assert np.allclose(dml_iivm.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 

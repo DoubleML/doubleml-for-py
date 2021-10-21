@@ -3,10 +3,11 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
+from ._double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
-class DoubleMLPLR(DoubleML):
+class DoubleMLPLR(LinearScoreMixin, DoubleML):
     """Double machine learning for partially linear regression models
 
     Parameters
@@ -164,10 +165,12 @@ class DoubleMLPLR(DoubleML):
                                  'probabilities and not labels are predicted.')
 
         psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'ml_g': g_hat,
                  'ml_m': m_hat}
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat, m_hat, smpls):
         # compute residuals

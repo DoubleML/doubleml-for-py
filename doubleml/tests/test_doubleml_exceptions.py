@@ -238,9 +238,6 @@ def test_doubleml_exception_fit():
     msg = "The number of CPUs used to fit the learners must be of int type. 5 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr.fit(n_jobs_cv='5')
-    msg = 'keep_scores must be True or False. Got 1.'
-    with pytest.raises(TypeError, match=msg):
-        dml_plr.fit(keep_scores=1)
     msg = 'store_predictions must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_plr.fit(store_predictions=1)
