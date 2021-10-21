@@ -1316,8 +1316,7 @@ class DoubleML(ABC):
         pass
 
     # We do not enforce the implementation of _est_coef_cluster_data for all inherited classes, so no @abstractmethod
-    @staticmethod
-    def _est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster):
+    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
         raise NotImplementedError('Estimation with clustering not implemented.')
 
     @property
@@ -1325,14 +1324,12 @@ class DoubleML(ABC):
     def _score_element_names(self):
         pass
 
-    @staticmethod
     @abstractmethod
-    def _compute_score(psi_elements, coef, inds=None):
+    def _compute_score(self, psi_elements, coef, inds=None):
         pass
 
-    @staticmethod
     @abstractmethod
-    def _compute_score_deriv(psi_elements, coef, inds=None):
+    def _compute_score_deriv(self, psi_elements, coef, inds=None):
         pass
 
     def _get_score_elements(self, i_rep, i_treat):
