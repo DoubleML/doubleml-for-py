@@ -5,7 +5,6 @@ import math
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression
 from sklearn.utils import check_X_y
-from sklearn.utils.multiclass import type_of_target
 
 import doubleml as dml
 from doubleml.double_ml import DoubleML
