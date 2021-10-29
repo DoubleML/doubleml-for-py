@@ -1,5 +1,7 @@
 import numpy as np
 
+import warnings
+
 from scipy.optimize import fmin_l_bfgs_b, root_scalar
 
 from abc import abstractmethod
@@ -143,10 +145,36 @@ class NonLinearScoreMixin:
                                                      approx_grad=True,
                                                      bounds=[self._coef_bounds])
                 signs_different, bracket_guess = get_bracket_guess(alt_coef_start, self._coef_bounds)
-                # TODO check signs_different again
-                root_res = root_scalar(score, (inds,),
-                                       bracket=bracket_guess,
-                                       method='brentq')
-                theta_hat = root_res.root
+
+                if signs_different:
+                    root_res = root_scalar(score, (inds,),
+                                           bracket=bracket_guess,
+                                           method='brentq')
+                    theta_hat = root_res.root
+                else:
+                    score_val_sign = np.sign(score(alt_coef_start, inds))
+                    if score_val_sign > 0:
+                        theta_hat, score_val, _ = fmin_l_bfgs_b(score,
+                                                                self._coef_start_val,
+                                                                args=(inds, ),
+                                                                approx_grad=True,
+                                                                bounds=[self._coef_bounds])
+                        warnings.warn('Could not find a root of the score function.\n '
+                                      f'Minimum score value found is {score_val} '
+                                      f'for parameter theta equal to {theta_hat}.\n '
+                                      'No theta found such that the score function evaluates to a negative value.')
+                    else:
+                        def neg_score(theta, ii):
+                            res = np.mean(self._compute_score(psi_elements, theta, ii))
+                            return res
+                        theta_hat, neg_score_val, _ = fmin_l_bfgs_b(neg_score,
+                                                                    self._coef_start_val,
+                                                                    args=(inds, ),
+                                                                    approx_grad=True,
+                                                                    bounds=[self._coef_bounds])
+                        warnings.warn('Could not find a root of the score function. '
+                                      f'Maximum score value found is {-1*neg_score_val} '
+                                      f'for parameter theta equal to {theta_hat}. '
+                                      'No theta found such that the score function evaluates to a positive value.')
 
         return theta_hat
