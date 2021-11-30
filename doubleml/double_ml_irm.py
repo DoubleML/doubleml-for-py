@@ -18,8 +18,8 @@ class DoubleMLIRM(DoubleML):
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
 
-    ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
 
     n_folds : int
