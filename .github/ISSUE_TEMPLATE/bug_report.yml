@@ -1,0 +1,79 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug"]
+assignees:
+  - MalteKurz
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: |
+        Please provide a clear and concise discription of the bug.
+    validations:
+      required: true
+  - type: textarea
+    id: mwe
+    attributes:
+      label: Minimum reproducible code snippet
+      description: |
+        Please provide a short reproducible code snippet. Example:
+
+        ```python
+        import numpy as np
+        import doubleml as dml
+        from doubleml.datasets import make_plr_CCDDHNR2018
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.base import clone
+        np.random.seed(3141)
+        learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        ml_g = learner
+        ml_m = learner
+        obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
+        dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+        dml_plr_obj.fit().summary
+        ```
+      placeholder: |
+
+        ```python
+        Sample code here
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+      description: |
+        State the result you would have expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+      description: |
+        State the result you get (for example an exception including the full traceback)
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: |
+        Please run the following code and copy-paste the result
+
+        ```python
+        import platform; print(platform.platform())
+        import sys; print("Python", sys.version)
+        import doubleml; print("DoubleML", sklearn.__version__)
+        import sklearn; print("Scikit-Learn", sklearn.__version__)
+        ```
+    validations:
+      required: true
