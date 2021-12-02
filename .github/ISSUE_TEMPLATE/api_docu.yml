@@ -1,0 +1,14 @@
+name: API Documentation Improvement
+description: Suggest an improvement for the API documentation.
+title: "[API Documentation]: "
+labels: ["documentation"]
+
+body:
+- type: textarea
+  attributes:
+    label: Describe the issue related to the API documentation
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Suggested alternative or fix
