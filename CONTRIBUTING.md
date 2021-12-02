@@ -6,16 +6,59 @@ This contributing guidelines help you to get started for your first contribution
 and we recommend to also read our
 [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
 
-## Submit a Bug Report
+## Submit a Bug Report :bug:
+To submit a bug report, you can use our
+[issue template for bug reports](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
+
+- A good bug reports contains a **minimum reproducible code snippet, like for example
+
+```python
+import numpy as np
+import doubleml as dml
+from doubleml.datasets import make_plr_CCDDHNR2018
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.base import clone
+np.random.seed(3141)
+learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+ml_g = learner
+ml_m = learner
+obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
+dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+dml_plr_obj.fit().summary
+```
+
+- State the result you would have expected and the result you actually got.
+In case of an exception the full traceback is appreciated.
+- State the versions of your code by running the following lines and copy-paste the result.
+
+```python
+import platform; print(platform.platform())
+import sys; print("Python", sys.version)
+import doubleml; print("DoubleML", sklearn.__version__)
+import sklearn; print("Scikit-Learn", sklearn.__version__)
+```
 
 ## Submit a Feature Request
+We welcome feature request and suggestions towards improving and/or extending the DoubleML package.
+For feature requests you can use the corresponding
+[issue template](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
 
 ## Submit a Question or Start a Discussion
+We use [GitHub Discussions](https://github.com/DoubleML/doubleml-for-py/discussions) to give the community a platform
+for asking questions about the DoubleML package and for discussions on topics related to the package.
 
 ## Contribute Code
+
+### Development Workflow
+
+### Unit Test and Test Coverage
 
 ### Contribute a New Model Class
 
 ## Contribute Documentation
+
+### Contribute to the API Documentation
+
+### Contribute to the User Guide and Documentation
 
 ### Contribute a Case Study for the Example Gallery
