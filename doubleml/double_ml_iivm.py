@@ -18,12 +18,12 @@ class DoubleMLIIVM(DoubleML):
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
 
-    ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[Z|X]`.
 
-    ml_r : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_r : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
 
     n_folds : int
