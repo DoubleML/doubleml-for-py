@@ -57,15 +57,18 @@ The recommended way to contribute to DoubleML is described in detail in followin
 The most important steps are: To **fork** the repo, then **add your changes** and finally submit a **pull-request**.
 1. **Fork** the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
 by clicking on the Fork button (this requires a GitHub account).
+
 2. **Clone** your fork to your local machine, e.g., via
 ```bash
 $ git clone git@github.com:YourGitHubAccount/doubleml-for-py.git
 $ cd doubleml-for-py
 ```
+
 3. Create a **feature branch**.
 ```bash
 $ git checkout -b my_feature_branch
 ```
+
 4. (Optionally) you can add the `upstream` remote.
 This allows you to easily keep your repository in synch as demonstrated in the following.
 ```bash
@@ -76,22 +79,26 @@ $ # Update your repo from upstream via
 $ git fetch upstream
 $ git merge upstream/master
 ```
+
 5. Install the **development dependencies** via
 ```bash
 $ pip install -r requirements.txt
 $ pip install -r requirements-dev.txt
 ```
+
 6. **Install DoubleML in editable mode** via (more details can be found
 [here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
 ```bash
 $ pip install --editable .
 ```
+
 7. **Develop** your code changes. The changes can be added and pushed via
 ```bash
 $ git add your_new_file your_modified_file
 $ git commit -m "A commit message which briefly summarizes the changes made"
 $ git push origin my_feature_branch
 ```
+
 8. Generate a **pull request** from your fork.
 Please follow our guidelines for pull requests.
 When opening the PR you will be guided via a checklist.
