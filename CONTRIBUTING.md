@@ -52,9 +52,8 @@ Everyone is welcome to contribute to the DoubleML code base.
 The following guidelines and hints help you to get started.
 
 ### Development Workflow
-The recommended way to contribute to DoubleML consists of three steps.
-First fork the repo, then add your changes and finally submit a pull-request.
-Details are provided in the following.
+The recommended way to contribute to DoubleML is described in detail in following.
+The most important steps are: To fork the repo, then add your changes and finally submit a pull-request.
 1. Fork the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
 by clicking on the Fork button (this requires a GitHub account).
 2. Clone your fork to your local machine, e.g., via
@@ -96,7 +95,25 @@ $ git push origin my_feature_branch
 Please follow our guidelines for pull requests.
 When opening the PR you will be guided via a checklist.
 
-### Guidelines for Pull Requests
+### Checklist for Pull Requests (PR)
+If your PR is still work in progress please consider marking it a draft PR
+(see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
+- :heavy_check_mark: The title of the pull request summarizes the changes made.
+- :heavy_check_mark: The PR contains a detailed description of all changes and additions.
+- :heavy_check_mark: References to related issues or PRs are added.
+(you may want to comment on the diff in GitHub).
+- :heavy_check_mark: The code passes all (unit) test (see below for details).
+To check, pleas run
+```
+pytest .
+```
+- :heavy_check_mark: If you added an enhancements or new feature unit tests
+(with a certain level of coverage) are mandatory for getting the PR merged.
+- :heavy_check_mark: Check whether your changes adhere to the PEP8 standards.
+For the check you can use the following code
+```bash
+$ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
+```
 
 ### Unit Test and Test Coverage
 
