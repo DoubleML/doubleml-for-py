@@ -53,29 +53,28 @@ Everyone is welcome to contribute to the DoubleML code base.
 The following guidelines and hints help you to get started.
 
 ### Development Workflow
-The recommended way to contribute to DoubleML is described in detail in following.
+In the following, the recommended way to contribute to DoubleML is described in detail.
 The most important steps are: To **fork** the repo, then **add your changes** and finally submit a **pull-request**.
 1. **Fork** the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
 by clicking on the Fork button (this requires a GitHub account).
 
-2. **Clone** your fork to your local machine, e.g., via
+2. **Clone** your fork to your local machine via
 ```bash
 $ git clone git@github.com:YourGitHubAccount/doubleml-for-py.git
 $ cd doubleml-for-py
 ```
 
-3. Create a **feature branch**.
+3. Create a **feature branch** via
 ```bash
 $ git checkout -b my_feature_branch
 ```
 
 4. (Optionally) you can add the `upstream` remote.
-This allows you to easily keep your repository in synch as demonstrated in the following.
 ```bash
 $ git remote add upstream https://github.com/DoubleML/doubleml-for-py.git
 ```
+This allows you to easily keep your repository in synch via
 ```bash
-$ # Update your repo from upstream via
 $ git fetch upstream
 $ git merge upstream/master
 ```
@@ -86,8 +85,9 @@ $ pip install -r requirements.txt
 $ pip install -r requirements-dev.txt
 ```
 
-6. **Install DoubleML in editable mode** via (more details can be found
+6. **Install DoubleML in editable mode** (more details can be found
 [here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
+via 
 ```bash
 $ pip install --editable .
 ```
@@ -101,7 +101,7 @@ $ git push origin my_feature_branch
 
 8. Generate a **pull request** from your fork.
 Please follow our guidelines for pull requests.
-When opening the PR you will be guided via a checklist.
+When opening the PR you will be guided with a checklist.
 
 ### Checklist for Pull Requests (PR)
 - [x] The **title** of the pull request summarizes the changes made.
@@ -111,13 +111,15 @@ When opening the PR you will be guided via a checklist.
 
 - [x] **References** to related issues or PRs are added.
 
-- [x] The code passes **all (unit) tests** (see below for details).
+- [x] The code passes **all (unit) tests** (see
+[below](https://github.com/DoubleML/doubleml-for-py/blob/master/CONTRIBUTING.md#unit-test-and-test-coverage)
+for details).
 To check, please run
 ```bash
 $ pytest .
 ```
 
-- [x] If you added an enhancements or new feature **unit tests**
+- [x] If you add an **enhancements** or **new feature**, **unit tests**
 (with a certain level of coverage) are **mandatory** for getting the PR merged.
 
 - [x] Check whether your changes adhere to the **PEP8 standards**.
@@ -126,29 +128,30 @@ For the check you can use the following code
 $ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
 ```
 
-If your PR is still **work in progress** please consider marking it a **draft PR**
+If your PR is still **work in progress**, please consider marking it a **draft PR**
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
 
-### Unit Test and Test Coverage
-We use **pytest for unit testing** which we consider to be a fundamental part of the development workflow.
+### Unit Tests and Test Coverage
+We use the package **pytest for unit testing**.
+Unit testing is considered to be a fundamental part of the development workflow.
 The tests are located in the `tests` subfolder.
 The test coverage is determined with the `pytest-cov` package.
 Coverage reports for the package, PRs, branches etc. are available from
 [codecov](https://app.codecov.io/gh/DoubleML/doubleml-for-py).
 It is mandatory to equip new features with an appropriate level of unit test coverage.
-To **run all unit tests** (for further option see the [pytest docu](https://docs.pytest.org)) with a coverage report
-call
+To **run all unit tests** (for further option see the [pytest docu](https://docs.pytest.org)) call
 ```bash
 $ pytest --cov .
 ```
+If `pytest` is called with the `--cov` flag, a unit test coverage report is being generated.
 
 ### Contribute a New Model Class
 The **DoubleML package** is particularly designed in a flexible way to make it **easily extendable** with regard to
 **new model classes**.
 **Contributions** in this direction **are very much welcome**, and we are happy to help authors to integrate their models in the
 DoubleML OOP structure.
-Just open an issue or contact [@MalteKurz](https://github.com/MalteKurz) or
-[@PhilippBach](https://github.com/PhilippBach) if you need assistance.
+If you need assistance, just open an issue or contact one of the maintainers
+[@MalteKurz](https://github.com/MalteKurz) or [@PhilippBach](https://github.com/PhilippBach).
 
 The **abstract base class `DoubleML` implements all core functionalities** based on a linear Neyman orthogonal score
 function.
@@ -162,13 +165,13 @@ A **template for new model classes** is available
 ## Contribute Documentation :books:
 The **documentation** of DoubleML is generated with **sphinx** and hosted at
 [https://docs.doubleml.org](https://docs.doubleml.org).
-The Python API documentation is provided as docstrings in the source code.
+The Python API documentation is generated from docstrings in the source code.
 The source code for the website, user guide, example gallery, etc. is available in a separate repository
-[doubleml-docs](https://github.com/DoubleML/doubleml-docs).
+[https://github.com/DoubleML/doubleml-docs](https://github.com/DoubleML/doubleml-docs).
 
 ### Contribute to the API Documentation
-The **API documentation** is provided as **docstrings** in the source code.
-It can be generated locally via (dev requirements sphinx and pydata-sphinx-theme need to be installed)
+The **API documentation** is generated from **docstrings** in the source code.
+It can be generated locally (dev requirements sphinx and pydata-sphinx-theme need to be installed) via 
 ```bash
 $ cd doc/
 $ make html
