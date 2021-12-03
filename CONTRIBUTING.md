@@ -10,7 +10,7 @@ The contributing guidelines are particularly helpful to get started for your fir
 To submit a **bug report**, you can use our
 [issue template for bug reports](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
 
-- A good bug reports contains a **minimum reproducible code snippet**, like for example
+-  A good bug reports contains a **minimum reproducible code snippet**, like for example
 
 ```python
 import numpy as np
@@ -27,9 +27,10 @@ dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
 dml_plr_obj.fit().summary
 ```
 
-- State the **result you would have expected** and the **result you actually got**.
+-  State the **result you would have expected** and the **result you actually got**.
 In case of an exception the full traceback is appreciated.
-- State the **versions of your code** by running the following lines and copy-paste the result.
+
+-  State the **versions of your code** by running the following lines and copy-paste the result.
 
 ```python
 import platform; print(platform.platform())
@@ -96,25 +97,30 @@ Please follow our guidelines for pull requests.
 When opening the PR you will be guided via a checklist.
 
 ### Checklist for Pull Requests (PR)
-- [x] The **title** of the pull request summarizes the changes made.
-- [x] The PR contains a **detailed description** of all changes and additions
+- [x]  The **title** of the pull request summarizes the changes made.
+
+- [x]  The PR contains a **detailed description** of all changes and additions
 (you may want to comment on the diff in GitHub).
-- [x] **References** to related issues or PRs are added.
-- [x] The code passes **all (unit) tests** (see below for details).
+
+- [x]  **References** to related issues or PRs are added.
+
+- [x]  The code passes **all (unit) tests** (see below for details).
 To check, please run
 ```bash
 $ pytest .
 ```
-- [x] If you added an enhancements or new feature **unit tests**
-(with a certain level of coverage) are **mandatory** for getting the PR merged.
-- [x] Check whether your changes adhere to the **PEP8 standards**.
+
+- [x]  If you added an enhancements or new feature **unit tests**
+(with  a certain level of coverage) are **mandatory** for getting the PR merged.
+
+- [x]  Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
 $ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
 ```
+
 If your PR is still **work in progress** please consider marking it a **draft PR**
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
-
 
 ### Unit Test and Test Coverage
 We use **pytest for unit testing** which we consider to be a fundamental part of the development workflow.
