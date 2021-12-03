@@ -7,10 +7,10 @@ and we recommend to also read our
 [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
 
 ## Submit a Bug Report :bug:
-To submit a bug report, you can use our
+To submit a **bug report**, you can use our
 [issue template for bug reports](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
 
-- A good bug reports contains a **minimum reproducible code snippet, like for example
+- A good bug reports contains a **minimum reproducible code snippet**, like for example
 
 ```python
 import numpy as np
@@ -27,9 +27,9 @@ dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
 dml_plr_obj.fit().summary
 ```
 
-- State the result you would have expected and the result you actually got.
+- State the **result you would have expected** and the **result you actually got**.
 In case of an exception the full traceback is appreciated.
-- State the versions of your code by running the following lines and copy-paste the result.
+- State the **versions of your code** by running the following lines and copy-paste the result.
 
 ```python
 import platform; print(platform.platform())
@@ -39,12 +39,12 @@ import sklearn; print("Scikit-Learn", sklearn.__version__)
 ```
 
 ## Submit a Feature Request :bulb:
-We welcome feature request and suggestions towards improving and/or extending the DoubleML package.
+We welcome **feature requests and suggestions** towards improving and/or extending the DoubleML package.
 For feature requests you can use the corresponding
 [issue template](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
 
 ## Submit a Question or Start a Discussion
-We use [GitHub Discussions](https://github.com/DoubleML/doubleml-for-py/discussions) to give the community a platform
+We use **[GitHub Discussions](https://github.com/DoubleML/doubleml-for-py/discussions)** to give the community a platform
 for asking questions about the DoubleML package and for discussions on topics related to the package.
 
 ## Contribute Code :computer:
@@ -53,15 +53,15 @@ The following guidelines and hints help you to get started.
 
 ### Development Workflow
 The recommended way to contribute to DoubleML is described in detail in following.
-The most important steps are: To fork the repo, then add your changes and finally submit a pull-request.
-1. Fork the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
+The most important steps are: To **fork** the repo, then **add your changes** and finally submit a **pull-request**.
+1. **Fork** the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
 by clicking on the Fork button (this requires a GitHub account).
-2. Clone your fork to your local machine, e.g., via
+2. **Clone** your fork to your local machine, e.g., via
 ```bash
 $ git clone git@github.com:YourGitHubAccount/doubleml-for-py.git
 $ cd doubleml-for-py
 ```
-3. Create a feature branch
+3. Create a **feature branch**.
 ```bash
 $ git checkout -b my_feature_branch
 ```
@@ -75,44 +75,44 @@ $ # Update your repo from upstream via
 $ git fetch upstream
 $ git merge upstream/master
 ```
-5. Install the development dependencies via
+5. Install the **development dependencies** via
 ```bash
 $ pip install -r requirements.txt
 $ pip install -r requirements-dev.txt
 ```
-6. Install DoubleML in editable mode via (more details can be found
+6. **Install DoubleML in editable mode** via (more details can be found
 [here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
 ```bash
 $ pip install --editable .
 ```
-7. Develop your code changes. The changes can be added and pushed via
+7. **Develop** your code changes. The changes can be added and pushed via
 ```bash
 $ git add your_new_file your_modified_file
 $ git commit -m "A commit message which briefly summarizes the changes made"
 $ git push origin my_feature_branch
 ```
-8. Generate a pull request from your fork.
+8. Generate a **pull request** from your fork.
 Please follow our guidelines for pull requests.
 When opening the PR you will be guided via a checklist.
 
 ### Checklist for Pull Requests (PR)
-- [x] The title of the pull request summarizes the changes made.
-- [x] The PR contains a detailed description of all changes and additions
+- [x] The **title** of the pull request summarizes the changes made.
+- [x] The PR contains a **detailed description** of all changes and additions
 (you may want to comment on the diff in GitHub).
-- [x] References to related issues or PRs are added.
-- [x] The code passes all (unit) tests (see below for details).
+- [x] **References** to related issues or PRs are added.
+- [x] The code passes **all (unit) tests** (see below for details).
 To check, please run
 ```bash
 $ pytest .
 ```
-- [x] If you added an enhancements or new feature unit tests
-(with a certain level of coverage) are mandatory for getting the PR merged.
-- [x] Check whether your changes adhere to the PEP8 standards.
+- [x] If you added an enhancements or new feature **unit tests**
+(with a certain level of coverage) are **mandatory** for getting the PR merged.
+- [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
 $ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
 ```
-If your PR is still work in progress please consider marking it a draft PR
+If your PR is still **work in progress** please consider marking it a **draft PR**
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
 
 
