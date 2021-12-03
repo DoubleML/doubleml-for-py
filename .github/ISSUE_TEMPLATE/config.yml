@@ -5,7 +5,7 @@ contact_links:
     about: Ask questions about the DoubleML package or start related dicussions
   - name: Documentation and User Guide
     url: https://github.com/DoubleML/doubleml-docs/issues/new/choose
-    about: Issues related to the documentation and user guide on docs.doubleml.org shold be reported in the doubleml-docs repo
+    about: Issues related to the documentation and user guide on docs.doubleml.org should be reported in the doubleml-docs repo
   - name: Blank Issue
     url: https://github.com/DoubleML/doubleml-for-py/issues/new
     about: Please note that often Dicussions is the better choice
