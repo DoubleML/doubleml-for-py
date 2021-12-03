@@ -2,9 +2,9 @@
 
 DoubleML is a community effort.
 Everyone is welcome to contribute.
-This contributing guidelines help you to get started for your first contribution,
-and we recommend to also read our
-[code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
+All contributors should adhere to this contributing guidelines
+and our [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
+The contributing guidelines are particularly helpful to get started for your first contribution.
 
 ## Submit a Bug Report :bug:
 To submit a **bug report**, you can use our
@@ -130,31 +130,31 @@ $ pytest --cov .
 ```
 
 ### Contribute a New Model Class
-The DoubleML package is particularly designed in a flexible way to make it easily extendable with regard to new model 
-classes.
-Contributions in this direction are very much welcome, and we are happy to help authors to integrate their models in the
+The **DoubleML package** is particularly designed in a flexible way to make it **easily extendable** with regard to
+**new model classes**.
+**Contributions** in this direction **are very much welcome**, and we are happy to help authors to integrate their models in the
 DoubleML OOP structure.
 Just open an issue or contact [@MalteKurz](https://github.com/MalteKurz) or
 [@PhilippBach](https://github.com/PhilippBach) if you need assistance.
 
-The abstract base class `DoubleML` implements all core functionalities based on a linear Neyman orthogonal score
+The **abstract base class `DoubleML` implements all core functionalities** based on a linear Neyman orthogonal score
 function.
-To contribute a new model class, you only need to specify all nuisance functions that need to be estimated for the new
-model class (e.g. regressions or classifications).
-Furthermore, the score components for the Neyman orthogonal score function need to be implemented.
+To contribute a new model class, you only need to **specify all nuisance functions** that need to be estimated for the
+new model class (e.g. regressions or classifications).
+Furthermore, the **score components for the Neyman orthogonal score function need to be implemented**.
 All other functionality is automatically available via inheritance from the abstract base class.
-A template for new model classes is available
+A **template for new model classes** is available
 [here](https://github.com/DoubleML/doubleml-docs/model_templates/double_ml_model_template.py).
 
 ## Contribute Documentation :books:
-The documentation of DoubleML is generated with sphinx and hosted at
+The **documentation** of DoubleML is generated with **sphinx** and hosted at
 [https://docs.doubleml.org](https://docs.doubleml.org).
 The Python API documentation is provided as docstrings in the source code.
 The source code for the website, user guide, example gallery, etc. is available in a separate repository
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs).
 
 ### Contribute to the API Documentation
-The API documentation is provided as docstrings in the source code.
+The **API documentation** is provided as **docstrings** in the source code.
 It can be generated locally via (dev requirements sphinx and pydata-sphinx-theme need to be installed)
 ```bash
 $ cd doc/
@@ -162,9 +162,9 @@ $ make html
 ```
 
 ### Contribute to the User Guide and Documentation
-The documentation of DoubleML is hosted at [https://docs.doubleml.org](https://docs.doubleml.org).
-The source code for the website, user guide, example gallery, etc. is available in a separate repository
-[doubleml-docs](https://github.com/DoubleML/doubleml-docs).
+The **documentation of DoubleML** is hosted at [https://docs.doubleml.org](https://docs.doubleml.org).
+The **source code** for the website, user guide, example gallery, etc. is available in a **separate repository
+[doubleml-docs](https://github.com/DoubleML/doubleml-docs)**.
 Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the 
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs) repo.
 We welcome contributions to the user guide, especially case studies for the
