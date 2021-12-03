@@ -98,18 +98,18 @@ When opening the PR you will be guided via a checklist.
 ### Checklist for Pull Requests (PR)
 If your PR is still work in progress please consider marking it a draft PR
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
-- :heavy_check_mark: The title of the pull request summarizes the changes made.
-- :heavy_check_mark: The PR contains a detailed description of all changes and additions.
-- :heavy_check_mark: References to related issues or PRs are added.
+-[x] The title of the pull request summarizes the changes made.
+-[x] The PR contains a detailed description of all changes and additions.
+-[x] References to related issues or PRs are added.
 (you may want to comment on the diff in GitHub).
-- :heavy_check_mark: The code passes all (unit) test (see below for details).
-To check, pleas run
+-[x] The code passes all (unit) test (see below for details).
+To check, please run
+```bash
+$ pytest .
 ```
-pytest .
-```
-- :heavy_check_mark: If you added an enhancements or new feature unit tests
+-[x] If you added an enhancements or new feature unit tests
 (with a certain level of coverage) are mandatory for getting the PR merged.
-- :heavy_check_mark: Check whether your changes adhere to the PEP8 standards.
+-[x] Check whether your changes adhere to the PEP8 standards.
 For the check you can use the following code
 ```bash
 $ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
