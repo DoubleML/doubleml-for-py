@@ -38,7 +38,7 @@ import doubleml; print("DoubleML", sklearn.__version__)
 import sklearn; print("Scikit-Learn", sklearn.__version__)
 ```
 
-## Submit a Feature Request
+## Submit a Feature Request :bulb:
 We welcome feature request and suggestions towards improving and/or extending the DoubleML package.
 For feature requests you can use the corresponding
 [issue template](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
@@ -47,15 +47,62 @@ For feature requests you can use the corresponding
 We use [GitHub Discussions](https://github.com/DoubleML/doubleml-for-py/discussions) to give the community a platform
 for asking questions about the DoubleML package and for discussions on topics related to the package.
 
-## Contribute Code
+## Contribute Code :computer:
+Everyone is welcome to contribute to the DoubleML code base.
+The following guidelines and hints help you to get started.
 
 ### Development Workflow
+The recommended way to contribute to DoubleML consists of three steps.
+First fork the repo, then add your changes and finally submit a pull-request.
+Details are provided in the following.
+1. Fork the [DoubleML repo](https://github.com/DoubleML/doubleml-for-py)
+by clicking on the Fork button (this requires a GitHub account).
+2. Clone your fork to your local machine, e.g., via
+```bash
+$ git clone git@github.com:YourGitHubAccount/doubleml-for-py.git
+$ cd doubleml-for-py
+```
+3. Create a feature branch
+```bash
+$ git checkout -b my_feature_branch
+```
+4. (Optionally) you can add the `upstream` remote.
+This allows you to easily keep your repository in synch as demonstrated in the following.
+```bash
+$ git remote add upstream https://github.com/DoubleML/doubleml-for-py.git
+```
+```bash
+$ # Update your repo from upstream via
+$ git fetch upstream
+$ git merge upstream/master
+```
+5. Install the development dependencies via
+```bash
+$ pip install -r requirements.txt
+$ pip install -r requirements-dev.txt
+```
+6. Install DoubleML in editable mode via (more details can be found
+[here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
+```bash
+$ pip install --editable .
+```
+7. Develop your code changes. The changes can be added and pushed via
+```bash
+$ git add your_new_file your_modified_file
+$ git commit -m "A commit message which briefly summarizes the changes made"
+$ git push origin my_feature_branch
+```
+8. Generate a pull request from your fork.
+Please follow our guidelines for pull requests.
+When opening the PR you will be guided via a checklist.
+
+### Guidelines for Pull Requests
 
 ### Unit Test and Test Coverage
 
 ### Contribute a New Model Class
 
-## Contribute Documentation
+## Contribute Documentation :books:
 
 ### Contribute to the API Documentation
 
