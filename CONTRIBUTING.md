@@ -100,7 +100,7 @@ When opening the PR you will be guided via a checklist.
 - [x] The PR contains a detailed description of all changes and additions
 (you may want to comment on the diff in GitHub).
 - [x] References to related issues or PRs are added.
-- [x] The code passes all (unit) test (see below for details).
+- [x] The code passes all (unit) tests (see below for details).
 To check, please run
 ```bash
 $ pytest .
