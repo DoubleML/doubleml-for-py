@@ -130,11 +130,44 @@ $ pytest --cov .
 ```
 
 ### Contribute a New Model Class
+The DoubleML package is particularly designed in a flexible way to make it easily extendable with regard to new model 
+classes.
+Contributions in this direction are very much welcome, and we are happy to help authors to integrate their models in the
+DoubleML OOP structure.
+Just open an issue or contact [@MalteKurz](https://github.com/MalteKurz) or
+[@PhilippBach](https://github.com/PhilippBach) if you need assistance.
+
+The abstract base class `DoubleML` implements all core functionalities based on a linear Neyman orthogonal score
+function.
+To contribute a new model class, you only need to specify all nuisance functions that need to be estimated for the new
+model class (e.g. regressions or classifications).
+Furthermore, the score components for the Neyman orthogonal score function need to be implemented.
+All other functionality is automatically available via inheritance from the abstract base class.
+A template for new model classes is available
+[here](https://github.com/DoubleML/doubleml-docs/model_templates/double_ml_model_template.py).
 
 ## Contribute Documentation :books:
+The documentation of DoubleML is generated with sphinx and hosted at
+[https://docs.doubleml.org](https://docs.doubleml.org).
+The Python API documentation is provided as docstrings in the source code.
+The source code for the website, user guide, example gallery, etc. is available in a separate repository
+[doubleml-docs](https://github.com/DoubleML/doubleml-docs).
 
 ### Contribute to the API Documentation
+The API documentation is provided as docstrings in the source code.
+It can be generated locally via (dev requirements sphinx and pydata-sphinx-theme need to be installed)
+```bash
+$ cd doc/
+$ make html
+```
 
 ### Contribute to the User Guide and Documentation
-
-### Contribute a Case Study for the Example Gallery
+The documentation of DoubleML is hosted at [https://docs.doubleml.org](https://docs.doubleml.org).
+The source code for the website, user guide, example gallery, etc. is available in a separate repository
+[doubleml-docs](https://github.com/DoubleML/doubleml-docs).
+Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the 
+[doubleml-docs](https://github.com/DoubleML/doubleml-docs) repo.
+We welcome contributions to the user guide, especially case studies for the
+[example gallery](https://docs.doubleml.org/stable/examples/index.html).
+A step-by-step guide for contributions to the example gallery is available
+[here](https://github.com/DoubleML/doubleml-docs/wiki/Contribute-to-our-Website-and-Example-Gallery).
