@@ -117,6 +117,17 @@ If your PR is still **work in progress** please consider marking it a **draft PR
 
 
 ### Unit Test and Test Coverage
+We use **pytest for unit testing** which we consider to be a fundamental part of the development workflow.
+The tests are located in the `tests` subfolder.
+The test coverage is determined with the `pytest-cov` package.
+Coverage reports for the package, PRs, branches etc. are available from
+[codecov](https://app.codecov.io/gh/DoubleML/doubleml-for-py).
+It is mandatory to equip new features with an appropriate level of unit test coverage.
+To **run all unit tests** (for further option see the [pytest docu](https://docs.pytest.org)) with a coverage report
+call
+```bash
+$ pytest --cov .
+```
 
 ### Contribute a New Model Class
 
