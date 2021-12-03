@@ -15,7 +15,7 @@ Note that the Python package was developed together with an R twin based on [mlr
 The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r) and 
 [![CRAN Version](https://www.r-pkg.org/badges/version/DoubleML)](https://cran.r-project.org/package=DoubleML).
 
-## Documentation and maintenance
+## Documentation and Maintenance
 
 Documentation and website: [https://docs.doubleml.org/](https://docs.doubleml.org/)
 
@@ -85,6 +85,14 @@ pip install --editable .
 ```
 
 Detailed [installation instructions](https://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
+
+## Contributing
+DoubleML is a community effort.
+Everyone is welcome to contribute.
+To get started for your first contribution we recommend reading our
+[contributing guidelines](https://github.com/DoubleML/doubleml-for-py/blob/master/CONTRIBUTING.md)
+and our
+[code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
 
 ## Citation
 
