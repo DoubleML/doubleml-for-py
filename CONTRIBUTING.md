@@ -10,7 +10,7 @@ The contributing guidelines are particularly helpful to get started for your fir
 To submit a **bug report**, you can use our
 [issue template for bug reports](https://github.com/DoubleML/doubleml-for-py/issues/new/choose).
 
-- A good bug reports contains a **minimum reproducible code snippet**, like for example
+- A good bug report contains a **minimum reproducible code snippet**, like for example
 
 ```python
 import numpy as np
