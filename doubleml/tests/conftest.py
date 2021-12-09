@@ -166,7 +166,6 @@ def generate_data_irm_binary(request):
     # generating data
     x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
     G = _g(np.dot(x, b))
-    M = _m(np.dot(x, b))
     pr = 1 / (1 + np.exp((-1) * (x[:, 0] * (-0.5) + x[:, 1] * 0.5 + np.random.standard_normal(size=[n, ]))))
     d = np.random.binomial(p=pr, n=1, size=[n, ])
     err = np.random.standard_normal(n)
@@ -211,7 +210,6 @@ def generate_data_iivm_binary(request):
     # generating data
     x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
     G = _g(np.dot(x, b))
-    M = _m(np.dot(x, b))
 
     prz = 1 / (1 + np.exp((-1) * (x[:, 0] * (-1) * b[4] + x[:, 1] * b[2] + np.random.standard_normal(size=[n, ]))))
     z = np.random.binomial(p=prz, n=1, size=[n, ])
