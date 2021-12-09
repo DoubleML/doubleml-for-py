@@ -17,6 +17,9 @@ class DoubleMLIRM(DoubleML):
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
+        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
@@ -117,10 +120,17 @@ class DoubleMLIRM(DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
+                                 'but the outcome variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -176,11 +186,29 @@ class DoubleMLIRM(DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
         _check_finite_predictions(g_hat0, self._learner['ml_g'], 'ml_g', smpls)
 
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat0) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat0, 2) - g_hat0) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
+
         g_hat1 = None
         if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
             _check_finite_predictions(g_hat1, self._learner['ml_g'], 'ml_g', smpls)
+
+            if self._dml_data.binary_outcome:
+                binary_preds = (type_of_target(g_hat1) == 'binary')
+                zero_one_preds = np.all((np.power(g_hat1, 2) - g_hat1) == 0)
+                if binary_preds & zero_one_preds:
+                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                     'probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
