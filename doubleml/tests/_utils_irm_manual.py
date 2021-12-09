@@ -89,37 +89,6 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 
-def fit_nuisance_irm_classifier(y, x, d, learner_g, learner_m, smpls, score,
-                     g0_params=None, g1_params=None, m_params=None,
-                     trimming_threshold=1e-12):
-    ml_g0 = clone(learner_g)
-    ml_g1 = clone(learner_g)
-    train_cond0 = np.where(d == 0)[0]
-    g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls,
-                              train_cond=train_cond0)
-
-    if score == 'ATE':
-        train_cond1 = np.where(d == 1)[0]
-        g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
-                                  train_cond=train_cond1)
-    else:
-        assert score == 'ATTE'
-        g_hat1_list = list()
-        for idx, _ in enumerate(smpls):
-            # fill it up, but its not further used
-            g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
-
-    ml_m = clone(learner_m)
-    m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
-                                   trimming_threshold=trimming_threshold)
-
-    p_hat_list = []
-    for (_, test_index) in smpls:
-        p_hat_list.append(np.mean(d[test_index]))
-
-    return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
-
-
 
 def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
                       param_grid_g, param_grid_m):
