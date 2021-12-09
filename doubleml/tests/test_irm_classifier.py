@@ -41,7 +41,7 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_binary_fixture(generate_data_irm_binary, learner, score, dml_procedure, trimming_threshold):
+def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -96,25 +96,25 @@ def dml_irm_binary_fixture(generate_data_irm_binary, learner, score, dml_procedu
 
 
 @pytest.mark.ci
-def test_dml_irm_coef(dml_irm_binary_fixture):
-    assert math.isclose(dml_irm_binary_fixture['coef'],
-                        dml_irm_binary_fixture['coef_manual'],
+def test_dml_irm_coef(dml_irm_classifier_fixture):
+    assert math.isclose(dml_irm_classifier_fixture['coef'],
+                        dml_irm_classifier_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_irm_se(dml_irm_binary_fixture):
-    assert math.isclose(dml_irm_binary_fixture['se'],
-                        dml_irm_binary_fixture['se_manual'],
+def test_dml_irm_se(dml_irm_classifier_fixture):
+    assert math.isclose(dml_irm_classifier_fixture['se'],
+                        dml_irm_classifier_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_irm_boot(dml_irm_binary_fixture):
-    for bootstrap in dml_irm_binary_fixture['boot_methods']:
-        assert np.allclose(dml_irm_binary_fixture['boot_coef' + bootstrap],
-                           dml_irm_binary_fixture['boot_coef' + bootstrap + '_manual'],
+def test_dml_irm_boot(dml_irm_classifier_fixture):
+    for bootstrap in dml_irm_classifier_fixture['boot_methods']:
+        assert np.allclose(dml_irm_classifier_fixture['boot_coef' + bootstrap],
+                           dml_irm_classifier_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
-        assert np.allclose(dml_irm_binary_fixture['boot_t_stat' + bootstrap],
-                           dml_irm_binary_fixture['boot_t_stat' + bootstrap + '_manual'],
+        assert np.allclose(dml_irm_classifier_fixture['boot_t_stat' + bootstrap],
+                           dml_irm_classifier_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
