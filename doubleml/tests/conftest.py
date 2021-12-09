@@ -15,7 +15,7 @@ def _g(x):
 
 
 def _m(x, nu=0., gamma=1.):
-    return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
+    return 0.5 / np.pi * (np.sinh(gamma)) / (np.cosh(gamma) - np.cos(x - nu))
 
 
 def _m2(x):
@@ -65,7 +65,7 @@ def generate_data_bivariate(request):
     n = n_p[0]
     p = n_p[1]
     theta = np.array([0.5, 0.9])
-    b = [1/k for k in range(1, p+1)]
+    b = [1 / k for k in range(1, p + 1)]
     sigma = make_spd_matrix(p)
 
     # generating data
@@ -77,8 +77,8 @@ def generate_data_bivariate(request):
     D1 = M1 + np.random.standard_normal(size=[n, ])
     y = theta[0] * D0 + theta[1] * D1 + G + np.random.standard_normal(size=[n, ])
     d = np.column_stack((D0, D1))
-    column_names = [f'X{i+1}' for i in np.arange(p)] + ['y'] + \
-                   [f'd{i+1}' for i in np.arange(2)]
+    column_names = [f'X{i + 1}' for i in np.arange(p)] + ['y'] + \
+                   [f'd{i + 1}' for i in np.arange(2)]
     data = pd.DataFrame(np.column_stack((x, y, d)),
                         columns=column_names)
 
@@ -94,7 +94,7 @@ def generate_data_toeplitz(request, betamax=4, decay=0.99, threshold=0, noisevar
     n = n_p[0]
     p = n_p[1]
 
-    beta = np.array([betamax * np.power(j+1, -decay) for j in range(p)])
+    beta = np.array([betamax * np.power(j + 1, -decay) for j in range(p)])
     beta[beta < threshold] = 0
 
     cols_treatment = [0, 4, 9]
@@ -107,8 +107,8 @@ def generate_data_toeplitz(request, betamax=4, decay=0.99, threshold=0, noisevar
     y = np.dot(x, beta) + np.random.normal(loc=0.0, scale=np.sqrt(noisevar), size=[n, ])
     d = x[:, cols_treatment]
     x = np.delete(x, cols_treatment, axis=1)
-    column_names = [f'X{i+1}' for i in np.arange(x.shape[1])] + \
-                   ['y'] + [f'd{i+1}' for i in np.arange(len(cols_treatment))]
+    column_names = [f'X{i + 1}' for i in np.arange(x.shape[1])] + \
+                   ['y'] + [f'd{i + 1}' for i in np.arange(len(cols_treatment))]
     data = pd.DataFrame(np.column_stack((x, y, d)),
                         columns=column_names)
 
@@ -147,6 +147,35 @@ def generate_data_irm(request):
     data = make_irm_data(n, p, theta, return_type='array')
 
     return data
+
+
+@pytest.fixture(scope='session',
+                params=[(500, 10),
+                        (1000, 20),
+                        (1000, 100)])
+def generate_data_irm_binary(request):
+    n_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n = n_p[0]
+    p = n_p[1]
+    theta = 0.5
+    b = [1 / k for k in range(1, p + 1)]
+    sigma = make_spd_matrix(p)
+
+
+    # generating data
+    x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
+    G = _g(np.dot(x, b))
+    M = _m(np.dot(x, b))
+    pr = 1 / (1 + np.exp((-1) * (x[:, 0] * (-0.5) + x[:, 1] * 0.5 + np.random.standard_normal(size=[n, ]))))
+    d = np.random.binomial(p=pr, n=1, size=[n, ])
+    err = np.random.standard_normal(n)
+
+    pry = 1 / (1 + np.exp((-1) * theta * d + G + err))
+    y = np.random.binomial(p=pry, n=1, size=[n, ])
+
+    return x, y, d
 
 
 @pytest.fixture(scope='session',
@@ -225,15 +254,15 @@ def make_data_pliv_partialZ(n_obs, alpha=1., dim_x=5, dim_z=150):
 
     I_z = np.eye(dim_z)
     xi = np.random.multivariate_normal(np.zeros(dim_z),
-                                       0.25*I_z,
+                                       0.25 * I_z,
                                        size=[n_obs, ])
 
-    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    beta = [1 / (k ** 2) for k in range(1, dim_x + 1)]
     gamma = beta
-    delta = [1 / (k**2) for k in range(1, dim_z + 1)]
+    delta = [1 / (k ** 2) for k in range(1, dim_z + 1)]
 
     I_x = np.eye(dim_x)
-    Pi = np.hstack((I_x, np.zeros((dim_x, dim_z-dim_x))))
+    Pi = np.hstack((I_x, np.zeros((dim_x, dim_z - dim_x))))
     z = np.dot(x, Pi) + xi
 
     d = np.dot(x, gamma) + np.dot(z, delta) + u
