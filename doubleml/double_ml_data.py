@@ -481,7 +481,6 @@ class DoubleMLData:
         return is_binary
 
     def _check_binary_outcome(self):
-        is_binary = pd.Series(dtype=bool, index=[self.y_col])
         y = self.data.loc[:, self.y_col]
         binary_outcome = (type_of_target(y) == 'binary')
         zero_one_outcome = np.all((np.power(y, 2) - y) == 0)
