@@ -431,6 +431,18 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
 
+    # we allow classifiers for ml_g for binary treatment variables in IRM
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, LogisticRegression(), LogisticRegression())
+
+    # we allow classifiers for ml_g for binary treatment variables in IRM
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, LogisticRegression(), LogisticRegression(), LogisticRegression())
+
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegression()
