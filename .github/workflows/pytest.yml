@@ -22,12 +22,13 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os: ubuntu-latest, python-version: 3.6}
-          - {os: ubuntu-latest, python-version: 3.7}
-          - {os: ubuntu-latest, python-version: 3.8}
-          - {os: windows-latest, python-version: 3.8}
-          - {os: macOS-latest, python-version: 3.8}
-          - {os: ubuntu-latest, python-version: 3.9}
+          - {os: 'ubuntu-latest', python-version: '3.6'}
+          - {os: 'ubuntu-latest', python-version: '3.7'}
+          - {os: 'ubuntu-latest', python-version: '3.8'}
+          - {os: 'windows-latest', python-version: '3.8'}
+          - {os: 'macOS-latest', python-version: '3.8'}
+          - {os: 'ubuntu-latest', python-version: '3.9'}
+          - {os: 'ubuntu-latest', python-version: '3.10'}
 
     steps:
     - uses: actions/checkout@v2
@@ -72,7 +73,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.8'
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         file: ./coverage.xml
         flags: unittests

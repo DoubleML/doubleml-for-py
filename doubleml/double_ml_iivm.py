@@ -18,12 +18,12 @@ class DoubleMLIIVM(DoubleML):
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
 
-    ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[Z|X]`.
 
-    ml_r : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_r : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
 
     n_folds : int
@@ -210,7 +210,7 @@ class DoubleMLIIVM(DoubleML):
             raise ValueError(err_msg)
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),
@@ -283,8 +283,8 @@ class DoubleMLIIVM(DoubleML):
 
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                            search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                         search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),

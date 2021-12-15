@@ -5,7 +5,7 @@
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/doubleml.svg)](https://anaconda.org/conda-forge/doubleml)
 [![codecov](https://codecov.io/gh/DoubleML/doubleml-for-py/branch/master/graph/badge.svg?token=0BjlFPgdGk)](https://codecov.io/gh/DoubleML/doubleml-for-py)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1c08ec7d782c451784293c996537de14)](https://www.codacy.com/gh/DoubleML/doubleml-for-py/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DoubleML/doubleml-for-py&amp;utm_campaign=Badge_Grade)
-[![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue)](https://www.python.org/)
+[![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)](https://www.python.org/)
 
 The Python package **DoubleML** provides an implementation of the double / debiased machine learning framework of
 [Chernozhukov et al. (2018)](https://doi.org/10.1111/ectj.12097).
@@ -15,7 +15,7 @@ Note that the Python package was developed together with an R twin based on [mlr
 The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r) and 
 [![CRAN Version](https://www.r-pkg.org/badges/version/DoubleML)](https://cran.r-project.org/package=DoubleML).
 
-## Documentation and maintenance
+## Documentation and Maintenance
 
 Documentation and website: [https://docs.doubleml.org/](https://docs.doubleml.org/)
 
@@ -85,6 +85,14 @@ pip install --editable .
 ```
 
 Detailed [installation instructions](https://docs.doubleml.org/stable/intro/install.html) can be found in the documentation.
+
+## Contributing
+DoubleML is a community effort.
+Everyone is welcome to contribute.
+To get started for your first contribution we recommend reading our
+[contributing guidelines](https://github.com/DoubleML/doubleml-for-py/blob/master/CONTRIBUTING.md)
+and our
+[code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
 
 ## Citation
 
