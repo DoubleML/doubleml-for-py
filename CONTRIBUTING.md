@@ -160,7 +160,7 @@ new model class (e.g. regressions or classifications).
 Furthermore, the **score components for the Neyman orthogonal score function need to be implemented**.
 All other functionality is automatically available via inheritance from the abstract base class.
 A **template for new model classes** is available
-[here](https://github.com/DoubleML/doubleml-docs/model_templates/double_ml_model_template.py).
+[here](https://github.com/DoubleML/doubleml-docs/blob/master/model_templates/double_ml_model_template.py).
 
 ## Contribute Documentation :books:
 The **documentation** of DoubleML is generated with **sphinx** and hosted at

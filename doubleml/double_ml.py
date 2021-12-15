@@ -474,7 +474,7 @@ class DoubleML(ABC):
 
                 # ml estimation of nuisance models and computation of score elements
                 self._psi_a[:, self._i_rep, self._i_treat], self._psi_b[:, self._i_rep, self._i_treat], preds =\
-                    self._ml_nuisance_and_score_elements(self.__smpls, n_jobs_cv)
+                    self._nuisance_est(self.__smpls, n_jobs_cv)
 
                 if store_predictions:
                     self._store_predictions(preds)
@@ -799,11 +799,11 @@ class DoubleML(ABC):
                     self._i_rep = i_rep
 
                     # tune hyperparameters
-                    res = self._ml_nuisance_tuning(self.__smpls,
-                                                   param_grids, scoring_methods,
-                                                   n_folds_tune,
-                                                   n_jobs_cv,
-                                                   search_mode, n_iter_randomized_search)
+                    res = self._nuisance_tuning(self.__smpls,
+                                                param_grids, scoring_methods,
+                                                n_folds_tune,
+                                                n_jobs_cv,
+                                                search_mode, n_iter_randomized_search)
 
                     tuning_res[i_rep][i_d] = res
                     nuisance_params.append(res['params'])
@@ -816,11 +816,11 @@ class DoubleML(ABC):
             else:
                 smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
                 # tune hyperparameters
-                res = self._ml_nuisance_tuning(smpls,
-                                               param_grids, scoring_methods,
-                                               n_folds_tune,
-                                               n_jobs_cv,
-                                               search_mode, n_iter_randomized_search)
+                res = self._nuisance_tuning(smpls,
+                                            param_grids, scoring_methods,
+                                            n_folds_tune,
+                                            n_jobs_cv,
+                                            search_mode, n_iter_randomized_search)
                 tuning_res[i_d] = res
 
                 if set_as_params:
@@ -887,12 +887,12 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv):
         pass
 
     @abstractmethod
-    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                            search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                         search_mode, n_iter_randomized_search):
         pass
 
     @staticmethod
