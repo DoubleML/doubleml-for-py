@@ -21,8 +21,11 @@ dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 (x, y, d, z) = make_iivm_data(n_obs=20, return_type="array")
-y[y>0] = 1
-y[y<0] = 0
+y[y > 0] = 1
+y[y < 0] = 0
+dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
+dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
@@ -397,6 +400,7 @@ class _DummyNoClassifier(_DummyNoGetParams):
     def predict_proba(self):
         pass
 
+
 @pytest.mark.ci
 def test_doubleml_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
@@ -460,7 +464,7 @@ def test_doubleml_exception_learner():
     msg = (r'Learner provided for ml_g is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor '
            'nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
-        dml_irm_hidden_classifier = DoubleMLIRM(DoubleMLData.from_arrays(x, y, d),
+        dml_irm_hidden_classifier = DoubleMLIRM(dml_data_irm_binary_outcome,
                                                 log_reg, LogisticRegression())
     msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner LogisticRegression\(\) '
            'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
@@ -471,13 +475,14 @@ def test_doubleml_exception_learner():
     msg = (r'Learner provided for ml_g is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor '
            'nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
-        dml_iivm_hidden_classifier = DoubleMLIIVM(DoubleMLData.from_arrays(x, y, d, z),
+        dml_iivm_hidden_classifier = DoubleMLIIVM(dml_data_iivm_binary_outcome,
                                                   log_reg, LogisticRegression(), LogisticRegression())
     msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner LogisticRegression\(\) '
            'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
            'labels are predicted.')
     with pytest.raises(ValueError, match=msg):
         dml_iivm_hidden_classifier.fit()
+
 
 @pytest.mark.ci
 @pytest.mark.filterwarnings("ignore:Learner provided for")
