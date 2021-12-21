@@ -20,7 +20,7 @@ dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
-(x, y, d, z) = make_iivm_data(n_obs=20, return_type="array")
+(x, y, d, z) = make_iivm_data(n_obs=30, return_type="array")
 y[y > 0] = 1
 y[y < 0] = 0
 dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
@@ -401,6 +401,15 @@ class _DummyNoClassifier(_DummyNoGetParams):
         pass
 
 
+class LogisticRegressionManipulatedPredict(LogisticRegression):
+    def predict(self, X):
+        if self.max_iter == 314:
+            preds = super().predict_proba(X)[:, 1]
+        else:
+            preds = super().predict(X)
+        return preds
+
+
 @pytest.mark.ci
 def test_doubleml_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
@@ -461,26 +470,37 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         dml_plr_hidden_classifier.fit()
 
-    msg = (r'Learner provided for ml_g is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor '
-           'nor a classifier. Method predict is used for prediction.')
+    # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
+    # it then predicts labels and therefore an exception will be thrown
+    # whether predict() or predict_proba() is being called can also be manipulated via the unrelated max_iter variable
+    log_reg = LogisticRegressionManipulatedPredict()
+    log_reg._estimator_type = None
+    msg = (r'Learner provided for ml_g is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) '
+           'neither a regressor nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
         dml_irm_hidden_classifier = DoubleMLIRM(dml_data_irm_binary_outcome,
                                                 log_reg, LogisticRegression())
-    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner LogisticRegression\(\) '
-           'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
-           'labels are predicted.')
+    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner '
+           r'LogisticRegressionManipulatedPredict\(\) are also observed to be binary with values 0 and 1. Make sure '
+           'that for classifiers probabilities and not labels are predicted.')
     with pytest.raises(ValueError, match=msg):
         dml_irm_hidden_classifier.fit()
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
+        dml_irm_hidden_classifier.fit()
 
-    msg = (r'Learner provided for ml_g is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor '
-           'nor a classifier. Method predict is used for prediction.')
+    msg = (r'Learner provided for ml_g is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) '
+           'neither a regressor nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
         dml_iivm_hidden_classifier = DoubleMLIIVM(dml_data_iivm_binary_outcome,
                                                   log_reg, LogisticRegression(), LogisticRegression())
-    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner LogisticRegression\(\) '
-           'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
-           'labels are predicted.')
+    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner '
+           r'LogisticRegressionManipulatedPredict\(\) are also observed to be binary with values 0 and 1. Make sure '
+           'that for classifiers probabilities and not labels are predicted.')
     with pytest.raises(ValueError, match=msg):
+        dml_iivm_hidden_classifier.fit()
+    with pytest.raises(ValueError, match=msg):
+        dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
 
 
