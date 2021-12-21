@@ -274,7 +274,7 @@ class DoubleMLData:
     @property
     def binary_outcome(self):
         """
-        Series with logical indicating whether the outcome variable is binary with values 0 and 1.
+        Logical indicating whether the outcome variable is binary with values 0 and 1.
         """
         return self._binary_outcome
 
