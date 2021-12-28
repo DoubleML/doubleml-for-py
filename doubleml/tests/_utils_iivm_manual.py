@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
@@ -59,13 +59,21 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
                       trimming_threshold=1e-12, always_takers=True, never_takers=True):
     ml_g0 = clone(learner_g)
     train_cond0 = np.where(z == 0)[0]
-    g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
+    if is_classifier(learner_g):
+        g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls,
+                              train_cond=train_cond0)
+    else:
+        g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                               train_cond=train_cond0)
 
     ml_g1 = clone(learner_g)
     train_cond1 = np.where(z == 1)[0]
-    g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                              train_cond=train_cond1)
+    if is_classifier(learner_g):
+        g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
+                                        train_cond=train_cond1)
+    else:
+        g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+                                  train_cond=train_cond1)
 
     ml_m = clone(learner_m)
     m_hat_list = fit_predict_proba(z, x, ml_m, m_params, smpls,
