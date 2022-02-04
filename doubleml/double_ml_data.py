@@ -83,6 +83,7 @@ class DoubleMLData:
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
         self._binary_treats = self._check_binary_treats()
+        self._binary_outcome = self._check_binary_outcome()
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self.set_x_d(self.d_cols[0])
@@ -269,6 +270,13 @@ class DoubleMLData:
         Series with logical(s) indicating whether the treatment variable(s) are binary with values 0 and 1.
         """
         return self._binary_treats
+
+    @property
+    def binary_outcome(self):
+        """
+        Logical indicating whether the outcome variable is binary with values 0 and 1.
+        """
+        return self._binary_outcome
 
     @property
     def x_cols(self):
@@ -470,6 +478,13 @@ class DoubleMLData:
             binary_treat = (type_of_target(this_d) == 'binary')
             zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
             is_binary[treatment_var] = (binary_treat & zero_one_treat)
+        return is_binary
+
+    def _check_binary_outcome(self):
+        y = self.data.loc[:, self.y_col]
+        binary_outcome = (type_of_target(y) == 'binary')
+        zero_one_outcome = np.all((np.power(y, 2) - y) == 0)
+        is_binary = (binary_outcome & zero_one_outcome)
         return is_binary
 
     def _check_disjoint_sets(self):

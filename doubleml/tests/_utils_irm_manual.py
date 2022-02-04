@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
@@ -57,12 +57,20 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
     train_cond0 = np.where(d == 0)[0]
-    g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
+    if is_classifier(learner_g):
+        g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls,
+                              train_cond=train_cond0)
+    else:
+        g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                               train_cond=train_cond0)
 
     if score == 'ATE':
         train_cond1 = np.where(d == 1)[0]
-        g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+        if is_classifier(learner_g):
+            g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
+                                  train_cond=train_cond1)
+        else:
+            g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
                                   train_cond=train_cond1)
     else:
         assert score == 'ATTE'

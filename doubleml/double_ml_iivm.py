@@ -18,13 +18,16 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(Z,X) = E[Y|X,Z]`.
+        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
 
-    ml_m : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[Z|X]`.
 
-    ml_r : classifier implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+    ml_r : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`r_0(Z,X) = E[D|X,Z]`.
 
     n_folds : int
@@ -138,11 +141,18 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         _ = self._check_learner(ml_r, 'ml_r', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba', 'ml_r': 'predict_proba'}
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba', 'ml_r': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
+                                 'but the outcome variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba', 'ml_r': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
         valid_trimming_rule = ['truncate']
@@ -211,7 +221,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             raise ValueError(err_msg)
         return
 
-    def _ml_nuisance_and_score_elements(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),
@@ -226,9 +236,28 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
         _check_finite_predictions(g_hat0, self._learner['ml_g'], 'ml_g', smpls)
+
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat0) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat0, 2) - g_hat0) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
+
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
         _check_finite_predictions(g_hat1, self._learner['ml_g'], 'ml_g', smpls)
+
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat1) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat1, 2) - g_hat1) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
@@ -286,8 +315,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
-    def _ml_nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                            search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                         search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),
