@@ -98,21 +98,23 @@ and our
 
 If you use the DoubleML package a citation is highly appreciated:
 
-Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2021), DoubleML - An
+Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2022), DoubleML - An
 Object-Oriented Implementation of Double Machine Learning in Python,
-arXiv:[2104.03220](https://arxiv.org/abs/2104.03220).
+Journal of Machine Learning Research, 23(53): 1--6,
+[https://www.jmlr.org/papers/v23/21-0862.html](https://www.jmlr.org/papers/v23/21-0862.html).
 
 Bibtex-entry:
 
 ```
-@misc{DoubleML2021,
-      title={{DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython}, 
-      author={Philipp Bach and Victor Chernozhukov and Malte S. Kurz and Martin Spindler},
-      year={2021},
-      eprint={2104.03220},
-      archivePrefix={arXiv},
-      primaryClass={stat.ML},
-      note={arXiv:\href{https://arxiv.org/abs/2104.03220}{2104.03220} [stat.ML]}
+@article{DoubleML2022,
+      title   = {{DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython}, 
+      author  = {Philipp Bach and Victor Chernozhukov and Malte S. Kurz and Martin Spindler},
+      journal = {Journal of Machine Learning Research},
+      year    = {2022},
+      volume  = {23},
+      number  = {53},
+      pages   = {1--6},
+      url     = {http://jmlr.org/papers/v23/21-0862.html}
 }
 ```
 
