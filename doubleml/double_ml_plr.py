@@ -116,7 +116,8 @@ class DoubleMLPLR(DoubleML):
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in ['ml_l', 'ml_g', 'ml_m']}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -144,10 +145,10 @@ class DoubleMLPLR(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+        # nuisance l
+        l_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+        _check_finite_predictions(l_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -163,28 +164,41 @@ class DoubleMLPLR(DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
+        # an estimate of g is obtained for the IV-type score and callable scores
+        g_hat = None
+        if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+            # get an initial estimate for theta using the partialling out score
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.mean(psi_b) / np.mean(psi_a)
+            # nuisance g
+            g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_l'), method=self._predict_method['ml_g'])
+            _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+
+        psi_a, psi_b = self._score_elements(y, d, l_hat, g_hat, m_hat, smpls)
         preds = {'ml_g': g_hat,
+                 'ml_l': l_hat,
                  'ml_m': m_hat}
 
         return psi_a, psi_b, preds
 
-    def _score_elements(self, y, d, g_hat, m_hat, smpls):
+    def _score_elements(self, y, d, l_hat, g_hat, m_hat, smpls):
         # compute residuals
-        u_hat = y - g_hat
+        u_hat = y - l_hat
         v_hat = d - m_hat
-        v_hatd = np.multiply(v_hat, d)
 
         if isinstance(self.score, str):
             if self.score == 'IV-type':
-                psi_a = -v_hatd
+                psi_a = - np.multiply(v_hat, d)
+                psi_b = np.multiply(v_hat, y - g_hat)
             else:
                 assert self.score == 'partialling out'
                 psi_a = -np.multiply(v_hat, v_hat)
-            psi_b = np.multiply(v_hat, u_hat)
+                psi_b = np.multiply(v_hat, u_hat)
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
+            psi_a, psi_b = self.score(y, d, l_hat, g_hat, m_hat, smpls)
 
         return psi_a, psi_b
 
@@ -200,21 +214,44 @@ class DoubleMLPLR(DoubleML):
                                'ml_m': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        g_tune_res = _dml_tune(y, x, train_inds,
+        l_tune_res = _dml_tune(y, x, train_inds,
                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         m_tune_res = _dml_tune(d, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        l_best_params = [xx.best_params_ for xx in l_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'ml_g': g_best_params,
-                  'ml_m': m_best_params}
+        # an ML model for g is obtained for the IV-type score and callable scores
+        if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+            # construct an initial theta estimate from the tuned models using the partialling out score
+            l_hat = np.full_like(y, np.nan)
+            m_hat = np.full_like(d, np.nan)
+            for idx, (train_index, _) in enumerate(smpls):
+                l_hat[train_index] = l_tune_res[idx].predict(x[train_index, :])
+                m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.mean(psi_b) / np.mean(psi_a)
+            g_tune_res = _dml_tune(y - theta_initial*d, x, train_inds,
+                                   self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        tune_res = {'g_tune': g_tune_res,
-                    'm_tune': m_tune_res}
+            g_best_params = [xx.best_params_ for xx in g_tune_res]
+            params = {'ml_l': l_best_params,
+                      'ml_m': m_best_params,
+                      'ml_g': g_best_params}
+            tune_res = {'l_tune': l_tune_res,
+                        'm_tune': m_tune_res,
+                        'g_tune': g_tune_res}
+        else:
+            assert self.score == 'partialling out'
+            params = {'ml_l': l_best_params,
+                      'ml_m': m_best_params}
+            tune_res = {'g_tune': l_tune_res,
+                        'm_tune': m_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
