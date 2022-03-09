@@ -116,8 +116,12 @@ class DoubleMLPLR(DoubleML):
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
-                        for learner in ['ml_l', 'ml_g', 'ml_m']}
+        if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+            self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                            for learner in ['ml_l', 'ml_g', 'ml_m']}
+        else:
+            self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                            for learner in ['ml_l', 'ml_m']}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -147,7 +151,7 @@ class DoubleMLPLR(DoubleML):
 
         # nuisance l
         l_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_g'])
         _check_finite_predictions(l_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
@@ -170,10 +174,10 @@ class DoubleMLPLR(DoubleML):
             # get an initial estimate for theta using the partialling out score
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
-            theta_initial = -np.mean(psi_b) / np.mean(psi_a)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
             g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_l'), method=self._predict_method['ml_g'])
+                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
             _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
 
         psi_a, psi_b = self._score_elements(y, d, l_hat, g_hat, m_hat, smpls)
@@ -234,7 +238,7 @@ class DoubleMLPLR(DoubleML):
                 m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
-            theta_initial = -np.mean(psi_b) / np.mean(psi_a)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             g_tune_res = _dml_tune(y - theta_initial*d, x, train_inds,
                                    self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
@@ -250,7 +254,7 @@ class DoubleMLPLR(DoubleML):
             assert self.score == 'partialling out'
             params = {'ml_l': l_best_params,
                       'ml_m': m_best_params}
-            tune_res = {'g_tune': l_tune_res,
+            tune_res = {'l_tune': l_tune_res,
                         'm_tune': m_tune_res}
 
         res = {'params': params,
