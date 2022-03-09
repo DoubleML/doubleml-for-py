@@ -3,6 +3,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
+from .double_ml_data import DoubleMLData
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
@@ -131,6 +132,9 @@ class DoubleMLPLR(DoubleML):
         return
 
     def _check_data(self, obj_dml_data):
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
