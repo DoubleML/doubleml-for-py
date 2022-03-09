@@ -15,6 +15,7 @@ ml_g = Lasso()
 ml_m = Lasso()
 ml_r = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
+dml_plr_iv_type = DoubleMLPLR(dml_data, ml_g, ml_m, score='IV-type')
 
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
@@ -218,9 +219,17 @@ def test_doubleml_exception_no_cross_fit():
 
 @pytest.mark.ci
 def test_doubleml_exception_get_params():
-    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g or ml_m.'
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.get_params('ml_r')
+    msg = 'Invalid nuisance learner ml_g. Valid nuisance learner ml_l or ml_m.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.get_params('ml_g')
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_g or ml_m.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.get_params('ml_r')
+
+
 
 
 @pytest.mark.ci
@@ -375,12 +384,12 @@ def test_doubleml_exception_tune():
 @pytest.mark.ci
 def test_doubleml_exception_set_ml_nuisance_params():
 
-    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g or ml_m.'
+    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
     msg = 'Invalid treatment variable y. Valid treatment variable d.'
     with pytest.raises(ValueError, match=msg):
-        dml_plr.set_ml_nuisance_params('ml_g', 'y', {'alpha': 0.1})
+        dml_plr.set_ml_nuisance_params('ml_l', 'y', {'alpha': 0.1})
 
 
 class _DummyNoSetParams:

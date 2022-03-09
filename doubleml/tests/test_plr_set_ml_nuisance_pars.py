@@ -56,8 +56,11 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
                                               n_folds,
                                               score=score,
                                               dml_procedure=dml_procedure)
-    dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_g', 'd', {'alpha': alpha})
+    dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_l', 'd', {'alpha': alpha})
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_m', 'd', {'alpha': alpha})
+    if score == 'IV-type':
+        dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_g', 'd', {'alpha': alpha})
+
     dml_plr_obj_ext_set_par.fit()
 
     res_dict = {'coef': dml_plr_obj.coef,

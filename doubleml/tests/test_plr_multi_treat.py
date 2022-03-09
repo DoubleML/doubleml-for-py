@@ -96,7 +96,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         boot_theta, boot_t_stat = boot_plr_multitreat(
             y, d,
             res_manual['thetas'], res_manual['ses'],
-            res_manual['all_g_hat'], res_manual['all_m_hat'],
+            res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
             all_smpls, score,
             bootstrap, n_rep_boot, n_rep)
 

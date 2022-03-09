@@ -91,21 +91,23 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
     all_smpls = draw_smpls(n_obs, n_folds)
     smpls = all_smpls[0]
 
+    tune_g = score == 'IV-type'
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_g), clone(learner_m), smpls, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        g_params, l_params, m_params = tune_nuisance_plr(y, x, d,
+                                                         clone(learner_g), clone(learner_m), smpls, n_folds_tune,
+                                                         par_grid['ml_g'], par_grid['ml_m'], tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(learner_g), clone(learner_m), xx, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        g_params, l_params, m_params = tune_nuisance_plr(y, x, d,
+                                                         clone(learner_g), clone(learner_m), xx, n_folds_tune,
+                                                         par_grid['ml_g'], par_grid['ml_m'], tune_g)
+        l_params = l_params * n_folds
         g_params = g_params * n_folds
         m_params = m_params * n_folds
 
     res_manual = fit_plr(y, x, d, clone(learner_g), clone(learner_m),
                          all_smpls, dml_procedure, score,
-                         g_params=g_params, m_params=m_params)
+                         g_params=g_params, l_params=l_params, m_params=m_params)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -116,7 +118,7 @@ def dml_plr_fixture(generate_data2, learner_g, learner_m, score, dml_procedure, 
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)

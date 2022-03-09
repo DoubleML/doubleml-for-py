@@ -79,7 +79,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
                                            [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 
@@ -161,18 +161,20 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     thetas = np.zeros(n_rep)
     ses = np.zeros(n_rep)
     all_g_hat = list()
+    all_l_hat = list()
     all_m_hat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(learner), clone(learner), smpls)
+        g_hat, l_hat, m_hat = fit_nuisance_plr(y, x, d,
+                                               clone(learner), clone(learner), smpls)
 
         all_g_hat.append(g_hat)
+        all_l_hat.append(l_hat)
         all_m_hat.append(m_hat)
 
         thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
-                                             all_g_hat[i_rep], all_m_hat[i_rep],
+                                             all_g_hat[i_rep], all_l_hat[i_rep], all_m_hat[i_rep],
                                              smpls, score)
 
     res_manual = np.median(thetas)
@@ -188,7 +190,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, thetas, ses,
-                                           all_g_hat, all_m_hat,
+                                           all_g_hat, all_l_hat, all_m_hat,
                                            all_smpls, score, bootstrap, n_rep_boot,
                                            n_rep=n_rep, apply_cross_fitting=False)
 
@@ -276,18 +278,22 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     smpls = all_smpls[0]
     smpls = [smpls[0]]
 
+    tune_g = score == 'IV-type'
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_g), clone(ml_m), smpls, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        g_params, l_params, m_params = tune_nuisance_plr(y, x, d,
+                                                         clone(ml_g), clone(ml_m), smpls, n_folds_tune,
+                                                         par_grid['ml_g'], par_grid['ml_m'],
+                                                         tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_g), clone(ml_m), xx, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        g_params, l_params, m_params = tune_nuisance_plr(y, x, d,
+                                                         clone(ml_g), clone(ml_m), xx, n_folds_tune,
+                                                         par_grid['ml_g'], par_grid['ml_m'],
+                                                         tune_g)
 
     res_manual = fit_plr(y, x, d, clone(ml_m), clone(ml_g),
-                         [smpls], dml_procedure, score, g_params=g_params, m_params=m_params)
+                         [smpls], dml_procedure, score,
+                         g_params=g_params, l_params=l_params, m_params=m_params)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -298,7 +304,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
                                            [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 

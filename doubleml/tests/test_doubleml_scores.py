@@ -63,10 +63,11 @@ def test_plr_callable_vs_str_score():
 @pytest.mark.ci
 def test_plr_callable_vs_pred_export():
     preds = dml_plr_callable_score.predictions
+    l_hat = preds['ml_l'].squeeze()
     g_hat = preds['ml_g'].squeeze()
     m_hat = preds['ml_m'].squeeze()
     psi_a, psi_b = plr_score(dml_data_plr.y, dml_data_plr.d,
-                             g_hat, m_hat,
+                             l_hat, g_hat, m_hat,
                              dml_plr_callable_score.smpls[0])
     assert np.allclose(dml_plr.psi_a.squeeze(),
                        psi_a,

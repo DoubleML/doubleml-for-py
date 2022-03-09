@@ -77,7 +77,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
@@ -157,24 +157,38 @@ def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
 
     smpls = dml_plr_obj.smpls[0]
 
-    g_hat = []
+    l_hat = []
+    l_hat_vec = np.full_like(y, np.nan)
     for (train_index, test_index) in smpls:
         ols_est = scipy.linalg.lstsq(x[train_index], y[train_index])[0]
-        g_hat.append(np.dot(x[test_index], ols_est))
+        preds = np.dot(x[test_index], ols_est)
+        l_hat.append(preds)
+        l_hat_vec[test_index] = preds
 
     m_hat = []
+    m_hat_vec = np.full_like(d, np.nan)
     for (train_index, test_index) in smpls:
         ols_est = scipy.linalg.lstsq(x[train_index], d[train_index])[0]
-        m_hat.append(np.dot(x[test_index], ols_est))
+        preds = np.dot(x[test_index], ols_est)
+        m_hat.append(preds)
+        m_hat_vec[test_index] = preds
+
+    g_hat = []
+    if score == 'IV-type':
+        theta_initial = scipy.linalg.lstsq((d - m_hat_vec).reshape(-1, 1), y - l_hat_vec)[0]
+        for (train_index, test_index) in smpls:
+            ols_est = scipy.linalg.lstsq(x[train_index],
+                                         y[train_index] - d[train_index] * theta_initial)[0]
+            g_hat.append(np.dot(x[test_index], ols_est))
 
     if dml_procedure == 'dml1':
         res_manual, se_manual = plr_dml1(y, x, d,
-                                         g_hat, m_hat,
+                                         g_hat, l_hat, m_hat,
                                          smpls, score)
     else:
         assert dml_procedure == 'dml2'
         res_manual, se_manual = plr_dml2(y, x, d,
-                                         g_hat, m_hat,
+                                         g_hat, l_hat, m_hat,
                                          smpls, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
@@ -186,7 +200,7 @@ def dml_plr_ols_manual_fixture(generate_data1, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, [res_manual], [se_manual],
-                                           [g_hat], [m_hat],
+                                           [g_hat], [l_hat], [m_hat],
                                            [smpls], score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
