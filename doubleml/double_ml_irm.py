@@ -1,5 +1,6 @@
 import patsy
 import numpy as np
+import statsmodels.api as sm
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 from sklearn.preprocessing import PolynomialFeatures
