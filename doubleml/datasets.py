@@ -713,13 +713,13 @@ def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='Diff
 
     Parameters
     ----------
-    n_obs (int, optional): 
+    n_obs (int, optional):
         The number of observations to simulate. Defaults to 100.
-    dim_x (int, optional): 
+    dim_x (int, optional):
         The number of covariates. Defaults to 300.
-    theta (int, optional): 
+    theta (int, optional):
         The value of the causal parameter. Defaults to 3.
-    return_type : 
+    return_type :
         If ``'DiffInDiffRODoubleMLData'`` or ``DiffInDiffRODoubleMLData``, returns a ``DiffInDiffRODoubleMLData`` object.
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
@@ -728,7 +728,8 @@ def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='Diff
 
     References
     ----------
-    Chang, Neng-Chieh. "Double/debiased machine learning for difference-in-differences models." The Econometrics Journal 23.2 (2020): 177-191.
+    Chang, Neng-Chieh. "Double/debiased machine learning for difference-in-differences models."
+    The Econometrics Journal 23.2 (2020): 177-191.
     """
     s = 5
 

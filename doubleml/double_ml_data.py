@@ -979,17 +979,17 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
             raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and covariate in '
                              '``x_cols``.')
         if not y_col_set.isdisjoint(d_cols_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and treatment variable in '
-                             '``d_cols``.')
+            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and '
+                             'treatment variable in ``d_cols``.')
         if not y_col_set.isdisjoint(y_treated_col_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and post-treatment outcome variable in '
-                             '``y_treated_col``.')
+            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` '
+                             'and post-treatment outcome variable in ``y_treated_col``.')
         if not x_cols_set.isdisjoint(y_treated_col_set):
-            raise ValueError(f'{str(self.x_cols_set)} cannot be set as covariate ``x_col`` and post-treatment outcome variable in '
-                             '``y_treated_col``.')
+            raise ValueError(f'{str(self.x_cols_set)} cannot be set as covariate ``x_col`` and post-treatment '
+                             'outcome variable in ``y_treated_col``.')
         if not d_cols_set.isdisjoint(x_cols_set):
             raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
                              '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
         if not d_cols_set.isdisjoint(y_treated_col_set):
-            raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col`` and treatment variable in '
-                             '``d_cols``.')
+            raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col`` '
+                             'and treatment variable in ``d_cols``.')

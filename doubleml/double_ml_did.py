@@ -71,7 +71,7 @@ class DoubleMLDiD(DoubleML):
     >>> obj_dml_data = make_diff_in_diff_chang2020(theta = 3)
     >>> dml_did_obj = dml.DoubleMLDiD(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
-           	coef	std err	t	P>|t|	2.5 %	97.5 %
+            coef	std err	t	P>|t|	2.5 %	97.5 %
         D	2.998143	0.260907	11.49124	1.460007e-30	2.486775	3.509511
     """
     def __init__(self,
@@ -113,7 +113,8 @@ class DoubleMLDiD(DoubleML):
     def _check_data(self, obj_dml_data):
         if not (isinstance(obj_dml_data, DiffInDiffRCDoubleMLData) or isinstance(obj_dml_data, DiffInDiffRODoubleMLData)):
             raise ValueError('Incompatible data. '
-                             'The data object should be an instance of either `DiffInDiffRODoubleMLData` or `DiffInDiffRODoubleMLData`')
+                             'The data object should be an instance of either '
+                             '`DiffInDiffRODoubleMLData` or `DiffInDiffRODoubleMLData`')
 
     def _check_score(self, score):
         if not isinstance(score, str):
