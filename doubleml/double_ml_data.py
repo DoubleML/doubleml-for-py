@@ -766,3 +766,230 @@ class DoubleMLClusterData(DoubleMLData):
     def _set_cluster_vars(self):
         assert_all_finite(self.data.loc[:, self.cluster_cols])
         self._cluster_vars = self.data.loc[:, self.cluster_cols]
+
+
+class DiffInDiffRCDoubleMLData(DoubleMLData):
+    """Difference in Difference Double machine learning data-backend for repeated cross-section scenario.
+
+    :class:`DiffInDiffRCDoubleMLData` objects can be initialized from
+    :class:`pandas.DataFrame`'s
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The outcome variable.
+
+    d_cols : str or list
+        The treatment variable(s).
+
+    t_col : str
+        The time indicator variable
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
+        Default is ``None``.
+    """
+    def __init__(self,
+                 data,
+                 y_col,
+                 d_cols,
+                 t_col,
+                 x_cols=None):
+        super().__init__(data, y_col, d_cols, x_cols)
+        self.t_col = t_col
+
+    def __str__(self):
+        data_info = f'Outcome variable: {self.y_col}\n' \
+                    f'Treatment variable(s): {self.d_cols}\n' \
+                    f'Time indicator variable: {self.t_col}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'Instrument variable(s): {self.z_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    @property
+    def t(self):
+        """
+        Array of time indicator variable.
+        """
+        return self._t.values
+
+    @property
+    def t_col(self):
+        """
+        The time indicator variable.
+        """
+        return self._t_col
+
+    @t_col.setter
+    def t_col(self, value):
+        reset_value = hasattr(self, '_t_col')
+        if not isinstance(value, str):
+            raise TypeError('The time indicator variable t_col must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid time indicator variable t_col. '
+                             f'{value} is no data column.')
+        if not self.data[value].isin([0, 1]).all():
+            raise ValueError('Invalid values found time indicator variable t_col.'
+                             'Values should be binary. Found at least one value that is not in [0, 1]')
+        self._t_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+
+        self.set_t()
+
+    def set_t(self):
+        assert_all_finite(self.data.loc[:, self.t_col])
+        self._t = self.data.loc[:, self.t_col]
+
+    def _check_disjoint_sets(self):
+        return self._check_disjoint_sets_y_d_x_t()
+
+    def _check_disjoint_sets_y_d_x_t(self):
+        y_col_set = {self.y_col}
+        t_col_set = {self.t_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in '
+                             '``x_cols``.')
+        if not y_col_set.isdisjoint(d_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in '
+                             '``d_cols``.')
+        if not y_col_set.isdisjoint(t_col_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and time variable in '
+                             '``t_col``.')
+
+        if not d_cols_set.isdisjoint(x_cols_set):
+            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
+                             '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
+
+        if not d_cols_set.isdisjoint(t_col_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in '
+                             '``d_cols``.')
+
+
+class DiffInDiffRODoubleMLData(DoubleMLData):
+    """Difference in Difference Double machine learning data-backend for repeated outcome scenario.
+
+    :class:`DiffInDiffRODoubleMLData` objects can be initialized from
+    :class:`pandas.DataFrame`'s
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The outcome variable.
+
+    y_treated_col : str
+        The post-treatment outcome variable
+
+    d_cols : str or list
+        The treatment variable(s).
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
+        Default is ``None``.
+    """
+    def __init__(self,
+                 data,
+                 y_col,
+                 y_treated_col,
+                 d_cols,
+                 x_cols=None):
+        super().__init__(data, y_col, d_cols, x_cols)
+        self.y_treated_col = y_treated_col
+
+    def __str__(self):
+        data_info = f'Pre-treatment Outcome variable: {self.y_col}\n' \
+                    f'Post-treatment Outcome variable: {self.y_treated_col}\n' \
+                    f'Treatment variable(s): {self.d_cols}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'Instrument variable(s): {self.z_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    @property
+    def y_treated(self):
+        """
+        Array of post-treatment variable.
+        """
+        return self._y_treated.values
+
+    @property
+    def y_treated_col(self):
+        """
+        The Post-treatment outcome variable.
+        """
+        return self._y_treated_col
+
+    @y_treated_col.setter
+    def y_treated_col(self, value):
+        reset_value = hasattr(self, '_y_treated_col')
+        if not isinstance(value, str):
+            raise TypeError('The Post-treatment outcome variable y_treated_col must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid Post-treatment outcome variable y_treated_col. '
+                             f'{value} is no data column.')
+
+        self._y_treated_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+
+        self.set_y_treated()
+
+    def set_y_treated(self):
+        assert_all_finite(self.data.loc[:, self.y_treated_col])
+        self._y_treated = self.data.loc[:, self.y_treated_col]
+
+    def _check_disjoint_sets(self):
+        return self._check_disjoint_sets_y_d_x()
+
+    def _check_disjoint_sets_y_d_x(self):
+        y_col_set = {self.y_col}
+        y_treated_col_set = {self.y_treated_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and covariate in '
+                             '``x_cols``.')
+        if not y_col_set.isdisjoint(d_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and treatment variable in '
+                             '``d_cols``.')
+        if not y_col_set.isdisjoint(y_treated_col_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` and post-treatment outcome variable in '
+                             '``y_treated_col``.')
+        if not x_cols_set.isdisjoint(y_treated_col_set):
+            raise ValueError(f'{str(self.x_cols_set)} cannot be set as covariate ``x_col`` and post-treatment outcome variable in '
+                             '``y_treated_col``.')
+        if not d_cols_set.isdisjoint(x_cols_set):
+            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
+                             '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
+        if not d_cols_set.isdisjoint(y_treated_col_set):
+            raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col`` and treatment variable in '
+                             '``d_cols``.')
