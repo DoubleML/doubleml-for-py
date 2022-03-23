@@ -144,7 +144,7 @@ class DoubleMLIRM(DoubleML):
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
-    def cate(self, X: np.array, method: str, alpha: float, n_grid_nodes: int,
+    def cate(self, cate_var: str, method: str, alpha: float, n_grid_nodes: int,
              n_samples_bootstrap: int, cv: bool, poly_degree: int = None, splines_knots: int = None,
              splines_degree: int = None, ortho: bool = False) -> dict:
         """
@@ -153,7 +153,7 @@ class DoubleMLIRM(DoubleML):
 
         Parameters
         ----------
-        X: variable whose CATE is calculated
+        cate_var: variable whose CATE is calculated
         method: "poly" or "splines", chooses which method to approximate with
         alpha: p-value for the confidence intervals
         n_grid_nodes: number of points of X for which we wish to calculate the CATE
@@ -170,10 +170,10 @@ class DoubleMLIRM(DoubleML):
         well as pointwise), fitted linear model and grid of X for which the CATE was calculated
 
         """
-        # todo: I think X should be taken from the self._dml_data object. Let's discuss how to best do this
+        X = np.array(self._dml_data.data[cate_var])
+        y = self.psi_b.reshape(-1, 1)
         x_grid = np.linspace(np.round(np.min(X), 2), np.round(np.max(X), 2), n_grid_nodes).reshape(-1, 1)
         # The robust score is given by psi_b
-        y = self.psi_b.reshape(-1, 1)
 
         if method == "poly":
             assert poly_degree is not None, "poly_degree must be specified for method 'poly'"
