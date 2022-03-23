@@ -1,9 +1,13 @@
+import patsy
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+from sklearn.preprocessing import PolynomialFeatures
+from scipy.stats import norm
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _calculate_bootstrap_tstat,\
+    _polynomial_fit, _splines_fit, _calculate_orthogonal_polynomials
 
 
 class DoubleMLIRM(DoubleML):
@@ -139,6 +143,95 @@ class DoubleMLIRM(DoubleML):
                              'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
+
+    def cate(self, X: np.array, method: str, alpha: float, n_grid_nodes: int,
+             n_samples_bootstrap: int, cv: bool, poly_degree: int = None, splines_knots: int = None,
+             splines_degree: int = None, ortho: bool = False) -> dict:
+        """
+        Calculates the CATE with respect to variable X by polynomial or splines approximation.
+        It calculates it on an equidistant grid of n_grid_nodes points over the range of X
+
+        Parameters
+        ----------
+        X: variable whose CATE is calculated
+        method: "poly" or "splines", chooses which method to approximate with
+        alpha: p-value for the confidence intervals
+        n_grid_nodes: number of points of X for which we wish to calculate the CATE
+        n_samples_bootstrap: how many samples to use to calculate the t-statistics described in 2.6
+        cv: whether to perform cross-validation to find the degree of the polynomials / number of knots
+        poly_degree: maximum degree of the polynomial approximation
+        splines_knots: max knots for the splines approximation
+        splines_degree: degree of the polynomials used in the splines
+        ortho: whether to use orthogonal polynomials
+
+        Returns
+        -------
+        A dictionary containing the estimated CATE (g_hat), with upper and lower confidence bounds (both simultaneous as
+        well as pointwise), fitted linear model and grid of X for which the CATE was calculated
+
+        """
+        # todo: I think X should be taken from the self._dml_data object. Let's discuss how to best do this
+        x_grid = np.linspace(np.round(np.min(X), 2), np.round(np.max(X), 2), n_grid_nodes).reshape(-1, 1)
+        # The robust score is given by psi_b
+        y = self.psi_b.reshape(-1, 1)
+
+        if method == "poly":
+            assert poly_degree is not None, "poly_degree must be specified for method 'poly'"
+
+            fitted_model, poly_degree = _polynomial_fit(X=X, y=y, max_degree=poly_degree, cv=cv, ortho=ortho)
+
+            # Build the set of datapoints in X that will be used for prediction
+            if ortho:
+                regressors_grid = _calculate_orthogonal_polynomials(x_grid, poly_degree)
+            else:
+                pf = PolynomialFeatures(degree=poly_degree, include_bias=True)
+                regressors_grid = pf.fit_transform(x_grid)
+            n_knots = np.nan
+
+        elif method == "splines":
+            assert splines_knots is not None, "splines_knots must be specified for method 'splines'"
+            assert splines_degree is not None, "poly_degree must be specified for method 'splines'"
+
+            fitted_model, n_knots = _splines_fit(X=X, y=y, degree=splines_degree, max_knots=splines_knots, cv=cv)
+
+            # Build the set of datapoints in X that will be used for prediction
+            breaks = np.quantile(X, q=np.array(range(0, n_knots + 1)) / n_knots)
+            regressors_grid = patsy.bs(x_grid, knots=breaks[1:-1], degree=splines_degree)
+            regressors_grid = sm.add_constant(regressors_grid)
+            poly_degree = np.nan
+
+        else:
+            raise NotImplementedError("The specified method is not implemented. Please use 'poly' or 'splines'")
+
+        g_hat = regressors_grid @ fitted_model.params
+        # we can get the HCO matrix directly from the model object
+        hcv_coeff = fitted_model.cov_HC0
+        standard_error = np.sqrt(np.diag(regressors_grid @ hcv_coeff @ np.transpose(regressors_grid)))
+        # Lower pointwise CI
+        g_hat_lower_point = g_hat + norm.ppf(q=alpha / 2) * standard_error
+        # Upper pointwise CI
+        g_hat_upper_point = g_hat + norm.ppf(q=1 - alpha / 2) * standard_error
+
+        max_t_stat = _calculate_bootstrap_tstat(regressors_grid=regressors_grid,
+                                                omega_hat=hcv_coeff,
+                                                alpha=alpha,
+                                                n_samples_bootstrap=n_samples_bootstrap)
+        # Lower simultaneous CI
+        g_hat_lower = g_hat - max_t_stat * standard_error
+        # Upper simultaneous CI
+        g_hat_upper = g_hat + max_t_stat * standard_error
+        results_dict = {
+            "g_hat": g_hat,
+            "g_hat_lower": g_hat_lower,
+            "g_hat_upper": g_hat_upper,
+            "g_hat_lower_point": g_hat_lower_point,
+            "g_hat_upper_point": g_hat_upper_point,
+            "x_grid": x_grid,
+            "fitted_model": fitted_model,
+            "n_knots": [n_knots] * len(g_hat),
+            "poly_degree": [poly_degree] * len(g_hat)
+        }
+        return results_dict
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
@@ -307,3 +400,5 @@ class DoubleMLIRM(DoubleML):
                'tune_res': tune_res}
 
         return res
+
+

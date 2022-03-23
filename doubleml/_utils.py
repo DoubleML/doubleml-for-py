@@ -1,10 +1,15 @@
+import patsy
+import statsmodels.api as sm
 import numpy as np
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from scipy.linalg import sqrtm
+from statsmodels.regression.linear_model import RegressionResults
 
 from joblib import Parallel, delayed
 
@@ -206,3 +211,157 @@ def _check_finite_predictions(preds, learner, learner_name, smpls):
     if not np.all(np.isfinite(preds[test_indices])):
         raise ValueError(f'Predictions from learner {str(learner)} for {learner_name} are not finite.')
     return
+
+
+def _calculate_orthogonal_polynomials(input_vector, degree):
+    """
+    Given an input vector, returns the evaluation of orthogonal polynomials at each point from degree 0 to degree.
+    Based on https://stackoverflow.com/questions/41317127/python-equivalent-to-r-poly-function
+    and https://scipy-user.scipy.narkive.com/iAhn8iGn/linalg-question-unique-sign-of-qr
+
+    """
+    pf = PolynomialFeatures(degree=degree, include_bias=True)
+    poly_grid = pf.fit_transform(input_vector)
+    poly_grid, R = np.linalg.qr(poly_grid)
+    poly_grid = poly_grid * np.sign(np.diag(R))
+    poly_grid = poly_grid[:, 1:]
+    poly_grid = sm.add_constant(poly_grid)
+    return poly_grid
+
+
+def _splines_fit(X: np.array, y: np.array, max_knots: int, degree: int = 3, cv: bool = True) -> \
+        tuple[RegressionResults, int]:
+    """
+    Splines interpolation of y with respect to X. CV is implemented to test splines of number of knots
+    from knots 2 up to max_knots. Only the knots with minimal residuals is returned.
+
+    X in this case should be the feature for which to calculate the CATE and y the robust score described in
+    Semenova 2.2
+
+    Parameters
+    ----------
+    X: features of the regression (variable for which we want to calculate the CATE)
+    y: target variable (robust score)
+    max_knots: maximum number of knots in the splines interpolation
+    degree: degree of the splines polynomials to be used
+    cv: whether to perform cv to select the number of knots. If false, it is equal to max_knots
+
+    Returns
+    -------
+    fitted model and degree of the polynomials
+    """
+    # todo: assert correct dimensions of the parameters
+    # todo: allow for multiple variables in X
+    # First we find which is the n_knots with minimal error
+    if cv:
+        cv_errors = np.zeros(max_knots - 1)
+        for n_knots in range(2, max_knots + 1):
+            breaks = np.quantile(X, q=np.array(range(0, n_knots + 1)) / n_knots)
+            X_splines = patsy.bs(X, knots=breaks[1:-1], degree=degree)
+            X_splines = sm.add_constant(X_splines)
+            model = sm.OLS(y, X_splines)
+            results = model.fit()
+            influence = results.get_influence()
+            leverage = influence.hat_matrix_diag  # this is what semenova uses (leverage)
+            cv_errors[n_knots - 2] = np.sum((results.resid / (1 - leverage)) ** 2)
+
+        # Degree chosen by cross-validation (we add two because the first index corresponds to 2 knots)
+        chosen_knots = np.argmin(cv_errors) + 2
+    else:
+        chosen_knots = max_knots
+
+    # Estimate coefficients
+    breaks = np.quantile(X, q=np.array(range(0, chosen_knots + 1)) / chosen_knots)
+    X_splines = patsy.bs(X, knots=breaks[1:-1], degree=degree)
+    X_splines = sm.add_constant(X_splines)
+    model = sm.OLS(y, X_splines)
+    results = model.fit()
+    return results, chosen_knots
+
+def _polynomial_fit(X: np.array, y: np.array, max_degree: int, cv: bool = True, ortho=False) -> \
+        tuple[RegressionResults, int]:
+    """
+    Polynomial regression of y with respect to X. CV is implemented to test polynomials from degree 1 up to max_degree.
+    Only the degree with minimal residuals is returned.
+
+    X in this case should be the feature for which to calculate the CATE and y the robust score described in
+    Semenova 2.2
+
+    Parameters
+    ----------
+    X: features of the regression (variable for which we want to calculate the CATE)
+    y: target variable (robust score)
+    max_degree: maximum degree of the polynomials
+    cv: whether to perform cross-validation to select the degree of the polynomials. If false, degree=max_degree
+    ortho: whether to use orthogonal polynomials
+
+    Returns
+    -------
+    fitted model and degree of the polynomials
+    """
+    # todo: assert correct dimensions of the parameters
+    # todo: allow for multiple variables in X
+    # First we find which is the degree with minimal error
+    if cv:
+        cv_errors = np.zeros(max_degree)
+        for degree in range(1, max_degree + 1):
+            if ortho:
+                X_poly = _calculate_orthogonal_polynomials(X, degree)
+            else:
+                pf = PolynomialFeatures(degree=degree, include_bias=True)
+                X_poly = pf.fit_transform(X)
+
+            model = sm.OLS(y, X_poly)
+            results = model.fit()
+            influence = results.get_influence()
+            leverage = influence.hat_matrix_diag  # this is what semenova uses (leverage)
+            cv_errors[degree - 1] = np.sum((results.resid / (1 - leverage)) ** 2)
+
+        # Degree chosen by cross-validation (we add one because degree zero is not included)
+        chosen_degree = np.argmin(cv_errors) + 1
+    else:
+        chosen_degree = max_degree
+
+    # Estimate coefficients
+    if ortho:
+        x_poly = _calculate_orthogonal_polynomials(X, chosen_degree)
+    else:
+        pf = PolynomialFeatures(degree=chosen_degree, include_bias=True)
+        x_poly = pf.fit_transform(X)
+    model = sm.OLS(y, x_poly)
+    results = model.fit()
+    return results, chosen_degree
+
+
+def _calculate_bootstrap_tstat(regressors_grid: np.array, omega_hat: np.array, alpha: float,
+                               n_samples_bootstrap: int) \
+        -> float:
+    """
+    This function calculates the critical value of the confidence bands of the bootstrapped t-statistics
+    from def. 2.7 in Semenova.
+
+    Parameters
+    ----------
+    regressors_grid: support of the variable of interested for which to calculate the t-statistics
+    omega_hat: covariance matrix
+    alpha: p-value
+    n_samples_bootstrap: number of samples to generate for the normal distribution draw
+
+    Returns
+    -------
+    float with the critical value of the t-statistic
+    """
+    # don't need sqrt(N) because it cancels out with the numerator
+    numerator_grid = regressors_grid @ sqrtm(omega_hat)
+    # we take the diagonal because in the paper the multiplication is p(x)'*Omega*p(x),
+    # where p(x) is the vector of basis functions
+    denominator_grid = np.sqrt(np.diag(regressors_grid @ omega_hat @ np.transpose(regressors_grid)))
+
+    norm_numerator_grid = numerator_grid.copy()
+    for k in range(numerator_grid.shape[0]):
+        norm_numerator_grid[k, :] = numerator_grid[k, :] / denominator_grid[k]
+
+    t_maxs = np.amax(
+        np.abs(norm_numerator_grid @ np.random.normal(size=numerator_grid.shape[1] * n_samples_bootstrap)
+               .reshape(numerator_grid.shape[1], n_samples_bootstrap)), axis=0)
+    return np.quantile(t_maxs, q=1 - alpha)
