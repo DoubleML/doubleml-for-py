@@ -6,12 +6,13 @@ from scipy.linalg import toeplitz
 from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData, DiffInDiffRODoubleMLData
 
 _array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
 _data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
 _dml_data_alias = ['DoubleMLData', DoubleMLData]
 _dml_cluster_data_alias = ['DoubleMLClusterData', DoubleMLClusterData]
+_did_ro_dml_data_alias = ['DiffInDiffRODoubleMLData', DiffInDiffRODoubleMLData]
 
 
 def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
@@ -703,5 +704,65 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
             return data
         else:
             return DoubleMLClusterData(data, 'Y', 'D', cluster_cols, x_cols, 'Z')
+    else:
+        raise ValueError('Invalid return_type.')
+
+
+def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='DiffInDiffRODoubleMLData'):
+    """Generates data used in Chang (2020) for Figure 1.
+
+    Parameters
+    ----------
+    n_obs (int, optional): 
+        The number of observations to simulate. Defaults to 100.
+    dim_x (int, optional): 
+        The number of covariates. Defaults to 300.
+    theta (int, optional): 
+        The value of the causal parameter. Defaults to 3.
+    return_type : 
+        If ``'DiffInDiffRODoubleMLData'`` or ``DiffInDiffRODoubleMLData``, returns a ``DiffInDiffRODoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        Defaults to 'DiffInDiffRODoubleMLData'.
+
+    References
+    ----------
+    Chang, Neng-Chieh. "Double/debiased machine learning for difference-in-differences models." The Econometrics Journal 23.2 (2020): 177-191.
+    """
+    s = 5
+
+    X = np.random.normal(0, 1, (n_obs, dim_x))
+    gamma = np.array(list(range(s, 0, -1)) + ([0] * (dim_x-s))) / s
+
+    z = np.zeros(n_obs)
+    pr = np.zeros(n_obs)
+    z = X@gamma        # linear combination
+    pr = 1/(1+np.exp(-z))    # P(D=1 given X) Probit
+    D = np.random.binomial(1, pr, n_obs)
+
+    beta1 = gamma+0.5
+
+    e1 = np.random.normal(0, 0.1, n_obs)
+    e2 = np.random.normal(0, 0.1, n_obs)
+    e3 = np.random.normal(0, 0.1, n_obs)
+
+    Y00 = X@beta1+e1
+    Y01 = Y00+1+e2
+    Y11 = theta+Y01+e3
+
+    Y0 = Y00
+    Y1 = Y01*(1-D)+Y11*D
+
+    if return_type in _data_frame_alias + _did_ro_dml_data_alias:
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((X, Y0, Y1, D)),
+                            columns=x_cols + ['Y0', 'Y1', 'D'])
+
+        if return_type in _data_frame_alias:
+            return data
+
+        return DiffInDiffRODoubleMLData(data, 'Y0', 'Y1', 'D', x_cols)
+
     else:
         raise ValueError('Invalid return_type.')
