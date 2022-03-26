@@ -74,6 +74,7 @@ class DoubleMLDiD(DoubleML):
             coef	std err	t	P>|t|	2.5 %	97.5 %
         D	2.998143	0.260907	11.49124	1.460007e-30	2.486775	3.509511
     """
+
     def __init__(self,
                  obj_dml_data,
                  ml_g,
@@ -138,6 +139,12 @@ class DoubleMLDiD(DoubleML):
                         for learner in ['ml_g', 'ml_m']}
 
     def _nuisance_est(self, smpls, n_jobs_cv):
+        if self.score == "ortho_ro":
+            return self._nuisance_est_ro(smpls, n_jobs_cv)
+
+        return
+
+    def _nuisance_est_ro(self, smpls, n_jobs_cv):
         x, y0 = check_X_y(self._dml_data.x, self._dml_data.y,
                           force_all_finite=False)
         x, y1 = check_X_y(self._dml_data.x, self._dml_data.y_treated,
@@ -145,7 +152,7 @@ class DoubleMLDiD(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
         # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        smpls_d0, _ = _get_cond_smpls(smpls, d)
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y1 - y0, smpls=smpls_d0, n_jobs=n_jobs_cv,
@@ -157,12 +164,11 @@ class DoubleMLDiD(DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
         _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
 
-        psi_a, psi_b = self._score_elements(y1, y0, d, g_hat, m_hat, smpls)
+        psi_a, psi_b = self._score_elements_ro(y1, y0, d, g_hat, m_hat, smpls)
         preds = {'ml_g': g_hat, 'ml_m': m_hat}
-
         return psi_a, psi_b, preds
 
-    def _score_elements(self, y1, y0, d, g_hat, m_hat, smpls):
+    def _score_elements_ro(self, y1, y0, d, g_hat, m_hat, smpls):
         p_hat = np.full_like(d, np.nan, dtype='float64')
         for _, test_index in smpls:
             p_hat[test_index] = np.mean(d[test_index])
