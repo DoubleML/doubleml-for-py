@@ -724,6 +724,8 @@ def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='Diff
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
 
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y0, y1, d)``.
+
         Defaults to 'DiffInDiffRODoubleMLData'.
 
     References
@@ -754,6 +756,9 @@ def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='Diff
 
     Y0 = Y00
     Y1 = Y01*(1-D)+Y11*D
+
+    if return_type in _array_alias:
+        return X, Y0, Y1, D
 
     if return_type in _data_frame_alias + _did_ro_dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]

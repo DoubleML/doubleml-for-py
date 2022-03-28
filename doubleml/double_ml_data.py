@@ -793,14 +793,31 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
         treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
         Default is ``None``.
+
+    use_other_treat_as_covariate : bool
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        Default is ``True``.
+
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
     """
+
     def __init__(self,
                  data,
                  y_col,
                  d_cols,
                  t_col,
-                 x_cols=None):
-        super().__init__(data, y_col, d_cols, x_cols)
+                 x_cols=None,
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
+        super().__init__(data, y_col, d_cols, x_cols, None,
+                         use_other_treat_as_covariate, force_all_x_finite)
         self.t_col = t_col
 
     def __str__(self):
@@ -907,14 +924,31 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
         treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
         Default is ``None``.
+
+    use_other_treat_as_covariate : bool
+        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+        Default is ``True``.
+
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
     """
+
     def __init__(self,
                  data,
                  y_col,
                  y_treated_col,
                  d_cols,
-                 x_cols=None):
-        super().__init__(data, y_col, d_cols, x_cols)
+                 x_cols=None,
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
+        super().__init__(data, y_col, d_cols, x_cols, None,
+                         use_other_treat_as_covariate, force_all_x_finite)
         self.y_treated_col = y_treated_col
 
     def __str__(self):
@@ -931,6 +965,79 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
               '\n------------------ Data summary      ------------------\n' + data_info + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
+
+    @classmethod
+    def from_arrays(cls, x, y0, y1, d, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
+        """
+        Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y0 : :class:`numpy.ndarray`
+            Array of the pre-treatment outcome variable.
+
+        y0 : :class:`numpy.ndarray`
+            Array of the post-treatment outcome variable.
+
+        d : :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLData
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
+        """
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
+        d = check_array(d, ensure_2d=False, allow_nd=False)
+        y0 = column_or_1d(y0, warn=True)
+        y1 = column_or_1d(y1, warn=True)
+
+        x = _assure_2d_array(x)
+        d = _assure_2d_array(d)
+
+        y_col = 'y'
+        y_treated_col = 'y_treated'
+        check_consistent_length(x, y0, y1, d)
+
+        if d.shape[1] == 1:
+            d_cols = ['d']
+        else:
+            d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
+
+        x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
+
+        data = pd.DataFrame(np.column_stack((x, y0, y1, d)),
+                            columns=x_cols + [y_col] + [y_treated_col] + d_cols)
+
+        return cls(data, y_col, y_treated_col, d_cols, x_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def y_treated(self):
