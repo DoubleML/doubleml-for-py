@@ -7,7 +7,7 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
-from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.datasets import make_diff_in_diff_chang2020, make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
 
 
 def _g(x):
@@ -345,5 +345,23 @@ def generate_data_irm_w_missings(request):
                            size=int(x.size * 0.05))
     x[np.unravel_index(ind, x.shape)] = np.nan
     data = (x, y, d)
+
+    return data
+
+
+@pytest.fixture(scope='session',
+                params=[(500, 10),
+                        (1000, 20),
+                        (1000, 100)])
+def generate_data_did_ro(request):
+    n_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n = n_p[0]
+    p = n_p[1]
+    theta = 3
+
+    # generating data
+    data = make_diff_in_diff_chang2020(n, p, theta, return_type='array')
 
     return data
