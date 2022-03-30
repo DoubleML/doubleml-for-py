@@ -93,10 +93,12 @@ def did_ro_dml1(y0, y1, x, d, g_hat_list, m_hat_list, p_hat_list, smpls):
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        se = 0
+        se = np.sqrt(var_did_ro(y0, y1, d, g_hat,
+                     m_hat, p_hat, theta_hat, n_obs))
     else:
         assert len(smpls) == 1
-        se = 0
+        se = np.sqrt(var_did_ro(y0[test_index], y1[test_index], d[test_index],
+                     g_hat[test_index], m_hat[test_index], p_hat[test_index], theta_hat, n_obs))
 
     return theta_hat, se
 
@@ -107,36 +109,32 @@ def did_ro_dml2(y0, y1, x, d, g_hat_list, m_hat_list, p_hat_list, smpls):
         y0, y1, g_hat_list, m_hat_list, p_hat_list, smpls)
 
     theta_hat = did_ortho_ro(y0, y1, d, g_hat, m_hat, p_hat)
-    se = 0
+    se = np.sqrt(var_did_ro(y0, y1, d, g_hat, m_hat, p_hat, theta_hat, n_obs))
 
     return theta_hat, se
 
 
-def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score, n_obs):
-    if score == 'ATE':
-        var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0
-                                         + np.divide(np.multiply(d,
-                                                     u_hat1), m_hat)
-                                         - np.divide(np.multiply(1.-d, u_hat0), 1.-m_hat) - theta, 2))
-    else:
-        assert score == 'ATTE'
-        var = 1/n_obs * np.mean(np.power(np.divide(np.multiply(d, u_hat0), p_hat)
-                                         - np.divide(np.multiply(m_hat, np.multiply(1.-d, u_hat0)),
-                                                     np.multiply(p_hat, (1.-m_hat)))
-                                         - theta * np.divide(d, p_hat), 2)) \
-            / np.power(np.mean(np.divide(d, p_hat)), 2)
+def var_did_ro(y0, y1, d, g_hat, m_hat, p_hat, theta, n_obs):
+    var = 1/n_obs * \
+        np.mean(np.power(_calculate_psi_b(
+            y0, y1, d, g_hat, m_hat, p_hat) - theta, 2))
 
     return var
 
 
 def did_ortho_ro(y0, y1, d, g_hat, m_hat, p_hat):
+    res = _calculate_psi_b(y0, y1, d, g_hat, m_hat, p_hat)
+
+    return np.mean(res)
+
+
+def _calculate_psi_b(y0, y1, d, g_hat, m_hat, p_hat):
     res = (y1 - y0)/p_hat
     res *= (d - m_hat)/(1-m_hat)
     c_1 = (d - m_hat)/((1 - m_hat)*p_hat)
     c_1 *= g_hat
     res -= c_1
-
-    return np.mean(res)
+    return res
 
 
 def boot_did_ro(y0, y1, d, thetas, ses, all_g_hat, all_m_hat, all_p_hat,
@@ -169,18 +167,9 @@ def boot_did_ro_single_split(theta, y0, y1, d, g_hat_list, m_hat_list, p_hat_lis
     g_hat, m_hat, p_hat = compute_did_ro_residuals(
         y0, y1, g_hat_list, m_hat_list, p_hat_list, smpls)
 
-    if apply_cross_fitting:
-        J = np.mean(-np.divide(d, p_hat))
-    else:
-        test_index = smpls[0][1]
-        J = np.mean(-np.divide(d[test_index], p_hat[test_index]))
+    J = -1
 
-    psi = (y1 - y0)/p_hat
-    psi *= (d - m_hat)/(1-m_hat)
-    c_1 = (d - m_hat)/((1 - m_hat)*p_hat)
-    c_1 *= g_hat
-    psi -= c_1 + theta
-    psi = np.mean(psi)
+    psi = _calculate_psi_b(y0, y1, d, g_hat, m_hat, p_hat) - theta
 
     boot_theta, boot_t_stat = boot_manual(
         psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
