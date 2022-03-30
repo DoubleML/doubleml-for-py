@@ -763,12 +763,12 @@ def make_diff_in_diff_chang2020(n_obs=100, dim_x=300, theta=3, return_type='Diff
     if return_type in _data_frame_alias + _did_ro_dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
         data = pd.DataFrame(np.column_stack((X, Y0, Y1, D)),
-                            columns=x_cols + ['Y0', 'Y1', 'D'])
+                            columns=x_cols + ['y', 'y_treated', 'd'])
 
         if return_type in _data_frame_alias:
             return data
 
-        return DiffInDiffRODoubleMLData(data, 'Y0', 'Y1', 'D', x_cols)
+        return DiffInDiffRODoubleMLData(data, 'y', 'y_treated', 'd', x_cols)
 
     else:
         raise ValueError('Invalid return_type.')
