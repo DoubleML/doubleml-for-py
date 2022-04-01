@@ -2,10 +2,12 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData
-from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DiffInDiffRODoubleMLData
+from doubleml.datasets import make_diff_in_diff_chang2020, make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
     make_pliv_multiway_cluster_CKMS2021
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LogisticRegression
+
+from doubleml.double_ml_did import DoubleMLDiD
 
 
 @pytest.fixture(scope="module")
@@ -103,6 +105,28 @@ def test_obj_vs_from_arrays():
 
 
 @pytest.mark.ci
+def test_did_obj_vs_from_array():
+    np.random.seed(3141)
+    dml_data = make_diff_in_diff_chang2020(n_obs=100)
+    dml_data_from_array = DiffInDiffRODoubleMLData.from_arrays(dml_data.data[dml_data.x_cols],
+                                                               dml_data.data[dml_data.y_col],
+                                                               dml_data.data[dml_data.y_treated_col],
+                                                               dml_data.data[dml_data.d_cols])
+    assert dml_data_from_array.data.equals(dml_data.data)
+
+    dml_data = make_diff_in_diff_chang2020(n_obs=100)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [f'X{i+1}' for i in np.arange(7)] + ['y', 'y_treated', 'd']
+    dml_data = DiffInDiffRODoubleMLData(df, 'y', 'y_treated', 'd', [
+                                        f'X{i+1}' for i in np.arange(7)])
+    dml_data_from_array = DiffInDiffRODoubleMLData.from_arrays(dml_data.data[dml_data.x_cols],
+                                                               dml_data.data[dml_data.y_col],
+                                                               dml_data.data[dml_data.y_treated_col],
+                                                               dml_data.data[dml_data.d_cols])
+    assert dml_data_from_array.data.equals(dml_data.data)
+    
+
+@pytest.mark.ci
 def test_add_vars_in_df():
     # additional variables in the df shouldn't affect results
     np.random.seed(3141)
@@ -116,6 +140,28 @@ def test_add_vars_in_df():
     dml_plr_subset.fit()
     assert np.allclose(dml_plr_full_df.coef, dml_plr_subset.coef, rtol=1e-9, atol=1e-4)
     assert np.allclose(dml_plr_full_df.se, dml_plr_subset.se, rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_add_vars_in_df_did_ro():
+    # additional variables in the df shouldn't affect results
+    np.random.seed(3141)
+    df = make_diff_in_diff_chang2020(n_obs=100, return_type='DataFrame')
+    dml_data_full_df = DiffInDiffRODoubleMLData(
+        df, 'y', 'y_treated', 'd', ['X1', 'X11', 'X13'])
+    dml_data_subset = DiffInDiffRODoubleMLData(
+        df[['X1', 'X11', 'X13'] + ['y', 'y_treated', 'd']], 'y', 'y_treated', 'd', ['X1', 'X11', 'X13'])
+    dml_did_full_df = DoubleMLDiD(
+        dml_data_full_df, Lasso(), LogisticRegression())
+    dml_did_subset = DoubleMLDiD(dml_data_subset, Lasso(
+    ), LogisticRegression(), draw_sample_splitting=False)
+    dml_did_subset.set_sample_splitting(dml_did_full_df.smpls)
+    dml_did_full_df.fit()
+    dml_did_subset.fit()
+    assert np.allclose(dml_did_full_df.coef,
+                       dml_did_subset.coef, rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_did_full_df.se,
+                       dml_did_subset.se, rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci
@@ -315,6 +361,30 @@ def test_y_col_setter():
 
 
 @pytest.mark.ci
+def test_y_treated_col_setter():
+    np.random.seed(3141)
+    dml_data = make_diff_in_diff_chang2020(n_obs=100)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [
+        f'X{i+1}' for i in np.arange(6)] + ['y', 'y_treated', 'y_treated_alt', 'd']
+    dml_data = DiffInDiffRODoubleMLData(df, 'y', 'y_treated', 'd', [
+                                        f'X{i+1}' for i in np.arange(6)])
+
+    # check that after changing y_col, the y array gets updated
+    y_treated_alt = dml_data.data['y_treated_alt'].values
+    dml_data.y_treated_col = 'y_treated_alt'
+    assert np.array_equal(dml_data.y_treated, y_treated_alt)
+
+    msg = r'Invalid Post-treatment outcome variable y_treated_col. d13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.y_treated_col = 'd13'
+
+    msg = (r'The Post-treatment outcome variable y_treated_col must be of str type. '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.y_treated_col = 5
+
+@pytest.mark.ci
 def test_use_other_treat_as_covariate():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
@@ -399,6 +469,39 @@ def test_disjoint_sets():
            '``cluster_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols = ['xx2'], cluster_cols='xx2')
+
+
+@pytest.mark.ci
+def test_disjoint_sets_did_ro():
+    np.random.seed(3141)
+    df = pd.DataFrame(np.tile(np.arange(5), (5, 1)),
+                      columns=['yy', 'yy_treated', 'dd1', 'xx1', 'xx2'])
+
+    msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and as covariate\(``x_cols``\). '
+           'Consider using parameter ``use_other_treat_as_covariate``.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy', y_treated_col="yy_treated", d_cols=[
+                                     'dd1', 'xx1'], x_cols=['xx1', 'xx2'])
+    msg = 'yy cannot be set as pre-treatment outcome variable ``y_col`` and treatment variable in ``d_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy', y_treated_col="yy_treated", d_cols=[
+                                     'dd1', 'yy'], x_cols=['xx1', 'xx2'])
+    msg = 'yy cannot be set as pre-treatment outcome variable ``y_col`` and covariate in ``x_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy', y_treated_col="yy_treated", d_cols=[
+                                     'dd1'], x_cols=['xx1', 'yy', 'xx2'])
+    msg = 'yy_treated cannot be set as post-treatment outcome variable ``y_treated_col`` and treatment variable in ``d_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy', y_treated_col="yy_treated", d_cols=[
+                                     'dd1', 'yy_treated'], x_cols=['xx1', 'xx2'])
+    msg = 'yy_treated cannot be set as post-treatment outcome variable ``y_treated_col`` and covariate in ``x_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy', y_treated_col="yy_treated", d_cols=[
+                                     'dd1'], x_cols=['xx1', 'yy_treated', 'xx2'])
+    msg = 'yy_treated cannot be set as pre-treatment outcome variable ``y_col`` and post-treatment outcome variable in ``y_treated_col``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DiffInDiffRODoubleMLData(df, y_col='yy_treated', y_treated_col="yy_treated", d_cols=[
+                                     'dd1', 'yy'], x_cols=['xx1', 'xx2'])
 
 
 @pytest.mark.ci

@@ -950,6 +950,7 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
         super().__init__(data, y_col, d_cols, x_cols, None,
                          use_other_treat_as_covariate, force_all_x_finite)
         self.y_treated_col = y_treated_col
+        self._check_disjoint_sets()
 
     def __str__(self):
         data_info = f'Pre-treatment Outcome variable: {self.y_col}\n' \
@@ -1092,11 +1093,14 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
             raise ValueError(f'{str(self.y_col)} cannot be set as pre-treatment outcome variable ``y_col`` '
                              'and post-treatment outcome variable in ``y_treated_col``.')
         if not x_cols_set.isdisjoint(y_treated_col_set):
-            raise ValueError(f'{str(self.x_cols_set)} cannot be set as covariate ``x_col`` and post-treatment '
-                             'outcome variable in ``y_treated_col``.')
+            raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col``'
+            ' and covariate in ``x_cols``')
         if not d_cols_set.isdisjoint(x_cols_set):
             raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
                              '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
         if not d_cols_set.isdisjoint(y_treated_col_set):
             raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col`` '
                              'and treatment variable in ``d_cols``.')
+    
+    def _check_disjoint_sets_y_d_x_z(self):
+        pass
