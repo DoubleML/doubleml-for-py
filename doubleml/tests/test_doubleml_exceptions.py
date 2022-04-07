@@ -2,8 +2,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, DoubleMLDiD
+from doubleml.datasets import make_diff_in_diff_chang2020, make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
     make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -16,6 +16,7 @@ ml_m = Lasso()
 ml_r = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
 
+dml_data_did_ro = make_diff_in_diff_chang2020(n_obs=10)
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
 dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
@@ -32,6 +33,11 @@ def test_doubleml_exception_data():
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_g, ml_m)
+
+    # DML data with DiD
+    msg = 'Incompatible data. The data object should be an instance of either `DiffInDiffRODoubleMLData` or `DiffInDiffRODoubleMLData`'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDiD(dml_data, ml_g, LogisticRegression())
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
@@ -129,6 +135,17 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score=0)
 
+    msg = 'score should be a string. 0 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(), LogisticRegression(), score=0)
+    msg = 'Invalid score ATT. Valid score ortho_ro or ortho_rcs.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(),
+                        LogisticRegression(), score="ATT")
+    msg = 'Invalid Score `ortho_rcs` with `DiffInDiffRODoubleMLData`. Use `ortho_ro` or change the databackend to `DiffInDiffRCDoubleMLData`'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(),
+                        LogisticRegression(), score="ortho_rcs")
 
 @pytest.mark.ci
 def test_doubleml_exception_trimming_rule():
@@ -137,6 +154,8 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(), LogisticRegression(), trimming_rule='discard')
 
 
 @pytest.mark.ci
@@ -431,6 +450,8 @@ def test_doubleml_exception_learner():
     # msg = 'Learner provided for ml_m is probably invalid: ' + r'_DummyNoClassifier\(\) is \(probably\) no classifier.'
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
+    with pytest.warns(UserWarning):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(), _DummyNoClassifier())
 
     # ToDo: Currently for ml_g (and others) we only check whether the learner can be identified as regressor. However,
     # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
@@ -449,6 +470,12 @@ def test_doubleml_exception_learner():
            'but the outcome variable is not binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, LogisticRegression(), LogisticRegression())
+
+    # # we allow classifiers for ml_g for binary treatment variables in DiD
+    # msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+    #        'but the outcome variable is not binary with values 0 and 1.')
+    # with pytest.raises(ValueError, match=msg):
+    #     _ = DoubleMLDiD(dml_data_did_ro, LogisticRegression(), LogisticRegression())
 
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
@@ -513,6 +540,8 @@ def test_doubleml_exception_and_warning_learner():
     msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDiD(dml_data_did_ro, Lasso(), Lasso())
 
 
 @pytest.mark.ci
