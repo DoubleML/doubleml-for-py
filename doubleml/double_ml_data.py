@@ -950,6 +950,7 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
         super().__init__(data, y_col, d_cols, x_cols, None,
                          use_other_treat_as_covariate, force_all_x_finite)
         self.y_treated_col = y_treated_col
+        self._binary_outcome = self._check_binary_outcome_both()
         self._check_disjoint_sets()
 
     def __str__(self):
@@ -1073,6 +1074,16 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
     def set_y_treated(self):
         assert_all_finite(self.data.loc[:, self.y_treated_col])
         self._y_treated = self.data.loc[:, self.y_treated_col]
+
+    def _check_binary_outcome_both(self):
+        y = self.data.loc[:, self.y_col]
+        y_treated = self.data.loc[:, self.y_treated_col]
+        binary_outcome = (type_of_target(y) == 'binary') and (
+            type_of_target(y_treated) == 'binary')
+        zero_one_outcome = np.all(
+            (np.power(y, 2) - y) == 0) and np.all((np.power(y_treated, 2) - y_treated) == 0)
+        is_binary = (binary_outcome & zero_one_outcome)
+        return is_binary
 
     def _check_disjoint_sets(self):
         return self._check_disjoint_sets_y_d_x()

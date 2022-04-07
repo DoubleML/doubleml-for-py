@@ -97,10 +97,18 @@ class DoubleMLDiD(DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {
+                    'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
+                                 'but the outcome variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
 
