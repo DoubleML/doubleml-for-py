@@ -113,14 +113,14 @@ class DoubleMLDiD(DoubleML):
 
     def _check_data(self, obj_dml_data):
         if not (isinstance(obj_dml_data, DiffInDiffRCDoubleMLData) or isinstance(obj_dml_data, DiffInDiffRODoubleMLData)):
-            raise ValueError('Incompatible data. '
-                             'The data object should be an instance of either '
-                             '`DiffInDiffRODoubleMLData` or `DiffInDiffRODoubleMLData`')
+            raise TypeError('Incompatible data. '
+                            'The data object should be an instance of either '
+                            '`DiffInDiffRODoubleMLData` or `DiffInDiffRODoubleMLData`')
 
     def _check_score(self, score):
         if not isinstance(score, str):
             raise TypeError('score should be a string.'
-                            '%r was passed.' % score)
+                            ' %r was passed.' % score)
 
         valid_score = ['ortho_ro', 'ortho_rcs']
         if score not in valid_score:
