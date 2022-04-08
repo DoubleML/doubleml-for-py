@@ -59,6 +59,7 @@ class DoubleMLData:
     >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
     >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
     """
+
     def __init__(self,
                  data,
                  y_col,
@@ -575,6 +576,7 @@ class DoubleMLClusterData(DoubleMLData):
     >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
     >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
     """
+
     def __init__(self,
                  data,
                  y_col,
@@ -819,6 +821,7 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
         super().__init__(data, y_col, d_cols, x_cols, None,
                          use_other_treat_as_covariate, force_all_x_finite)
         self.t_col = t_col
+        self._check_disjoint_sets_y_d_t()
 
     def __str__(self):
         data_info = f'Outcome variable: {self.y_col}\n' \
@@ -834,6 +837,79 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
               '\n------------------ Data summary      ------------------\n' + data_info + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
+
+    @classmethod
+    def from_arrays(cls, x, y, d, t, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
+        """
+        Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y0 : :class:`numpy.ndarray`
+            Array of the outcome variable.
+
+        y0 : :class:`numpy.ndarray`
+            Array of the post-treatment outcome variable.
+
+        t  : :class:`numpy.ndarray`
+            Array of the time indicator variable.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLData
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
+        """
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
+        d = check_array(d, ensure_2d=False, allow_nd=False)
+        y = column_or_1d(y, warn=True)
+        t = column_or_1d(t, warn=True)
+
+        x = _assure_2d_array(x)
+        d = _assure_2d_array(d)
+
+        y_col = 'y'
+        t_col = 't'
+        check_consistent_length(x, y, d, t)
+
+        if d.shape[1] == 1:
+            d_cols = ['d']
+        else:
+            d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
+
+        x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
+
+        data = pd.DataFrame(np.column_stack((x, y, t, d)),
+                            columns=x_cols + [y_col] + [t_col] + d_cols)
+
+        return cls(data, y_col, d_cols, t_col, x_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def t(self):
@@ -872,27 +948,17 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
         self._t = self.data.loc[:, self.t_col]
 
     def _check_disjoint_sets(self):
-        return self._check_disjoint_sets_y_d_x_t()
+        self._check_disjoint_sets_y_d_x_z()
+        return self._check_disjoint_sets_y_d_t()
 
-    def _check_disjoint_sets_y_d_x_t(self):
+    def _check_disjoint_sets_y_d_t(self):
         y_col_set = {self.y_col}
         t_col_set = {self.t_col}
-        x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
 
-        if not y_col_set.isdisjoint(x_cols_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in '
-                             '``x_cols``.')
-        if not y_col_set.isdisjoint(d_cols_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in '
-                             '``d_cols``.')
         if not y_col_set.isdisjoint(t_col_set):
             raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and time variable in '
                              '``t_col``.')
-
-        if not d_cols_set.isdisjoint(x_cols_set):
-            raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
-                             '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
 
         if not d_cols_set.isdisjoint(t_col_set):
             raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in '
@@ -1105,13 +1171,13 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
                              'and post-treatment outcome variable in ``y_treated_col``.')
         if not x_cols_set.isdisjoint(y_treated_col_set):
             raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col``'
-            ' and covariate in ``x_cols``')
+                             ' and covariate in ``x_cols``')
         if not d_cols_set.isdisjoint(x_cols_set):
             raise ValueError('At least one variable/column is set as treatment variable (``d_cols``) and as covariate'
                              '(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``.')
         if not d_cols_set.isdisjoint(y_treated_col_set):
             raise ValueError(f'{str(self.y_treated_col)} cannot be set as post-treatment outcome variable ``y_treated_col`` '
                              'and treatment variable in ``d_cols``.')
-    
+
     def _check_disjoint_sets_y_d_x_z(self):
         pass
