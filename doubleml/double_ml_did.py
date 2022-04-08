@@ -97,7 +97,8 @@ class DoubleMLDiD(DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        ml_g_is_classifier = self._check_learner(
+            ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
         if ml_g_is_classifier:
@@ -150,7 +151,7 @@ class DoubleMLDiD(DoubleML):
         if self.score == "ortho_ro":
             return self._nuisance_est_ro(smpls, n_jobs_cv)
 
-        return
+        return self._nuisance_est_rcs(smpls, n_jobs_cv)
 
     def _nuisance_est_ro(self, smpls, n_jobs_cv):
         x, y0 = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -191,6 +192,56 @@ class DoubleMLDiD(DoubleML):
         c_1 = (d - m_hat)/((1 - m_hat)*p_hat)
         c_1 *= g_hat
         psi_b -= c_1
+
+        psi_a = np.full_like(m_hat, -1.0)
+
+        return psi_a, psi_b
+
+    def _nuisance_est_rcs(self, smpls, n_jobs_cv):
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, t = check_X_y(self._dml_data.x, self._dml_data.t,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
+
+        # get train indices for d == 0 and d == 1
+        smpls_d0, _ = _get_cond_smpls(smpls, d)
+
+        lambda_hat = np.full_like(t, np.nan, dtype='float64')
+        p_hat = np.full_like(d, np.nan, dtype='float64')
+        for _, test_index in smpls:
+            lambda_hat[test_index] = np.mean(t[test_index])
+            p_hat[test_index] = np.mean(d[test_index])
+
+        # nuisance g
+        g_hat = _dml_cv_predict(self._learner['ml_g'], x, (t - lambda_hat) * y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+
+        # nuisance m
+        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+
+        psi_a, psi_b = self._score_elements_rcs(
+            y, d, t, g_hat, m_hat, p_hat, lambda_hat, smpls)
+        preds = {'ml_g': g_hat, 'ml_m': m_hat}
+        return psi_a, psi_b, preds
+
+    def _score_elements_rcs(self, y, d, t, g_hat, m_hat, p_hat, lambda_hat, smpls):
+        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
+            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
+            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - \
+                self.trimming_threshold
+
+        common_denominator = lambda_hat * \
+            (1 - lambda_hat) * p_hat * (1 - m_hat)
+
+        c_2 = (d - m_hat) * g_hat
+        psi_b = (t - lambda_hat) * y * (d - m_hat)
+        psi_b -= c_2
+        psi_b /= common_denominator
 
         psi_a = np.full_like(m_hat, -1.0)
 
