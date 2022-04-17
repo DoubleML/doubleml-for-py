@@ -3,11 +3,13 @@ import pandas as pd
 
 import pytest
 from scipy.linalg import toeplitz
+from scipy.special import expit
 
 from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
 from doubleml.datasets import make_diff_in_diff_chang2020, make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.double_ml_data import DiffInDiffRCDoubleMLData
 
 
 def _g(x):
@@ -363,5 +365,53 @@ def generate_data_did_ro(request):
 
     # generating data
     data = make_diff_in_diff_chang2020(n, p, theta, return_type='array')
+
+    return data
+
+
+@pytest.fixture(scope='session',
+                params=[100, 500, 1000])
+def generate_data_did_rcs(request):
+    n_obs = request.param
+    np.random.seed(1111)
+    # setting parameters
+    xsi_ps = 0.75  # pscore index (strength of common support)
+    t_prop = 0.5  # Proportion in each period
+
+    mean_z = [np.exp(0.25/2), 10, 0.21887, 402]
+    sd_z = [np.sqrt((np.exp(0.25) - 1) * np.exp(0.25)),
+            0.54164, 0.04453, 56.63891]
+
+    x = np.random.normal(0, 1, (n_obs, 4))
+    z = np.zeros_like(x)
+
+    z[:, 0] = np.exp(x[:, 0]/2)
+    z[:, 1] = x[:, 1]/(1 + np.exp(x[:, 0])) + 10
+    z[:, 2] = (x[:, 0] * x[:, 2]/25 + 0.6) ** 3
+    z[:, 3] = (x[:, 0] + x[:, 3] + 20) ** 2
+
+    z = (z - mean_z)/sd_z
+
+    pi = expit(xsi_ps * (- z[:, 0] + 0.5 * z[:, 1] -
+               0.25 * z[:, 2] - 0.1 * z[:, 3]))
+
+    d = (np.random.uniform(size=n_obs) <= pi).astype(int)
+    t = (np.random.uniform(size=n_obs) <= t_prop).astype(int)
+
+    index_lin = index_trend = 210 + 27.4 * \
+        z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    index_unobs_het = d * (index_lin)
+    index_att = 0
+
+    v = np.random.normal(index_unobs_het, 1, n_obs)
+
+    y0 = index_lin + v + np.random.normal(size=n_obs)
+    y10 = index_lin + v + np.random.normal(size=n_obs) + index_trend
+    y11 = index_lin + v + \
+        np.random.normal(size=n_obs) + index_trend + index_att
+    y1 = d * y11 + (1 - d) * y10
+    y = t * y1 + (1 - t) * y0
+
+    data = DiffInDiffRCDoubleMLData.from_arrays(z, y, d, t)
 
     return data

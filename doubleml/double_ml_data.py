@@ -849,11 +849,11 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
         x : :class:`numpy.ndarray`
             Array of covariates.
 
-        y0 : :class:`numpy.ndarray`
+        y : :class:`numpy.ndarray`
             Array of the outcome variable.
 
-        y0 : :class:`numpy.ndarray`
-            Array of the post-treatment outcome variable.
+        d : :class:`numpy.ndarray`
+            Array of the treatment variable(s).
 
         t  : :class:`numpy.ndarray`
             Array of the time indicator variable.
