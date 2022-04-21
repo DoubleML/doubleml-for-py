@@ -68,14 +68,7 @@ class DoubleMLData:
                  z_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError('data must be of pd.DataFrame type. '
-                            f'{str(data)} of type {str(type(data))} was passed.')
-        if not data.columns.is_unique:
-            raise ValueError('Invalid pd.DataFrame: '
-                             'Contains duplicate column names.')
-        self._data = data
-
+        self._set_data(data)
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
@@ -189,6 +182,15 @@ class DoubleMLData:
 
         return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate, force_all_x_finite)
 
+    def _set_data(self, data):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
+        self._data = data
+    
     @property
     def data(self):
         """
@@ -305,17 +307,21 @@ class DoubleMLData:
             self._x_cols = value
         else:
             # x_cols defaults to all columns but y_col, d_cols and z_cols
-            if self.z_cols is not None:
-                y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
-                x_cols = [col for col in self.data.columns if col not in y_d_z]
-            else:
-                y_d = set.union({self.y_col}, set(self.d_cols))
-                x_cols = [col for col in self.data.columns if col not in y_d]
+            x_cols = self._get_x_cols_if_none()
             self._x_cols = x_cols
         if reset_value:
             self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
+
+    def _get_x_cols_if_none(self):
+        if self.z_cols is not None:
+            y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
+            x_cols = [col for col in self.data.columns if col not in y_d_z]
+        else:
+            y_d = set.union({self.y_col}, set(self.d_cols))
+            x_cols = [col for col in self.data.columns if col not in y_d]
+        return x_cols
 
     @property
     def d_cols(self):
@@ -818,9 +824,20 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
                  x_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
-        super().__init__(data, y_col, d_cols, x_cols, None,
-                         use_other_treat_as_covariate, force_all_x_finite)
+        self._set_data(data)
+        self.y_col = y_col
+        self.d_cols = d_cols
         self.t_col = t_col
+        self.z_cols = None
+        self.x_cols = x_cols
+        self._check_disjoint_sets_y_d_x_z()
+        self.use_other_treat_as_covariate = use_other_treat_as_covariate
+        self.force_all_x_finite = force_all_x_finite
+        self._binary_treats = self._check_binary_treats()
+        self._binary_outcome = self._check_binary_outcome()
+        self._set_y_z()
+        # by default, we initialize to the first treatment variable
+        self.set_x_d(self.d_cols[0])
         self._check_disjoint_sets_y_d_t()
 
     def __str__(self):
@@ -910,6 +927,11 @@ class DiffInDiffRCDoubleMLData(DoubleMLData):
                             columns=x_cols + [y_col] + [t_col] + d_cols)
 
         return cls(data, y_col, d_cols, t_col, x_cols, use_other_treat_as_covariate, force_all_x_finite)
+
+    def _get_x_cols_if_none(self):
+        y_d = set.union({self.y_col}, set(self.d_cols), set(self.t_col))
+        x_cols = [col for col in self.data.columns if col not in y_d]
+        return x_cols
 
     @property
     def t(self):
@@ -1013,10 +1035,20 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
                  x_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
-        super().__init__(data, y_col, d_cols, x_cols, None,
-                         use_other_treat_as_covariate, force_all_x_finite)
+        self._set_data(data)
+        self.y_col = y_col
+        self.d_cols = d_cols
         self.y_treated_col = y_treated_col
+        self.z_cols = None
+        self.x_cols = x_cols
+        self._check_disjoint_sets_y_d_x_z()
+        self.use_other_treat_as_covariate = use_other_treat_as_covariate
+        self.force_all_x_finite = force_all_x_finite
+        self._binary_treats = self._check_binary_treats()
         self._binary_outcome = self._check_binary_outcome_both()
+        self._set_y_z()
+        # by default, we initialize to the first treatment variable
+        self.set_x_d(self.d_cols[0])
         self._check_disjoint_sets()
 
     def __str__(self):
@@ -1033,6 +1065,12 @@ class DiffInDiffRODoubleMLData(DoubleMLData):
               '\n------------------ Data summary      ------------------\n' + data_info + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
+
+    def _get_x_cols_if_none(self):
+        y_d = set.union({self.y_col}, set(self.d_cols), {self.y_treated_col})
+        x_cols = [col for col in self.data.columns if col not in y_d]
+
+        return x_cols
 
     @classmethod
     def from_arrays(cls, x, y0, y1, d, use_other_treat_as_covariate=True,
