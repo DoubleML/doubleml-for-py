@@ -16,7 +16,8 @@ class DoubleMLPLR(DoubleML):
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance functions :math:`l_0(X) = E[Y|X]` and
+        :math:`g_0(X) = E[Y - D \\theta_0|X]`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
