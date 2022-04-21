@@ -119,9 +119,9 @@ def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, fit_g=True,
     m_hat = fit_predict(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        u_hat, v_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls, 'partialling out')
-        psi_a = -np.multiply(v_hat, v_hat)
-        psi_b = np.multiply(v_hat, u_hat)
+        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls)
+        psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
+        psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
 
         ml_g = clone(learner_g)
@@ -141,9 +141,9 @@ def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, fit_g=True
     m_hat = fit_predict_proba(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        u_hat, v_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls, 'partialling out')
-        psi_a = -np.multiply(v_hat, v_hat)
-        psi_b = np.multiply(v_hat, u_hat)
+        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls)
+        psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
+        psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.mean(psi_b) / np.mean(psi_a)
 
         ml_g = clone(learner_g)
@@ -180,36 +180,36 @@ def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, pa
     return g_best_params, l_best_params, m_best_params
 
 
-def compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls, score):
-    # Note that u_hat is not the same for score = 'partialling out' vs. score = 'IV-type'
-    u_hat = np.full_like(y, np.nan, dtype='float64')
-    v_hat = np.full_like(d, np.nan, dtype='float64')
+def compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls):
+    y_minus_l_hat = np.full_like(y, np.nan, dtype='float64')
+    y_minus_g_hat = np.full_like(y, np.nan, dtype='float64')
+    d_minus_m_hat = np.full_like(d, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
-        if score == 'partialling out':
-            u_hat[test_index] = y[test_index] - l_hat[idx]
-        else:
-            assert score == 'IV-type'
-            u_hat[test_index] = y[test_index] - g_hat[idx]
-        v_hat[test_index] = d[test_index] - m_hat[idx]
-    return u_hat, v_hat
+        y_minus_l_hat[test_index] = y[test_index] - l_hat[idx]
+        if g_hat is not None:
+            y_minus_g_hat[test_index] = y[test_index] - g_hat[idx]
+        d_minus_m_hat[test_index] = d[test_index] - m_hat[idx]
+    return y_minus_l_hat, y_minus_g_hat, d_minus_m_hat
 
 
 def plr_dml1(y, x, d, g_hat, l_hat, m_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
-    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls, score)
+    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = plr_orth(v_hat[test_index], u_hat[test_index], d[test_index], score)
+        thetas[idx] = plr_orth(y_minus_l_hat[test_index], y_minus_g_hat[test_index], d_minus_m_hat[test_index],
+                               d[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, score, n_obs))
+        se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
-        se = np.sqrt(var_plr(theta_hat, d[test_index], u_hat[test_index], v_hat[test_index],
+        se = np.sqrt(var_plr(theta_hat, d[test_index],
+                             y_minus_l_hat[test_index], y_minus_g_hat[test_index], d_minus_m_hat[test_index],
                              score, n_obs))
 
     return theta_hat, se
@@ -217,31 +217,31 @@ def plr_dml1(y, x, d, g_hat, l_hat, m_hat, smpls, score):
 
 def plr_dml2(y, x, d, g_hat, l_hat, m_hat, smpls, score):
     n_obs = len(y)
-    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls, score)
-    theta_hat = plr_orth(v_hat, u_hat, d, score)
-    se = np.sqrt(var_plr(theta_hat, d, u_hat, v_hat, score, n_obs))
+    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
+    theta_hat = plr_orth(y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, d, score)
+    se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs))
 
     return theta_hat, se
 
 
-def var_plr(theta, d, u_hat, v_hat, score, n_obs):
+def var_plr(theta, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs):
     if score == 'partialling out':
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, v_hat)), 2) * \
-            np.mean(np.power(np.multiply(u_hat - v_hat*theta, v_hat), 2))
+        var = 1/n_obs * 1/np.power(np.mean(np.multiply(d_minus_m_hat, d_minus_m_hat)), 2) * \
+            np.mean(np.power(np.multiply(y_minus_l_hat - d_minus_m_hat*theta, d_minus_m_hat), 2))
     else:
         assert score == 'IV-type'
-        var = 1/n_obs * 1/np.power(np.mean(np.multiply(v_hat, d)), 2) * \
-            np.mean(np.power(np.multiply(u_hat - d*theta, v_hat), 2))
+        var = 1/n_obs * 1/np.power(np.mean(np.multiply(d_minus_m_hat, d)), 2) * \
+            np.mean(np.power(np.multiply(y_minus_g_hat - d*theta, d_minus_m_hat), 2))
 
     return var
 
 
-def plr_orth(v_hat, u_hat, d, score):
+def plr_orth(y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, d, score):
     if score == 'IV-type':
-        res = np.mean(np.multiply(v_hat, u_hat))/np.mean(np.multiply(v_hat, d))
+        res = np.mean(np.multiply(d_minus_m_hat, y_minus_g_hat))/np.mean(np.multiply(d_minus_m_hat, d))
     else:
         assert score == 'partialling out'
-        res = scipy.linalg.lstsq(v_hat.reshape(-1, 1), u_hat)[0]
+        res = scipy.linalg.lstsq(d_minus_m_hat.reshape(-1, 1), y_minus_l_hat)[0]
 
     return res
 
@@ -307,27 +307,27 @@ def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
 
 def boot_plr_single_split(theta, y, d, g_hat, l_hat, m_hat,
                           smpls, score, se, weights, n_rep, apply_cross_fitting):
-    u_hat, v_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls, score)
+    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
 
     if apply_cross_fitting:
         if score == 'partialling out':
-            J = np.mean(-np.multiply(v_hat, v_hat))
+            J = np.mean(-np.multiply(d_minus_m_hat, d_minus_m_hat))
         else:
             assert score == 'IV-type'
-            J = np.mean(-np.multiply(v_hat, d))
+            J = np.mean(-np.multiply(d_minus_m_hat, d))
     else:
         test_index = smpls[0][1]
         if score == 'partialling out':
-            J = np.mean(-np.multiply(v_hat[test_index], v_hat[test_index]))
+            J = np.mean(-np.multiply(d_minus_m_hat[test_index], d_minus_m_hat[test_index]))
         else:
             assert score == 'IV-type'
-            J = np.mean(-np.multiply(v_hat[test_index], d[test_index]))
+            J = np.mean(-np.multiply(d_minus_m_hat[test_index], d[test_index]))
 
     if score == 'partialling out':
-        psi = np.multiply(u_hat - v_hat * theta, v_hat)
+        psi = np.multiply(y_minus_l_hat - d_minus_m_hat * theta, d_minus_m_hat)
     else:
         assert score == 'IV-type'
-        psi = np.multiply(u_hat - d * theta, v_hat)
+        psi = np.multiply(y_minus_g_hat - d * theta, d_minus_m_hat)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
