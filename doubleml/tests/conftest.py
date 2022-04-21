@@ -9,7 +9,6 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
 from doubleml.datasets import make_diff_in_diff_chang2020, make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
-from doubleml.double_ml_data import DiffInDiffRCDoubleMLData
 
 
 def _g(x):
@@ -412,6 +411,4 @@ def generate_data_did_rcs(request):
     y1 = d * y11 + (1 - d) * y10
     y = t * y1 + (1 - t) * y0
 
-    data = DiffInDiffRCDoubleMLData.from_arrays(z, y, d, t)
-
-    return data
+    return z, y, t, d
