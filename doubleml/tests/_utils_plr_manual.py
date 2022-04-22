@@ -127,7 +127,7 @@ def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, fit_g=True,
         ml_g = clone(learner_g)
         g_hat = fit_predict(y - theta_initial*d, x, ml_g, g_params, smpls)
     else:
-        g_hat = None
+        g_hat = []
 
     return g_hat, l_hat, m_hat
 
@@ -149,7 +149,7 @@ def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, fit_g=True
         ml_g = clone(learner_g)
         g_hat = fit_predict(y - theta_initial*d, x, ml_g, g_params, smpls)
     else:
-        g_hat = None
+        g_hat = []
 
     return g_hat, l_hat, m_hat
 
