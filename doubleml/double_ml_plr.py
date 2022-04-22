@@ -36,7 +36,7 @@ class DoubleMLPLR(DoubleML):
 
     score : str or callable
         A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat, m_hat, smpls)``.
+        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, g_hat, m_hat, smpls)``.
         Default is ``'partialling out'``.
 
     dml_procedure : str
@@ -153,7 +153,7 @@ class DoubleMLPLR(DoubleML):
         # nuisance l
         l_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_l'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(l_hat, self._learner['ml_g'], 'ml_g', smpls)
+        _check_finite_predictions(l_hat, self._learner['ml_g'], 'ml_l', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
