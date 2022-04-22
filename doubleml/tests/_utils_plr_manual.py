@@ -119,7 +119,7 @@ def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, fit_g=True,
     m_hat = fit_predict(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls)
+        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, [], l_hat, m_hat, smpls)
         psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
         psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -141,7 +141,7 @@ def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, fit_g=True
     m_hat = fit_predict_proba(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, None, l_hat, m_hat, smpls)
+        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, [], l_hat, m_hat, smpls)
         psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
         psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.mean(psi_b) / np.mean(psi_a)
@@ -186,7 +186,7 @@ def compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls):
     d_minus_m_hat = np.full_like(d, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         y_minus_l_hat[test_index] = y[test_index] - l_hat[idx]
-        if g_hat is not None:
+        if len(g_hat) > 0:
             y_minus_g_hat[test_index] = y[test_index] - g_hat[idx]
         d_minus_m_hat[test_index] = d[test_index] - m_hat[idx]
     return y_minus_l_hat, y_minus_g_hat, d_minus_m_hat

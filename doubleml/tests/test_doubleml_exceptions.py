@@ -576,10 +576,10 @@ class LassoWithInfPred(Lasso):
 @pytest.mark.ci
 def test_doubleml_nan_prediction():
 
-    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g are not finite.'
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_l are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, LassoWithNanPred(), ml_m).fit()
-    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g are not finite.'
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_l are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, LassoWithInfPred(), ml_m).fit()
 
