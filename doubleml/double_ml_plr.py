@@ -159,34 +159,30 @@ class DoubleMLPLR(DoubleML):
     def _check_and_set_learner(self, ml_l, ml_m, ml_g):
         _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
-        if isinstance(self.score, str):
-            if self.score == 'partialling out':
-                self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
-            else:
-                assert self.score == 'IV-type'
-                if ml_g is None:
-                    warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
-                                   "Set ml_g = clone(ml_l)."))
-                    self._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_g': clone(ml_l)}
-                else:
-                    _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-                    self._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_g': ml_g}
-        else:
-            assert callable(self.score)
+        self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
+        if isinstance(self.score, str) & (self.score == 'IV-type'):
             if ml_g is None:
-                self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
+                warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
+                               "Set ml_g = clone(ml_l)."))
+                self._learner['ml_g'] = clone(ml_l)
             else:
                 _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-                self._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_g': ml_g}
+                self._learner['ml_g'] = ml_g
+        else:
+            assert callable(self.score)
+            if ml_g is not None:
+                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+                self._learner['ml_g'] = ml_g
 
+        self._predict_method = {'ml_l': 'predict'}
         if ml_m_is_classifier:
             if self._dml_data.binary_treats.all():
-                self._predict_method = {'ml_l': 'predict', 'ml_m': 'predict_proba'}
+                self._predict_method['ml_m'] = 'predict_proba'
             else:
                 raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
                                  'but at least one treatment variable is not binary with values 0 and 1.')
         else:
-            self._predict_method = {'ml_l': 'predict', 'ml_m': 'predict'}
+            self._predict_method['ml_m'] = 'predict'
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
 
