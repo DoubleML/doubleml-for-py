@@ -62,7 +62,7 @@ class DoubleMLPLR(DoubleML):
 
     score : str or callable
         A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, g_hat, m_hat, smpls)``.
+        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
     dml_procedure : str
@@ -236,14 +236,14 @@ class DoubleMLPLR(DoubleML):
                                     est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
             _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
 
-        psi_a, psi_b = self._score_elements(y, d, l_hat, g_hat, m_hat, smpls)
-        preds = {'ml_g': g_hat,
-                 'ml_l': l_hat,
-                 'ml_m': m_hat}
+        psi_a, psi_b = self._score_elements(y, d, l_hat, m_hat, g_hat, smpls)
+        preds = {'ml_l': l_hat,
+                 'ml_m': m_hat,
+                 'ml_g': g_hat}
 
         return psi_a, psi_b, preds
 
-    def _score_elements(self, y, d, l_hat, g_hat, m_hat, smpls):
+    def _score_elements(self, y, d, l_hat, m_hat, g_hat, smpls):
         # compute residuals
         u_hat = y - l_hat
         v_hat = d - m_hat
@@ -258,7 +258,7 @@ class DoubleMLPLR(DoubleML):
                 psi_b = np.multiply(v_hat, u_hat)
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, l_hat, g_hat, m_hat, smpls)
+            psi_a, psi_b = self.score(y, d, l_hat, m_hat, g_hat, smpls)
 
         return psi_a, psi_b
 
