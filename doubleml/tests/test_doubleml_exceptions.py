@@ -11,11 +11,12 @@ from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)
-ml_g = Lasso()
+ml_l = Lasso()
 ml_m = Lasso()
+ml_g = Lasso()
 ml_r = Lasso()
-dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
-dml_plr_iv_type = DoubleMLPLR(dml_data, ml_g, ml_m, score='IV-type')
+dml_plr = DoubleMLPLR(dml_data, ml_l, ml_m)
+dml_plr_iv_type = DoubleMLPLR(dml_data, ml_l, ml_m, ml_g, score='IV-type')
 
 dml_data_irm = make_irm_data(n_obs=10)
 dml_data_iivm = make_iivm_data(n_obs=10)
@@ -225,7 +226,7 @@ def test_doubleml_exception_get_params():
     msg = 'Invalid nuisance learner ml_g. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.get_params('ml_g')
-    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_g or ml_m.'
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_m or ml_g.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_iv_type.get_params('ml_r')
 
@@ -330,18 +331,20 @@ def test_doubleml_exception_p_adjust():
 @pytest.mark.ci
 def test_doubleml_exception_tune():
 
-    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_g and ml_m'
+    # TODO Add tests with IV-type score
+
+    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_l and ml_m'
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune([0.05, 0.5])
-    msg = (r"Invalid param_grids {'ml_g': {'alpha': \[0.05, 0.5\]}}. "
-           "param_grids must be a dictionary with keys ml_g and ml_m.")
+    msg = (r"Invalid param_grids {'ml_r': {'alpha': \[0.05, 0.5\]}}. "
+           "param_grids must be a dictionary with keys ml_l and ml_m.")
     with pytest.raises(ValueError, match=msg):
-        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]}})
+        dml_plr.tune({'ml_r': {'alpha': [0.05, 0.5]}})
 
-    param_grids = {'ml_g': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
+    param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
-           'Valid keys are ml_g and ml_m.')
+           'Valid keys are ml_l and ml_m.')
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune(param_grids, scoring_methods='neg_mean_absolute_error')
 
@@ -421,8 +424,8 @@ class LogisticRegressionManipulatedPredict(LogisticRegression):
 
 @pytest.mark.ci
 def test_doubleml_exception_learner():
-    err_msg_prefix = 'Invalid learner provided for ml_g: '
-    warn_msg_prefix = 'Learner provided for ml_g is probably invalid: '
+    err_msg_prefix = 'Invalid learner provided for ml_l: '
+    warn_msg_prefix = 'Learner provided for ml_l is probably invalid: '
 
     msg = err_msg_prefix + 'provide an instance of a learner instead of a class.'
     with pytest.raises(TypeError, match=msg):

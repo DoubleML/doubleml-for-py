@@ -64,8 +64,11 @@ def test_plr_callable_vs_str_score():
 def test_plr_callable_vs_pred_export():
     preds = dml_plr_callable_score.predictions
     l_hat = preds['ml_l'].squeeze()
-    g_hat = preds['ml_g'].squeeze()
     m_hat = preds['ml_m'].squeeze()
+    if 'ml_g' in preds:
+        g_hat = preds['ml_g'].squeeze()
+    else:
+        g_hat = None
     psi_a, psi_b = plr_score(dml_data_plr.y, dml_data_plr.d,
                              l_hat, g_hat, m_hat,
                              dml_plr_callable_score.smpls[0])

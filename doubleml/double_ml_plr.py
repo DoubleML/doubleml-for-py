@@ -169,8 +169,7 @@ class DoubleMLPLR(DoubleML):
                 _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
                 self._learner['ml_g'] = ml_g
         else:
-            assert callable(self.score)
-            if ml_g is not None:
+            if callable(self.score) & (ml_g is not None):
                 _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
                 self._learner['ml_g'] = ml_g
 
