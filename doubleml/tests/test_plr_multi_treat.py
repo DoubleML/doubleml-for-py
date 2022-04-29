@@ -60,13 +60,14 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     d_cols = data.columns[data.columns.str.startswith('d')].tolist()
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
+    ml_l = clone(learner)
     ml_m = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', d_cols, x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds, n_rep,
                                   score=score,
                                   dml_procedure=dml_procedure)
@@ -81,7 +82,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
     res_manual = fit_plr_multitreat(y, x, d,
-                                    clone(learner), clone(learner),
+                                    clone(learner), clone(learner), clone(learner),
                                     all_smpls, dml_procedure, score,
                                     n_rep=n_rep)
 
@@ -96,7 +97,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         boot_theta, boot_t_stat = boot_plr_multitreat(
             y, d,
             res_manual['thetas'], res_manual['ses'],
-            res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
+            res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
             all_smpls, score,
             bootstrap, n_rep_boot, n_rep)
 

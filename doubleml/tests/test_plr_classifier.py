@@ -43,12 +43,13 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_rep_boot = 502
 
     # Set machine learning methods for m & g
+    ml_l = Lasso(alpha=0.3)
     ml_g = Lasso()
     ml_m = clone(learner)
 
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(bonus_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)
@@ -62,7 +63,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)
 
-    res_manual = fit_plr(y, x, d, clone(ml_g), clone(ml_m),
+    res_manual = fit_plr(y, x, d, clone(ml_l), clone(ml_m), clone(ml_g),
                          all_smpls, dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
@@ -74,7 +75,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)

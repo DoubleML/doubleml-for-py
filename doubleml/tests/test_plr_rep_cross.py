@@ -49,13 +49,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
+    ml_l = clone(learner)
     ml_m = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
                                   score,
@@ -70,7 +71,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
-    res_manual = fit_plr(y, x, d, clone(learner), clone(learner),
+    res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
                          all_smpls, dml_procedure, score, n_rep)
 
     res_dict = {'coef': dml_plr_obj.coef,
@@ -83,7 +84,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot, n_rep)
 
         np.random.seed(3141)

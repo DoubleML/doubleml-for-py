@@ -41,13 +41,14 @@ def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
+    ml_l = clone(learner)
     ml_m = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
                                   score,
@@ -56,7 +57,7 @@ def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_
 
     np.random.seed(3141)
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
-                                   ml_g, ml_m,
+                                   ml_l, ml_m, ml_g,
                                    n_folds,
                                    n_rep,
                                    score,

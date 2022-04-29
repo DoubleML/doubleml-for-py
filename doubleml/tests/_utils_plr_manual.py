@@ -6,24 +6,24 @@ from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
-def fit_plr_multitreat(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, score,
-                       n_rep=1, g_params=None, l_params=None, m_params=None,
+def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, score,
+                       n_rep=1, l_params=None, m_params=None, g_params=None,
                        use_other_treat_as_covariate=True):
     n_obs = len(y)
     n_d = d.shape[1]
 
     thetas = list()
     ses = list()
-    all_g_hat = list()
     all_l_hat = list()
     all_m_hat = list()
+    all_g_hat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
         thetas_this_rep = np.full(n_d, np.nan)
         ses_this_rep = np.full(n_d, np.nan)
-        all_g_hat_this_rep = list()
         all_l_hat_this_rep = list()
         all_m_hat_this_rep = list()
+        all_g_hat_this_rep = list()
 
         for i_d in range(n_d):
             if use_other_treat_as_covariate:
@@ -31,17 +31,20 @@ def fit_plr_multitreat(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, 
             else:
                 xd = x
 
-            g_hat, l_hat, m_hat, thetas_this_rep[i_d], ses_this_rep[i_d] = fit_plr_single_split(
-                y, xd, d[:, i_d], learner_g, learner_m, smpls, dml_procedure, score, g_params, l_params, m_params)
-            all_g_hat_this_rep.append(g_hat)
+            l_hat, m_hat, g_hat, thetas_this_rep[i_d], ses_this_rep[i_d] = fit_plr_single_split(
+                y, xd, d[:, i_d],
+                learner_l, learner_m, learner_g,
+                smpls, dml_procedure, score,
+                l_params, m_params, g_params)
             all_l_hat_this_rep.append(l_hat)
             all_m_hat_this_rep.append(m_hat)
+            all_g_hat_this_rep.append(g_hat)
 
         thetas.append(thetas_this_rep)
         ses.append(ses_this_rep)
-        all_g_hat.append(all_g_hat_this_rep)
         all_l_hat.append(all_l_hat_this_rep)
         all_m_hat.append(all_m_hat_this_rep)
+        all_g_hat.append(all_g_hat_this_rep)
 
     theta = np.full(n_d, np.nan)
     se = np.full(n_d, np.nan)
@@ -53,73 +56,78 @@ def fit_plr_multitreat(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, 
 
     res = {'theta': theta, 'se': se,
            'thetas': thetas, 'ses': ses,
-           'all_g_hat': all_g_hat, 'all_l_hat': all_l_hat, 'all_m_hat': all_m_hat}
+           'all_l_hat': all_l_hat, 'all_m_hat': all_m_hat, 'all_g_hat': all_g_hat}
 
     return res
 
 
-def fit_plr(y, x, d, learner_g, learner_m, all_smpls, dml_procedure, score,
-            n_rep=1, g_params=None, l_params=None, m_params=None):
+def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, score,
+            n_rep=1, l_params=None, m_params=None, g_params=None):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)
     ses = np.zeros(n_rep)
-    all_g_hat = list()
     all_l_hat = list()
     all_m_hat = list()
+    all_g_hat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
-        g_hat, l_hat, m_hat, thetas[i_rep], ses[i_rep] = fit_plr_single_split(
-            y, x, d, learner_g, learner_m, smpls, dml_procedure, score, g_params, l_params, m_params)
-        all_g_hat.append(g_hat)
+        l_hat, m_hat, g_hat, thetas[i_rep], ses[i_rep] = fit_plr_single_split(
+            y, x, d,
+            learner_l, learner_m, learner_g,
+            smpls, dml_procedure, score,
+            l_params, m_params, g_params)
         all_l_hat.append(l_hat)
         all_m_hat.append(m_hat)
+        all_g_hat.append(g_hat)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
 
     res = {'theta': theta, 'se': se,
            'thetas': thetas, 'ses': ses,
-           'all_g_hat': all_g_hat, 'all_l_hat': all_l_hat, 'all_m_hat': all_m_hat}
+           'all_l_hat': all_l_hat, 'all_m_hat': all_m_hat, 'all_g_hat': all_g_hat}
 
     return res
 
 
-def fit_plr_single_split(y, x, d, learner_g, learner_m, smpls, dml_procedure, score,
-                         g_params=None, l_params=None, m_params=None):
+def fit_plr_single_split(y, x, d, learner_l, learner_m, learner_g, smpls, dml_procedure, score,
+                         l_params=None, m_params=None, g_params=None):
     fit_g = (score == 'IV-type') | callable(score)
     if is_classifier(learner_m):
-        g_hat, l_hat, m_hat = fit_nuisance_plr_classifier(y, x, d,
-                                                          learner_g, learner_m, smpls, fit_g,
-                                                          g_params, l_params, m_params)
+        l_hat, m_hat, g_hat = fit_nuisance_plr_classifier(y, x, d,
+                                                          learner_l, learner_m, learner_g,
+                                                          smpls, fit_g,
+                                                          l_params, m_params, g_params)
     else:
-        g_hat, l_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                               learner_g, learner_m, smpls, fit_g,
-                                               g_params, l_params, m_params)
+        l_hat, m_hat, g_hat = fit_nuisance_plr(y, x, d,
+                                               learner_l, learner_m, learner_g,
+                                               smpls, fit_g,
+                                               l_params, m_params, g_params)
 
     if dml_procedure == 'dml1':
         theta, se = plr_dml1(y, x, d,
-                             g_hat, l_hat, m_hat,
+                             l_hat, m_hat, g_hat,
                              smpls, score)
     else:
         assert dml_procedure == 'dml2'
         theta, se = plr_dml2(y, x, d,
-                             g_hat, l_hat, m_hat,
+                             l_hat, m_hat, g_hat,
                              smpls, score)
 
-    return g_hat, l_hat, m_hat, theta, se
+    return l_hat, m_hat, g_hat, theta, se
 
 
-def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, fit_g=True,
-                     g_params=None, l_params=None, m_params=None):
-    ml_l = clone(learner_g)
+def fit_nuisance_plr(y, x, d, learner_l, learner_m, learner_g, smpls, fit_g=True,
+                     l_params=None, m_params=None, g_params=None):
+    ml_l = clone(learner_l)
     l_hat = fit_predict(y, x, ml_l, l_params, smpls)
 
     ml_m = clone(learner_m)
     m_hat = fit_predict(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, [], l_hat, m_hat, smpls)
+        y_minus_l_hat, d_minus_m_hat, _ = compute_plr_residuals(y, d, l_hat, m_hat, [], smpls)
         psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
         psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -129,19 +137,19 @@ def fit_nuisance_plr(y, x, d, learner_g, learner_m, smpls, fit_g=True,
     else:
         g_hat = []
 
-    return g_hat, l_hat, m_hat
+    return l_hat, m_hat, g_hat
 
 
-def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, fit_g=True,
-                                g_params=None, l_params=None, m_params=None):
-    ml_l = clone(learner_g)
+def fit_nuisance_plr_classifier(y, x, d, learner_l, learner_m, learner_g, smpls, fit_g=True,
+                                l_params=None, m_params=None, g_params=None):
+    ml_l = clone(learner_l)
     l_hat = fit_predict(y, x, ml_l, l_params, smpls)
 
     ml_m = clone(learner_m)
     m_hat = fit_predict_proba(d, x, ml_m, m_params, smpls)
 
     if fit_g:
-        y_minus_l_hat, _, d_minus_m_hat = compute_plr_residuals(y, d, [], l_hat, m_hat, smpls)
+        y_minus_l_hat, d_minus_m_hat, _ = compute_plr_residuals(y, d, l_hat, m_hat, [], smpls)
         psi_a = -np.multiply(d_minus_m_hat, d_minus_m_hat)
         psi_b = np.multiply(d_minus_m_hat, y_minus_l_hat)
         theta_initial = -np.mean(psi_b) / np.mean(psi_a)
@@ -151,11 +159,11 @@ def fit_nuisance_plr_classifier(y, x, d, learner_g, learner_m, smpls, fit_g=True
     else:
         g_hat = []
 
-    return g_hat, l_hat, m_hat
+    return l_hat, m_hat, g_hat
 
 
-def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_m, tune_g=True):
-    l_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune)
+def tune_nuisance_plr(y, x, d, ml_l, ml_m, ml_g, smpls, n_folds_tune, param_grid_l, param_grid_m, param_grid_g, tune_g=True):
+    l_tune_res = tune_grid_search(y, x, ml_l, smpls, param_grid_l, n_folds_tune)
 
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
@@ -177,54 +185,54 @@ def tune_nuisance_plr(y, x, d, ml_g, ml_m, smpls, n_folds_tune, param_grid_g, pa
     l_best_params = [xx.best_params_ for xx in l_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-    return g_best_params, l_best_params, m_best_params
+    return l_best_params, m_best_params, g_best_params
 
 
-def compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls):
+def compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls):
     y_minus_l_hat = np.full_like(y, np.nan, dtype='float64')
-    y_minus_g_hat = np.full_like(y, np.nan, dtype='float64')
     d_minus_m_hat = np.full_like(d, np.nan, dtype='float64')
+    y_minus_g_hat = np.full_like(y, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
         y_minus_l_hat[test_index] = y[test_index] - l_hat[idx]
         if len(g_hat) > 0:
             y_minus_g_hat[test_index] = y[test_index] - g_hat[idx]
         d_minus_m_hat[test_index] = d[test_index] - m_hat[idx]
-    return y_minus_l_hat, y_minus_g_hat, d_minus_m_hat
+    return y_minus_l_hat, d_minus_m_hat, y_minus_g_hat
 
 
-def plr_dml1(y, x, d, g_hat, l_hat, m_hat, smpls, score):
+def plr_dml1(y, x, d, l_hat, m_hat, g_hat, smpls, score):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
-    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
+    y_minus_l_hat, d_minus_m_hat, y_minus_g_hat = compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls)
 
     for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = plr_orth(y_minus_l_hat[test_index], y_minus_g_hat[test_index], d_minus_m_hat[test_index],
+        thetas[idx] = plr_orth(y_minus_l_hat[test_index], d_minus_m_hat[test_index], y_minus_g_hat[test_index],
                                d[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs))
+        se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
         se = np.sqrt(var_plr(theta_hat, d[test_index],
-                             y_minus_l_hat[test_index], y_minus_g_hat[test_index], d_minus_m_hat[test_index],
+                             y_minus_l_hat[test_index], d_minus_m_hat[test_index], y_minus_g_hat[test_index],
                              score, n_obs))
 
     return theta_hat, se
 
 
-def plr_dml2(y, x, d, g_hat, l_hat, m_hat, smpls, score):
+def plr_dml2(y, x, d, l_hat, m_hat, g_hat, smpls, score):
     n_obs = len(y)
-    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
-    theta_hat = plr_orth(y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, d, score)
-    se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs))
+    y_minus_l_hat, d_minus_m_hat, y_minus_g_hat = compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls)
+    theta_hat = plr_orth(y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, d, score)
+    se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs))
 
     return theta_hat, se
 
 
-def var_plr(theta, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs):
+def var_plr(theta, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs):
     if score == 'partialling out':
         var = 1/n_obs * 1/np.power(np.mean(np.multiply(d_minus_m_hat, d_minus_m_hat)), 2) * \
             np.mean(np.power(np.multiply(y_minus_l_hat - d_minus_m_hat*theta, d_minus_m_hat), 2))
@@ -236,7 +244,7 @@ def var_plr(theta, d, y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, score, n_obs)
     return var
 
 
-def plr_orth(y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, d, score):
+def plr_orth(y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, d, score):
     if score == 'IV-type':
         res = np.mean(np.multiply(d_minus_m_hat, y_minus_g_hat))/np.mean(np.multiply(d_minus_m_hat, d))
     else:
@@ -246,7 +254,7 @@ def plr_orth(y_minus_l_hat, y_minus_g_hat, d_minus_m_hat, d, score):
     return res
 
 
-def boot_plr(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
+def boot_plr(y, d, thetas, ses, all_l_hat, all_m_hat, all_g_hat,
              all_smpls, score, bootstrap, n_rep_boot,
              n_rep=1, apply_cross_fitting=True):
     all_boot_theta = list()
@@ -261,7 +269,7 @@ def boot_plr(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
 
         boot_theta, boot_t_stat = boot_plr_single_split(
-            thetas[i_rep], y, d, all_g_hat[i_rep], all_l_hat[i_rep], all_m_hat[i_rep], smpls,
+            thetas[i_rep], y, d, all_l_hat[i_rep], all_m_hat[i_rep], all_g_hat[i_rep], smpls,
             score, ses[i_rep],
             weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
@@ -273,7 +281,7 @@ def boot_plr(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
+def boot_plr_multitreat(y, d, thetas, ses, all_l_hat, all_m_hat, all_g_hat,
                         all_smpls, score, bootstrap, n_rep_boot,
                         n_rep=1, apply_cross_fitting=True):
     n_d = d.shape[1]
@@ -293,7 +301,7 @@ def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
         for i_d in range(n_d):
             boot_theta[i_d, :], boot_t_stat[i_d, :] = boot_plr_single_split(
                 thetas[i_rep][i_d], y, d[:, i_d],
-                all_g_hat[i_rep][i_d], all_l_hat[i_rep][i_d], all_m_hat[i_rep][i_d],
+                all_l_hat[i_rep][i_d], all_m_hat[i_rep][i_d], all_g_hat[i_rep][i_d],
                 smpls, score, ses[i_rep][i_d],
                 weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
@@ -305,9 +313,9 @@ def boot_plr_multitreat(y, d, thetas, ses, all_g_hat, all_l_hat, all_m_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_plr_single_split(theta, y, d, g_hat, l_hat, m_hat,
+def boot_plr_single_split(theta, y, d, l_hat, m_hat, g_hat,
                           smpls, score, se, weights, n_rep, apply_cross_fitting):
-    y_minus_l_hat, y_minus_g_hat, d_minus_m_hat = compute_plr_residuals(y, d, g_hat, l_hat, m_hat, smpls)
+    y_minus_l_hat, d_minus_m_hat, y_minus_g_hat = compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls)
 
     if apply_cross_fitting:
         if score == 'partialling out':

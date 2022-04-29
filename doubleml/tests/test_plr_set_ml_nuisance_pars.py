@@ -32,13 +32,14 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     alpha = 0.05
     learner = Lasso(alpha=alpha)
     # Set machine learning methods for m & g
-    ml_g = clone(learner)
+    ml_l = clone(learner)
     ml_m = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'])
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure)
@@ -52,7 +53,7 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     ml_m = clone(learner)
 
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
-                                              ml_g, ml_m,
+                                              ml_l, ml_m, ml_g,
                                               n_folds,
                                               score=score,
                                               dml_procedure=dml_procedure)
