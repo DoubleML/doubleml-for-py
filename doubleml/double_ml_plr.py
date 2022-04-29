@@ -33,7 +33,7 @@ class DoubleMLPLR(DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_g : estimator implementing ``fit()`` and ``predict()``
+    ml_l : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`l_0(X) = E[Y|X]`.
 
@@ -48,6 +48,8 @@ class DoubleMLPLR(DoubleML):
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
         :math:`g_0(X) = E[Y - D \\theta_0|X]`.
+        Note: The learner `ml_g` is only required for the score ``'IV-type'``. Optionally, it can be specified and
+        estimated for callable scores.
 
     n_folds : int
         Number of folds.
