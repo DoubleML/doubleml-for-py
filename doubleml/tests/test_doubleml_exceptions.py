@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -57,7 +57,7 @@ def test_doubleml_exception_data():
     msg = ('Incompatible data. To fit an IRM model with DML exactly one binary variable with values 0 and 1 '
            'needs to be specified as treatment variable.')
     df_irm = dml_data_irm.data.copy()
-    df_irm['d'] = df_irm['d']*2
+    df_irm['d'] = df_irm['d'] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
@@ -231,8 +231,6 @@ def test_doubleml_exception_get_params():
         dml_plr_iv_type.get_params('ml_r')
 
 
-
-
 @pytest.mark.ci
 def test_doubleml_exception_smpls():
     msg = ('Sample splitting not specified. '
@@ -330,9 +328,6 @@ def test_doubleml_exception_p_adjust():
 
 @pytest.mark.ci
 def test_doubleml_exception_tune():
-
-    # TODO Add tests with IV-type score
-
     msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_l and ml_m'
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune([0.05, 0.5])
@@ -340,6 +335,25 @@ def test_doubleml_exception_tune():
            "param_grids must be a dictionary with keys ml_l and ml_m.")
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune({'ml_r': {'alpha': [0.05, 0.5]}})
+
+    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_l and ml_m and ml_g'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.tune([0.05, 0.5])
+    msg = (r"Invalid param_grids {'ml_g': {'alpha': \[0.05, 0.5\]}, 'ml_m': {'alpha': \[0.05, 0.5\]}}. "
+           "param_grids must be a dictionary with keys ml_l and ml_m and ml_g.")
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                              'ml_m': {'alpha': [0.05, 0.5]}})
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                      'ml_m': {'alpha': [0.05, 0.5]}})
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.tune({'ml_l': {'alpha': [0.05, 0.5]},
+                      'ml_m': {'alpha': [0.05, 0.5]}},
+                     scoring_methods={'ml_g': 'explained_variance',
+                                      'ml_m': 'explained_variance'})
 
     param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
@@ -386,7 +400,6 @@ def test_doubleml_exception_tune():
 
 @pytest.mark.ci
 def test_doubleml_exception_set_ml_nuisance_params():
-
     msg = 'Invalid nuisance learner g. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
@@ -456,6 +469,10 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
 
+    msg = 'ml_g was renamed to ml_l'
+    with pytest.warns(DeprecationWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g=Lasso(), ml_m=ml_m)
+
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
            'but the outcome variable is not binary with values 0 and 1.')
@@ -514,6 +531,10 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
 
 
 @pytest.mark.ci
@@ -578,7 +599,6 @@ class LassoWithInfPred(Lasso):
 
 @pytest.mark.ci
 def test_doubleml_nan_prediction():
-
     msg = r'Predictions from learner LassoWithNanPred\(\) for ml_l are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, LassoWithNanPred(), ml_m).fit()
