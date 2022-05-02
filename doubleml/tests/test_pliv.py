@@ -52,7 +52,7 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                     ml_l, ml_m, ml_r,
-                                    n_folds,
+                                    n_folds=n_folds,
                                     dml_procedure=dml_procedure)
 
     dml_pliv_obj.fit()
@@ -77,7 +77,7 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
                                             all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)

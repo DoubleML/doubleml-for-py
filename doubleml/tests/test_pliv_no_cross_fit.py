@@ -40,16 +40,16 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     data = generate_data_iv
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & r
+    ml_l = clone(learner)
     ml_m = clone(learner)
     ml_r = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    ml_l, ml_m, ml_r,
+                                    n_folds=n_folds,
                                     dml_procedure=dml_procedure,
                                     apply_cross_fitting=False)
 
@@ -80,7 +80,7 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
                                             [smpls], score, bootstrap, n_rep_boot,
                                             apply_cross_fitting=False)
 

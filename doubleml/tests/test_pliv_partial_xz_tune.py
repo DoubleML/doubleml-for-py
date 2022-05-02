@@ -15,7 +15,7 @@ from ._utils_pliv_partial_xz_manual import fit_pliv_partial_xz, boot_pliv_partia
 
 @pytest.fixture(scope='module',
                 params=[ElasticNet()])
-def learner_g(request):
+def learner_l(request):
     return request.param
 
 
@@ -59,9 +59,9 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner_m, learner_r, score,
+def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_l, learner_m, learner_r, score,
                                 dml_procedure, tune_on_folds):
-    par_grid = {'ml_g': get_par_grid(learner_g),
+    par_grid = {'ml_l': get_par_grid(learner_l),
                 'ml_m': get_par_grid(learner_m),
                 'ml_r': get_par_grid(learner_r)}
     n_folds_tune = 4
@@ -73,15 +73,15 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
     # collect data
     obj_dml_data = generate_data_pliv_partialXZ
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner_g)
+    # Set machine learning methods for l, m & r
+    ml_l = clone(learner_l)
     ml_m = clone(learner_m)
     ml_r = clone(learner_r)
 
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV._partialXZ(obj_dml_data,
-                                               ml_g, ml_m, ml_r,
-                                               n_folds,
+                                               ml_l, ml_m, ml_r,
+                                               n_folds=n_folds,
                                                dml_procedure=dml_procedure)
 
     # tune hyperparameters
@@ -99,32 +99,32 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
     smpls = all_smpls[0]
 
     if tune_on_folds:
-        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
-                                                                     clone(learner_g),
+        l_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
+                                                                     clone(learner_l),
                                                                      clone(learner_m),
                                                                      clone(learner_r),
                                                                      smpls, n_folds_tune,
-                                                                     par_grid['ml_g'],
+                                                                     par_grid['ml_l'],
                                                                      par_grid['ml_m'],
                                                                      par_grid['ml_r'])
     else:
         xx = [(np.arange(len(y)), np.arange(len(y)))]
-        g_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
-                                                                     clone(learner_g),
+        l_params, m_params, r_params = tune_nuisance_pliv_partial_xz(y, x, d, z,
+                                                                     clone(learner_l),
                                                                      clone(learner_m),
                                                                      clone(learner_r),
                                                                      xx, n_folds_tune,
-                                                                     par_grid['ml_g'],
+                                                                     par_grid['ml_l'],
                                                                      par_grid['ml_m'],
                                                                      par_grid['ml_r'])
-        g_params = g_params * n_folds
+        l_params = l_params * n_folds
         m_params = m_params * n_folds
         r_params = r_params * n_folds
 
     res_manual = fit_pliv_partial_xz(y, x, d, z,
-                                     clone(learner_g), clone(learner_m), clone(learner_r),
+                                     clone(learner_l), clone(learner_m), clone(learner_r),
                                      all_smpls, dml_procedure, score,
-                                     g_params=g_params, m_params=m_params, r_params=r_params)
+                                     l_params=l_params, m_params=m_params, r_params=r_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -135,7 +135,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_g, learner
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv_partial_xz(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                                       res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                                       res_manual['all_l_hat'], res_manual['all_m_hat'],
                                                        res_manual['all_r_hat'],
                                                        all_smpls, score, bootstrap, n_rep_boot)
 
