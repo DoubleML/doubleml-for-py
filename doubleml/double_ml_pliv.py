@@ -39,7 +39,7 @@ class DoubleMLPLIV(DoubleML):
 
     score : str or callable
         A str (``'partialling out'`` is the only choice) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, z, d, g_hat, m_hat, r_hat, smpls)``.
+        or a callable object / function with signature ``psi_a, psi_b = score(y, z, d, l_hat, m_hat, r_hat, smpls)``.
         Default is ``'partialling out'``.
 
     dml_procedure : str
@@ -233,14 +233,13 @@ class DoubleMLPLIV(DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['partialling out']
-            # check whether its worth implementing the IV_type as well
-            # In CCDHNR equation (4.7) a score of this type is provided;
-            # however in the following paragraph it is explained that one might
-            # still need to estimate the partialling out type first
+            if self.partialX & (not self.partialZ) & (self._dml_data.n_instr == 1):
+                valid_score = ['partialling out', 'IV-type']
+            else:
+                valid_score = ['partialling out']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + 'partialling out.')
+                                 'Valid score ' + ' or '.join(valid_score) + '.')
         else:
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
@@ -287,10 +286,10 @@ class DoubleMLPLIV(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+        # nuisance l
+        l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
-        _check_finite_predictions(g_hat, self._learner['ml_l'], 'ml_l', smpls)
+        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         if self._dml_data.n_instr == 1:
@@ -316,16 +315,16 @@ class DoubleMLPLIV(DoubleML):
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
         _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
 
-        psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
-        preds = {'ml_l': g_hat,
+        psi_a, psi_b = self._score_elements(y, z, d, l_hat, m_hat, r_hat, smpls)
+        preds = {'ml_l': l_hat,
                  'ml_m': m_hat,
                  'ml_r': r_hat}
 
         return psi_a, psi_b, preds
 
-    def _score_elements(self, y, z, d, g_hat, m_hat, r_hat, smpls):
+    def _score_elements(self, y, z, d, l_hat, m_hat, r_hat, smpls):
         # compute residuals
-        u_hat = y - g_hat
+        u_hat = y - l_hat
         w_hat = d - r_hat
         v_hat = z - m_hat
 
@@ -353,7 +352,7 @@ class DoubleMLPLIV(DoubleML):
             else:
                 assert self._dml_data.n_instr == 1
                 psi_a, psi_b = self.score(y, z, d,
-                                          g_hat, m_hat, r_hat, smpls)
+                                          l_hat, m_hat, r_hat, smpls)
 
         return psi_a, psi_b
 
@@ -389,10 +388,10 @@ class DoubleMLPLIV(DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+        # nuisance l
+        l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
-        _check_finite_predictions(g_hat, self._learner['ml_l'], 'ml_l', smpls)
+        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         m_hat, m_hat_on_train = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -406,7 +405,7 @@ class DoubleMLPLIV(DoubleML):
         _check_finite_predictions(m_hat_tilde, self._learner['ml_r'], 'ml_r', smpls)
 
         # compute residuals
-        u_hat = y - g_hat
+        u_hat = y - l_hat
         w_hat = d - m_hat_tilde
 
         if isinstance(self.score, str):
@@ -417,7 +416,7 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
-        preds = {'ml_l': g_hat,
+        preds = {'ml_l': l_hat,
                  'ml_m': m_hat,
                  'ml_r': m_hat_tilde}
 
