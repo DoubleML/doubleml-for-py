@@ -435,7 +435,7 @@ class DoubleMLPLIV(DoubleML):
                                'ml_r': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        g_tune_res = _dml_tune(y, x, train_inds,
+        l_tune_res = _dml_tune(y, x, train_inds,
                                self._learner['ml_l'], param_grids['ml_l'], scoring_methods['ml_l'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
@@ -463,20 +463,20 @@ class DoubleMLPLIV(DoubleML):
                                self._learner['ml_r'], param_grids['ml_r'], scoring_methods['ml_r'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        l_best_params = [xx.best_params_ for xx in l_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
         if self._dml_data.n_instr > 1:
-            params = {'ml_l': g_best_params,
+            params = {'ml_l': l_best_params,
                       'ml_r': r_best_params}
             for instr_var in self._dml_data.z_cols:
                 params['ml_m_' + instr_var] = [xx.best_params_ for xx in m_tune_res[instr_var]]
         else:
             m_best_params = [xx.best_params_ for xx in m_tune_res]
-            params = {'ml_l': g_best_params,
+            params = {'ml_l': l_best_params,
                       'ml_m': m_best_params,
                       'ml_r': r_best_params}
 
-        tune_res = {'g_tune': g_tune_res,
+        tune_res = {'l_tune': l_tune_res,
                     'm_tune': m_tune_res,
                     'r_tune': r_tune_res}
 
@@ -526,7 +526,7 @@ class DoubleMLPLIV(DoubleML):
                                'ml_r': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        g_tune_res = _dml_tune(y, x, train_inds,
+        l_tune_res = _dml_tune(y, x, train_inds,
                                self._learner['ml_l'], param_grids['ml_l'], scoring_methods['ml_l'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         m_tune_res = _dml_tune(d, xz, train_inds,
@@ -549,15 +549,15 @@ class DoubleMLPLIV(DoubleML):
                                                    n_iter=n_iter_randomized_search)
             r_tune_res.append(r_grid_search.fit(x[train_index, :], m_hat))
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        l_best_params = [xx.best_params_ for xx in l_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
 
-        params = {'ml_l': g_best_params,
+        params = {'ml_l': l_best_params,
                   'ml_m': m_best_params,
                   'ml_r': r_best_params}
 
-        tune_res = {'g_tune': g_tune_res,
+        tune_res = {'l_tune': l_tune_res,
                     'm_tune': m_tune_res,
                     'r_tune': r_tune_res}
 
