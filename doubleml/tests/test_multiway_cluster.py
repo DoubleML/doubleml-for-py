@@ -263,14 +263,14 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
+    # Set machine learning methods for m & l
+    ml_l = clone(learner)
     ml_m = clone(learner)
 
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m,
                                   n_folds,
                                   dml_procedure=dml_procedure)
     dml_plr_obj.fit()
@@ -283,7 +283,7 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
                                                cluster_cols='index')
     np.random.seed(3141)
     dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data,
-                                          ml_g, ml_m,
+                                          ml_l, ml_m,
                                           n_folds,
                                           dml_procedure=dml_procedure)
     dml_plr_cluster_obj.fit()

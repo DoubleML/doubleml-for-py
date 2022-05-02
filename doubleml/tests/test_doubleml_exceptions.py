@@ -33,13 +33,13 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 def test_doubleml_exception_data():
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(pd.DataFrame(), ml_g, ml_m)
+        _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
            'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data_pliv, ml_g, ml_m)
+        _ = DoubleMLPLR(dml_data_pliv, ml_l, ml_m)
 
     # PLIV without IV
     msg = ('Incompatible data. '
@@ -105,10 +105,10 @@ def test_doubleml_exception_data():
 def test_doubleml_exception_scores():
     msg = 'Invalid score IV. Valid score IV-type or partialling out.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score='IV')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, score='IV')
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, score=0)
 
     msg = 'Invalid score IV. Valid score ATE or ATTE.'
     with pytest.raises(ValueError, match=msg):
@@ -175,47 +175,47 @@ def test_doubleml_exception_subgroups():
 def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_folds=1.5)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=1.5)
     msg = ('The number of repetitions for the sample splitting must be of int type. '
            "1.5 of type <class 'float'> was passed.")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_rep=1.5)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=1.5)
     msg = 'The number of folds must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_folds=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=0)
     msg = 'The number of repetitions for the sample splitting must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_rep=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=0)
     msg = 'apply_cross_fitting must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=1)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=1)
     msg = 'draw_sample_splitting must be True or False. Got true.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting='true')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting='true')
 
 
 @pytest.mark.ci
 def test_doubleml_exception_dml_procedure():
     msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, dml_procedure='1')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='1')
     msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, dml_procedure='dml')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='dml')
 
 
 @pytest.mark.ci
 def test_doubleml_warning_crossfitting_onefold():
     msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=True, n_folds=1)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=True, n_folds=1)
 
 
 @pytest.mark.ci
 def test_doubleml_exception_no_cross_fit():
     msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
     with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=False)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=False)
 
 
 @pytest.mark.ci
@@ -235,11 +235,11 @@ def test_doubleml_exception_get_params():
 def test_doubleml_exception_smpls():
     msg = ('Sample splitting not specified. '
            r'Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\).')
-    dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting=False)
+    dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
     msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
-    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r, draw_sample_splitting=False)
+    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_l, ml_m, ml_r, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_pliv_cluster_no_smpls.smpls_cluster
     with pytest.raises(ValueError, match=msg):
@@ -261,7 +261,7 @@ def test_doubleml_exception_fit():
 
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
-    dml_plr_boot = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
@@ -280,7 +280,7 @@ def test_doubleml_exception_bootstrap():
 
 @pytest.mark.ci
 def test_doubleml_exception_confint():
-    dml_plr_confint = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_confint = DoubleMLPLR(dml_data, ml_l, ml_m)
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
@@ -308,7 +308,7 @@ def test_doubleml_exception_confint():
 
 @pytest.mark.ci
 def test_doubleml_exception_p_adjust():
-    dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_l, ml_m)
 
     msg = r'Apply fit\(\) before p_adjust\(\).'
     with pytest.raises(ValueError, match=msg):
@@ -457,7 +457,7 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
 
-    # ToDo: Currently for ml_g (and others) we only check whether the learner can be identified as regressor. However,
+    # ToDo: Currently for ml_l (and others) we only check whether the learner can be identified as regressor. However,
     # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
     with pytest.warns(UserWarning, match=msg):
@@ -608,7 +608,7 @@ def test_doubleml_nan_prediction():
 
     msg = r'Predictions from learner LassoWithNanPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, LassoWithNanPred()).fit()
+        _ = DoubleMLPLR(dml_data, ml_l, LassoWithNanPred()).fit()
     msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, LassoWithInfPred()).fit()
+        _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()
