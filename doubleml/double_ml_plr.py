@@ -341,7 +341,6 @@ class DoubleMLPLR(DoubleML):
                         'm_tune': m_tune_res,
                         'g_tune': g_tune_res}
         else:
-            assert self.score == 'partialling out'
             params = {'ml_l': l_best_params,
                       'ml_m': m_best_params}
             tune_res = {'l_tune': l_tune_res,
