@@ -49,6 +49,34 @@ dml_iivm_callable_score.set_sample_splitting(dml_iivm.smpls)
 dml_iivm_callable_score.fit(store_predictions=True)
 
 
+def non_orth_score_w_g(y, d, l_hat, m_hat, g_hat, smpls):
+    u_hat = y - g_hat
+    psi_a = -np.multiply(d, d)
+    psi_b = np.multiply(d, u_hat)
+    return psi_a, psi_b
+
+
+def non_orth_score_w_l(y, d, l_hat, m_hat, g_hat, smpls):
+    p_a = -np.multiply(d - m_hat, d - m_hat)
+    p_b = np.multiply(d - m_hat, y - l_hat)
+    theta_initial = -np.nanmean(p_b) / np.nanmean(p_a)
+    g_hat = l_hat - np.multiply(d, m_hat)
+
+    u_hat = y - g_hat
+    psi_a = -np.multiply(d, d)
+    psi_b = np.multiply(d, u_hat)
+    return psi_a, psi_b
+
+
+dml_plr_non_orth_score_w_g = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(), Lasso(),
+                                         score=non_orth_score_w_g)
+dml_plr_non_orth_score_w_g.fit(store_predictions=True)
+
+dml_plr_non_orth_score_w_l = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(),
+                                         score=non_orth_score_w_l)
+dml_plr_non_orth_score_w_l.fit(store_predictions=True)
+
+
 @pytest.mark.ci
 @pytest.mark.parametrize('dml_obj',
                          [dml_plr, dml_plr_iv_type, dml_pliv, dml_irm, dml_iivm])
@@ -108,6 +136,40 @@ def test_plr_iv_type_callable_vs_pred_export():
                        psi_a,
                        rtol=1e-9, atol=1e-4)
     assert np.allclose(dml_plr_iv_type.psi_b.squeeze(),
+                       psi_b,
+                       rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_plr_non_orth_score_w_g_callable_vs_pred_export():
+    preds = dml_plr_non_orth_score_w_g.predictions
+    l_hat = preds['ml_l'].squeeze()
+    m_hat = preds['ml_m'].squeeze()
+    g_hat = preds['ml_g'].squeeze()
+    psi_a, psi_b = non_orth_score_w_g(dml_data_plr.y, dml_data_plr.d,
+                                      l_hat, m_hat, g_hat,
+                                      dml_plr_non_orth_score_w_g.smpls[0])
+    assert np.allclose(dml_plr_non_orth_score_w_g.psi_a.squeeze(),
+                       psi_a,
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_plr_non_orth_score_w_g.psi_b.squeeze(),
+                       psi_b,
+                       rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_plr_non_orth_score_w_l_callable_vs_pred_export():
+    preds = dml_plr_non_orth_score_w_l.predictions
+    l_hat = preds['ml_l'].squeeze()
+    m_hat = preds['ml_m'].squeeze()
+    g_hat = None
+    psi_a, psi_b = non_orth_score_w_l(dml_data_plr.y, dml_data_plr.d,
+                                      l_hat, m_hat, g_hat,
+                                      dml_plr_non_orth_score_w_l.smpls[0])
+    assert np.allclose(dml_plr_non_orth_score_w_l.psi_a.squeeze(),
+                       psi_a,
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_plr_non_orth_score_w_l.psi_b.squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
