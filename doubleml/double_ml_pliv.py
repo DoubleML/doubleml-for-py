@@ -17,9 +17,9 @@ class DoubleMLPLIV(DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_g : estimator implementing ``fit()`` and ``predict()``
+    ml_l : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`l_0(X) = E[Y|X]`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -63,12 +63,12 @@ class DoubleMLPLIV(DoubleML):
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
     >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_g = clone(learner)
+    >>> ml_l = clone(learner)
     >>> ml_m = clone(learner)
     >>> ml_r = clone(learner)
     >>> data = make_pliv_CHS2015(alpha=0.5, n_obs=500, dim_x=20, dim_z=1, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
-    >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_g, ml_m, ml_r)
+    >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_l, ml_m, ml_r)
     >>> dml_pliv_obj.fit().summary
            coef   std err         t         P>|t|     2.5 %    97.5 %
     d  0.522753  0.082263  6.354688  2.088504e-10  0.361521  0.683984
@@ -90,7 +90,7 @@ class DoubleMLPLIV(DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_g,
+                 ml_l,
                  ml_m,
                  ml_r,
                  n_folds=5,
@@ -108,20 +108,20 @@ class DoubleMLPLIV(DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
         self.partialX = True
         self.partialZ = False
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        self._check_score(self.score)
+        _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
         _ = self._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
-        self._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
+        self._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_r': ml_r}
+        self._predict_method = {'ml_l': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         self._initialize_ml_nuisance_params()
 
     @classmethod
     def _partialX(cls,
                   obj_dml_data,
-                  ml_g,
+                  ml_l,
                   ml_m,
                   ml_r,
                   n_folds=5,
@@ -131,7 +131,7 @@ class DoubleMLPLIV(DoubleML):
                   draw_sample_splitting=True,
                   apply_cross_fitting=True):
         obj = cls(obj_dml_data,
-                  ml_g,
+                  ml_l,
                   ml_m,
                   ml_r,
                   n_folds,
@@ -141,14 +141,14 @@ class DoubleMLPLIV(DoubleML):
                   draw_sample_splitting,
                   apply_cross_fitting)
         obj._check_data(obj._dml_data)
-        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = False
-        _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        obj._check_score(obj.score)
+        _ = obj._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         _ = obj._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
         _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
-        obj._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
-        obj._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
+        obj._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_r': ml_r}
+        obj._predict_method = {'ml_l': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         obj._initialize_ml_nuisance_params()
         return obj
 
@@ -162,7 +162,7 @@ class DoubleMLPLIV(DoubleML):
                   dml_procedure='dml2',
                   draw_sample_splitting=True,
                   apply_cross_fitting=True):
-        # to pass the checks for the learners, we temporarily set ml_g and ml_m to DummyRegressor()
+        # to pass the checks for the learners, we temporarily set ml_l and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
                   DummyRegressor(),
                   DummyRegressor(),
@@ -174,9 +174,9 @@ class DoubleMLPLIV(DoubleML):
                   draw_sample_splitting,
                   apply_cross_fitting)
         obj._check_data(obj._dml_data)
-        obj._check_score(obj.score)
         obj.partialX = False
         obj.partialZ = True
+        obj._check_score(obj.score)
         _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
         obj._learner = {'ml_r': ml_r}
         obj._predict_method = {'ml_r': 'predict'}
@@ -186,7 +186,7 @@ class DoubleMLPLIV(DoubleML):
     @classmethod
     def _partialXZ(cls,
                    obj_dml_data,
-                   ml_g,
+                   ml_l,
                    ml_m,
                    ml_r,
                    n_folds=5,
@@ -196,7 +196,7 @@ class DoubleMLPLIV(DoubleML):
                    draw_sample_splitting=True,
                    apply_cross_fitting=True):
         obj = cls(obj_dml_data,
-                  ml_g,
+                  ml_l,
                   ml_m,
                   ml_r,
                   n_folds,
@@ -206,28 +206,28 @@ class DoubleMLPLIV(DoubleML):
                   draw_sample_splitting,
                   apply_cross_fitting)
         obj._check_data(obj._dml_data)
-        obj._check_score(obj.score)
         obj.partialX = True
         obj.partialZ = True
-        _ = obj._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        obj._check_score(obj.score)
+        _ = obj._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         _ = obj._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
         _ = obj._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
-        obj._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
-        obj._predict_method = {'ml_g': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
+        obj._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_r': ml_r}
+        obj._predict_method = {'ml_l': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         obj._initialize_ml_nuisance_params()
         return obj
 
     def _initialize_ml_nuisance_params(self):
         if self.partialX & (not self.partialZ):
             if self._dml_data.n_instr == 1:
-                valid_learner = ['ml_g', 'ml_m', 'ml_r']
+                valid_learner = ['ml_l', 'ml_m', 'ml_r']
             else:
-                valid_learner = ['ml_g', 'ml_r'] + ['ml_m_' + z_col for z_col in self._dml_data.z_cols]
+                valid_learner = ['ml_l', 'ml_r'] + ['ml_m_' + z_col for z_col in self._dml_data.z_cols]
         elif (not self.partialX) & self.partialZ:
             valid_learner = ['ml_r']
         else:
             assert (self.partialX & self.partialZ)
-            valid_learner = ['ml_g', 'ml_m', 'ml_r']
+            valid_learner = ['ml_l', 'ml_m', 'ml_r']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
@@ -288,9 +288,9 @@ class DoubleMLPLIV(DoubleML):
                          force_all_finite=False)
 
         # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+        g_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
+        _check_finite_predictions(g_hat, self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         if self._dml_data.n_instr == 1:
@@ -317,7 +317,7 @@ class DoubleMLPLIV(DoubleML):
         _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
 
         psi_a, psi_b = self._score_elements(y, z, d, g_hat, m_hat, r_hat, smpls)
-        preds = {'ml_g': g_hat,
+        preds = {'ml_l': g_hat,
                  'ml_m': m_hat,
                  'ml_r': r_hat}
 
@@ -390,9 +390,9 @@ class DoubleMLPLIV(DoubleML):
                          force_all_finite=False)
 
         # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+        g_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
+        _check_finite_predictions(g_hat, self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         m_hat, m_hat_on_train = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -417,7 +417,7 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
-        preds = {'ml_g': g_hat,
+        preds = {'ml_l': g_hat,
                  'ml_m': m_hat,
                  'ml_r': m_hat_tilde}
 
@@ -431,13 +431,13 @@ class DoubleMLPLIV(DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
+            scoring_methods = {'ml_l': None,
                                'ml_m': None,
                                'ml_r': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         g_tune_res = _dml_tune(y, x, train_inds,
-                               self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                               self._learner['ml_l'], param_grids['ml_l'], scoring_methods['ml_l'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         if self._dml_data.n_instr > 1:
@@ -467,13 +467,13 @@ class DoubleMLPLIV(DoubleML):
         g_best_params = [xx.best_params_ for xx in g_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
         if self._dml_data.n_instr > 1:
-            params = {'ml_g': g_best_params,
+            params = {'ml_l': g_best_params,
                       'ml_r': r_best_params}
             for instr_var in self._dml_data.z_cols:
                 params['ml_m_' + instr_var] = [xx.best_params_ for xx in m_tune_res[instr_var]]
         else:
             m_best_params = [xx.best_params_ for xx in m_tune_res]
-            params = {'ml_g': g_best_params,
+            params = {'ml_l': g_best_params,
                       'ml_m': m_best_params,
                       'ml_r': r_best_params}
 
@@ -522,13 +522,13 @@ class DoubleMLPLIV(DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
+            scoring_methods = {'ml_l': None,
                                'ml_m': None,
                                'ml_r': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         g_tune_res = _dml_tune(y, x, train_inds,
-                               self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                               self._learner['ml_l'], param_grids['ml_l'], scoring_methods['ml_l'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         m_tune_res = _dml_tune(d, xz, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
@@ -554,7 +554,7 @@ class DoubleMLPLIV(DoubleML):
         m_best_params = [xx.best_params_ for xx in m_tune_res]
         r_best_params = [xx.best_params_ for xx in r_tune_res]
 
-        params = {'ml_g': g_best_params,
+        params = {'ml_l': g_best_params,
                   'ml_m': m_best_params,
                   'ml_r': r_best_params}
 
