@@ -43,15 +43,15 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     data = generate_data_iv
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & r
+    ml_l = clone(learner)
     ml_m = clone(learner)
     ml_r = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_g, ml_m, ml_r,
+                                    ml_l, ml_m, ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure)
 
