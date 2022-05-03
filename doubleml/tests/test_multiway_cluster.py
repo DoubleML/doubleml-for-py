@@ -69,7 +69,7 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
 
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                     ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    n_folds=n_folds,
                                     dml_procedure=dml_procedure,
                                     draw_sample_splitting=False)
     dml_pliv_obj.set_sample_splitting(smpls_lin_ind)
@@ -79,7 +79,7 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
     np.random.seed(3141)
     dml_pliv_obj_cluster = dml.DoubleMLPLIV(obj_dml_cluster_data,
                                             ml_g, ml_m, ml_r,
-                                            n_folds,
+                                            n_folds=n_folds,
                                             dml_procedure=dml_procedure)
     dml_pliv_obj_cluster.fit()
 
@@ -110,7 +110,7 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_cluster_data,
                                     ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    n_folds=n_folds,
                                     n_rep=n_rep,
                                     score=score,
                                     dml_procedure=dml_procedure)
@@ -196,7 +196,7 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_oneway_cluster_data,
                                     ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    n_folds=n_folds,
                                     score=score,
                                     dml_procedure=dml_procedure)
 
@@ -271,7 +271,7 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_l, ml_m,
-                                  n_folds,
+                                  n_folds=n_folds,
                                   dml_procedure=dml_procedure)
     dml_plr_obj.fit()
 
@@ -284,7 +284,7 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
     np.random.seed(3141)
     dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data,
                                           ml_l, ml_m,
-                                          n_folds,
+                                          n_folds=n_folds,
                                           dml_procedure=dml_procedure)
     dml_plr_cluster_obj.fit()
 
