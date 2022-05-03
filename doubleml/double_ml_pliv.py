@@ -145,19 +145,18 @@ class DoubleMLPLIV(DoubleML):
         _ = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
         _ = self._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
         self._learner = {'ml_l': ml_l, 'ml_m': ml_m, 'ml_r': ml_r}
-        if isinstance(self.score, str) & (self.score == 'IV-type'):
-            if ml_g is None:
-                warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
-                               "Set ml_g = clone(ml_l)."))
-                self._learner['ml_g'] = clone(ml_l)
-            else:
-                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+        if ml_g is not None:
+            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+            if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
                 self._learner['ml_g'] = ml_g
-        else:
-            if callable(self.score) & (ml_g is not None):
-                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-                self._learner['ml_g'] = ml_g
+            # Question: Add a warning when ml_g is set for partialling out score where it is not required / used?
+        elif isinstance(self.score, str) & (self.score == 'IV-type'):
+            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
+                           "Set ml_g = clone(ml_l)."))
+            self._learner['ml_g'] = clone(ml_l)
         self._predict_method = {'ml_l': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
+        if 'ml_g' in self._learner:
+            self._predict_method['ml_g'] = 'predict'
         self._initialize_ml_nuisance_params()
 
     @classmethod
