@@ -533,7 +533,8 @@ class DoubleMLPLIV(DoubleML):
         if scoring_methods is None:
             scoring_methods = {'ml_l': None,
                                'ml_m': None,
-                               'ml_r': None}
+                               'ml_r': None,
+                               'ml_g': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         l_tune_res = _dml_tune(y, x, train_inds,

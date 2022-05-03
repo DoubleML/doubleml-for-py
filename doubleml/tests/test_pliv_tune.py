@@ -4,8 +4,7 @@ import math
 
 from sklearn.base import clone
 
-from sklearn.linear_model import ElasticNet
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
@@ -14,7 +13,8 @@ from ._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
 
 
 @pytest.fixture(scope='module',
-                params=[ElasticNet()])
+                params=[Lasso(),
+                        ElasticNet()])
 def learner_l(request):
     return request.param
 
@@ -32,7 +32,13 @@ def learner_r(request):
 
 
 @pytest.fixture(scope='module',
-                params=['partialling out'])
+                params=[ElasticNet()])
+def learner_g(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=['partialling out', 'IV-type'])
 def score(request):
     return request.param
 
@@ -50,8 +56,8 @@ def tune_on_folds(request):
 
 
 def get_par_grid(learner):
-    if learner.__class__ == RandomForestRegressor:
-        par_grid = {'n_estimators': [5, 10, 20]}
+    if learner.__class__ == Lasso:
+        par_grid = {'alpha': np.linspace(0.05, .95, 7)}
     else:
         assert learner.__class__ == ElasticNet
         par_grid = {'l1_ratio': [.1, .5, .7, .9, .95, .99, 1], 'alpha': np.linspace(0.05, 1., 7)}
@@ -59,10 +65,11 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, score, dml_procedure, tune_on_folds):
+def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_g, score, dml_procedure, tune_on_folds):
     par_grid = {'ml_l': get_par_grid(learner_l),
                 'ml_m': get_par_grid(learner_m),
-                'ml_r': get_par_grid(learner_r)}
+                'ml_r': get_par_grid(learner_r),
+                'ml_g': get_par_grid(learner_g)}
     n_folds_tune = 4
 
     boot_methods = ['Bayes', 'normal', 'wild']
@@ -77,12 +84,14 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, score, d
     ml_l = clone(learner_l)
     ml_m = clone(learner_m)
     ml_r = clone(learner_r)
+    ml_g = clone(learner_g)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_l, ml_m, ml_r,
+                                    ml_l, ml_m, ml_r, ml_g,
                                     n_folds=n_folds,
+                                    score=score,
                                     dml_procedure=dml_procedure)
 
     # tune hyperparameters
@@ -100,23 +109,27 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, score, d
     smpls = all_smpls[0]
 
     if tune_on_folds:
-        l_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_l), clone(learner_m), clone(learner_r),
-                                                          smpls, n_folds_tune,
-                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'])
+        l_params, m_params, r_params, g_params = tune_nuisance_pliv(
+            y, x, d, z,
+            clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
+            smpls, n_folds_tune,
+            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        l_params, m_params, r_params = tune_nuisance_pliv(y, x, d, z,
-                                                          clone(learner_l), clone(learner_m), clone(learner_r),
-                                                          xx, n_folds_tune,
-                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'])
+        l_params, m_params, r_params, g_params = tune_nuisance_pliv(
+            y, x, d, z,
+            clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
+            xx, n_folds_tune,
+            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'])
+
         l_params = l_params * n_folds
         m_params = m_params * n_folds
         r_params = r_params * n_folds
+        g_params = g_params * n_folds
 
-    res_manual = fit_pliv(y, x, d, z, clone(learner_l), clone(learner_m), clone(learner_r),
+    res_manual = fit_pliv(y, x, d, z, clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
                           all_smpls, dml_procedure, score,
-                          l_params=l_params, m_params=m_params, r_params=r_params)
+                          l_params=l_params, m_params=m_params, r_params=r_params, g_params=g_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -127,7 +140,8 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, score, d
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                            res_manual['all_r_hat'], res_manual['all_g_hat'],
                                             all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
