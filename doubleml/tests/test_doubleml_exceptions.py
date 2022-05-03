@@ -18,9 +18,11 @@ ml_r = Lasso()
 dml_plr = DoubleMLPLR(dml_data, ml_l, ml_m)
 dml_plr_iv_type = DoubleMLPLR(dml_data, ml_l, ml_m, ml_g, score='IV-type')
 
+dml_data_pliv = make_pliv_CHS2015(n_obs=50, dim_z=1)
+dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_l, ml_m, ml_r)
+
 dml_data_irm = make_irm_data(n_obs=50)
 dml_data_iivm = make_iivm_data(n_obs=50)
-dml_data_pliv = make_pliv_CHS2015(n_obs=50, dim_z=1)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 (x, y, d, z) = make_iivm_data(n_obs=50, return_type="array")
 y[y > 0] = 1
@@ -355,6 +357,19 @@ def test_doubleml_exception_tune():
                      scoring_methods={'ml_g': 'explained_variance',
                                       'ml_m': 'explained_variance'})
 
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                       'ml_m': {'alpha': [0.05, 0.5]},
+                       'ml_r': {'alpha': [0.05, 0.5]}})
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.tune({'ml_l': {'alpha': [0.05, 0.5]},
+                       'ml_m': {'alpha': [0.05, 0.5]},
+                       'ml_r': {'alpha': [0.05, 0.5]}},
+                      scoring_methods={'ml_g': 'explained_variance',
+                                       'ml_m': 'explained_variance',
+                                       'ml_r': 'explained_variance'})
+
     param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
@@ -473,6 +488,10 @@ def test_doubleml_exception_learner():
     with pytest.warns(DeprecationWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_g=Lasso(), ml_m=ml_m)
 
+    msg = 'ml_g was renamed to ml_l'
+    with pytest.warns(DeprecationWarning, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)
+
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
            'but the outcome variable is not binary with values 0 and 1.')
@@ -535,6 +554,10 @@ def test_doubleml_exception_learner():
     msg = 'Learner ml_g was renamed to ml_l. '
     with pytest.warns(DeprecationWarning, match=msg):
         dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
 
 
 @pytest.mark.ci
