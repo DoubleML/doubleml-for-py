@@ -130,7 +130,33 @@ class DoubleMLPLR(DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        self._check_and_set_learner(ml_l, ml_m, ml_g)
+
+        _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
+        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
+        self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
+
+        if ml_g is not None:
+            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+            if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+                self._learner['ml_g'] = ml_g
+            # Question: Add a warning when ml_g is set for partialling out score where it is not required / used?
+        elif isinstance(self.score, str) & (self.score == 'IV-type'):
+            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
+                           "Set ml_g = clone(ml_l)."))
+            self._learner['ml_g'] = clone(ml_l)
+
+        self._predict_method = {'ml_l': 'predict'}
+        if 'ml_g' in self._learner:
+            self._predict_method['ml_g'] = 'predict'
+        if ml_m_is_classifier:
+            if self._dml_data.binary_treats.all():
+                self._predict_method['ml_m'] = 'predict_proba'
+            else:
+                raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
+                                 'but at least one treatment variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method['ml_m'] = 'predict'
+
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
@@ -155,37 +181,6 @@ class DoubleMLPLR(DoubleML):
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). '
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
-        return
-
-    def _check_and_set_learner(self, ml_l, ml_m, ml_g):
-        _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
-        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
-        self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
-        if isinstance(self.score, str) & (self.score == 'IV-type'):
-            if ml_g is None:
-                warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
-                               "Set ml_g = clone(ml_l)."))
-                self._learner['ml_g'] = clone(ml_l)
-            else:
-                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-                self._learner['ml_g'] = ml_g
-        else:
-            if callable(self.score) & (ml_g is not None):
-                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
-                self._learner['ml_g'] = ml_g
-
-        self._predict_method = {'ml_l': 'predict'}
-        if ml_m_is_classifier:
-            if self._dml_data.binary_treats.all():
-                self._predict_method['ml_m'] = 'predict_proba'
-            else:
-                raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
-                                 'but at least one treatment variable is not binary with values 0 and 1.')
-        else:
-            self._predict_method['ml_m'] = 'predict'
-        if 'ml_g' in self._learner:
-            self._predict_method['ml_g'] = 'predict'
-
         return
 
     # To be removed in version 0.6.0
