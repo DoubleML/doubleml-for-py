@@ -253,7 +253,9 @@ class DoubleMLPLR(DoubleML):
                 psi_b = np.multiply(v_hat, u_hat)
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, l_hat, m_hat, g_hat, smpls)
+            psi_a, psi_b = self.score(y=y, d=d,
+                                      l_hat=l_hat, m_hat=m_hat, g_hat=g_hat,
+                                      smpls=smpls)
 
         return psi_a, psi_b
 

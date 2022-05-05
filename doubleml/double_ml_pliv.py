@@ -419,8 +419,9 @@ class DoubleMLPLIV(DoubleML):
                                           'with several instruments.')
             else:
                 assert self._dml_data.n_instr == 1
-                psi_a, psi_b = self.score(y, z, d,
-                                          l_hat, m_hat, r_hat, g_hat, smpls)
+                psi_a, psi_b = self.score(y=y, z=z, d=d,
+                                          l_hat=l_hat, m_hat=m_hat, r_hat=r_hat, g_hat=g_hat,
+                                          smpls=smpls)
 
         return psi_a, psi_b
 
