@@ -148,7 +148,7 @@ class DoubleMLIRM(DoubleML):
 
     def cate(self, cate_var: str, method: str, alpha: float, n_grid_nodes: int,
              n_samples_bootstrap: int, cv: bool, poly_degree: int = None, splines_knots: int = None,
-             splines_degree: int = None, ortho: bool = False) -> dict:
+             splines_degree: int = None, ortho: bool = False, x_grid: np.array = None) -> dict:
         """
         Calculates the CATE with respect to variable X by polynomial or splines approximation.
         It calculates it on an equidistant grid of n_grid_nodes points over the range of X
@@ -165,6 +165,7 @@ class DoubleMLIRM(DoubleML):
         splines_knots: max knots for the splines approximation
         splines_degree: degree of the polynomials used in the splines
         ortho: whether to use orthogonal polynomials
+        x_grid: grid points on which to evaluate the CATE
 
         Returns
         -------
@@ -174,8 +175,11 @@ class DoubleMLIRM(DoubleML):
         """
         X = np.array(self._dml_data.data[cate_var])
         y = self.psi_b.reshape(-1, 1)
-        x_grid = np.linspace(np.round(np.min(X), 2), np.round(np.max(X), 2), n_grid_nodes).reshape(-1, 1)
-        # The robust score is given by psi_b
+        if x_grid is None:
+            print("Authomatically generating grid for CATE evaluation")
+            x_grid = np.linspace(np.round(np.min(X), 2), np.round(np.max(X), 2), n_grid_nodes).reshape(-1, 1)
+        else:
+            print("User-provided grid will be used for CATE evaluation")
 
         if method == "poly":
             assert poly_degree is not None, "poly_degree must be specified for method 'poly'"
