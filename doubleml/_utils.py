@@ -1,6 +1,7 @@
 import patsy
 import statsmodels.api as sm
 import numpy as np
+import pandas as pd
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
@@ -278,6 +279,7 @@ def _splines_fit(X: np.array, y: np.array, max_knots: int, degree: int = 3, cv: 
     results = model.fit()
     return results, chosen_knots
 
+
 def _polynomial_fit(X: np.array, y: np.array, max_degree: int, cv: bool = True, ortho=False) -> \
         tuple[RegressionResults, int]:
     """
@@ -364,4 +366,50 @@ def _calculate_bootstrap_tstat(regressors_grid: np.array, omega_hat: np.array, a
     t_maxs = np.amax(
         np.abs(norm_numerator_grid @ np.random.normal(size=numerator_grid.shape[1] * n_samples_bootstrap)
                .reshape(numerator_grid.shape[1], n_samples_bootstrap)), axis=0)
+    return np.quantile(t_maxs, q=1 - alpha)
+
+
+def _create_regressor_grid_gate(X: np.array, gate_type: object, n_quantiles: int) -> pd.DataFrame:
+    """
+    creates the one-hot encoding for the GATE
+
+    Parameters
+    ----------
+    X: variable to be encoded
+    gate_type: "quantile" or "categorical", depending on whether to calculate the quantiles or use the categories
+    already defined in the variable
+    n_quantiles: number of quantiles in which to divide the variable
+
+    Returns
+    -------
+    pd.DataFrame with the one-hot encoding of the variable
+    """
+    df = pd.DataFrame(X)
+    col_names = df.columns
+    if gate_type == "quantile":
+        quantiles = np.linspace(0, 1, n_quantiles+1)
+        df["cat_vals"] = pd.qcut(df[col_names[0]], quantiles, labels=list(range(len(quantiles)-1)))
+        regressors_grid = pd.get_dummies(df["cat_vals"])
+    else:
+        regressors_grid = pd.get_dummies(df[col_names[0]])
+    return regressors_grid
+
+
+def _calculate_bootstrap_tstat_gate(n_dummies: int, alpha: float, n_samples_bootstrap: int) -> float:
+    """
+    Simplified version of function _calculate_bootstrap_tstat thanks to some properties of the GATE encoding
+
+    Parameters
+    ----------
+    n_dummies: how many groups in GATE
+    alpha: p-value
+    n_samples_bootstrap: number of samples to generate for the normal distribution draw
+
+    Returns
+    -------
+    float with the critical value of the t-statistic
+
+    """
+    t_maxs = np.amax(
+        np.abs(np.random.normal(size=n_dummies * n_samples_bootstrap).reshape(n_dummies, n_samples_bootstrap)), axis=0)
     return np.quantile(t_maxs, q=1 - alpha)

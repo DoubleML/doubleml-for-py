@@ -8,7 +8,8 @@ from scipy.stats import norm
 
 from .double_ml import DoubleML
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _calculate_bootstrap_tstat,\
-    _polynomial_fit, _splines_fit, _calculate_orthogonal_polynomials
+    _polynomial_fit, _splines_fit, _calculate_orthogonal_polynomials, _create_regressor_grid_gate,\
+    _calculate_bootstrap_tstat_gate
 
 
 class DoubleMLIRM(DoubleML):
@@ -231,6 +232,57 @@ class DoubleMLIRM(DoubleML):
             "fitted_model": fitted_model,
             "n_knots": [n_knots] * len(g_hat),
             "poly_degree": [poly_degree] * len(g_hat)
+        }
+        return results_dict
+
+    def gate(self, gate_var: str, gate_type: object, n_quantiles: int, alpha: float,
+             n_samples_bootstrap: int) -> dict:
+        """
+        Calculates the GATE for variable X and the confidence intervals.
+
+        Parameters
+        ----------
+        X: variable for which to calculate the GATE
+        y: robust score of the response variable
+        gate_type: "quantile" or "categorical", defines whether or not to use the categories already defined in
+        n_quantiles: number of quantiles to calculate
+        alpha: p-value for the confidence intervals
+        n_samples_bootstrap: how many samples to use to calculate the t-statistics described in 2.6
+
+        Returns
+        -------
+        A dictionary containing the estimated GATE (g_hat), with upper and lower confidence bounds (both simultaneous as
+        well as pointwise), fitted linear model and categories for which the GATE was calculated
+        """
+
+        X = np.array(self._dml_data.data[gate_var])
+        y = self.psi_b.reshape(-1, 1)
+        regressors_grid = _create_regressor_grid_gate(X, gate_type, n_quantiles)
+        class_names = regressors_grid.columns
+        model = sm.OLS(y, regressors_grid)
+        fitted_model = model.fit()
+        hcv_coeff = fitted_model.cov_HC0
+        g_hat = fitted_model.params
+        standard_error = np.sqrt(np.diag(hcv_coeff))
+
+        max_t_stat = _calculate_bootstrap_tstat_gate(len(g_hat), alpha, n_samples_bootstrap)
+
+        g_hat_lower_point = g_hat + norm.ppf(q=alpha / 2) * standard_error
+        g_hat_upper_point = g_hat + norm.ppf(q=1 - alpha / 2) * standard_error
+
+        g_hat_lower = g_hat - max_t_stat * standard_error
+        g_hat_upper = g_hat + max_t_stat * standard_error
+
+        results_dict = {
+            "g_hat": g_hat,
+            "g_hat_lower": g_hat_lower,
+            "g_hat_upper": g_hat_upper,
+            "g_hat_lower_point": g_hat_lower_point,
+            "g_hat_upper_point": g_hat_upper_point,
+            "fitted_model": fitted_model,
+            "gate_type": gate_type,
+            "n_quantiles": n_quantiles,
+            "class_name": class_names
         }
         return results_dict
 
