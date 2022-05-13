@@ -398,7 +398,7 @@ def test_disjoint_sets():
     msg = (r'At least one variable/column is set as instrumental variable \(``z_cols``\) and cluster variable in '
            '``cluster_cols``.')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols = ['xx2'], cluster_cols='xx2')
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols=['xx2'], cluster_cols='xx2')
 
 
 @pytest.mark.ci
