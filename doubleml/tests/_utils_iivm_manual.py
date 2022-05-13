@@ -61,10 +61,10 @@ def fit_nuisance_iivm(y, x, d, z, learner_g, learner_m, learner_r, smpls,
     train_cond0 = np.where(z == 0)[0]
     if is_classifier(learner_g):
         g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls,
-                              train_cond=train_cond0)
+                                        train_cond=train_cond0)
     else:
         g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
-                              train_cond=train_cond0)
+                                  train_cond=train_cond0)
 
     ml_g1 = clone(learner_g)
     train_cond1 = np.where(z == 1)[0]
