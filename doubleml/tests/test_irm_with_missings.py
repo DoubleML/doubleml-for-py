@@ -144,6 +144,6 @@ def test_irm_exception_with_missings(generate_data_irm_w_missings, learner_sklea
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
                                   ml_g, ml_m)
 
-    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    msg = r"Input X contains NaN.\nLinearRegression does not accept missing values encoded as NaN natively."
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.fit()
