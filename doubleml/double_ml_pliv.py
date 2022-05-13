@@ -319,14 +319,14 @@ class DoubleMLPLIV(DoubleML):
                          search_mode, n_iter_randomized_search):
         if self.partialX & (not self.partialZ):
             res = self._nuisance_tuning_partial_x(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                                     search_mode, n_iter_randomized_search)
+                                                  search_mode, n_iter_randomized_search)
         elif (not self.partialX) & self.partialZ:
             res = self._nuisance_tuning_partial_z(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                                     search_mode, n_iter_randomized_search)
+                                                  search_mode, n_iter_randomized_search)
         else:
             assert (self.partialX & self.partialZ)
             res = self._nuisance_tuning_partial_xz(smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                                      search_mode, n_iter_randomized_search)
+                                                   search_mode, n_iter_randomized_search)
 
         return res
 
@@ -525,7 +525,7 @@ class DoubleMLPLIV(DoubleML):
                                       n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
 
     def _nuisance_tuning_partial_x(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                      search_mode, n_iter_randomized_search):
+                                   search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -618,7 +618,7 @@ class DoubleMLPLIV(DoubleML):
         return res
 
     def _nuisance_tuning_partial_z(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                      search_mode, n_iter_randomized_search):
+                                   search_mode, n_iter_randomized_search):
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
                           self._dml_data.d,
                           force_all_finite=False)
@@ -643,7 +643,7 @@ class DoubleMLPLIV(DoubleML):
         return res
 
     def _nuisance_tuning_partial_xz(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                                       search_mode, n_iter_randomized_search):
+                                    search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
