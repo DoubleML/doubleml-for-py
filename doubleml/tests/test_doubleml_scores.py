@@ -14,7 +14,7 @@ dml_data_iivm = make_iivm_data(n_obs=100)
 
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
 dml_plr.fit()
-dml_plr_iv_type = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(), score='IV-type')
+dml_plr_iv_type = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(), Lasso(), score='IV-type')
 dml_plr_iv_type.fit()
 dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_pliv.fit()
