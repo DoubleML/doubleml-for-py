@@ -492,6 +492,11 @@ def test_doubleml_exception_learner():
     with pytest.warns(DeprecationWarning, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)
 
+    msg = "For score = 'IV-type', learners ml_l, ml_m, ml_r and ml_g need to be specified."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_l=ml_l, ml_m=ml_m, ml_r=ml_r,
+                         score='IV-type')
+
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
            'but the outcome variable is not binary with values 0 and 1.')
