@@ -108,19 +108,22 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
     all_smpls = draw_smpls(n_obs, n_folds)
     smpls = all_smpls[0]
 
+    tune_g = (score == 'IV-type') | callable(score)
     if tune_on_folds:
         l_params, m_params, r_params, g_params = tune_nuisance_pliv(
             y, x, d, z,
             clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
             smpls, n_folds_tune,
-            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'])
+            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'],
+            tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         l_params, m_params, r_params, g_params = tune_nuisance_pliv(
             y, x, d, z,
             clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
             xx, n_folds_tune,
-            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'])
+            par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'],
+            tune_g)
 
         l_params = l_params * n_folds
         m_params = m_params * n_folds
