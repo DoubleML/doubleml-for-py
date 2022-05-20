@@ -60,7 +60,7 @@ def non_orth_score_w_l(y, d, l_hat, m_hat, g_hat, smpls):
     p_a = -np.multiply(d - m_hat, d - m_hat)
     p_b = np.multiply(d - m_hat, y - l_hat)
     theta_initial = -np.nanmean(p_b) / np.nanmean(p_a)
-    g_hat = l_hat - np.multiply(d, m_hat)
+    g_hat = l_hat - theta_initial * np.multiply(d, m_hat)
 
     u_hat = y - g_hat
     psi_a = -np.multiply(d, d)

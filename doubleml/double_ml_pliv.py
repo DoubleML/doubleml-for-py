@@ -4,7 +4,6 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
 from sklearn.dummy import DummyRegressor
-from sklearn.base import clone
 
 import warnings
 from functools import wraps
@@ -520,7 +519,7 @@ class DoubleMLPLIV(DoubleML):
             scoring_methods['ml_l'] = scoring_methods.pop('ml_g')
 
         super(DoubleMLPLIV, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune, search_mode,
-                                      n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
+                                       n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
 
     def _nuisance_tuning_partial_x(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                    search_mode, n_iter_randomized_search):
