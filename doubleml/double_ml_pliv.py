@@ -151,9 +151,7 @@ class DoubleMLPLIV(DoubleML):
                 self._learner['ml_g'] = ml_g
             # Question: Add a warning when ml_g is set for partialling out score where it is not required / used?
         elif isinstance(self.score, str) & (self.score == 'IV-type'):
-            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
-                           "Set ml_g = clone(ml_l)."))
-            self._learner['ml_g'] = clone(ml_l)
+            raise ValueError("For score = 'IV-type', learners ml_l, ml_m, ml_r and ml_g need to be specified.")
         self._predict_method = {'ml_l': 'predict', 'ml_m': 'predict', 'ml_r': 'predict'}
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
