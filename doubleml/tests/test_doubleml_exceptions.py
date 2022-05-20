@@ -488,6 +488,10 @@ def test_doubleml_exception_learner():
     with pytest.warns(DeprecationWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_g=Lasso(), ml_m=ml_m)  # pylint: disable=no-value-for-parameter
 
+    msg = r"For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone\(ml_l\)."
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=ml_m, score='IV-type')
+
     msg = 'ml_g was renamed to ml_l'
     with pytest.warns(DeprecationWarning, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)  # pylint: disable=no-value-for-parameter
