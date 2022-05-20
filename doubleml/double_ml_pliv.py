@@ -65,7 +65,7 @@ class DoubleMLPLIV(DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'partialling out'`` is the only choice) specifying the score function
+        A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
         or a callable object / function with signature
         ``psi_a, psi_b = score(y, z, d, l_hat, m_hat, r_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
