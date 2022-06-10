@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
 
 
@@ -40,10 +38,13 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
@@ -68,7 +69,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
         smpls = all_smpls[0]
         smpls = [smpls[0]]
 
-    res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
+    res_manual = fit_plr(y, x, d, _clone(learner), _clone(learner), _clone(learner),
                          [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
@@ -133,10 +134,13 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
@@ -169,7 +173,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
         smpls = all_smpls[i_rep]
 
         l_hat, m_hat, g_hat = fit_nuisance_plr(y, x, d,
-                                               clone(learner), clone(learner), clone(learner), smpls)
+                                               _clone(learner), _clone(learner), _clone(learner), smpls)
 
         all_l_hat.append(l_hat)
         all_m_hat.append(m_hat)
@@ -253,10 +257,13 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
+    # Set machine learning methods for l, m & g
     ml_l = Lasso()
     ml_m = Lasso()
-    ml_g = Lasso()
+    if score == 'IV-type':
+        ml_g = Lasso()
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
@@ -288,19 +295,19 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
         par_grid['ml_g'] = None
     if tune_on_folds:
         l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
-                                                         clone(ml_l), clone(ml_m), clone(ml_g),
+                                                         _clone(ml_l), _clone(ml_m), _clone(ml_g),
                                                          smpls, n_folds_tune,
                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'],
                                                          tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
-                                                         clone(ml_l), clone(ml_m), clone(ml_g),
+                                                         _clone(ml_l), _clone(ml_m), _clone(ml_g),
                                                          xx, n_folds_tune,
                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'],
                                                          tune_g)
 
-    res_manual = fit_plr(y, x, d, clone(ml_l), clone(ml_m), clone(ml_g),
+    res_manual = fit_plr(y, x, d, _clone(ml_l), _clone(ml_m), _clone(ml_g),
                          [smpls], dml_procedure, score,
                          l_params=l_params, m_params=m_params, g_params=g_params)
 

@@ -2,15 +2,13 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr
 
 bonus_data = fetch_bonus()
@@ -42,10 +40,13 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_folds = 2
     n_rep_boot = 502
 
-    # Set machine learning methods for m & g
+    # Set machine learning methods for l, m & g
     ml_l = Lasso(alpha=0.3)
-    ml_g = Lasso()
-    ml_m = clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = Lasso()
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(bonus_data,
@@ -63,7 +64,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)
 
-    res_manual = fit_plr(y, x, d, clone(ml_l), clone(ml_m), clone(ml_g),
+    res_manual = fit_plr(y, x, d, _clone(ml_l), _clone(ml_m), _clone(ml_g),
                          all_smpls, dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,

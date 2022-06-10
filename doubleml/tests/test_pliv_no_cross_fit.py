@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_pliv_manual import fit_pliv, boot_pliv
 
 
@@ -41,10 +39,13 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for l, m, r & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
-    ml_g = clone(learner)
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
@@ -71,7 +72,7 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
         smpls = [smpls[0]]
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner), clone(learner),
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
                           [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,

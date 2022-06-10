@@ -2,14 +2,13 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
+from ._utils import _clone
 from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2,\
     est_two_way_cluster_dml2, var_two_way_cluster
 from ._utils_pliv_manual import fit_pliv, compute_pliv_residuals
@@ -62,9 +61,9 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
     _, smpls_lin_ind = obj_dml_multiway_resampling.split_samples()
 
     # Set machine learning methods for l, m & r
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
 
     df = obj_dml_cluster_data.data.set_index(['cluster_var_i', 'cluster_var_j'])
     obj_dml_data = dml.DoubleMLData(df,
@@ -108,10 +107,13 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
     n_rep = 2
 
     # Set machine learning methods for l, m, r & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
-    ml_g = clone(learner)
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_cluster_data,
@@ -131,7 +133,7 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
     z = np.ravel(obj_dml_cluster_data.z)
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner), clone(learner),
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score,
                           n_rep=n_rep)
     thetas = np.full(n_rep, np.nan)
@@ -209,11 +211,14 @@ def test_dml_pliv_multiway_cluster_se(dml_pliv_multiway_cluster_fixture):
 def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score, dml_procedure):
     n_folds = 3
 
-    # Set machine learning methods for l, m & r
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m, r & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_oneway_cluster_data,
@@ -232,7 +237,7 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score, dml_proced
     z = np.ravel(obj_dml_oneway_cluster_data.z)
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner), clone(learner),
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score)
     l_hat = res_manual['all_l_hat'][0]
     m_hat = res_manual['all_m_hat'][0]
@@ -301,8 +306,8 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
     # Set machine learning methods for m & l
-    ml_l = clone(learner)
-    ml_m = clone(learner)
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
 
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     np.random.seed(3141)

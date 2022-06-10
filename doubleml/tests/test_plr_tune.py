@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr, tune_nuisance_plr
 
 
@@ -75,9 +73,12 @@ def dml_plr_fixture(generate_data2, learner_l, learner_m, learner_g, score, dml_
     obj_dml_data = generate_data2
 
     # Set machine learning methods for m & g
-    ml_l = clone(learner_l)
-    ml_m = clone(learner_m)
-    ml_g = clone(learner_g)
+    ml_l = _clone(learner_l)
+    ml_m = _clone(learner_m)
+    if score == 'IV-type':
+        ml_g = _clone(learner_g)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
@@ -103,20 +104,20 @@ def dml_plr_fixture(generate_data2, learner_l, learner_m, learner_g, score, dml_
     tune_g = (score == 'IV-type')
     if tune_on_folds:
         l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
-                                                         clone(learner_l), clone(learner_m), clone(learner_g),
+                                                         _clone(learner_l), _clone(learner_m), _clone(learner_g),
                                                          smpls, n_folds_tune,
                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'], tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
         l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
-                                                         clone(learner_l), clone(learner_m), clone(learner_g),
+                                                         _clone(learner_l), _clone(learner_m), _clone(learner_g),
                                                          xx, n_folds_tune,
                                                          par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'], tune_g)
         l_params = l_params * n_folds
         g_params = g_params * n_folds
         m_params = m_params * n_folds
 
-    res_manual = fit_plr(y, x, d, clone(learner_l), clone(learner_m), clone(learner_g),
+    res_manual = fit_plr(y, x, d, _clone(learner_l), _clone(learner_m), _clone(learner_g),
                          all_smpls, dml_procedure, score,
                          l_params=l_params, m_params=m_params, g_params=g_params)
 

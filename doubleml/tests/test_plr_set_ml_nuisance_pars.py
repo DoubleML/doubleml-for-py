@@ -2,10 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
 from sklearn.linear_model import Lasso
 
 import doubleml as dml
+
+from ._utils import _clone
 
 
 @pytest.fixture(scope='module',
@@ -31,10 +32,13 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
 
     alpha = 0.05
     learner = Lasso(alpha=alpha)
-    # Set machine learning methods for m & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'])
@@ -48,9 +52,13 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
 
     np.random.seed(3141)
     learner = Lasso()
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
                                               ml_l, ml_m, ml_g,

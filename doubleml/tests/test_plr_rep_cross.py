@@ -2,14 +2,12 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr
 
 
@@ -48,10 +46,13 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_l = clone(learner)
-    ml_m = clone(learner)
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
@@ -71,7 +72,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
-    res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
+    res_manual = fit_plr(y, x, d, _clone(learner), _clone(learner), _clone(learner),
                          all_smpls, dml_procedure, score, n_rep)
 
     res_dict = {'coef': dml_plr_obj.coef,

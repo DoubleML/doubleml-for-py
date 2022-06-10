@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
 
 
@@ -80,11 +78,14 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
     data = generate_data_iv
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for l, m & r
-    ml_l = clone(learner_l)
-    ml_m = clone(learner_m)
-    ml_r = clone(learner_r)
-    ml_g = clone(learner_g)
+    # Set machine learning methods for l, m, r & g
+    ml_l = _clone(learner_l)
+    ml_m = _clone(learner_m)
+    ml_r = _clone(learner_r)
+    if score == 'IV-type':
+        ml_g = _clone(learner_g)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
@@ -112,7 +113,7 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
     if tune_on_folds:
         l_params, m_params, r_params, g_params = tune_nuisance_pliv(
             y, x, d, z,
-            clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
+            _clone(learner_l), _clone(learner_m), _clone(learner_r), _clone(learner_g),
             smpls, n_folds_tune,
             par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'],
             tune_g)
@@ -120,7 +121,7 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
         xx = [(np.arange(len(y)), np.array([]))]
         l_params, m_params, r_params, g_params = tune_nuisance_pliv(
             y, x, d, z,
-            clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
+            _clone(learner_l), _clone(learner_m), _clone(learner_r), _clone(learner_g),
             xx, n_folds_tune,
             par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_r'], par_grid['ml_g'],
             tune_g)
@@ -130,7 +131,7 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
         r_params = r_params * n_folds
         g_params = g_params * n_folds
 
-    res_manual = fit_pliv(y, x, d, z, clone(learner_l), clone(learner_m), clone(learner_r), clone(learner_g),
+    res_manual = fit_pliv(y, x, d, z, _clone(learner_l), _clone(learner_m), _clone(learner_r), _clone(learner_g),
                           all_smpls, dml_procedure, score,
                           l_params=l_params, m_params=m_params, r_params=r_params, g_params=g_params)
 
