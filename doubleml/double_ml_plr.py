@@ -136,10 +136,13 @@ class DoubleMLPLR(DoubleML):
         self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
 
         if ml_g is not None:
-            _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
             if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
                 self._learner['ml_g'] = ml_g
-            # Question: Add a warning when ml_g is set for partialling out score where it is not required / used?
+            else:
+                assert (isinstance(self.score, str) & (self.score == 'partialling out'))
+                warnings.warn(('A learner ml_g has been provided for score = "partialling out" but will be ignored. "'
+                               'A learner ml_g is not required for estimation.'))
         elif isinstance(self.score, str) & (self.score == 'IV-type'):
             warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
                            "Set ml_g = clone(ml_l)."))
