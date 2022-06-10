@@ -492,6 +492,10 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=ml_m, score='IV-type')
 
+    msg = 'A learner ml_g has been provided for score = "partialling out" but will be ignored.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), ml_g=Lasso(), score='partialling out')
+
     msg = 'ml_g was renamed to ml_l'
     with pytest.warns(DeprecationWarning, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)  # pylint: disable=no-value-for-parameter
@@ -500,6 +504,10 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, ml_l=ml_l, ml_m=ml_m, ml_r=ml_r,
                          score='IV-type')
+
+    msg = 'A learner ml_g has been provided for score = "partialling out" but will be ignored.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_l=Lasso(), ml_m=Lasso(), ml_r=Lasso(), ml_g=Lasso(), score='partialling out')
 
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
