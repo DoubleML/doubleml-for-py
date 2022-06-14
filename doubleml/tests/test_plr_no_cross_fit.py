@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, plr_dml1, fit_nuisance_plr, boot_plr, tune_nuisance_plr
 
 
@@ -40,14 +38,18 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure,
@@ -67,7 +69,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
         smpls = all_smpls[0]
         smpls = [smpls[0]]
 
-    res_manual = fit_plr(y, x, d, clone(learner), clone(learner),
+    res_manual = fit_plr(y, x, d, _clone(learner), _clone(learner), _clone(learner),
                          [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
@@ -79,7 +81,7 @@ def dml_plr_no_cross_fit_fixture(generate_data1, learner, score, n_folds):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
                                            [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 
@@ -132,14 +134,18 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
                                   score,
@@ -160,19 +166,21 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
 
     thetas = np.zeros(n_rep)
     ses = np.zeros(n_rep)
-    all_g_hat = list()
+    all_l_hat = list()
     all_m_hat = list()
+    all_g_hat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat = fit_nuisance_plr(y, x, d,
-                                        clone(learner), clone(learner), smpls)
+        l_hat, m_hat, g_hat = fit_nuisance_plr(y, x, d,
+                                               _clone(learner), _clone(learner), _clone(learner), smpls)
 
-        all_g_hat.append(g_hat)
+        all_l_hat.append(l_hat)
         all_m_hat.append(m_hat)
+        all_g_hat.append(g_hat)
 
         thetas[i_rep], ses[i_rep] = plr_dml1(y, x, d,
-                                             all_g_hat[i_rep], all_m_hat[i_rep],
+                                             all_l_hat[i_rep], all_m_hat[i_rep], all_g_hat[i_rep],
                                              smpls, score)
 
     res_manual = np.median(thetas)
@@ -188,7 +196,7 @@ def dml_plr_rep_no_cross_fit_fixture(generate_data1, learner, score, n_rep):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, thetas, ses,
-                                           all_g_hat, all_m_hat,
+                                           all_l_hat, all_m_hat, all_g_hat,
                                            all_smpls, score, bootstrap, n_rep_boot,
                                            n_rep=n_rep, apply_cross_fitting=False)
 
@@ -235,8 +243,10 @@ def tune_on_folds(request):
 
 @pytest.fixture(scope="module")
 def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_folds):
-    par_grid = {'ml_g': {'alpha': np.linspace(0.05, .95, 7)},
+    par_grid = {'ml_l': {'alpha': np.linspace(0.05, .95, 7)},
                 'ml_m': {'alpha': np.linspace(0.05, .95, 7)}}
+    if score == 'IV-type':
+        par_grid['ml_g'] = {'alpha': np.linspace(0.05, .95, 7)}
     n_folds_tune = 3
 
     boot_methods = ['normal']
@@ -247,14 +257,18 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = Lasso()
+    # Set machine learning methods for l, m & g
+    ml_l = Lasso()
     ml_m = Lasso()
+    if score == 'IV-type':
+        ml_g = Lasso()
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds=2,
                                   score=score,
                                   dml_procedure=dml_procedure,
@@ -276,18 +290,26 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     smpls = all_smpls[0]
     smpls = [smpls[0]]
 
+    tune_g = (score == 'IV-type')
+    if not tune_g:
+        par_grid['ml_g'] = None
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_g), clone(ml_m), smpls, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
+                                                         _clone(ml_l), _clone(ml_m), _clone(ml_g),
+                                                         smpls, n_folds_tune,
+                                                         par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'],
+                                                         tune_g)
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_plr(y, x, d,
-                                               clone(ml_g), clone(ml_m), xx, n_folds_tune,
-                                               par_grid['ml_g'], par_grid['ml_m'])
+        l_params, m_params, g_params = tune_nuisance_plr(y, x, d,
+                                                         _clone(ml_l), _clone(ml_m), _clone(ml_g),
+                                                         xx, n_folds_tune,
+                                                         par_grid['ml_l'], par_grid['ml_m'], par_grid['ml_g'],
+                                                         tune_g)
 
-    res_manual = fit_plr(y, x, d, clone(ml_m), clone(ml_g),
-                         [smpls], dml_procedure, score, g_params=g_params, m_params=m_params)
+    res_manual = fit_plr(y, x, d, _clone(ml_l), _clone(ml_m), _clone(ml_g),
+                         [smpls], dml_procedure, score,
+                         l_params=l_params, m_params=m_params, g_params=g_params)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -298,7 +320,7 @@ def dml_plr_no_cross_fit_tune_fixture(generate_data1, learner, score, tune_on_fo
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
                                            [smpls], score, bootstrap, n_rep_boot,
                                            apply_cross_fitting=False)
 

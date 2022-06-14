@@ -2,14 +2,13 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
+from ._utils import _clone
 from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2,\
     est_two_way_cluster_dml2, var_two_way_cluster
 from ._utils_pliv_manual import fit_pliv, compute_pliv_residuals
@@ -40,6 +39,12 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
+                params=['partialling out', 'IV-type'])
+def score(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
@@ -55,10 +60,10 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
     obj_dml_multiway_resampling = DoubleMLMultiwayResampling(n_folds, smpl_sizes)
     _, smpls_lin_ind = obj_dml_multiway_resampling.split_samples()
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
+    # Set machine learning methods for l, m & r
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
 
     df = obj_dml_cluster_data.data.set_index(['cluster_var_i', 'cluster_var_j'])
     obj_dml_data = dml.DoubleMLData(df,
@@ -68,8 +73,8 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
                                     z_cols=obj_dml_cluster_data.z_cols)
 
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    ml_l, ml_m, ml_r,
+                                    n_folds=n_folds,
                                     dml_procedure=dml_procedure,
                                     draw_sample_splitting=False)
     dml_pliv_obj.set_sample_splitting(smpls_lin_ind)
@@ -78,8 +83,8 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
 
     np.random.seed(3141)
     dml_pliv_obj_cluster = dml.DoubleMLPLIV(obj_dml_cluster_data,
-                                            ml_g, ml_m, ml_r,
-                                            n_folds,
+                                            ml_l, ml_m, ml_r,
+                                            n_folds=n_folds,
                                             dml_procedure=dml_procedure)
     dml_pliv_obj_cluster.fit()
 
@@ -97,20 +102,23 @@ def test_dml_pliv_multiway_cluster_old_vs_new_coef(dml_pliv_multiway_cluster_old
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
+def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_procedure):
     n_folds = 2
     n_rep = 2
-    score = 'partialling out'
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
+    # Set machine learning methods for l, m, r & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_cluster_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    ml_l, ml_m, ml_r, ml_g,
+                                    n_folds=n_folds,
                                     n_rep=n_rep,
                                     score=score,
                                     dml_procedure=dml_procedure)
@@ -125,28 +133,44 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     z = np.ravel(obj_dml_cluster_data.z)
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner),
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score,
                           n_rep=n_rep)
     thetas = np.full(n_rep, np.nan)
     ses = np.full(n_rep, np.nan)
     for i_rep in range(n_rep):
-        g_hat = res_manual['all_g_hat'][i_rep]
+        l_hat = res_manual['all_l_hat'][i_rep]
         m_hat = res_manual['all_m_hat'][i_rep]
         r_hat = res_manual['all_r_hat'][i_rep]
+        g_hat = res_manual['all_g_hat'][i_rep]
         smpls_one_split = dml_pliv_obj.smpls[i_rep]
-        u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls_one_split)
+        y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat = compute_pliv_residuals(
+            y, d, z, l_hat, m_hat, r_hat, g_hat, smpls_one_split)
 
-        psi_a = -np.multiply(v_hat, w_hat)
-        if dml_procedure == 'dml2':
-            psi_b = np.multiply(v_hat, u_hat)
-            theta = est_two_way_cluster_dml2(psi_a, psi_b,
-                                             obj_dml_cluster_data.cluster_vars[:, 0],
-                                             obj_dml_cluster_data.cluster_vars[:, 1],
-                                             smpls_one_split)
+        if score == 'partialling out':
+            psi_a = -np.multiply(z_minus_m_hat, d_minus_r_hat)
+            if dml_procedure == 'dml2':
+                psi_b = np.multiply(z_minus_m_hat, y_minus_l_hat)
+                theta = est_two_way_cluster_dml2(psi_a, psi_b,
+                                                 obj_dml_cluster_data.cluster_vars[:, 0],
+                                                 obj_dml_cluster_data.cluster_vars[:, 1],
+                                                 smpls_one_split)
+            else:
+                theta = res_manual['thetas'][i_rep]
+            psi = np.multiply(y_minus_l_hat - d_minus_r_hat * theta, z_minus_m_hat)
         else:
-            theta = res_manual['thetas'][i_rep]
-        psi = np.multiply(u_hat - w_hat * theta, v_hat)
+            assert score == 'IV-type'
+            psi_a = -np.multiply(z_minus_m_hat, d)
+            if dml_procedure == 'dml2':
+                psi_b = np.multiply(z_minus_m_hat, y_minus_g_hat)
+                theta = est_two_way_cluster_dml2(psi_a, psi_b,
+                                                 obj_dml_cluster_data.cluster_vars[:, 0],
+                                                 obj_dml_cluster_data.cluster_vars[:, 1],
+                                                 smpls_one_split)
+            else:
+                theta = res_manual['thetas'][i_rep]
+            psi = np.multiply(y_minus_g_hat - d * theta, z_minus_m_hat)
+
         var = var_two_way_cluster(psi, psi_a,
                                   obj_dml_cluster_data.cluster_vars[:, 0],
                                   obj_dml_cluster_data.cluster_vars[:, 1],
@@ -184,19 +208,22 @@ def test_dml_pliv_multiway_cluster_se(dml_pliv_multiway_cluster_fixture):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
+def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score, dml_procedure):
     n_folds = 3
-    score = 'partialling out'
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
+    # Set machine learning methods for l, m, r & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_oneway_cluster_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    ml_l, ml_m, ml_r, ml_g,
+                                    n_folds=n_folds,
                                     score=score,
                                     dml_procedure=dml_procedure)
 
@@ -210,23 +237,38 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, dml_procedure):
     z = np.ravel(obj_dml_oneway_cluster_data.z)
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner),
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
                           dml_pliv_obj.smpls, dml_procedure, score)
-    g_hat = res_manual['all_g_hat'][0]
+    l_hat = res_manual['all_l_hat'][0]
     m_hat = res_manual['all_m_hat'][0]
     r_hat = res_manual['all_r_hat'][0]
+    g_hat = res_manual['all_g_hat'][0]
     smpls_one_split = dml_pliv_obj.smpls[0]
-    u_hat, v_hat, w_hat = compute_pliv_residuals(y, d, z, g_hat, m_hat, r_hat, smpls_one_split)
+    y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat = compute_pliv_residuals(
+        y, d, z, l_hat, m_hat, r_hat, g_hat, smpls_one_split)
 
-    psi_a = -np.multiply(v_hat, w_hat)
-    if dml_procedure == 'dml2':
-        psi_b = np.multiply(v_hat, u_hat)
-        theta = est_one_way_cluster_dml2(psi_a, psi_b,
-                                         obj_dml_oneway_cluster_data.cluster_vars[:, 0],
-                                         smpls_one_split)
+    if score == 'partialling out':
+        psi_a = -np.multiply(z_minus_m_hat, d_minus_r_hat)
+        if dml_procedure == 'dml2':
+            psi_b = np.multiply(z_minus_m_hat, y_minus_l_hat)
+            theta = est_one_way_cluster_dml2(psi_a, psi_b,
+                                             obj_dml_oneway_cluster_data.cluster_vars[:, 0],
+                                             smpls_one_split)
+        else:
+            theta = res_manual['theta']
+        psi = np.multiply(y_minus_l_hat - d_minus_r_hat * theta, z_minus_m_hat)
     else:
-        theta = res_manual['theta']
-    psi = np.multiply(u_hat - w_hat * theta, v_hat)
+        assert score == 'IV-type'
+        psi_a = -np.multiply(z_minus_m_hat, d)
+        if dml_procedure == 'dml2':
+            psi_b = np.multiply(z_minus_m_hat, y_minus_g_hat)
+            theta = est_one_way_cluster_dml2(psi_a, psi_b,
+                                             obj_dml_oneway_cluster_data.cluster_vars[:, 0],
+                                             smpls_one_split)
+        else:
+            theta = res_manual['theta']
+        psi = np.multiply(y_minus_g_hat - d * theta, z_minus_m_hat)
+
     var = var_one_way_cluster(psi, psi_a,
                               obj_dml_oneway_cluster_data.cluster_vars[:, 0],
                               smpls_one_split)
@@ -263,15 +305,15 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    # Set machine learning methods for m & l
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
 
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     np.random.seed(3141)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
-                                  n_folds,
+                                  ml_l, ml_m,
+                                  n_folds=n_folds,
                                   dml_procedure=dml_procedure)
     dml_plr_obj.fit()
 
@@ -283,8 +325,8 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
                                                cluster_cols='index')
     np.random.seed(3141)
     dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data,
-                                          ml_g, ml_m,
-                                          n_folds,
+                                          ml_l, ml_m,
+                                          n_folds=n_folds,
                                           dml_procedure=dml_procedure)
     dml_plr_cluster_obj.fit()
 

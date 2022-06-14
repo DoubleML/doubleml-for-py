@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.base import clone
 
 
 def draw_smpls(n_obs, n_folds, n_rep=1):
@@ -58,3 +59,11 @@ def tune_grid_search(y, x, ml_model, smpls, param_grid, n_folds_tune, train_cond
             tune_res[idx] = g_grid_search.fit(x[train_index_cond, :], y[train_index_cond])
 
     return tune_res
+
+
+def _clone(learner):
+    if learner is None:
+        res = None
+    else:
+        res = clone(learner)
+    return res
