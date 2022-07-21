@@ -304,14 +304,14 @@ class DoubleMLPLIV(DoubleML):
             learner = 'ml_l'
         super(DoubleMLPLIV, self).set_ml_nuisance_params(learner, treat_var, params)
 
-    def _nuisance_est(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         if self.partialX & (not self.partialZ):
-            psi_a, psi_b, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, return_models)
         elif (not self.partialX) & self.partialZ:
-            psi_a, psi_b, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, return_models)
         else:
             assert (self.partialX & self.partialZ)
-            psi_a, psi_b, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv)
+            psi_a, psi_b, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv, return_models)
 
         return psi_a, psi_b, preds
 
@@ -330,7 +330,7 @@ class DoubleMLPLIV(DoubleML):
 
         return res
 
-    def _nuisance_est_partial_x(self, smpls, n_jobs_cv):
+    def _nuisance_est_partial_x(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -338,8 +338,9 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance l
         l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
-        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
+                                return_models=return_models)
+        _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         if self._dml_data.n_instr == 1:
@@ -347,41 +348,54 @@ class DoubleMLPLIV(DoubleML):
             x, z = check_X_y(x, np.ravel(self._dml_data.z),
                              force_all_finite=False)
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
         else:
             # several instruments: 2SLS
-            m_hat = np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan)
+            m_hat = {'preds': np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan),
+                     'models': [None] * self._dml_data.n_instr}
             z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
                 x, this_z = check_X_y(x, z[:, i_instr],
                                       force_all_finite=False)
-                m_hat[:, i_instr] = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                    est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
-                                                    method=self._predict_method['ml_m'])
-        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+                res_cv_predict = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                                 est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
+                                                 method=self._predict_method['ml_m'], return_models=return_models)
+                m_hat['preds'][:, i_instr] = res_cv_predict['preds']
+                m_hat['models'][i_instr] = res_cv_predict['models']
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
+                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
+                                return_models=return_models)
+        _check_finite_predictions(r_hat['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
-        g_hat = None
+        g_hat = {'preds': None, 'models': None}
         if (self._dml_data.n_instr == 1) & ('ml_g' in self._learner):
             # an estimate of g is obtained for the IV-type score and callable scores
             # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - r_hat, z - m_hat)
-            psi_b = np.multiply(z - m_hat, y - l_hat)
+            psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
+            psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
             g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial * d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-            _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                    return_models=return_models)
+            _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
-        psi_a, psi_b = self._score_elements(y, z, d, l_hat, m_hat, r_hat, g_hat, smpls)
-        preds = {'ml_l': l_hat,
-                 'ml_m': m_hat,
-                 'ml_r': r_hat,
-                 'ml_g': g_hat}
+        psi_a, psi_b = self._score_elements(y, z, d,
+                                            l_hat['preds'], m_hat['preds'], r_hat['preds'], g_hat['preds'],
+                                            smpls)
+        preds = {'predictions': {'ml_l': l_hat['preds'],
+                                 'ml_m': m_hat['preds'],
+                                 'ml_r': r_hat['preds'],
+                                 'ml_g': g_hat['preds']},
+                 'models': {'ml_l': l_hat['models'],
+                            'ml_m': m_hat['models'],
+                            'ml_r': r_hat['models'],
+                            'ml_g': g_hat['models']}
+                 }
 
         return psi_a, psi_b, preds
 
@@ -425,7 +439,7 @@ class DoubleMLPLIV(DoubleML):
 
         return psi_a, psi_b
 
-    def _nuisance_est_partial_z(self, smpls, n_jobs_cv):
+    def _nuisance_est_partial_z(self, smpls, n_jobs_cv, return_models=False):
         y = self._dml_data.y
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
                           self._dml_data.d,
@@ -433,22 +447,24 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance m
         r_hat = _dml_cv_predict(self._learner['ml_r'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        _check_finite_predictions(r_hat, self._learner['ml_r'], 'ml_r', smpls)
+                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
+                                return_models=return_models)
+        _check_finite_predictions(r_hat['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
-            psi_a = -np.multiply(r_hat, d)
-            psi_b = np.multiply(r_hat, y)
+            psi_a = -np.multiply(r_hat['preds'], d)
+            psi_b = np.multiply(r_hat['preds'], y)
         else:
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialZ.')
 
-        preds = {'ml_r': r_hat}
+        preds = {'predictions': {'ml_r': r_hat['preds']},
+                 'models': {'ml_r': r_hat['models']}}
 
         return psi_a, psi_b, preds
 
-    def _nuisance_est_partial_xz(self, smpls, n_jobs_cv):
+    def _nuisance_est_partial_xz(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)),
@@ -459,35 +475,41 @@ class DoubleMLPLIV(DoubleML):
 
         # nuisance l
         l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
-        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
+                                return_models=return_models)
+        _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
-        m_hat, m_hat_on_train = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                                est_params=self._get_params('ml_m'), return_train_preds=True,
-                                                method=self._predict_method['ml_m'])
-        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+        m_hat = _dml_cv_predict(self._learner['ml_m'], xz, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_m'), return_train_preds=True,
+                                method=self._predict_method['ml_m'], return_models=return_models)
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
-        m_hat_tilde = _dml_cv_predict(self._learner['ml_r'], x, m_hat_on_train, smpls=smpls, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'])
-        _check_finite_predictions(m_hat_tilde, self._learner['ml_r'], 'ml_r', smpls)
+        m_hat_tilde = _dml_cv_predict(self._learner['ml_r'], x, m_hat['train_preds'], smpls=smpls, n_jobs=n_jobs_cv,
+                                      est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
+                                      return_models=return_models)
+        _check_finite_predictions(m_hat_tilde['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
         # compute residuals
-        u_hat = y - l_hat
-        w_hat = d - m_hat_tilde
+        u_hat = y - l_hat['preds']
+        w_hat = d - m_hat_tilde['preds']
 
         if isinstance(self.score, str):
             assert self.score == 'partialling out'
-            psi_a = -np.multiply(w_hat, (m_hat-m_hat_tilde))
-            psi_b = np.multiply((m_hat-m_hat_tilde), u_hat)
+            psi_a = -np.multiply(w_hat, (m_hat['preds']-m_hat_tilde['preds']))
+            psi_b = np.multiply((m_hat['preds']-m_hat_tilde['preds']), u_hat)
         else:
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
-        preds = {'ml_l': l_hat,
-                 'ml_m': m_hat,
-                 'ml_r': m_hat_tilde}
+        preds = {'predictions': {'ml_l': l_hat['preds'],
+                                 'ml_m': m_hat['preds'],
+                                 'ml_r': m_hat_tilde['preds']},
+                 'models': {'ml_l': l_hat['models'],
+                            'ml_m': m_hat['models'],
+                            'ml_r': m_hat_tilde['models']}
+                 }
 
         return psi_a, psi_b, preds
 
