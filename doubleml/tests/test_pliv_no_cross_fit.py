@@ -2,13 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
-
 from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ._utils import draw_smpls, _clone
 from ._utils_pliv_manual import fit_pliv, boot_pliv
 
 
@@ -19,7 +17,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['partialling out'])
+                params=['partialling out', 'IV-type'])
 def score(request):
     return request.param
 
@@ -40,16 +38,21 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     data = generate_data_iv
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
-    ml_m = clone(learner)
-    ml_r = clone(learner)
+    # Set machine learning methods for l, m, r & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    ml_r = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
+                                    ml_l, ml_m, ml_r, ml_g,
+                                    n_folds=n_folds,
+                                    score=score,
                                     dml_procedure=dml_procedure,
                                     apply_cross_fitting=False)
 
@@ -69,7 +72,8 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
         smpls = [smpls[0]]
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner), [smpls], dml_procedure, score)
+                          _clone(learner), _clone(learner), _clone(learner), _clone(learner),
+                          [smpls], dml_procedure, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -80,7 +84,8 @@ def dml_pliv_no_cross_fit_fixture(generate_data_iv, learner, score, n_folds):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                            res_manual['all_r_hat'], res_manual['all_g_hat'],
                                             [smpls], score, bootstrap, n_rep_boot,
                                             apply_cross_fitting=False)
 

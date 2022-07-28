@@ -404,7 +404,9 @@ class DoubleMLIRM(DoubleML):
                 psi_a = - np.divide(d, p_hat)
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, g_hat0, g_hat1, m_hat, smpls)
+            psi_a, psi_b = self.score(y=y, d=d,
+                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat,
+                                      smpls=smpls)
 
         return psi_a, psi_b
 
