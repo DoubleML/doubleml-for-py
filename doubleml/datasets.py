@@ -104,7 +104,7 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
     if polynomial_features:
         poly = PolynomialFeatures(2, include_bias=False)
         data_transf = poly.fit_transform(data[x_cols])
-        x_cols = poly.get_feature_names(x_cols)
+        x_cols = list(poly.get_feature_names_out(x_cols))
 
         data_transf = pd.DataFrame(data_transf, columns=x_cols)
         data = pd.concat((data[[y_col] + d_cols], data_transf),

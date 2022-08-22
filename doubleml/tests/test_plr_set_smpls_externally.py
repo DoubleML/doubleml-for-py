@@ -2,10 +2,11 @@ import numpy as np
 import pytest
 import math
 
-from sklearn.base import clone
 from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
+
+from ._utils import _clone
 
 
 @pytest.fixture(scope='module',
@@ -40,14 +41,18 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     data = generate_data1
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner)
-    ml_m = clone(learner)
+    # Set machine learning methods for l, m & g
+    ml_l = _clone(learner)
+    ml_m = _clone(learner)
+    if score == 'IV-type':
+        ml_g = _clone(learner)
+    else:
+        ml_g = None
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols)
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m,
+                                  ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
                                   score,
@@ -58,7 +63,7 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     smpls = dml_plr_obj.smpls
 
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
-                                   ml_g, ml_m,
+                                   ml_l, ml_m, ml_g,
                                    score=score,
                                    dml_procedure=dml_procedure,
                                    draw_sample_splitting=False)

@@ -1,10 +1,30 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+from sklearn.base import clone
+
+import warnings
+from functools import wraps
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
+
+
+# To be removed in version 0.6.0
+def changed_api_decorator(f):
+    @wraps(f)
+    def wrapper(*args, **kwds):
+        ml_l_missing = (len(set(kwds).intersection({'obj_dml_data', 'ml_l', 'ml_m'})) + len(args)) < 4
+        if ml_l_missing & ('ml_g' in kwds):
+            warnings.warn(("The required positional argument ml_g was renamed to ml_l. "
+                          "Please adapt the argument name accordingly. "
+                           "ml_g is redirected to ml_l. "
+                           "The redirection will be removed in a future version."),
+                          DeprecationWarning, stacklevel=2)
+            kwds['ml_l'] = kwds.pop('ml_g')
+        return f(*args, **kwds)
+    return wrapper
 
 
 class DoubleMLPLR(DoubleML):
@@ -15,9 +35,9 @@ class DoubleMLPLR(DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_g : estimator implementing ``fit()`` and ``predict()``
+    ml_l : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`\\ell_0(X) = E[Y|X]`.
 
     ml_m : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -25,6 +45,13 @@ class DoubleMLPLR(DoubleML):
         For binary treatment variables :math:`D` (with values 0 and 1), a classifier implementing ``fit()`` and
         ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
         ``predict_proba()`` is used otherwise ``predict()``.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
+        :math:`g_0(X) = E[Y - D \\theta_0|X]`.
+        Note: The learner `ml_g` is only required for the score ``'IV-type'``. Optionally, it can be specified and
+        estimated for callable scores.
 
     n_folds : int
         Number of folds.
@@ -36,7 +63,7 @@ class DoubleMLPLR(DoubleML):
 
     score : str or callable
         A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat, m_hat, smpls)``.
+        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
     dml_procedure : str
@@ -82,10 +109,12 @@ class DoubleMLPLR(DoubleML):
     The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates,
     and :math:`\\zeta` and :math:`V` are stochastic errors.
     """
+    @changed_api_decorator
     def __init__(self,
                  obj_dml_data,
-                 ml_g,
+                 ml_l,
                  ml_m,
+                 ml_g=None,
                  n_folds=5,
                  n_rep=1,
                  score='partialling out',
@@ -102,22 +131,41 @@ class DoubleMLPLR(DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+
+        _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
-        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
+
+        if ml_g is not None:
+            if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
+                _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
+                self._learner['ml_g'] = ml_g
+            else:
+                assert (isinstance(self.score, str) & (self.score == 'partialling out'))
+                warnings.warn(('A learner ml_g has been provided for score = "partialling out" but will be ignored. "'
+                               'A learner ml_g is not required for estimation.'))
+        elif isinstance(self.score, str) & (self.score == 'IV-type'):
+            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
+                           "Set ml_g = clone(ml_l)."))
+            self._learner['ml_g'] = clone(ml_l)
+
+        self._predict_method = {'ml_l': 'predict'}
+        if 'ml_g' in self._learner:
+            self._predict_method['ml_g'] = 'predict'
         if ml_m_is_classifier:
-            if obj_dml_data.binary_treats.all():
-                self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+            if self._dml_data.binary_treats.all():
+                self._predict_method['ml_m'] = 'predict_proba'
             else:
                 raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
                                  'but at least one treatment variable is not binary with values 0 and 1.')
         else:
-            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
+            self._predict_method['ml_m'] = 'predict'
 
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
+                        for learner in self._learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
@@ -142,16 +190,27 @@ class DoubleMLPLR(DoubleML):
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
+    # To be removed in version 0.6.0
+    def set_ml_nuisance_params(self, learner, treat_var, params):
+        if isinstance(self.score, str) & (self.score == 'partialling out') & (learner == 'ml_g'):
+            warnings.warn(("Learner ml_g was renamed to ml_l. "
+                           "Please adapt the argument learner accordingly. "
+                           "The provided parameters are set for ml_l. "
+                           "The redirection will be removed in a future version."),
+                          DeprecationWarning, stacklevel=2)
+            learner = 'ml_l'
+        super(DoubleMLPLR, self).set_ml_nuisance_params(learner, treat_var, params)
+
     def _nuisance_est(self, smpls, n_jobs_cv):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+        # nuisance l
+        l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
+        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -167,30 +226,78 @@ class DoubleMLPLR(DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)
-        preds = {'ml_g': g_hat,
-                 'ml_m': m_hat}
+        # an estimate of g is obtained for the IV-type score and callable scores
+        g_hat = None
+        if 'ml_g' in self._learner:
+            # get an initial estimate for theta using the partialling out score
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+            # nuisance g
+            g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+            _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+
+        psi_a, psi_b = self._score_elements(y, d, l_hat, m_hat, g_hat, smpls)
+        preds = {'ml_l': l_hat,
+                 'ml_m': m_hat,
+                 'ml_g': g_hat}
 
         return psi_a, psi_b, preds
 
-    def _score_elements(self, y, d, g_hat, m_hat, smpls):
+    def _score_elements(self, y, d, l_hat, m_hat, g_hat, smpls):
         # compute residuals
-        u_hat = y - g_hat
+        u_hat = y - l_hat
         v_hat = d - m_hat
-        v_hatd = np.multiply(v_hat, d)
 
         if isinstance(self.score, str):
             if self.score == 'IV-type':
-                psi_a = -v_hatd
+                psi_a = - np.multiply(v_hat, d)
+                psi_b = np.multiply(v_hat, y - g_hat)
             else:
                 assert self.score == 'partialling out'
                 psi_a = -np.multiply(v_hat, v_hat)
-            psi_b = np.multiply(v_hat, u_hat)
+                psi_b = np.multiply(v_hat, u_hat)
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, d, g_hat, m_hat, smpls)
+            psi_a, psi_b = self.score(y=y, d=d,
+                                      l_hat=l_hat, m_hat=m_hat, g_hat=g_hat,
+                                      smpls=smpls)
 
         return psi_a, psi_b
+
+    # To be removed in version 0.6.0
+    def tune(self,
+             param_grids,
+             tune_on_folds=False,
+             scoring_methods=None,  # if None the estimator's score method is used
+             n_folds_tune=5,
+             search_mode='grid_search',
+             n_iter_randomized_search=100,
+             n_jobs_cv=None,
+             set_as_params=True,
+             return_tune_res=False):
+
+        if isinstance(self.score, str) and (self.score == 'partialling out') and (param_grids is not None) and \
+                ('ml_g' in param_grids) and ('ml_l' not in param_grids):
+            warnings.warn(("Learner ml_g was renamed to ml_l. "
+                           "Please adapt the key of param_grids accordingly. "
+                           "The provided param_grids for ml_g are set for ml_l. "
+                           "The redirection will be removed in a future version."),
+                          DeprecationWarning, stacklevel=2)
+            param_grids['ml_l'] = param_grids.pop('ml_g')
+
+        if isinstance(self.score, str) and (self.score == 'partialling out') and (scoring_methods is not None) and \
+                ('ml_g' in scoring_methods) and ('ml_l' not in scoring_methods):
+            warnings.warn(("Learner ml_g was renamed to ml_l. "
+                           "Please adapt the key of scoring_methods accordingly. "
+                           "The provided scoring_methods for ml_g are set for ml_l. "
+                           "The redirection will be removed in a future version."),
+                          DeprecationWarning, stacklevel=2)
+            scoring_methods['ml_l'] = scoring_methods.pop('ml_g')
+
+        super(DoubleMLPLR, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune, search_mode,
+                                      n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
@@ -200,25 +307,48 @@ class DoubleMLPLR(DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
-                               'ml_m': None}
+            scoring_methods = {'ml_l': None,
+                               'ml_m': None,
+                               'ml_g': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        g_tune_res = _dml_tune(y, x, train_inds,
-                               self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+        l_tune_res = _dml_tune(y, x, train_inds,
+                               self._learner['ml_l'], param_grids['ml_l'], scoring_methods['ml_l'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         m_tune_res = _dml_tune(d, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        l_best_params = [xx.best_params_ for xx in l_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'ml_g': g_best_params,
-                  'ml_m': m_best_params}
+        # an ML model for g is obtained for the IV-type score and callable scores
+        if 'ml_g' in self._learner:
+            # construct an initial theta estimate from the tuned models using the partialling out score
+            l_hat = np.full_like(y, np.nan)
+            m_hat = np.full_like(d, np.nan)
+            for idx, (train_index, _) in enumerate(smpls):
+                l_hat[train_index] = l_tune_res[idx].predict(x[train_index, :])
+                m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+            g_tune_res = _dml_tune(y - theta_initial*d, x, train_inds,
+                                   self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        tune_res = {'g_tune': g_tune_res,
-                    'm_tune': m_tune_res}
+            g_best_params = [xx.best_params_ for xx in g_tune_res]
+            params = {'ml_l': l_best_params,
+                      'ml_m': m_best_params,
+                      'ml_g': g_best_params}
+            tune_res = {'l_tune': l_tune_res,
+                        'm_tune': m_tune_res,
+                        'g_tune': g_tune_res}
+        else:
+            params = {'ml_l': l_best_params,
+                      'ml_m': m_best_params}
+            tune_res = {'l_tune': l_tune_res,
+                        'm_tune': m_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}

@@ -398,7 +398,7 @@ def test_disjoint_sets():
     msg = (r'At least one variable/column is set as instrumental variable \(``z_cols``\) and cluster variable in '
            '``cluster_cols``.')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols = ['xx2'], cluster_cols='xx2')
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols=['xx2'], cluster_cols='xx2')
 
 
 @pytest.mark.ci
@@ -462,7 +462,7 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
     _ = DoubleMLData.from_arrays(x, y, d,
                                  force_all_x_finite='allow-nan')
 
-    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    msg = r"Input contains NaN."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData.from_arrays(x, y, d,
                                      force_all_x_finite=True)
@@ -504,7 +504,7 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
                          y_col='y', d_cols='d',
                          force_all_x_finite='allownan')
 
-    msg = r"Input contains NaN, infinity or a value too large for dtype\('float64'\)."
+    msg = r"Input contains NaN."
     with pytest.raises(ValueError, match=msg):
         dml_data.force_all_x_finite = True
 
