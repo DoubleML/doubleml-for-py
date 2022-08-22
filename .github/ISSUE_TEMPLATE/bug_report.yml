@@ -72,7 +72,7 @@ body:
         ```python
         import platform; print(platform.platform())
         import sys; print("Python", sys.version)
-        import doubleml; print("DoubleML", sklearn.__version__)
+        import doubleml; print("DoubleML", doubleml.__version__)
         import sklearn; print("Scikit-Learn", sklearn.__version__)
         ```
     validations:

@@ -3,24 +3,28 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
-dml_data = make_plr_CCDDHNR2018(n_obs=10)
-ml_g = Lasso()
+dml_data = make_plr_CCDDHNR2018(n_obs=50)
+ml_l = Lasso()
 ml_m = Lasso()
+ml_g = Lasso()
 ml_r = Lasso()
-dml_plr = DoubleMLPLR(dml_data, ml_g, ml_m)
+dml_plr = DoubleMLPLR(dml_data, ml_l, ml_m)
+dml_plr_iv_type = DoubleMLPLR(dml_data, ml_l, ml_m, ml_g, score='IV-type')
 
-dml_data_irm = make_irm_data(n_obs=10)
-dml_data_iivm = make_iivm_data(n_obs=10)
-dml_data_pliv = make_pliv_CHS2015(n_obs=10, dim_z=1)
+dml_data_pliv = make_pliv_CHS2015(n_obs=50, dim_z=1)
+dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_l, ml_m, ml_r)
+
+dml_data_irm = make_irm_data(n_obs=50)
+dml_data_iivm = make_iivm_data(n_obs=50)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
-(x, y, d, z) = make_iivm_data(n_obs=30, return_type="array")
+(x, y, d, z) = make_iivm_data(n_obs=50, return_type="array")
 y[y > 0] = 1
 y[y < 0] = 0
 dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
@@ -31,13 +35,13 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 def test_doubleml_exception_data():
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(pd.DataFrame(), ml_g, ml_m)
+        _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
            'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data_pliv, ml_g, ml_m)
+        _ = DoubleMLPLR(dml_data_pliv, ml_l, ml_m)
 
     # PLIV without IV
     msg = ('Incompatible data. '
@@ -55,7 +59,7 @@ def test_doubleml_exception_data():
     msg = ('Incompatible data. To fit an IRM model with DML exactly one binary variable with values 0 and 1 '
            'needs to be specified as treatment variable.')
     df_irm = dml_data_irm.data.copy()
-    df_irm['d'] = df_irm['d']*2
+    df_irm['d'] = df_irm['d'] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
@@ -103,10 +107,10 @@ def test_doubleml_exception_data():
 def test_doubleml_exception_scores():
     msg = 'Invalid score IV. Valid score IV-type or partialling out.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score='IV')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, score='IV')
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, score=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, score=0)
 
     msg = 'Invalid score IV. Valid score ATE or ATTE.'
     with pytest.raises(ValueError, match=msg):
@@ -173,65 +177,71 @@ def test_doubleml_exception_subgroups():
 def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_folds=1.5)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=1.5)
     msg = ('The number of repetitions for the sample splitting must be of int type. '
            "1.5 of type <class 'float'> was passed.")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_rep=1.5)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=1.5)
     msg = 'The number of folds must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_folds=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=0)
     msg = 'The number of repetitions for the sample splitting must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, n_rep=0)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=0)
     msg = 'apply_cross_fitting must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=1)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=1)
     msg = 'draw_sample_splitting must be True or False. Got true.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting='true')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting='true')
 
 
 @pytest.mark.ci
 def test_doubleml_exception_dml_procedure():
     msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, dml_procedure='1')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='1')
     msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, dml_procedure='dml')
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='dml')
 
 
 @pytest.mark.ci
 def test_doubleml_warning_crossfitting_onefold():
     msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=True, n_folds=1)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=True, n_folds=1)
 
 
 @pytest.mark.ci
 def test_doubleml_exception_no_cross_fit():
     msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
     with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, ml_m, apply_cross_fitting=False)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=False)
 
 
 @pytest.mark.ci
 def test_doubleml_exception_get_params():
-    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g or ml_m.'
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.get_params('ml_r')
+    msg = 'Invalid nuisance learner ml_g. Valid nuisance learner ml_l or ml_m.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.get_params('ml_g')
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_m or ml_g.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.get_params('ml_r')
 
 
 @pytest.mark.ci
 def test_doubleml_exception_smpls():
     msg = ('Sample splitting not specified. '
            r'Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\).')
-    dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_g, ml_m, draw_sample_splitting=False)
+    dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
     msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
-    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r, draw_sample_splitting=False)
+    dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_l, ml_m, ml_r, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_pliv_cluster_no_smpls.smpls_cluster
     with pytest.raises(ValueError, match=msg):
@@ -250,7 +260,7 @@ def test_doubleml_exception_fit():
 
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
-    dml_plr_boot = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
@@ -269,7 +279,7 @@ def test_doubleml_exception_bootstrap():
 
 @pytest.mark.ci
 def test_doubleml_exception_confint():
-    dml_plr_confint = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_confint = DoubleMLPLR(dml_data, ml_l, ml_m)
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
@@ -297,7 +307,7 @@ def test_doubleml_exception_confint():
 
 @pytest.mark.ci
 def test_doubleml_exception_p_adjust():
-    dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_g, ml_m)
+    dml_plr_p_adjust = DoubleMLPLR(dml_data, ml_l, ml_m)
 
     msg = r'Apply fit\(\) before p_adjust\(\).'
     with pytest.raises(ValueError, match=msg):
@@ -317,19 +327,50 @@ def test_doubleml_exception_p_adjust():
 
 @pytest.mark.ci
 def test_doubleml_exception_tune():
-
-    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_g and ml_m'
+    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_l and ml_m'
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune([0.05, 0.5])
-    msg = (r"Invalid param_grids {'ml_g': {'alpha': \[0.05, 0.5\]}}. "
-           "param_grids must be a dictionary with keys ml_g and ml_m.")
+    msg = (r"Invalid param_grids {'ml_r': {'alpha': \[0.05, 0.5\]}}. "
+           "param_grids must be a dictionary with keys ml_l and ml_m.")
     with pytest.raises(ValueError, match=msg):
-        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]}})
+        dml_plr.tune({'ml_r': {'alpha': [0.05, 0.5]}})
 
-    param_grids = {'ml_g': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
+    msg = r'Invalid param_grids \[0.05, 0.5\]. param_grids must be a dictionary with keys ml_l and ml_m and ml_g'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.tune([0.05, 0.5])
+    msg = (r"Invalid param_grids {'ml_g': {'alpha': \[0.05, 0.5\]}, 'ml_m': {'alpha': \[0.05, 0.5\]}}. "
+           "param_grids must be a dictionary with keys ml_l and ml_m and ml_g.")
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_iv_type.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                              'ml_m': {'alpha': [0.05, 0.5]}})
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                      'ml_m': {'alpha': [0.05, 0.5]}})
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.tune({'ml_l': {'alpha': [0.05, 0.5]},
+                      'ml_m': {'alpha': [0.05, 0.5]}},
+                     scoring_methods={'ml_g': 'explained_variance',
+                                      'ml_m': 'explained_variance'})
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.tune({'ml_g': {'alpha': [0.05, 0.5]},
+                       'ml_m': {'alpha': [0.05, 0.5]},
+                       'ml_r': {'alpha': [0.05, 0.5]}})
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.tune({'ml_l': {'alpha': [0.05, 0.5]},
+                       'ml_m': {'alpha': [0.05, 0.5]},
+                       'ml_r': {'alpha': [0.05, 0.5]}},
+                      scoring_methods={'ml_g': 'explained_variance',
+                                       'ml_m': 'explained_variance',
+                                       'ml_r': 'explained_variance'})
+
+    param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
-           'Valid keys are ml_g and ml_m.')
+           'Valid keys are ml_l and ml_m.')
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune(param_grids, scoring_methods='neg_mean_absolute_error')
 
@@ -371,13 +412,12 @@ def test_doubleml_exception_tune():
 
 @pytest.mark.ci
 def test_doubleml_exception_set_ml_nuisance_params():
-
-    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g or ml_m.'
+    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
     msg = 'Invalid treatment variable y. Valid treatment variable d.'
     with pytest.raises(ValueError, match=msg):
-        dml_plr.set_ml_nuisance_params('ml_g', 'y', {'alpha': 0.1})
+        dml_plr.set_ml_nuisance_params('ml_l', 'y', {'alpha': 0.1})
 
 
 class _DummyNoSetParams:
@@ -409,8 +449,8 @@ class LogisticRegressionManipulatedPredict(LogisticRegression):
 
 @pytest.mark.ci
 def test_doubleml_exception_learner():
-    err_msg_prefix = 'Invalid learner provided for ml_g: '
-    warn_msg_prefix = 'Learner provided for ml_g is probably invalid: '
+    err_msg_prefix = 'Invalid learner provided for ml_l: '
+    warn_msg_prefix = 'Learner provided for ml_l is probably invalid: '
 
     msg = err_msg_prefix + 'provide an instance of a learner instead of a class.'
     with pytest.raises(TypeError, match=msg):
@@ -429,7 +469,7 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
 
-    # ToDo: Currently for ml_g (and others) we only check whether the learner can be identified as regressor. However,
+    # ToDo: Currently for ml_l (and others) we only check whether the learner can be identified as regressor. However,
     # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
     msg = warn_msg_prefix + r'LogisticRegression\(\) is \(probably\) no regressor.'
     with pytest.warns(UserWarning, match=msg):
@@ -440,6 +480,31 @@ def test_doubleml_exception_learner():
            'but at least one treatment variable is not binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
+
+    msg = 'ml_g was renamed to ml_l'
+    with pytest.warns(DeprecationWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_g=Lasso(), ml_m=ml_m)  # pylint: disable=no-value-for-parameter
+
+    msg = r"For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone\(ml_l\)."
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=ml_m, score='IV-type')
+
+    msg = 'A learner ml_g has been provided for score = "partialling out" but will be ignored.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), ml_g=Lasso(), score='partialling out')
+
+    msg = 'ml_g was renamed to ml_l'
+    with pytest.warns(DeprecationWarning, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)  # pylint: disable=no-value-for-parameter
+
+    msg = "For score = 'IV-type', learners ml_l, ml_m, ml_r and ml_g need to be specified."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_l=ml_l, ml_m=ml_m, ml_r=ml_r,
+                         score='IV-type')
+
+    msg = 'A learner ml_g has been provided for score = "partialling out" but will be ignored.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = DoubleMLPLIV(dml_data_pliv, ml_l=Lasso(), ml_m=Lasso(), ml_r=Lasso(), ml_g=Lasso(), score='partialling out')
 
     # we allow classifiers for ml_g for binary treatment variables in IRM
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
@@ -499,6 +564,14 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
+
+    msg = 'Learner ml_g was renamed to ml_l. '
+    with pytest.warns(DeprecationWarning, match=msg):
+        dml_pliv.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
 
 
 @pytest.mark.ci
@@ -563,17 +636,16 @@ class LassoWithInfPred(Lasso):
 
 @pytest.mark.ci
 def test_doubleml_nan_prediction():
-
-    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g are not finite.'
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_l are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, LassoWithNanPred(), ml_m).fit()
-    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g are not finite.'
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_l are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, LassoWithInfPred(), ml_m).fit()
 
     msg = r'Predictions from learner LassoWithNanPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, LassoWithNanPred()).fit()
+        _ = DoubleMLPLR(dml_data, ml_l, LassoWithNanPred()).fit()
     msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g, LassoWithInfPred()).fit()
+        _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()

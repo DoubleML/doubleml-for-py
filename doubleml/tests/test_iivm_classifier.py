@@ -55,7 +55,7 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, dml_p
     ml_r = clone(learner[1])
 
     np.random.seed(3141)
-    obj_dml_data =  dml.DoubleMLData.from_arrays(x, y, d, z)
+    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z)
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,

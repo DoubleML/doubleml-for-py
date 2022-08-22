@@ -311,7 +311,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                         - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
+            psi_a, psi_b = self.score(y=y, z=z, d=d,
+                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat, r_hat0=r_hat0, r_hat1=r_hat1,
+                                      smpls=smpls)
 
         return psi_a, psi_b
 
