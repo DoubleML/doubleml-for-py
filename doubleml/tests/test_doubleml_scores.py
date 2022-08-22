@@ -132,10 +132,10 @@ def test_plr_iv_type_callable_vs_pred_export():
     psi_a, psi_b = plr_iv_type_score(dml_data_plr.y, dml_data_plr.d,
                                      l_hat, m_hat, g_hat,
                                      dml_plr_iv_type_callable_score.smpls[0])
-    assert np.allclose(dml_plr_iv_type.psi_a.squeeze(),
+    assert np.allclose(dml_plr_iv_type.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_plr_iv_type.psi_b.squeeze(),
+    assert np.allclose(dml_plr_iv_type.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
@@ -149,10 +149,10 @@ def test_plr_non_orth_score_w_g_callable_vs_pred_export():
     psi_a, psi_b = non_orth_score_w_g(dml_data_plr.y, dml_data_plr.d,
                                       l_hat, m_hat, g_hat,
                                       dml_plr_non_orth_score_w_g.smpls[0])
-    assert np.allclose(dml_plr_non_orth_score_w_g.psi_a.squeeze(),
+    assert np.allclose(dml_plr_non_orth_score_w_g.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_plr_non_orth_score_w_g.psi_b.squeeze(),
+    assert np.allclose(dml_plr_non_orth_score_w_g.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
@@ -166,10 +166,10 @@ def test_plr_non_orth_score_w_l_callable_vs_pred_export():
     psi_a, psi_b = non_orth_score_w_l(dml_data_plr.y, dml_data_plr.d,
                                       l_hat, m_hat, g_hat,
                                       dml_plr_non_orth_score_w_l.smpls[0])
-    assert np.allclose(dml_plr_non_orth_score_w_l.psi_a.squeeze(),
+    assert np.allclose(dml_plr_non_orth_score_w_l.psi_elements['psi_a'].squeeze(),
                        psi_a,
                        rtol=1e-9, atol=1e-4)
-    assert np.allclose(dml_plr_non_orth_score_w_l.psi_b.squeeze(),
+    assert np.allclose(dml_plr_non_orth_score_w_l.psi_elements['psi_b'].squeeze(),
                        psi_b,
                        rtol=1e-9, atol=1e-4)
 
