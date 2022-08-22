@@ -13,6 +13,7 @@ import doubleml as dml
 from ._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm
 
+
 @pytest.fixture(scope='module',
                 params=[[LogisticRegression(solver='lbfgs', max_iter=250),
                          LogisticRegression(solver='lbfgs', max_iter=250)],

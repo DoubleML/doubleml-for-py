@@ -22,7 +22,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['partialling out'])
+                params=['partialling out', 'IV-type'])
 def score(request):
     return request.param
 
@@ -43,17 +43,27 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     data = generate_data_iv
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
-    # Set machine learning methods for g, m & r
-    ml_g = clone(learner)
+    # Set machine learning methods for l, m, r & g
+    ml_l = clone(learner)
     ml_m = clone(learner)
     ml_r = clone(learner)
+    ml_g = clone(learner)
 
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'Z1')
-    dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
-                                    ml_g, ml_m, ml_r,
-                                    n_folds,
-                                    dml_procedure=dml_procedure)
+    if score == 'partialling out':
+        dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
+                                        ml_l, ml_m, ml_r,
+                                        n_folds=n_folds,
+                                        score=score,
+                                        dml_procedure=dml_procedure)
+    else:
+        assert score == 'IV-type'
+        dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
+                                        ml_l, ml_m, ml_r, ml_g,
+                                        n_folds=n_folds,
+                                        score=score,
+                                        dml_procedure=dml_procedure)
 
     dml_pliv_obj.fit()
 
@@ -66,7 +76,8 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     all_smpls = draw_smpls(n_obs, n_folds)
 
     res_manual = fit_pliv(y, x, d, z,
-                          clone(learner), clone(learner), clone(learner), all_smpls, dml_procedure, score)
+                          clone(learner), clone(learner), clone(learner), clone(learner),
+                          all_smpls, dml_procedure, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -77,7 +88,8 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(3141)
         boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_r_hat'],
+                                            res_manual['all_g_hat'],
                                             all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)

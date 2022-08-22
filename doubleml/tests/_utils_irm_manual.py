@@ -59,19 +59,19 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
     train_cond0 = np.where(d == 0)[0]
     if is_classifier(learner_g):
         g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls,
-                              train_cond=train_cond0)
+                                        train_cond=train_cond0)
     else:
         g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
-                              train_cond=train_cond0)
+                                  train_cond=train_cond0)
 
     if score == 'ATE':
         train_cond1 = np.where(d == 1)[0]
         if is_classifier(learner_g):
             g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
-                                  train_cond=train_cond1)
+                                            train_cond=train_cond1)
         else:
             g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                  train_cond=train_cond1)
+                                      train_cond=train_cond1)
     else:
         assert score == 'ATTE'
         g_hat1_list = list()

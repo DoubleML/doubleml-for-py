@@ -48,7 +48,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, z_cols)
     dml_pliv_obj = dml.DoubleMLPLIV._partialZ(obj_dml_data,
                                               ml_r,
-                                              n_folds,
+                                              n_folds=n_folds,
                                               dml_procedure=dml_procedure)
 
     dml_pliv_obj.fit()
