@@ -44,6 +44,12 @@ class DoubleMLBaseData(ABC):
         """
         return self.data.shape[0]
 
+    # TODO: This property does not make sense but the base class DoubleML needs it (especially for the multiple
+    #  treatment variables case) and other things are also build around it, see for example DoubleML._params
+    @property
+    def d_cols(self):
+        return ['theta']
+
     @property
     @abstractmethod
     def n_coefs(self):
