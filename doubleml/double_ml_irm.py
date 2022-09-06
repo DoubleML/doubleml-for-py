@@ -3,8 +3,9 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
+from .double_ml_blp import DoubleMLIRMBLP
 
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 class DoubleMLIRM(DoubleML):
     """Double machine learning for interactive regression models
@@ -309,3 +310,65 @@ class DoubleMLIRM(DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def cate(self, basis):
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape (n,d),
+            where d is the number of predictors.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLIRMBLP`
+            Best linear Predictor model.
+        """
+        # define the orthogonal signal
+        orth_signal = self.psi_b.reshape(-1)
+
+        model = DoubleMLIRMBLP(orth_signal, basis=basis).fit()
+
+        return model
+
+    def gate(self, groups, joint=False, level=0.95, n_rep_boot=500):
+        """
+        Calculate group average treatment effects (GATE) for a given basis.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape (n,d),
+            where d is the number of groups.
+
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``False``
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        n_rep_boot : int
+            Number of bootstrap samples for joint confidence interval.
+            Default is ``500``.
+
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
+
+
+        # define the orthogonal signal
+        orth_signal = self.psi_b.reshape(-1)
+        model = DoubleMLIRMBLP(orth_signal, basis=groups).fit()
+
+        unique_groups = groups.drop_duplicates(keep='last')
+        df_ci = model.confint(unique_groups, joint, level, n_rep_boot)
+        df_ci.index = unique_groups.columns.values
+
+        return df_ci
+

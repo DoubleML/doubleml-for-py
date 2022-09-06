@@ -1,7 +1,6 @@
 import statsmodels.api as sm
 import numpy as np
 import pandas as pd
-import doubleml as dml
 
 from scipy.stats import norm
 from scipy.linalg import sqrtm
@@ -11,31 +10,43 @@ class DoubleMLIRMBLP:
 
         Parameters
         ----------
-        obj_dml_irm : :class:`DoubleMLIRM` object
-            The :class:`DoubleMLIRM` object providing the interactive regression model with fitted nuisance functions.
+        orth_signal : :class:`numpy.array`
+            The orthogonal signal to be predicted. Has to be of shape (n,).
 
         basis : :class:`pandas.DataFrame`
-        The basis for estimating the best linear predictor. Has to correspond to the observations of the IRM model.
+            The basis for estimating the best linear predictor. Has to have the shape (n,d),
+            where d is the number of predictors.
     """
 
     def __init__(self,
-                 obj_dml_irm,
+                 orth_signal,
                  basis):
 
-        # check and pick up obj_dml_irm
-        if not isinstance(obj_dml_irm, dml.DoubleMLIRM):
-            raise TypeError('The model must be of DoubleMLIRM type. '
-                            f'{str(obj_dml_irm)} of type {str(type(obj_dml_irm))} was passed.')
+        if not isinstance(orth_signal, np.ndarray):
+            raise TypeError('The signal must be of np.ndarray type. '
+                            f'{str(orth_signal)} of type {str(type(orth_signal))} was passed.')
+
+        if orth_signal.ndim != 1:
+            raise ValueError('The signal must be of one dimensional. '
+                             f'{str(orth_signal)} of dimensions {str(orth_signal.ndim)} was passed.')
 
         if not isinstance(basis, pd.DataFrame):
             raise TypeError('The basis must be of DataFrame type. '
                             f'{str(basis)} of type {str(type(basis))} was passed.')
 
-        self._dml_irm = obj_dml_irm
+        if not basis.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
+
+        if orth_signal.shape[0] != basis.shape[0]:
+            raise ValueError('Incompatible input dimensions.'
+                             f'{str(orth_signal)} of shape {str(orth_signal.shape)} and'
+                             f'{str(basis)} of shape {str(basis.shape)} were passed.')
+
+        self._orth_signal = orth_signal
         self._basis = basis
 
-        # initialize the orthogonal signal, the score and the covariance
-        self._orth_signal = None
+        # initialize the score and the covariance
         self._blp_model = None
         self._blp_omega = None
 
@@ -68,8 +79,7 @@ class DoubleMLIRMBLP:
         -------
         self : object
         """
-        # get the orthogonal signal from the IRM model
-        self._orth_signal = self._dml_irm.psi_b.reshape(-1, 1)
+
         # fit the best-linear-predictor of the orthogonal signal with respect to the grid
         self._blp_model = sm.OLS(self._orth_signal, self._basis).fit()
         self._blp_omega = self._blp_model.cov_HC0
@@ -84,7 +94,7 @@ class DoubleMLIRMBLP:
         ----------
         basis : :class:`pandas.DataFrame`
             The basis for constructing the confidence interval. Has to have the same form as the basis from
-             the construction.
+            the construction.
 
         joint : bool
             Indicates whether joint confidence intervals are computed.
@@ -108,8 +118,6 @@ class DoubleMLIRMBLP:
         g_hat = self._blp_model.predict(basis)
 
         # calculate se for basis elements
-        # check this again (calculation of HC0 should include scaling with sample size)
-        # se_scaling = np.sqrt(self._dml_irm._dml_data.n_obs)
         se_scaling = 1
         blp_se = np.sqrt((basis.to_numpy().dot(self._blp_omega) * basis.to_numpy()).sum(axis=1)) / se_scaling
 
@@ -137,49 +145,3 @@ class DoubleMLIRMBLP:
                          columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
                          index=basis.index)
         return df_ci
-
-
-from doubleml.tests._utils_blp_manual import create_spline_basis, create_synthetic_data
-
-# DGP constants
-np.random.seed(123)
-n = 2000
-n_w = 10
-support_size = 5
-n_x = 1
-
-# Create data
-data, covariates = create_synthetic_data(n=n, n_w=n_w, support_size=support_size, n_x=n_x, constant=True)
-data_dml_base = dml.DoubleMLData(data,
-                                 y_col='y',
-                                 d_cols='t',
-                                 x_cols=covariates)
-
-# First stage estimation
-# Lasso regression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-randomForest_reg = RandomForestRegressor(n_estimators=500)
-randomForest_class = RandomForestClassifier(n_estimators=500)
-
-np.random.seed(123)
-
-dml_irm = dml.DoubleMLIRM(data_dml_base,
-                          ml_g=randomForest_reg,
-                          ml_m=randomForest_class,
-                          trimming_threshold=0.01,
-                          n_folds=5
-                          )
-print("Training first stage")
-dml_irm.fit(store_predictions=True)
-
-spline_basis = create_spline_basis(X=data["x"], knots=3, degree=2)
-
-cate = DoubleMLIRMBLP(dml_irm, basis=spline_basis).fit()
-
-print(cate.confint(spline_basis, joint=False))
-
-groups = pd.DataFrame(np.vstack([data["x"] <= 0.2, (data["x"] >= 0.2) & (data["x"] <= 0.7), data["x"] >= 0.7]).T,
-             columns=['Group 1', 'Group 2', 'Group 3'])
-
-gate = DoubleMLIRMBLP(dml_irm, basis=groups).fit()
-print(gate.confint(groups))

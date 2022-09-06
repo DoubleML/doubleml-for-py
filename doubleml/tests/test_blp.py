@@ -49,13 +49,17 @@ def dml_blp_fixture(constant, ci_joint):
 
     spline_basis = create_spline_basis(X=data["x"])
 
-    cate = dml.double_ml_blp.DoubleMLIRMBLP(dml_irm, basis=spline_basis).fit()
-    cate_manual = fit_blp(dml_irm, spline_basis)
+    # cate
+    cate = dml_irm.cate(spline_basis)
+
+    # get the orthogonal signal from the IRM model
+    orth_signal = dml_irm.psi_b.reshape(-1)
+    cate_manual = fit_blp(orth_signal, spline_basis)
 
     np.random.seed(42)
     ci = cate.confint(spline_basis, joint=ci_joint, level=0.95, n_rep_boot=1000)
     np.random.seed(42)
-    ci_manual = blp_confint(dml_irm, cate_manual, spline_basis, joint=ci_joint, level=0.95, n_rep_boot=1000)
+    ci_manual = blp_confint(cate_manual, spline_basis, joint=ci_joint, level=0.95, n_rep_boot=1000)
 
     res_dict = {'coef': cate.blp_model.params,
                 'coef_manual': cate_manual.params,
@@ -90,3 +94,4 @@ def test_dml_blp_ci(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['ci'],
                        dml_blp_fixture['ci_manual'],
                        rtol=1e-9, atol=1e-4)
+

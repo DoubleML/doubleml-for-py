@@ -6,21 +6,18 @@ import pandas as pd
 import patsy
 
 
-def fit_blp(obj_dml_irm, basis):
-    orth_signal = obj_dml_irm.psi_b.reshape(-1, 1)
+def fit_blp(orth_signal, basis):
     blp_model = sm.OLS(orth_signal, basis).fit()
 
     return blp_model
 
 
-def blp_confint(obj_dml_irm, blp_model, basis, joint=False, level=0.95, n_rep_boot=500):
+def blp_confint(blp_model, basis, joint=False, level=0.95, n_rep_boot=500):
     alpha = 1 - level
     g_hat = blp_model.predict(basis)
 
     blp_omega = blp_model.cov_HC0
 
-    # check this again (calculation of HC0 should include scaling with sample size)
-    # se_scaling = np.sqrt(self._dml_irm._dml_data.n_obs)
     se_scaling = 1
     blp_se = np.sqrt((basis.dot(blp_omega) * basis).sum(axis=1)) / se_scaling
 
@@ -125,3 +122,55 @@ def create_synthetic_data(n=200, n_w=30, support_size=5, n_x=1, constant=True):
 
     covariates = list(w_df.columns.values) + list(x_df.columns.values)
     return data, covariates
+
+
+import doubleml as dml
+from doubleml.tests._utils_blp_manual import create_spline_basis, create_synthetic_data
+
+# DGP constants
+np.random.seed(123)
+n = 2000
+n_w = 10
+support_size = 5
+n_x = 1
+
+# Create data
+data, covariates = create_synthetic_data(n=n, n_w=n_w, support_size=support_size, n_x=n_x, constant=True)
+data_dml_base = dml.DoubleMLData(data,
+                                 y_col='y',
+                                 d_cols='t',
+                                 x_cols=covariates)
+
+# First stage estimation
+# Lasso regression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+randomForest_reg = RandomForestRegressor(n_estimators=500)
+randomForest_class = RandomForestClassifier(n_estimators=500)
+
+np.random.seed(123)
+
+dml_irm = dml.DoubleMLIRM(data_dml_base,
+                          ml_g=randomForest_reg,
+                          ml_m=randomForest_class,
+                          trimming_threshold=0.01,
+                          n_folds=5
+                          )
+print("Training first stage")
+dml_irm.fit(store_predictions=True)
+
+spline_basis = create_spline_basis(X=data["x"], knots=3, degree=2)
+
+
+
+# get the orthogonal signal from the IRM model
+#orth_signal = dml_irm.psi_b.reshape(-1)
+#cate = DoubleMLIRMBLP(orth_signal, basis=spline_basis).fit()
+cate = dml_irm.cate(spline_basis)
+
+print(cate.confint(spline_basis, joint=False))
+
+groups = pd.DataFrame(np.vstack([data["x"] <= 0.2, (data["x"] >= 0.2) & (data["x"] <= 0.7), data["x"] >= 0.7]).T,
+             columns=['Group 1', 'Group 2', 'Group 3'])
+
+gate = dml_irm.gate(groups)
+print(gate)
