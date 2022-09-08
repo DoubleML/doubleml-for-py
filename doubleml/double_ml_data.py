@@ -797,3 +797,158 @@ class DoubleMLClusterData(DoubleMLData):
     def _set_cluster_vars(self):
         assert_all_finite(self.data.loc[:, self.cluster_cols])
         self._cluster_vars = self.data.loc[:, self.cluster_cols]
+
+
+class DoubleMLPartialDependenceData(DoubleMLBaseData):
+    def __init__(self,
+                 data,
+                 y_col,
+                 z_col,
+                 x_cols=None):
+        DoubleMLBaseData.__init__(self, data)
+
+        self.y_col = y_col
+        self.z_col = z_col
+        self.x_cols = x_cols
+        self._check_disjoint_sets_y_z_x()
+        self._set_y_z_x()
+
+    def __str__(self):
+        data_info = f'Y variable: {self.y_col}\n' \
+                    f'Z variable(s): {self.z_col}\n' \
+                    f'Covariates: {self.x_cols}\n' \
+                    f'No. Observations: {self.n_obs}\n'
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '========== DoubleMLPartialDependenceData Object ==========\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    @property
+    def x(self):
+        """
+        Array of covariates.
+        """
+        return self._X.values
+
+    @property
+    def y(self):
+        """
+        Array of y variable.
+        """
+        return self._y.values
+
+    @property
+    def z(self):
+        """
+        Array of z variable.
+        """
+        return self._z.values
+
+    @property
+    def n_coefs(self):
+        """
+        The number of coefficients to be estimated.
+        """
+        return 1
+
+    @property
+    def x_cols(self):
+        """
+        The covariates.
+        """
+        return self._x_cols
+
+    @x_cols.setter
+    def x_cols(self, value):
+        reset_value = hasattr(self, '_x_cols')
+        if value is not None:
+            if isinstance(value, str):
+                value = [value]
+            if not isinstance(value, list):
+                raise TypeError('The covariates x_cols must be of str or list type (or None). '
+                                f'{str(value)} of type {str(type(value))} was passed.')
+            if not len(set(value)) == len(value):
+                raise ValueError('Invalid covariates x_cols: '
+                                 'Contains duplicate values.')
+            if not set(value).issubset(set(self.all_variables)):
+                raise ValueError('Invalid covariates x_cols. '
+                                 'At least one covariate is no data column.')
+            assert set(value).issubset(set(self.all_variables))
+            self._x_cols = value
+        else:
+            # x_cols defaults to all columns but y_col and z_col
+            y_z = set.union({self.y_col}, set(self.z_col))
+            x_cols = [col for col in self.data.columns if col not in y_z]
+            self._x_cols = x_cols
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_x()
+
+    @property
+    def y_col(self):
+        """
+        The y variable.
+        """
+        return self._y_col
+
+    @y_col.setter
+    def y_col(self, value):
+        reset_value = hasattr(self, '_y_col')
+        if not isinstance(value, str):
+            raise TypeError('The variable y_col must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid variable y_col. '
+                             f'{value} is no data column.')
+        self._y_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_x()
+
+    @property
+    def z_col(self):
+        """
+        The z variable.
+        """
+        return self._z_col
+
+    @z_col.setter
+    def z_col(self, value):
+        reset_value = hasattr(self, '_z_col')
+        if not isinstance(value, str):
+            raise TypeError('The variable z_col must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid variable z_col. '
+                             f'{value} is no data column.')
+        self._z_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_x()
+
+    def _set_y_z_x(self):
+        self._y = self.data.loc[:, self.y_col]
+        self._z = self.data.loc[:, self.z_col]
+        self._X = self.data.loc[:, self.x_cols]
+
+    def _check_disjoint_sets(self):
+        # this function can be extended in inherited subclasses
+        self._check_disjoint_sets_y_z_x()
+
+    def _check_disjoint_sets_y_z_x(self):
+        y_col_set = {self.y_col}
+        z_col_set = {self.z_col}
+        x_cols_set = set(self.x_cols)
+
+        if not y_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as y variable ``y_col`` and covariate in '
+                             '``x_cols``.')
+        if not z_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as z variable ``z_col`` and covariate in '
+                             '``x_cols``.')
+        if not y_col_set.isdisjoint(z_col_set):
+            raise ValueError(f'{str(self.y_col)} cannot be set as y variable ``y_col`` and as z variable '
+                             '``z_col``.')
