@@ -7,7 +7,8 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
-from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015, \
+    make_partial_copula_additive_approx_sparse
 from doubleml._utils_copula import ClaytonCopula, FrankCopula, GaussianCopula, GumbelCopula
 
 
@@ -377,4 +378,33 @@ def generate_copula_data(request):
     data_and_pars = {'data': data,
                      'cop_obj': cop_obj,
                      'par': par}
+    return data_and_pars
+
+
+@pytest.fixture(scope='session',
+                params=[('Clayton', 500, 20, 3),
+                        ('Clayton', 751, 21, 5),
+                        ('Frank', 500, 20, 3),
+                        ('Frank', 751, 21, 5),
+                        ('Gaussian', 500, 20, 0.3),
+                        ('Gaussian', 378, 21, 0.7),
+                        ('Gumbel', 500, 20, 3),
+                        ('Gumbel', 751, 21, 5),
+                        ])
+def generate_data_partial_copula(request):
+    n_p_theta_dgp = request.param
+    np.random.seed(1111)
+
+    # setting parameters
+    copula_family = n_p_theta_dgp[0]
+    n = n_p_theta_dgp[1]
+    p = n_p_theta_dgp[2]
+    theta = n_p_theta_dgp[3]
+
+    # generating data
+    data = make_partial_copula_additive_approx_sparse(n_obs=n, dim_x=p,
+                                                      copula_family=copula_family, theta=theta)
+    data_and_pars = {'data': data,
+                     'pars': n_p_theta_dgp}
+
     return data_and_pars
