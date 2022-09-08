@@ -8,6 +8,7 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml._utils_copula import ClaytonCopula, FrankCopula, GaussianCopula, GumbelCopula
 
 
 def _g(x):
@@ -348,3 +349,32 @@ def generate_data_irm_w_missings(request):
     data = (x, y, d)
 
     return data
+
+
+@pytest.fixture(scope='session',
+                params=[(ClaytonCopula(), 15, 3.),
+                        (ClaytonCopula(), 7, 5.),
+                        (ClaytonCopula(), 18, 8.),
+                        (FrankCopula(), 16, 3.),
+                        (FrankCopula(), 8, 5.),
+                        (FrankCopula(), 17, 8.),
+                        (GaussianCopula(), 12, 0.3),
+                        (GaussianCopula(), 11, 0.7),
+                        (GaussianCopula(), 5, -0.42),
+                        (GumbelCopula(), 5, 3.),
+                        (GumbelCopula(), 11, 5.),
+                        (GumbelCopula(), 9, 8.)])
+def generate_copula_data(request):
+    pars = request.param
+    np.random.seed(1111)
+
+    # setting parameters
+    cop_obj = pars[0]
+    n_obs = pars[1]
+    par = pars[2]
+
+    data = cop_obj.sim(par, n_obs)
+    data_and_pars = {'data': data,
+                     'cop_obj': cop_obj,
+                     'par': par}
+    return data_and_pars
