@@ -132,6 +132,13 @@ class DoubleMLIRMBLP:
             raise ValueError('The confidence level must be in (0,1). '
                              f'{str(level)} was passed.')
 
+        if not isinstance(n_rep_boot, int):
+            raise TypeError('The number of bootstrap replications must be of int type. '
+                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+        if n_rep_boot < 1:
+            raise ValueError('The number of bootstrap replications must be positive. '
+                             f'{str(n_rep_boot)} was passed.')
+
         alpha = 1 - level
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
