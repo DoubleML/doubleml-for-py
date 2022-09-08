@@ -2,16 +2,19 @@ import pandas as pd
 import numpy as np
 
 from scipy.linalg import toeplitz
+from scipy.stats import norm, multivariate_normal
 
 from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData, DoubleMLPartialDependenceData
+from ._utils_copula import ClaytonCopula, FrankCopula, GaussianCopula, GumbelCopula
 
 _array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
 _data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
 _dml_data_alias = ['DoubleMLData', DoubleMLData]
 _dml_cluster_data_alias = ['DoubleMLClusterData', DoubleMLClusterData]
+_dml_copula_data_alias = ['DoubleMLPartialDependenceData', DoubleMLPartialDependenceData]
 
 
 def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
@@ -705,3 +708,95 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
             return DoubleMLClusterData(data, 'Y', 'D', cluster_cols, x_cols, 'Z')
     else:
         raise ValueError('Invalid return_type.')
+
+
+class _MakePartialCopulaAdditive:
+
+    def __init__(self,
+                 copula_family,
+                 copula_par,
+                 g_nuisance,
+                 m_nuisance,
+                 x_dist,
+                 eps_y_dist=norm(loc=0, scale=1),
+                 eps_z_dist=norm(loc=0, scale=1)):
+        self.copula_family = copula_family
+        self.copula = self._get_copula(self.copula_family)
+        self.copula_par = copula_par
+
+        self.g_nuisance = g_nuisance
+        self.m_nuisance = m_nuisance
+
+        self.x_dist = x_dist
+        self.eps_y_dist = eps_y_dist
+        self.eps_z_dist = eps_z_dist
+
+    @staticmethod
+    def _get_copula(copula_family):
+        if copula_family == 'Gaussian':
+            copula = GaussianCopula
+        elif copula_family == 'Clayton':
+            copula = ClaytonCopula
+        elif copula_family == 'Frank':
+            copula = FrankCopula
+        else:
+            assert copula_family == 'Gumbel'
+            copula = GumbelCopula
+        return copula
+
+    def sim(self, n_obs, return_type):
+        u = self.copula().sim(self.copula_par, n_obs)
+
+        x = self.x_dist.rvs([n_obs, ])
+        dim_x = x.shape[1]
+
+        g = self.g_nuisance(x)
+        m = self.m_nuisance(x)
+
+        y = self.eps_y_dist.ppf(u[:, 0]) + g
+        z = self.eps_z_dist.ppf(u[:, 1]) + m
+
+        if return_type in _array_alias:
+            return x, y, z
+        elif return_type in _data_frame_alias + _dml_copula_data_alias:
+            x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+            data = pd.DataFrame(np.column_stack((x, y, z)),
+                                columns=x_cols + ['y', 'z'])
+            if return_type in _data_frame_alias:
+                return data
+            else:
+                return DoubleMLPartialDependenceData(data, 'y', 'z', x_cols)
+        else:
+            raise ValueError('Invalid return_type.')
+
+
+def _mult_norm_corr_toeplitz(rho, dim_x):
+    cov_mat = toeplitz([np.power(rho, k) for k in range(dim_x)])
+    x_dist = multivariate_normal(np.zeros(dim_x), cov_mat)
+    return x_dist
+
+
+def make_partial_copula_additive_approx_sparse(n_obs=500, dim_x=20,
+                                               copula_family='Gaussian', theta=0.5,
+                                               return_type='DoubleMLPartialDependenceData', **kwargs):
+    rho = kwargs.get('rho', 0.7)
+    sigma_eps_y = kwargs.get('sigma_eps_y', 1.0)
+    sigma_eps_z = kwargs.get('sigma_eps_z', 1.0)
+
+    b = [1 / (k ** 2) for k in range(1, dim_x + 1)]
+
+    def gg(xx):
+        return np.dot(xx, b)
+
+    def mm(xx):
+        return np.dot(xx, b)
+
+    partial_cop = _MakePartialCopulaAdditive(copula_family=copula_family,
+                                             copula_par=theta,
+                                             g_nuisance=gg,
+                                             m_nuisance=mm,
+                                             x_dist=_mult_norm_corr_toeplitz(rho, dim_x),
+                                             eps_y_dist=norm(loc=0, scale=sigma_eps_y),
+                                             eps_z_dist=norm(loc=0, scale=sigma_eps_z))
+
+    return partial_cop.sim(n_obs, return_type)
