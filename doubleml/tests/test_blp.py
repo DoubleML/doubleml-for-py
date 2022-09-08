@@ -1,16 +1,11 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import doubleml as dml
 
-from ._utils_blp_manual import fit_blp, blp_confint, create_spline_basis, create_synthetic_data
-
-
-@pytest.fixture(scope='module',
-                params=[True])
-def constant(request):
-    return request.param
+from ._utils_blp_manual import fit_blp, blp_confint
 
 
 @pytest.fixture(scope='module',
@@ -18,48 +13,47 @@ def constant(request):
 def ci_joint(request):
     return request.param
 
+@pytest.fixture(scope='module',
+                params=[0.95, 0.9])
+def ci_level(request):
+    return request.param
+
 
 @pytest.fixture(scope='module')
-def dml_blp_fixture(constant, ci_joint):
+def dml_blp_fixture(ci_joint, ci_level):
     np.random.seed(42)
     n = 200
-    n_w = 10
-    support_size = 5
-    n_x = 1
 
-    # Create data
-    data, covariates = create_synthetic_data(n=n, n_w=n_w, support_size=support_size, n_x=n_x, constant=constant)
-    data_dml_base = dml.DoubleMLData(data,
-                                     y_col='y',
-                                     d_cols='t',
-                                     x_cols=covariates)
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = dml.datasets.make_irm_data(n_obs=n, dim_x=5)
 
     # First stage estimation
     ml_m = RandomForestRegressor(n_estimators=100)
     ml_g = RandomForestClassifier(n_estimators=100)
 
-    np.random.seed(42)
-    dml_irm = dml.DoubleMLIRM(data_dml_base,
-                              ml_g=ml_m,
-                              ml_m=ml_g,
-                              trimming_threshold=0.05,
-                              n_folds=5)
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
+                                  ml_g=ml_m,
+                                  ml_m=ml_g,
+                                  trimming_threshold=0.05,
+                                  n_folds=5)
 
-    dml_irm.fit(store_predictions=True)
+    dml_irm_obj.fit()
 
-    spline_basis = create_spline_basis(X=data["x"])
+    # create a random basis
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
 
     # cate
-    cate = dml_irm.cate(spline_basis)
+    cate = dml_irm_obj.cate(random_basis)
 
     # get the orthogonal signal from the IRM model
-    orth_signal = dml_irm.psi_b.reshape(-1)
-    cate_manual = fit_blp(orth_signal, spline_basis)
+    orth_signal = dml_irm_obj.psi_b.reshape(-1)
+    cate_manual = fit_blp(orth_signal, random_basis)
 
     np.random.seed(42)
-    ci = cate.confint(spline_basis, joint=ci_joint, level=0.95, n_rep_boot=1000)
+    ci = cate.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
     np.random.seed(42)
-    ci_manual = blp_confint(cate_manual, spline_basis, joint=ci_joint, level=0.95, n_rep_boot=1000)
+    ci_manual = blp_confint(cate_manual, random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
 
     res_dict = {'coef': cate.blp_model.params,
                 'coef_manual': cate_manual.params,
@@ -73,23 +67,25 @@ def dml_blp_fixture(constant, ci_joint):
     return res_dict
 
 
+@pytest.mark.ci
 def test_dml_blp_coef(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['coef'],
                        dml_blp_fixture['coef_manual'],
                        rtol=1e-9, atol=1e-4)
 
-
+@pytest.mark.ci
 def test_dml_blp_values(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['values'],
                        dml_blp_fixture['values_manual'],
                        rtol=1e-9, atol=1e-4)
 
-
+@pytest.mark.ci
 def test_dml_blp_omega(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['omega'],
                        dml_blp_fixture['omega_manual'],
                        rtol=1e-9, atol=1e-4)
 
+@pytest.mark.ci
 def test_dml_blp_ci(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['ci'],
                        dml_blp_fixture['ci_manual'],

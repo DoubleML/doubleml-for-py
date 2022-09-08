@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.stats import norm
 from scipy.linalg import sqrtm
 
+
 class DoubleMLIRMBLP:
     """Best Linear Predictor for DoubleML IRM models
 
@@ -24,15 +25,15 @@ class DoubleMLIRMBLP:
 
         if not isinstance(orth_signal, np.ndarray):
             raise TypeError('The signal must be of np.ndarray type. '
-                            f'{str(orth_signal)} of type {str(type(orth_signal))} was passed.')
+                            f'Signal of type {str(type(orth_signal))} was passed.')
 
         if orth_signal.ndim != 1:
             raise ValueError('The signal must be of one dimensional. '
-                             f'{str(orth_signal)} of dimensions {str(orth_signal.ndim)} was passed.')
+                             f'Signal of dimensions {str(orth_signal.ndim)} was passed.')
 
         if not isinstance(basis, pd.DataFrame):
             raise TypeError('The basis must be of DataFrame type. '
-                            f'{str(basis)} of type {str(type(basis))} was passed.')
+                            f'Basis of type {str(type(basis))} was passed.')
 
         if not basis.columns.is_unique:
             raise ValueError('Invalid pd.DataFrame: '
@@ -40,8 +41,8 @@ class DoubleMLIRMBLP:
 
         if orth_signal.shape[0] != basis.shape[0]:
             raise ValueError('Incompatible input dimensions.'
-                             f'{str(orth_signal)} of shape {str(orth_signal.shape)} and'
-                             f'{str(basis)} of shape {str(basis.shape)} were passed.')
+                             f'Signal of shape {str(orth_signal.shape)} and'
+                             f'basis of shape {str(basis.shape)} were passed.')
 
         self._orth_signal = orth_signal
         self._basis = basis
@@ -63,6 +64,13 @@ class DoubleMLIRMBLP:
         Orthogonal signal.
         """
         return self._orth_signal
+
+    @property
+    def basis(self):
+        """
+        Basis.
+        """
+        return self._basis
 
     @property
     def blp_omega(self):
@@ -113,6 +121,17 @@ class DoubleMLIRMBLP:
         df_ci : pd.DataFrame
             A data frame with the confidence interval(s).
         """
+        if not isinstance(joint, bool):
+            raise TypeError('joint must be True or False. '
+                            f'Got {str(joint)}.')
+
+        if not isinstance(level, float):
+            raise TypeError('The confidence level must be of float type. '
+                            f'{str(level)} of type {str(type(level))} was passed.')
+        if (level <= 0) | (level >= 1):
+            raise ValueError('The confidence level must be in (0,1). '
+                             f'{str(level)} was passed.')
+
         alpha = 1 - level
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
@@ -142,6 +161,6 @@ class DoubleMLIRMBLP:
 
         ci = np.vstack((g_hat_lower, g_hat, g_hat_upper)).T
         df_ci = pd.DataFrame(ci,
-                         columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
-                         index=basis.index)
+                             columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
+                             index=basis.index)
         return df_ci
