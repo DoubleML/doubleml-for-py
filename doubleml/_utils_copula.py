@@ -1,4 +1,4 @@
-import numpy as np
+import np as np
 from abc import ABC, abstractmethod
 
 from scipy.stats import kendalltau, norm, multivariate_normal
@@ -21,10 +21,6 @@ class Copula(ABC):
                                       (u, v),
                                       bounds=self._par_bounds)
         return par_hat
-
-    # @abstractmethod
-    # def pdf(self, u, v, log_like=False):
-    #     pass
 
     @staticmethod
     @abstractmethod
@@ -70,6 +66,12 @@ class ClaytonCopula(Copula):
     @staticmethod
     def cdf(par, u, v):
         res = (-1 + v**(-par) + u**(-par))**(-1/par)
+        return res
+
+    @staticmethod
+    def pdf(par, u, v):
+        # obtained with sympy
+        res = u**par*v**par*(par + 1)*(-1 + v**(-par) + u**(-par))**(-1/par)/(u*v*(u**par*v**par - u**par - v**par)**2)
         return res
 
     @staticmethod
@@ -176,6 +178,15 @@ class FrankCopula(Copula):
         return -np.log((np.expm1(-par) + np.expm1(-par*u)*np.expm1(-par*v))/np.expm1(-par))/par
 
     @staticmethod
+    def pdf(par, u, v):
+        # obtained with sympy
+        res = par * np.exp(-par * u) * np.exp(-par * v) / (
+                    -np.expm1(-par) - np.expm1(-par * u) * np.expm1(-par * v)) + par * np.exp(-par * u) * np.exp(
+            -par * v) * np.expm1(-par * u) * np.expm1(-par * v) / (
+                    -np.expm1(-par) - np.expm1(-par * u) * np.expm1(-par * v)) ** 2
+        return res
+
+    @staticmethod
     def ll(par, u, v):
         # obtained with sympy
         res = np.log(-par*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par)
@@ -201,6 +212,7 @@ class FrankCopula(Copula):
         # TODO: Add checks for the parameter
         if deriv == 'd_par':
             # obtained with sympy
+
             res = (-par*u*np.exp(-par*u)*np.exp(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v)) - par*u*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par*u)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2 - par*u*np.exp(-2*par*u)*np.exp(-par*v)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2 - par*v*np.exp(-par*u)*np.exp(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v)) - par*v*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par*u)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2 - par*v*np.exp(-par*u)*np.exp(-2*par*v)*np.expm1(-par*u)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2 + par*(-u*np.exp(-par*u)*np.expm1(-par*v) - v*np.exp(-par*v)*np.expm1(-par*u) - np.exp(-par))*np.exp(-par*u)*np.exp(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2 + par*(-2*u*np.exp(-par*u)*np.expm1(-par*v) - 2*v*np.exp(-par*v)*np.expm1(-par*u) - 2*np.exp(-par))*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par*u)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**3 + np.exp(-par*u)*np.exp(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v)) + np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par*u)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2)/(par*np.exp(-par*u)*np.exp(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v)) + par*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par*u)*np.expm1(-par*v)/(-np.expm1(-par) - np.expm1(-par*u)*np.expm1(-par*v))**2)
         elif deriv == 'd_u':
             # obtained with sympy
@@ -257,6 +269,14 @@ class GaussianCopula(Copula):
         return multivariate_normal.cdf(np.column_stack((x,y)),
                                        mean=[0., 0.],
                                        cov=[[1., par], [par, 1.]])
+
+    @staticmethod
+    def pdf(par, u, v):
+        x = norm.ppf(u)
+        y = norm.ppf(v)
+        # obtained with sympy
+        res = np.exp((-par**2*(x**2 + y**2) + 2*par*x*y)/(2 - 2*par**2))/np.sqrt(1 - par**2)
+        return res
 
     @staticmethod
     def ll(par, u, v):
@@ -352,6 +372,16 @@ class GumbelCopula(Copula):
     @staticmethod
     def cdf(par, u, v):
         return np.exp(-((-np.log(u))**par + (-np.log(v))**par)**(par**(-1.0)))
+
+    @staticmethod
+    def pdf(par, u, v):
+        # obtained with sympy
+        res = (-np.log(u)) ** par * (-np.log(v)) ** par * ((-np.log(u)) ** par + (-np.log(v)) ** par) ** (
+                    par ** (-1.0)) * (
+                      par + ((-np.log(u)) ** par + (-np.log(v)) ** par) ** (par ** (-1.0)) - 1) * np.exp(
+            -((-np.log(u)) ** par + (-np.log(v)) ** par) ** (par ** (-1.0))) / (
+                      u * v * ((-np.log(u)) ** par + (-np.log(v)) ** par) ** 2 * np.log(u) * np.log(v))
+        return res
 
     @staticmethod
     def ll(par, u, v):
