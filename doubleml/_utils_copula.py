@@ -77,7 +77,7 @@ class ClaytonCopula(Copula):
     @staticmethod
     def ll(par, u, v):
         # obtained with sympy
-        res = np.log(u**par*v**par*(par + 1)*(-1 + v**(-par) + u**(-par))**(-1/par)/(u*v*(u**par*v**par - u**par - v**par)**2))
+        res = np.log(ClaytonCopula.pdf(par, u, v))
         return res
 
     @staticmethod
@@ -188,9 +188,7 @@ class FrankCopula(Copula):
 
     @staticmethod
     def ll(par, u, v):
-        # obtained with sympy
-        res = np.log(-par*np.exp(-par*u)*np.exp(-par*v)*np.expm1(-par)
-                     / (np.expm1(-par) + np.expm1(-par*u)*np.expm1(-par*v))**2)
+        res = np.log(FrankCopula.pdf(par, u, v))
         return res
 
     @staticmethod
@@ -280,10 +278,7 @@ class GaussianCopula(Copula):
 
     @staticmethod
     def ll(par, u, v):
-        x = norm.ppf(u)
-        y = norm.ppf(v)
-        # obtained with sympy
-        res = -1/2*np.log(-(par - 1)*(par + 1)) - (par**2*(x**2 + y**2) - 2*par*x*y)/(2 - 2*par**2)
+        res = np.log(GaussianCopula.pdf(par, u, v))
         return res
 
     @staticmethod
@@ -385,7 +380,8 @@ class GumbelCopula(Copula):
 
     @staticmethod
     def ll(par, u, v):
-        return np.log((-np.log(u))**par*(-np.log(v))**par*((-np.log(u))**par + (-np.log(v))**par)**(par**(-1.0))*(par + ((-np.log(u))**par + (-np.log(v))**par)**(par**(-1.0)) - 1)*np.exp(-((-np.log(u))**par + (-np.log(v))**par)**(par**(-1.0)))/(u*v*((-np.log(u))**par + (-np.log(v))**par)**2*np.log(u)*np.log(v)))
+        res = np.log(GumbelCopula.pdf(par, u, v))
+        return res
 
     @staticmethod
     def neg_ll(par, u, v):
