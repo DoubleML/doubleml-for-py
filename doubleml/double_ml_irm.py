@@ -370,7 +370,7 @@ class DoubleMLIRM(DoubleML):
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
             else:
-                raise TypeError('Columns must be of of bool or int type or the data frame only should contain'
+                raise TypeError('Columns must be of of bool or int type or the data frame only should contain '
                                 'one column.')
 
         # define the orthogonal signal

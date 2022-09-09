@@ -3,7 +3,6 @@ import statsmodels.api as sm
 from scipy.linalg import sqrtm
 from scipy.stats import norm
 import pandas as pd
-import patsy
 
 
 def fit_blp(orth_signal, basis):

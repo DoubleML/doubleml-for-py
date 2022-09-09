@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import doubleml as dml
 
 from ._utils_blp_manual import fit_blp, blp_confint
@@ -21,46 +20,25 @@ def ci_level(request):
 
 @pytest.fixture(scope='module')
 def dml_blp_fixture(ci_joint, ci_level):
+    n = 50
     np.random.seed(42)
-    n = 200
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
+    random_signal = np.random.normal(0, 1, size=(n, ))
 
-    # collect data
-    np.random.seed(42)
-    obj_dml_data = dml.datasets.make_irm_data(n_obs=n, dim_x=5)
-
-    # First stage estimation
-    ml_m = RandomForestRegressor(n_estimators=100)
-    ml_g = RandomForestClassifier(n_estimators=100)
-
-    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
-                                  ml_g=ml_m,
-                                  ml_m=ml_g,
-                                  trimming_threshold=0.05,
-                                  n_folds=5)
-
-    dml_irm_obj.fit()
-
-    # create a random basis
-    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
-
-    # cate
-    cate = dml_irm_obj.cate(random_basis)
-
-    # get the orthogonal signal from the IRM model
-    orth_signal = dml_irm_obj.psi_b.reshape(-1)
-    cate_manual = fit_blp(orth_signal, random_basis)
+    blp = dml.DoubleMLIRMBLP(random_signal, random_basis).fit()
+    blp_manual = fit_blp(random_signal, random_basis)
 
     np.random.seed(42)
-    ci = cate.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
+    ci = blp.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
     np.random.seed(42)
-    ci_manual = blp_confint(cate_manual, random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
+    ci_manual = blp_confint(blp_manual, random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
 
-    res_dict = {'coef': cate.blp_model.params,
-                'coef_manual': cate_manual.params,
-                'values': cate.blp_model.fittedvalues,
-                'values_manual':  cate_manual.fittedvalues,
-                'omega': cate.blp_omega,
-                'omega_manual': cate_manual.cov_HC0,
+    res_dict = {'coef': blp.blp_model.params,
+                'coef_manual': blp_manual.params,
+                'values': blp.blp_model.fittedvalues,
+                'values_manual':  blp_manual.fittedvalues,
+                'omega': blp.blp_omega,
+                'omega_manual': blp_manual.cov_HC0,
                 'ci': ci,
                 'ci_manual': ci_manual}
 

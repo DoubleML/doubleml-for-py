@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, DoubleMLIRMBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 
@@ -652,3 +652,59 @@ def test_doubleml_nan_prediction():
     msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()
+
+@pytest.mark.ci
+def test_doubleml_exception_blp():
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
+    signal = np.array([1, 2])
+
+    msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        DoubleMLIRMBLP(orth_signal=1, basis=random_basis)
+    msg = 'The signal must be of one dimensional. Signal of dimensions 2 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLIRMBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
+    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        DoubleMLIRMBLP(orth_signal=signal, basis=1)
+    msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
+    with pytest.raises(ValueError, match=msg):
+        DoubleMLIRMBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
+                   columns=['x_1', 'x_1']))
+
+
+    dml_blp_confint = DoubleMLIRMBLP(orth_signal=signal, basis=random_basis)
+    msg = 'joint must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, joint=1)
+    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, level='5%')
+    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis, level=0.)
+    msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, n_rep_boot='500')
+    msg = 'The number of bootstrap replications must be positive. 0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis, n_rep_boot=0)
+    msg = r'Apply fit\(\) before confint\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis)
+
+@pytest.mark.ci
+def test_doubleml_exception_gate():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5)
+    dml_irm_obj.fit()
+
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.gate(groups=2)
+    msg = 'Columns must be of of bool or int type or the data frame only should contain one column.'
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(50, 3))))

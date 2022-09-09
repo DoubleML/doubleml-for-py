@@ -39,11 +39,6 @@ class DoubleMLIRMBLP:
             raise ValueError('Invalid pd.DataFrame: '
                              'Contains duplicate column names.')
 
-        if orth_signal.shape[0] != basis.shape[0]:
-            raise ValueError('Incompatible input dimensions.'
-                             f'Signal of shape {str(orth_signal.shape)} and'
-                             f'basis of shape {str(basis.shape)} were passed.')
-
         self._orth_signal = orth_signal
         self._basis = basis
 
@@ -139,19 +134,21 @@ class DoubleMLIRMBLP:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
 
+        if self._blp_model is None:
+            raise ValueError('Apply fit() before confint().')
+
         alpha = 1 - level
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
 
         # calculate se for basis elements
-        se_scaling = 1
-        blp_se = np.sqrt((basis.to_numpy().dot(self._blp_omega) * basis.to_numpy()).sum(axis=1)) / se_scaling
+        blp_se = np.sqrt((basis.to_numpy().dot(self._blp_omega) * basis.to_numpy()).sum(axis=1))
 
         if joint:
             # calculate the maximum t-statistic with bootstrap
             normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
             bootstrap_samples = np.multiply(basis.to_numpy().dot(np.dot(sqrtm(self._blp_omega), normal_samples)).T,
-                                            (blp_se * se_scaling))
+                                            blp_se)
 
             max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
 
