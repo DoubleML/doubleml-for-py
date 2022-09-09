@@ -80,7 +80,7 @@ def test_neg_ll_d_u_numdiff(generate_copula_data):
                        rtol=1e-4, atol=1e-3)
 
 
-def test_neg_ll_d_v_numdiff(generate_copula_data):
+def test_ll_d_v_numdiff(generate_copula_data):
     data = generate_copula_data['data']
     n_obs = data.shape[0]
     cop_obj = generate_copula_data['cop_obj']
@@ -104,7 +104,7 @@ def test_neg_ll_d_v_numdiff(generate_copula_data):
                        rtol=1e-4, atol=1e-3)
 
 
-def test_neg_ll_d2_u_v_par_numdiff(generate_copula_data):
+def test_ll_d2_u_v_par_numdiff(generate_copula_data):
     data = generate_copula_data['data']
     n_obs = data.shape[0]
     cop_obj = generate_copula_data['cop_obj']
