@@ -1,4 +1,4 @@
-import np as np
+import numpy as np
 from abc import ABC, abstractmethod
 
 from scipy.stats import kendalltau, norm, multivariate_normal
