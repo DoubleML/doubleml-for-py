@@ -12,6 +12,7 @@ from ._utils_blp_manual import fit_blp, blp_confint
 def ci_joint(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params=[0.95, 0.9])
 def ci_level(request):
@@ -51,11 +52,13 @@ def test_dml_blp_coef(dml_blp_fixture):
                        dml_blp_fixture['coef_manual'],
                        rtol=1e-9, atol=1e-4)
 
+
 @pytest.mark.ci
 def test_dml_blp_values(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['values'],
                        dml_blp_fixture['values_manual'],
                        rtol=1e-9, atol=1e-4)
+
 
 @pytest.mark.ci
 def test_dml_blp_omega(dml_blp_fixture):
@@ -63,9 +66,9 @@ def test_dml_blp_omega(dml_blp_fixture):
                        dml_blp_fixture['omega_manual'],
                        rtol=1e-9, atol=1e-4)
 
+
 @pytest.mark.ci
 def test_dml_blp_ci(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['ci'],
                        dml_blp_fixture['ci_manual'],
                        rtol=1e-9, atol=1e-4)
-

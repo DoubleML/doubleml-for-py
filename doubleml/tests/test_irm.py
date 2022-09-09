@@ -9,6 +9,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
+from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm
@@ -126,7 +127,7 @@ def test_dml_irm_cate_gate():
     n = 50
     # collect data
     np.random.seed(42)
-    obj_dml_data = dml.datasets.make_irm_data(n_obs=n, dim_x=2)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
 
     # First stage estimation
     ml_g = RandomForestRegressor(n_estimators=10)
@@ -151,5 +152,3 @@ def test_dml_irm_cate_gate():
 
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
     assert isinstance(dml_irm_obj.gate(groups_2), pd.DataFrame)
-
-

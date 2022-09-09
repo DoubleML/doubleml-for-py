@@ -653,6 +653,7 @@ def test_doubleml_nan_prediction():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()
 
+
 @pytest.mark.ci
 def test_doubleml_exception_blp():
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
@@ -670,8 +671,7 @@ def test_doubleml_exception_blp():
     msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
     with pytest.raises(ValueError, match=msg):
         DoubleMLIRMBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
-                   columns=['x_1', 'x_1']))
-
+                                                              columns=['x_1', 'x_1']))
 
     dml_blp_confint = DoubleMLIRMBLP(orth_signal=signal, basis=random_basis)
     msg = 'joint must be True or False. Got 1.'
@@ -692,6 +692,7 @@ def test_doubleml_exception_blp():
     msg = r'Apply fit\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_blp_confint.confint(random_basis)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_gate():
