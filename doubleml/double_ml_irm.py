@@ -8,6 +8,7 @@ from .double_ml_blp import DoubleMLIRMBLP
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
+
 class DoubleMLIRM(DoubleML):
     """Double machine learning for interactive regression models
 
@@ -384,4 +385,3 @@ class DoubleMLIRM(DoubleML):
         df_ci.index = groups.columns.values
 
         return df_ci
-

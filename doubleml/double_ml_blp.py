@@ -148,7 +148,7 @@ class DoubleMLIRMBLP:
             # calculate the maximum t-statistic with bootstrap
             normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
             bootstrap_samples = np.multiply(basis.to_numpy().dot(np.dot(sqrtm(self._blp_omega), normal_samples)).T,
-                                            blp_se)
+                                            (1.0 / blp_se))
 
             max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
 
