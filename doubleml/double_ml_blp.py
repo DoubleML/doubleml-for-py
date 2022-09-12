@@ -7,7 +7,7 @@ from scipy.linalg import sqrtm
 
 
 class DoubleMLIRMBLP:
-    """Best Linear Predictor for DoubleML IRM models
+    """Best linear predictor for DoubleML IRM models
 
         Parameters
         ----------
