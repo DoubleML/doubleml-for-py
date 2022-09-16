@@ -138,6 +138,12 @@ class NonLinearScoreMixin:
                                    fprime=score_deriv,
                                    method='newton')
             theta_hat = root_res.root
+            if not root_res.converged:
+                score_val = score(theta_hat, inds)
+                warnings.warn('Could not find a root of the score function.\n '
+                              f'Flag: {root_res.flag}.\n'
+                              f'Score value found is {score_val} '
+                              f'for parameter theta equal to {theta_hat}.')
         else:
             def get_bracket_guess(coef_start, coef_bounds):
                 max_bracket_length = coef_bounds[1] - coef_bounds[0]
