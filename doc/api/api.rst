@@ -27,6 +27,18 @@ Double machine learning models
     DoubleMLIRM
     DoubleMLIIVM
 
+Score mixin classes for double machine learning models
+------------------------------------------------------
+
+.. currentmodule:: doubleml
+
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    double_ml_score_mixins.LinearScoreMixin
+    double_ml_score_mixins.NonLinearScoreMixin
+
 
 Datasets module
 ---------------
