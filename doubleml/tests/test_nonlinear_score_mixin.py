@@ -10,7 +10,7 @@ import doubleml as dml
 from doubleml.double_ml import DoubleML
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 from doubleml._utils import _dml_cv_predict, _check_finite_predictions
-from doubleml._double_ml_score_mixins import NonLinearScoreMixin
+from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
 
 class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
