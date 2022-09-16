@@ -8,7 +8,7 @@ from abc import abstractmethod
 
 
 class LinearScoreMixin:
-    """Mixin class for DML estimation for score functions being linear in the target parameter
+    """Mixin class implementing DML estimation for score functions being linear in the target parameter
 
     Notes
     -----
@@ -18,10 +18,11 @@ class LinearScoreMixin:
 
         \\psi(W; \\theta, \\eta) = \\theta \\psi_a(W; \\eta) + \\psi_b(W; \\eta).
 
-    This mixin class implements the empirical analog of the moment condition $\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0,
-    the estimation of \\theta by solving the moment condition and the estimation of the corresponding asymptotic
-    variance. For details see the chapters on [score functions](https://docs.doubleml.org/stable/guide/scores.html) and
-    on [variance estimation](https://docs.doubleml.org/stable/guide/se_confint.html) in the DoubleML user guide.
+    The mixin class :class:`LinearScoreMixin` implements the empirical analog of the moment condition
+    :math:`\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0`, the estimation of :math:`\\theta` by solving the moment condition
+    and the estimation of the corresponding asymptotic variance. For details, see the chapters on
+    `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
+    `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
     """
     _score_type = 'linear'
 
@@ -85,21 +86,22 @@ class LinearScoreMixin:
 
 
 class NonLinearScoreMixin:
-    """Mixin class for DML estimation for score functions being nonlinear in the target parameter
+    """Mixin class implementing DML estimation for score functions being nonlinear in the target parameter
 
     Notes
     -----
-    The score functions of many DML models (PLR, PLIV, IRM, IIVM) are linear in the parameter. This mixin class allows
-    to use the DML framework for models where the linearity in the parameter is not given. The mixin class implements
-    the empirical analog of the moment condition :math:`\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0`, the estimation of
-    :math:`\\theta` by numerically solving the moment condition and the estimation of the corresponding asymptotic
-    variance. For details see the chapters on [score functions](https://docs.doubleml.org/stable/guide/scores.html) and
-    on [variance estimation](https://docs.doubleml.org/stable/guide/se_confint.html) in the DoubleML user guide.
+    The score functions of many DML models (PLR, PLIV, IRM, IIVM) are linear in the parameter. This mixin class
+    :class:`NonLinearScoreMixin` allows to use the DML framework for models where the linearity in the parameter is not
+    given. The mixin class implements the empirical analog of the moment condition
+    :math:`\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0`, the estimation of :math:`\\theta` via numerical root search of
+    the moment condition and the estimation of the corresponding asymptotic variance. For details, see the chapters on
+    `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
+    `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
 
-    To implement a DML model utilizing the NonLinearScoreMixin class, the abstract methods ``_compute_score``, which
-    allows to evaluate the score function :math:`\\psi(W; \\theta, \\eta)`, and ``_compute_score_deriv``, which allows
-    to evaluate the derivative of the score function :math:`\\partial_\\theta \\psi(W; \\theta, \\eta)`, need to be
-    implemented.
+    To implement a DML model utilizing the :class:`NonLinearScoreMixin`  class, the abstract methods ``_compute_score``,
+    which should implement the evaluation of the score function :math:`\\psi(W; \\theta, \\eta)`, and
+    ``_compute_score_deriv``, which should implement the evaluation of the derivative of the score function
+    :math:`\\frac{\\partial}{\\partial \\theta} \\psi(W; \\theta, \\eta)`, need to be added model-specifically.
     """
     _score_type = 'nonlinear'
     _coef_start_val = np.nan
