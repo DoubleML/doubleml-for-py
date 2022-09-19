@@ -994,7 +994,7 @@ class DoubleML(ABC):
                              for learner in self.params_names}
 
     def _initialize_models(self):
-        self._models = {learner: None
+        self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
                         for learner in self.params_names}
 
     def _store_predictions(self, preds):
@@ -1003,7 +1003,7 @@ class DoubleML(ABC):
 
     def _store_models(self, models):
         for learner in self.params_names:
-            self._models[learner] = models[learner]
+            self._models[learner][self._dml_data.d_cols[self._i_treat]][self._i_rep] = models[learner]
 
     def draw_sample_splitting(self):
         """
