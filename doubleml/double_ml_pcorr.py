@@ -3,7 +3,7 @@ from sklearn.utils import check_X_y
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLPartialDependenceData
-from ._double_ml_score_mixins import NonLinearScoreMixin
+from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune
 
 
