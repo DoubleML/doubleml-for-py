@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.utils import check_X_y
 
+import warnings
+
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLPartialDependenceData
 from .double_ml_score_mixins import NonLinearScoreMixin
@@ -57,6 +59,10 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
+            if score == 'corr':
+                warnings.warn(('The classical score function for the estimation of partial correlations is not'
+                               'necessarily Neyman orthogonal. It might result in biased estimates and standard errors'
+                               ' / confidence intervals might not be valid. It is therefore not recommended.'))
         else:
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
