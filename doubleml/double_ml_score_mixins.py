@@ -8,6 +8,22 @@ from abc import abstractmethod
 
 
 class LinearScoreMixin:
+    """Mixin class implementing DML estimation for score functions being linear in the target parameter
+
+    Notes
+    -----
+    The score functions of many DML models (PLR, PLIV, IRM, IIVM) are linear in the parameter :math:`\\theta`, i.e.,
+
+    .. math::
+
+        \\psi(W; \\theta, \\eta) = \\theta \\psi_a(W; \\eta) + \\psi_b(W; \\eta).
+
+    The mixin class :class:`LinearScoreMixin` implements the empirical analog of the moment condition
+    :math:`\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0`, the estimation of :math:`\\theta` by solving the moment condition
+    and the estimation of the corresponding asymptotic variance. For details, see the chapters on
+    `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
+    `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
+    """
     _score_type = 'linear'
 
     @property
@@ -70,6 +86,23 @@ class LinearScoreMixin:
 
 
 class NonLinearScoreMixin:
+    """Mixin class implementing DML estimation for score functions being nonlinear in the target parameter
+
+    Notes
+    -----
+    The score functions of many DML models (PLR, PLIV, IRM, IIVM) are linear in the parameter. This mixin class
+    :class:`NonLinearScoreMixin` allows to use the DML framework for models where the linearity in the parameter is not
+    given. The mixin class implements the empirical analog of the moment condition
+    :math:`\\mathbb{E}(\\psi(W; \\theta, \\eta)) = 0`, the estimation of :math:`\\theta` via numerical root search of
+    the moment condition and the estimation of the corresponding asymptotic variance. For details, see the chapters on
+    `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
+    `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
+
+    To implement a DML model utilizing the :class:`NonLinearScoreMixin`  class, the abstract methods ``_compute_score``,
+    which should implement the evaluation of the score function :math:`\\psi(W; \\theta, \\eta)`, and
+    ``_compute_score_deriv``, which should implement the evaluation of the derivative of the score function
+    :math:`\\frac{\\partial}{\\partial \\theta} \\psi(W; \\theta, \\eta)`, need to be added model-specifically.
+    """
     _score_type = 'nonlinear'
     _coef_start_val = np.nan
     _coef_bounds = None
@@ -107,6 +140,12 @@ class NonLinearScoreMixin:
                                    fprime=score_deriv,
                                    method='newton')
             theta_hat = root_res.root
+            if not root_res.converged:
+                score_val = score(theta_hat, inds)
+                warnings.warn('Could not find a root of the score function.\n '
+                              f'Flag: {root_res.flag}.\n'
+                              f'Score value found is {score_val} '
+                              f'for parameter theta equal to {theta_hat}.')
         else:
             def get_bracket_guess(coef_start, coef_bounds):
                 max_bracket_length = coef_bounds[1] - coef_bounds[0]
@@ -178,3 +217,6 @@ class NonLinearScoreMixin:
                                       'No theta found such that the score function evaluates to a positive value.')
 
         return theta_hat
+
+    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
+        raise NotImplementedError('Estimation with clustering not implemented.')

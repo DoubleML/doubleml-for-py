@@ -8,7 +8,7 @@ from functools import wraps
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
-from ._double_ml_score_mixins import LinearScoreMixin
+from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
