@@ -1321,6 +1321,7 @@ class DoubleML(ABC):
     def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
         pass
 
+    @property
     @abstractmethod
     def _score_element_names(self):
         pass
