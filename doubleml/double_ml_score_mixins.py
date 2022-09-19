@@ -107,11 +107,6 @@ class NonLinearScoreMixin:
     _coef_start_val = np.nan
     _coef_bounds = None
 
-    @property
-    @abstractmethod
-    def _score_element_names(self):
-        pass
-
     @abstractmethod
     def _compute_score(self, psi_elements, coef, inds=None):
         pass
@@ -217,3 +212,6 @@ class NonLinearScoreMixin:
                                       'No theta found such that the score function evaluates to a positive value.')
 
         return theta_hat
+
+    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
+        raise NotImplementedError('Estimation with clustering not implemented.')
