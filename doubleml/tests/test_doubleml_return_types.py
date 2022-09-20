@@ -3,9 +3,11 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLClusterData, DoubleMLPartialCorr, \
-    DoubleMLPartialCopula
+    DoubleMLPartialCopula, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
     make_pliv_multiway_cluster_CKMS2021, make_partial_copula_additive_approx_sparse
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.double_ml import DoubleML
 
 from sklearn.linear_model import Lasso, LogisticRegression
 
@@ -93,15 +95,27 @@ iivm_dml1.fit()
 iivm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 
+pcor_dml1 = DoubleMLPartialCorr(dml_data_pcop, Lasso(), Lasso(),
+                                dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+pcor_dml1.fit()
+pcor_dml1.bootstrap(n_rep_boot=n_rep_boot)
+
+pcop_dml1 = DoubleMLPartialCopula(dml_data_pcop, 'Gaussian', Lasso(), Lasso(),
+                                  dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+pcop_dml1.fit()
+pcop_dml1.bootstrap(n_rep_boot=n_rep_boot)
+
+
 @pytest.mark.ci
 @pytest.mark.parametrize('dml_obj',
-                         [plr_dml1, pliv_dml1,  irm_dml1,  iivm_dml1])
+                         [plr_dml1, pliv_dml1,  irm_dml1,  iivm_dml1, pcor_dml1, pcop_dml1])
 def test_property_types_and_shapes(dml_obj):
     # not checked: apply_cross_fitting, dml_procedure, learner, learner_names, params, params_names, score
     # already checked: summary
 
     # check that the setting is still in line with the hard-coded values
-    assert dml_obj._dml_data.n_treat == n_treat
+    if isinstance(dml_obj._dml_data, DoubleMLData):
+        assert dml_obj._dml_data.n_treat == n_treat
     assert dml_obj.n_rep == n_rep
     assert dml_obj.n_folds == n_folds
     assert dml_obj._dml_data.n_obs == n_obs
@@ -128,11 +142,13 @@ def test_property_types_and_shapes(dml_obj):
     assert isinstance(dml_obj.psi, np.ndarray)
     assert dml_obj.psi.shape == (n_obs, n_rep, n_treat, )
 
-    assert isinstance(dml_obj.psi_elements['psi_a'], np.ndarray)
-    assert dml_obj.psi_elements['psi_a'].shape == (n_obs, n_rep, n_treat, )
+    if isinstance(dml_obj, LinearScoreMixin):
+        assert isinstance(dml_obj, DoubleML)
+        assert isinstance(dml_obj.psi_elements['psi_a'], np.ndarray)
+        assert dml_obj.psi_elements['psi_a'].shape == (n_obs, n_rep, n_treat, )
 
-    assert isinstance(dml_obj.psi_elements['psi_b'], np.ndarray)
-    assert dml_obj.psi_elements['psi_b'].shape == (n_obs, n_rep, n_treat, )
+        assert isinstance(dml_obj.psi_elements['psi_b'], np.ndarray)
+        assert dml_obj.psi_elements['psi_b'].shape == (n_obs, n_rep, n_treat, )
 
     assert isinstance(dml_obj.pval, np.ndarray)
     assert dml_obj.pval.shape == (n_treat, )
@@ -143,8 +159,9 @@ def test_property_types_and_shapes(dml_obj):
     assert isinstance(dml_obj.t_stat, np.ndarray)
     assert dml_obj.t_stat.shape == (n_treat, )
 
-    assert isinstance(dml_obj._dml_data.binary_treats, pd.Series)
-    assert len(dml_obj._dml_data.binary_treats) == n_treat
+    if isinstance(dml_obj._dml_data, DoubleMLData):
+        assert isinstance(dml_obj._dml_data.binary_treats, pd.Series)
+        assert len(dml_obj._dml_data.binary_treats) == n_treat
 
     assert isinstance(dml_obj.smpls, list)
     assert len(dml_obj.smpls) == n_rep
