@@ -2,9 +2,10 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLClusterData
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLClusterData, DoubleMLPartialCorr, \
+    DoubleMLPartialCopula
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
-    make_pliv_multiway_cluster_CKMS2021
+    make_pliv_multiway_cluster_CKMS2021, make_partial_copula_additive_approx_sparse
 
 from sklearn.linear_model import Lasso, LogisticRegression
 
@@ -15,11 +16,16 @@ dml_data_irm = make_irm_data(n_obs=100)
 dml_data_iivm = make_iivm_data(n_obs=100)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 
+dml_data_pcop = make_partial_copula_additive_approx_sparse(n_obs=100, dim_x=10,
+                                                           copula_family='Gaussian', theta=0.6)
+
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
 dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
 dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, Lasso(), Lasso(), Lasso())
+dml_pcor = DoubleMLPartialCorr(dml_data_pcop, Lasso(), Lasso())
+dml_pcop_gaussian = DoubleMLPartialCopula(dml_data_pcop, 'Gaussian', Lasso(), Lasso())
 
 
 @pytest.mark.ci
@@ -28,7 +34,9 @@ dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, Lasso(), Lasso(), Lasso()
                           (dml_pliv, DoubleMLPLIV),
                           (dml_irm, DoubleMLIRM),
                           (dml_iivm, DoubleMLIIVM),
-                          (dml_pliv_cluster, DoubleMLPLIV)])
+                          (dml_pliv_cluster, DoubleMLPLIV),
+                          (dml_pcor, DoubleMLPartialCorr),
+                          (dml_pcop_gaussian, DoubleMLPartialCopula)])
 def test_return_types(dml_obj, cls):
     # ToDo: A second test case with multiple treatment variables would be helpful
     assert isinstance(dml_obj.__str__(), str)
