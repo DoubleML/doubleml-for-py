@@ -836,7 +836,7 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
         self._set_y_z_x()
 
     def __str__(self):
-        data_summary = self.data_summary_str()
+        data_summary = self._data_summary_str()
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         df_info = buf.getvalue()
