@@ -114,19 +114,14 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
 
     def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['corr', 'orthogonal']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-            if score == 'corr':
-                warnings.warn(('The classical score function for the estimation of partial correlations is not'
-                               'necessarily Neyman orthogonal. It might result in biased estimates and standard errors'
-                               ' / confidence intervals might not be valid. It is therefore not recommended.'))
-        else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
+        valid_score = ['corr', 'orthogonal']
+        if (not isinstance(score, str)) | (score not in valid_score):
+            raise ValueError('Invalid score ' + str(score) + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+        if score == 'corr':
+            warnings.warn(('The classical score function for the estimation of partial correlations is not'
+                           'necessarily Neyman orthogonal. It might result in biased estimates and standard errors'
+                           ' / confidence intervals might not be valid. It is therefore not recommended.'))
         return
 
     def _check_data(self, obj_dml_data):

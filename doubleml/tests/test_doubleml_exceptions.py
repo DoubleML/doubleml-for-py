@@ -2,9 +2,10 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
+    DoubleMLPartialCorr, DoubleMLPartialCopula
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
-    make_pliv_multiway_cluster_CKMS2021
+    make_pliv_multiway_cluster_CKMS2021, make_partial_copula_additive_approx_sparse
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -30,6 +31,7 @@ y[y > 0] = 1
 y[y < 0] = 0
 dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
 dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
+dml_data_partial_dep = make_partial_copula_additive_approx_sparse(n_obs=50, copula_family='Gumbel', theta=3.)
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -154,6 +156,32 @@ def test_doubleml_exception_scores():
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score=0)
+
+    msg = 'Invalid score correlation. Valid score corr or orthogonal.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCorr(dml_data_partial_dep, Lasso(), Lasso(), score='correlation')
+    msg = 'Invalid score 0. Valid score corr or orthogonal.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCorr(dml_data_partial_dep, Lasso(), Lasso(), score=0)
+
+    msg = 'Invalid score like. Valid score likelihood or orthogonal.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCopula(dml_data_partial_dep, 'Gumbel', Lasso(), Lasso(), score='like')
+    msg = 'Invalid score 0. Valid score likelihood or orthogonal.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCopula(dml_data_partial_dep, 'Gumbel', Lasso(), Lasso(), score=0)
+
+
+@pytest.mark.ci
+def test_doubleml_partial_copula_exception_cop_family():
+    msg = 'Invalid copula family normal. Valid copula families Clayton or Gaussian or Frank or Gumbel.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCopula(dml_data_partial_dep, copula_family='normal',
+                                  ml_g=Lasso(), ml_m=Lasso())
+    msg = 'Invalid copula family 0. Valid copula families Clayton or Gaussian or Frank or Gumbel.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialCopula(dml_data_partial_dep, copula_family=0,
+                                  ml_g=Lasso(), ml_m=Lasso())
 
 
 @pytest.mark.ci

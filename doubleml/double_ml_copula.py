@@ -98,30 +98,7 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        # TODO: One class for DoubleMLPartialCopula or separate for the different families, like DoubleMLGaussianCopula
-        valid_copula_families = ['Clayton', 'Gaussian', 'Frank', 'Gumbel']
-        # TODO that copula_family is a str
-        if copula_family not in valid_copula_families:
-            raise ValueError('Invalid copula family ' + copula_family + '. ' +
-                             'Valid copula families ' + ' or '.join(valid_copula_families) + '.')
-        if copula_family == 'Gaussian':
-            self.copula = GaussianCopula()
-            self._coef_bounds = (-0.999, 0.999)
-            self._coef_start_val = 0.5
-        elif copula_family == 'Clayton':
-            self.copula = ClaytonCopula()
-            self._coef_bounds = (0.0001, 28)
-            self._coef_start_val = 3.0
-        elif copula_family == 'Frank':
-            self.copula = FrankCopula()
-            self._coef_bounds = (-40, 40)
-            self._coef_start_val = 5.0
-        else:
-            assert copula_family == 'Gumbel'
-            self.copula = GumbelCopula()
-            self._coef_bounds = (1, 20)
-            self._coef_start_val = 3.0
-
+        (self.copula, self._coef_bounds, self._coef_start_val) = self._check_copula_family(copula_family)
         self._check_data(self._dml_data)
         self._check_score(self.score)
         _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
@@ -139,20 +116,40 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ['ml_g', 'ml_m']}
 
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['likelihood', 'orthogonal']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-            if score == 'likelihood':
-                warnings.warn(('The likelihood score function for the estimation of partial copulas is not'
-                               'necessarily Neyman orthogonal. It might result in biased estimates and standard errors'
-                               ' / confidence intervals might not be valid. It is therefore not recommended.'))
+    def _check_copula_family(self, copula_family):
+        valid_copula_families = ['Clayton', 'Gaussian', 'Frank', 'Gumbel']
+        if (not isinstance(copula_family, str)) | (copula_family not in valid_copula_families):
+            raise ValueError('Invalid copula family ' + str(copula_family) + '. ' +
+                             'Valid copula families ' + ' or '.join(valid_copula_families) + '.')
+        if copula_family == 'Gaussian':
+            copula = GaussianCopula()
+            coef_bounds = (-0.999, 0.999)
+            coef_start_val = 0.5
+        elif copula_family == 'Clayton':
+            copula = ClaytonCopula()
+            coef_bounds = (0.0001, 28)
+            coef_start_val = 3.0
+        elif copula_family == 'Frank':
+            copula = FrankCopula()
+            coef_bounds = (-40, 40)
+            coef_start_val = 5.0
         else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
+            assert copula_family == 'Gumbel'
+            copula = GumbelCopula()
+            coef_bounds = (1, 20)
+            coef_start_val = 3.0
+
+        return copula, coef_bounds, coef_start_val
+
+    def _check_score(self, score):
+        valid_score = ['likelihood', 'orthogonal']
+        if (not isinstance(score, str)) | (score not in valid_score):
+            raise ValueError('Invalid score ' + str(score) + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+        if score == 'likelihood':
+            warnings.warn(('The likelihood score function for the estimation of partial copulas is not'
+                           'necessarily Neyman orthogonal. It might result in biased estimates and standard errors'
+                           ' / confidence intervals might not be valid. It is therefore not recommended.'))
         return
 
     def _check_data(self, obj_dml_data):
