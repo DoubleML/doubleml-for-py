@@ -845,7 +845,7 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
 
-    def data_summary_str(self):
+    def _data_summary_str(self):
         data_summary = f'Y variable: {self.y_col}\n' \
                        f'Z variable(s): {self.z_col}\n' \
                        f'Covariates: {self.x_cols}\n' \
