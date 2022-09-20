@@ -1327,11 +1327,11 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _compute_score(self, psi_elements, coef, inds=None):
+    def _compute_score(self, psi_elements, coef):
         pass
 
     @abstractmethod
-    def _compute_score_deriv(self, psi_elements, coef, inds=None):
+    def _compute_score_deriv(self, psi_elements, coef):
         pass
 
     def _get_score_elements(self, i_rep, i_treat):
