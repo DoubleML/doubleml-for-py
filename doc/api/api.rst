@@ -60,6 +60,7 @@ Dataset generators
    datasets.make_iivm_data
    datasets.make_plr_turrell2018
    datasets.make_pliv_multiway_cluster_CKMS2021
+   datasets.make_partial_copula_additive_approx_sparse
 
 Score mixin classes for double machine learning models
 ------------------------------------------------------
