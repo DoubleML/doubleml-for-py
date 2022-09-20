@@ -2,9 +2,10 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLPartialDependenceData,\
+    DoubleMLPartialCopula
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
-    make_pliv_multiway_cluster_CKMS2021
+    make_pliv_multiway_cluster_CKMS2021, make_partial_copula_additive_approx_sparse
 from sklearn.linear_model import Lasso
 
 
@@ -101,6 +102,12 @@ def test_obj_vs_from_arrays():
               inplace=True)
     assert dml_data_from_array.data.equals(df)
 
+    dml_data = make_partial_copula_additive_approx_sparse(n_obs=100, copula_family='Gumbel', theta=3.)
+    dml_data_from_array = DoubleMLPartialDependenceData.from_arrays(dml_data.data[dml_data.x_cols],
+                                                                    dml_data.data[dml_data.y_col],
+                                                                    dml_data.data[dml_data.z_col])
+    assert dml_data_from_array.data.equals(dml_data.data)
+
 
 @pytest.mark.ci
 def test_add_vars_in_df():
@@ -116,6 +123,27 @@ def test_add_vars_in_df():
     dml_plr_subset.fit()
     assert np.allclose(dml_plr_full_df.coef, dml_plr_subset.coef, rtol=1e-9, atol=1e-4)
     assert np.allclose(dml_plr_full_df.se, dml_plr_subset.se, rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_add_vars_in_df_pcop():
+    # additional variables in the df shouldn't affect results
+    np.random.seed(3141)
+    df = make_partial_copula_additive_approx_sparse(n_obs=100, copula_family='Gumbel', theta=3.,
+                                                    return_type='DataFrame')
+    dml_data_full_df = DoubleMLPartialDependenceData(df,
+                                                     'y', 'z', ['X1', 'X11', 'X13'])
+    dml_data_subset = DoubleMLPartialDependenceData(df[['X1', 'X11', 'X13'] + ['y', 'z']],
+                                                    'y', 'z', ['X1', 'X11', 'X13'])
+    dml_pcop_full_df = DoubleMLPartialCopula(dml_data_full_df, 'Gumbel',
+                                             Lasso(), Lasso())
+    dml_pcop_subset = DoubleMLPartialCopula(dml_data_subset, 'Gumbel',
+                                            Lasso(), Lasso(), draw_sample_splitting=False)
+    dml_pcop_subset.set_sample_splitting(dml_pcop_full_df.smpls)
+    dml_pcop_full_df.fit()
+    dml_pcop_subset.fit()
+    assert np.allclose(dml_pcop_full_df.coef, dml_pcop_subset.coef, rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_pcop_full_df.se, dml_pcop_subset.se, rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci
@@ -156,9 +184,27 @@ def test_x_cols_setter_defaults_w_cluster():
 
 
 @pytest.mark.ci
-def test_x_cols_setter():
+def test_x_cols_setter_defaults_partial_dep():
+    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
+                      columns=['yy', 'zz', 'xx1', 'xx2'])
+    dml_data = DoubleMLPartialDependenceData(df, y_col='yy', z_col='zz')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+
+@pytest.fixture(scope='module',
+                params=['plr', 'pcop'])
+def dml_data(request):
     np.random.seed(3141)
-    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+    if request.param == 'plr':
+        res = make_plr_CCDDHNR2018(n_obs=100)
+    else:
+        assert request.param == 'pcop'
+        res = make_partial_copula_additive_approx_sparse(n_obs=100, copula_family='Clayton', theta=3.)
+    return res
+
+
+@pytest.mark.ci
+def test_x_cols_setter(dml_data):
     orig_x_cols = dml_data.x_cols
 
     # check that after changing the x_cols, the x array gets updated
@@ -315,6 +361,52 @@ def test_y_col_setter():
 
 
 @pytest.mark.ci
+def test_y_col_setter_partial_dep():
+    np.random.seed(3141)
+    dml_data = make_partial_copula_additive_approx_sparse(n_obs=100, copula_family='Frank', theta=3.)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'y123', 'z']
+    dml_data = DoubleMLPartialDependenceData(df, 'y', 'z', [f'X{i + 1}' for i in np.arange(7)])
+
+    # check that after changing y_col, the y array gets updated
+    y_comp = dml_data.data['y123'].values
+    dml_data.y_col = 'y123'
+    assert np.array_equal(dml_data.y, y_comp)
+
+    msg = r'Invalid variable y_col. d13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.y_col = 'd13'
+
+    msg = (r'The variable y_col must be of str type. '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.y_col = 5
+
+
+@pytest.mark.ci
+def test_z_col_setter_partial_dep():
+    np.random.seed(3141)
+    dml_data = make_partial_copula_additive_approx_sparse(n_obs=100, copula_family='Frank', theta=3.)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [f'X{i + 1}' for i in np.arange(7)] + ['y', 'z123', 'z']
+    dml_data = DoubleMLPartialDependenceData(df, 'y', 'z', [f'X{i + 1}' for i in np.arange(7)])
+
+    # check that after changing z_col, the z array gets updated
+    z_comp = dml_data.data['z123'].values
+    dml_data.z_col = 'z123'
+    assert np.array_equal(dml_data.z, z_comp)
+
+    msg = r'Invalid variable z_col. d13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.z_col = 'd13'
+
+    msg = (r'The variable z_col must be of str type. '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.z_col = 5
+
+
+@pytest.mark.ci
 def test_use_other_treat_as_covariate():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
@@ -400,6 +492,16 @@ def test_disjoint_sets():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols=['xx2'], cluster_cols='xx2')
 
+    msg = 'yy cannot be set as first outcome variable ``y_col`` and covariate in ``x_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialDependenceData(df, y_col='yy', z_col='dd1', x_cols=['xx1', 'yy', 'xx2'])
+    msg = 'dd1 cannot be set as second outcome variable ``z_col`` and covariate in ``x_cols``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialDependenceData(df, y_col='yy', z_col='dd1', x_cols=['xx1', 'dd1', 'xx2'])
+    msg = 'yy cannot be set as first outcome variable ``y_col`` and as second outcome variable ``z_col``'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialDependenceData(df, y_col='yy', z_col='yy', x_cols=['xx1', 'xx2'])
+
 
 @pytest.mark.ci
 def test_duplicates():
@@ -418,6 +520,8 @@ def test_duplicates():
         _ = DoubleMLData(dml_data.data, y_col='y', d_cols=['d'], x_cols=['X3', 'X2', 'X3'])
     with pytest.raises(ValueError, match=msg):
         dml_data.x_cols = ['X3', 'X2', 'X3']
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialDependenceData(dml_data.data, y_col='y', z_col='d', x_cols=['X3', 'X2', 'X3'])
 
     msg = r'Invalid instrumental variable\(s\) z_cols: Contains duplicate values.'
     with pytest.raises(ValueError, match=msg):
@@ -439,6 +543,9 @@ def test_duplicates():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
                                 y_col='y', d_cols=['d'], cluster_cols=['X2'])
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPartialDependenceData(pd.DataFrame(np.zeros((100, 5)), columns=['y', 'd', 'X3', 'X2', 'y']),
+                                          y_col='y', z_col='d')
 
 
 @pytest.mark.ci
@@ -450,6 +557,8 @@ def test_dml_datatype():
         _ = DoubleMLData(data_array, y_col='y', d_cols=['d'], x_cols=['X3', 'X2'])
     with pytest.raises(TypeError):
         _ = DoubleMLClusterData(data_array, y_col='y', d_cols=['d'], cluster_cols=['X3', 'X2'])
+    with pytest.raises(TypeError):
+        _ = DoubleMLPartialDependenceData(data_array, y_col='y', z_col='d', x_cols=['X3', 'X2'])
 
 
 @pytest.mark.ci
