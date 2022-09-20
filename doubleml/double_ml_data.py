@@ -826,13 +826,15 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
                  data,
                  y_col,
                  z_col,
-                 x_cols=None):
+                 x_cols=None,
+                 force_all_x_finite=True):
         DoubleMLBaseData.__init__(self, data)
 
         self.y_col = y_col
         self.z_col = z_col
         self.x_cols = x_cols
         self._check_disjoint_sets_y_z_x()
+        self.force_all_x_finite = force_all_x_finite
         self._set_y_z_x()
 
     def __str__(self):
@@ -851,6 +853,63 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
                        f'Covariates: {self.x_cols}\n' \
                        f'No. Observations: {self.n_obs}\n'
         return data_summary
+
+    @classmethod
+    def from_arrays(cls, x, y, z,
+                    force_all_x_finite=True):
+        """
+        Initialize :class:`DoubleMLPartialDependenceData` from :class:`numpy.ndarray`'s.
+
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y : :class:`numpy.ndarray`
+            Array of the first outcome variable ``y``.
+
+        z : :class:`numpy.ndarray`
+            Array of the second outcome variable ``z``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
+        Examples
+        --------
+        >>> from doubleml import DoubleMLData
+        >>> from doubleml.datasets import make_partial_copula_additive_approx_sparse
+        >>> (x, y, z) = make_partial_copula_additive_approx_sparse(copula_family='Gumbel', theta=3, return_type='array')
+        >>> obj_dml_data_from_array = DoubleMLPartialDependenceData.from_arrays(x, y, z)
+        """
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
+        y = column_or_1d(y, warn=True)
+        z = column_or_1d(z, warn=True)
+
+        x = _assure_2d_array(x)
+
+        y_col = 'y'
+        z_col = 'z'
+        x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
+
+        data = pd.DataFrame(np.column_stack((x, y, z)),
+                            columns=x_cols + [y_col] + [z_col])
+
+        return cls(data, y_col, z_col, x_cols, force_all_x_finite)
 
     @property
     def x(self):
@@ -906,7 +965,7 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
             self._x_cols = value
         else:
             # x_cols defaults to all columns but y_col and z_col
-            y_z = set.union({self.y_col}, set(self.z_col))
+            y_z = set.union({self.y_col}, {self.z_col})
             x_cols = [col for col in self.data.columns if col not in y_z]
             self._x_cols = x_cols
         if reset_value:
@@ -916,7 +975,7 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
     @property
     def y_col(self):
         """
-        The y variable.
+        The first outcome variable y.
         """
         return self._y_col
 
@@ -937,7 +996,7 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
     @property
     def z_col(self):
         """
-        The z variable.
+        The second outcome variable z.
         """
         return self._z_col
 
@@ -955,9 +1014,34 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
             self._check_disjoint_sets()
             self._set_y_z_x()
 
+    @property
+    def force_all_x_finite(self):
+        """
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        """
+        return self._force_all_x_finite
+
+    @force_all_x_finite.setter
+    def force_all_x_finite(self, value):
+        reset_value = hasattr(self, '_force_all_x_finite')
+        if isinstance(value, str):
+            if value != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + value + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(value, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+        self._force_all_x_finite = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_x()
+
     def _set_y_z_x(self):
         self._y = self.data.loc[:, self.y_col]
         self._z = self.data.loc[:, self.z_col]
+        if self.force_all_x_finite:
+            assert_all_finite(self.data.loc[:, self.x_cols],
+                              allow_nan=self.force_all_x_finite == 'allow-nan')
         self._X = self.data.loc[:, self.x_cols]
 
     def _check_disjoint_sets(self):
@@ -970,11 +1054,11 @@ class DoubleMLPartialDependenceData(DoubleMLBaseData):
         x_cols_set = set(self.x_cols)
 
         if not y_col_set.isdisjoint(x_cols_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as y variable ``y_col`` and covariate in '
+            raise ValueError(f'{str(self.y_col)} cannot be set as first outcome variable ``y_col`` and covariate in '
                              '``x_cols``.')
         if not z_col_set.isdisjoint(x_cols_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as z variable ``z_col`` and covariate in '
+            raise ValueError(f'{str(self.z_col)} cannot be set as second outcome variable ``z_col`` and covariate in '
                              '``x_cols``.')
         if not y_col_set.isdisjoint(z_col_set):
-            raise ValueError(f'{str(self.y_col)} cannot be set as y variable ``y_col`` and as z variable '
-                             '``z_col``.')
+            raise ValueError(f'{str(self.y_col)} cannot be set as first outcome variable ``y_col`` and as second '
+                             'outcome variable ``z_col``.')
