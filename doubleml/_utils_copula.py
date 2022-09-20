@@ -278,7 +278,9 @@ class GaussianCopula(Copula):
 
     @staticmethod
     def ll(par, u, v):
-        res = np.log(GaussianCopula.pdf(par, u, v))
+        pdf_eval = GaussianCopula.pdf(par, u, v)
+        pdf_eval[pdf_eval < 1e-20] = 1e-20  # extreme parameter choices --> evaluated pdf tiny --> prevent log(0)
+        res = np.log(pdf_eval)
         return res
 
     @staticmethod
