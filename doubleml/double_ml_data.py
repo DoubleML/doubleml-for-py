@@ -23,6 +23,20 @@ class DoubleMLBaseData(ABC):
                              'Contains duplicate column names.')
         self._data = data
 
+    def __str__(self):
+        data_summary = self.data_summary_str()
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    def data_summary_str(self):
+        data_summary = f'No. Observations: {self.n_obs}\n'
+        return data_summary
+
     @property
     def data(self):
         """
@@ -137,19 +151,13 @@ class DoubleMLData(DoubleMLBaseData):
         # by default, we initialize to the first treatment variable
         self.set_x_d(self.d_cols[0])
 
-    def __str__(self):
-        data_info = f'Outcome variable: {self.y_col}\n' \
-                    f'Treatment variable(s): {self.d_cols}\n' \
-                    f'Covariates: {self.x_cols}\n' \
-                    f'Instrument variable(s): {self.z_cols}\n' \
-                    f'No. Observations: {self.n_obs}\n'
-        buf = io.StringIO()
-        self.data.info(verbose=False, buf=buf)
-        df_info = buf.getvalue()
-        res = '================== DoubleMLData Object ==================\n' + \
-              '\n------------------ Data summary      ------------------\n' + data_info + \
-              '\n------------------ DataFrame info    ------------------\n' + df_info
-        return res
+    def data_summary_str(self):
+        data_summary = f'Outcome variable: {self.y_col}\n' \
+                       f'Treatment variable(s): {self.d_cols}\n' \
+                       f'Covariates: {self.x_cols}\n' \
+                       f'Instrument variable(s): {self.z_cols}\n' \
+                       f'No. Observations: {self.n_obs}\n'
+        return data_summary
 
     @classmethod
     def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True,
@@ -634,20 +642,14 @@ class DoubleMLClusterData(DoubleMLData):
                               force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
 
-    def __str__(self):
-        data_info = f'Outcome variable: {self.y_col}\n' \
-                    f'Treatment variable(s): {self.d_cols}\n' \
-                    f'Cluster variable(s): {self.cluster_cols}\n' \
-                    f'Covariates: {self.x_cols}\n' \
-                    f'Instrument variable(s): {self.z_cols}\n' \
-                    f'No. Observations: {self.n_obs}\n'
-        buf = io.StringIO()
-        self.data.info(verbose=False, buf=buf)
-        df_info = buf.getvalue()
-        res = '================== DoubleMLClusterData Object ==================\n' + \
-              '\n------------------ Data summary      ------------------\n' + data_info + \
-              '\n------------------ DataFrame info    ------------------\n' + df_info
-        return res
+    def data_summary_str(self):
+        data_summary = f'Outcome variable: {self.y_col}\n' \
+                       f'Treatment variable(s): {self.d_cols}\n' \
+                       f'Cluster variable(s): {self.cluster_cols}\n' \
+                       f'Covariates: {self.x_cols}\n' \
+                       f'Instrument variable(s): {self.z_cols}\n' \
+                       f'No. Observations: {self.n_obs}\n'
+        return data_summary
 
     @classmethod
     def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True,
