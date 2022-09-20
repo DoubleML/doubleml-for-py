@@ -187,18 +187,12 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
 
         return mu
 
-    def _compute_score(self, psi_elements, theta, inds=None):
+    def _compute_score(self, psi_elements, theta):
         if self.score == 'orthogonal':
             eps_y = psi_elements['eps_y']
             eps_z = psi_elements['eps_z']
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-
-            if inds is not None:
-                eps_y = eps_y[inds]
-                eps_z = eps_z[inds]
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             if self._theta_initial:
                 if self._theta_for_mu is None:
@@ -235,28 +229,17 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
             eps_z = psi_elements['eps_z']
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-            if inds is not None:
-                eps_y = eps_y[inds]
-                eps_z = eps_z[inds]
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             res = np.multiply(eps_y, eps_z) - theta * np.multiply(sigma_eps_y, sigma_eps_z)
 
         return res
 
-    def _compute_score_deriv(self, psi_elements, theta, inds=None):
+    def _compute_score_deriv(self, psi_elements, theta):
         if self.score == 'orthogonal':
             eps_y = psi_elements['eps_y']
             eps_z = psi_elements['eps_z']
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-
-            if inds is not None:
-                eps_y = eps_y[inds]
-                eps_z = eps_z[inds]
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             if self._theta_initial:
                 if self._theta_for_mu is None:
@@ -296,10 +279,6 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
             assert self.score == 'corr'
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-
-            if inds is not None:
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             res = - np.multiply(sigma_eps_y, sigma_eps_z)
         return res

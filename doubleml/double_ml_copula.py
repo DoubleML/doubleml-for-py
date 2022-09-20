@@ -211,7 +211,7 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
                                       u, v, eps_y, eps_z, sigma_eps_y, sigma_eps_z)
         return mu
 
-    def _compute_score(self, psi_elements, par, inds=None):
+    def _compute_score(self, psi_elements, par):
         if self.score == 'orthogonal':
             u = psi_elements['u']
             v = psi_elements['v']
@@ -219,14 +219,6 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
             eps_z = psi_elements['eps_z']
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-
-            if inds is not None:
-                u = u[inds]
-                v = v[inds]
-                eps_y = eps_y[inds]
-                eps_z = eps_z[inds]
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             if self._par_initial:
                 if self._par_for_mu is None:
@@ -276,15 +268,12 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
             assert self.score == 'likelihood'
             u = psi_elements['u']
             v = psi_elements['v']
-            if inds is not None:
-                u = u[inds]
-                v = v[inds]
             res = self.copula.ll_deriv(par,
                                        u, v,
                                        'd_par')
         return res
 
-    def _compute_score_deriv(self, psi_elements, par, inds=None):
+    def _compute_score_deriv(self, psi_elements, par):
         if self.score == 'orthogonal':
             u = psi_elements['u']
             v = psi_elements['v']
@@ -292,14 +281,6 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
             eps_z = psi_elements['eps_z']
             sigma_eps_y = psi_elements['sigma_eps_y']
             sigma_eps_z = psi_elements['sigma_eps_z']
-
-            if inds is not None:
-                u = u[inds]
-                v = v[inds]
-                eps_y = eps_y[inds]
-                eps_z = eps_z[inds]
-                sigma_eps_y = sigma_eps_y[inds]
-                sigma_eps_z = sigma_eps_z[inds]
 
             if self._par_initial:
                 if self._par_for_mu is None:
@@ -346,9 +327,6 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
             assert self.score == 'likelihood'
             u = psi_elements['u']
             v = psi_elements['v']
-            if inds is not None:
-                u = u[inds]
-                v = v[inds]
             res = self.copula.ll_deriv(par,
                                        u, v,
                                        'd2_par_par')
