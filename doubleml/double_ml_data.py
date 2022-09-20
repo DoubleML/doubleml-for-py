@@ -28,7 +28,7 @@ class DoubleMLBaseData(ABC):
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         df_info = buf.getvalue()
-        res = '================== DoubleMLData Object ==================\n' + \
+        res = '================== DoubleMLBaseData Object ==================\n' + \
               '\n------------------ Data summary      ------------------\n' + data_summary + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
@@ -150,6 +150,16 @@ class DoubleMLData(DoubleMLBaseData):
         self._set_y_z()
         # by default, we initialize to the first treatment variable
         self.set_x_d(self.d_cols[0])
+
+    def __str__(self):
+        data_summary = self.data_summary_str()
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
 
     def data_summary_str(self):
         data_summary = f'Outcome variable: {self.y_col}\n' \
@@ -641,6 +651,16 @@ class DoubleMLClusterData(DoubleMLData):
                               use_other_treat_as_covariate,
                               force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
+
+    def __str__(self):
+        data_summary = self.data_summary_str()
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLClusterData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
 
     def data_summary_str(self):
         data_summary = f'Outcome variable: {self.y_col}\n' \
