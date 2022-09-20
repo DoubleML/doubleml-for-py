@@ -46,9 +46,11 @@ class DummyDataClass(DoubleMLBaseData):
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = 'The data must be of DoubleMLData or DoubleMLClusterData type.'
+    msg = 'The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLPartialDependenceData type.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPartialCopula(pd.DataFrame(), 'Clayton', ml_l, ml_m)
 
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
@@ -60,6 +62,12 @@ def test_doubleml_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))),
                          Lasso(), LogisticRegression(), LogisticRegression())
+
+    msg = 'The data must be of DoubleMLPartialDependenceData type.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPartialCorr(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPartialCopula(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), 'Clayton', ml_g, ml_m)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '

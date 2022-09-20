@@ -15,7 +15,7 @@ from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
 
 
-_implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
+_implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData', 'DoubleMLPartialDependenceData']
 
 
 class DoubleML(ABC):
