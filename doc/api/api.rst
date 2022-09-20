@@ -12,6 +12,7 @@ Double machine learning data class
 
     DoubleMLData
     DoubleMLClusterData
+    DoubleMLPartialDependenceData
 
 Double machine learning models
 ------------------------------
@@ -26,6 +27,8 @@ Double machine learning models
     DoubleMLPLIV
     DoubleMLIRM
     DoubleMLIIVM
+    DoubleMLPartialCorr
+    DoubleMLPartialCopula
 
 
 Datasets module

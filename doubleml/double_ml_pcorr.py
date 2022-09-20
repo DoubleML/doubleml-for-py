@@ -10,6 +10,66 @@ from ._utils import _dml_cv_predict, _dml_tune
 
 
 class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
+    """Double machine learning for partial correlations
+
+    Parameters
+    ----------
+    obj_dml_data : :class:`DoubleMLPartialDependenceData` object
+        The :class:`DoubleMLPartialDependenceData` object providing the data and specifying the variables for the model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
+
+    ml_m : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str
+        A str (``'orthogonal'`` or ``'corr'``) specifying the score function.
+        Default is ``'orthogonal'``.
+
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied.
+        Default is ``True``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.datasets import make_partial_copula_additive_approx_sparse
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> from sklearn.base import clone
+    >>> np.random.seed(1234)
+    >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_g = clone(learner)
+    >>> ml_m = clone(learner)
+    >>> dml_data_pcop = make_partial_copula_additive_approx_sparse(copula_family='Gaussian', theta=0.6)
+    >>> dml_pcorr = dml.DoubleMLPartialCorr(dml_data_pcop, ml_g, ml_m)
+    >>> dml_pcorr.fit().summary
+               coef   std err          t          P>|t|     2.5 %    97.5 %
+    theta  0.622696  0.027874  22.340007  1.510205e-110  0.568065  0.677327
+
+    Notes
+    -----
+    ToDo
+    """
     _theta_initial = False
     _theta_for_mu = None
     _est_mu_type = 'standard_exp'  # 'standard', 'standard_exp'
