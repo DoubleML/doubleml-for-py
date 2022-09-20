@@ -119,7 +119,7 @@ class DoubleML(ABC):
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
-        data_summary = self._dml_data.data_summary_str()
+        data_summary = self._dml_data._data_summary_str()
         score_info = f'Score function: {str(self.score)}\n' \
                      f'DML algorithm: {self.dml_procedure}\n'
         learner_info = ''
