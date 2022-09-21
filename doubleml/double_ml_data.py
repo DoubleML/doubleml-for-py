@@ -822,6 +822,48 @@ class DoubleMLClusterData(DoubleMLData):
 
 
 class DoubleMLPartialDependenceData(DoubleMLBaseData):
+    """Data backend to estimate partial correlations and partial copulas with double machine learning
+
+    :class:`DoubleMLPartialDependenceData` objects can be initialized from
+    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
+
+    Parameters
+    ----------
+    data : :class:`pandas.DataFrame`
+        The data.
+
+    y_col : str
+        The first outcome variable y.
+
+    z_col : str
+        The second outcome variable z.
+
+    x_cols : None, str or list
+        The covariates.
+        If ``None``, all variables (columns of ``data``) which are neither specified as first outcome variable
+        ``y_col``, nor as second outcome variabel ``z_col`` are used as covariates.
+        Default is ``None``.
+
+    force_all_x_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+        in the covariates ``x``.
+        Default is ``True``.
+
+    Examples
+    --------
+    >>> from doubleml import DoubleMLPartialDependenceData
+    >>> from doubleml.datasets import make_partial_copula_additive_approx_sparse
+    >>> # initialization from pandas.DataFrame
+    >>> df = dml_data_pcop = make_partial_copula_additive_approx_sparse(return_type='DataFrame')
+    >>> obj_dml_data_from_df = DoubleMLPartialDependenceData(df, 'y', 'z')
+    >>> # initialization from np.ndarray
+    >>> (x, y, z) = make_partial_copula_additive_approx_sparse(return_type='array')
+    >>> obj_dml_data_from_array = DoubleMLPartialDependenceData.from_arrays(x, y, z)
+    """
     def __init__(self,
                  data,
                  y_col,
