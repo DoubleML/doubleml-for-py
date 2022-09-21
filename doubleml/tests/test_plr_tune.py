@@ -88,7 +88,9 @@ def dml_plr_fixture(generate_data2, learner_l, learner_m, learner_g, score, dml_
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    _ = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    tune_res = dml_plr_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
+                                return_tune_res=True)
+    assert isinstance(tune_res, list)
 
     # fit with tuned parameters
     dml_plr_obj.fit()

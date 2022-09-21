@@ -94,7 +94,9 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
                                     subgroups=subgroups,
                                     dml_procedure=dml_procedure)
     # tune hyperparameters
-    _ = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    tune_res = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
+                                 return_tune_res=True)
+    assert isinstance(tune_res, list)
 
     dml_iivm_obj.fit()
 
