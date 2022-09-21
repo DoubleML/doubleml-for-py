@@ -69,6 +69,11 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
     Notes
     -----
     ToDo
+
+    References
+    ----------
+    Kurz, M. S. and Kück, J. (2022), Double machine learning for partial correlations and partial copulas, Unpublished
+    Working Paper.
     """
     _theta_initial = False
     _theta_for_mu = None
