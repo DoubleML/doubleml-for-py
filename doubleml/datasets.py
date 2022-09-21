@@ -779,6 +779,56 @@ def _mult_norm_corr_toeplitz(rho, dim_x):
 def make_partial_copula_additive_approx_sparse(n_obs=500, dim_x=20,
                                                copula_family='Gaussian', theta=0.5,
                                                return_type='DoubleMLPartialDependenceData', **kwargs):
+    """
+    Generates data from a partial copula model used in Kurz and Kück (2022).
+    The data generating process is defined as joint regression model
+
+    .. math::
+
+        y_i &= x_i' \\beta + \\varepsilon_i, & &\\varepsilon_i \\sim \\mathcal{N}(0,\\sigma_0^2),
+
+        z_i &= x_i' \\gamma + \\xi_i, & &\\xi_i \\sim \\mathcal{N}(0,\\nu_0^2),
+
+    where we assume a parametric copula (Gaussian, Clayton, Frank or Gumbel) model
+
+    .. math::
+
+        (u_i, v_i) := ( F_{\\varepsilon}(\\varepsilon), F_{\\xi}(\\xi) )
+        := \\bigg(\\Phi\\bigg(\\frac{y_i - x_i' \\beta}{\\sigma_0}\\bigg),
+        \\Phi\\bigg(\\frac{z_i - x_i' \\gamma}{\\nu_0}\\bigg)\\bigg) \\sim C(\\theta_0).
+
+    The true parameter :math:`\\theta_0` of the partial copula is the estimation target.
+    The covariates are simulated from a multivariate normal distribution :math:`x_i \\sim \\mathcal{N}(0, \\Sigma)`,
+    where :math:`\\Sigma` is a matrix with entries :math:`\\Sigma_{ij} = 0.7^{|i-j|}`.
+    :math:`\\beta` and :math:`\\gamma` are ``dim_x``-vectors with entries :math:`\\beta_j=\\gamma_j=\\frac{1}{j^2}`.
+
+
+    Parameters
+    ----------
+    n_obs :
+        The number of observations to simulate.
+    dim_x :
+        The number of covariates.
+    copula_family :
+        The copula family (``'Clayton'``, ``'Gaussian'``, ``'Frank'`` or ``'Gumbel'``).
+    theta :
+        The copula parameter.
+    return_type :
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+
+        If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
+
+        If ``'array'``, ``'np.ndarray'``, ``'np.array'`` or ``np.ndarray``, returns ``np.ndarray``'s ``(x, y, d, z)``.
+    **kwargs
+        Additional keyword arguments to set non-default values for the parameters
+        :math:`\\rho=0.7` (``rho``), :math:`\\sigma_0=1.0` (``sigma_eps_y``) and
+        :math:`\\nu_0=1.0` (``sigma_eps_z``).
+
+    References
+    ----------
+    Kurz, M. S. and Kück, J. (2022), Double machine learning for partial correlations and partial copulas, Unpublished
+    Working Paper.
+    """
     rho = kwargs.get('rho', 0.7)
     sigma_eps_y = kwargs.get('sigma_eps_y', 1.0)
     sigma_eps_z = kwargs.get('sigma_eps_z', 1.0)
