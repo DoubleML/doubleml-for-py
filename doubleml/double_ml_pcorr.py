@@ -68,7 +68,38 @@ class DoubleMLPartialCorr(NonLinearScoreMixin, DoubleML):
 
     Notes
     -----
-    ToDo
+    :class:`DoubleMLPartialCorr` implements a double machine learning estimate for the partial correlation coefficient.
+    For this, additive regression models are assumed
+
+    .. math::
+
+        Y &= g_0(X) + \\varepsilon, & &\\mathbb{E}(\\varepsilon | X) = 0,
+
+        Z &= m_0(X) + \\xi, & &\\mathbb{E}(\\xi | X) = 0,
+
+    with nuisance parameters :math:`g_0(X) = \\mathbb{E}(Y|X)`, :math:`m_0(X) = \\mathbb{E}(Z|X)`
+    and variances :math:`\\sigma_0^2 = \\mathbb{E}(\\varepsilon^2)` and :math:`\\nu_0^2 = \\mathbb{E}(\\xi^2)`.
+    The target parameter is the (generalized) partial correlation coefficient
+
+    .. math::
+
+        \\theta_0 := Corr(Y - \\mathbb{E}(Y|X), Z - \\mathbb{E}(Z|X)) = Corr(Y - g_0(X), Z - m_0(X)).
+
+    The implemented score functions are: The classical ``score='corr'`` given by (see Kurz and Kück, 2022)
+
+    .. math::
+
+        \\psi_3(W; \\theta, \\lambda) = (Y - g(X)) (Z - m(X)) - \\theta \\sigma \\nu,
+
+    with nuisance parameters :math:`\\lambda := (g, \\sigma, m, \\nu)`, and the orthogonalized score function
+    ``score='orthogonal'`` given by (see Kurz and Kück, 2022)
+
+    .. math::
+
+        \\psi_4(W; \\theta, \\eta) = \\mathcal{C}_{\\theta}(W; \\theta, \\lambda)
+        - \\mu \\cdot \\mathcal{C}_{\\sigma \\nu}(W; \\theta, \\lambda),
+
+    with nuisance parameters :math:`\\eta := (g, \\sigma, m, \\nu, \\mu)`.
 
     References
     ----------

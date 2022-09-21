@@ -73,7 +73,46 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
 
     Notes
     -----
-    ToDo
+    :class:`DoubleMLPartialCopula` implements a double machine learning estimate for the partial copulas.
+    For this, we consider the joint regression model
+
+    .. math::
+
+        Y &= g_0(X) + \\varepsilon, & &\\mathbb{E}(\\varepsilon | X) = 0,
+
+        Z &= m_0(X) + \\xi, & &\\mathbb{E}(\\xi | X) = 0,
+
+    where we assume a parametric copula (Gaussian, Clayton, Frank or Gumbel) model
+
+    .. math::
+
+        (u(W; \\lambda), v(W; \\lambda)) := ( F_{\\varepsilon}(\\varepsilon), F_{\\xi}(\\xi) )
+        := \\bigg(\\Phi\\bigg(\\frac{Y - g_0(X)}{\\sigma_0}\\bigg),
+        \\Phi\\bigg(\\frac{Z - m_0(X)}{\\nu_0}\\bigg)\\bigg) \\sim C(\\theta_0),
+
+    with :math:`W := (Y,Z,X)` and nuisance parameters :math:`\\lambda := (g, \\sigma, m, \\nu)`.
+    For the disturbances, we assume normal distributions :math:`\\varepsilon \\sim \\mathcal{N}(0,\\sigma_0^2)`
+    and :math:`\\xi \\sim \\mathcal{N}(0,\\nu_0^2)`.
+    The nuisance parameters are given by :math:`g_0(X) = \\mathbb{E}(Y|X)`, :math:`m_0(X) = \\mathbb{E}(Z|X)`
+    and the variances :math:`\\sigma_0^2 = \\mathbb{E}(\\varepsilon^2)` and :math:`\\nu_0^2 = \\mathbb{E}(\\xi^2)`.
+    The true parameter :math:`\\theta_0` of the partial copula is the estimation target.
+
+    The implemented score functions are: The classical ``score='likelihood'`` identifying the likelihood estimator given
+    by (see Kurz and Kück, 2022)
+
+    .. math::
+
+        \\psi_5(W; \\theta, \\lambda) = \\partial_\\theta \\ell(u(W; \\lambda), v(W; \\lambda); \\theta),
+
+    with nuisance parameters :math:`\\lambda := (g, \\sigma, m, \\nu)`, and the orthogonalized score function
+    ``score='orthogonal'`` given by (see Kurz and Kück, 2022)
+
+    .. math::
+
+        \\psi_6(W; \\theta, \\eta) = \\partial_\\theta \\ell(u(W; \\lambda), v(W; \\lambda); \\theta)
+        - \\mu \\cdot \\tilde{\\ell}_{\\lambda}(W; \\theta, \\lambda),
+
+    with nuisance parameters :math:`\\eta := (g, \\sigma, m, \\nu, \\mu)`.
 
     References
     ----------
