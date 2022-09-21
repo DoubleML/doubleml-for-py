@@ -299,8 +299,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                           DeprecationWarning, stacklevel=2)
             scoring_methods['ml_l'] = scoring_methods.pop('ml_g')
 
-        super(DoubleMLPLR, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune, search_mode,
-                                      n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
+        tune_res = super(DoubleMLPLR, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune, search_mode,
+                                                 n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
+        return tune_res
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
