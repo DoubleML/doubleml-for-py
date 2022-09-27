@@ -47,6 +47,10 @@ class Copula(ABC):
     def inv_hfun(par, u, v):
         pass
 
+    def aic(self, par, u, v):
+        res = 2 * len(par) + 2 * self.neg_ll(par=par, u=u, v=v)
+        return res
+
     def sim(self, par, n_obs=100):
         u = np.random.uniform(size=(n_obs, 2))
         u[:, 0] = self.inv_hfun(par, u[:, 0], u[:, 1])
