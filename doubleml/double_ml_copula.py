@@ -46,6 +46,14 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
 
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-12``.
+
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
@@ -133,6 +141,8 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='orthogonal',
                  dml_procedure='dml2',
+                 trimming_rule='truncate',
+                 trimming_threshold=1e-12,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -151,6 +161,13 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
         self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict'}
 
         self._initialize_ml_nuisance_params()
+
+        valid_trimming_rule = ['truncate']
+        if trimming_rule not in valid_trimming_rule:
+            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
+                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+        self.trimming_rule = trimming_rule
+        self.trimming_threshold = trimming_threshold
 
     @property
     def _score_element_names(self):
@@ -236,6 +253,12 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
         eps_z_scaled = np.divide(eps_z, sigma_eps_z)
         u = norm.cdf(eps_y_scaled)
         v = norm.cdf(eps_z_scaled)
+
+        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0.):
+            u[u < self.trimming_threshold] = self.trimming_threshold
+            u[u > 1. - self.trimming_threshold] = 1. - self.trimming_threshold
+            v[v < self.trimming_threshold] = self.trimming_threshold
+            v[v > 1. - self.trimming_threshold] = 1. - self.trimming_threshold
 
         score_elements = {'u': u, 'eps_y': eps_y, 'sigma_eps_y': sigma_eps_y,
                           'v': v, 'eps_z': eps_z, 'sigma_eps_z': sigma_eps_z,
