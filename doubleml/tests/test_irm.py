@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 import math
 
@@ -8,6 +9,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
+from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm
@@ -118,3 +120,35 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_cate_gate():
+    n = 50
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    # First stage estimation
+    ml_g = RandomForestRegressor(n_estimators=10)
+    ml_m = RandomForestClassifier(n_estimators=10)
+
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
+                                  ml_m=ml_m,
+                                  ml_g=ml_g,
+                                  trimming_threshold=0.05,
+                                  n_folds=5)
+
+    dml_irm_obj.fit()
+    # create a random basis
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+    cate = dml_irm_obj.cate(random_basis)
+    assert isinstance(cate, dml.double_ml_blp.DoubleMLIRMBLP)
+
+    groups_1 = pd.DataFrame(np.column_stack([obj_dml_data.data['X1'] <= 0,
+                                             obj_dml_data.data['X1'] > 0.2]),
+                            columns=['Group 1', 'Group 2'])
+    assert isinstance(dml_irm_obj.gate(groups_1), pd.DataFrame)
+
+    groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
+    assert isinstance(dml_irm_obj.gate(groups_2), pd.DataFrame)
