@@ -7,7 +7,7 @@ from scipy.stats import norm
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLPartialDependenceData
 from .double_ml_score_mixins import NonLinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 from ._utils_copula import ClaytonCopula, FrankCopula, GaussianCopula, GumbelCopula
 
 
@@ -220,21 +220,28 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y)
         x, z = check_X_y(x, self._dml_data.z)
 
         # nuisance g
         g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
+                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                return_models=return_models)
+        _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                return_models=return_models)
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
-        score_elements = self._score_elements(y, z, g_hat, m_hat, smpls)
-        preds = {'ml_g': g_hat,
-                 'ml_m': m_hat}
+        score_elements = self._score_elements(y, z, g_hat['preds'], m_hat['preds'], smpls)
+        preds = {'predictions': {'ml_g': g_hat['preds'],
+                                 'ml_m': m_hat['preds']},
+                 'models': {'ml_g': g_hat['models'],
+                            'ml_m': m_hat['models']}
+                 }
 
         return score_elements, preds
 
