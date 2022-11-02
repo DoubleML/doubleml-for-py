@@ -2,13 +2,82 @@ import numpy as np
 import pandas as pd
 import io
 
+from abc import ABC, abstractmethod
+
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
 from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from ._utils import _assure_2d_array
 
 
-class DoubleMLData:
+class DoubleMLBaseData(ABC):
+    """Base Class Double machine learning data-backends
+    """
+    def __init__(self,
+                 data):
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError('data must be of pd.DataFrame type. '
+                            f'{str(data)} of type {str(type(data))} was passed.')
+        if not data.columns.is_unique:
+            raise ValueError('Invalid pd.DataFrame: '
+                             'Contains duplicate column names.')
+        self._data = data
+
+    def __str__(self):
+        data_summary = self._data_summary_str()
+        buf = io.StringIO()
+        self.data.info(verbose=False, buf=buf)
+        df_info = buf.getvalue()
+        res = '================== DoubleMLBaseData Object ==================\n' + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
+              '\n------------------ DataFrame info    ------------------\n' + df_info
+        return res
+
+    def _data_summary_str(self):
+        data_summary = f'No. Observations: {self.n_obs}\n'
+        return data_summary
+
+    @property
+    def data(self):
+        """
+        The data.
+        """
+        return self._data
+
+    @property
+    def all_variables(self):
+        """
+        All variables available in the dataset.
+        """
+        return self.data.columns
+
+    @property
+    def n_obs(self):
+        """
+        The number of observations.
+        """
+        return self.data.shape[0]
+
+    # TODO: This and the following property does not make sense but the base class DoubleML needs it (especially for the
+    #  multiple treatment variables case) and other things are also build around it, see for example DoubleML._params
+    @property
+    def d_cols(self):
+        return ['theta']
+
+    @property
+    def n_treat(self):
+        """
+        The number of treatment variables.
+        """
+        return 1
+
+    @property
+    @abstractmethod
+    def n_coefs(self):
+        pass
+
+
+class DoubleMLData(DoubleMLBaseData):
     """Double machine learning data-backend.
 
     :class:`DoubleMLData` objects can be initialized from
@@ -67,13 +136,7 @@ class DoubleMLData:
                  z_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError('data must be of pd.DataFrame type. '
-                            f'{str(data)} of type {str(type(data))} was passed.')
-        if not data.columns.is_unique:
-            raise ValueError('Invalid pd.DataFrame: '
-                             'Contains duplicate column names.')
-        self._data = data
+        DoubleMLBaseData.__init__(self, data)
 
         self.y_col = y_col
         self.d_cols = d_cols
@@ -89,18 +152,22 @@ class DoubleMLData:
         self.set_x_d(self.d_cols[0])
 
     def __str__(self):
-        data_info = f'Outcome variable: {self.y_col}\n' \
-                    f'Treatment variable(s): {self.d_cols}\n' \
-                    f'Covariates: {self.x_cols}\n' \
-                    f'Instrument variable(s): {self.z_cols}\n' \
-                    f'No. Observations: {self.n_obs}\n'
+        data_summary = self._data_summary_str()
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         df_info = buf.getvalue()
         res = '================== DoubleMLData Object ==================\n' + \
-              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
+
+    def _data_summary_str(self):
+        data_summary = f'Outcome variable: {self.y_col}\n' \
+                       f'Treatment variable(s): {self.d_cols}\n' \
+                       f'Covariates: {self.x_cols}\n' \
+                       f'Instrument variable(s): {self.z_cols}\n' \
+                       f'No. Observations: {self.n_obs}\n'
+        return data_summary
 
     @classmethod
     def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True,
@@ -189,13 +256,6 @@ class DoubleMLData:
         return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
-    def data(self):
-        """
-        The data.
-        """
-        return self._data
-
-    @property
     def x(self):
         """
         Array of covariates;
@@ -233,18 +293,18 @@ class DoubleMLData:
             return None
 
     @property
-    def all_variables(self):
-        """
-        All variables available in the dataset.
-        """
-        return self.data.columns
-
-    @property
     def n_treat(self):
         """
         The number of treatment variables.
         """
         return len(self.d_cols)
+
+    @property
+    def n_coefs(self):
+        """
+        The number of coefficients to be estimated.
+        """
+        return self.n_treat
 
     @property
     def n_instr(self):
@@ -256,13 +316,6 @@ class DoubleMLData:
         else:
             n_instr = 0
         return n_instr
-
-    @property
-    def n_obs(self):
-        """
-        The number of observations.
-        """
-        return self.data.shape[0]
 
     @property
     def binary_treats(self):
@@ -584,39 +637,39 @@ class DoubleMLClusterData(DoubleMLData):
                  z_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
+        DoubleMLBaseData.__init__(self, data)
+
         # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError('data must be of pd.DataFrame type. '
-                            f'{str(data)} of type {str(type(data))} was passed.')
-        if not data.columns.is_unique:
-            raise ValueError('Invalid pd.DataFrame: '
-                             'Contains duplicate column names.')
-        self._data = data
         self.cluster_cols = cluster_cols
         self._set_cluster_vars()
-        super().__init__(data,
-                         y_col,
-                         d_cols,
-                         x_cols,
-                         z_cols,
-                         use_other_treat_as_covariate,
-                         force_all_x_finite)
+        DoubleMLData.__init__(self,
+                              data,
+                              y_col,
+                              d_cols,
+                              x_cols,
+                              z_cols,
+                              use_other_treat_as_covariate,
+                              force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
 
     def __str__(self):
-        data_info = f'Outcome variable: {self.y_col}\n' \
-                    f'Treatment variable(s): {self.d_cols}\n' \
-                    f'Cluster variable(s): {self.cluster_cols}\n' \
-                    f'Covariates: {self.x_cols}\n' \
-                    f'Instrument variable(s): {self.z_cols}\n' \
-                    f'No. Observations: {self.n_obs}\n'
+        data_summary = self._data_summary_str()
         buf = io.StringIO()
         self.data.info(verbose=False, buf=buf)
         df_info = buf.getvalue()
         res = '================== DoubleMLClusterData Object ==================\n' + \
-              '\n------------------ Data summary      ------------------\n' + data_info + \
+              '\n------------------ Data summary      ------------------\n' + data_summary + \
               '\n------------------ DataFrame info    ------------------\n' + df_info
         return res
+
+    def _data_summary_str(self):
+        data_summary = f'Outcome variable: {self.y_col}\n' \
+                       f'Treatment variable(s): {self.d_cols}\n' \
+                       f'Cluster variable(s): {self.cluster_cols}\n' \
+                       f'Covariates: {self.x_cols}\n' \
+                       f'Instrument variable(s): {self.z_cols}\n' \
+                       f'No. Observations: {self.n_obs}\n'
+        return data_summary
 
     @classmethod
     def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True,

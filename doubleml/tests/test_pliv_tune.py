@@ -96,7 +96,9 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
                                     dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    _ = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    tune_res = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
+                                 return_tune_res=False)
+    assert isinstance(tune_res, dml.DoubleMLPLIV)
 
     dml_pliv_obj.fit()
 
