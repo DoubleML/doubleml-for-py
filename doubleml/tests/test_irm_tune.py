@@ -78,7 +78,9 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
-    _ = dml_irm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
+    tune_res = dml_irm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
+                                return_tune_res=False)
+    assert isinstance(tune_res, dml.DoubleMLIRM)
 
     dml_irm_obj.fit()
 

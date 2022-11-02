@@ -48,6 +48,9 @@ class DoubleML(ABC):
         # initialize predictions to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
 
+        # initialize models to None which are only stored if method fit is called with store_models=True
+        self._models = None
+
         # check resampling specifications
         if not isinstance(n_folds, int):
             raise TypeError('The number of folds must be of int type. '
@@ -219,6 +222,13 @@ class DoubleML(ABC):
         The predictions of the nuisance models.
         """
         return self._predictions
+
+    @property
+    def models(self):
+        """
+        The fitted nuisance models.
+        """
+        return self._models
 
     def get_params(self, learner):
         """
@@ -418,7 +428,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False):
+    def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False, store_models=False):
         """
         Estimate DoubleML models.
 
@@ -433,7 +443,12 @@ class DoubleML(ABC):
             Default is ``True``.
 
         store_predictions : bool
-            Indicates whether the predictions for the nuisance functions should be be stored in ``predictions``.
+            Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
+            Default is ``False``.
+
+        store_models : bool
+            Indicates whether the fitted models for the nuisance functions should be stored in ``models``. This allows
+            to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
 
         Returns
@@ -454,8 +469,15 @@ class DoubleML(ABC):
             raise TypeError('store_predictions must be True or False. '
                             f'Got {str(store_predictions)}.')
 
+        if not isinstance(store_models, bool):
+            raise TypeError('store_models must be True or False. '
+                            f'Got {str(store_models)}.')
+
         if store_predictions:
             self._initialize_predictions()
+
+        if store_models:
+            self._initialize_models()
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -468,10 +490,12 @@ class DoubleML(ABC):
 
                 # ml estimation of nuisance models and computation of score elements
                 self._psi_a[:, self._i_rep, self._i_treat], self._psi_b[:, self._i_rep, self._i_treat], preds =\
-                    self._nuisance_est(self.__smpls, n_jobs_cv)
+                    self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
 
                 if store_predictions:
-                    self._store_predictions(preds)
+                    self._store_predictions(preds['predictions'])
+                if store_models:
+                    self._store_models(preds['models'])
 
                 # estimate the causal parameter
                 self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
@@ -881,7 +905,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _nuisance_est(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models):
         pass
 
     @abstractmethod
@@ -963,9 +987,17 @@ class DoubleML(ABC):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
 
+    def _initialize_models(self):
+        self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
+                        for learner in self.params_names}
+
     def _store_predictions(self, preds):
         for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
+
+    def _store_models(self, models):
+        for learner in self.params_names:
+            self._models[learner][self._dml_data.d_cols[self._i_treat]][self._i_rep] = models[learner]
 
     def draw_sample_splitting(self):
         """
