@@ -197,7 +197,7 @@ class DoubleMLPLR(DoubleML):
             learner = 'ml_l'
         super(DoubleMLPLR, self).set_ml_nuisance_params(learner, treat_var, params)
 
-    def _nuisance_est(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -205,17 +205,19 @@ class DoubleMLPLR(DoubleML):
 
         # nuisance l
         l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'])
-        _check_finite_predictions(l_hat, self._learner['ml_l'], 'ml_l', smpls)
+                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
+                                return_models=return_models)
+        _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
-        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                return_models=return_models)
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
-            binary_preds = (type_of_target(m_hat) == 'binary')
-            zero_one_preds = np.all((np.power(m_hat, 2) - m_hat) == 0)
+            binary_preds = (type_of_target(m_hat['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(m_hat['preds'], 2) - m_hat['preds']) == 0)
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
                                  f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
@@ -223,21 +225,25 @@ class DoubleMLPLR(DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # an estimate of g is obtained for the IV-type score and callable scores
-        g_hat = None
+        g_hat = {'preds': None, 'models': None}
         if 'ml_g' in self._learner:
             # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - m_hat, d - m_hat)
-            psi_b = np.multiply(d - m_hat, y - l_hat)
+            psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
+            psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
             g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-            _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                    return_models=return_models)
+            _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
-        psi_a, psi_b = self._score_elements(y, d, l_hat, m_hat, g_hat, smpls)
-        preds = {'ml_l': l_hat,
-                 'ml_m': m_hat,
-                 'ml_g': g_hat}
+        psi_a, psi_b = self._score_elements(y, d, l_hat['preds'], m_hat['preds'], g_hat['preds'], smpls)
+        preds = {'predictions': {'ml_l': l_hat['preds'],
+                                 'ml_m': m_hat['preds'],
+                                 'ml_g': g_hat['preds']},
+                 'models': {'ml_l': l_hat['models'],
+                            'ml_m': m_hat['models'],
+                            'ml_g': g_hat['models']}}
 
         return psi_a, psi_b, preds
 

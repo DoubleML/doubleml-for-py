@@ -220,7 +220,7 @@ class DoubleMLIIVM(DoubleML):
             raise ValueError(err_msg)
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),
@@ -233,12 +233,13 @@ class DoubleMLIIVM(DoubleML):
 
         # nuisance g
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat0, self._learner['ml_g'], 'ml_g', smpls)
+                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
+        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat0) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat0, 2) - g_hat0) == 0)
+            binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
                                  f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
@@ -246,12 +247,13 @@ class DoubleMLIIVM(DoubleML):
                                  'probabilities and not labels are predicted.')
 
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat1, self._learner['ml_g'], 'ml_g', smpls)
+                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
+        _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat1) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat1, 2) - g_hat1) == 0)
+            binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
                                  f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
@@ -260,30 +262,41 @@ class DoubleMLIIVM(DoubleML):
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
-        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                return_models=return_models)
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
         if self.subgroups['always_takers']:
             r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'])
+                                     est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'],
+                                     return_models=return_models)
         else:
-            r_hat0 = np.zeros_like(d)
-        _check_finite_predictions(r_hat0, self._learner['ml_r'], 'ml_r', smpls)
+            r_hat0 = {'preds': np.zeros_like(d), 'models': None}
+        _check_finite_predictions(r_hat0['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
         if self.subgroups['never_takers']:
             r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'])
+                                     est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'],
+                                     return_models=return_models)
         else:
-            r_hat1 = np.ones_like(d)
-        _check_finite_predictions(r_hat1, self._learner['ml_r'], 'ml_r', smpls)
+            r_hat1 = {'preds': np.ones_like(d), 'models': None}
+        _check_finite_predictions(r_hat1['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
-        psi_a, psi_b = self._score_elements(y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls)
-        preds = {'ml_g0': g_hat0,
-                 'ml_g1': g_hat1,
-                 'ml_m': m_hat,
-                 'ml_r0': r_hat0,
-                 'ml_r1': r_hat1}
+        psi_a, psi_b = self._score_elements(y, z, d,
+                                            g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
+                                            r_hat0['preds'], r_hat1['preds'], smpls)
+        preds = {'predictions': {'ml_g0': g_hat0['preds'],
+                                 'ml_g1': g_hat1['preds'],
+                                 'ml_m': m_hat['preds'],
+                                 'ml_r0': r_hat0['preds'],
+                                 'ml_r1': r_hat1['preds']},
+                 'models': {'ml_g0': g_hat0['models'],
+                            'ml_g1': g_hat1['models'],
+                            'ml_m': m_hat['models'],
+                            'ml_r0': r_hat0['models'],
+                            'ml_r1': r_hat1['models']}
+                 }
 
         return psi_a, psi_b, preds
 

@@ -86,14 +86,16 @@ def _fit(estimator, x, y, train_index, idx=None):
 
 
 def _dml_cv_predict(estimator, x, y, smpls=None,
-                    n_jobs=None, est_params=None, method='predict', return_train_preds=False):
+                    n_jobs=None, est_params=None, method='predict', return_train_preds=False, return_models=False):
     n_obs = x.shape[0]
 
     smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
-    manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target
+    manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target \
+        | return_models
 
+    res = {'models': None}
     if not manual_cv_predict:
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
@@ -105,9 +107,9 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             preds = cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
                                       method=method)
         if method == 'predict_proba':
-            return preds[:, 1]
+            res['preds'] = preds[:, 1]
         else:
-            return preds
+            res['preds'] = preds
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
@@ -159,10 +161,16 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             if return_train_preds:
                 train_preds.append(pred_fun(x[train_index, :]))
 
+        res['preds'] = preds
         if return_train_preds:
-            return preds, train_preds
-        else:
-            return preds
+            res['train_preds'] = train_preds
+        if return_models:
+            fold_ids = [xx[1] for xx in fitted_models]
+            if not np.alltrue(fold_ids == np.arange(len(smpls))):
+                raise RuntimeError('export of fitted models failed')
+            res['models'] = [xx[0] for xx in fitted_models]
+
+    return res
 
 
 def _dml_tune(y, x, train_inds,

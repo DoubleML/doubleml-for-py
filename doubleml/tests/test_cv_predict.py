@@ -69,7 +69,7 @@ def cv_predict_fixture(generate_data_cv_predict, cross_fit, params):
         preds = _dml_cv_predict(Lasso(), x, y, smpls, est_params=est_params, method=method)
         preds_ut = _dml_cv_predict_ut_version(Lasso(), x, y, smpls, est_params=est_params, method=method)
 
-    res_dict = {'preds': preds,
+    res_dict = {'preds': preds['preds'],
                 'preds_ut': preds_ut}
 
     return res_dict
