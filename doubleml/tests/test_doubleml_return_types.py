@@ -10,6 +10,7 @@ from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.double_ml import DoubleML
 
 from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.svm import LinearSVR
 
 np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
@@ -74,9 +75,9 @@ n_folds = 3
 n_obs = 100
 n_rep_boot = 314
 
-plr_dml1 = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(),
+plr_dml1 = DoubleMLPLR(dml_data_plr, Lasso(), LinearSVR(),
                        dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
-plr_dml1.fit()
+plr_dml1.fit(store_models=True)
 plr_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 pliv_dml1 = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(),
@@ -172,3 +173,20 @@ def test_property_types_and_shapes(dml_obj):
     n_folds_each_smpl = np.array([len(smpl) for smpl in dml_obj.smpls])
     assert np.all(n_folds_each_smpl == n_folds_each_smpl[0])
     assert n_folds_each_smpl[0] == n_folds
+
+
+@pytest.mark.ci
+def test_stored_models():
+    assert len(plr_dml1.models['ml_l']['d']) == n_rep
+    assert len(plr_dml1.models['ml_m']['d']) == n_rep
+
+    n_folds_each_model = np.array([len(mdl) for mdl in plr_dml1.models['ml_l']['d']])
+    assert np.all(n_folds_each_model == n_folds_each_model[0])
+    assert n_folds_each_model[0] == n_folds
+
+    n_folds_each_model = np.array([len(mdl) for mdl in plr_dml1.models['ml_m']['d']])
+    assert np.all(n_folds_each_model == n_folds_each_model[0])
+    assert n_folds_each_model[0] == n_folds
+
+    assert np.all([isinstance(mdl, plr_dml1.learner['ml_l'].__class__) for mdl in plr_dml1.models['ml_l']['d'][0]])
+    assert np.all([isinstance(mdl, plr_dml1.learner['ml_m'].__class__) for mdl in plr_dml1.models['ml_m']['d'][0]])
