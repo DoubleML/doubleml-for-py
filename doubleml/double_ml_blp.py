@@ -6,8 +6,8 @@ from scipy.stats import norm
 from scipy.linalg import sqrtm
 
 
-class DoubleMLIRMBLP:
-    """Best linear predictor for DoubleML IRM models
+class DoubleMLBLP:
+    """Best linear predictor (BLP) for DoubleML with orthogonal signals.
 
         Parameters
         ----------
@@ -17,11 +17,16 @@ class DoubleMLIRMBLP:
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape (n,d),
             where d is the number of predictors.
+
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
     """
 
     def __init__(self,
                  orth_signal,
-                 basis):
+                 basis,
+                 is_gate=False):
 
         if not isinstance(orth_signal, np.ndarray):
             raise TypeError('The signal must be of np.ndarray type. '
@@ -41,6 +46,7 @@ class DoubleMLIRMBLP:
 
         self._orth_signal = orth_signal
         self._basis = basis
+        self._is_gate = is_gate
 
         # initialize the score and the covariance
         self._blp_model = None
@@ -89,15 +95,16 @@ class DoubleMLIRMBLP:
 
         return self
 
-    def confint(self, basis, joint=False, level=0.95, n_rep_boot=500):
+    def confint(self, basis=None, joint=False, level=0.95, n_rep_boot=500):
         """
-        Confidence intervals for BLP for DoubleML IRM.
+        Confidence intervals for the BLP model.
 
         Parameters
         ----------
         basis : :class:`pandas.DataFrame`
             The basis for constructing the confidence interval. Has to have the same form as the basis from
-            the construction.
+            the construction. If ``None`` the basis for the construction of the model is used.
+            Default is ``None``
 
         joint : bool
             Indicates whether joint confidence intervals are computed.
@@ -138,6 +145,20 @@ class DoubleMLIRMBLP:
             raise ValueError('Apply fit() before confint().')
 
         alpha = 1 - level
+        gate_names = None
+        # define basis if none is supplied
+        if basis is None:
+            if self._is_gate:
+                # reduce to unique groups
+                basis = pd.DataFrame(np.diag(v=np.full((self._basis.shape[1]), True)))
+                gate_names = list(self._basis.columns.values)
+            else:
+                basis = self._basis
+        elif not (basis.shape[1] == self._basis.shape[1]):
+            raise ValueError('Invalid basis: DataFrame has to have the exact same number and ordering of columns.')
+        elif not list(basis.columns.values) == list(self._basis.columns.values):
+            raise ValueError('Invalid basis: DataFrame has to have the exact same number and ordering of columns.')
+
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
 
@@ -167,4 +188,8 @@ class DoubleMLIRMBLP:
         df_ci = pd.DataFrame(ci,
                              columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
                              index=basis.index)
+
+        if self._is_gate and gate_names is not None:
+            df_ci.index = gate_names
+
         return df_ci

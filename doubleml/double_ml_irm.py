@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
+import warnings
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from .double_ml_blp import DoubleMLIRMBLP
-
+from .double_ml_blp import DoubleMLBLP
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
@@ -334,43 +334,40 @@ class DoubleMLIRM(DoubleML):
 
         Returns
         -------
-        model : :class:`doubleML.DoubleMLIRMBLP`
+        model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model.
         """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
         # define the orthogonal signal
         orth_signal = self.psi_b.reshape(-1)
         # fit the best linear predictor
-        model = DoubleMLIRMBLP(orth_signal, basis=basis).fit()
+        model = DoubleMLBLP(orth_signal, basis=basis).fit()
 
         return model
 
-    def gate(self, groups, joint=False, level=0.95, n_rep_boot=500):
+    def gate(self, groups):
         """
-        Calculate group average treatment effects (GATE) for a given basis.
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
 
         Parameters
         ----------
         groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor. Has to have the shape (n,d),
+            The group indicator for estimating the best linear predictor. Has to be dummy coded with shape (n,d),
             where d is the number of groups or (n,1) and contain the corresponding groups.
-
-        joint : bool
-            Indicates whether joint confidence intervals are computed.
-            Default is ``False``
-
-        level : float
-            The confidence level.
-            Default is ``0.95``.
-
-        n_rep_boot : int
-            Number of bootstrap samples for joint confidence interval.
-            Default is ``500``.
 
         Returns
         -------
-        df_ci : pd.DataFrame
-            A data frame with the confidence interval(s).
+        model : :class:`doubleML.DoubleMLBLPGATE`
+            Best linear Predictor model for Group Effects.
         """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
 
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
@@ -380,17 +377,15 @@ class DoubleMLIRM(DoubleML):
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
             else:
-                raise TypeError('Columns must be of of bool or int type or the data frame only should contain '
-                                'one column.')
+                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
+                                'Alternatively, groups should only contain one column.')
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
         # define the orthogonal signal
         orth_signal = self.psi_b.reshape(-1)
-        # fit the best linear predictor
-        model = DoubleMLIRMBLP(orth_signal, basis=groups).fit()
+        # fit the best linear predictor for GATE (different confint() method)
+        model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
 
-        # reduce to unique groups and create confidence interval
-        unique_groups = pd.DataFrame(np.diag(v=np.full((groups.shape[1]), True)))
-        df_ci = model.confint(unique_groups, joint, level, n_rep_boot)
-        df_ci.index = groups.columns.values
-
-        return df_ci
+        return model

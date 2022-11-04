@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, DoubleMLIRMBLP
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, DoubleMLBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 
@@ -664,19 +664,24 @@ def test_doubleml_exception_blp():
 
     msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        DoubleMLIRMBLP(orth_signal=1, basis=random_basis)
+        DoubleMLBLP(orth_signal=1, basis=random_basis)
     msg = 'The signal must be of one dimensional. Signal of dimensions 2 was passed.'
     with pytest.raises(ValueError, match=msg):
-        DoubleMLIRMBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
+        DoubleMLBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
     msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        DoubleMLIRMBLP(orth_signal=signal, basis=1)
+        DoubleMLBLP(orth_signal=signal, basis=1)
     msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
     with pytest.raises(ValueError, match=msg):
-        DoubleMLIRMBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
-                                                              columns=['x_1', 'x_1']))
+        DoubleMLBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
+                                                           columns=['a_1', 'a_1']))
 
-    dml_blp_confint = DoubleMLIRMBLP(orth_signal=signal, basis=random_basis)
+    dml_blp_confint = DoubleMLBLP(orth_signal=signal, basis=random_basis)
+    msg = r'Apply fit\(\) before confint\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis)
+
+    dml_blp_confint.fit()
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_blp_confint.confint(random_basis, joint=1)
@@ -692,9 +697,12 @@ def test_doubleml_exception_blp():
     msg = 'The number of bootstrap replications must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_blp_confint.confint(random_basis, n_rep_boot=0)
-    msg = r'Apply fit\(\) before confint\(\).'
+    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
     with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(random_basis)
+        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1], [4]]), columns=['a_1']))
+    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6]]), columns=['x_1', 'x_2', 'x_3']))
 
 
 @pytest.mark.ci
@@ -709,6 +717,34 @@ def test_doubleml_exception_gate():
     msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.gate(groups=2)
-    msg = 'Columns must be of of bool or int type or the data frame only should contain one column.'
+    msg = (r'Columns of groups must be of bool type or int type \(dummy coded\). '
+           'Alternatively, groups should only contain one column.')
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(50, 3))))
+        dml_irm_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))))
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATTE')
+    dml_irm_obj.fit()
+
+    msg = 'Invalid score ATTE. Valid score ATE.'
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.gate(groups=2)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_cate():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATTE')
+    dml_irm_obj.fit()
+
+    msg = 'Invalid score ATTE. Valid score ATE.'
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.cate(basis=2)

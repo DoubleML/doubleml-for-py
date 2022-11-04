@@ -5,7 +5,7 @@ from .double_ml_pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
 from .double_ml_iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .double_ml_blp import DoubleMLIRMBLP
+from .double_ml_blp import DoubleMLBLP
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',
@@ -13,6 +13,6 @@ __all__ = ['DoubleMLPLR',
            'DoubleMLIIVM',
            'DoubleMLData',
            'DoubleMLClusterData',
-           'DoubleMLIRMBLP']
+           'DoubleMLBLP']
 
 __version__ = get_distribution('doubleml').version

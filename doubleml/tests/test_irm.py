@@ -124,7 +124,7 @@ def test_dml_irm_boot(dml_irm_fixture):
 
 @pytest.mark.ci
 def test_dml_irm_cate_gate():
-    n = 50
+    n = 9
     # collect data
     np.random.seed(42)
     obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
@@ -143,12 +143,24 @@ def test_dml_irm_cate_gate():
     # create a random basis
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
     cate = dml_irm_obj.cate(random_basis)
-    assert isinstance(cate, dml.double_ml_blp.DoubleMLIRMBLP)
+    assert isinstance(cate, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(cate.confint(), pd.DataFrame)
 
     groups_1 = pd.DataFrame(np.column_stack([obj_dml_data.data['X1'] <= 0,
                                              obj_dml_data.data['X1'] > 0.2]),
                             columns=['Group 1', 'Group 2'])
-    assert isinstance(dml_irm_obj.gate(groups_1), pd.DataFrame)
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_1 = dml_irm_obj.gate(groups_1)
+    assert isinstance(gate_1, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_1.confint(), pd.DataFrame)
+    assert all(gate_1.confint().index == groups_1.columns)
 
+    np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
-    assert isinstance(dml_irm_obj.gate(groups_2), pd.DataFrame)
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_2 = dml_irm_obj.gate(groups_2)
+    assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_2.confint(), pd.DataFrame)
+    assert all(gate_2.confint().index == ["Group_1", "Group_2"])
