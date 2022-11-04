@@ -42,6 +42,8 @@ def dml_blp_fixture(ci_joint, ci_level):
                 'values_manual':  blp_manual.fittedvalues,
                 'omega': blp.blp_omega,
                 'omega_manual': blp_manual.cov_HC0,
+                'basis': blp.basis,
+                'signal': blp.orth_signal,
                 'ci_1': ci_1,
                 'ci_2': ci_2,
                 'ci_manual': ci_manual}
