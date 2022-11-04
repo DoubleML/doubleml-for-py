@@ -5,10 +5,10 @@ name: build
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
   schedule:
     - cron: "0 9 * * 1,3,5"
   workflow_dispatch:
