@@ -1,9 +1,9 @@
-# DoubleML - Double Machine Learning in Python <a href="https://docs.doubleml.org"><img src="https://raw.githubusercontent.com/DoubleML/doubleml-for-py/master/doc/logo.png" align="right" width = "120" /></a>
+# DoubleML - Double Machine Learning in Python <a href="https://docs.doubleml.org"><img src="https://raw.githubusercontent.com/DoubleML/doubleml-for-py/main/doc/logo.png" align="right" width = "120" /></a>
 
 [![build](https://github.com/DoubleML/doubleml-for-py/workflows/build/badge.svg)](https://github.com/DoubleML/doubleml-for-py/actions?query=workflow%3Abuild)
 [![PyPI version](https://badge.fury.io/py/DoubleML.svg)](https://badge.fury.io/py/DoubleML)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/doubleml.svg)](https://anaconda.org/conda-forge/doubleml)
-[![codecov](https://codecov.io/gh/DoubleML/doubleml-for-py/branch/master/graph/badge.svg?token=0BjlFPgdGk)](https://codecov.io/gh/DoubleML/doubleml-for-py)
+[![codecov](https://codecov.io/gh/DoubleML/doubleml-for-py/branch/main/graph/badge.svg?token=0BjlFPgdGk)](https://codecov.io/gh/DoubleML/doubleml-for-py)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1c08ec7d782c451784293c996537de14)](https://www.codacy.com/gh/DoubleML/doubleml-for-py/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DoubleML/doubleml-for-py&amp;utm_campaign=Badge_Grade)
 [![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)](https://www.python.org/)
 
@@ -56,7 +56,7 @@ It further can be readily extended with regards to
 - ... alternative resampling schemes,
 - ... 
 
-![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/master/doc/oop.svg](https://raw.githubusercontent.com/DoubleML/doubleml-for-py/master/doc/oop.svg)
+![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/main/doc/oop.svg](https://raw.githubusercontent.com/DoubleML/doubleml-for-py/main/doc/oop.svg)
 
 ## Installation
 
@@ -90,9 +90,9 @@ Detailed [installation instructions](https://docs.doubleml.org/stable/intro/inst
 DoubleML is a community effort.
 Everyone is welcome to contribute.
 To get started for your first contribution we recommend reading our
-[contributing guidelines](https://github.com/DoubleML/doubleml-for-py/blob/master/CONTRIBUTING.md)
+[contributing guidelines](https://github.com/DoubleML/doubleml-for-py/blob/main/CONTRIBUTING.md)
 and our
-[code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
+[code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/main/CODE_OF_CONDUCT.md).
 
 ## Citation
 
