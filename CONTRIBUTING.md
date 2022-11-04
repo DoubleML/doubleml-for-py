@@ -1,9 +1,9 @@
-# DoubleML - Contributing Guidelines <a href="https://docs.doubleml.org"><img src="https://raw.githubusercontent.com/DoubleML/doubleml-for-py/master/doc/logo.png" align="right" width = "120" /></a>
+# DoubleML - Contributing Guidelines <a href="https://docs.doubleml.org"><img src="https://raw.githubusercontent.com/DoubleML/doubleml-for-py/main/doc/logo.png" align="right" width = "120" /></a>
 
 DoubleML is a community effort.
 Everyone is welcome to contribute.
 All contributors should adhere to this contributing guidelines
-and our [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/master/CODE_OF_CONDUCT.md).
+and our [code of conduct](https://github.com/DoubleML/doubleml-for-py/blob/main/CODE_OF_CONDUCT.md).
 The contributing guidelines are particularly helpful to get started for your first contribution.
 
 ## Submit a Bug Report :bug:
@@ -76,7 +76,7 @@ $ git remote add upstream https://github.com/DoubleML/doubleml-for-py.git
 This allows you to easily keep your repository in synch via
 ```bash
 $ git fetch upstream
-$ git merge upstream/master
+$ git merge upstream/main
 ```
 
 5. Install the **development dependencies** via
@@ -112,7 +112,7 @@ When opening the PR you will be guided with a checklist.
 - [x] **References** to related issues or PRs are added.
 
 - [x] The code passes **all (unit) tests** (see
-[below](https://github.com/DoubleML/doubleml-for-py/blob/master/CONTRIBUTING.md#unit-test-and-test-coverage)
+[below](https://github.com/DoubleML/doubleml-for-py/blob/main/CONTRIBUTING.md#unit-test-and-test-coverage)
 for details).
 To check, please run
 ```bash
@@ -125,7 +125,7 @@ $ pytest .
 - [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
-$ git diff upstream/master -u -- "*.py" | flake8 --diff --max-line-length=127
+$ git diff upstream/main -u -- "*.py" | flake8 --diff --max-line-length=127
 ```
 
 If your PR is still **work in progress**, please consider marking it a **draft PR**
@@ -160,7 +160,7 @@ new model class (e.g. regressions or classifications).
 Furthermore, the **score components for the Neyman orthogonal score function need to be implemented**.
 All other functionality is automatically available via inheritance from the abstract base class.
 A **template for new model classes** is available
-[here](https://github.com/DoubleML/doubleml-docs/blob/master/model_templates/double_ml_model_template.py).
+[here](https://github.com/DoubleML/doubleml-docs/blob/main/model_templates/double_ml_model_template.py).
 
 ## Contribute Documentation :books:
 The **documentation** of DoubleML is generated with **sphinx** and hosted at
