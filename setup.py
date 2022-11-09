@@ -26,7 +26,7 @@ setup(
         'numpy',
         'pandas',
         'scipy',
-        'sklearn',
+        'scikit-learn',
         'statsmodels',
     ],
     python_requires=">=3.6",
