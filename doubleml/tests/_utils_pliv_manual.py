@@ -91,8 +91,8 @@ def tune_nuisance_pliv(y, x, d, z, ml_l, ml_m, ml_r, ml_g, smpls, n_folds_tune,
             l_hat[train_index] = l_tune_res[idx].predict(x[train_index, :])
             m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
             r_hat[train_index] = r_tune_res[idx].predict(x[train_index, :])
-        psi_a = -np.multiply(d - m_hat, d - m_hat)
-        psi_b = np.multiply(d - m_hat, y - l_hat)
+        psi_a = -np.multiply(d - r_hat, z - m_hat)
+        psi_b = np.multiply(z - m_hat, y - l_hat)
         theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
 
         g_tune_res = tune_grid_search(y - theta_initial*d, x, ml_g, smpls, param_grid_g, n_folds_tune)
