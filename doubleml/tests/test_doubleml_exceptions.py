@@ -50,14 +50,13 @@ def test_doubleml_exception_data():
 
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+        _ = DoubleMLPLR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_l, ml_m)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+        _ = DoubleMLPLIV(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_l, ml_m, ml_r)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+        _ = DoubleMLIRM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))),
-                         Lasso(), LogisticRegression(), LogisticRegression())
+        _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, ml_r)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
