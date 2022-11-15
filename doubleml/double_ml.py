@@ -32,7 +32,7 @@ class DoubleML(ABC):
                  apply_cross_fitting):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
-            raise TypeError(f'The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
+            raise TypeError('The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
