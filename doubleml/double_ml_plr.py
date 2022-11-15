@@ -28,7 +28,7 @@ def changed_api_decorator(f):
     return wrapper
 
 
-class DoubleMLPLR(LinearScoreMixin, DoubleML):  # lgtm[py/conflicting-attributes]
+class DoubleMLPLR(LinearScoreMixin, DoubleML):
     """Double machine learning for partially linear regression models
 
     Parameters

@@ -8,7 +8,7 @@ from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
-class DoubleMLIIVM(LinearScoreMixin, DoubleML):  # lgtm[py/conflicting-attributes]
+class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     """Double machine learning for interactive IV regression models
 
     Parameters
