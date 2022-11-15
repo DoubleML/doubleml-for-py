@@ -9,6 +9,7 @@ import warnings
 from functools import wraps
 
 from .double_ml import DoubleML
+from .double_ml_data import DoubleMLData
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
@@ -286,6 +287,9 @@ class DoubleMLPLIV(DoubleML):
         return score
 
     def _check_data(self, obj_dml_data):
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.n_instr == 0:
             raise ValueError('Incompatible data. ' +
                              'At least one variable must be set as instrumental variable. '

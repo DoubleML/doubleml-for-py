@@ -5,6 +5,7 @@ import numpy as np
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
+from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
@@ -31,11 +32,31 @@ dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
 dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 
+class DummyDataClass(DoubleMLBaseData):
+    def __init__(self,
+                 data):
+        DoubleMLBaseData.__init__(self, data)
+
+    @property
+    def n_coefs(self):
+        return 1
+
+
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = 'The data must be of DoubleMLData type.'
+    msg = 'The data must be of DoubleMLData or DoubleMLClusterData type.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
+
+    msg = 'The data must be of DoubleMLData type.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_l, ml_m)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPLIV(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_l, ml_m, ml_r)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, ml_r)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '

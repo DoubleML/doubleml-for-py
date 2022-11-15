@@ -10,9 +10,12 @@ from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
+
+
+_implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 
 
 class DoubleML(ABC):
@@ -28,8 +31,8 @@ class DoubleML(ABC):
                  draw_sample_splitting,
                  apply_cross_fitting):
         # check and pick up obj_dml_data
-        if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
+        if not isinstance(obj_dml_data, DoubleMLBaseData):
+            raise TypeError('The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
@@ -119,16 +122,7 @@ class DoubleML(ABC):
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
-        if self._is_cluster_data:
-            cluster_info = f'Cluster variable(s): {self._dml_data.cluster_cols}\n'
-        else:
-            cluster_info = ''
-        data_info = f'Outcome variable: {self._dml_data.y_col}\n' \
-                    f'Treatment variable(s): {self._dml_data.d_cols}\n' \
-                    f'Covariates: {self._dml_data.x_cols}\n' \
-                    f'Instrument variable(s): {self._dml_data.z_cols}\n' \
-                    + cluster_info +\
-                    f'No. Observations: {self._dml_data.n_obs}\n'
+        data_summary = self._dml_data._data_summary_str()
         score_info = f'Score function: {str(self.score)}\n' \
                      f'DML algorithm: {self.dml_procedure}\n'
         learner_info = ''
@@ -145,7 +139,7 @@ class DoubleML(ABC):
                               f'Apply cross-fitting: {self.apply_cross_fitting}\n'
         fit_summary = str(self.summary)
         res = header + \
-            '\n------------------ Data summary      ------------------\n' + data_info + \
+            '\n------------------ Data summary      ------------------\n' + data_summary + \
             '\n------------------ Score & algorithm ------------------\n' + score_info + \
             '\n------------------ Machine learner   ------------------\n' + learner_info + \
             '\n------------------ Resampling        ------------------\n' + resampling_info + \
@@ -964,33 +958,33 @@ class DoubleML(ABC):
         return learner_is_classifier
 
     def _initialize_arrays(self):
-        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-        psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
-        psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+        psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+        psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
 
-        coef = np.full(self._dml_data.n_treat, np.nan)
-        se = np.full(self._dml_data.n_treat, np.nan)
+        coef = np.full(self._dml_data.n_coefs, np.nan)
+        se = np.full(self._dml_data.n_coefs, np.nan)
 
-        all_coef = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
-        all_se = np.full((self._dml_data.n_treat, self.n_rep), np.nan)
+        all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
+        all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
             if self.apply_cross_fitting:
-                all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, self.n_folds), np.nan)
+                all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, self.n_folds), np.nan)
             else:
-                all_dml1_coef = np.full((self._dml_data.n_treat, self.n_rep, 1), np.nan)
+                all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, 1), np.nan)
         else:
             all_dml1_coef = None
 
         return psi, psi_a, psi_b, coef, se, all_coef, all_se, all_dml1_coef
 
     def _initialize_boot_arrays(self, n_rep_boot):
-        boot_coef = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
-        boot_t_stat = np.full((self._dml_data.n_treat, n_rep_boot * self.n_rep), np.nan)
+        boot_coef = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
+        boot_t_stat = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
         return n_rep_boot, boot_coef, boot_t_stat
 
     def _initialize_predictions(self):
-        self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_treat), np.nan)
+        self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
 
     def _initialize_models(self):
