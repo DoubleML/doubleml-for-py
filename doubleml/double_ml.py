@@ -1188,13 +1188,11 @@ class DoubleML(ABC):
                 dml1_coefs = np.zeros(len(smpls))
                 for idx, (_, test_index) in enumerate(smpls):
                     dml1_coefs[idx] = self._est_coef(psi_elements, test_index)
-                theta_hat = np.mean(dml1_coefs)
-                coef = theta_hat
+               coef = np.mean(dml1_coefs)
             else:
                 assert dml_procedure == 'dml2'
                 dml1_coefs = None
-                theta_hat = self._est_coef(psi_elements)
-                coef = theta_hat
+                coef = self._est_coef(psi_elements)
         else:
             smpls_cluster = self.__smpls_cluster
             coef, dml1_coefs = self._est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster)
