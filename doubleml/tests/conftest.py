@@ -8,7 +8,7 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
-
+from doubleml.double_ml_data import DoubleMLData
 
 def _g(x):
     return np.power(np.sin(x), 2)
@@ -345,6 +345,34 @@ def generate_data_irm_w_missings(request):
     ind = np.random.choice(np.arange(x.size), replace=False,
                            size=int(x.size * 0.05))
     x[np.unravel_index(ind, x.shape)] = np.nan
+    data = (x, y, d)
+
+    return data
+
+@pytest.fixture(scope='session',
+                params=[(500, 10),
+                        (1000, 20)])
+def generate_data_quantiles(request):
+    n_p = request.param
+    np.random.seed(1111)
+
+    # setting parameters
+    n = n_p[0]
+    p = n_p[1]
+
+    def f_loc(D, X):
+        loc = 2 * D
+        return loc
+
+    def f_scale(D, X):
+        scale = np.sqrt(0.5 * D)
+        return scale
+
+    d = (np.random.normal(size=n) > 0) * 1.0
+    x = np.random.uniform(0, 1, size=[n, p])
+    epsilon = np.random.normal(size=n)
+
+    y = f_loc(d, x) + f_scale(d, x) * epsilon
     data = (x, y, d)
 
     return data
