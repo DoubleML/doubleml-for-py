@@ -10,6 +10,7 @@ from functools import wraps
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
+from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
@@ -29,7 +30,7 @@ def changed_api_decorator(f):
     return wrapper
 
 
-class DoubleMLPLIV(DoubleML):
+class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     """Double machine learning for partially linear IV regression models
 
     Parameters
@@ -310,14 +311,14 @@ class DoubleMLPLIV(DoubleML):
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         if self.partialX & (not self.partialZ):
-            psi_a, psi_b, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, return_models)
+            psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, return_models)
         elif (not self.partialX) & self.partialZ:
-            psi_a, psi_b, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, return_models)
+            psi_elements, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, return_models)
         else:
             assert (self.partialX & self.partialZ)
-            psi_a, psi_b, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv, return_models)
+            psi_elements, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv, return_models)
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
@@ -391,6 +392,8 @@ class DoubleMLPLIV(DoubleML):
         psi_a, psi_b = self._score_elements(y, z, d,
                                             l_hat['preds'], m_hat['preds'], r_hat['preds'], g_hat['preds'],
                                             smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_r': r_hat['preds'],
@@ -401,7 +404,7 @@ class DoubleMLPLIV(DoubleML):
                             'ml_g': g_hat['models']}
                  }
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, z, d, l_hat, m_hat, r_hat, g_hat, smpls):
         # compute residuals
@@ -463,10 +466,12 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialZ.')
 
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_r': r_hat['preds']},
                  'models': {'ml_r': r_hat['models']}}
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _nuisance_est_partial_xz(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -507,6 +512,8 @@ class DoubleMLPLIV(DoubleML):
             assert callable(self.score)
             raise NotImplementedError('Callable score not implemented for DoubleMLPLIV.partialXZ.')
 
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_r': m_hat_tilde['preds']},
@@ -515,7 +522,7 @@ class DoubleMLPLIV(DoubleML):
                             'ml_r': m_hat_tilde['models']}
                  }
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     # To be removed in version 0.6.0
     def tune(self,

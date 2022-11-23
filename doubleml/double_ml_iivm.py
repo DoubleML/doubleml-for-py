@@ -4,10 +4,11 @@ from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
+from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
-class DoubleMLIIVM(DoubleML):
+class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     """Double machine learning for interactive IV regression models
 
     Parameters
@@ -290,6 +291,8 @@ class DoubleMLIIVM(DoubleML):
         psi_a, psi_b = self._score_elements(y, z, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
                                             r_hat0['preds'], r_hat1['preds'], smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds'],
@@ -302,7 +305,7 @@ class DoubleMLIIVM(DoubleML):
                             'ml_r1': r_hat1['models']}
                  }
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, z, d, g_hat0, g_hat1, m_hat, r_hat0, r_hat1, smpls):
         # compute residuals

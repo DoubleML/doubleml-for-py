@@ -121,11 +121,11 @@ def test_property_types_and_shapes(dml_obj):
     assert isinstance(dml_obj.psi, np.ndarray)
     assert dml_obj.psi.shape == (n_obs, n_rep, n_treat, )
 
-    assert isinstance(dml_obj.psi_a, np.ndarray)
-    assert dml_obj.psi_a.shape == (n_obs, n_rep, n_treat, )
+    assert isinstance(dml_obj.psi_elements['psi_a'], np.ndarray)
+    assert dml_obj.psi_elements['psi_a'].shape == (n_obs, n_rep, n_treat, )
 
-    assert isinstance(dml_obj.psi_b, np.ndarray)
-    assert dml_obj.psi_b.shape == (n_obs, n_rep, n_treat, )
+    assert isinstance(dml_obj.psi_elements['psi_b'], np.ndarray)
+    assert dml_obj.psi_elements['psi_b'].shape == (n_obs, n_rep, n_treat, )
 
     assert isinstance(dml_obj.pval, np.ndarray)
     assert dml_obj.pval.shape == (n_treat, )

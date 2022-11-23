@@ -109,7 +109,7 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_a, self._psi_b,\
+        self._psi, self._psi_deriv, self._psi_elements,\
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
@@ -284,24 +284,30 @@ class DoubleML(ABC):
     @property
     def psi(self):
         """
-        Values of the score function :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`
-        after calling :meth:`fit`.
+        Values of the score function after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
+        :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
         """
         return self._psi
 
     @property
-    def psi_a(self):
+    def psi_deriv(self):
         """
-        Values of the score function component :math:`\\psi_a(W; \\eta)` after calling :meth:`fit`.
+        Values of the derivative of the score function with respect to the parameter :math:`\\theta`
+        after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
+        :math:`\\psi_a(W; \\eta)`.
         """
-        return self._psi_a
+        return self._psi_deriv
 
     @property
-    def psi_b(self):
+    def psi_elements(self):
         """
-        Values of the score function component :math:`\\psi_b(W; \\eta)` after calling :meth:`fit`.
+        Values of the score function components after calling :meth:`fit`;
+        For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter) a dictionary with entries ``psi_a``
+        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
         """
-        return self._psi_b
+        return self._psi_elements
 
     @property
     def coef(self):
@@ -413,22 +419,14 @@ class DoubleML(ABC):
         return self._psi[:, self._i_rep, self._i_treat]
 
     @property
-    def __psi_a(self):
-        return self._psi_a[:, self._i_rep, self._i_treat]
-
-    @property
-    def __psi_b(self):
-        return self._psi_b[:, self._i_rep, self._i_treat]
-
-    @property
-    def __all_coef(self):
-        return self._all_coef[self._i_treat, self._i_rep]
+    def __psi_deriv(self):
+        return self._psi_deriv[:, self._i_rep, self._i_treat]
 
     @property
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, keep_scores=True, store_predictions=False, store_models=False):
+    def fit(self, n_jobs_cv=None, store_predictions=False, store_models=False):
         """
         Estimate DoubleML models.
 
@@ -437,10 +435,6 @@ class DoubleML(ABC):
         n_jobs_cv : None or int
             The number of CPUs to use to fit the learners. ``None`` means ``1``.
             Default is ``None``.
-
-        keep_scores : bool
-            Indicates whether the score function evaluations should be stored in ``psi``, ``psi_a`` and ``psi_b``.
-            Default is ``True``.
 
         store_predictions : bool
             Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
@@ -460,10 +454,6 @@ class DoubleML(ABC):
             if not isinstance(n_jobs_cv, int):
                 raise TypeError('The number of CPUs used to fit the learners must be of int type. '
                                 f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
-
-        if not isinstance(keep_scores, bool):
-            raise TypeError('keep_scores must be True or False. '
-                            f'Got {str(keep_scores)}.')
 
         if not isinstance(store_predictions, bool):
             raise TypeError('store_predictions must be True or False. '
@@ -489,8 +479,9 @@ class DoubleML(ABC):
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # ml estimation of nuisance models and computation of score elements
-                self._psi_a[:, self._i_rep, self._i_treat], self._psi_b[:, self._i_rep, self._i_treat], preds =\
-                    self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
+                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
+
+                self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
                 if store_predictions:
                     self._store_predictions(preds['predictions'])
@@ -498,19 +489,26 @@ class DoubleML(ABC):
                     self._store_models(preds['models'])
 
                 # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+                    self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+                if self.dml_procedure == 'dml1':
+                    self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
 
-                # compute score (depends on estimated causal parameter)
-                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
+                # compute score (depends on the estimated causal parameter)
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
+
+                # compute score (can depend on the estimated causal parameter)
+                self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
-
-        if not keep_scores:
-            self._clean_scores()
 
         return self
 
@@ -959,8 +957,8 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_a = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_b = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+        psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+        psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
 
         coef = np.full(self._dml_data.n_coefs, np.nan)
         se = np.full(self._dml_data.n_coefs, np.nan)
@@ -976,7 +974,7 @@ class DoubleML(ABC):
         else:
             all_dml1_coef = None
 
-        return psi, psi_a, psi_b, coef, se, all_coef, all_se, all_dml1_coef
+        return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se, all_dml1_coef
 
     def _initialize_boot_arrays(self, n_rep_boot):
         boot_coef = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
@@ -1174,34 +1172,32 @@ class DoubleML(ABC):
                     self._apply_cross_fitting = False
                     self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
 
-        self._psi, self._psi_a, self._psi_b, \
+        self._psi, self._psi_deriv, self._psi_elements, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self
 
-    def _est_causal_pars(self):
+    def _est_causal_pars(self, psi_elements):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
         if not self._is_cluster_data:
             if dml_procedure == 'dml1':
                 # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-                thetas = np.zeros(len(smpls))
+                dml1_coefs = np.zeros(len(smpls))
                 for idx, (_, test_index) in enumerate(smpls):
-                    thetas[idx] = self._orth_est(test_index)
-                theta_hat = np.mean(thetas)
-                coef = theta_hat
-
-                self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
+                    dml1_coefs[idx] = self._est_coef(psi_elements, test_index)
+                coef = np.mean(dml1_coefs)
             else:
                 assert dml_procedure == 'dml2'
-                theta_hat = self._orth_est()
-                coef = theta_hat
+                dml1_coefs = None
+                coef = self._est_coef(psi_elements)
         else:
-            coef = self._orth_est_cluster_data()
+            smpls_cluster = self.__smpls_cluster
+            coef, dml1_coefs = self._est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster)
 
-        return coef
+        return coef, dml1_coefs
 
     def _se_causal_pars(self):
         if not self._is_cluster_data:
@@ -1231,10 +1227,20 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars()
+                self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+                    self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+                if self.dml_procedure == 'dml1':
+                    self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
 
-                # compute score (depends on estimated causal parameter)
-                self._psi[:, self._i_rep, self._i_treat] = self._compute_score()
+                # compute score (depends on the estimated causal parameter)
+                self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
+
+                # compute score (can depend on the estimated causal parameter)
+                self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
+                    self._get_score_elements(self._i_rep, self._i_treat),
+                    self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
@@ -1244,7 +1250,7 @@ class DoubleML(ABC):
 
     def _compute_bootstrap(self, weights):
         if self.apply_cross_fitting:
-            J = np.mean(self.__psi_a)
+            J = np.mean(self.__psi_deriv)
             boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
             boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
@@ -1252,7 +1258,7 @@ class DoubleML(ABC):
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             smpls = self.__smpls
             test_index = smpls[0][1]
-            J = np.mean(self.__psi_a[test_index])
+            J = np.mean(self.__psi_deriv[test_index])
             boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * J)
             boot_t_stat = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
 
@@ -1262,7 +1268,7 @@ class DoubleML(ABC):
         """
         Estimate the standard errors of the structural parameter
         """
-        psi_a = self.__psi_a
+        psi_deriv = self.__psi_deriv
         psi = self.__psi
 
         if self.apply_cross_fitting:
@@ -1271,17 +1277,17 @@ class DoubleML(ABC):
             # In case of no-cross-fitting, the score function was only evaluated on the test data set
             smpls = self.__smpls
             test_index = smpls[0][1]
-            psi_a = psi_a[test_index]
+            psi_deriv = psi_deriv[test_index]
             psi = psi[test_index]
             self._var_scaling_factor = len(test_index)
 
-        J = np.mean(psi_a)
+        J = np.mean(psi_deriv)
         sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
         return sigma2_hat
 
     def _var_est_cluster_data(self):
-        psi_a = self.__psi_a
+        psi_deriv = self.__psi_deriv
         psi = self.__psi
 
         if self._dml_data.n_cluster_vars == 1:
@@ -1297,7 +1303,7 @@ class DoubleML(ABC):
                 for cluster_value in I_k:
                     ind_cluster = (this_cluster_var == cluster_value)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_a[test_inds]) / len(I_k)
+                j_hat += np.sum(psi_deriv[test_inds]) / len(I_k)
 
             gamma_hat = gamma_hat / self._n_folds_per_cluster
             j_hat = j_hat / self._n_folds_per_cluster
@@ -1321,7 +1327,7 @@ class DoubleML(ABC):
                 for cluster_value in J_l:
                     ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_a[test_inds]) / (len(I_k) * len(J_l))
+                j_hat += np.sum(psi_deriv[test_inds]) / (len(I_k) * len(J_l))
             gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
             j_hat = j_hat / (self._n_folds_per_cluster ** 2)
             n_first_clusters = len(np.unique(first_cluster_var))
@@ -1331,56 +1337,43 @@ class DoubleML(ABC):
 
         return sigma2_hat
 
-    def _orth_est(self, inds=None):
-        """
-        Estimate the structural parameter
-        """
-        psi_a = self.__psi_a
-        psi_b = self.__psi_b
+    @abstractmethod
+    def _est_coef(self, psi_elements, inds=None):
+        pass
 
-        if inds is not None:
-            psi_a = psi_a[inds]
-            psi_b = psi_b[inds]
+    @abstractmethod
+    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
+        pass
 
-        theta = -np.mean(psi_b) / np.mean(psi_a)
+    @property
+    @abstractmethod
+    def _score_element_names(self):
+        pass
 
-        return theta
+    @abstractmethod
+    def _compute_score(self, psi_elements, coef):
+        pass
 
-    def _orth_est_cluster_data(self):
-        dml_procedure = self.dml_procedure
-        smpls = self.__smpls
-        psi_a = self.__psi_a
-        psi_b = self.__psi_b
+    @abstractmethod
+    def _compute_score_deriv(self, psi_elements, coef):
+        pass
 
-        if dml_procedure == 'dml1':
-            # note that in the dml1 case we could also simply apply the standard function without cluster adjustment
-            thetas = np.zeros(len(smpls))
-            for i_fold, (_, test_index) in enumerate(smpls):
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
-                thetas[i_fold] = - (scaling_factor * np.sum(psi_b[test_index])) / \
-                    (scaling_factor * np.sum(psi_a[test_index]))
-            theta = np.mean(thetas)
-            self._all_dml1_coef[self._i_treat, self._i_rep, :] = thetas
-        else:
-            assert dml_procedure == 'dml2'
-            # See Chiang et al. (2021) Algorithm 1
-            psi_a_subsample_mean = 0.
-            psi_b_subsample_mean = 0.
-            for i_fold, (_, test_index) in enumerate(smpls):
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                scaling_factor = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
-                psi_a_subsample_mean += scaling_factor * np.sum(psi_a[test_index])
-                psi_b_subsample_mean += scaling_factor * np.sum(psi_b[test_index])
-            theta = -psi_b_subsample_mean / psi_a_subsample_mean
+    def _get_score_elements(self, i_rep, i_treat):
+        psi_elements = {key: value[:, i_rep, i_treat] for key, value in self.psi_elements.items()}
+        return psi_elements
 
-        return theta
+    def _set_score_elements(self, psi_elements, i_rep, i_treat):
+        if not isinstance(psi_elements, dict):
+            raise TypeError('_ml_nuisance_and_score_elements must return score elements in a dict. '
+                            f'Got type {str(type(psi_elements))}.')
+        if not (set(self._score_element_names) == set(psi_elements.keys())):
+            raise ValueError('_ml_nuisance_and_score_elements returned incomplete score elements. '
+                             'Expected dict with keys: ' + ' and '.join(set(self._score_element_names)) + '.'
+                             'Got dict with keys: ' + ' and '.join(set(psi_elements.keys())) + '.')
+        for key in self._score_element_names:
+            self.psi_elements[key][:, i_rep, i_treat] = psi_elements[key]
+        return
 
-    def _compute_score(self):
-        psi = self.__psi_a * self.__all_coef + self.__psi_b
-        return psi
-
-    def _clean_scores(self):
-        del self._psi
-        del self._psi_a
-        del self._psi_b
+    def _initialize_score_elements(self, score_dim):
+        psi_elements = {key: np.full(score_dim, np.nan) for key in self._score_element_names}
+        return psi_elements

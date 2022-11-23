@@ -8,6 +8,7 @@ from functools import wraps
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
+from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
 
 
@@ -27,7 +28,7 @@ def changed_api_decorator(f):
     return wrapper
 
 
-class DoubleMLPLR(DoubleML):
+class DoubleMLPLR(LinearScoreMixin, DoubleML):
     """Double machine learning for partially linear regression models
 
     Parameters
@@ -242,6 +243,8 @@ class DoubleMLPLR(DoubleML):
             _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         psi_a, psi_b = self._score_elements(y, d, l_hat['preds'], m_hat['preds'], g_hat['preds'], smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_g': g_hat['preds']},
@@ -249,7 +252,7 @@ class DoubleMLPLR(DoubleML):
                             'ml_m': m_hat['models'],
                             'ml_g': g_hat['models']}}
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, d, l_hat, m_hat, g_hat, smpls):
         # compute residuals
