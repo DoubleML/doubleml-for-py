@@ -201,7 +201,7 @@ class NonLinearScoreMixin:
                                       'No theta found such that the score function evaluates to a negative value.')
                     else:
                         def neg_score(theta):
-                            res = np.mean(self._compute_score(psi_elements, theta))
+                            res = - np.mean(self._compute_score(psi_elements, theta))
                             return res
                         theta_hat, neg_score_val, _ = fmin_l_bfgs_b(neg_score,
                                                                     self._coef_start_val,
