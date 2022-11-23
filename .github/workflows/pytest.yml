@@ -73,7 +73,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.8'
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         flags: unittests
@@ -82,7 +82,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.8'
-      uses: codacy/codacy-coverage-reporter-action@master
+      uses: codacy/codacy-coverage-reporter-action@v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
         coverage-reports: ./coverage.xml
