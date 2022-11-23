@@ -26,9 +26,7 @@ def quantile(request):
     return request.param
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=2, n_estimators=10),
-                        AdaBoostClassifier(n_estimators=10),
-                        DecisionTreeClassifier(max_depth=5),
+                params=[RandomForestClassifier(max_depth=2, n_estimators=20, random_state=42),
                         LogisticRegression()])
 def learner(request):
     return request.param
@@ -60,25 +58,23 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
     else:
         pq = 2 + np.sqrt(0.5) * error_quantile
 
-    # Set machine learning methods for g & m
-    ml_g = clone(learner)
-    ml_m = clone(learner)
-
     np.random.seed(42)
     dml_pq_obj = dml.DoubleMLPQ(obj_dml_data,
-                                ml_g, ml_m,
+                                clone(learner), clone(learner),
                                 treatment=treatment,
                                 tau=quantile,
                                 n_folds=n_folds,
+                                n_rep=1,
                                 dml_procedure=dml_procedure,
                                 trimming_threshold=trimming_threshold)
+    dml_pq_obj.fit()
 
     np.random.seed(42)
     n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1)
     res_manual = fit_pq(y, x, d, quantile,
                         clone(learner), clone(learner),
-                        all_smpls,treatment, dml_procedure,
+                        all_smpls, treatment, dml_procedure,
                         n_rep=1, trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_pq_obj.coef,
@@ -90,25 +86,16 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
 
 
 @pytest.mark.ci
-def test_dml_irm_coef(dml_pq_fixture):
+def test_dml_pq_coef(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['coef'],
                         dml_pq_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 @pytest.mark.ci
-def test_dml_irm_se(dml_irm_fixture):
+def test_dml_pq_se(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['se'],
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-
-
-@pytest.mark.ci
-def test_dml_plr_coef(dml_pq_fixture):
-    assert math.isclose(1,
-                        1,
-                        rel_tol=1e-9, abs_tol=1e-4)
-
-
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_implemented_exception():

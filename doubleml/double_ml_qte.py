@@ -16,7 +16,29 @@ from .double_ml_data import DoubleMLData, DoubleMLClusterData
 
 
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
+    """Double machine learning for potential quantiles
 
+    Parameters
+    ----------
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : classifier implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`g_0(X) = E[Y \le \theta|X, D=d]`.
+
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=d|X]`.
+
+    treatment : int
+        Binary treatment indicator. Has to be either ``0`` or ``1``. Determines the potential outcome to be considered.
+        Default is ``1``.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+    """
     def __init__(self,
                  obj_dml_data,
                  ml_g,
@@ -75,8 +97,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     def _score_element_names(self):
         return ['Ind_d', 'g', 'm', 'y']
 
-    def _compute_ipw_score(self, theta, treatment, d, y, prop):
-        score = (d == treatment) * (y <= theta) / prop - self._tau
+    def _compute_ipw_score(self, theta, d, y, prop):
+        score = (d == self._treatment) * (y <= theta) / prop - self._tau
         return score
 
     def _compute_score(self, psi_elements, coef, inds=None):
@@ -142,7 +164,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             test_inds = smpls[i_fold][1]
 
             # start nested crossfitting
-            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5)
+            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5, random_state=42)
             smpls_prelim = [(train, test) for train, test in KFold(n_splits=self.n_folds).split(train_inds_1)]
 
             d_train_1 = d[train_inds_1]
@@ -160,7 +182,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             # preliminary ipw estimate
             #TODO improve the solver (add bracket_guess)
             def ipw_score(theta):
-                res = np.mean(self._compute_ipw_score(theta, self._treatment, d_train_1, y_train_1,  m_hat_prelim))
+                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1,  m_hat_prelim))
                 return res
 
             def get_bracket_guess(coef_start, coef_bounds):
@@ -193,9 +215,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             y_train_2 = y[train_inds_2]
             x_train_2 = x[train_inds_2, :]
 
-            self._learner['ml_g'].fit(np.column_stack((d_train_2[d_train_2 == self._treatment],
-                                                       x_train_2[d_train_2 == self._treatment, :])),
-                                      y_train_2[d_train_2 == self._treatment] <= ipw_est)
+            dx_treat_train_2 = np.column_stack((d_train_2[d_train_2 == self._treatment],
+                                                x_train_2[d_train_2 == self._treatment, :]))
+            y_treat_train_2 = y_train_2[d_train_2 == self._treatment]
+            self._learner['ml_g'].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
             # predict nuisance values on the test data
             if self._treatment == 0:
@@ -227,7 +250,22 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
 
     def _check_data(self, obj_dml_data):
-        pass
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data. ' +
+                             ' and '.join(obj_dml_data.z_cols) +
+                             ' have been set as instrumental variable(s). ')
+        one_treat = (obj_dml_data.n_treat == 1)
+        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        if not(one_treat & binary_treat & zero_one_treat):
+            raise ValueError('Incompatible data. '
+                             'To fit an IRM model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as treatment variable.')
+        return
 
 class DoubleMLQTE:
     """Double machine learning for quantile treatment effects

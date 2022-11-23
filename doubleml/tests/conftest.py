@@ -350,8 +350,8 @@ def generate_data_irm_w_missings(request):
     return data
 
 @pytest.fixture(scope='session',
-                params=[(500, 10),
-                        (1000, 20)])
+                params=[(500, 5),
+                        (1000, 10)])
 def generate_data_quantiles(request):
     n_p = request.param
     np.random.seed(1111)
@@ -365,7 +365,7 @@ def generate_data_quantiles(request):
         return loc
 
     def f_scale(D, X):
-        scale = np.sqrt(0.5 * D)
+        scale = np.sqrt(0.5 * D + 1)
         return scale
 
     d = (np.random.normal(size=n) > 0) * 1.0
