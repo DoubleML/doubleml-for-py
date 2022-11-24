@@ -35,6 +35,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Binary treatment indicator. Has to be either ``0`` or ``1``. Determines the potential outcome to be considered.
         Default is ``1``.
 
+    quantile : float
+        The quanti.
+        Default is ``0.5``.
+
     n_folds : int
         Number of folds.
         Default is ``5``.
@@ -44,7 +48,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  ml_g,
                  ml_m,
                  treatment,
-                 tau=0.5,
+                 quantile=0.5,
                  n_folds=5,
                  n_rep=1,
                  dml_procedure='dml2',
@@ -61,7 +65,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
 
-        self._tau = tau
+        self._tau = quantile
         self._treatment = treatment
         self._h = None
         self._normalize = True
@@ -444,7 +448,7 @@ class DoubleMLQTE:
             model_PQ_0 = DoubleMLPQ(self._dml_data,
                                     self._learner['ml_g'],
                                     self._learner['ml_m'],
-                                    tau=self._quantiles[i_quant],
+                                    quantile=self._quantiles[i_quant],
                                     treatment=0,
                                     n_folds=self.n_folds,
                                     n_rep=self.n_rep,
@@ -453,7 +457,7 @@ class DoubleMLQTE:
             model_PQ_1 = DoubleMLPQ(self._dml_data,
                                     self._learner['ml_g'],
                                     self._learner['ml_m'],
-                                    tau=self._quantiles[i_quant],
+                                    quantile=self._quantiles[i_quant],
                                     treatment=1,
                                     n_folds=self.n_folds,
                                     n_rep=self.n_rep,
