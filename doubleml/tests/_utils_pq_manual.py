@@ -1,11 +1,11 @@
 import numpy as np
-from sklearn.base import clone, is_classifier
+from sklearn.base import clone
 from sklearn.model_selection import train_test_split, KFold
 from scipy.optimize import root_scalar
 
-from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict_proba
 from .._utils import _dml_cv_predict
+
 
 def fit_pq(y, x, d, quantile,
            learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
@@ -35,6 +35,7 @@ def fit_pq(y, x, d, quantile,
 
     return res
 
+
 def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, trimming_threshold):
     n_folds = len(smpls)
     n_obs = len(y)
@@ -44,8 +45,8 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
     ml_m_prelim = clone(learner_m)
 
     # initialize nuisance predictions
-    g_hat = np.full(shape=(n_obs), fill_value=np.nan)
-    m_hat = np.full(shape=(n_obs), fill_value=np.nan)
+    g_hat = np.full(shape=n_obs, fill_value=np.nan)
+    m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
     for i_fold in range(len(smpls)):
         train_inds = smpls[i_fold][0]
@@ -59,14 +60,13 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
         m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m_prelim,
-                                                  params=None,
-                                                  trimming_threshold=trimming_threshold,
-                                                  smpls=smpls_prelim)
+                                              params=None,
+                                              trimming_threshold=trimming_threshold,
+                                              smpls=smpls_prelim)
 
         m_hat_prelim = np.full_like(y_train_1, np.nan, dtype='float64')
         for idx, (_, test_index) in enumerate(smpls_prelim):
             m_hat_prelim[test_index] = m_hat_prelim_list[idx]
-
 
         m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
                                        method='predict_proba', smpls=smpls_prelim)['preds']
@@ -182,6 +182,7 @@ def pq_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
 
     return dml_est
 
+
 def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, normalize=True, h=None):
     score_weights = (d == treatment) / m_hat
     normalization = score_weights.mean()
@@ -198,7 +199,3 @@ def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, normalize=T
     score = (d == treatment) * ((y <= coef) - g_hat) / m_hat + g_hat - quantile
     var_est = 1/n_obs * np.mean(np.square(score)) / np.square(J)
     return var_est
-
-
-
-

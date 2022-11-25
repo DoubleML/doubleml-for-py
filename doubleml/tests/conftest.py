@@ -8,7 +8,7 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
-from doubleml.double_ml_data import DoubleMLData
+
 
 def _g(x):
     return np.power(np.sin(x), 2)
@@ -348,6 +348,7 @@ def generate_data_irm_w_missings(request):
     data = (x, y, d)
 
     return data
+
 
 @pytest.fixture(scope='session',
                 params=[(500, 5),

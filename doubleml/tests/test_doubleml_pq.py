@@ -1,15 +1,13 @@
 import numpy as np
 import pytest
 import math
-import scipy.stats as sps
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 from ._utils import draw_smpls
 from ._utils_pq_manual import fit_pq
@@ -20,10 +18,12 @@ from ._utils_pq_manual import fit_pq
 def treatment(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params=[0.25, 0.5, 0.75])
 def quantile(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=20, random_state=42),
@@ -31,10 +31,12 @@ def quantile(request):
 def learner(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
                 params=['dml1', 'dml2'])
 def dml_procedure(request):
     return request.param
+
 
 @pytest.fixture(scope='module',
                 params=[0.01, 0.05])
@@ -50,13 +52,6 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
     # collect data
     (x, y, d) = generate_data_quantiles
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
-
-    # True Quantile (Remark that this is dependent on location and scale)
-    error_quantile = sps.norm(loc=0, scale=1).ppf(quantile)
-    if treatment == 0:
-        pq = 0 + error_quantile
-    else:
-        pq = 2 + np.sqrt(0.5) * error_quantile
 
     np.random.seed(42)
     dml_pq_obj = dml.DoubleMLPQ(obj_dml_data,
@@ -91,11 +86,13 @@ def test_dml_pq_coef(dml_pq_fixture):
                         dml_pq_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
+
 @pytest.mark.ci
 def test_dml_pq_se(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['se'],
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_implemented_exception():
