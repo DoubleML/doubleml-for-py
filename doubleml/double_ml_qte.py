@@ -97,8 +97,8 @@ class DoubleMLQTE:
         if trimming_rule not in valid_trimming_rule:
             raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
                              'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
-        self.trimming_rule = trimming_rule
-        self.trimming_threshold = trimming_threshold
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
 
         self._check_data(self._dml_data)
         self._check_quantile()
@@ -173,6 +173,20 @@ class DoubleMLQTE:
         Indicates of the weights in the derivative estimation should be normalized.
         """
         return self._normalize
+
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
 
     @property
     def coef(self):
@@ -264,7 +278,7 @@ class DoubleMLQTE:
                                     n_rep=self.n_rep,
                                     dml_procedure=self.dml_procedure,
                                     trimming_rule=self.trimming_rule,
-                                    trimming_threshold=self.trimming_rule,
+                                    trimming_threshold=self.trimming_threshold,
                                     h=self.h,
                                     normalize=self.normalize,
                                     draw_sample_splitting=False,
@@ -279,7 +293,7 @@ class DoubleMLQTE:
                                     n_rep=self.n_rep,
                                     dml_procedure=self.dml_procedure,
                                     trimming_rule=self.trimming_rule,
-                                    trimming_threshold=self.trimming_rule,
+                                    trimming_threshold=self.trimming_threshold,
                                     h=self.h,
                                     normalize=self.normalize,
                                     draw_sample_splitting=False,

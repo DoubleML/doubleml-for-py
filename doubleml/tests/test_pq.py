@@ -28,7 +28,7 @@ def quantile(request):
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=2, n_estimators=20, random_state=42),
+                params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
                         LogisticRegression()])
 def learner(request):
     return request.param

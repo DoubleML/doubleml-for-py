@@ -130,8 +130,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         self._coef_start_val = np.quantile(self._dml_data.y, self.quantile)
 
         # initialize and check trimming
-        self.trimming_rule = trimming_rule
-        self.trimming_threshold = trimming_threshold
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
         self._check_trimming()
 
         _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
@@ -170,6 +170,20 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Indicates of the weights in the derivative estimation should be normalized.
         """
         return self._normalize
+
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
 
     @property
     def _score_element_names(self):
