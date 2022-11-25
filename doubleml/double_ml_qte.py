@@ -36,12 +36,51 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Default is ``1``.
 
     quantile : float
-        The quanti.
+        Quantile of the potential outcome. Has to be between ``0`` and ``1``.
         Default is ``0.5``.
 
     n_folds : int
         Number of folds.
         Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str
+        A str (``'PQ'`` is the only choice) specifying the score function
+        for potential quantiles.
+        Default is ``'PQ'``.
+
+    dml_procedure : str
+        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
+        Default is ``'dml2'``.
+
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-12``.   
+
+    h : float or None
+        The bandwidth to be used for the kernel density estimation of the score derivative.
+        If ``None`` the bandwidth will be set to ``np.power(n_obs, -0.2)``, where ``n_obs`` is
+        the number of observations in the sample.
+        Default is ``1e-12``.   
+
+    normalize : bool
+        Indicates whether to normalize weights in the estimation of the score derivative.
+        Default is ``True``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
+    apply_cross_fitting : bool
+        Indicates whether cross-fitting should be applied(``True`` is the only choice).
+        Default is ``True``.
     """
     def __init__(self,
                  obj_dml_data,
@@ -51,10 +90,12 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  quantile=0.5,
                  n_folds=5,
                  n_rep=1,
+                 score='PQ',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-12,
-                 score='PQ',
+                 h = None,
+                 normalize = True,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -65,10 +106,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
 
-        self._tau = quantile
+        self._quantile = quantile
         self._treatment = treatment
-        self._h = None
-        self._normalize = True
+        self._h = h
+        self._normalize = normalize
 
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
@@ -78,7 +119,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
-        self._coef_start_val = np.quantile(self._dml_data.y, self._tau)
+        self._coef_start_val = np.quantile(self._dml_data.y, self._quantile)
 
         valid_trimming_rule = ['truncate']
         if trimming_rule not in valid_trimming_rule:
@@ -102,7 +143,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         return ['Ind_d', 'g', 'm', 'y']
 
     def _compute_ipw_score(self, theta, d, y, prop):
-        score = (d == self._treatment) * (y <= theta) / prop - self._tau
+        score = (d == self._treatment) * (y <= theta) / prop - self._quantile
         return score
 
     def _compute_score(self, psi_elements, coef, inds=None):
@@ -116,7 +157,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             m = psi_elements['m'][inds]
             y = psi_elements['y'][inds]
 
-        score = Ind_d * ((y <= coef) - g) / m + g - self._tau
+        score = Ind_d * ((y <= coef) - g) / m + g - self._quantile
         return score
 
 
