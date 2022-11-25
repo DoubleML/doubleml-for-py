@@ -79,6 +79,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Indicates whether cross-fitting should be applied(``True`` is the only choice).
         Default is ``True``.
     """
+
     def __init__(self,
                  obj_dml_data,
                  ml_g,
@@ -128,12 +129,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
         self._coef_start_val = np.quantile(self._dml_data.y, self.quantile)
 
-        valid_trimming_rule = ['truncate']
-        if trimming_rule not in valid_trimming_rule:
-            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
-                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+        # initialize and check trimming
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
+        self._check_trimming()
 
         _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
@@ -210,7 +209,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         u = (y - coef).reshape(-1, 1) / self._h
         kernel_est = np.exp(-1. * np.power(u, 2) / 2) / np.sqrt(2 * np.pi)
-        deriv = np.multiply(score_weights, kernel_est.reshape(-1,)) / self._h
+        deriv = np.multiply(score_weights, kernel_est.reshape(-1, )) / self._h
 
         return deriv
 
@@ -251,7 +250,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
             # preliminary ipw estimate
             def ipw_score(theta):
-                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1,  m_hat_prelim))
+                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, m_hat_prelim))
                 return res
 
             def get_bracket_guess(coef_start, coef_bounds):
@@ -260,8 +259,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                 delta = 0.1
                 s_different = False
                 while (not s_different) & (delta <= 1.0):
-                    a = np.maximum(coef_start - delta * max_bracket_length/2, coef_bounds[0])
-                    b = np.minimum(coef_start + delta * max_bracket_length/2, coef_bounds[1])
+                    a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
+                    b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
                     b_guess = (a, b)
                     f_a = ipw_score(b_guess[0])
                     f_b = ipw_score(b_guess[1])
@@ -314,18 +313,17 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
-        pass
+        raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
 
     def _check_score(self, score):
+        valid_score = ['PQ']
         if isinstance(score, str):
-            valid_score = ['PQ']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
         else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
+            raise TypeError('Invalid score. ' +
+                            'Valid score ' + ' or '.join(valid_score) + '.')
         return
 
     def _check_data(self, obj_dml_data):
@@ -335,13 +333,13 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). ')
+                             ' have been set as instrumental variable(s).')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
-                             'To fit an IRM model with DML '
+                             'To fit an PQ model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
@@ -372,3 +370,15 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         if bandwidth <= 0:
             raise ValueError('Bandwidth has be positive. ' +
                              f'Bandwidth {str(bandwidth)} passed.')
+
+    def _check_trimming(self):
+        valid_trimming_rule = ['truncate']
+        if self.trimming_rule not in valid_trimming_rule:
+            raise ValueError('Invalid trimming_rule ' + str(self.trimming_rule) + '. ' +
+                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+        if not isinstance(self.trimming_threshold, float):
+            raise TypeError('trimming_threshold has to be a float. ' +
+                            f'Object of type {str(type(self.trimming_threshold))} passed.')
+        if (self.trimming_threshold <= 0) | (self.trimming_threshold >= 0.5):
+            raise ValueError('Invalid trimming_threshold ' + str(self.trimming_threshold) + '. ' +
+                             'trimming_threshold has to be between 0 and 0.5.')

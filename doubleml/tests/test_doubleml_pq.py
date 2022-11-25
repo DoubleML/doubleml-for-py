@@ -12,6 +12,8 @@ from sklearn.ensemble import RandomForestClassifier
 from ._utils import draw_smpls
 from ._utils_pq_manual import fit_pq
 
+from doubleml.datasets import make_irm_data
+
 
 @pytest.fixture(scope='module',
                 params=[0, 1])
@@ -92,6 +94,40 @@ def test_dml_pq_se(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['se'],
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_doubleml_pq_exceptions():
+    np.random.seed(3141)
+    (x, y, d) = make_irm_data(100, 5, 2, return_type='array')
+    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+    ml_g = RandomForestClassifier()
+    ml_m = RandomForestClassifier()
+
+    msg = 'Nuisance tuning not implemented for potential quantiles.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_pq = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1)
+        _ = dml_pq.tune({'ml_g': {'n_estimators': [5, 10]},
+                         'ml_m': {'n_estimators': [5, 10]},
+                         'ml_m_prelim': {'n_estimators': [5, 10]}})
+
+    msg = "Treatment indicator has to be an integer. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment="1")
+    msg = "Treatment indicator has be either 0 or 1. Treatment indicator 2 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=2)
+
+    msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, h="0.1")
+    msg = "Bandwidth has be positive. Bandwidth -0.1 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, h=-0.1)
+
+    msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, normalize=1)
 
 
 @pytest.mark.ci

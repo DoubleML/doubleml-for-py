@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, DoubleMLPQ
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 from doubleml.double_ml_data import DoubleMLBaseData
@@ -57,6 +57,8 @@ def test_doubleml_exception_data():
         _ = DoubleMLIRM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, ml_r)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
@@ -85,7 +87,6 @@ def test_doubleml_exception_data():
         # non-binary D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', 'd'),
                         Lasso(), LogisticRegression())
-    df_irm = dml_data_irm.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for IRM
         _ = DoubleMLIRM(DoubleMLData(df_irm, 'y', ['d', 'X1']),
@@ -123,6 +124,24 @@ def test_doubleml_exception_data():
         _ = DoubleMLIIVM(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z', 'X1']),
                          Lasso(), LogisticRegression(), LogisticRegression())
 
+    # PQ with IV
+    msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1)
+    msg = ('Incompatible data. To fit an PQ model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_irm = dml_data_irm.data.copy()
+    df_irm['d'] = df_irm['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary D for PQ
+        _ = DoubleMLPQ(DoubleMLData(df_irm, 'y', 'd'),
+                       LogisticRegression(), LogisticRegression(), treatment=1)
+    df_irm = dml_data_irm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        # multiple D for PQ
+        _ = DoubleMLPQ(DoubleMLData(df_irm, 'y', ['d', 'X1']),
+                       LogisticRegression(), LogisticRegression(), treatment=1)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_scores():
@@ -154,6 +173,13 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score=0)
 
+    msg = 'Invalid score IV. Valid score PQ.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score='IV')
+    msg = 'Invalid score. Valid score PQ.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score=2)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_trimming_rule():
@@ -162,6 +188,17 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
+
+    msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
+                       trimming_rule='truncate', trimming_threshold="0.1")
+    msg = 'Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
+                       trimming_rule='truncate', trimming_threshold=0.6)
 
 
 @pytest.mark.ci
