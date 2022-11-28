@@ -351,6 +351,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             raise ValueError('Invalid score ' + self.score + '. ' +
                              'Valid score ' + ' or '.join(valid_score) + '.')
 
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
         # define the orthogonal signal
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
@@ -377,6 +381,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if self.score not in valid_score:
             raise ValueError('Invalid score ' + self.score + '. ' +
                              'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
 
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '

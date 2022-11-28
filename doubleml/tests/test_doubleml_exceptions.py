@@ -752,6 +752,19 @@ def test_doubleml_exception_gate():
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.gate(groups=2)
 
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=2)
+    dml_irm_obj.fit()
+
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_irm_obj.gate(groups=2)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_cate():
@@ -765,4 +778,16 @@ def test_doubleml_exception_cate():
 
     msg = 'Invalid score ATTE. Valid score ATE.'
     with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.cate(basis=2)
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=2)
+    dml_irm_obj.fit()
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
         dml_irm_obj.cate(basis=2)
