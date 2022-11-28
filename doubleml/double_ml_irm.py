@@ -352,7 +352,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                              'Valid score ' + ' or '.join(valid_score) + '.')
 
         # define the orthogonal signal
-        orth_signal = self.psi_b.reshape(-1)
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
         model = DoubleMLBLP(orth_signal, basis=basis).fit()
 
@@ -393,7 +393,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
         # define the orthogonal signal
-        orth_signal = self.psi_b.reshape(-1)
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor for GATE (different confint() method)
         model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
 
