@@ -111,6 +111,13 @@ def test_doubleml_pq_exceptions():
                          'ml_m': {'n_estimators': [5, 10]},
                          'ml_m_prelim': {'n_estimators': [5, 10]}})
 
+    msg = "Quantile has to be a float. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile="0.4")
+    msg = "Quantile has be between 0 or 1. Quantile 1.0 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=1.)
+
     msg = "Treatment indicator has to be an integer. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment="1")

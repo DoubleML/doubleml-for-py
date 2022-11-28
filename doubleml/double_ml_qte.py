@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
@@ -7,7 +8,7 @@ from sklearn.base import clone
 
 from ._utils import _draw_weights
 from ._utils_resampling import DoubleMLResampling
-from .double_ml_data import DoubleMLData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
 
 
@@ -93,6 +94,11 @@ class DoubleMLQTE:
 
         self._dml_procedure = dml_procedure
 
+        self._is_cluster_data = False
+        if isinstance(obj_dml_data, DoubleMLClusterData):
+            self._is_cluster_data = True
+        if self._is_cluster_data:
+            raise NotImplementedError('Estimation with clustering not implemented.')
         valid_trimming_rule = ['truncate']
         if trimming_rule not in valid_trimming_rule:
             raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
@@ -145,6 +151,13 @@ class DoubleMLQTE:
                        'External samples not implemented yet.')
             raise ValueError(err_msg)
         return self._smpls
+
+    @property
+    def quantiles(self):
+        """
+        Number of Quantiles.
+        """
+        return self._quantiles
 
     @property
     def n_quantiles(self):
@@ -488,10 +501,10 @@ class DoubleMLQTE:
         """
         Estimate the standard errors of the structural parameter
         """
-        J0 = self._psi0_deriv[:, self._i_rep, self._i_rep].mean()
-        J1 = self._psi1_deriv[:, self._i_rep, self._i_rep].mean()
-        score0 = self._psi0[:, self._i_rep, self._i_rep]
-        score1 = self._psi0[:, self._i_rep, self._i_rep]
+        J0 = self._psi0_deriv[:, self._i_rep, self._i_quant].mean()
+        J1 = self._psi1_deriv[:, self._i_rep, self._i_quant].mean()
+        score0 = self._psi0[:, self._i_rep, self._i_quant]
+        score1 = self._psi0[:, self._i_rep, self._i_quant]
         omega = score1 / J1 - score0 / J0
 
         if self.apply_cross_fitting:
@@ -552,10 +565,6 @@ class DoubleMLQTE:
         return
 
     def _check_quantile(self):
-        if self._quantiles.ndim > 1:
-            raise ValueError('Quantile have to be of dimension 0 or 1.' +
-                             f'Object of dimension {str(self._quantiles.ndim)} passed.')
-
-        if np.any(self._quantiles <= 0) | np.any(self._quantiles >= 1):
-            raise ValueError('Quantiles have be between 0 or 1.' +
-                             f'Quantiles {str(self._quantiles)} passed.')
+        if np.any(self.quantiles <= 0) | np.any(self.quantiles >= 1):
+            raise ValueError('Quantiles have be between 0 or 1. ' +
+                             f'Quantiles {str(self.quantiles)} passed.')
