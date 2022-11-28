@@ -5,11 +5,15 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
+
 from .double_ml_blp import DoubleMLBLP
+from .double_ml_data import DoubleMLData
+from .double_ml_score_mixins import LinearScoreMixin
+
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
 
 
-class DoubleMLIRM(DoubleML):
+class DoubleMLIRM(LinearScoreMixin, DoubleML):
     """Double machine learning for interactive regression models
 
     Parameters
@@ -161,6 +165,9 @@ class DoubleMLIRM(DoubleML):
         return
 
     def _check_data(self, obj_dml_data):
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
@@ -224,6 +231,8 @@ class DoubleMLIRM(DoubleML):
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
                                             smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
@@ -232,7 +241,7 @@ class DoubleMLIRM(DoubleML):
                             'ml_m': m_hat['models']}
                  }
 
-        return psi_a, psi_b, preds
+        return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
         # fraction of treated for ATTE
