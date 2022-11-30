@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
@@ -8,7 +7,7 @@ from sklearn.base import clone
 
 from ._utils import _draw_weights
 from ._utils_resampling import DoubleMLResampling
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLData
 from .double_ml_pq import DoubleMLPQ
 
 
@@ -94,9 +93,6 @@ class DoubleMLQTE:
 
         self._dml_procedure = dml_procedure
 
-        self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
-            self._is_cluster_data = True
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         valid_trimming_rule = ['truncate']

@@ -112,7 +112,7 @@ def test_doubleml_qte_exceptions():
 @pytest.mark.ci
 def test_doubleml_cluster_not_implemented_exception():
     np.random.seed(3141)
-    (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
+    (x, y, d, cluster_vars, _) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
     d = np.zeros_like(d)
     dml_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
     ml_g = RandomForestClassifier()

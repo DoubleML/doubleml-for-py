@@ -48,7 +48,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
     m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
-    for i_fold in range(len(smpls)):
+    for i_fold, _ in enumerate(smpls):
         train_inds = smpls[i_fold][0]
         test_inds = smpls[i_fold][1]
 
