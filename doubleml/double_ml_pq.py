@@ -8,7 +8,7 @@ from sklearn.model_selection import KFold, train_test_split
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLData
 
 
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
@@ -111,9 +111,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._h = np.power(self._dml_data.n_obs, -0.2)
         self._normalize = normalize
 
-        self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
-            self._is_cluster_data = True
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)
@@ -137,9 +134,13 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m),
-                         'ml_m_prelim': clone(ml_m)}
+                         'ml_m_prelim': clone(ml_m), 'ml_pi_z': clone(ml_m),
+                         'ml_pi_z0y': clone(ml_m), 'ml_pi_z1y': clone(ml_m),
+                         'ml_pi_z0d': clone(ml_m), 'ml_pi_z1d': clone(ml_m)}
         self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba',
-                                'ml_m_prelim': 'predict_proba'}
+                                'ml_m_prelim': 'predict_proba', 'ml_pi_z': 'predict_proba',
+                                'ml_pi_z0y': 'predict_proba', 'ml_pi_z1y': 'predict_proba',
+                                'ml_pi_z0d': 'predict_proba', 'ml_pi_z1d': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
 
@@ -187,7 +188,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
     @property
     def _score_element_names(self):
-        return ['ind_d', 'g', 'm', 'y']
+        return ['ind_d', 'g', 'm', 'pi_z', 'pi_z0y', 'pi_z1y', 'y', 'z', 'd', 'theta_2_aux']
 
     def _compute_ipw_score(self, theta, d, y, prop):
         score = (d == self._treatment) * (y <= theta) / prop - self.quantile
@@ -197,26 +198,53 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         ind_d = psi_elements['ind_d']
         g = psi_elements['g']
         m = psi_elements['m']
+        pi_z = psi_elements['pi_z']
+        pi_z0y = psi_elements['pi_z0y']
+        pi_z1y = psi_elements['pi_z1y']
         y = psi_elements['y']
+        z = psi_elements['z']
+        d = psi_elements['d']
+        theta_2_aux = psi_elements['theta_2_aux']
+
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
             g = psi_elements['g'][inds]
             m = psi_elements['m'][inds]
+            pi_z = psi_elements['pi_z']
+            pi_z0y = psi_elements['pi_z0y'][inds]
+            pi_z1y = psi_elements['pi_z1y'][inds]
             y = psi_elements['y'][inds]
+            z = psi_elements['z'][inds]
+            d = psi_elements['d'][inds]
 
-        score = ind_d * ((y <= coef) - g) / m + g - self.quantile
+        if self.score == 'PQ':
+            score = ind_d * ((y <= coef) - g) / m + g - self.quantile
+        elif self.score == 'LPQ':
+            score1 = pi_z1y - pi_z0y
+            score2 = (z / pi_z) * (ind_d * (y <= coef) - pi_z1y)
+            score3 = (1 - z) / (1 - pi_z) * (ind_d * (y <= coef) - pi_z0y)
+            score = (score1 + score2 - score3) / theta_2_aux - self.quantile
         return score
 
     def _compute_score_deriv(self, psi_elements, coef, inds=None):
         ind_d = psi_elements['ind_d']
         m = psi_elements['m']
         y = psi_elements['y']
+        pi_z = psi_elements['pi_z']
+        z = psi_elements['z']
+        theta_2_aux = psi_elements['theta_2_aux']
+
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
             m = psi_elements['m'][inds]
             y = psi_elements['y'][inds]
+            pi_z = psi_elements['pi_z'][inds]
+            z = psi_elements['z'][inds]
+        if self.score == 'PQ':
+            score_weights = ind_d / m
+        elif self.score == 'LPQ':
+            score_weights = ((z / pi_z) - (1 - z) / (1 - pi_z)) * ind_d / theta_2_aux
 
-        score_weights = ind_d / m
         normalization = score_weights.mean()
         if self._normalize:
             score_weights /= normalization
@@ -229,7 +257,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
-                        for learner in ['ml_g', 'ml_m', 'ml_m_prelim']}
+                        for learner in ['ml_g', 'ml_m', 'ml_m_prelim', 'ml_pi_z',
+                                        'ml_pi_z0y', 'ml_pi_z1y', 'ml_pi_z0d', 'ml_pi_z1d']}
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -237,9 +266,20 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
+        z = np.full_like(y, fill_value=np.nan)
+        if self.score == 'LPQ':
+            x, z = check_X_y(x, np.ravel(self._dml_data.z),
+                             force_all_finite=False)
+
         # initialize nuisance predictions
         g_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
         m_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        pi_z_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        pi_z0d_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        pi_z1d_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        pi_z0y_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        pi_z1y_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        theta_2_aux_hat = np.full(shape=1, fill_value=np.nan)
 
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
@@ -310,19 +350,72 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
             g_hat[test_inds] = self._learner['ml_g'].predict_proba(dx_test)[:, 1]
 
-            # refit the propensity score on the whole training set
-            self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
-            m_hat[test_inds] = self._learner['ml_m'].predict_proba(x[test_inds, :])[:, self._treatment]
+            if self.score == 'PQ':
+                # refit the propensity score on the whole training set
+                self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
+                m_hat[test_inds] = self._learner['ml_m'].predict_proba(x[test_inds, :])[:, self._treatment]
 
+            #fit additional nuisance elements for the local potential quantile
+            elif self.score == 'LPQ':
+                z_train_2 = z[train_inds_2]
+                # propensity for z
+                self._learner['ml_pi_z'].fit(x_train_2, z_train_2)
+                pi_z_hat[test_inds] = self._learner['ml_pi_z'].predict_proba(x[test_inds, :])[:, 1]
+
+                # propensity for d == 1 cond. on z == 0
+                z0x_train_2 = x_train_2[z_train_2 == 0, :]
+                z0d_train_2 = d_train_2[z_train_2 == 0]
+                self._learner['ml_pi_z0d'].fit(z0x_train_2, z0d_train_2)
+                pi_z0d_hat[test_inds] = self._learner['ml_pi_z0d'].predict_proba(x[test_inds, :])[:, 1]
+
+                # propensity for d == 1 cond. on z == 1
+                z1x_train_2 = x_train_2[z_train_2 == 1, :]
+                z1d_train_2 = d_train_2[z_train_2 == 1]
+                self._learner['ml_pi_z1d'].fit(z1x_train_2, z1d_train_2)
+                pi_z1d_hat[test_inds] = self._learner['ml_pi_z1d'].predict_proba(x[test_inds, :])[:, 1]
+
+                # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 0
+                pi_z0y_outcome = (d_train_2[z_train_2 == 0] == self._treatment) * (y_train_2[z_train_2 == 0] <= ipw_est)
+                self._learner['ml_pi_z0y'].fit(z0x_train_2, pi_z0y_outcome)
+                pi_z0y_hat[test_inds] = self._learner['ml_pi_z0y'].predict_proba(x[test_inds, :])[:, 1]
+
+                # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 1
+                pi_z1y_outcome = (d_train_2[z_train_2 == 1] == self._treatment) * (y_train_2[z_train_2 == 1] <= ipw_est)
+                self._learner['ml_pi_z1y'].fit(z1x_train_2, pi_z1y_outcome)
+                pi_z1y_hat[test_inds] = self._learner['ml_pi_z1y'].predict_proba(x[test_inds, :])[:, 1]
+
+
+        # clip propensities
+        if self.score == 'PQ':
             m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
             m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
 
-        psi_elements = {'ind_d': d == self._treatment,
-                        'g': g_hat,
-                        'm': m_hat,
-                        'y': y}
-        preds = {'ml_g': g_hat,
-                 'ml_m': m_hat}
+        elif self.score == 'LPQ':
+            pi_z_hat[pi_z_hat < self.trimming_threshold] = self.trimming_threshold
+            pi_z_hat[pi_z_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
+            pi_z0d_hat[pi_z0d_hat < self.trimming_threshold] = self.trimming_threshold
+            pi_z0d_hat[pi_z0d_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
+            pi_z1d_hat[pi_z1d_hat < self.trimming_threshold] = self.trimming_threshold
+            pi_z1d_hat[pi_z1d_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
+            pi_z0y_hat[pi_z0y_hat < self.trimming_threshold] = self.trimming_threshold
+            pi_z0y_hat[pi_z0y_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
+            pi_z1y_hat[pi_z1y_hat < self.trimming_threshold] = self.trimming_threshold
+            pi_z1y_hat[pi_z1y_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+
+            # estimate final nuisance parameter
+            theta_2_aux_hat = np.mean(pi_z1d_hat - pi_z0d_hat)
+
+        psi_elements = {'ind_d': d == self._treatment, 'g': g_hat,
+                        'm': m_hat, 'pi_z': pi_z_hat,
+                        'pi_z0y': pi_z0y_hat, 'pi_z1y': pi_z1y_hat,
+                        'y': y, 'z': z, 'd': d, 'theta_2_aux': theta_2_aux_hat}
+        preds = {'ml_g': g_hat, 'ml_m': m_hat, 'ml_pi_z': pi_z_hat,
+                 'ml_pi_z0d': pi_z0d_hat, 'ml_pi_z1d': pi_z1d_hat,
+                 'ml_pi_z0y': pi_z0y_hat, 'ml_pi_z1y': pi_z1y_hat}
         return psi_elements, preds
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
@@ -330,7 +423,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
 
     def _check_score(self, score):
-        valid_score = ['PQ']
+        valid_score = ['PQ', 'LPQ']
         if isinstance(score, str):
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
@@ -344,10 +437,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s).')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)

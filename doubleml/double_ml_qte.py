@@ -7,7 +7,7 @@ from sklearn.base import clone
 
 from ._utils import _draw_weights
 from ._utils_resampling import DoubleMLResampling
-from .double_ml_data import DoubleMLData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
 
 
@@ -93,6 +93,9 @@ class DoubleMLQTE:
 
         self._dml_procedure = dml_procedure
 
+        self._is_cluster_data = False
+        if isinstance(obj_dml_data, DoubleMLClusterData):
+            self._is_cluster_data = True
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         valid_trimming_rule = ['truncate']
@@ -500,7 +503,7 @@ class DoubleMLQTE:
         J0 = self._psi0_deriv[:, self._i_rep, self._i_quant].mean()
         J1 = self._psi1_deriv[:, self._i_rep, self._i_quant].mean()
         score0 = self._psi0[:, self._i_rep, self._i_quant]
-        score1 = self._psi0[:, self._i_rep, self._i_quant]
+        score1 = self._psi1[:, self._i_rep, self._i_quant]
         omega = score1 / J1 - score0 / J0
 
         if self.apply_cross_fitting:
