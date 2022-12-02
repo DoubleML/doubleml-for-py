@@ -67,7 +67,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
             J0 = model_PQ_0.psi_deriv[:, i_rep, 0].mean()
             J1 = model_PQ_1.psi_deriv[:, i_rep, 0].mean()
             score0 = model_PQ_0.psi[:, i_rep, 0]
-            score1 = model_PQ_0.psi[:, i_rep, 0]
+            score1 = model_PQ_1.psi[:, i_rep, 0]
             omega = score1 / J1 - score0 / J0
 
             scaled_scores[:, i_quant, i_rep] = omega

@@ -7,6 +7,7 @@ from .double_ml_iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_qte import DoubleMLQTE
 from .double_ml_pq import DoubleMLPQ
+from .double_ml_lpq import DoubleMLLPQ
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',
@@ -15,6 +16,7 @@ __all__ = ['DoubleMLPLR',
            'DoubleMLData',
            'DoubleMLClusterData',
            'DoubleMLPQ',
-           'DoubleMLQTE']
+           'DoubleMLQTE',
+           'DoubleMLLPQ']
 
 __version__ = get_distribution('doubleml').version

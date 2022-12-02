@@ -42,7 +42,6 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
 
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
-    ml_m_prelim = clone(learner_m)
 
     # initialize nuisance predictions
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
@@ -59,7 +58,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
-        m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m_prelim,
+        m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m,
                                               params=None,
                                               trimming_threshold=trimming_threshold,
                                               smpls=smpls_prelim)
@@ -68,7 +67,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
         for idx, (_, test_index) in enumerate(smpls_prelim):
             m_hat_prelim[test_index] = m_hat_prelim_list[idx]
 
-        m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
+        m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1,
                                        method='predict_proba', smpls=smpls_prelim)['preds']
         if treatment == 0:
             m_hat_prelim = 1 - m_hat_prelim
