@@ -19,29 +19,26 @@ def fit_lpq(y, x, d, z, quantile,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_est = fit_nuisance_lpq(y, x,
+        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec = fit_nuisance_lpq(y, x,
                                                                                         d, z, quantile,
                                                                                         learner_m, smpls, treatment,
                                                                                         trimming_rule=trimming_rule,
                                                                                         trimming_threshold=trimming_threshold)
-        print(f'comp_prob manual: {comp_prob_hat}')
+        print(f'comp_prob manual: {ipw_vec.mean()}')
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_est, smpls)
+                                               treatment, quantile, ipw_vec, smpls)
         else:
             lpqs[i_rep], ses[i_rep] = lpq_dml2(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_est)
-
+                                               treatment, quantile, ipw_vec)
 
     lpq = np.median(lpqs)
-    print(lpq)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(lpqs - lpq, 2)) / n_obs)
 
     res = {'lpq': lpq, 'se': se,
            'lpqs': lpqs, 'ses': ses}
 
     return res
-
 
 def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming_rule, trimming_threshold):
     n_folds = len(smpls)
@@ -60,6 +57,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
     pi_du_z0_hat = np.full(shape=n_obs, fill_value=np.nan)
     pi_du_z1_hat = np.full(shape=n_obs, fill_value=np.nan)
 
+    ipw_vec = np.full(shape=n_folds, fill_value=np.nan)
     for i_fold, _ in enumerate(smpls):
         train_inds = smpls[i_fold][0]
         test_inds = smpls[i_fold][1]
@@ -131,7 +129,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
                                bracket=bracket_guess,
                                method='brentq')
         ipw_est = root_res.root
-
+        ipw_vec[i_fold] = ipw_est
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
         y_train_2 = y[train_inds_2]
@@ -182,12 +180,13 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
     comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
                             + z / pi_z_hat * (d - pi_d_z1_hat)
                             - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
-    return pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_est
+    return pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec
 
 
-def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_est, smpls):
+def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec, smpls):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
+    ipw_est = ipw_vec.mean()
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = lpq_est(pi_z[test_index], pi_du_z0[test_index], pi_du_z1[test_index],
                               comp_prob, d[test_index], y[test_index], z[test_index], treatment, quantile, ipw_est)
@@ -199,8 +198,9 @@ def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, 
     return theta_hat, se
 
 
-def lpq_dml2(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_est):
+def lpq_dml2(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec):
     n_obs = len(y)
+    ipw_est = ipw_vec.mean()
     theta_hat = lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est)
 
     se = np.sqrt(lpq_var_est(theta_hat, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs))

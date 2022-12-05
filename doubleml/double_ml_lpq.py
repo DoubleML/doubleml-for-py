@@ -260,6 +260,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         pi_du_z0_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
         pi_du_z1_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
 
+        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
@@ -326,8 +327,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                                    bracket=bracket_guess,
                                    method='brentq')
             ipw_est = root_res.root
-            # readjust start value for minimization
-            self._coef_start_val = ipw_est
+            ipw_vec[i_fold] = ipw_est
 
             # use the preliminary estimates to fit the nuisance parameters on train_2
             d_train_2 = d[train_inds_2]
@@ -381,7 +381,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
                                 + z / pi_z_hat * (d - pi_d_z1_hat)
                                 - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
-        print(f'comp_prob: {comp_prob_hat}')
+
+
+        # readjust start value for minimization
+        self._coef_start_val = np.mean(ipw_vec)
+        print(f'comp_prob: {self._coef_start_val}')
 
         psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat,
                         'pi_du_z0': pi_du_z0_hat, 'pi_du_z1': pi_du_z1_hat,
