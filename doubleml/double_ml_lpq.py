@@ -19,14 +19,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_g : classifier implementing ``fit()`` and ``predict()``
+    ml_m : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function
-         :math:`g_0(X) = E[Y <= \theta | X, D=d]` .
-
-    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=d|X]`.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the propensity nuisance functions.
 
     treatment : int
         Binary treatment indicator. Has to be either ``0`` or ``1``. Determines the potential outcome to be considered.
@@ -122,8 +117,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                             f'Object of type {str(type(self.normalize))} passed.')
 
         # initialize starting values and bounds
-        self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
-        self._coef_start_val = np.quantile(self._dml_data.y, self.quantile)
+        y_treat = self._dml_data.y[self._dml_data.d == self.treatment]
+        self._coef_bounds = (y_treat.min(), y_treat.max())
+        self._coef_start_val = np.quantile(y_treat, self.quantile)
 
         # initialize and check trimming
         self._trimming_rule = trimming_rule
@@ -185,23 +181,25 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     @property
     def _score_element_names(self):
-        return ['ind_d', 'pi_z', 'pi_du_z0', 'pi_du_z1', 'y', 'z', 'theta_2_aux']
+        return ['ind_d', 'pi_z', 'pi_du_z0', 'pi_du_z1', 'y', 'z', 'comp_prob']
 
-    def _compute_ipw_score(self, theta, d, y, prop, z, theta_2_aux_hat_prelim):
-        weights = (z == self._treatment) / prop / theta_2_aux_hat_prelim
+    def _compute_ipw_score(self, theta, d, y, prop, z, comp_prob):
+        sign = 2 * self.treatment - 1.0
+        weights = sign * (z / prop - (1 - z) / (1 - prop)) / comp_prob
         u = (d == self._treatment) * (y <= theta)
         v = -1. * self.quantile
         score = weights * u + v
         return score
 
     def _compute_score(self, psi_elements, coef, inds=None):
+        sign = 2 * self.treatment - 1.0
         ind_d = psi_elements['ind_d']
         pi_z = psi_elements['pi_z']
         pi_du_z0 = psi_elements['pi_du_z0']
         pi_du_z1 = psi_elements['pi_du_z1']
         y = psi_elements['y']
         z = psi_elements['z']
-        theta_2_aux = psi_elements['theta_2_aux']
+        comp_prob = psi_elements['comp_prob']
 
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
@@ -214,15 +212,16 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         score1 = pi_du_z1 - pi_du_z0
         score2 = (z / pi_z) * (ind_d * (y <= coef) - pi_du_z1)
         score3 = (1 - z) / (1 - pi_z) * (ind_d * (y <= coef) - pi_du_z0)
-        score = (score1 + score2 - score3) / theta_2_aux - self.quantile
+        score = sign * (score1 + score2 - score3) / comp_prob - self.quantile
         return score
 
     def _compute_score_deriv(self, psi_elements, coef, inds=None):
+        sign = 2 * self.treatment - 1.0
         ind_d = psi_elements['ind_d']
         y = psi_elements['y']
         pi_z = psi_elements['pi_z']
         z = psi_elements['z']
-        theta_2_aux = psi_elements['theta_2_aux']
+        comp_prob = psi_elements['comp_prob']
 
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
@@ -230,7 +229,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             pi_z = psi_elements['pi_z'][inds]
             z = psi_elements['z'][inds]
 
-        score_weights = ((z / pi_z) - (1 - z) / (1 - pi_z)) * ind_d / theta_2_aux
+        score_weights = sign * ((z / pi_z) - (1 - z) / (1 - pi_z)) * ind_d / comp_prob
         normalization = score_weights.mean()
         if self._normalize:
             score_weights /= normalization
@@ -260,7 +259,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         pi_d_z1_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
         pi_du_z0_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
         pi_du_z1_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        theta_2_aux_hat = np.full(shape=1, fill_value=np.nan)
 
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
@@ -280,8 +278,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             pi_z_hat_prelim = _dml_cv_predict(self._learner['ml_pi_z'], x_train_1, z_train_1,
                                             method='predict_proba', smpls=smpls_prelim)['preds']
             pi_z_hat_prelim = _trimm(pi_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
-            if self.treatment == 0:
-                pi_z_hat_prelim = 1 - pi_z_hat_prelim
 
             # todo add extra fold loop
             # propensity for d == 1 cond. on z == 0 (training set 1)
@@ -299,12 +295,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             pi_d_z1_hat_prelim = _trimm(pi_d_z1_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
             # preliminary estimate of theta_2_aux
-            theta_2_aux_hat_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim)
+            comp_prob_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim
+                                       + z_train_1 / pi_z_hat_prelim * (d_train_1 - pi_d_z1_hat_prelim)
+                                       - (1 - z_train_1) / (1 - pi_z_hat_prelim) * (d_train_1 - pi_d_z0_hat_prelim))
 
             # preliminary ipw estimate
             def ipw_score(theta):
                 res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, pi_z_hat_prelim,
-                                                      z_train_1, theta_2_aux_hat_prelim))
+                                                      z_train_1, comp_prob_prelim))
                 return res
 
             def get_bracket_guess(coef_start, coef_bounds):
@@ -328,7 +326,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                                    bracket=bracket_guess,
                                    method='brentq')
             ipw_est = root_res.root
-
             # readjust start value for minimization
             self._coef_start_val = ipw_est
 
@@ -381,11 +378,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         pi_du_z1_hat = _trimm(pi_du_z1_hat, self.trimming_rule, self.trimming_threshold)
 
         # estimate final nuisance parameter
-        theta_2_aux_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat)
+        comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
+                                + z / pi_z_hat * (d - pi_d_z1_hat)
+                                - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
+        print(f'comp_prob: {comp_prob_hat}')
 
         psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat,
                         'pi_du_z0': pi_du_z0_hat, 'pi_du_z1': pi_du_z1_hat,
-                        'y': y, 'z': z, 'theta_2_aux': theta_2_aux_hat}
+                        'y': y, 'z': z, 'comp_prob': comp_prob_hat}
         preds = {'ml_pi_z': pi_z_hat,
                  'ml_pi_d_z0': pi_d_z0_hat, 'ml_pi_d_z1': pi_d_z1_hat,
                  'ml_pi_du_z0': pi_du_z0_hat, 'ml_pi_du_z1': pi_du_z1_hat}
@@ -415,9 +415,21 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
-                             'To fit an PQ model with DML '
+                             'To fit an LPQ model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
+        one_instr = (obj_dml_data.n_instr == 1)
+        err_msg = ('Incompatible data. '
+                   'To fit an IIVM model with DML '
+                   'exactly one binary variable with values 0 and 1 '
+                   'needs to be specified as instrumental variable.')
+        if one_instr:
+            binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
+            zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
+            if not (one_instr & binary_instr & zero_one_instr):
+                raise ValueError(err_msg)
+        else:
+            raise ValueError(err_msg)
         return
 
     def _check_quantile(self, quantile):

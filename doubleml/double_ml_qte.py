@@ -9,6 +9,7 @@ from ._utils import _draw_weights
 from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
+from .double_ml_lpq import DoubleMLLPQ
 
 
 class DoubleMLQTE:
@@ -69,11 +70,12 @@ class DoubleMLQTE:
     def __init__(self,
                  obj_dml_data,
                  ml_g,
-                 ml_m,
+                 ml_m=None,
                  quantiles=0.5,
                  n_folds=5,
                  n_rep=1,
                  dml_procedure='dml2',
+                 score='PQ',
                  trimming_rule='truncate',
                  trimming_threshold=1e-12,
                  h=None,
@@ -98,6 +100,13 @@ class DoubleMLQTE:
             self._is_cluster_data = True
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
+
+        valid_scores = ['PQ', 'LPQ']
+        if score not in valid_scores:
+            raise ValueError('Invalid score ' + score + '. ' +
+                             'Valid scores ' + ' or '.join(valid_scores) + '.')
+        self._score = score
+
         valid_trimming_rule = ['truncate']
         if trimming_rule not in valid_trimming_rule:
             raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
@@ -115,9 +124,13 @@ class DoubleMLQTE:
         self._smpls = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
+        if self.score == 'PQ':
+            self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
+            self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+        elif self.score == 'LPQ':
+            self._learner = {'ml_g': clone(ml_g)}
+            self._predict_method = {'ml_g': 'predict_proba'}
 
-        self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
-        self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv,\
@@ -164,6 +177,13 @@ class DoubleMLQTE:
         Number of Quantiles.
         """
         return self._n_quantiles
+
+    @property
+    def score(self):
+        """
+        Number of Quantiles.
+        """
+        return self._score
 
     @property
     def dml_procedure(self):
@@ -281,35 +301,62 @@ class DoubleMLQTE:
         for i_quant in range(self._n_quantiles):
             self._i_quant = i_quant
             # initialize models for both potential quantiles
-            model_PQ_0 = DoubleMLPQ(self._dml_data,
-                                    self._learner['ml_g'],
-                                    self._learner['ml_m'],
-                                    quantile=self._quantiles[i_quant],
-                                    treatment=0,
-                                    n_folds=self.n_folds,
-                                    n_rep=self.n_rep,
-                                    dml_procedure=self.dml_procedure,
-                                    trimming_rule=self.trimming_rule,
-                                    trimming_threshold=self.trimming_threshold,
-                                    h=self.h,
-                                    normalize=self.normalize,
-                                    draw_sample_splitting=False,
-                                    apply_cross_fitting=self._apply_cross_fitting)
-
-            model_PQ_1 = DoubleMLPQ(self._dml_data,
-                                    self._learner['ml_g'],
-                                    self._learner['ml_m'],
-                                    quantile=self._quantiles[i_quant],
-                                    treatment=1,
-                                    n_folds=self.n_folds,
-                                    n_rep=self.n_rep,
-                                    dml_procedure=self.dml_procedure,
-                                    trimming_rule=self.trimming_rule,
-                                    trimming_threshold=self.trimming_threshold,
-                                    h=self.h,
-                                    normalize=self.normalize,
-                                    draw_sample_splitting=False,
-                                    apply_cross_fitting=self._apply_cross_fitting)
+            if self.score == 'PQ':
+                model_PQ_0 = DoubleMLPQ(self._dml_data,
+                                        self._learner['ml_g'],
+                                        self._learner['ml_m'],
+                                        quantile=self._quantiles[i_quant],
+                                        treatment=0,
+                                        n_folds=self.n_folds,
+                                        n_rep=self.n_rep,
+                                        dml_procedure=self.dml_procedure,
+                                        trimming_rule=self.trimming_rule,
+                                        trimming_threshold=self.trimming_threshold,
+                                        h=self.h,
+                                        normalize=self.normalize,
+                                        draw_sample_splitting=False,
+                                        apply_cross_fitting=self._apply_cross_fitting)
+                model_PQ_1 = DoubleMLPQ(self._dml_data,
+                                        self._learner['ml_g'],
+                                        self._learner['ml_m'],
+                                        quantile=self._quantiles[i_quant],
+                                        treatment=1,
+                                        n_folds=self.n_folds,
+                                        n_rep=self.n_rep,
+                                        dml_procedure=self.dml_procedure,
+                                        trimming_rule=self.trimming_rule,
+                                        trimming_threshold=self.trimming_threshold,
+                                        h=self.h,
+                                        normalize=self.normalize,
+                                        draw_sample_splitting=False,
+                                        apply_cross_fitting=self._apply_cross_fitting)
+            elif self.score == 'LPQ':
+                model_PQ_0 = DoubleMLLPQ(self._dml_data,
+                                         self._learner['ml_g'],
+                                         quantile=self._quantiles[i_quant],
+                                         treatment=0,
+                                         n_folds=self.n_folds,
+                                         n_rep=self.n_rep,
+                                         dml_procedure=self.dml_procedure,
+                                         trimming_rule=self.trimming_rule,
+                                         trimming_threshold=self.trimming_threshold,
+                                         h=self.h,
+                                         normalize=self.normalize,
+                                         draw_sample_splitting=False,
+                                         apply_cross_fitting=self._apply_cross_fitting)
+                model_PQ_1 = DoubleMLLPQ(self._dml_data,
+                                         self._learner['ml_g'],
+                                         quantile=self._quantiles[i_quant],
+                                         treatment=1,
+                                         n_folds=self.n_folds,
+                                         n_rep=self.n_rep,
+                                         dml_procedure=self.dml_procedure,
+                                         trimming_rule=self.trimming_rule,
+                                         trimming_threshold=self.trimming_threshold,
+                                         h=self.h,
+                                         normalize=self.normalize,
+                                         draw_sample_splitting=False,
+                                         apply_cross_fitting=self._apply_cross_fitting)
 
             # synchronize the sample splitting
             model_PQ_0.set_sample_splitting(all_smpls=self.smpls)
@@ -549,10 +596,6 @@ class DoubleMLQTE:
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). ')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)

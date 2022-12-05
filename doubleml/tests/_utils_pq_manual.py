@@ -58,6 +58,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
+        # todo change prediction method
         m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m,
                                               params=None,
                                               trimming_threshold=trimming_threshold,
