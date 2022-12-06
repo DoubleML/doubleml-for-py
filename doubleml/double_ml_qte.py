@@ -80,6 +80,7 @@ class DoubleMLQTE:
                  trimming_threshold=1e-12,
                  h=None,
                  normalize=True,
+                 n_jobs_cv=1,
                  draw_sample_splitting=True):
 
         self._dml_data = obj_dml_data
@@ -94,6 +95,7 @@ class DoubleMLQTE:
         self._n_rep = n_rep
 
         self._dml_procedure = dml_procedure
+        self._n_jobs_cv = n_jobs_cv
 
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
@@ -144,6 +146,13 @@ class DoubleMLQTE:
         Number of folds.
         """
         return self._n_folds
+
+    @property
+    def n_jobs_cv(self):
+        """
+        Number of parallel jobs.
+        """
+        return self._n_jobs_cv
 
     @property
     def n_rep(self):
@@ -361,8 +370,8 @@ class DoubleMLQTE:
             model_PQ_0.set_sample_splitting(all_smpls=self.smpls)
             model_PQ_1.set_sample_splitting(all_smpls=self.smpls)
 
-            model_PQ_0.fit()
-            model_PQ_1.fit()
+            model_PQ_0.fit(n_jobs_cv=self.n_jobs_cv)
+            model_PQ_1.fit(n_jobs_cv=self.n_jobs_cv)
 
             # Quantile Treatment Effects
             self._all_coef[self._i_quant, :] = model_PQ_1.all_coef - model_PQ_0.all_coef
