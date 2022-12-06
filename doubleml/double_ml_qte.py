@@ -80,7 +80,7 @@ class DoubleMLQTE:
                  trimming_threshold=1e-12,
                  h=None,
                  normalize=True,
-                 n_jobs_cv=1,
+                 n_jobs_cv=None,
                  draw_sample_splitting=True):
 
         self._dml_data = obj_dml_data
