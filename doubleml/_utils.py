@@ -221,4 +221,3 @@ def _trimm(preds, trimming_rule, trimming_threshold):
         preds[preds < trimming_threshold] = trimming_threshold
         preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
     return preds
-

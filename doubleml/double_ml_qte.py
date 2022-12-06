@@ -158,7 +158,7 @@ class DoubleMLQTE:
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            err_msg = ('Sample splitting not specified. Draw samples via .draw_sample splitting().' +
+            err_msg = ('Sample splitting not specified. Draw samples via .draw_sample splitting(). ' +
                        'External samples not implemented yet.')
             raise ValueError(err_msg)
         return self._smpls
@@ -411,7 +411,7 @@ class DoubleMLQTE:
 
         if not isinstance(n_rep_boot, int):
             raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+                            f'Object of type {str(type(n_rep_boot))} was passed.')
         if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')
@@ -429,15 +429,14 @@ class DoubleMLQTE:
                 smpls = self.__smpls
                 test_index = smpls[0][1]
                 n_obs = len(test_index)
-            weights = _draw_weights(method, n_rep_boot, n_obs)
 
+            weights = _draw_weights(method, n_rep_boot, n_obs)
             for i_quant in range(self.n_quantiles):
                 self._i_quant = i_quant
                 i_start = self._i_rep * self.n_rep_boot
                 i_end = (self._i_rep + 1) * self.n_rep_boot
                 self._boot_coef[self._i_quant, i_start:i_end], self._boot_t_stat[self._i_quant, i_start:i_end] =\
                     self._compute_bootstrap(weights)
-
         return self
 
     def draw_sample_splitting(self):
@@ -461,7 +460,7 @@ class DoubleMLQTE:
 
     def _compute_bootstrap(self, weights):
         if self.apply_cross_fitting:
-            J0 = np.mean(self.__psi1_deriv)
+            J0 = np.mean(self.__psi0_deriv)
             J1 = np.mean(self.__psi1_deriv)
             scaled_score = self.__psi1 / J1 - self.__psi0 / J0
 
@@ -471,7 +470,7 @@ class DoubleMLQTE:
             # be prepared for the case of test sets of different size in repeated no-cross-fitting
             smpls = self.__smpls
             test_index = smpls[0][1]
-            J0 = np.mean(self.__psi1_deriv[test_index])
+            J0 = np.mean(self.__psi0_deriv[test_index])
             J1 = np.mean(self.__psi1_deriv[test_index])
             scaled_score = self.__psi1[test_index] / J1 - self.__psi0[test_index] / J0
 
@@ -505,7 +504,7 @@ class DoubleMLQTE:
 
         if not isinstance(level, float):
             raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
+                            f'Object of type {str(type(level))} was passed.')
         if (level <= 0) | (level >= 1):
             raise ValueError('The confidence level must be in (0,1). '
                              f'{str(level)} was passed.')

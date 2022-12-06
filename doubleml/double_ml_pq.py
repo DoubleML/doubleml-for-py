@@ -293,18 +293,12 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             y_train_2 = y[train_inds_2]
             x_train_2 = x[train_inds_2, :]
 
-            dx_treat_train_2 = np.column_stack((d_train_2[d_train_2 == self.treatment],
-                                                x_train_2[d_train_2 == self.treatment, :]))
+            dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
             y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
             self._learner['ml_g'].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
             # predict nuisance values on the test data
-            if self.treatment == 0:
-                dx_test = np.column_stack((np.zeros_like(d[test_inds]), x[test_inds, :]))
-            elif self.treatment == 1:
-                dx_test = np.column_stack((np.ones_like(d[test_inds]), x[test_inds, :]))
-
-            g_hat[test_inds] = self._learner['ml_g'].predict_proba(dx_test)[:, 1]
+            g_hat[test_inds] = self._learner['ml_g'].predict_proba(x[test_inds, :])[:, 1]
 
             # refit the propensity score on the whole training set
             self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
