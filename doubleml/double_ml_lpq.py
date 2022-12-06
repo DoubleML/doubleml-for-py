@@ -277,7 +277,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
             # preliminary propensity for z
             pi_z_hat_prelim = _dml_cv_predict(self._learner['ml_pi_z'], x_train_1, z_train_1,
-                                            method='predict_proba', smpls=smpls_prelim)['preds']
+                                              method='predict_proba', smpls=smpls_prelim)['preds']
             pi_z_hat_prelim = _trimm(pi_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
             # todo add extra fold loop

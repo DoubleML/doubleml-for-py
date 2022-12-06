@@ -3,7 +3,6 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, KFold
 from scipy.optimize import root_scalar
 
-from ._utils import fit_predict_proba
 from .._utils import _dml_cv_predict, _trimm
 
 
@@ -19,10 +18,10 @@ def fit_lpq(y, x, d, z, quantile,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat,\
-        comp_prob_hat, ipw_vec, coef_bounds = fit_nuisance_lpq(y, x,d, z, quantile, learner_m, smpls,
-                                                               treatment, trimming_rule=trimming_rule,
-                                                               trimming_threshold=trimming_threshold)
+        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, \
+            comp_prob_hat, ipw_vec, coef_bounds = fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls,
+                                                                   treatment, trimming_rule=trimming_rule,
+                                                                   trimming_threshold=trimming_threshold)
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
                                                treatment, quantile, ipw_vec, coef_bounds, smpls)
@@ -37,6 +36,7 @@ def fit_lpq(y, x, d, z, quantile,
            'lpqs': lpqs, 'ses': ses}
 
     return res
+
 
 def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming_rule, trimming_threshold):
     n_folds = len(smpls)
@@ -179,6 +179,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
                             - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
     return pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec, coef_bounds
 
+
 def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, smpls):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
@@ -214,6 +215,7 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
         score3 = (1 - z) / (1 - pi_z) * ((d == treatment) * (y <= coef) - pi_du_z0)
         score = sign * (score1 + score2 - score3) / comp_prob - quantile
         return np.mean(score)
+
     def compute_score_mean(coef):
         return np.mean(compute_score(coef))
 

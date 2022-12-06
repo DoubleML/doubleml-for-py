@@ -73,10 +73,9 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     dml_lpq_obj.fit()
 
     np.random.seed(42)
-    res_manual = fit_lpq(y, x, d, z, quantile,
-                        clone(learner),
-                        all_smpls, treatment, dml_procedure,
-                        n_rep=1, trimming_threshold=trimming_threshold)
+    res_manual = fit_lpq(y, x, d, z, quantile, clone(learner),
+                         all_smpls, treatment, dml_procedure,
+                         n_rep=1, trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_lpq_obj.coef,
                 'coef_manual': res_manual['lpq'],

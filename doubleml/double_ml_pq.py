@@ -306,7 +306,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
             g_hat[test_inds] = self._learner['ml_g'].predict_proba(dx_test)[:, 1]
 
-
             # refit the propensity score on the whole training set
             self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
             m_hat[test_inds] = self._learner['ml_m'].predict_proba(x[test_inds, :])[:, self.treatment]

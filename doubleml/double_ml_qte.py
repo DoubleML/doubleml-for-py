@@ -131,7 +131,6 @@ class DoubleMLQTE:
             self._learner = {'ml_g': clone(ml_g)}
             self._predict_method = {'ml_g': 'predict_proba'}
 
-
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv,\
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()

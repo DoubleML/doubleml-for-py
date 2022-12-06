@@ -378,6 +378,7 @@ def generate_data_quantiles(request):
 
     return data
 
+
 @pytest.fixture(scope='session',
                 params=[(5000, 5),
                         (10000, 10)])
@@ -388,6 +389,7 @@ def generate_data_local_quantiles(request):
     # setting parameters
     n = n_p[0]
     p = n_p[1]
+
     def f_loc(D, X, X_conf):
         loc = 2 * D
         return loc
@@ -404,7 +406,7 @@ def generate_data_local_quantiles(request):
     x = np.random.uniform(0, 1, size=[n, p])
     x_conf = np.random.uniform(-1, 1, size=[n, 4])
     z = np.random.binomial(1, p=0.5, size=n)
-    d = generate_treatment(z,x, x_conf)
+    d = generate_treatment(z, x, x_conf)
     epsilon = np.random.normal(size=n)
 
     y = f_loc(d, x, x_conf) + f_scale(d, x, x_conf)*epsilon
