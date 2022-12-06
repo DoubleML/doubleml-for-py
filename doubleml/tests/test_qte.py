@@ -161,7 +161,7 @@ def test_doubleml_qte_exceptions():
           'External samples not implemented yet.'
     with pytest.raises(ValueError, match=msg):
         dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, draw_sample_splitting=False)
-        dml_obj.smpls
+        _ = dml_obj.smpls
 
     # bootstrap and ci
     dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m)
