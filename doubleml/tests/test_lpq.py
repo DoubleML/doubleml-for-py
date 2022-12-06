@@ -90,14 +90,14 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
 def test_dml_lpq_coef(dml_lpq_fixture):
     assert math.isclose(dml_lpq_fixture['coef'],
                         dml_lpq_fixture['coef_manual'],
-                        rel_tol=1e-6, abs_tol=1e-4)
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_lpq_se(dml_lpq_fixture):
     assert math.isclose(dml_lpq_fixture['se'],
                         dml_lpq_fixture['se_manual'],
-                        rel_tol=1e-6, abs_tol=1e-4)
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci

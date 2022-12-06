@@ -19,18 +19,16 @@ def fit_lpq(y, x, d, z, quantile,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec = fit_nuisance_lpq(y, x,
-                                                                                        d, z, quantile,
-                                                                                        learner_m, smpls, treatment,
-                                                                                        trimming_rule=trimming_rule,
-                                                                                        trimming_threshold=trimming_threshold)
-        print(f'comp_prob manual: {ipw_vec.mean()}')
+        pi_z_hat, pi_du_z0_hat, pi_du_z1_hat,\
+        comp_prob_hat, ipw_vec, coef_bounds = fit_nuisance_lpq(y, x,d, z, quantile, learner_m, smpls,
+                                                               treatment, trimming_rule=trimming_rule,
+                                                               trimming_threshold=trimming_threshold)
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec, smpls)
+                                               treatment, quantile, ipw_vec, coef_bounds, smpls)
         else:
             lpqs[i_rep], ses[i_rep] = lpq_dml2(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec)
+                                               treatment, quantile, ipw_vec, coef_bounds)
 
     lpq = np.median(lpqs)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(lpqs - lpq, 2)) / n_obs)
@@ -146,7 +144,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
         x_z1_train_2 = x_train_2[z_train_2 == 1, :]
         du_z1_train_2 = (d_train_2[z_train_2 == 1] == treatment) * (y_train_2[z_train_2 == 1] <= ipw_est)
         ml_pi_du_z1.fit(x_z1_train_2, du_z1_train_2)
-        pi_du_z1_hat[test_inds] = ml_pi_du_z0.predict_proba(x[test_inds, :])[:, 1]
+        pi_du_z1_hat[test_inds] = ml_pi_du_z1.predict_proba(x[test_inds, :])[:, 1]
 
         # refit nuisance elements for the local potential quantile
         z_train = z[train_inds]
@@ -175,21 +173,20 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
     pi_d_z1_hat = _trimm(pi_d_z1_hat, trimming_rule, trimming_threshold)
     pi_du_z0_hat = _trimm(pi_du_z0_hat, trimming_rule, trimming_threshold)
     pi_du_z1_hat = _trimm(pi_du_z1_hat, trimming_rule, trimming_threshold)
-
     # estimate final nuisance parameter
     comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
                             + z / pi_z_hat * (d - pi_d_z1_hat)
                             - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
-    return pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec
+    return pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat, ipw_vec, coef_bounds
 
-
-def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec, smpls):
+def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, smpls):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
     ipw_est = ipw_vec.mean()
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = lpq_est(pi_z[test_index], pi_du_z0[test_index], pi_du_z1[test_index],
-                              comp_prob, d[test_index], y[test_index], z[test_index], treatment, quantile, ipw_est)
+                              comp_prob, d[test_index], y[test_index], z[test_index], treatment, quantile,
+                              ipw_est, coef_bounds)
 
     theta_hat = np.mean(thetas)
 
@@ -198,17 +195,18 @@ def lpq_dml1(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, 
     return theta_hat, se
 
 
-def lpq_dml2(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec):
+def lpq_dml2(y, d, z, pi_z, pi_du_z0, pi_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds):
     n_obs = len(y)
     ipw_est = ipw_vec.mean()
-    theta_hat = lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est)
+    theta_hat = lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est, coef_bounds)
 
     se = np.sqrt(lpq_var_est(theta_hat, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs))
 
     return theta_hat, se
 
 
-def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est):
+def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est, coef_bounds):
+
     def compute_score(coef):
         sign = 2 * treatment - 1.0
         score1 = pi_du_z1 - pi_du_z0
@@ -216,6 +214,8 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
         score3 = (1 - z) / (1 - pi_z) * ((d == treatment) * (y <= coef) - pi_du_z0)
         score = sign * (score1 + score2 - score3) / comp_prob - quantile
         return np.mean(score)
+    def compute_score_mean(coef):
+        return np.mean(compute_score(coef))
 
     def get_bracket_guess(coef_start, coef_bounds):
         max_bracket_length = coef_bounds[1] - coef_bounds[0]
@@ -232,12 +232,8 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
             delta += 0.1
         return s_different, b_guess
 
-    y_treat = y[d == treatment]
-    coef_start_val = ipw_est
-    coef_bounds = (y_treat.min(), y_treat.max())
-    _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
-
-    root_res = root_scalar(compute_score,
+    _, bracket_guess = get_bracket_guess(ipw_est, coef_bounds)
+    root_res = root_scalar(compute_score_mean,
                            bracket=bracket_guess,
                            method='brentq')
     dml_est = root_res.root

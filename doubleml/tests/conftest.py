@@ -379,8 +379,8 @@ def generate_data_quantiles(request):
     return data
 
 @pytest.fixture(scope='session',
-                params=[(2000, 5),
-                        (5000, 10)])
+                params=[(5000, 5),
+                        (10000, 10)])
 def generate_data_local_quantiles(request):
     n_p = request.param
     np.random.seed(1111)

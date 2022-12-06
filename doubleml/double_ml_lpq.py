@@ -341,13 +341,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             self._learner['ml_pi_du_z0'].fit(x_z0_train_2, du_z0_train_2)
             pi_du_z0_hat[test_inds] = self._learner['ml_pi_du_z0'].predict_proba(x[test_inds, :])[:, 1]
 
-
             # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 1
             x_z1_train_2 = x_train_2[z_train_2 == 1, :]
             du_z1_train_2 = (d_train_2[z_train_2 == 1] == self._treatment) * (y_train_2[z_train_2 == 1] <= ipw_est)
             self._learner['ml_pi_du_z1'].fit(x_z1_train_2, du_z1_train_2)
-            pi_du_z1_hat[test_inds] = self._learner['ml_pi_du_z0'].predict_proba(x[test_inds, :])[:, 1]
-
+            pi_du_z1_hat[test_inds] = self._learner['ml_pi_du_z1'].predict_proba(x[test_inds, :])[:, 1]
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -382,10 +380,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                                 + z / pi_z_hat * (d - pi_d_z1_hat)
                                 - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
 
-
         # readjust start value for minimization
         self._coef_start_val = np.mean(ipw_vec)
-        print(f'comp_prob: {self._coef_start_val}')
 
         psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat,
                         'pi_du_z0': pi_du_z0_hat, 'pi_du_z1': pi_du_z1_hat,
