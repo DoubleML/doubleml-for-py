@@ -12,11 +12,12 @@ class DoubleMLBLP:
         Parameters
         ----------
         orth_signal : :class:`numpy.array`
-            The orthogonal signal to be predicted. Has to be of shape (n,).
+            The orthogonal signal to be predicted. Has to be of shape ``(n_obs,)``,
+            where ``n_obs`` is the number of observations.
 
         basis : :class:`pandas.DataFrame`
-            The basis for estimating the best linear predictor. Has to have the shape (n,d),
-            where d is the number of predictors.
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
         is_gate : bool
             Indicates whether the basis is constructed for GATEs (dummy-basis).
@@ -52,6 +53,14 @@ class DoubleMLBLP:
         self._blp_model = None
         self._blp_omega = None
 
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f'================== {class_name} Object ==================\n'
+        fit_summary = str(self.summary)
+        res = header + \
+            '\n------------------ Fit summary ------------------\n' + fit_summary
+        return res
+
     @property
     def blp_model(self):
         """
@@ -79,6 +88,25 @@ class DoubleMLBLP:
         Covariance matrix.
         """
         return self._blp_omega
+
+    @property
+    def summary(self):
+        """
+        A summary for the best linear predictor effect after calling :meth:`fit`.
+        """
+        col_names = ['coef', 'std err', 't', 'P>|t|', '[0.025', '0.975]']
+        if self.blp_model is None:
+            df_summary = pd.DataFrame(columns=col_names)
+        else:
+            summary_stats = {'coef': self.blp_model.params,
+                             'std err': self.blp_model.bse,
+                             't': self.blp_model.tvalues,
+                             'P>|t|': self.blp_model.pvalues,
+                             '[0.025': self.blp_model.conf_int()[0],
+                             '0.975]': self.blp_model.conf_int()[1]}
+            df_summary = pd.DataFrame(summary_stats,
+                                      columns=col_names)
+        return df_summary
 
     def fit(self):
         """
@@ -162,13 +190,14 @@ class DoubleMLBLP:
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
 
+        np_basis = basis.to_numpy()
         # calculate se for basis elements
-        blp_se = np.sqrt((basis.to_numpy().dot(self._blp_omega) * basis.to_numpy()).sum(axis=1))
+        blp_se = np.sqrt((np.dot(np_basis, self._blp_omega) * np_basis).sum(axis=1))
 
         if joint:
             # calculate the maximum t-statistic with bootstrap
             normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-            bootstrap_samples = np.multiply(basis.to_numpy().dot(np.dot(sqrtm(self._blp_omega), normal_samples)).T,
+            bootstrap_samples = np.multiply(np.dot(np_basis, np.dot(sqrtm(self._blp_omega), normal_samples)).T,
                                             (1.0 / blp_se))
 
             max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)

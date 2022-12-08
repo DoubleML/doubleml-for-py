@@ -46,7 +46,8 @@ def dml_blp_fixture(ci_joint, ci_level):
                 'signal': blp.orth_signal,
                 'ci_1': ci_1,
                 'ci_2': ci_2,
-                'ci_manual': ci_manual}
+                'ci_manual': ci_manual,
+                'blp_model': blp}
 
     return res_dict
 
@@ -84,3 +85,8 @@ def test_dml_blp_ci_2(dml_blp_fixture):
     assert np.allclose(dml_blp_fixture['ci_1'],
                        dml_blp_fixture['ci_manual'],
                        rtol=1e-9, atol=1e-4)
+
+
+def test_dml_blp_return_types(dml_blp_fixture):
+    assert isinstance(dml_blp_fixture['blp_model'].__str__(), str)
+    assert isinstance(dml_blp_fixture['blp_model'].summary, pd.DataFrame)

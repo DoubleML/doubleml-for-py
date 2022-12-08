@@ -338,8 +338,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Parameters
         ----------
         basis : :class:`pandas.DataFrame`
-            The basis for estimating the best linear predictor. Has to have the shape (n,d),
-            where d is the number of predictors.
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
         Returns
         -------
@@ -369,8 +369,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Parameters
         ----------
         groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor. Has to be dummy coded with shape (n,d),
-            where d is the number of groups or (n,1) and contain the corresponding groups.
+            The group indicator for estimating the best linear predictor.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups.
 
         Returns
         -------
