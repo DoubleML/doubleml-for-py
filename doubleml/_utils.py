@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
@@ -221,3 +222,12 @@ def _trimm(preds, trimming_rule, trimming_threshold):
         preds[preds < trimming_threshold] = trimming_threshold
         preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
     return preds
+
+def _predict_zero_one_propensity(learner, X):
+    pred_proba = learner.predict_proba(X)
+    if pred_proba.shape[1] == 2:
+        res = pred_proba[:, 1]
+    else:
+        warnings.warn("Subsample has not common support. Results are based on adjusted propensities.")
+        res = learner.predict(X)
+    return res

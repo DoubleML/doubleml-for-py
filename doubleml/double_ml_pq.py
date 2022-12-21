@@ -7,8 +7,9 @@ from sklearn.model_selection import KFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity
 from .double_ml_data import DoubleMLData
+from ._utils_resampling import DoubleMLResampling
 
 
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
@@ -137,6 +138,14 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
+
+        if draw_sample_splitting:
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                    n_rep=self.n_rep,
+                                                    n_obs=self._dml_data.n_obs,
+                                                    apply_cross_fitting=self.apply_cross_fitting,
+                                                    groups=self._dml_data.d)
+            self._smpls = obj_dml_resampling.split_samples()
 
     @property
     def quantile(self):
@@ -298,12 +307,16 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._learner['ml_g'].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
             # predict nuisance values on the test data
-            g_hat[test_inds] = self._learner['ml_g'].predict_proba(x[test_inds, :])[:, 1]
+            #g_hat[test_inds] = self._learner['ml_g'].predict_proba(x[test_inds, :])[:, 1]
+            g_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_g'], x[test_inds, :])
 
             # refit the propensity score on the whole training set
             self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
-            m_hat[test_inds] = self._learner['ml_m'].predict_proba(x[test_inds, :])[:, self.treatment]
+            #m_hat[test_inds] = self._learner['ml_m'].predict_proba(x[test_inds, :])[:, 1]
+            m_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_m'], x[test_inds, :])
 
+        if self.treatment == 0:
+            m_hat = 1 - m_hat
         # clip propensities
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
 

@@ -56,7 +56,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z)
     np.random.seed(42)
     n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 
     np.random.seed(42)
     dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data,
@@ -66,7 +66,8 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                                   n_folds=n_folds,
                                   n_rep=1,
                                   dml_procedure=dml_procedure,
-                                  trimming_threshold=trimming_threshold)
+                                  trimming_threshold=trimming_threshold,
+                                  draw_sample_splitting=False)
 
     # synchronize the sample splitting
     dml_lpq_obj.set_sample_splitting(all_smpls=all_smpls)

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 import doubleml as dml
@@ -63,7 +64,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, bandwidth):
 
     np.random.seed(42)
     n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     res_manual = fit_qte(y, x, d, quantiles, ml_g, ml_g, all_smpls,
                          n_rep=n_rep, dml_procedure=dml_procedure,
                          trimming_rule='truncate', trimming_threshold=1e-12, h=bandwidth,
@@ -78,7 +79,8 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, bandwidth):
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods,
                 'ci': ci.to_numpy(),
-                'ci_manual': ci_manual.to_numpy()}
+                'ci_manual': ci_manual.to_numpy(),
+                'qte_model': dml_qte_obj}
 
     for bootstrap in boot_methods:
         np.random.seed(42)
@@ -192,3 +194,8 @@ def test_doubleml_cluster_not_implemented_exception():
     msg = 'Estimation with clustering not implemented.'
     with pytest.raises(NotImplementedError, match=msg):
         _ = dml.DoubleMLQTE(dml_data, ml_g, ml_m)
+
+
+def test_doubleml_qte_return_types(dml_qte_fixture):
+    assert isinstance(dml_qte_fixture['qte_model'].__str__(), str)
+    assert isinstance(dml_qte_fixture['qte_model'].summary, pd.DataFrame)

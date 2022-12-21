@@ -80,7 +80,6 @@ class DoubleMLQTE:
                  trimming_threshold=1e-12,
                  h=None,
                  normalize=True,
-                 n_jobs_cv=None,
                  draw_sample_splitting=True):
 
         self._dml_data = obj_dml_data
@@ -95,7 +94,6 @@ class DoubleMLQTE:
         self._n_rep = n_rep
 
         self._dml_procedure = dml_procedure
-        self._n_jobs_cv = n_jobs_cv
 
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
@@ -140,19 +138,20 @@ class DoubleMLQTE:
         # also initialize bootstrap arrays with the default number of bootstrap replications
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
 
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f'================== {class_name} Object ==================\n'
+        fit_summary = str(self.summary)
+        res = header + \
+            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        return res
+
     @property
     def n_folds(self):
         """
         Number of folds.
         """
         return self._n_folds
-
-    @property
-    def n_jobs_cv(self):
-        """
-        Number of parallel jobs.
-        """
-        return self._n_jobs_cv
 
     @property
     def n_rep(self):
@@ -258,6 +257,22 @@ class DoubleMLQTE:
         self._se = value
 
     @property
+    def t_stat(self):
+        """
+        t-statistics for the causal parameter(s) after calling :meth:`fit`.
+        """
+        t_stat = self.coef / self.se
+        return t_stat
+
+    @property
+    def pval(self):
+        """
+        p-values for the causal parameter(s) after calling :meth:`fit`.
+        """
+        pval = 2 * norm.cdf(-np.abs(self.t_stat))
+        return pval
+
+    @property
     def apply_cross_fitting(self):
         """
         Indicates whether cross-fitting should be applied.
@@ -286,6 +301,29 @@ class DoubleMLQTE:
         return self._boot_t_stat
 
     @property
+    def summary(self):
+        """
+        A summary for the estimated causal effect after calling :meth:`fit`.
+        """
+        col_names = ['coef', 'std err', 't', 'P>|t|']
+        if np.isnan(self.coef).all():
+            df_summary = pd.DataFrame(columns=col_names)
+        else:
+            summary_stats = np.transpose(np.vstack(
+                [self.coef, self.se,
+                 self.t_stat, self.pval]))
+            df_summary = pd.DataFrame(summary_stats,
+                                      columns=col_names,
+                                      index=self.quantiles)
+            ci = self.confint()
+            df_summary = df_summary.join(ci)
+        return df_summary
+
+    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection.
+    # The slicing is based on the two properties self._i_quant, the index of the quantile, and
+    # self._i_rep, the index of the cross-fitting sample.
+
+    @property
     def __psi0(self):
         return self._psi0[:, self._i_rep, self._i_quant]
 
@@ -305,7 +343,7 @@ class DoubleMLQTE:
     def __all_se(self):
         return self._all_se[self._i_quant, self._i_rep]
 
-    def fit(self):
+    def fit(self, n_jobs_cv=None):
         for i_quant in range(self._n_quantiles):
             self._i_quant = i_quant
             # initialize models for both potential quantiles
@@ -370,8 +408,8 @@ class DoubleMLQTE:
             model_PQ_0.set_sample_splitting(all_smpls=self.smpls)
             model_PQ_1.set_sample_splitting(all_smpls=self.smpls)
 
-            model_PQ_0.fit(n_jobs_cv=self.n_jobs_cv)
-            model_PQ_1.fit(n_jobs_cv=self.n_jobs_cv)
+            model_PQ_0.fit(n_jobs_cv=n_jobs_cv)
+            model_PQ_1.fit(n_jobs_cv=n_jobs_cv)
 
             # Quantile Treatment Effects
             self._all_coef[self._i_quant, :] = model_PQ_1.all_coef - model_PQ_0.all_coef
@@ -462,7 +500,8 @@ class DoubleMLQTE:
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep=self.n_rep,
                                                 n_obs=self._dml_data.n_obs,
-                                                apply_cross_fitting=self.apply_cross_fitting)
+                                                apply_cross_fitting=self.apply_cross_fitting,
+                                                groups=self._dml_data.d)
         self._smpls = obj_dml_resampling.split_samples()
 
         return self

@@ -7,8 +7,9 @@ from sklearn.model_selection import KFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity
 from .double_ml_data import DoubleMLData
+from ._utils_resampling import DoubleMLResampling
 
 
 class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
@@ -136,6 +137,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                                 'ml_pi_d_z0': 'predict_proba', 'ml_pi_d_z1': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
+
+        if draw_sample_splitting:
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                    n_rep=self.n_rep,
+                                                    n_obs=self._dml_data.n_obs,
+                                                    apply_cross_fitting=self.apply_cross_fitting,
+                                                    groups=self._dml_data.d)
+            self._smpls = obj_dml_resampling.split_samples()
 
     @property
     def quantile(self):
@@ -285,14 +294,16 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             x_z0_train_1 = x_train_1[z_train_1 == 0, :]
             d_z0_train_1 = d_train_1[z_train_1 == 0]
             self._learner['ml_pi_d_z0'].fit(x_z0_train_1, d_z0_train_1)
-            pi_d_z0_hat_prelim = self._learner['ml_pi_d_z0'].predict_proba(x_train_1)[:, 1]
+            #pi_d_z0_hat_prelim = self._learner['ml_pi_d_z0'].predict_proba(x_train_1)[:, 1]
+            pi_d_z0_hat_prelim = _predict_zero_one_propensity(self._learner['ml_pi_d_z0'], x_train_1)
             pi_d_z0_hat_prelim = _trimm(pi_d_z0_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
             # propensity for d == 1 cond. on z == 1 (training set 1)
             x_z1_train_1 = x_train_1[z_train_1 == 1, :]
             d_z1_train_1 = d_train_1[z_train_1 == 1]
             self._learner['ml_pi_d_z1'].fit(x_z1_train_1, d_z1_train_1)
-            pi_d_z1_hat_prelim = self._learner['ml_pi_d_z1'].predict_proba(x_train_1)[:, 1]
+            #pi_d_z1_hat_prelim = self._learner['ml_pi_d_z1'].predict_proba(x_train_1)[:, 1]
+            pi_d_z1_hat_prelim = _predict_zero_one_propensity(self._learner['ml_pi_d_z1'], x_train_1)
             pi_d_z1_hat_prelim = _trimm(pi_d_z1_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
             # preliminary estimate of theta_2_aux
@@ -339,13 +350,15 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             x_z0_train_2 = x_train_2[z_train_2 == 0, :]
             du_z0_train_2 = (d_train_2[z_train_2 == 0] == self._treatment) * (y_train_2[z_train_2 == 0] <= ipw_est)
             self._learner['ml_pi_du_z0'].fit(x_z0_train_2, du_z0_train_2)
-            pi_du_z0_hat[test_inds] = self._learner['ml_pi_du_z0'].predict_proba(x[test_inds, :])[:, 1]
+            #pi_du_z0_hat[test_inds] = self._learner['ml_pi_du_z0'].predict_proba(x[test_inds, :])[:, 1]
+            pi_du_z0_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_du_z0'], x[test_inds, :])
 
             # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 1
             x_z1_train_2 = x_train_2[z_train_2 == 1, :]
             du_z1_train_2 = (d_train_2[z_train_2 == 1] == self._treatment) * (y_train_2[z_train_2 == 1] <= ipw_est)
             self._learner['ml_pi_du_z1'].fit(x_z1_train_2, du_z1_train_2)
-            pi_du_z1_hat[test_inds] = self._learner['ml_pi_du_z1'].predict_proba(x[test_inds, :])[:, 1]
+            #pi_du_z1_hat[test_inds] = self._learner['ml_pi_du_z1'].predict_proba(x[test_inds, :])[:, 1]
+            pi_du_z1_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_du_z1'], x[test_inds, :])
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -354,19 +367,22 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
             # refit propensity for z (whole training set)
             self._learner['ml_pi_z'].fit(x_train, z_train)
-            pi_z_hat[test_inds] = self._learner['ml_pi_z'].predict_proba(x[test_inds, :])[:, 1]
+            #pi_z_hat[test_inds] = self._learner['ml_pi_z'].predict_proba(x[test_inds, :])[:, 1]
+            pi_z_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_z'], x[test_inds, :])
 
             # refit propensity for d == 1 cond. on z == 0 (whole training set)
             x_z0_train = x_train[z_train == 0, :]
             d_z0_train = d_train[z_train == 0]
             self._learner['ml_pi_d_z0'].fit(x_z0_train, d_z0_train)
-            pi_d_z0_hat[test_inds] = self._learner['ml_pi_d_z0'].predict_proba(x[test_inds, :])[:, 1]
+            #pi_d_z0_hat[test_inds] = self._learner['ml_pi_d_z0'].predict_proba(x[test_inds, :])[:, 1]
+            pi_d_z0_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_d_z0'], x[test_inds, :])
 
             # propensity for d == 1 cond. on z == 1 (whole training set)
             x_z1_train = x_train[z_train == 1, :]
             d_z1_train = d_train[z_train == 1]
             self._learner['ml_pi_d_z1'].fit(x_z1_train, d_z1_train)
-            pi_d_z1_hat[test_inds] = self._learner['ml_pi_d_z1'].predict_proba(x[test_inds, :])[:, 1]
+            #pi_d_z1_hat[test_inds] = self._learner['ml_pi_d_z1'].predict_proba(x[test_inds, :])[:, 1]
+            pi_d_z1_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_d_z1'], x[test_inds, :])
 
         # clip propensities
         pi_z_hat = _trimm(pi_z_hat, self.trimming_rule, self.trimming_threshold)
@@ -470,3 +486,4 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         if (self.trimming_threshold <= 0) | (self.trimming_threshold >= 0.5):
             raise ValueError('Invalid trimming_threshold ' + str(self.trimming_threshold) + '. ' +
                              'trimming_threshold has to be between 0 and 0.5.')
+
