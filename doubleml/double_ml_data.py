@@ -725,10 +725,9 @@ class DoubleMLClusterData(DoubleMLData):
 
         data = pd.concat((pd.DataFrame(cluster_vars, columns=cluster_cols), dml_data.data), axis=1)
 
-        return(cls(data, dml_data.y_col, dml_data.d_cols,
-                   cluster_cols,
-                   dml_data.x_cols, dml_data.z_cols,
-                   dml_data.use_other_treat_as_covariate, dml_data.force_all_x_finite))
+        return (cls(data, dml_data.y_col, dml_data.d_cols, cluster_cols,
+                    dml_data.x_cols, dml_data.z_cols,
+                    dml_data.use_other_treat_as_covariate, dml_data.force_all_x_finite))
 
     @property
     def cluster_cols(self):
