@@ -6,14 +6,14 @@ from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold, train_test_split
 
 from .double_ml import DoubleML
-from .double_ml_score_mixins import NonLinearScoreMixin
+from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
 
-class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
-    """Double machine learning for potential quantiles
+class DoubleMLCVAR(LinearScoreMixin, DoubleML):
+    """Double machine learning for conditional value at risk for potential outcomes
 
     Parameters
     ----------
@@ -46,9 +46,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str
-        A str (``'PQ'`` is the only choice) specifying the score function
-        for potential quantiles.
-        Default is ``'PQ'``.
+        A str (``'CVaR'`` is the only choice) specifying the score function
+        for conditional value at risk for potential outcomes.
+        Default is ``'CVaR'``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -61,16 +61,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     trimming_threshold : float
         The threshold used for trimming.
         Default is ``1e-12``.
-
-    h : float or None
-        The bandwidth to be used for the kernel density estimation of the score derivative.
-        If ``None`` the bandwidth will be set to ``np.power(n_obs, -0.2)``, where ``n_obs`` is
-        the number of observations in the sample.
-        Default is ``1e-12``.
-
-    normalize : bool
-        Indicates whether to normalize weights in the estimation of the score derivative.
-        Default is ``True``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -89,12 +79,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  quantile=0.5,
                  n_folds=5,
                  n_rep=1,
-                 score='PQ',
+                 score='CVaR',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-12,
-                 h=None,
-                 normalize=True,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -107,10 +95,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         self._quantile = quantile
         self._treatment = treatment
-        self._h = h
-        if self.h is None:
-            self._h = np.power(self._dml_data.n_obs, -0.2)
-        self._normalize = normalize
 
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
@@ -118,10 +102,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         self._check_score(self.score)
         self._check_quantile(self.quantile)
         self._check_treatment(self.treatment)
-        self._check_bandwidth(self.h)
-        if not isinstance(self.normalize, bool):
-            raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize))} passed.')
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
@@ -162,20 +142,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         return self._treatment
 
     @property
-    def h(self):
-        """
-        The bandwidth the kernel density estimation of the derivative.
-        """
-        return self._h
-
-    @property
-    def normalize(self):
-        """
-        Indicates of the weights in the derivative estimation should be normalized.
-        """
-        return self._normalize
-
-    @property
     def trimming_rule(self):
         """
         Specifies the used trimming rule.
@@ -189,49 +155,18 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         """
         return self._trimming_threshold
 
-    @property
-    def _score_element_names(self):
-        return ['ind_d', 'g', 'm', 'y']
-
     def _compute_ipw_score(self, theta, d, y, prop):
         score = (d == self.treatment) / prop * (y <= theta) - self.quantile
         return score
 
-    def _compute_score(self, psi_elements, coef, inds=None):
-        ind_d = psi_elements['ind_d']
-        g = psi_elements['g']
-        m = psi_elements['m']
-        y = psi_elements['y']
+    def _score_elements(self, ipw_est, y, d, g_hat, m_hat):
+        u1 = np.ones_like(y) * ipw_est
+        u2 = (y - self.quantile * ipw_est) / (1 - self.quantile)
+        u = np.max(np.column_stack((u1, u2)), 1)
 
-        if inds is not None:
-            ind_d = psi_elements['ind_d'][inds]
-            g = psi_elements['g'][inds]
-            m = psi_elements['m'][inds]
-            y = psi_elements['y'][inds]
-
-        score = ind_d * ((y <= coef) - g) / m + g - self.quantile
-        return score
-
-    def _compute_score_deriv(self, psi_elements, coef, inds=None):
-        ind_d = psi_elements['ind_d']
-        m = psi_elements['m']
-        y = psi_elements['y']
-
-        if inds is not None:
-            ind_d = psi_elements['ind_d'][inds]
-            m = psi_elements['m'][inds]
-            y = psi_elements['y'][inds]
-
-        score_weights = ind_d / m
-        normalization = score_weights.mean()
-        if self._normalize:
-            score_weights /= normalization
-
-        u = (y - coef).reshape(-1, 1) / self._h
-        kernel_est = np.exp(-1. * np.power(u, 2) / 2) / np.sqrt(2 * np.pi)
-        deriv = np.multiply(score_weights, kernel_est.reshape(-1, )) / self._h
-
-        return deriv
+        psi_b = (d == self.treatment) * (u - g_hat) / m_hat + g_hat
+        psi_a = np.full_like(m_hat, -1.0)
+        return psi_a, psi_b
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
@@ -294,9 +229,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                                    method='brentq')
             ipw_est = root_res.root
 
-            # readjust start value for minimization
-            self._coef_start_val = ipw_est
-
             # use the preliminary estimates to fit the nuisance parameters on train_2
             d_train_2 = d[train_inds_2]
             y_train_2 = y[train_inds_2]
@@ -318,8 +250,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         # clip propensities
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
 
-        psi_elements = {'ind_d': d == self.treatment, 'g': g_hat,
-                        'm': m_hat, 'y': y}
+        psi_a, psi_b = self._score_elements(ipw_est, y, d, g_hat, m_hat)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
         preds = {'ml_g': g_hat, 'ml_m': m_hat}
         return psi_elements, preds
 
@@ -328,7 +261,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
 
     def _check_score(self, score):
-        valid_score = ['PQ']
+        valid_score = ['CVaR']
         if isinstance(score, str):
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
@@ -346,13 +279,13 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). '
-                             'To fit an local potential quantile use DoubleMLLPQ instead of DoubleMLPQ.')
+                             'To fit an local potential quantile use DoubleMLLCVAR instead of DoubleMLPQ.')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
-                             'To fit an PQ model with DML '
+                             'To fit an CVAR model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
@@ -374,15 +307,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         if (treatment != 0) & (treatment != 1):
             raise ValueError('Treatment indicator has be either 0 or 1. ' +
                              f'Treatment indicator {str(treatment)} passed.')
-
-    def _check_bandwidth(self, bandwidth):
-        if not isinstance(bandwidth, float):
-            raise TypeError('Bandwidth has to be a float. ' +
-                            f'Object of type {str(type(bandwidth))} passed.')
-
-        if bandwidth <= 0:
-            raise ValueError('Bandwidth has be positive. ' +
-                             f'Bandwidth {str(bandwidth)} passed.')
 
     def _check_trimming(self):
         valid_trimming_rule = ['truncate']

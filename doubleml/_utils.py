@@ -223,6 +223,7 @@ def _trimm(preds, trimming_rule, trimming_threshold):
         preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
     return preds
 
+
 def _predict_zero_one_propensity(learner, X):
     pred_proba = learner.predict_proba(X)
     if pred_proba.shape[1] == 2:
