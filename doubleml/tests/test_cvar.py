@@ -65,6 +65,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
                                     quantile=quantile,
                                     n_folds=n_folds,
                                     n_rep=1,
+                                    dml_procedure=dml_procedure,
                                     trimming_threshold=trimming_threshold,
                                     draw_sample_splitting=False)
 

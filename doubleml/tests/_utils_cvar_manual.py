@@ -12,7 +12,7 @@ def fit_cvar(y, x, d, quantile,
              trimming_threshold=1e-12):
     n_obs = len(y)
 
-    pqs = np.zeros(n_rep)
+    cvars = np.zeros(n_rep)
     ses = np.zeros(n_rep)
 
     for i_rep in range(n_rep):
@@ -23,15 +23,15 @@ def fit_cvar(y, x, d, quantile,
                                                   trimming_threshold=trimming_threshold)
 
         if dml_procedure == 'dml1':
-            pqs[i_rep], ses[i_rep] = cvar_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
+            cvars[i_rep], ses[i_rep] = cvar_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
         else:
-            pqs[i_rep], ses[i_rep] = cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
+            cvars[i_rep], ses[i_rep] = cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
 
-    pq = np.median(pqs)
-    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(pqs - pq, 2)) / n_obs)
+    cvar = np.median(cvars)
+    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(cvars - cvar, 2)) / n_obs)
 
-    res = {'pq': pq, 'se': se,
-           'pqs': pqs, 'ses': ses}
+    res = {'pq': cvar, 'se': se,
+           'pqs': cvars, 'ses': ses}
 
     return res
 
@@ -153,7 +153,6 @@ def cvar_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
     psi_b = (d == treatment) * (u - g_hat) / m_hat + g_hat
     psi_a = np.full_like(m_hat, -1.0)
     dml_est = -np.mean(psi_b) / np.mean(psi_a)
-
     return dml_est
 
 

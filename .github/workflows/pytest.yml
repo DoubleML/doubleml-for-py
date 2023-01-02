@@ -22,20 +22,20 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os: 'ubuntu-latest', python-version: '3.6'}
           - {os: 'ubuntu-latest', python-version: '3.7'}
           - {os: 'ubuntu-latest', python-version: '3.8'}
           - {os: 'windows-latest', python-version: '3.8'}
           - {os: 'macOS-latest', python-version: '3.8'}
           - {os: 'ubuntu-latest', python-version: '3.9'}
           - {os: 'ubuntu-latest', python-version: '3.10'}
+          - {os: 'ubuntu-latest', python-version: '3.11'}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 2
     - name: Set up Python ${{ matrix.config.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.config.python-version }}
     - name: Install OpenMP runtime for unit tests with xgboost learners
@@ -73,7 +73,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.8'
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         flags: unittests
@@ -82,7 +82,7 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.8'
-      uses: codacy/codacy-coverage-reporter-action@master
+      uses: codacy/codacy-coverage-reporter-action@v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
         coverage-reports: ./coverage.xml
