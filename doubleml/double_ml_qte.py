@@ -2,10 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
-from ._utils import _draw_weights
+from ._utils import _draw_weights, _check_zero_one_treatment
 from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
@@ -642,14 +641,7 @@ class DoubleMLQTE:
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        one_treat = (obj_dml_data.n_treat == 1)
-        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
-        if not (one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an QTE model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as treatment variable.')
+        _check_zero_one_treatment(self)
         return
 
     def _check_quantile(self):

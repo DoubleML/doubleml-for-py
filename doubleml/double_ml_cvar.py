@@ -1,13 +1,13 @@
 import numpy as np
 from scipy.optimize import root_scalar
-from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import KFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
+    _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -99,9 +99,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)
-        self._check_score(self.score)
-        self._check_quantile(self.quantile)
-        self._check_treatment(self.treatment)
+        valid_score = ['CVaR']
+        _check_score(self.score, valid_score)
+        _check_quantile(self.quantile)
+        _check_treatment(self.treatment)
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
@@ -110,7 +111,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         # initialize and check trimming
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
-        self._check_trimming()
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
@@ -260,62 +261,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                          search_mode, n_iter_randomized_search):
         raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
 
-    def _check_score(self, score):
-        valid_score = ['CVaR']
-        if isinstance(score, str):
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        else:
-            raise TypeError('Invalid score. ' +
-                            'Valid score ' + ' or '.join(valid_score) + '.')
-        return
-
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). '
-                             'To fit an local potential quantile use DoubleMLLCVAR instead of DoubleMLPQ.')
-        one_treat = (obj_dml_data.n_treat == 1)
-        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
-        if not (one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an CVAR model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as treatment variable.')
+        _check_contains_iv(obj_dml_data)
+        _check_zero_one_treatment(self)
         return
-
-    def _check_quantile(self, quantile):
-        if not isinstance(quantile, float):
-            raise TypeError('Quantile has to be a float. ' +
-                            f'Object of type {str(type(quantile))} passed.')
-
-        if (quantile <= 0) | (quantile >= 1):
-            raise ValueError('Quantile has be between 0 or 1. ' +
-                             f'Quantile {str(quantile)} passed.')
-
-    def _check_treatment(self, treatment):
-        if not isinstance(treatment, int):
-            raise TypeError('Treatment indicator has to be an integer. ' +
-                            f'Object of type {str(type(treatment))} passed.')
-
-        if (treatment != 0) & (treatment != 1):
-            raise ValueError('Treatment indicator has be either 0 or 1. ' +
-                             f'Treatment indicator {str(treatment)} passed.')
-
-    def _check_trimming(self):
-        valid_trimming_rule = ['truncate']
-        if self.trimming_rule not in valid_trimming_rule:
-            raise ValueError('Invalid trimming_rule ' + str(self.trimming_rule) + '. ' +
-                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
-        if not isinstance(self.trimming_threshold, float):
-            raise TypeError('trimming_threshold has to be a float. ' +
-                            f'Object of type {str(type(self.trimming_threshold))} passed.')
-        if (self.trimming_threshold <= 0) | (self.trimming_threshold >= 0.5):
-            raise ValueError('Invalid trimming_threshold ' + str(self.trimming_threshold) + '. ' +
-                             'trimming_threshold has to be between 0 and 0.5.')
