@@ -5,6 +5,7 @@ import numpy as np
 import warnings
 
 from scipy.optimize import fmin_l_bfgs_b, root_scalar
+from ._utils import _get_bracket_guess
 
 from abc import abstractmethod
 
@@ -146,22 +147,7 @@ class NonLinearScoreMixin:
                               f'Score value found is {score_val} '
                               f'for parameter theta equal to {theta_hat}.')
         else:
-            def get_bracket_guess(coef_start, coef_bounds):
-                max_bracket_length = coef_bounds[1] - coef_bounds[0]
-                b_guess = coef_bounds
-                delta = 0.1
-                s_different = False
-                while (not s_different) & (delta <= 1.0):
-                    a = np.maximum(coef_start - delta * max_bracket_length/2, coef_bounds[0])
-                    b = np.minimum(coef_start + delta * max_bracket_length/2, coef_bounds[1])
-                    b_guess = (a, b)
-                    f_a = score(b_guess[0])
-                    f_b = score(b_guess[1])
-                    s_different = (np.sign(f_a) != np.sign(f_b))
-                    delta += 0.1
-                return s_different, b_guess
-
-            signs_different, bracket_guess = get_bracket_guess(self._coef_start_val, self._coef_bounds)
+            signs_different, bracket_guess = _get_bracket_guess(score, self._coef_start_val, self._coef_bounds)
 
             if signs_different:
                 root_res = root_scalar(score,
@@ -181,7 +167,7 @@ class NonLinearScoreMixin:
                                                      self._coef_start_val,
                                                      approx_grad=True,
                                                      bounds=[self._coef_bounds])
-                signs_different, bracket_guess = get_bracket_guess(alt_coef_start, self._coef_bounds)
+                signs_different, bracket_guess = _get_bracket_guess(score, alt_coef_start, self._coef_bounds)
 
                 if signs_different:
                     root_res = root_scalar(score,

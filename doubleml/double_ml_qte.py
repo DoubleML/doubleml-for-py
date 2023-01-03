@@ -452,7 +452,7 @@ class DoubleMLQTE:
 
         if not isinstance(n_rep_boot, int):
             raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'Object of type {str(type(n_rep_boot))} was passed.')
+                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
         if n_rep_boot < 1:
             raise ValueError('The number of bootstrap replications must be positive. '
                              f'{str(n_rep_boot)} was passed.')

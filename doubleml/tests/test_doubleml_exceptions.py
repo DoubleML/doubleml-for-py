@@ -343,6 +343,29 @@ def test_doubleml_exception_treatment():
 
 
 @pytest.mark.ci
+def test_doubleml_exception_bandwidth():
+    msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, h="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, h="0.1")
+    msg = "Bandwidth has be positive. Bandwidth -0.1 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, h=-0.1)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, h=-0.1)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_normalization():
+    msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, normalize=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, normalize=1)
+
+
+@pytest.mark.ci
 def test_doubleml_exception_subgroups():
     msg = 'Invalid subgroups True. subgroups must be of type dictionary.'
     with pytest.raises(TypeError, match=msg):
@@ -463,20 +486,30 @@ def test_doubleml_exception_fit():
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
     dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
+    dml_qte_boot = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression())
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
+    with pytest.raises(ValueError, match=msg):
+        dml_qte_boot.bootstrap()
 
     dml_plr_boot.fit()
+    dml_qte_boot.fit()
     msg = 'Method must be "Bayes", "normal" or "wild". Got Gaussian.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(method='Gaussian')
+    with pytest.raises(ValueError, match=msg):
+        dml_qte_boot.bootstrap(method='Gaussian')
     msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot='500')
+    with pytest.raises(TypeError, match=msg):
+        dml_qte_boot.bootstrap(n_rep_boot='500')
     msg = 'The number of bootstrap replications must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot=0)
+    with pytest.raises(ValueError, match=msg):
+        dml_qte_boot.bootstrap(n_rep_boot=0)
 
 
 @pytest.mark.ci

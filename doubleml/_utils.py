@@ -298,3 +298,19 @@ def _check_score(score, valid_score):
         raise TypeError('Invalid score. ' +
                         'Valid score ' + ' or '.join(valid_score) + '.')
     return
+
+
+def _get_bracket_guess(score, coef_start, coef_bounds):
+    max_bracket_length = coef_bounds[1] - coef_bounds[0]
+    b_guess = coef_bounds
+    delta = 0.1
+    s_different = False
+    while (not s_different) & (delta <= 1.0):
+        a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
+        b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
+        b_guess = (a, b)
+        f_a = score(b_guess[0])
+        f_b = score(b_guess[1])
+        s_different = (np.sign(f_a) != np.sign(f_b))
+        delta += 0.1
+    return s_different, b_guess

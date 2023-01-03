@@ -8,7 +8,7 @@ from sklearn.model_selection import KFold, train_test_split
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_zero_one_treatment, _check_score,\
-    _check_trimming, _check_quantile, _check_treatment
+    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -319,23 +319,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                                                       z_train_1, comp_prob_prelim))
                 return res
 
-            def get_bracket_guess(coef_start, coef_bounds):
-                max_bracket_length = coef_bounds[1] - coef_bounds[0]
-                b_guess = coef_bounds
-                delta = 0.1
-                s_different = False
-                while (not s_different) & (delta <= 1.0):
-                    a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
-                    b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
-                    b_guess = (a, b)
-                    f_a = ipw_score(b_guess[0])
-                    f_b = ipw_score(b_guess[1])
-                    s_different = (np.sign(f_a) != np.sign(f_b))
-                    delta += 0.1
-                return s_different, b_guess
-
-            _, bracket_guess = get_bracket_guess(self._coef_start_val, self._coef_bounds)
-
+            _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
             root_res = root_scalar(ipw_score,
                                    bracket=bracket_guess,
                                    method='brentq')

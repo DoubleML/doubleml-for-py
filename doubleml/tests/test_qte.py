@@ -153,23 +153,6 @@ def test_doubleml_qte_exceptions():
         dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, draw_sample_splitting=False)
         _ = dml_obj.smpls
 
-    # bootstrap and ci
-    dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m)
-    msg = r'Apply fit\(\) before bootstrap\(\).'
-    with pytest.raises(ValueError, match=msg):
-        dml_obj.bootstrap()
-
-    dml_obj.fit()
-    msg = 'Method must be "Bayes", "normal" or "wild". Got Normal.'
-    with pytest.raises(ValueError, match=msg):
-        dml_obj.bootstrap(method="Normal")
-    msg = "The number of bootstrap replications must be of int type. Object of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        dml_obj.bootstrap(n_rep_boot="100")
-    msg = "The number of bootstrap replications must be positive. 0 was passed."
-    with pytest.raises(ValueError, match=msg):
-        dml_obj.bootstrap(n_rep_boot=0)
-
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_implemented_exception():

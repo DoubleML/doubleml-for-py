@@ -116,17 +116,6 @@ def test_doubleml_lpq_exceptions():
                           'ml_pi_d_z0': {'n_estimators': [5, 10]},
                           'ml_pi_d_z1': {'n_estimators': [5, 10]}})
 
-    msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, h="0.1")
-    msg = "Bandwidth has be positive. Bandwidth -0.1 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, h=-0.1)
-
-    msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, normalize=1)
-
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_implemented_exception():
