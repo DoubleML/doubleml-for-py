@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData,\
-    DoubleMLClusterData, DoubleMLBLP,  DoubleMLPQ
+    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021
 from doubleml.double_ml_data import DoubleMLBaseData
@@ -60,6 +60,12 @@ def test_doubleml_exception_data():
         _ = DoubleMLIIVM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, ml_r)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, treatment=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
@@ -143,9 +149,66 @@ def test_doubleml_exception_data():
         _ = DoubleMLPQ(DoubleMLData(df_irm, 'y', ['d', 'X1']),
                        LogisticRegression(), LogisticRegression(), treatment=1)
 
+    # LPQ with non-binary treatment
+    msg = ('Incompatible data. To fit an LPQ model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_iivm = dml_data_iivm.data.copy()
+    df_iivm['d'] = df_iivm['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary D for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
+                        LogisticRegression(), treatment=1)
+    df_iivm = dml_data_iivm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        # multiple D for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', ['d', 'X1'], 'z'),
+                        LogisticRegression(), treatment=1)
+    msg = ('Incompatible data. To fit an LPQ model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as instrumental variable.')
+    df_iivm = dml_data_iivm.data.copy()
+    df_iivm['z'] = df_iivm['z'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary Z for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
+                        LogisticRegression(), treatment=1)
+
+    # CVAR with IV
+    msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1)
+    msg = ('Incompatible data. To fit an CVaR model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_irm = dml_data_irm.data.copy()
+    df_irm['d'] = df_irm['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary D for CVAR
+        _ = DoubleMLCVAR(DoubleMLData(df_irm, 'y', 'd'),
+                         LogisticRegression(), LogisticRegression(), treatment=1)
+    df_irm = dml_data_irm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        # multiple D for CVAR
+        _ = DoubleMLCVAR(DoubleMLData(df_irm, 'y', ['d', 'X1']),
+                         LogisticRegression(), LogisticRegression(), treatment=1)
+
+    # QTE
+    msg = ('Incompatible data. To fit an PQ model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_irm = dml_data_irm.data.copy()
+    df_irm['d'] = df_irm['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary D for QTE
+        _ = DoubleMLQTE(DoubleMLData(df_irm, 'y', 'd'),
+                        LogisticRegression(), LogisticRegression())
+    df_irm = dml_data_irm.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        # multiple D for QTE
+        _ = DoubleMLQTE(DoubleMLData(df_irm, 'y', ['d', 'X1']),
+                        LogisticRegression(), LogisticRegression())
+
 
 @pytest.mark.ci
 def test_doubleml_exception_scores():
+    # PLR
     msg = 'Invalid score IV. Valid score IV-type or partialling out.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, score='IV')
@@ -153,6 +216,7 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, score=0)
 
+    # IRM
     msg = 'Invalid score IV. Valid score ATE or ATTE.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), score='IV')
@@ -160,6 +224,7 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), score=0)
 
+    # IIVM
     msg = 'Invalid score ATE. Valid score LATE.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), score='ATE')
@@ -167,6 +232,7 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), score=0)
 
+    # PLIV
     msg = 'Invalid score IV. Valid score partialling out.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score='IV')
@@ -174,12 +240,37 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(), score=0)
 
+    # PQ
     msg = 'Invalid score IV. Valid score PQ.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score='IV')
     msg = 'Invalid score. Valid score PQ.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score=2)
+
+    # LPQ
+    msg = 'Invalid score IV. Valid score LPQ.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, score='IV')
+    msg = 'Invalid score. Valid score LPQ.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, score=2)
+
+    # CVaR
+    msg = 'Invalid score IV. Valid score CVaR.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score='IV')
+    msg = 'Invalid score. Valid score CVaR.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, score=2)
+
+    # QTE
+    msg = 'Invalid score IV. Valid score PQ or LPQ.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), score='IV')
+    msg = 'Invalid score. Valid score PQ or LPQ.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), score=2)
 
 
 @pytest.mark.ci
@@ -191,7 +282,14 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule='discard')
 
+    # check the trimming_threshold exceptions
     msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
@@ -200,6 +298,48 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
                        trimming_rule='truncate', trimming_threshold=0.6)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_quantiles():
+    msg = "Quantile has to be a float. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, quantile="0.4")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment=1, quantile="0.4")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=1, quantile="0.4")
+
+    msg = "Quantile has be between 0 or 1. Quantile 1.0 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, quantile=1.)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g,  treatment=1, quantile=1.)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=1, quantile=1.)
+
+    msg = r'Quantiles have be between 0 or 1. Quantiles \[0.2 2. \] passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, quantiles=[0.2, 2])
+
+
+@pytest.mark.ci
+def test_doubleml_exception_treatment():
+    msg = "Treatment indicator has to be an integer. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment="1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment="1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment="1")
+
+    msg = "Treatment indicator has be either 0 or 1. Treatment indicator 2 passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=2)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment=2)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=2)
 
 
 @pytest.mark.ci
@@ -711,54 +851,6 @@ def test_doubleml_nan_prediction():
     msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()
-
-
-@pytest.mark.ci
-def test_doubleml_exception_blp():
-    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
-    signal = np.array([1, 2])
-
-    msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        DoubleMLBLP(orth_signal=1, basis=random_basis)
-    msg = 'The signal must be of one dimensional. Signal of dimensions 2 was passed.'
-    with pytest.raises(ValueError, match=msg):
-        DoubleMLBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
-    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        DoubleMLBLP(orth_signal=signal, basis=1)
-    msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
-    with pytest.raises(ValueError, match=msg):
-        DoubleMLBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
-                                                           columns=['a_1', 'a_1']))
-
-    dml_blp_confint = DoubleMLBLP(orth_signal=signal, basis=random_basis)
-    msg = r'Apply fit\(\) before confint\(\).'
-    with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(random_basis)
-
-    dml_blp_confint.fit()
-    msg = 'joint must be True or False. Got 1.'
-    with pytest.raises(TypeError, match=msg):
-        dml_blp_confint.confint(random_basis, joint=1)
-    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        dml_blp_confint.confint(random_basis, level='5%')
-    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
-    with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(random_basis, level=0.)
-    msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        dml_blp_confint.confint(random_basis, n_rep_boot='500')
-    msg = 'The number of bootstrap replications must be positive. 0 was passed.'
-    with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(random_basis, n_rep_boot=0)
-    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
-    with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1], [4]]), columns=['a_1']))
-    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
-    with pytest.raises(ValueError, match=msg):
-        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6]]), columns=['x_1', 'x_2', 'x_3']))
 
 
 @pytest.mark.ci

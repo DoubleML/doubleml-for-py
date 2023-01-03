@@ -116,20 +116,6 @@ def test_doubleml_lpq_exceptions():
                           'ml_pi_d_z0': {'n_estimators': [5, 10]},
                           'ml_pi_d_z1': {'n_estimators': [5, 10]}})
 
-    msg = "Quantile has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, quantile="0.4")
-    msg = "Quantile has be between 0 or 1. Quantile 1.0 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, quantile=1.)
-
-    msg = "Treatment indicator has to be an integer. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment="1")
-    msg = "Treatment indicator has be either 0 or 1. Treatment indicator 2 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=2)
-
     msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1, h="0.1")

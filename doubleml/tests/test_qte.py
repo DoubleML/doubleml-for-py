@@ -147,18 +147,6 @@ def test_doubleml_qte_exceptions():
     ml_g = RandomForestClassifier(n_estimators=20)
     ml_m = RandomForestClassifier(n_estimators=20)
 
-    msg = r'Quantiles have be between 0 or 1. Quantiles \[0.2 2. \] passed.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, quantiles=[0.2, 2])
-
-    msg = 'Invalid score pq. Valid scores PQ or LPQ.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, score='pq')
-
-    msg = 'Invalid trimming_rule discard. Valid trimming_rule truncate.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, trimming_rule='discard')
-
     msg = r'Sample splitting not specified. Draw samples via .draw_sample splitting\(\). ' \
           'External samples not implemented yet.'
     with pytest.raises(ValueError, match=msg):

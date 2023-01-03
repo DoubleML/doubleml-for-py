@@ -4,7 +4,7 @@ from scipy.stats import norm
 
 from sklearn.base import clone
 
-from ._utils import _draw_weights, _check_zero_one_treatment
+from ._utils import _draw_weights, _check_zero_one_treatment, _check_score, _check_trimming
 from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
@@ -85,35 +85,30 @@ class DoubleMLQTE:
         self._quantiles = np.asarray(quantiles).reshape((-1, ))
         self._check_quantile()
         self._n_quantiles = len(self._quantiles)
-
         self._h = h
         self._normalize = normalize
-
         self._n_folds = n_folds
         self._n_rep = n_rep
-
         self._dml_procedure = dml_procedure
 
+        # check score
+        self._score = score
+        valid_scores = ['PQ', 'LPQ']
+        _check_score(self.score, valid_scores)
+
+        # check data
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
             self._is_cluster_data = True
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
+        self._check_data(self._dml_data)
 
-        valid_scores = ['PQ', 'LPQ']
-        if score not in valid_scores:
-            raise ValueError('Invalid score ' + score + '. ' +
-                             'Valid scores ' + ' or '.join(valid_scores) + '.')
-        self._score = score
-
-        valid_trimming_rule = ['truncate']
-        if trimming_rule not in valid_trimming_rule:
-            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
-                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+        # initialize and check trimming
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        self._check_data(self._dml_data)
         self._check_quantile()
 
         # todo add crossfitting = False

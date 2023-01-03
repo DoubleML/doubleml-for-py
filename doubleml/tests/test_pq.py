@@ -117,20 +117,6 @@ def test_doubleml_pq_exceptions():
                          'ml_m': {'n_estimators': [5, 10]},
                          'ml_m_prelim': {'n_estimators': [5, 10]}})
 
-    msg = "Quantile has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile="0.4")
-    msg = "Quantile has be between 0 or 1. Quantile 1.0 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=1.)
-
-    msg = "Treatment indicator has to be an integer. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment="1")
-    msg = "Treatment indicator has be either 0 or 1. Treatment indicator 2 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=2)
-
     msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, h="0.1")
@@ -141,41 +127,6 @@ def test_doubleml_pq_exceptions():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, normalize=1)
-
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type. obj_dml_data of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLPQ("obj_dml_data", ml_g, ml_m, treatment=1)
-
-    msg = r"Incompatible data. z have been set as instrumental variable\(s\). " \
-          "To fit an local model see the documentation."
-    with pytest.raises(ValueError, match=msg):
-        obj_dml_data_iv = dml.DoubleMLData.from_arrays(x, y, d, z=d)
-        _ = dml.DoubleMLPQ(obj_dml_data_iv, ml_g, ml_m, treatment=1)
-
-    msg = 'Incompatible data. To fit an CVaR model with DML exactly one binary variable with values' \
-          ' 0 and 1 needs to be specified as treatment variable.'
-    with pytest.raises(ValueError, match=msg):
-        obj_dml_data_cont_treat = dml.DoubleMLData.from_arrays(x, y, np.random.uniform(size=n))
-        _ = dml.DoubleMLPQ(obj_dml_data_cont_treat, ml_g, ml_m, treatment=1)
-
-    msg = 'Invalid trimming_rule cap. Valid trimming_rule truncate.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, trimming_rule="cap")
-
-    msg = "trimming_threshold has to be a float. Object of type <class 'int'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, trimming_threshold=-1)
-
-    msg = 'Invalid trimming_threshold -0.4. trimming_threshold has to be between 0 and 0.5.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, trimming_threshold=-.4)
-
-    msg = 'Invalid score cvar. Valid score CVaR.'
-    with pytest.raises(ValueError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, score="cvar")
-    msg = 'Invalid score. Valid score CVaR.'
-    with pytest.raises(TypeError, match=msg):
-        _ = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, score=1)
 
 
 @pytest.mark.ci
