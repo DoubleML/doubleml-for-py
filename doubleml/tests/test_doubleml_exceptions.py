@@ -9,10 +9,11 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
-n = 500
+n = 100
 dml_data = make_plr_CCDDHNR2018(n_obs=n)
 ml_l = Lasso()
 ml_m = Lasso()
@@ -487,7 +488,7 @@ def test_doubleml_exception_fit():
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
     dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
-    dml_qte_boot = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression())
+    dml_qte_boot = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
