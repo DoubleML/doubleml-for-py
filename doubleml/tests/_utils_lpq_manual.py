@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.base import clone
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
 from .._utils import _dml_cv_predict, _trimm
@@ -61,8 +61,10 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
         test_inds = smpls[i_fold][1]
 
         # start nested crossfitting
-        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5, random_state=42)
-        smpls_prelim = [(train, test) for train, test in KFold(n_splits=n_folds).split(train_inds_1)]
+        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
+                                                      random_state=42, stratify=d[train_inds])
+        smpls_prelim = [(train, test) for train, test in
+                        StratifiedKFold(n_splits=n_folds).split(X=train_inds_1, y=d[train_inds_1])]
 
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]

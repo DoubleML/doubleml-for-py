@@ -3,7 +3,7 @@ from scipy.optimize import root_scalar
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 from sklearn.utils import check_X_y
-from sklearn.model_selection import KFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
@@ -280,8 +280,10 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             test_inds = smpls[i_fold][1]
 
             # start nested crossfitting
-            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5, random_state=42)
-            smpls_prelim = [(train, test) for train, test in KFold(n_splits=self.n_folds).split(train_inds_1)]
+            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
+                                                          random_state=42, stratify=d[train_inds])
+            smpls_prelim = [(train, test) for train, test in
+                            StratifiedKFold(n_splits=self.n_folds).split(X=train_inds_1, y=d[train_inds_1])]
 
             d_train_1 = d[train_inds_1]
             y_train_1 = y[train_inds_1]
