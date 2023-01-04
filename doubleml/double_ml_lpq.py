@@ -143,11 +143,12 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         self._initialize_ml_nuisance_params()
 
         if draw_sample_splitting:
+            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
                                                     apply_cross_fitting=self.apply_cross_fitting,
-                                                    groups=self._dml_data.d)
+                                                    stratify=strata)
             self._smpls = obj_dml_resampling.split_samples()
 
     @property
@@ -266,6 +267,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         x, z = check_X_y(x, np.ravel(self._dml_data.z),
                          force_all_finite=False)
 
+        # create strata for splitting
+        strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
+
         # initialize nuisance predictions
         pi_z_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
         pi_d_z0_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
@@ -281,9 +285,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
             # start nested crossfitting
             train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                          random_state=42, stratify=d[train_inds])
+                                                          random_state=42, stratify=strata[train_inds])
             smpls_prelim = [(train, test) for train, test in
-                            StratifiedKFold(n_splits=self.n_folds).split(X=train_inds_1, y=d[train_inds_1])]
+                            StratifiedKFold(n_splits=self.n_folds).split(X=train_inds_1, y=strata[train_inds_1])]
 
             d_train_1 = d[train_inds_1]
             y_train_1 = y[train_inds_1]

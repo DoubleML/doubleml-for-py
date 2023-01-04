@@ -10,18 +10,18 @@ class DoubleMLResampling:
                  n_rep,
                  n_obs,
                  apply_cross_fitting,
-                 groups=None):
+                 stratify=None):
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs
         self.apply_cross_fitting = apply_cross_fitting
-        self.groups = groups
+        self.stratify = stratify
         if (self.n_folds == 1) & self.apply_cross_fitting:
             warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
             self.apply_cross_fitting = False
         if not apply_cross_fitting:
             assert n_folds <= 2
-        if self.groups is None:
+        if self.stratify is None:
             self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
         else:
             self.resampling = RepeatedStratifiedKFold(n_splits=n_folds, n_repeats=n_rep)
@@ -31,7 +31,7 @@ class DoubleMLResampling:
             self.resampling = ResampleNoSplit()
 
     def split_samples(self):
-        all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.groups)]
+        all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
         smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
                  for i_repeat in range(self.n_rep)]
         if not self.apply_cross_fitting:

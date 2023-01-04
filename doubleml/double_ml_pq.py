@@ -147,7 +147,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
                                                     apply_cross_fitting=self.apply_cross_fitting,
-                                                    groups=self._dml_data.d)
+                                                    stratify=self._dml_data.d)
             self._smpls = obj_dml_resampling.split_samples()
 
     @property
