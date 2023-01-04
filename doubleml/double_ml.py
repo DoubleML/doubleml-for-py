@@ -47,6 +47,7 @@ class DoubleML(ABC):
 
         # initialize predictions to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
+        self._rmses = None
 
         # initialize models to None which are only stored if method fit is called with store_models=True
         self._models = None
@@ -222,6 +223,13 @@ class DoubleML(ABC):
         The predictions of the nuisance models.
         """
         return self._predictions
+
+    @property
+    def rmses(self):
+        """
+        The root-mean-squared-errors of the nuisance models.
+        """
+        return self._rmses
 
     @property
     def models(self):
@@ -426,7 +434,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, store_predictions=False, store_models=False):
+    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False):
         """
         Estimate DoubleML models.
 
@@ -465,6 +473,7 @@ class DoubleML(ABC):
 
         if store_predictions:
             self._initialize_predictions()
+            self._initialize_rmses()
 
         if store_models:
             self._initialize_models()
@@ -485,6 +494,7 @@ class DoubleML(ABC):
 
                 if store_predictions:
                     self._store_predictions(preds['predictions'])
+                    self._store_rmses(preds['predictions'])
                 if store_models:
                     self._store_models(preds['models'])
 
@@ -985,6 +995,10 @@ class DoubleML(ABC):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
 
+    def _initialize_rmses(self):
+        self._rmses = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
+                       for learner in self.params_names}
+
     def _initialize_models(self):
         self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
                         for learner in self.params_names}
@@ -992,6 +1006,10 @@ class DoubleML(ABC):
     def _store_predictions(self, preds):
         for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
+
+    def _store_rmses(self, preds):
+        for learner in self.params_names:
+            self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(preds[learner])
 
     def _store_models(self, models):
         for learner in self.params_names:
