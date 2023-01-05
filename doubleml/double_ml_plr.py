@@ -230,7 +230,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # an estimate of g is obtained for the IV-type score and callable scores
-        g_hat = {'preds': None, 'models': None}
+        g_hat = {'preds': None, 'targets': None, 'models': None}
         if 'ml_g' in self._learner:
             # get an initial estimate for theta using the partialling out score
             psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
@@ -248,6 +248,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_g': g_hat['preds']},
+                 'targets': {'ml_l': l_hat['targets'],
+                             'ml_m': m_hat['targets'],
+                             'ml_g': g_hat['targets']},
                  'models': {'ml_l': l_hat['models'],
                             'ml_m': m_hat['models'],
                             'ml_g': g_hat['models']}}

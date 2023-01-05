@@ -277,7 +277,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                      est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'],
                                      return_models=return_models)
         else:
-            r_hat0 = {'preds': np.zeros_like(d), 'models': None}
+            r_hat0 = {'preds': np.zeros_like(d), 'targets': np.zeros_like(d), 'models': None}
         _check_finite_predictions(r_hat0['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
         if self.subgroups['never_takers']:
@@ -285,7 +285,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                      est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'],
                                      return_models=return_models)
         else:
-            r_hat1 = {'preds': np.ones_like(d), 'models': None}
+            r_hat1 = {'preds': np.ones_like(d), 'targets': np.ones_like(d), 'models': None}
         _check_finite_predictions(r_hat1['preds'], self._learner['ml_r'], 'ml_r', smpls)
 
         psi_a, psi_b = self._score_elements(y, z, d,
@@ -298,6 +298,11 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  'ml_m': m_hat['preds'],
                                  'ml_r0': r_hat0['preds'],
                                  'ml_r1': r_hat1['preds']},
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets'],
+                             'ml_r0': r_hat0['targets'],
+                             'ml_r1': r_hat1['targets']},
                  'models': {'ml_g0': g_hat0['models'],
                             'ml_g1': g_hat1['models'],
                             'ml_m': m_hat['models'],

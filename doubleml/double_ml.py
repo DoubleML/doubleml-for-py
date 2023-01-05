@@ -45,8 +45,9 @@ class DoubleML(ABC):
         self._learner = None
         self._params = None
 
-        # initialize predictions to None which are only stored if method fit is called with store_predictions=True
+        # initialize predictions and target to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
+        self._nuisance_target = None
         self._rmses = None
 
         # initialize models to None which are only stored if method fit is called with store_models=True
@@ -223,6 +224,13 @@ class DoubleML(ABC):
         The predictions of the nuisance models.
         """
         return self._predictions
+
+    @property
+    def nuisance_target(self):
+        """
+        The outcome of the nuisance models.
+        """
+        return self._nuisance_target
 
     @property
     def rmses(self):
@@ -471,9 +479,11 @@ class DoubleML(ABC):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
 
+        # initialize rmse arrays for nuisance functions evaluation
+        self._initialize_rmses()
+
         if store_predictions:
-            self._initialize_predictions()
-            self._initialize_rmses()
+            self._initialize_predictions_and_targets()
 
         if store_models:
             self._initialize_models()
@@ -492,11 +502,13 @@ class DoubleML(ABC):
 
                 self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
+                # calculate rmses and store predictions and targets of the nuisance models
+                self._calc_rmses(preds['predictions'], preds['targets'])
                 if store_predictions:
-                    self._store_predictions(preds['predictions'])
-                    self._store_rmses(preds['predictions'])
+                    self._store_predictions_and_targets(preds['predictions'], preds['targets'])
                 if store_models:
                     self._store_models(preds['models'])
+
 
                 # estimate the causal parameter
                 self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
@@ -991,9 +1003,11 @@ class DoubleML(ABC):
         boot_t_stat = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
         return n_rep_boot, boot_coef, boot_t_stat
 
-    def _initialize_predictions(self):
+    def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
+        self._nuisance_target = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+                                 for learner in self.params_names}
 
     def _initialize_rmses(self):
         self._rmses = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
@@ -1003,13 +1017,18 @@ class DoubleML(ABC):
         self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
                         for learner in self.params_names}
 
-    def _store_predictions(self, preds):
+    def _store_predictions_and_targets(self, preds, targets):
         for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
+            self._nuisance_target[learner][:, self._i_rep, self._i_treat] = targets[learner]
 
-    def _store_rmses(self, preds):
+    def _calc_rmses(self, preds, targets):
         for learner in self.params_names:
-            self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(preds[learner])
+            if targets[learner] is None:
+                self._rmses[learner][self._i_rep, self._i_treat] = np.nan
+            else:
+                sq_error = np.power(targets[learner] - preds[learner], 2)
+                self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(np.mean(sq_error, 0))
 
     def _store_models(self, models):
         for learner in self.params_names:

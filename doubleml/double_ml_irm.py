@@ -206,7 +206,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        g_hat1 = {'preds': None, 'models': None}
+        g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
@@ -236,6 +236,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets']},
                  'models': {'ml_g0': g_hat0['models'],
                             'ml_g1': g_hat1['models'],
                             'ml_m': m_hat['models']}

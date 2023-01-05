@@ -110,6 +110,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             res['preds'] = preds[:, 1]
         else:
             res['preds'] = preds
+        res['targets'] = y
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
@@ -149,7 +150,9 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
                                      for idx, (train_index, test_index) in enumerate(smpls))
 
         preds = np.full(n_obs, np.nan)
+        targets = np.full(n_obs, np.nan)
         train_preds = list()
+        train_targets = list()
         for idx, (train_index, test_index) in enumerate(smpls):
             assert idx == fitted_models[idx][1]
             pred_fun = getattr(fitted_models[idx][0], method)
@@ -158,12 +161,21 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             else:
                 preds[test_index] = pred_fun(x[test_index, :])
 
+            if fold_specific_target:
+                # targets not available for fold specific target
+                targets = None
+            else:
+                targets[test_index] = y[test_index]
+
             if return_train_preds:
                 train_preds.append(pred_fun(x[train_index, :]))
+                train_targets.append(y[train_index])
 
         res['preds'] = preds
+        res['targets'] = targets
         if return_train_preds:
             res['train_preds'] = train_preds
+            res['train_targets'] = train_targets
         if return_models:
             fold_ids = [xx[1] for xx in fitted_models]
             if not np.alltrue(fold_ids == np.arange(len(smpls))):
