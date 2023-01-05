@@ -131,8 +131,9 @@ class DoubleML(ABC):
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
         if self.rmses is not None:
+            learner_info += 'Out-of-sample Performance:\n'
             for learner in self.params_names:
-                learner_info += f'Learner {learner} cross-fitted RMSE: {self.rmses[learner]}\n'
+                learner_info += f'Learner {learner} RMSE: {self.rmses[learner]}\n'
 
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
