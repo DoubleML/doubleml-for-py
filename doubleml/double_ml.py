@@ -130,6 +130,10 @@ class DoubleML(ABC):
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
+        if self.rmses is not None:
+            for learner in self.params_names:
+                learner_info += f'Learner {learner} cross-fitted RMSE: {self.rmses[learner]}\n'
+
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
                               f'No. folds: {self.n_folds}\n' \
@@ -244,7 +248,7 @@ class DoubleML(ABC):
         """
         The fitted nuisance models.
         """
-        return self._models
+        return self._model
 
     def get_params(self, learner):
         """
@@ -508,7 +512,6 @@ class DoubleML(ABC):
                     self._store_predictions_and_targets(preds['predictions'], preds['targets'])
                 if store_models:
                     self._store_models(preds['models'])
-
 
                 # estimate the causal parameter
                 self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
