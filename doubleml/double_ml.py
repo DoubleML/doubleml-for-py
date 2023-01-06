@@ -47,7 +47,7 @@ class DoubleML(ABC):
 
         # initialize predictions and target to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
-        self._nuisance_target = None
+        self._nuisance_targets = None
         self._rmses = None
 
         # initialize models to None which are only stored if method fit is called with store_models=True
@@ -231,11 +231,11 @@ class DoubleML(ABC):
         return self._predictions
 
     @property
-    def nuisance_target(self):
+    def nuisance_targets(self):
         """
         The outcome of the nuisance models.
         """
-        return self._nuisance_target
+        return self._nuisance_targets
 
     @property
     def rmses(self):
@@ -249,7 +249,7 @@ class DoubleML(ABC):
         """
         The fitted nuisance models.
         """
-        return self._model
+        return self._models
 
     def get_params(self, learner):
         """
@@ -1010,8 +1010,8 @@ class DoubleML(ABC):
     def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
-        self._nuisance_target = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-                                 for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan) 
+                                  for learner in self.params_names}
 
     def _initialize_rmses(self):
         self._rmses = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
@@ -1024,7 +1024,7 @@ class DoubleML(ABC):
     def _store_predictions_and_targets(self, preds, targets):
         for learner in self.params_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
-            self._nuisance_target[learner][:, self._i_rep, self._i_treat] = targets[learner]
+            self._nuisance_targets[learner][:, self._i_rep, self._i_treat] = targets[learner]
 
     def _calc_rmses(self, preds, targets):
         for learner in self.params_names:
