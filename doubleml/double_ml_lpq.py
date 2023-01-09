@@ -21,7 +21,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_m : classifier implementing ``fit()`` and ``predict()``
+    ml_pi : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the propensity nuisance functions.
 
@@ -79,7 +79,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     def __init__(self,
                  obj_dml_data,
-                 ml_m,
+                 ml_pi,
                  treatment,
                  quantile=0.5,
                  n_folds=5,
@@ -131,12 +131,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-        self._learner = {'ml_pi_z': clone(ml_m),
-                         'ml_pi_du_z0': clone(ml_m), 'ml_pi_du_z1': clone(ml_m),
-                         'ml_pi_d_z0': clone(ml_m), 'ml_pi_d_z1': clone(ml_m)}
-        self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba',
-                                'ml_pi_z': 'predict_proba',
+        _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
+        self._learner = {'ml_pi_z': clone(ml_pi),
+                         'ml_pi_du_z0': clone(ml_pi), 'ml_pi_du_z1': clone(ml_pi),
+                         'ml_pi_d_z0': clone(ml_pi), 'ml_pi_d_z1': clone(ml_pi)}
+        self._predict_method = {'ml_pi_z': 'predict_proba',
                                 'ml_pi_du_z0': 'predict_proba', 'ml_pi_du_z1': 'predict_proba',
                                 'ml_pi_d_z0': 'predict_proba', 'ml_pi_d_z1': 'predict_proba'}
 

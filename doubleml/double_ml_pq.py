@@ -79,6 +79,22 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     apply_cross_fitting : bool
         Indicates whether cross-fitting should be applied(``True`` is the only choice).
         Default is ``True``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.datasets import make_irm_data
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> np.random.seed(3141)
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    >>> dml_pq_obj = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
+    >>> dml_pq_obj.fit().summary
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.566897  0.121525  4.664862  0.000003  0.328712  0.805081
     """
 
     def __init__(self,

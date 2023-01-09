@@ -65,6 +65,21 @@ class DoubleMLQTE:
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.datasets import make_iivm_data
+    >>> from sklearn.ensemble import RandomForestClassifier
+    >>> np.random.seed(3141)
+    >>> ml_pi = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
+    >>> dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data, ml_pi, treatment=1, quantile=0.5)
+    >>> dml_lpq_obj.fit().summary
+           coef   std err         t    P>|t|     2.5 %    97.5 %
+    d  0.451843  0.399553  1.130871  0.25811 -0.331267  1.234953
     """
     def __init__(self,
                  obj_dml_data,
