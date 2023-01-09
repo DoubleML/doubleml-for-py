@@ -394,15 +394,28 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                                             smpls)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
-        preds = {'predictions': {'ml_l': l_hat['preds'],
-                                 'ml_m': m_hat['preds'],
-                                 'ml_r': r_hat['preds'],
-                                 'ml_g': g_hat['preds']},
-                 'models': {'ml_l': l_hat['models'],
-                            'ml_m': m_hat['models'],
-                            'ml_r': r_hat['models'],
-                            'ml_g': g_hat['models']}
-                 }
+        if self._dml_data.n_instr == 1:
+            # one instrument: just identified
+            preds = {'predictions': {'ml_l': l_hat['preds'],
+                                    'ml_m': m_hat['preds'],
+                                    'ml_r': r_hat['preds'],
+                                    'ml_g': g_hat['preds']},
+                    'models': {'ml_l': l_hat['models'],
+                                'ml_m': m_hat['models'],
+                                'ml_r': r_hat['models'],
+                                'ml_g': g_hat['models']}
+                    }
+        else:
+            # several instruments: 2SLS
+            preds = {'predictions': {'ml_l': l_hat['preds'],
+                                    'ml_m': m_hat['preds'],
+                                    'ml_r': r_hat['preds'],
+                                    'ml_g': g_hat['preds']} | {f"ml_m_{z_col}": m_hat['preds'][:, i_instr] for (z_col, i_instr) in zip(self._dml_data.z_cols, range(self._dml_data.n_instr))},
+                    'models': {'ml_l': l_hat['models'],
+                                'ml_m': m_hat['models'],
+                                'ml_r': r_hat['models'],
+                                'ml_g': g_hat['models']} | {f"ml_m_{z_col}": m_hat['models'][i_instr] for (z_col, i_instr) in zip(self._dml_data.z_cols, range(self._dml_data.n_instr))}
+                    }
 
         return psi_elements, preds
 
