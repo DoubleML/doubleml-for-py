@@ -1049,7 +1049,8 @@ class DoubleML(ABC):
             A list of strings which correspond to the nuisance functions of the model.
 
         metric : callable
-            A callable function with inputs ``y_pred`` and ``y_true``.
+            A callable function with inputs ``y_pred`` and ``y_true`` of shape ``(1, n)``, 
+            where ``n`` specifies the number of observations.
             Default is the euclidean distance.
 
         Returns
