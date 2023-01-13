@@ -3,6 +3,7 @@ import pandas as pd
 import warnings
 
 from sklearn.base import is_regressor, is_classifier
+from sklearn.metrics import mean_squared_error
 
 from scipy.stats import norm
 
@@ -1037,6 +1038,71 @@ class DoubleML(ABC):
     def _store_models(self, models):
         for learner in self.params_names:
             self._models[learner][self._dml_data.d_cols[self._i_treat]][self._i_rep] = models[learner]
+
+    def evaluate_learners(self, learners=None, metric=mean_squared_error):
+        """
+       Evaluate fitted learners for DoubleML models on crossvalidated predicitons.
+
+        Parameters
+        ----------
+        learners : list
+            A list of strings which correspond to the nuisance functions of the model.
+
+        metric : callable
+            A callable function with inputs ``y_pred`` and ``y_true``.
+            Default is the euclidean distance.
+
+        Returns
+        -------
+        dist : dict
+            A dictionary containing the evaluated metric for each learner.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import doubleml as dml
+        >>> from sklearn.metrics import mean_absolute_error
+        >>> from doubleml.datasets import make_irm_data
+        >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+        >>> np.random.seed(3141)
+        >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
+        >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+        >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
+        >>> dml_irm_obj.fit()
+        >>> dml_irm_obj.evaluate_learners(metric=mean_absolute_error)
+        {'ml_g0': array([[1.13318973]]),
+         'ml_g1': array([[0.91659939]]),
+         'ml_m': array([[0.36350912]])}
+        """
+        # if no learners are provided try to evaluate all learners
+        if learners is None:
+            learners = self.params_names
+
+        # check metric
+        if not callable(metric):
+            raise TypeError('metric should be either a callable. '
+                            '%r was passed.' % metric)
+
+        if all(learner in self.params_names for learner in learners):
+            if self.nuisance_targets is None:
+                raise ValueError('Apply fit() before evaluate_learners().')
+            else:
+                dist = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
+                        for learner in learners}
+            for learner in learners:
+                for rep in range(self.n_rep):
+                    for coef_idx in range(self._dml_data.n_coefs):
+                        res = metric(y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
+                                     y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1))
+                        if not np.isfinite(res):
+                            raise ValueError(f'Evaluation from learner {str(learner)} is not finite.')
+                        dist[learner][rep, coef_idx] = res
+            return dist
+        else:
+            raise ValueError(f'The learners have to be a subset of {str(self.params_names)}. '
+                             f'Learners {str(learners)} provided.')
 
     def draw_sample_splitting(self):
         """

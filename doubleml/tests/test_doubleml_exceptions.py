@@ -791,3 +791,35 @@ def test_doubleml_exception_cate():
     msg = 'Only implemented for one repetition. Number of repetitions is 2.'
     with pytest.raises(NotImplementedError, match=msg):
         dml_irm_obj.cate(basis=2)
+
+
+@pytest.mark.ci
+def test_double_ml_exception_evaluate_learner():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATTE')
+
+    msg = r'Apply fit\(\) before evaluate_learners\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.evaluate_learners()
+
+    dml_irm_obj.fit()
+
+    msg = "metric should be either a callable. 'mse' was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.evaluate_learners(metric="mse")
+
+    msg = (r"The learners have to be a subset of \['ml_g0', 'ml_g1', 'ml_m'\]. "
+           r"Learners \['ml_g', 'ml_m'\] provided.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.evaluate_learners(learners=['ml_g', 'ml_m'])
+
+    msg = 'Evaluation from learner ml_g0 is not finite.'
+
+    def eval_fct(y_pred, y_true):
+        return np.nan
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.evaluate_learners(metric=eval_fct)
