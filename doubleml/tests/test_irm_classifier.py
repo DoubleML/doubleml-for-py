@@ -84,7 +84,8 @@ def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, dml_pro
         boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                            res_manual['all_m_hat'], res_manual['all_p_hat'],
-                                           all_smpls, score, bootstrap, n_rep_boot)
+                                           all_smpls, score, bootstrap, n_rep_boot,
+                                           dml_procedure=dml_procedure)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

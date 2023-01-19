@@ -18,7 +18,7 @@ dml_plr_iv_type = DoubleMLPLR(dml_data_plr, Lasso(), Lasso(), Lasso(), score='IV
 dml_plr_iv_type.fit()
 dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_pliv.fit()
-dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
+dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), normalize_ipw=False)
 dml_irm.fit()
 dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 dml_iivm.fit()
@@ -38,7 +38,7 @@ dml_plr_iv_type_callable_score.fit(store_predictions=True)
 
 irm_score = dml_irm._score_elements
 dml_irm_callable_score = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                                     score=irm_score, draw_sample_splitting=False)
+                                     score=irm_score, draw_sample_splitting=False, normalize_ipw=False)
 dml_irm_callable_score.set_sample_splitting(dml_irm.smpls)
 dml_irm_callable_score.fit(store_predictions=True)
 

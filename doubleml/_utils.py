@@ -214,3 +214,18 @@ def _check_finite_predictions(preds, learner, learner_name, smpls):
     if not np.all(np.isfinite(preds[test_indices])):
         raise ValueError(f'Predictions from learner {str(learner)} for {learner_name} are not finite.')
     return
+
+
+def _trimm(preds, trimming_rule, trimming_threshold):
+    if trimming_rule == 'truncate':
+        preds[preds < trimming_threshold] = trimming_threshold
+        preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
+    return preds
+
+
+def _normalize_ipw(propensity, treatment):
+    norm_factor = np.multiply(treatment, np.mean(np.divide(treatment, propensity))) \
+        + np.multiply(1.0-treatment, np.mean(np.divide(1.0-treatment, 1.0-propensity)))
+
+    propensity *= norm_factor
+    return propensity
