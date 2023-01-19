@@ -37,13 +37,19 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[0.01, 0.05])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_threshold):
+def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_ipw, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -62,6 +68,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_t
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure,
+                                  normalize_ipw=normalize_ipw,
                                   trimming_threshold=trimming_threshold)
 
     dml_irm_obj.fit()
@@ -72,7 +79,9 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_t
 
     res_manual = fit_irm(y, x, d,
                          clone(learner[0]), clone(learner[1]),
-                         all_smpls, dml_procedure, score, trimming_threshold=trimming_threshold)
+                         all_smpls, dml_procedure, score,
+                         normalize_ipw=normalize_ipw,
+                         trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -86,7 +95,8 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, trimming_t
                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                            res_manual['all_m_hat'], res_manual['all_p_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot,
-                                           dml_procedure=dml_procedure)
+                                           dml_procedure=dml_procedure,
+                                           normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

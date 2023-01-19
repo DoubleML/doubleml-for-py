@@ -26,13 +26,19 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[1, 2])
 def n_folds(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
+def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, normalize_ipw, n_folds):
     boot_methods = ['normal']
     n_rep_boot = 499
     dml_procedure = 'dml1'
@@ -51,6 +57,7 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
                                   n_folds,
                                   score=score,
                                   dml_procedure=dml_procedure,
+                                  normalize_ipw=normalize_ipw,
                                   apply_cross_fitting=False)
 
     dml_irm_obj.fit()
@@ -66,7 +73,8 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
 
     res_manual = fit_irm(y, x, d,
                          clone(learner[0]), clone(learner[1]),
-                         [smpls], dml_procedure, score)
+                         [smpls], dml_procedure, score,
+                         normalize_ipw=normalize_ipw)
 
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -81,6 +89,7 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, n_folds):
                                            res_manual['all_m_hat'], res_manual['all_p_hat'],
                                            [smpls], score, bootstrap, n_rep_boot,
                                            dml_procedure=dml_procedure,
+                                           normalize_ipw=normalize_ipw,
                                            apply_cross_fitting=False)
 
         np.random.seed(3141)

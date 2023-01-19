@@ -44,6 +44,12 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[{'always_takers': True, 'never_takers': True},
                         {'always_takers': False, 'never_takers': False}])
 def subgroups(request):
@@ -66,7 +72,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, dml_procedure, subgroups,
+def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, dml_procedure, normalize_ipw, subgroups,
                      tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m),
@@ -92,7 +98,8 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
                                     subgroups=subgroups,
-                                    dml_procedure=dml_procedure)
+                                    dml_procedure=dml_procedure,
+                                    normalize_ipw=normalize_ipw)
     # tune hyperparameters
     tune_res = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
                                  return_tune_res=True)
@@ -141,6 +148,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
                           all_smpls, dml_procedure, score,
                           g0_params=g0_params, g1_params=g1_params,
                           m_params=m_params, r0_params=r0_params, r1_params=r1_params,
+                          normalize_ipw=normalize_ipw,
                           always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
     res_dict = {'coef': dml_iivm_obj.coef,
@@ -154,7 +162,8 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure)
+                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
+                                            normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

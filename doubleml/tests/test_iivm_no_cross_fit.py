@@ -26,13 +26,19 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[1, 2])
 def n_folds(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
+def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, normalize_ipw, n_folds):
     boot_methods = ['normal']
     n_rep_boot = 491
     dml_procedure = 'dml1'
@@ -52,6 +58,7 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
                                     ml_g, ml_m, ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure,
+                                    normalize_ipw=normalize_ipw,
                                     apply_cross_fitting=False)
 
     dml_iivm_obj.fit()
@@ -71,7 +78,8 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                          [smpls], dml_procedure, score)
+                          [smpls], dml_procedure, score,
+                          normalize_ipw=normalize_ipw)
 
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -85,6 +93,7 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
                                             [smpls], score, bootstrap, n_rep_boot, dml_procedure,
+                                            normalize_ipw=normalize_ipw,
                                             apply_cross_fitting=False)
 
         np.random.seed(3141)
