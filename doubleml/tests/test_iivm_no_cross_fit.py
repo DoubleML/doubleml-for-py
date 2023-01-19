@@ -84,7 +84,7 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, n_folds):
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            [smpls], score, bootstrap, n_rep_boot,
+                                            [smpls], score, bootstrap, n_rep_boot, dml_procedure,
                                             apply_cross_fitting=False)
 
         np.random.seed(3141)

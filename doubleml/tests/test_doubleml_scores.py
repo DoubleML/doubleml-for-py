@@ -20,7 +20,7 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_pliv.fit()
 dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), normalize_ipw=False)
 dml_irm.fit()
-dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
+dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), normalize_ipw=False)
 dml_iivm.fit()
 
 # fit models with callable scores
@@ -44,7 +44,7 @@ dml_irm_callable_score.fit(store_predictions=True)
 
 iivm_score = dml_iivm._score_elements
 dml_iivm_callable_score = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
-                                       score=iivm_score, draw_sample_splitting=False)
+                                       score=iivm_score, draw_sample_splitting=False, normalize_ipw=False)
 dml_iivm_callable_score.set_sample_splitting(dml_iivm.smpls)
 dml_iivm_callable_score.fit(store_predictions=True)
 
