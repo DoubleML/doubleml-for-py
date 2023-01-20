@@ -9,7 +9,7 @@ from functools import wraps
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity
 
 
 # To be removed in version 0.6.0
@@ -219,6 +219,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        if self._check_learner(self._learner['ml_m'], 'ml_m', regressor=True, classifier=True):
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
             binary_preds = (type_of_target(m_hat['preds']) == 'binary')

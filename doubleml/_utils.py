@@ -217,6 +217,13 @@ def _check_finite_predictions(preds, learner, learner_name, smpls):
     return
 
 
+def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
+    test_indices = np.concatenate([test_index for _, test_index in smpls])
+    if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
+        warnings.warn(f'Propensity predictions from learner {str(learner)} for'
+                      f' {learner_name} are close to zero or one (eps={eps}).')
+    return
+
 def _trimm(preds, trimming_rule, trimming_threshold):
     if trimming_rule == 'truncate':
         preds[preds < trimming_threshold] = trimming_threshold
