@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
@@ -230,3 +231,12 @@ def _normalize_ipw(propensity, treatment):
         + np.multiply(1.0-treatment, 1.0 - np.multiply(1.0-propensity, mean_treat0))
 
     return normalized_weights
+
+
+def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
+    test_indices = np.concatenate([test_index for _, test_index in smpls])
+    if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
+        warnings.warn(f'Propensity predictions from learner {str(learner)} for'
+                      f' {learner_name} are close to zero or one (eps={eps}).')
+    return
+
