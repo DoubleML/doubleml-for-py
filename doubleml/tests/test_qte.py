@@ -15,6 +15,7 @@ from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
 from doubleml.datasets import make_irm_data
 from .._utils import _default_kde
 
+
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
                         LogisticRegression()])

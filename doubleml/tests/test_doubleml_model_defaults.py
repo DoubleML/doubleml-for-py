@@ -145,5 +145,4 @@ def test_qte_defaults():
     assert dml_qte.dml_procedure == 'dml2'
     assert dml_qte.trimming_rule == 'truncate'
     assert dml_qte.trimming_threshold == 1e-2
-    assert dml_qte.h is None
     assert dml_qte.normalize

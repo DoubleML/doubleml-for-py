@@ -246,14 +246,15 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
     return dml_est
 
 
-def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, normalize=True, kde=_default_kde):
+def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs,
+                normalize=True, kde=_default_kde):
     sign = 2 * treatment - 1.0
     score_weights = sign * ((z / pi_z) - (1 - z) / (1 - pi_z)) * (d == treatment) / comp_prob
     normalization = score_weights.mean()
 
     if normalize:
         score_weights /= normalization
-    u = (y - coef).reshape(-1, 1) 
+    u = (y - coef).reshape(-1, 1)
     deriv = kde(u, score_weights)
 
     J = np.mean(deriv)

@@ -124,11 +124,15 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         self._quantile = quantile
         self._treatment = treatment
-        self._kde = kde
-        if self.kde is None:
+        if kde is None:
             self._kde = _default_kde
-        self._normalize = normalize
+        else:
+            if not callable(kde):
+                raise TypeError('kde should be either a callable or None. '
+                                '%r was passed.' % kde)
+            self._kde = kde
 
+        self._normalize = normalize
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)

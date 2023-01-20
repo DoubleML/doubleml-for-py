@@ -345,17 +345,12 @@ def test_doubleml_exception_treatment():
 
 
 @pytest.mark.ci
-def test_doubleml_exception_bandwidth():
-    msg = "Bandwidth has to be a float. Object of type <class 'str'> passed."
+def test_doubleml_exception_kde():
+    msg = "kde should be either a callable or None. '0.1' was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, h="0.1")
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, kde="0.1")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, h="0.1")
-    msg = "Bandwidth has be positive. Bandwidth -0.1 passed."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, h=-0.1)
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, h=-0.1)
+        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, kde="0.1")
 
 
 @pytest.mark.ci

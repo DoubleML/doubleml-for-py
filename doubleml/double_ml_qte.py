@@ -101,9 +101,14 @@ class DoubleMLQTE:
         self._check_quantile()
         self._n_quantiles = len(self._quantiles)
 
-        self._kde = kde
-        if self.kde is None:
+        if kde is None:
             self._kde = _default_kde
+        else:
+            if not callable(kde):
+                raise TypeError('kde should be either a callable or None. '
+                                '%r was passed.' % kde)
+            self._kde = kde
+
         self._normalize = normalize
         self._n_folds = n_folds
         self._n_rep = n_rep

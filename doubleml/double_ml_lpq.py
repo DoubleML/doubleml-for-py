@@ -102,9 +102,13 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
         self._quantile = quantile
         self._treatment = treatment
-        self._kde = kde
-        if self.kde is None:
+        if kde is None:
             self._kde = _default_kde
+        else:
+            if not callable(kde):
+                raise TypeError('kde should be either a callable or None. '
+                                '%r was passed.' % kde)
+            self._kde = kde
         self._normalize = normalize
 
         if self._is_cluster_data:
@@ -413,4 +417,3 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         else:
             raise ValueError(err_msg)
         return
-
