@@ -55,7 +55,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -114,7 +114,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  score='ATE',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
