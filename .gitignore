@@ -27,3 +27,4 @@ share/python-wheels/
 *.egg
 MANIFEST
 *.idea
+*.vscode
