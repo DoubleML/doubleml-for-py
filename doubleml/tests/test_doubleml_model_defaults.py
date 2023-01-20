@@ -17,12 +17,36 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
 dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 
+dml_plr.fit()
+dml_pliv.fit()
+dml_irm.fit()
+dml_iivm.fit()
+
+dml_plr.bootstrap()
+dml_pliv.bootstrap()
+dml_irm.bootstrap()
+dml_iivm.bootstrap()
+
 
 def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.n_folds == 5
     assert dml_obj.n_rep == 1
     assert dml_obj.draw_sample_splitting
     assert dml_obj.apply_cross_fitting
+
+    # fit method
+    assert dml_obj.predictions is None
+    assert dml_obj.models is None
+
+    # bootstrap method
+    assert dml_obj.boot_method == 'normal'
+    assert dml_obj.n_rep_boot == 500
+
+    # confint method
+    assert dml_obj.confint().equals(dml_obj.confint(joint=False, level=0.95))
+
+    # p_adjust method
+    assert dml_obj.p_adjust().equals(dml_obj.p_adjust(method='romano-wolf'))
 
 
 @pytest.mark.ci
