@@ -114,6 +114,7 @@ class DoubleML(ABC):
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
+        self._boot_method = None
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -180,6 +181,13 @@ class DoubleML(ABC):
         The number of bootstrap replications.
         """
         return self._n_rep_boot
+
+    @property
+    def boot_method(self):
+        """
+        The method to construct the bootstrap replications.
+        """
+        return self._boot_method
 
     @property
     def score(self):
@@ -567,6 +575,7 @@ class DoubleML(ABC):
                 self._boot_coef[self._i_treat, i_start:i_end], self._boot_t_stat[self._i_treat, i_start:i_end] =\
                     self._compute_bootstrap(weights)
 
+        self._boot_method = method
         return self
 
     def confint(self, joint=False, level=0.95):
