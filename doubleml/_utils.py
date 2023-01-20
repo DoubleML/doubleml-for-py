@@ -224,6 +224,7 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
                       f' {learner_name} are close to zero or one (eps={eps}).')
     return
 
+
 def _trimm(preds, trimming_rule, trimming_threshold):
     if trimming_rule == 'truncate':
         preds[preds < trimming_threshold] = trimming_threshold

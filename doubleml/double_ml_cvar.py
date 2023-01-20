@@ -60,7 +60,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -91,14 +91,14 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                  obj_dml_data,
                  ml_g,
                  ml_m,
-                 treatment,
+                 treatment=1,
                  quantile=0.5,
                  n_folds=5,
                  n_rep=1,
                  score='CVaR',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,

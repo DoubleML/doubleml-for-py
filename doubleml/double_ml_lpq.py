@@ -56,7 +56,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     h : float or None
         The bandwidth to be used for the kernel density estimation of the score derivative.
@@ -80,14 +80,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     def __init__(self,
                  obj_dml_data,
                  ml_pi,
-                 treatment,
+                 treatment=1,
                  quantile=0.5,
                  n_folds=5,
                  n_rep=1,
                  score='LPQ',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  h=None,
                  normalize=True,
                  draw_sample_splitting=True,

@@ -50,7 +50,7 @@ class DoubleMLQTE:
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     h : float or None
         The bandwidth to be used for the kernel density estimation of the score derivative.
@@ -91,7 +91,7 @@ class DoubleMLQTE:
                  dml_procedure='dml2',
                  score='PQ',
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  h=None,
                  normalize=True,
                  draw_sample_splitting=True):
