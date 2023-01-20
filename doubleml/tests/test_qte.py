@@ -13,7 +13,7 @@ from ._utils import draw_smpls
 from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
 
 from doubleml.datasets import make_irm_data
-
+from .._utils import _default_kde
 
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
@@ -29,13 +29,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[None, 0.2])
-def bandwidth(request):
+                params=[None, _default_kde])
+def kde(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, bandwidth):
+def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, kde):
     n_folds = 3
     n_rep = 1
     boot_methods = ['normal']
@@ -58,7 +58,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, bandwidth):
                                   n_rep=n_rep,
                                   dml_procedure=dml_procedure,
                                   trimming_threshold=1e-12,
-                                  h=bandwidth)
+                                  kde=kde)
 
     dml_qte_obj.fit()
 
@@ -67,7 +67,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, bandwidth):
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     res_manual = fit_qte(y, x, d, quantiles, ml_g, ml_g, all_smpls,
                          n_rep=n_rep, dml_procedure=dml_procedure,
-                         trimming_rule='truncate', trimming_threshold=1e-12, h=bandwidth,
+                         trimming_rule='truncate', trimming_threshold=1e-12, kde=kde,
                          normalize=True, draw_sample_splitting=True)
 
     ci = dml_qte_obj.confint(joint=False, level=0.95)

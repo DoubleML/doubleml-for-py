@@ -3,13 +3,13 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
-from .._utils import _dml_cv_predict, _trimm
+from .._utils import _dml_cv_predict, _trimm, _default_kde
 
 
 def fit_lpq(y, x, d, z, quantile,
             learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
             trimming_rule='truncate',
-            trimming_threshold=1e-12):
+            trimming_threshold=1e-2):
     n_obs = len(y)
 
     lpqs = np.zeros(n_rep)
@@ -246,19 +246,16 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
     return dml_est
 
 
-def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, normalize=True, h=None):
+def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, normalize=True, kde=_default_kde):
     sign = 2 * treatment - 1.0
     score_weights = sign * ((z / pi_z) - (1 - z) / (1 - pi_z)) * (d == treatment) / comp_prob
     normalization = score_weights.mean()
 
     if normalize:
         score_weights /= normalization
-    if h is None:
-        h = np.power(n_obs, -0.2)
-    u = (y - coef).reshape(-1, 1) / h
-    kernel_est = np.exp(-1. * np.power(u, 2) / 2) / np.sqrt(2 * np.pi)
+    u = (y - coef).reshape(-1, 1) 
+    deriv = kde(u, score_weights)
 
-    deriv = np.multiply(score_weights, kernel_est.reshape(-1,)) / h
     J = np.mean(deriv)
     sign = 2 * treatment - 1.0
     score1 = pi_du_z1 - pi_du_z0

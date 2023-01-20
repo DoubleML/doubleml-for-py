@@ -8,7 +8,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_zero_one_treatment, _check_score,\
-    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess
+    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess, _default_kde
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -58,11 +58,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         The threshold used for trimming.
         Default is ``1e-2``.
 
-    h : float or None
-        The bandwidth to be used for the kernel density estimation of the score derivative.
-        If ``None`` the bandwidth will be set to ``np.power(n_obs, -0.2)``, where ``n_obs`` is
-        the number of observations in the sample.
-        Default is ``1e-12``.
+    kde : callable or None
+        A callable object / function with signature ``deriv = kde(u, weights)`` for weighted kernel density estimation.
+        Here ``deriv`` should evaluate the density in ``0``.
+        Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
+        gaussian kernel and silverman for bandwidth determination.
 
     normalize : bool
         Indicates whether to normalize weights in the estimation of the score derivative.
@@ -88,7 +88,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
-                 h=None,
+                 kde=None,
                  normalize=True,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
@@ -102,9 +102,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
         self._quantile = quantile
         self._treatment = treatment
-        self._h = h
-        if self.h is None:
-            self._h = np.power(self._dml_data.n_obs, -0.2)
+        self._kde = kde
+        if self.kde is None:
+            self._kde = _default_kde
         self._normalize = normalize
 
         if self._is_cluster_data:
@@ -116,7 +116,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         _check_quantile(self.quantile)
         _check_treatment(self.treatment)
 
-        self._check_bandwidth(self.h)
         if not isinstance(self.normalize, bool):
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize))} passed.')
@@ -165,11 +164,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         return self._treatment
 
     @property
-    def h(self):
+    def kde(self):
         """
-        The bandwidth the kernel density estimation of the derivative.
+        The kernel density estimation of the derivative.
         """
-        return self._h
+        return self._kde
 
     @property
     def normalize(self):
@@ -247,9 +246,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         if self._normalize:
             score_weights /= normalization
 
-        u = (y - coef).reshape(-1, 1) / self._h
-        kernel_est = np.exp(-1. * np.power(u, 2) / 2) / np.sqrt(2 * np.pi)
-        deriv = np.multiply(score_weights, kernel_est.reshape(-1, )) / self._h
+        u = (y - coef).reshape(-1, 1)
+        deriv = self.kde(u, score_weights)
 
         return deriv
 
@@ -416,11 +414,3 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             raise ValueError(err_msg)
         return
 
-    def _check_bandwidth(self, bandwidth):
-        if not isinstance(bandwidth, float):
-            raise TypeError('Bandwidth has to be a float. ' +
-                            f'Object of type {str(type(bandwidth))} passed.')
-
-        if bandwidth <= 0:
-            raise ValueError('Bandwidth has be positive. ' +
-                             f'Bandwidth {str(bandwidth)} passed.')

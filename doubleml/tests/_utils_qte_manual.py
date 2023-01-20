@@ -7,10 +7,11 @@ from ..double_ml_pq import DoubleMLPQ
 from ..double_ml_data import DoubleMLData
 
 from ._utils_boot import draw_weights
+from .._utils import _default_kde
 
 
 def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_procedure='dml2',
-            trimming_rule='truncate', trimming_threshold=1e-12, h=None,
+            trimming_rule='truncate', trimming_threshold=1e-2, kde=_default_kde,
             normalize=True, draw_sample_splitting=True):
 
     n_obs = len(y)
@@ -36,7 +37,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
-                                h=h,
+                                kde=kde,
                                 normalize=normalize,
                                 draw_sample_splitting=False,
                                 apply_cross_fitting=True)
@@ -50,7 +51,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
-                                h=h,
+                                kde=kde,
                                 normalize=normalize,
                                 draw_sample_splitting=False,
                                 apply_cross_fitting=True)

@@ -4,12 +4,12 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
 from ._utils import fit_predict_proba
-from .._utils import _dml_cv_predict
+from .._utils import _dml_cv_predict, _default_kde
 
 
 def fit_pq(y, x, d, quantile,
            learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
-           trimming_threshold=1e-12):
+           trimming_threshold=1e-2):
     n_obs = len(y)
 
     pqs = np.zeros(n_rep)
@@ -179,18 +179,15 @@ def pq_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
     return dml_est
 
 
-def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, normalize=True, h=None):
+def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, normalize=True, kde=_default_kde):
     score_weights = (d == treatment) / m_hat
     normalization = score_weights.mean()
 
     if normalize:
         score_weights /= normalization
-    if h is None:
-        h = np.power(n_obs, -0.2)
-    u = (y - coef).reshape(-1, 1) / h
-    kernel_est = np.exp(-1. * np.power(u, 2) / 2) / np.sqrt(2 * np.pi)
+    u = (y - coef).reshape(-1, 1)
+    deriv = kde(u, score_weights)
 
-    deriv = np.multiply(score_weights, kernel_est.reshape(-1,)) / h
     J = np.mean(deriv)
     score = (d == treatment) * ((y <= coef) - g_hat) / m_hat + g_hat - quantile
     var_est = 1/n_obs * np.mean(np.square(score)) / np.square(J)

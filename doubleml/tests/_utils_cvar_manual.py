@@ -9,7 +9,7 @@ from .._utils import _dml_cv_predict
 
 def fit_cvar(y, x, d, quantile,
              learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
-             trimming_threshold=1e-12):
+             trimming_threshold=1e-2):
     n_obs = len(y)
 
     cvars = np.zeros(n_rep)

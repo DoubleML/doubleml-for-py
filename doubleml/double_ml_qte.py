@@ -4,7 +4,7 @@ from scipy.stats import norm
 
 from sklearn.base import clone
 
-from ._utils import _draw_weights, _check_zero_one_treatment, _check_score, _check_trimming
+from ._utils import _draw_weights, _check_zero_one_treatment, _check_score, _check_trimming, _default_kde
 from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
@@ -52,11 +52,11 @@ class DoubleMLQTE:
         The threshold used for trimming.
         Default is ``1e-2``.
 
-    h : float or None
-        The bandwidth to be used for the kernel density estimation of the score derivative.
-        If ``None`` the bandwidth will be set to ``np.power(n_obs, -0.2)``, where ``n_obs`` is
-        the number of observations in the sample.
-        Default is ``1e-12``.
+    kde : callable or None
+        A callable object / function with signature ``deriv = kde(u, weights)`` for weighted kernel density estimation.
+        Here ``deriv`` should evaluate the density in ``0``.
+        Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
+        gaussian kernel and silverman for bandwidth determination.
 
     normalize : bool
         Indicates whether to normalize weights in the estimation of the score derivative.
@@ -92,7 +92,7 @@ class DoubleMLQTE:
                  score='PQ',
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
-                 h=None,
+                 kde=None,
                  normalize=True,
                  draw_sample_splitting=True):
 
@@ -100,7 +100,10 @@ class DoubleMLQTE:
         self._quantiles = np.asarray(quantiles).reshape((-1, ))
         self._check_quantile()
         self._n_quantiles = len(self._quantiles)
-        self._h = h
+
+        self._kde = kde
+        if self.kde is None:
+            self._kde = _default_kde
         self._normalize = normalize
         self._n_folds = n_folds
         self._n_rep = n_rep
@@ -209,11 +212,11 @@ class DoubleMLQTE:
         return self._dml_procedure
 
     @property
-    def h(self):
+    def kde(self):
         """
-        The bandwidth the kernel density estimation of the derivative.
+        The kernel density estimation of the derivative.
         """
-        return self._h
+        return self._kde
 
     @property
     def normalize(self):
@@ -367,7 +370,7 @@ class DoubleMLQTE:
                                         dml_procedure=self.dml_procedure,
                                         trimming_rule=self.trimming_rule,
                                         trimming_threshold=self.trimming_threshold,
-                                        h=self.h,
+                                        kde=self.kde,
                                         normalize=self.normalize,
                                         draw_sample_splitting=False,
                                         apply_cross_fitting=self._apply_cross_fitting)
@@ -381,7 +384,7 @@ class DoubleMLQTE:
                                         dml_procedure=self.dml_procedure,
                                         trimming_rule=self.trimming_rule,
                                         trimming_threshold=self.trimming_threshold,
-                                        h=self.h,
+                                        kde=self.kde,
                                         normalize=self.normalize,
                                         draw_sample_splitting=False,
                                         apply_cross_fitting=self._apply_cross_fitting)
@@ -395,7 +398,7 @@ class DoubleMLQTE:
                                          dml_procedure=self.dml_procedure,
                                          trimming_rule=self.trimming_rule,
                                          trimming_threshold=self.trimming_threshold,
-                                         h=self.h,
+                                         kde=self.kde,
                                          normalize=self.normalize,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)
@@ -408,7 +411,7 @@ class DoubleMLQTE:
                                          dml_procedure=self.dml_procedure,
                                          trimming_rule=self.trimming_rule,
                                          trimming_threshold=self.trimming_threshold,
-                                         h=self.h,
+                                         kde=self.kde,
                                          normalize=self.normalize,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)

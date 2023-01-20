@@ -7,6 +7,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
 from sklearn.utils.multiclass import type_of_target
 
+from statsmodels.nonparametric.kde import KDEUnivariate
+
 from joblib import Parallel, delayed
 
 
@@ -322,3 +324,10 @@ def _get_bracket_guess(score, coef_start, coef_bounds):
         s_different = (np.sign(f_a) != np.sign(f_b))
         delta += 0.1
     return s_different, b_guess
+
+
+def _default_kde(u, weights):
+    dens = KDEUnivariate(u)
+    dens.fit(kernel='gau', bw='silverman', weights=weights, fft=False)
+
+    return dens.evaluate(0)
