@@ -808,7 +808,7 @@ def test_double_ml_exception_evaluate_learner():
 
     dml_irm_obj.fit()
 
-    msg = "metric should be either a callable. 'mse' was passed."
+    msg = "metric should be a callable. 'mse' was passed."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.evaluate_learners(metric="mse")
 

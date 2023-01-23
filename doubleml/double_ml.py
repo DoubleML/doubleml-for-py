@@ -1092,7 +1092,7 @@ class DoubleML(ABC):
 
         # check metric
         if not callable(metric):
-            raise TypeError('metric should be either a callable. '
+            raise TypeError('metric should be a callable. '
                             '%r was passed.' % metric)
 
         if all(learner in self.params_names for learner in learners):
