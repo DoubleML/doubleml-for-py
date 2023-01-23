@@ -8,7 +8,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
     _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, _get_bracket_guess, \
-    _default_kde
+    _default_kde, _normalize_ipw
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -55,13 +55,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
 
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
-
-    trimming_threshold : float
-        The threshold used for trimming.
-        Default is ``1e-2``.
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``True``.
 
     kde : callable or None
         A callable object / function with signature ``deriv = kde(u, weights)`` for weighted kernel density estimation.
@@ -69,9 +65,13 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
         gaussian kernel and silverman for bandwidth determination.
 
-    normalize : bool
-        Indicates whether to normalize weights in the estimation of the score derivative.
-        Default is ``True``.
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-2``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -108,10 +108,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='PQ',
                  dml_procedure='dml2',
+                 normalize_ipw=True,
+                 kde=None,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
-                 kde=None,
-                 normalize=True,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -132,7 +132,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                                 '%r was passed.' % kde)
             self._kde = kde
 
-        self._normalize = normalize
+        self._normalize_ipw = normalize_ipw
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)
@@ -142,9 +142,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         _check_quantile(self.quantile)
         _check_treatment(self.treatment)
 
-        if not isinstance(self.normalize, bool):
+        if not isinstance(self.normalize_ipw, bool):
             raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize))} passed.')
+                            f'Object of type {str(type(self.normalize_ipw))} passed.')
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
@@ -192,11 +192,11 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         return self._kde
 
     @property
-    def normalize(self):
+    def normalize_ipw(self):
         """
-        Indicates of the weights in the derivative estimation should be normalized.
+        Indicates whether the inverse probability weights are normalized.
         """
-        return self._normalize
+        return self._normalize_ipw
 
     @property
     def trimming_rule(self):
@@ -246,9 +246,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             y = psi_elements['y'][inds]
 
         score_weights = ind_d / m
-        normalization = score_weights.mean()
-        if self._normalize:
-            score_weights /= normalization
 
         u = (y - coef).reshape(-1, 1)
         deriv = self.kde(u, score_weights)
@@ -288,6 +285,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                                            method='predict_proba', smpls=smpls_prelim)['preds']
 
             m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
+
+            if self._normalize_ipw:
+                m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
             if self.treatment == 0:
                 m_hat_prelim = 1 - m_hat_prelim
 
@@ -321,10 +321,18 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
             m_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_m'], x[test_inds, :])
 
-        if self.treatment == 0:
-            m_hat = 1 - m_hat
         # clip propensities
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+
+        if self._normalize_ipw:
+            if self.dml_procedure == 'dml1':
+                for _, test_index in smpls:
+                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            else:
+                m_hat = _normalize_ipw(m_hat, d)
+
+        if self.treatment == 0:
+            m_hat = 1 - m_hat
 
         psi_elements = {'ind_d': d == self.treatment, 'g': g_hat,
                         'm': m_hat, 'y': y}

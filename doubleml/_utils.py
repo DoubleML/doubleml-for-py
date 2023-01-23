@@ -331,3 +331,12 @@ def _default_kde(u, weights):
     dens.fit(kernel='gau', bw='silverman', weights=weights, fft=False)
 
     return dens.evaluate(0)
+
+
+def _normalize_ipw(propensity, treatment):
+    mean_treat1 = np.mean(np.divide(treatment, propensity))
+    mean_treat0 = np.mean(np.divide(1.0-treatment, 1.0-propensity))
+    normalized_weights = np.multiply(treatment, np.multiply(propensity, mean_treat1)) \
+        + np.multiply(1.0-treatment, 1.0 - np.multiply(1.0-propensity, mean_treat0))
+
+    return normalized_weights

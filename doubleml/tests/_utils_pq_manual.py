@@ -3,13 +3,12 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
-from ._utils import fit_predict_proba
-from .._utils import _dml_cv_predict, _default_kde
+from .._utils import _dml_cv_predict, _default_kde, _normalize_ipw
 
 
 def fit_pq(y, x, d, quantile,
            learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
-           trimming_threshold=1e-2):
+           trimming_threshold=1e-2, normalize_ipw=True):
     n_obs = len(y)
 
     pqs = np.zeros(n_rep)
@@ -20,7 +19,9 @@ def fit_pq(y, x, d, quantile,
 
         g_hat, m_hat, ipw_est = fit_nuisance_pq(y, x, d, quantile,
                                                 learner_g, learner_m, smpls, treatment,
-                                                trimming_threshold=trimming_threshold)
+                                                trimming_threshold=trimming_threshold,
+                                                normalize_ipw=normalize_ipw,
+                                                dml_procedure=dml_procedure)
 
         if dml_procedure == 'dml1':
             pqs[i_rep], ses[i_rep] = pq_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
@@ -36,7 +37,8 @@ def fit_pq(y, x, d, quantile,
     return res
 
 
-def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, trimming_threshold):
+def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
+                    trimming_threshold, normalize_ipw, dml_procedure):
     n_folds = len(smpls)
     n_obs = len(y)
 
@@ -60,18 +62,16 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
+
         # todo change prediction method
-        m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m,
-                                              params=None,
-                                              trimming_threshold=trimming_threshold,
-                                              smpls=smpls_prelim)
-
-        m_hat_prelim = np.full_like(y_train_1, np.nan, dtype='float64')
-        for idx, (_, test_index) in enumerate(smpls_prelim):
-            m_hat_prelim[test_index] = m_hat_prelim_list[idx]
-
         m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1,
                                        method='predict_proba', smpls=smpls_prelim)['preds']
+
+        m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
+        m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
+
+        if normalize_ipw:
+            m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
         if treatment == 0:
             m_hat_prelim = 1 - m_hat_prelim
 
@@ -117,10 +117,20 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment, t
 
         # refit the propensity score on the whole training set
         ml_m.fit(x[train_inds, :], d[train_inds])
-        m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, treatment]
+        m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, 1]
 
     m_hat[m_hat < trimming_threshold] = trimming_threshold
     m_hat[m_hat > 1 - trimming_threshold] = 1 - trimming_threshold
+
+    if normalize_ipw:
+        if dml_procedure == 'dml1':
+            for _, test_index in smpls:
+                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+        else:
+            m_hat = _normalize_ipw(m_hat, d)
+
+    if treatment == 0:
+        m_hat = 1 - m_hat
 
     return g_hat, m_hat, ipw_est
 
@@ -179,12 +189,8 @@ def pq_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
     return dml_est
 
 
-def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, normalize=True, kde=_default_kde):
+def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, kde=_default_kde):
     score_weights = (d == treatment) / m_hat
-    normalization = score_weights.mean()
-
-    if normalize:
-        score_weights /= normalization
     u = (y - coef).reshape(-1, 1)
     deriv = kde(u, score_weights)
 

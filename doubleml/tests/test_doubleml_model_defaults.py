@@ -11,7 +11,7 @@ np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
 dml_data_pliv = make_pliv_CHS2015(n_obs=100, dim_z=1)
 dml_data_irm = make_irm_data(n_obs=500)
-dml_data_iivm = make_iivm_data(n_obs=500)
+dml_data_iivm = make_iivm_data(n_obs=1000)
 
 # linear models
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
@@ -34,7 +34,7 @@ dml_cvar.bootstrap()
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
-dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=LogisticRegression())
+dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=RandomForestClassifier())
 dml_qte = DoubleMLQTE(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
 
 dml_pq.fit()
@@ -122,7 +122,7 @@ def test_pq_defaults():
     assert dml_pq.dml_procedure == 'dml2'
     assert dml_pq.trimming_rule == 'truncate'
     assert dml_pq.trimming_threshold == 1e-2
-    assert dml_pq.normalize
+    assert dml_pq.normalize_ipw
 
 
 @pytest.mark.ci
@@ -134,7 +134,7 @@ def test_lpq_defaults():
     assert dml_lpq.dml_procedure == 'dml2'
     assert dml_lpq.trimming_rule == 'truncate'
     assert dml_lpq.trimming_threshold == 1e-2
-    assert dml_lpq.normalize
+    assert dml_lpq.normalize_ipw
 
 
 @pytest.mark.ci
@@ -145,4 +145,4 @@ def test_qte_defaults():
     assert dml_qte.dml_procedure == 'dml2'
     assert dml_qte.trimming_rule == 'truncate'
     assert dml_qte.trimming_threshold == 1e-2
-    assert dml_qte.normalize
+    assert dml_qte.normalize_ipw

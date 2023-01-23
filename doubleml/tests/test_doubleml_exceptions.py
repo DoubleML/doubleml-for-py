@@ -357,9 +357,11 @@ def test_doubleml_exception_kde():
 def test_doubleml_exception_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, normalize=1)
+        _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, normalize=1)
+        _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, normalize_ipw=1)
 
 
 @pytest.mark.ci

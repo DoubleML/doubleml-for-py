@@ -3,13 +3,14 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
-from .._utils import _dml_cv_predict, _trimm, _default_kde
+from .._utils import _dml_cv_predict, _trimm, _default_kde, _normalize_ipw
 
 
 def fit_lpq(y, x, d, z, quantile,
             learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
             trimming_rule='truncate',
-            trimming_threshold=1e-2):
+            trimming_threshold=1e-2,
+            normalize_ipw=True):
     n_obs = len(y)
 
     lpqs = np.zeros(n_rep)
@@ -20,8 +21,11 @@ def fit_lpq(y, x, d, z, quantile,
 
         pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, \
             comp_prob_hat, ipw_vec, coef_bounds = fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls,
-                                                                   treatment, trimming_rule=trimming_rule,
-                                                                   trimming_threshold=trimming_threshold)
+                                                                   treatment,
+                                                                   dml_procedure=dml_procedure,
+                                                                   trimming_rule=trimming_rule,
+                                                                   trimming_threshold=trimming_threshold,
+                                                                   normalize_ipw=normalize_ipw)
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
                                                treatment, quantile, ipw_vec, coef_bounds, smpls)
@@ -38,7 +42,8 @@ def fit_lpq(y, x, d, z, quantile,
     return res
 
 
-def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming_rule, trimming_threshold):
+def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
+                     dml_procedure, trimming_rule, trimming_threshold, normalize_ipw):
     n_folds = len(smpls)
     n_obs = len(y)
 
@@ -78,6 +83,8 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
         pi_z_hat_prelim = _dml_cv_predict(ml_pi_z, x_train_1, z_train_1,
                                           method='predict_proba', smpls=smpls_prelim)['preds']
         pi_z_hat_prelim = _trimm(pi_z_hat_prelim, trimming_rule, trimming_threshold)
+        if normalize_ipw:
+            pi_z_hat_prelim = _normalize_ipw(pi_z_hat_prelim, z_train_1)
 
         # todo add extra fold loop
         # propensity for d == 1 cond. on z == 0 (training set 1)
@@ -177,6 +184,14 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment, trimming
     pi_d_z1_hat = _trimm(pi_d_z1_hat, trimming_rule, trimming_threshold)
     pi_du_z0_hat = _trimm(pi_du_z0_hat, trimming_rule, trimming_threshold)
     pi_du_z1_hat = _trimm(pi_du_z1_hat, trimming_rule, trimming_threshold)
+
+    if normalize_ipw:
+        if dml_procedure == 'dml1':
+            for _, test_index in smpls:
+                pi_z_hat[test_index] = _normalize_ipw(pi_z_hat[test_index], z[test_index])
+        else:
+            pi_z_hat = _normalize_ipw(pi_z_hat, z)
+
     # estimate final nuisance parameter
     comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
                             + z / pi_z_hat * (d - pi_d_z1_hat)
@@ -246,14 +261,9 @@ def lpq_est(pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, i
     return dml_est
 
 
-def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs,
-                normalize=True, kde=_default_kde):
+def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, kde=_default_kde):
     sign = 2 * treatment - 1.0
     score_weights = sign * ((z / pi_z) - (1 - z) / (1 - pi_z)) * (d == treatment) / comp_prob
-    normalization = score_weights.mean()
-
-    if normalize:
-        score_weights /= normalization
     u = (y - coef).reshape(-1, 1)
     deriv = kde(u, score_weights)
 

@@ -4,11 +4,11 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
 from ._utils import fit_predict_proba
-from .._utils import _dml_cv_predict
+from .._utils import _dml_cv_predict, _normalize_ipw
 
 
 def fit_cvar(y, x, d, quantile,
-             learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
+             learner_g, learner_m, all_smpls, treatment, dml_procedure, normalize_ipw=True, n_rep=1,
              trimming_threshold=1e-2):
     n_obs = len(y)
 
@@ -20,6 +20,8 @@ def fit_cvar(y, x, d, quantile,
 
         g_hat, m_hat, ipw_est = fit_nuisance_cvar(y, x, d, quantile,
                                                   learner_g, learner_m, smpls, treatment,
+                                                  dml_procedure=dml_procedure,
+                                                  normalize_ipw=normalize_ipw,
                                                   trimming_threshold=trimming_threshold)
 
         if dml_procedure == 'dml1':
@@ -36,7 +38,8 @@ def fit_cvar(y, x, d, quantile,
     return res
 
 
-def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment, trimming_threshold):
+def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment, dml_procedure,
+                      normalize_ipw, trimming_threshold):
     n_folds = len(smpls)
     n_obs = len(y)
 
@@ -72,6 +75,12 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
 
         m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1,
                                        method='predict_proba', smpls=smpls_prelim)['preds']
+
+        m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
+        m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
+
+        if normalize_ipw:
+            m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
         if treatment == 0:
             m_hat_prelim = 1 - m_hat_prelim
 
@@ -117,10 +126,20 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
 
         # refit the propensity score on the whole training set
         ml_m.fit(x[train_inds, :], d[train_inds])
-        m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, treatment]
+        m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, 1]
 
     m_hat[m_hat < trimming_threshold] = trimming_threshold
     m_hat[m_hat > 1 - trimming_threshold] = 1 - trimming_threshold
+
+    if normalize_ipw:
+        if dml_procedure == 'dml1':
+            for _, test_index in smpls:
+                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+        else:
+            m_hat = _normalize_ipw(m_hat, d)
+
+    if treatment == 0:
+        m_hat = 1 - m_hat
 
     return g_hat, m_hat, ipw_est
 

@@ -41,6 +41,12 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[0.01, 0.05])
 def trimming_threshold(request):
     return request.param
@@ -48,7 +54,7 @@ def trimming_threshold(request):
 
 @pytest.fixture(scope="module")
 def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
-                    dml_procedure, trimming_threshold):
+                    dml_procedure, normalize_ipw, trimming_threshold):
     n_folds = 3
 
     # collect data
@@ -67,6 +73,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                                   n_folds=n_folds,
                                   n_rep=1,
                                   dml_procedure=dml_procedure,
+                                  normalize_ipw=normalize_ipw,
                                   trimming_threshold=trimming_threshold,
                                   draw_sample_splitting=False)
 
@@ -77,6 +84,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     np.random.seed(42)
     res_manual = fit_lpq(y, x, d, z, quantile, clone(learner),
                          all_smpls, treatment, dml_procedure,
+                         normalize_ipw=normalize_ipw,
                          n_rep=1, trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_lpq_obj.coef,

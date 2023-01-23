@@ -12,7 +12,7 @@ from .._utils import _default_kde
 
 def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_procedure='dml2',
             trimming_rule='truncate', trimming_threshold=1e-2, kde=_default_kde,
-            normalize=True, draw_sample_splitting=True):
+            normalize_ipw=True, draw_sample_splitting=True):
 
     n_obs = len(y)
     n_quantiles = len(quantiles)
@@ -38,7 +38,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
-                                normalize=normalize,
+                                normalize_ipw=normalize_ipw,
                                 draw_sample_splitting=False,
                                 apply_cross_fitting=True)
         model_PQ_1 = DoubleMLPQ(dml_data,
@@ -52,7 +52,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
-                                normalize=normalize,
+                                normalize_ipw=normalize_ipw,
                                 draw_sample_splitting=False,
                                 apply_cross_fitting=True)
 

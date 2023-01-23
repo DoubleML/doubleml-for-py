@@ -40,9 +40,23 @@ class DoubleMLQTE:
         Number of repetitons for the sample splitting.
         Default is ``1``.
 
+    score : str
+        A str (``'PQ'`` or ``'LPQ'``) specifying the score function.
+        Default is ``'PQ'``.
+
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
+
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``True``.
+
+    kde : callable or None
+        A callable object / function with signature ``deriv = kde(u, weights)`` for weighted kernel density estimation.
+        Here ``deriv`` should evaluate the density in ``0``.
+        Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
+        gaussian kernel and silverman for bandwidth determination.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -51,16 +65,6 @@ class DoubleMLQTE:
     trimming_threshold : float
         The threshold used for trimming.
         Default is ``1e-2``.
-
-    kde : callable or None
-        A callable object / function with signature ``deriv = kde(u, weights)`` for weighted kernel density estimation.
-        Here ``deriv`` should evaluate the density in ``0``.
-        Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
-        gaussian kernel and silverman for bandwidth determination.
-
-    normalize : bool
-        Indicates whether to normalize weights in the estimation of the score derivative.
-        Default is ``True``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -88,12 +92,12 @@ class DoubleMLQTE:
                  quantiles=0.5,
                  n_folds=5,
                  n_rep=1,
-                 dml_procedure='dml2',
                  score='PQ',
+                 dml_procedure='dml2',
+                 normalize_ipw=True,
+                 kde=None,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
-                 kde=None,
-                 normalize=True,
                  draw_sample_splitting=True):
 
         self._dml_data = obj_dml_data
@@ -109,7 +113,7 @@ class DoubleMLQTE:
                                 '%r was passed.' % kde)
             self._kde = kde
 
-        self._normalize = normalize
+        self._normalize_ipw = normalize_ipw
         self._n_folds = n_folds
         self._n_rep = n_rep
         self._dml_procedure = dml_procedure
@@ -133,6 +137,9 @@ class DoubleMLQTE:
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._check_quantile()
+        if not isinstance(self.normalize_ipw, bool):
+            raise TypeError('Normalization indicator has to be boolean. ' +
+                            f'Object of type {str(type(self.normalize_ipw))} passed.')
 
         # todo add crossfitting = False
         self._apply_cross_fitting = True
@@ -224,11 +231,11 @@ class DoubleMLQTE:
         return self._kde
 
     @property
-    def normalize(self):
+    def normalize_ipw(self):
         """
-        Indicates of the weights in the derivative estimation should be normalized.
+        Indicates whether the inverse probability weights are normalized.
         """
-        return self._normalize
+        return self._normalize_ipw
 
     @property
     def trimming_rule(self):
@@ -376,7 +383,7 @@ class DoubleMLQTE:
                                         trimming_rule=self.trimming_rule,
                                         trimming_threshold=self.trimming_threshold,
                                         kde=self.kde,
-                                        normalize=self.normalize,
+                                        normalize_ipw=self.normalize_ipw,
                                         draw_sample_splitting=False,
                                         apply_cross_fitting=self._apply_cross_fitting)
                 model_PQ_1 = DoubleMLPQ(self._dml_data,
@@ -390,7 +397,7 @@ class DoubleMLQTE:
                                         trimming_rule=self.trimming_rule,
                                         trimming_threshold=self.trimming_threshold,
                                         kde=self.kde,
-                                        normalize=self.normalize,
+                                        normalize_ipw=self.normalize_ipw,
                                         draw_sample_splitting=False,
                                         apply_cross_fitting=self._apply_cross_fitting)
             elif self.score == 'LPQ':
@@ -404,7 +411,7 @@ class DoubleMLQTE:
                                          trimming_rule=self.trimming_rule,
                                          trimming_threshold=self.trimming_threshold,
                                          kde=self.kde,
-                                         normalize=self.normalize,
+                                         normalize_ipw=self.normalize_ipw,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)
                 model_PQ_1 = DoubleMLLPQ(self._dml_data,
@@ -417,7 +424,7 @@ class DoubleMLQTE:
                                          trimming_rule=self.trimming_rule,
                                          trimming_threshold=self.trimming_threshold,
                                          kde=self.kde,
-                                         normalize=self.normalize,
+                                         normalize_ipw=self.normalize_ipw,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)
 

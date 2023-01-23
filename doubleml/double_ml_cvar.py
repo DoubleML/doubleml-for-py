@@ -7,7 +7,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from .double_ml import DoubleML
 from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
-    _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score
+    _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, \
+    _normalize_ipw
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -54,6 +55,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
 
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``True``.
+
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
         Default is ``'truncate'``.
@@ -97,6 +102,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='CVaR',
                  dml_procedure='dml2',
+                 normalize_ipw=True,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
@@ -111,6 +117,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
         self._quantile = quantile
         self._treatment = treatment
+        self._normalize_ipw = normalize_ipw
 
         if self._is_cluster_data:
             raise NotImplementedError('Estimation with clustering not implemented.')
@@ -119,6 +126,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         _check_score(self.score, valid_score)
         _check_quantile(self.quantile)
         _check_treatment(self.treatment)
+
+        if not isinstance(self.normalize_ipw, bool):
+            raise TypeError('Normalization indicator has to be boolean. ' +
+                            f'Object of type {str(type(self.normalize_ipw))} passed.')
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
@@ -157,6 +168,13 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         Treatment indicator for potential outcome.
         """
         return self._treatment
+
+    @property
+    def normalize_ipw(self):
+        """
+        Indicates whether the inverse probability weights are normalized.
+        """
+        return self._normalize_ipw
 
     @property
     def trimming_rule(self):
@@ -218,6 +236,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                                            method='predict_proba', smpls=smpls_prelim)['preds']
 
             m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
+
+            if self._normalize_ipw:
+                m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
             if self.treatment == 0:
                 m_hat_prelim = 1 - m_hat_prelim
 
@@ -264,10 +285,18 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
             m_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_m'], x[test_inds, :])
 
-        if self.treatment == 0:
-            m_hat = 1 - m_hat
         # clip propensities
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+
+        if self._normalize_ipw:
+            if self.dml_procedure == 'dml1':
+                for _, test_index in smpls:
+                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            else:
+                m_hat = _normalize_ipw(m_hat, d)
+
+        if self.treatment == 0:
+            m_hat = 1 - m_hat
 
         psi_a, psi_b = self._score_elements(ipw_est, y, d, g_hat, m_hat)
         psi_elements = {'psi_a': psi_a,
