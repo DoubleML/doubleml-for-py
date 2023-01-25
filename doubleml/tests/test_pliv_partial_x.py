@@ -50,7 +50,7 @@ def dml_pliv_partial_x_fixture(generate_data_pliv_partialX, learner, score, dml_
                                               n_folds=n_folds,
                                               dml_procedure=dml_procedure)
 
-    dml_pliv_obj.fit()
+    dml_pliv_obj.fit(store_predictions=True)
 
     np.random.seed(3141)
     y = obj_dml_data.y

@@ -10,7 +10,7 @@ from .._utils import _normalize_ipw
 def fit_iivm(y, x, d, z,
              learner_g, learner_m, learner_r, all_smpls, dml_procedure, score,
              n_rep=1, g0_params=None, g1_params=None, m_params=None, r0_params=None, r1_params=None,
-             normalize_ipw=True, trimming_threshold=1e-12, always_takers=True, never_takers=True):
+             normalize_ipw=True, trimming_threshold=1e-2, always_takers=True, never_takers=True):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)

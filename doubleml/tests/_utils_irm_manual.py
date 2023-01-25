@@ -10,7 +10,7 @@ from .._utils import _normalize_ipw
 def fit_irm(y, x, d,
             learner_g, learner_m, all_smpls, dml_procedure, score,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
-            normalize_ipw=True, trimming_threshold=1e-12):
+            normalize_ipw=True, trimming_threshold=1e-2):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)

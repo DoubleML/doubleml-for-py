@@ -35,7 +35,7 @@ def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.apply_cross_fitting
 
     # fit method
-    assert dml_obj.predictions is None
+    assert dml_obj.predictions is not None
     assert dml_obj.models is None
 
     # bootstrap method
@@ -71,7 +71,7 @@ def test_irm_defaults():
     assert dml_irm.score == 'ATE'
     assert dml_irm.dml_procedure == 'dml2'
     assert dml_irm.trimming_rule == 'truncate'
-    assert dml_irm.trimming_threshold == 1e-12
+    assert dml_irm.trimming_threshold == 1e-2
 
 
 @pytest.mark.ci
@@ -81,4 +81,4 @@ def test_iivm_defaults():
     assert dml_iivm.subgroups == {'always_takers': True, 'never_takers': True}
     assert dml_iivm.dml_procedure == 'dml2'
     assert dml_iivm.trimming_rule == 'truncate'
-    assert dml_iivm.trimming_threshold == 1e-12
+    assert dml_iivm.trimming_threshold == 1e-2
