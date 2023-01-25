@@ -8,7 +8,7 @@ from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 def fit_irm(y, x, d,
             learner_g, learner_m, all_smpls, dml_procedure, score,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
-            trimming_threshold=1e-12):
+            trimming_threshold=1e-2):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)
