@@ -92,14 +92,12 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
         d_z0_train_1 = d_train_1[z_train_1 == 0]
         ml_pi_d_z0.fit(x_z0_train_1, d_z0_train_1)
         pi_d_z0_hat_prelim = ml_pi_d_z0.predict_proba(x_train_1)[:, 1]
-        pi_d_z0_hat_prelim = _trimm(pi_d_z0_hat_prelim, trimming_rule, trimming_threshold)
 
         # propensity for d == 1 cond. on z == 1 (training set 1)
         x_z1_train_1 = x_train_1[z_train_1 == 1, :]
         d_z1_train_1 = d_train_1[z_train_1 == 1]
         ml_pi_d_z1.fit(x_z1_train_1, d_z1_train_1)
         pi_d_z1_hat_prelim = ml_pi_d_z1.predict_proba(x_train_1)[:, 1]
-        pi_d_z1_hat_prelim = _trimm(pi_d_z1_hat_prelim, trimming_rule, trimming_threshold)
 
         # preliminary estimate of theta_2_aux
         comp_prob_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim
@@ -180,10 +178,6 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
 
     # clip propensities
     pi_z_hat = _trimm(pi_z_hat, trimming_rule, trimming_threshold)
-    pi_d_z0_hat = _trimm(pi_d_z0_hat, trimming_rule, trimming_threshold)
-    pi_d_z1_hat = _trimm(pi_d_z1_hat, trimming_rule, trimming_threshold)
-    pi_du_z0_hat = _trimm(pi_du_z0_hat, trimming_rule, trimming_threshold)
-    pi_du_z1_hat = _trimm(pi_du_z1_hat, trimming_rule, trimming_threshold)
 
     if normalize_ipw:
         if dml_procedure == 'dml1':

@@ -267,15 +267,38 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         # create strata for splitting
         strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
 
-        # initialize nuisance predictions
-        pi_z_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        pi_d_z0_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        pi_d_z1_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        pi_du_z0_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        pi_du_z1_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+        # initialize nuisance predictions, targets and models
+        pi_z_hat = {'models': None,
+                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                    'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                    }
+        pi_d_z0_hat = {'models': None,
+                       'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                       'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                       }
+        pi_d_z1_hat = {'models': None,
+                       'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                       'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                       }
+        pi_du_z0_hat = {'models': None,
+                        'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                        'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                        }
+        pi_du_z1_hat = {'models': None,
+                        'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                        'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                        }
 
         ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
-        # caculate nuisance functions over different folds
+        # initialize models
+        fitted_models = {'ml_pi_z': [clone(self._learner['ml_pi_z']) for i_fold in range(self.n_folds)],
+                         'ml_pi_d_z0': [clone(self._learner['ml_pi_d_z0']) for i_fold in range(self.n_folds)],
+                         'ml_pi_d_z1': [clone(self._learner['ml_pi_d_z1']) for i_fold in range(self.n_folds)],
+                         'ml_pi_du_z0': [clone(self._learner['ml_pi_du_z0']) for i_fold in range(self.n_folds)],
+                         'ml_pi_du_z1': [clone(self._learner['ml_pi_du_z1']) for i_fold in range(self.n_folds)],
+                         }
+
+        # calculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
             test_inds = smpls[i_fold][1]
@@ -301,18 +324,20 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
             # todo add extra fold loop
             # propensity for d == 1 cond. on z == 0 (training set 1)
-            x_z0_train_1 = x_train_1[z_train_1 == 0, :]
-            d_z0_train_1 = d_train_1[z_train_1 == 0]
-            self._learner['ml_pi_d_z0'].fit(x_z0_train_1, d_z0_train_1)
-            pi_d_z0_hat_prelim = _predict_zero_one_propensity(self._learner['ml_pi_d_z0'], x_train_1)
-            pi_d_z0_hat_prelim = _trimm(pi_d_z0_hat_prelim, self.trimming_rule, self.trimming_threshold)
+            z0_train_1 = z_train_1 == 0
+            x_z0_train_1 = x_train_1[z0_train_1, :]
+            d_z0_train_1 = d_train_1[z0_train_1]
+            ml_pi_d_z0_prelim = clone(self._learner['ml_pi_d_z0'])
+            ml_pi_d_z0_prelim.fit(x_z0_train_1, d_z0_train_1)
+            pi_d_z0_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z0_prelim, x_train_1)
 
             # propensity for d == 1 cond. on z == 1 (training set 1)
-            x_z1_train_1 = x_train_1[z_train_1 == 1, :]
-            d_z1_train_1 = d_train_1[z_train_1 == 1]
-            self._learner['ml_pi_d_z1'].fit(x_z1_train_1, d_z1_train_1)
-            pi_d_z1_hat_prelim = _predict_zero_one_propensity(self._learner['ml_pi_d_z1'], x_train_1)
-            pi_d_z1_hat_prelim = _trimm(pi_d_z1_hat_prelim, self.trimming_rule, self.trimming_threshold)
+            z1_train_1 = z_train_1 == 1
+            x_z1_train_1 = x_train_1[z1_train_1, :]
+            d_z1_train_1 = d_train_1[z1_train_1]
+            ml_pi_d_z1_prelim = clone(self._learner['ml_pi_d_z1'])
+            ml_pi_d_z1_prelim.fit(x_z1_train_1, d_z1_train_1)
+            pi_d_z1_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z1_prelim, x_train_1)
 
             # preliminary estimate of theta_2_aux
             comp_prob_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim
@@ -338,17 +363,34 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             x_train_2 = x[train_inds_2, :]
             z_train_2 = z[train_inds_2]
 
+            # define test observations
+            d_test = d[test_inds]
+            y_test = y[test_inds]
+            x_test = x[test_inds, :]
+            z_test = z[test_inds]
+
             # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 0
-            x_z0_train_2 = x_train_2[z_train_2 == 0, :]
-            du_z0_train_2 = (d_train_2[z_train_2 == 0] == self._treatment) * (y_train_2[z_train_2 == 0] <= ipw_est)
-            self._learner['ml_pi_du_z0'].fit(x_z0_train_2, du_z0_train_2)
-            pi_du_z0_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_du_z0'], x[test_inds, :])
+            z0_train_2 = z_train_2 == 0
+            x_z0_train_2 = x_train_2[z0_train_2, :]
+            du_z0_train_2 = (d_train_2[z0_train_2] == self._treatment) * (y_train_2[z0_train_2] <= ipw_est)
+            fitted_models['ml_pi_du_z0'][i_fold].fit(x_z0_train_2, du_z0_train_2)
+            pi_du_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z0'][i_fold], x_test)
 
             # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 1
-            x_z1_train_2 = x_train_2[z_train_2 == 1, :]
-            du_z1_train_2 = (d_train_2[z_train_2 == 1] == self._treatment) * (y_train_2[z_train_2 == 1] <= ipw_est)
-            self._learner['ml_pi_du_z1'].fit(x_z1_train_2, du_z1_train_2)
-            pi_du_z1_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_du_z1'], x[test_inds, :])
+            z1_train_2 = z_train_2 == 1
+            x_z1_train_2 = x_train_2[z1_train_2, :]
+            du_z1_train_2 = (d_train_2[z1_train_2] == self._treatment) * (y_train_2[z1_train_2] <= ipw_est)
+            fitted_models['ml_pi_du_z1'][i_fold].fit(x_z1_train_2, du_z1_train_2)
+            pi_du_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z1'][i_fold], x_test)
+
+            # the predictions of both should only be evaluated conditional on z == 0 or z == 1
+            # to still have a full vectors targets will be set equal to predictions if this is false
+            test_inds_z0 = test_inds[z_test == 0]
+            test_inds_z1 = test_inds[z_test == 1]
+            pi_du_z0_hat['targets'][test_inds_z0] = (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
+            pi_du_z0_hat['targets'][test_inds_z1] = pi_du_z0_hat['preds'][test_inds_z1]
+            pi_du_z1_hat['targets'][test_inds_z1] = (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
+            pi_du_z1_hat['targets'][test_inds_z0] = pi_du_z1_hat['preds'][test_inds_z0]
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -356,49 +398,79 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             d_train = d[train_inds]
 
             # refit propensity for z (whole training set)
-            self._learner['ml_pi_z'].fit(x_train, z_train)
-            pi_z_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_z'], x[test_inds, :])
+            fitted_models['ml_pi_z'][i_fold].fit(x_train, z_train)
+            pi_z_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_z'][i_fold], x_test)
 
             # refit propensity for d == 1 cond. on z == 0 (whole training set)
-            x_z0_train = x_train[z_train == 0, :]
-            d_z0_train = d_train[z_train == 0]
-            self._learner['ml_pi_d_z0'].fit(x_z0_train, d_z0_train)
-            pi_d_z0_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_d_z0'], x[test_inds, :])
+            z0_train = z_train == 0
+            x_z0_train = x_train[z0_train, :]
+            d_z0_train = d_train[z0_train]
+            fitted_models['ml_pi_d_z0'][i_fold].fit(x_z0_train, d_z0_train)
+            pi_d_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_d_z0'][i_fold], x_test)
 
             # propensity for d == 1 cond. on z == 1 (whole training set)
             x_z1_train = x_train[z_train == 1, :]
             d_z1_train = d_train[z_train == 1]
-            self._learner['ml_pi_d_z1'].fit(x_z1_train, d_z1_train)
-            pi_d_z1_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_pi_d_z1'], x[test_inds, :])
+            fitted_models['ml_pi_d_z1'][i_fold].fit(x_z1_train, d_z1_train)
+            pi_d_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_d_z1'][i_fold], x_test)
+
+        # save targets and models
+        pi_z_hat['targets'] = z
+
+        # the predictions of both should only be evaluated conditional on z == 0 or z == 1
+        # to still have a full vectors targets will be set equal to predictions if this is false
+        z0 = z == 0
+        z1 = z == 1
+        pi_d_z0_hat['targets'][z0] = d[z0]
+        pi_d_z0_hat['targets'][z1] = pi_d_z0_hat['preds'][z1]
+        pi_d_z1_hat['targets'][z1] = d[z1]
+        pi_d_z1_hat['targets'][z0] = pi_d_z1_hat['preds'][z0]
+
+        if return_models:
+            pi_z_hat['models'] = fitted_models['ml_pi_z']
+            pi_d_z0_hat['models'] = fitted_models['ml_pi_d_z0']
+            pi_d_z1_hat['models'] = fitted_models['ml_pi_d_z1']
+            pi_du_z0_hat['models'] = fitted_models['ml_pi_du_z0']
+            pi_du_z1_hat['models'] = fitted_models['ml_pi_du_z1']
 
         # clip propensities
-        pi_z_hat = _trimm(pi_z_hat, self.trimming_rule, self.trimming_threshold)
-        pi_d_z0_hat = _trimm(pi_d_z0_hat, self.trimming_rule, self.trimming_threshold)
-        pi_d_z1_hat = _trimm(pi_d_z1_hat, self.trimming_rule, self.trimming_threshold)
-        pi_du_z0_hat = _trimm(pi_du_z0_hat, self.trimming_rule, self.trimming_threshold)
-        pi_du_z1_hat = _trimm(pi_du_z1_hat, self.trimming_rule, self.trimming_threshold)
+        pi_z_hat_adj = _trimm(pi_z_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         if self._normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    pi_z_hat[test_index] = _normalize_ipw(pi_z_hat[test_index], z[test_index])
+                    pi_z_hat_adj[test_index] = _normalize_ipw(pi_z_hat_adj[test_index], z[test_index])
             else:
-                pi_z_hat = _normalize_ipw(pi_z_hat, z)
+                pi_z_hat_adj = _normalize_ipw(pi_z_hat_adj, z)
 
+        # this could be adjusted to be compatible with dml1
         # estimate final nuisance parameter
-        comp_prob_hat = np.mean(pi_d_z1_hat - pi_d_z0_hat
-                                + z / pi_z_hat * (d - pi_d_z1_hat)
-                                - (1 - z) / (1 - pi_z_hat) * (d - pi_d_z0_hat))
+        comp_prob_hat = np.mean(pi_d_z1_hat['preds'] - pi_d_z0_hat['preds']
+                                + z / pi_z_hat_adj * (d - pi_d_z1_hat['preds'])
+                                - (1 - z) / (1 - pi_z_hat_adj) * (d - pi_d_z0_hat['preds']))
 
         # readjust start value for minimization
         self._coef_start_val = np.mean(ipw_vec)
 
-        psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat,
-                        'pi_du_z0': pi_du_z0_hat, 'pi_du_z1': pi_du_z1_hat,
+        psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat_adj,
+                        'pi_du_z0': pi_du_z0_hat['preds'], 'pi_du_z1': pi_du_z1_hat['preds'],
                         'y': y, 'z': z, 'comp_prob': comp_prob_hat}
-        preds = {'ml_pi_z': pi_z_hat,
-                 'ml_pi_d_z0': pi_d_z0_hat, 'ml_pi_d_z1': pi_d_z1_hat,
-                 'ml_pi_du_z0': pi_du_z0_hat, 'ml_pi_du_z1': pi_du_z1_hat}
+        preds = {'predictions': {'ml_pi_z':  pi_z_hat['preds'],
+                                 'ml_pi_d_z0': pi_d_z0_hat['preds'],
+                                 'ml_pi_d_z1': pi_d_z1_hat['preds'],
+                                 'ml_pi_du_z0': pi_du_z0_hat['preds'],
+                                 'ml_pi_du_z1': pi_du_z1_hat['preds']},
+                 'targets': {'ml_pi_z':  pi_z_hat['targets'],
+                             'ml_pi_d_z0': pi_d_z0_hat['targets'],
+                             'ml_pi_d_z1': pi_d_z1_hat['targets'],
+                             'ml_pi_du_z0': pi_du_z0_hat['targets'],
+                             'ml_pi_du_z1': pi_du_z1_hat['targets']},
+                 'models': {'ml_pi_z':  pi_z_hat['models'],
+                            'ml_pi_d_z0': pi_d_z0_hat['models'],
+                            'ml_pi_d_z1': pi_d_z1_hat['models'],
+                            'ml_pi_du_z0': pi_du_z0_hat['models'],
+                            'ml_pi_du_z1': pi_du_z1_hat['models']}
+                 }
         return psi_elements, preds
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,

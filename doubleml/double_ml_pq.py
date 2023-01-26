@@ -271,8 +271,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-        
-        #initialize models
+
+        # initialize models
         fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
                          'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
                          }
@@ -323,14 +323,15 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
             y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
             fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
-                
+
             # predict nuisance values on the test data and the corresponding targets
             g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x[test_inds, :])
             g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
+
             # refit the propensity score on the whole training set
             fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
             m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x[test_inds, :])
-        
+
         # set target for propensity score
         m_hat['targets'] = d
 
