@@ -222,7 +222,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-                
+
         # initialize models
         fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
                          'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
