@@ -213,10 +213,20 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
-        # initialize nuisance predictions
-        g_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-        m_hat = np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-
+        # initialize nuisance predictions, targets and models
+        g_hat = {'models': None,
+                 'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                 'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                 }
+        m_hat = {'models': None,
+                 'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                 'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                 }
+                
+        # initialize models
+        fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
+                         'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
+                         }
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
@@ -274,34 +284,50 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             y_train_2 = y[train_inds_2]
             x_train_2 = x[train_inds_2, :]
 
+            x_test = x[test_inds, :]
+
             dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
             y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
-            self._learner['ml_g'].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
+            fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
-            # predict nuisance values on the test data
-            g_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_g'], x[test_inds, :])
+            # predict nuisance values on the test data and the corresponding targets
+            g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x_test)
+            g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
 
             # refit the propensity score on the whole training set
-            self._learner['ml_m'].fit(x[train_inds, :], d[train_inds])
-            m_hat[test_inds] = _predict_zero_one_propensity(self._learner['ml_m'], x[test_inds, :])
+            fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
+            m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x_test)
 
-        # clip propensities
-        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+        # set target for propensity score
+        m_hat['targets'] = d
 
+        if return_models:
+            g_hat['models'] = fitted_models['ml_g']
+            m_hat['models'] = fitted_models['ml_m']
+
+        # clip propensities and normalize ipw weights
+        # this is not done in the score to be equivalent to PQ models
+        m_hat_adj = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
         if self._normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                    m_hat_adj[test_index] = _normalize_ipw(m_hat_adj[test_index], d[test_index])
             else:
-                m_hat = _normalize_ipw(m_hat, d)
+                m_hat_adj = _normalize_ipw(m_hat_adj, d)
 
         if self.treatment == 0:
-            m_hat = 1 - m_hat
+            m_hat_adj = 1 - m_hat_adj
 
-        psi_a, psi_b = self._score_elements(ipw_est, y, d, g_hat, m_hat)
+        psi_a, psi_b = self._score_elements(ipw_est, y, d, g_hat['preds'], m_hat_adj)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
-        preds = {'ml_g': g_hat, 'ml_m': m_hat}
+        preds = {'predictions': {'ml_g': g_hat['preds'],
+                                 'ml_m': m_hat['preds']},
+                 'targets': {'ml_g': g_hat['targets'],
+                             'ml_m': m_hat['targets']},
+                 'models': {'ml_g': g_hat['models'],
+                            'ml_m': m_hat['models']}
+                 }
         return psi_elements, preds
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
