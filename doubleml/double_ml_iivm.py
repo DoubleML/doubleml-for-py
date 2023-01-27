@@ -143,7 +143,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
         self._check_score(self.score)
         # set stratication for resampling
-        self._stratify = self._dml_data.d
+        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         _ = self._check_learner(ml_r, 'ml_r', regressor=False, classifier=True)
