@@ -87,6 +87,8 @@ class DoubleML(ABC):
             self._n_folds = n_folds
         self._n_rep = n_rep
         self._apply_cross_fitting = apply_cross_fitting
+        # default is no stratification
+        self._strata = None
 
         # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
@@ -1139,7 +1141,8 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
-                                                    apply_cross_fitting=self.apply_cross_fitting)
+                                                    apply_cross_fitting=self.apply_cross_fitting,
+                                                    stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self

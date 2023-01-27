@@ -127,6 +127,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
+        # set stratication for resampling
+        self._strata = self._dml_data.d
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
