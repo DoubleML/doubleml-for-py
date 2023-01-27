@@ -300,6 +300,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
         # set target for propensity score
         m_hat['targets'] = d
+        # set targets to relevant subsample
+        g_hat['targets'][d != self.treatment] = np.nan
 
         if return_models:
             g_hat['models'] = fitted_models['ml_g']

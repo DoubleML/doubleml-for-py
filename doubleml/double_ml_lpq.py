@@ -416,6 +416,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
         # save targets and models
         pi_z_hat['targets'] = z
+        # set targets to relevant subsample
+        pi_du_z0_hat['targets'][z == 1] = np.nan
+        pi_du_z1_hat['targets'][z == 0] = np.nan
+        pi_d_z0_hat['targets'][z == 1] = np.nan
+        pi_d_z1_hat['targets'][z == 0] = np.nan
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
         # to still have a full vectors targets will be set equal to predictions if this is false
