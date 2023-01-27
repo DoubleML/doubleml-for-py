@@ -196,6 +196,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat0['targets'][d == 1] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
@@ -212,6 +214,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'][d == 0] = np.nan
 
             if self._dml_data.binary_outcome:
                 binary_preds = (type_of_target(g_hat1['preds']) == 'binary')

@@ -6,6 +6,7 @@ from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import mean_squared_error
 
 from joblib import Parallel, delayed
 
@@ -111,7 +112,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             res['preds'] = preds[:, 1]
         else:
             res['preds'] = preds
-        res['targets'] = y
+        res['targets'] = np.copy(y)
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
@@ -235,3 +236,9 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
         warnings.warn(f'Propensity predictions from learner {str(learner)} for'
                       f' {learner_name} are close to zero or one (eps={eps}).')
     return
+
+
+def _rmse(y_true, y_pred):
+    subset = np.logical_not(np.isnan(y_true))
+    rmse = mean_squared_error(y_true[subset], y_pred[subset], squared=False)
+    return rmse

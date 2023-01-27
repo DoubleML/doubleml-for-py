@@ -241,6 +241,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat0['targets'][z == 0] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
@@ -257,6 +259,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat1['targets'][z == 1] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
@@ -284,6 +288,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         else:
             r_hat0 = {'preds': np.zeros_like(d), 'targets': np.zeros_like(d), 'models': None}
         _check_finite_predictions(r_hat0['preds'], self._learner['ml_r'], 'ml_r', smpls)
+        # adjust target values to consider only compatible subsamples
+        r_hat0['targets'][z == 0] = np.nan
 
         if self.subgroups['never_takers']:
             r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
@@ -292,6 +298,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         else:
             r_hat1 = {'preds': np.ones_like(d), 'targets': np.ones_like(d), 'models': None}
         _check_finite_predictions(r_hat1['preds'], self._learner['ml_r'], 'ml_r', smpls)
+        # adjust target values to consider only compatible subsamples
+        r_hat1['targets'][z == 1] = np.nan
 
         psi_a, psi_b = self._score_elements(y, z, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
