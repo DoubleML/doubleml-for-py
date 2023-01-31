@@ -39,27 +39,16 @@ class LinearScoreMixin:
     def _compute_score_deriv(self, psi_elements, coef):
         return psi_elements['psi_a']
 
-    def _est_coef(self, psi_elements, dml_procedure, smpls):
-
-        if dml_procedure == 'dml1':
-            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-            dml1_coefs = np.zeros(len(smpls))
-            for idx, (_, test_index) in enumerate(smpls):
-                psi_a = psi_elements['psi_a'][test_index]
-                psi_b = psi_elements['psi_b'][test_index]
-
-                scaling_factor = 1./len(psi_a)
-                dml1_coefs[idx] = - (scaling_factor * np.sum(psi_b)) / (scaling_factor * np.sum(psi_a))
-            coef = np.mean(dml1_coefs)
-        else:
-            assert dml_procedure == 'dml2'
-            dml1_coefs = None
-            psi_a = psi_elements['psi_a']
-            psi_b = psi_elements['psi_b']
-
-            scaling_factor = 1./len(psi_a)
-            coef = - (scaling_factor * np.sum(psi_b)) / (scaling_factor * np.sum(psi_a))
-        return coef, dml1_coefs
+    def _est_coef(self, psi_elements, inds=None):
+        psi_a = psi_elements['psi_a']
+        psi_b = psi_elements['psi_b']
+        if inds is not None:
+            psi_a = psi_a[inds]
+            psi_b = psi_b[inds]
+        
+        scaling_factor = 1./len(psi_a)
+        coef = - (scaling_factor * np.sum(psi_b)) / (scaling_factor * np.sum(psi_a))
+        return coef
 
     def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
         psi_a = psi_elements['psi_a']
