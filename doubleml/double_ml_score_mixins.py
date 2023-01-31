@@ -209,4 +209,3 @@ class NonLinearScoreMixin:
                                       'No theta found such that the score function evaluates to a positive value.')
 
         return theta_hat
-
