@@ -39,14 +39,13 @@ class LinearScoreMixin:
     def _compute_score_deriv(self, psi_elements, coef):
         return psi_elements['psi_a']
 
-    def _est_coef(self, psi_elements, inds=None):
+    def _est_coef(self, psi_elements, scaling_factor, inds=None):
         psi_a = psi_elements['psi_a']
         psi_b = psi_elements['psi_b']
         if inds is not None:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
         
-        scaling_factor = 1./len(psi_a)
         coef = - (scaling_factor * np.sum(psi_b)) / (scaling_factor * np.sum(psi_a))
         return coef
 
@@ -114,18 +113,18 @@ class NonLinearScoreMixin:
     def _compute_score_deriv(self, psi_elements, coef):
         pass
 
-    def _est_coef(self, psi_elements, inds=None):
+    def _est_coef(self, psi_elements, scaling_factor, inds=None):
         if inds is not None:
             psi_elements = copy.deepcopy(psi_elements)
             for key, value in psi_elements.items():
                 psi_elements[key] = value[inds]
 
         def score(theta):
-            res = np.mean(self._compute_score(psi_elements, theta))
+            res = scaling_factor * np.sum(self._compute_score(psi_elements, theta))
             return res
 
         def score_deriv(theta):
-            res = np.mean(self._compute_score_deriv(psi_elements, theta))
+            res = scaling_factor * np.sum(self._compute_score_deriv(psi_elements, theta))
             return res
 
         if self._coef_bounds is None:

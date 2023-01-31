@@ -1304,12 +1304,18 @@ class DoubleML(ABC):
                 # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
                 dml1_coefs = np.zeros(len(smpls))
                 for idx, (_, test_index) in enumerate(smpls):
-                    dml1_coefs[idx] = self._est_coef(psi_elements, test_index)
+                    scaling_factor = 1./len(test_index)
+                    dml1_coefs[idx] = self._est_coef(psi_elements, scaling_factor=scaling_factor, inds=test_index)
                 coef = np.mean(dml1_coefs)
             else:
                 assert dml_procedure == 'dml2'
                 dml1_coefs = None
-                coef = self._est_coef(psi_elements)
+                # calculate scaling based on number of test samples (usually this should be equal to n_obs)
+                n_samples = 0
+                for (_, test_index) in smpls:
+                    n_samples += len(test_index)
+                scaling_factor = 1./n_samples
+                coef = self._est_coef(psi_elements, scaling_factor=scaling_factor)
         else:
             smpls_cluster = self.__smpls_cluster
             coef, dml1_coefs = self._est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster)
