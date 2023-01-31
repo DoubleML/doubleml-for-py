@@ -45,9 +45,9 @@ class LinearScoreMixin:
         if inds is not None:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
-
-        coef = -np.mean(psi_b) / np.mean(psi_a)
-
+        
+        scaling_factor = 1./len(psi_a)
+        coef = - (scaling_factor * np.sum(psi_b)) / (scaling_factor * np.sum(psi_a))
         return coef
 
     def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
