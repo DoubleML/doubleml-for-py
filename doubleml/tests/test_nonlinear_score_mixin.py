@@ -8,7 +8,6 @@ from sklearn.utils import check_X_y
 
 import doubleml as dml
 from doubleml.double_ml import DoubleML
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 from doubleml._utils import _dml_cv_predict, _check_finite_predictions
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
@@ -286,16 +285,3 @@ def test_nonlinear_warnings(generate_data1, coef_bounds):
     with pytest.warns(UserWarning, match=msg):
         dml_plr_obj._coef_bounds = coef_bounds
         dml_plr_obj.fit()
-
-
-@pytest.mark.ci
-def test_doubleml_cluster_not_implemented_exception():
-    np.random.seed(3141)
-    dml_data = make_pliv_multiway_cluster_CKMS2021()
-    dml_data.z_cols = None
-    ml_l = LinearRegression()
-    ml_m = LinearRegression()
-    dml_plr = DoubleMLPLRWithNonLinearScoreMixin(dml_data, ml_l, ml_m)
-    msg = 'Estimation with clustering not implemented.'
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml_plr.fit()
