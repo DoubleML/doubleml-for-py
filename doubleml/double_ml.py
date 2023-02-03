@@ -3,7 +3,6 @@ import pandas as pd
 import warnings
 
 from sklearn.base import is_regressor, is_classifier
-from sklearn.metrics import mean_squared_error
 
 from scipy.stats import norm
 
@@ -13,7 +12,8 @@ from abc import ABC, abstractmethod
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
-from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights
+from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
+    _rmse
 
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -87,6 +87,8 @@ class DoubleML(ABC):
             self._n_folds = n_folds
         self._n_rep = n_rep
         self._apply_cross_fitting = apply_cross_fitting
+        # default is no stratification
+        self._strata = None
 
         # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
@@ -1042,13 +1044,13 @@ class DoubleML(ABC):
                 self._rmses[learner][self._i_rep, self._i_treat] = np.nan
             else:
                 sq_error = np.power(targets[learner] - preds[learner], 2)
-                self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(np.mean(sq_error, 0))
+                self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(np.nanmean(sq_error, axis=0))
 
     def _store_models(self, models):
         for learner in self.params_names:
             self._models[learner][self._dml_data.d_cols[self._i_treat]][self._i_rep] = models[learner]
 
-    def evaluate_learners(self, learners=None, metric=mean_squared_error):
+    def evaluate_learners(self, learners=None, metric=_rmse):
         """
        Evaluate fitted learners for DoubleML models on cross-validated predictions.
 
@@ -1059,7 +1061,9 @@ class DoubleML(ABC):
 
         metric : callable
             A callable function with inputs ``y_pred`` and ``y_true`` of shape ``(1, n)``,
-            where ``n`` specifies the number of observations.
+            where ``n`` specifies the number of observations. Remark that some models like IRM are
+            not able to provide all values for ``y_true`` for all learners and might contain
+            some ``nan`` values in the target vector.
             Default is the euclidean distance.
 
         Returns
@@ -1137,7 +1141,8 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
-                                                    apply_cross_fitting=self.apply_cross_fitting)
+                                                    apply_cross_fitting=self.apply_cross_fitting,
+                                                    stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self

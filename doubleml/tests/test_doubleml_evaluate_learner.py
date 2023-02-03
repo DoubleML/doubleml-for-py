@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import doubleml as dml
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 from doubleml.datasets import make_irm_data
 from sklearn.base import clone
 
@@ -36,19 +35,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[mean_absolute_error, mean_squared_error])
-def metric(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[0.01, 0.05])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_irm_eval_learner_fixture(metric, learner, dml_procedure, trimming_threshold, n_rep):
+def dml_irm_eval_learner_fixture(learner, dml_procedure, trimming_threshold, n_rep):
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
@@ -61,12 +54,26 @@ def dml_irm_eval_learner_fixture(metric, learner, dml_procedure, trimming_thresh
                                   dml_procedure=dml_procedure,
                                   trimming_threshold=trimming_threshold)
     dml_irm_obj.fit()
-    res = dml_irm_obj.evaluate_learners(metric=metric)
-    return res
+    res_manual = dml_irm_obj.evaluate_learners()
+
+    res_dict = {'rmses': dml_irm_obj.rmses,
+                'rmses_manual': res_manual
+                }
+    return res_dict
 
 
 @pytest.mark.ci
 def test_dml_irm_eval_learner(dml_irm_eval_learner_fixture, n_rep):
-    assert dml_irm_eval_learner_fixture['ml_g0'].shape == (n_rep, 1)
-    assert dml_irm_eval_learner_fixture['ml_g1'].shape == (n_rep, 1)
-    assert dml_irm_eval_learner_fixture['ml_m'].shape == (n_rep, 1)
+    assert dml_irm_eval_learner_fixture['rmses_manual']['ml_g0'].shape == (n_rep, 1)
+    assert dml_irm_eval_learner_fixture['rmses_manual']['ml_g1'].shape == (n_rep, 1)
+    assert dml_irm_eval_learner_fixture['rmses_manual']['ml_m'].shape == (n_rep, 1)
+
+    assert np.allclose(dml_irm_eval_learner_fixture['rmses_manual']['ml_g0'],
+                       dml_irm_eval_learner_fixture['rmses']['ml_g0'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_irm_eval_learner_fixture['rmses_manual']['ml_g1'],
+                       dml_irm_eval_learner_fixture['rmses']['ml_g1'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_irm_eval_learner_fixture['rmses_manual']['ml_m'],
+                       dml_irm_eval_learner_fixture['rmses']['ml_m'],
+                       rtol=1e-9, atol=1e-4)
