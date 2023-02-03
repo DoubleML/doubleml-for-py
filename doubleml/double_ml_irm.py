@@ -52,7 +52,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     normalize_ipw : bool
         Indicates whether the inverse probability weights are normalized.
-        Default is ``True``.
+        Default is ``False``.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -118,7 +118,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='ATE',
                  dml_procedure='dml2',
-                 normalize_ipw=True,
+                 normalize_ipw=False,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
