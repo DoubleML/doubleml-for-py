@@ -4,13 +4,13 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _check_is_propensity
+from .._utils import _check_is_propensity, _normalize_ipw
 
 
 def fit_irm(y, x, d,
             learner_g, learner_m, all_smpls, dml_procedure, score,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
-            trimming_threshold=1e-2):
+            normalize_ipw=True, trimming_threshold=1e-2):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)
@@ -36,12 +36,12 @@ def fit_irm(y, x, d,
         if dml_procedure == 'dml1':
             thetas[i_rep], ses[i_rep] = irm_dml1(y, x, d,
                                                  g_hat0, g_hat1, m_hat, p_hat,
-                                                 smpls, score)
+                                                 smpls, score, normalize_ipw)
         else:
             assert dml_procedure == 'dml2'
             thetas[i_rep], ses[i_rep] = irm_dml2(y, x, d,
                                                  g_hat0, g_hat1, m_hat, p_hat,
-                                                 smpls, score)
+                                                 smpls, score, normalize_ipw)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -133,11 +133,15 @@ def compute_iivm_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, 
     return u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat
 
 
-def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
+def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score, normalize_ipw):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+
+    if normalize_ipw:
+        for _, test_index in smpls:
+            m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
 
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = irm_orth(g_hat0[test_index], g_hat1[test_index],
@@ -163,10 +167,14 @@ def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     return theta_hat, se
 
 
-def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
+def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score, normalize_ipw):
     n_obs = len(y)
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+
+    if normalize_ipw:
+        m_hat = _normalize_ipw(m_hat, d)
+
     theta_hat = irm_orth(g_hat0, g_hat1, m_hat, p_hat,
                          u_hat0, u_hat1, d, score)
     se = np.sqrt(var_irm(theta_hat, g_hat0, g_hat1,
@@ -178,6 +186,7 @@ def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
 
 
 def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score, n_obs):
+
     if score == 'ATE':
         var = 1/n_obs * np.mean(np.power(g_hat1 - g_hat0
                                          + np.divide(np.multiply(d, u_hat1), m_hat)
@@ -194,6 +203,7 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score, n_obs
 
 
 def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
+
     if score == 'ATE':
         res = np.mean(g_hat1 - g_hat0
                       + np.divide(np.multiply(d, u_hat1), m_hat)
@@ -209,8 +219,8 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
 
 
 def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
-             all_smpls, score, bootstrap, n_rep_boot,
-             n_rep=1, apply_cross_fitting=True):
+             all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
+             n_rep=1, apply_cross_fitting=True, normalize_ipw=True):
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
@@ -224,7 +234,7 @@ def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
         boot_theta, boot_t_stat = boot_irm_single_split(
             thetas[i_rep], y, d,
             all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_p_hat[i_rep], smpls,
-            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
+            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting, dml_procedure, normalize_ipw)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -235,9 +245,16 @@ def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
 
 
 def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list,
-                          smpls, score, se, weights, n_rep_boot, apply_cross_fitting):
+                          smpls, score, se, weights, n_rep_boot, apply_cross_fitting, dml_procedure, normalize_ipw):
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+
+    if normalize_ipw:
+        if dml_procedure == 'dml1':
+            for _, test_index in smpls:
+                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+        else:
+            m_hat = _normalize_ipw(m_hat, d)
 
     if apply_cross_fitting:
         if score == 'ATE':
