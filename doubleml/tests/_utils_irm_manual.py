@@ -7,7 +7,6 @@ from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 from .._utils import _check_is_propensity, _normalize_ipw
 
 
-
 def fit_irm(y, x, d,
             learner_g, learner_m, all_smpls, dml_procedure, score,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
