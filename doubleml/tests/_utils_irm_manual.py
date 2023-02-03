@@ -4,7 +4,8 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _normalize_ipw
+from .._utils import _check_is_propensity, _normalize_ipw
+
 
 
 def fit_irm(y, x, d,
@@ -129,6 +130,7 @@ def compute_iivm_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, 
         m_hat[test_index] = m_hat_list[idx]
         p_hat[test_index] = p_hat_list[idx]
 
+    _check_is_propensity(m_hat, 'learner_m', 'ml_m', smpls, eps=1e-12)
     return u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat
 
 

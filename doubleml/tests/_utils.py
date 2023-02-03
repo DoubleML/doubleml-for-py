@@ -1,14 +1,18 @@
 import numpy as np
-from sklearn.model_selection import KFold, GridSearchCV
+from sklearn.model_selection import KFold, GridSearchCV, StratifiedKFold
 from sklearn.base import clone
 
 
-def draw_smpls(n_obs, n_folds, n_rep=1):
+def draw_smpls(n_obs, n_folds, n_rep=1, groups=None):
     all_smpls = []
     for _ in range(n_rep):
-        resampling = KFold(n_splits=n_folds,
-                           shuffle=True)
-        smpls = [(train, test) for train, test in resampling.split(np.zeros(n_obs))]
+        if groups is None:
+            resampling = KFold(n_splits=n_folds,
+                               shuffle=True)
+        else:
+            resampling = StratifiedKFold(n_splits=n_folds,
+                                         shuffle=True)
+        smpls = [(train, test) for train, test in resampling.split(X=np.zeros(n_obs), y=groups)]
         all_smpls.append(smpls)
     return all_smpls
 
