@@ -384,13 +384,10 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             pi_du_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z1'][i_fold], x_test)
 
             # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-            # to still have a full vectors targets will be set equal to predictions if this is false
             test_inds_z0 = test_inds[z_test == 0]
             test_inds_z1 = test_inds[z_test == 1]
             pi_du_z0_hat['targets'][test_inds_z0] = (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
-            pi_du_z0_hat['targets'][test_inds_z1] = pi_du_z0_hat['preds'][test_inds_z1]
             pi_du_z1_hat['targets'][test_inds_z1] = (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
-            pi_du_z1_hat['targets'][test_inds_z0] = pi_du_z1_hat['preds'][test_inds_z0]
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -418,13 +415,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         pi_z_hat['targets'] = z
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-        # to still have a full vectors targets will be set equal to predictions if this is false
-        z0 = z == 0
-        z1 = z == 1
-        pi_d_z0_hat['targets'][z0] = d[z0]
-        pi_d_z0_hat['targets'][z1] = pi_d_z0_hat['preds'][z1]
-        pi_d_z1_hat['targets'][z1] = d[z1]
-        pi_d_z1_hat['targets'][z0] = pi_d_z1_hat['preds'][z0]
+        pi_d_z0_hat['targets'][z == 0] = d[z == 0]
+        pi_d_z1_hat['targets'][z == 1] = d[z == 1]
 
         if return_models:
             pi_z_hat['models'] = fitted_models['ml_pi_z']

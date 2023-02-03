@@ -301,6 +301,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         # set target for propensity score
         m_hat['targets'] = d
 
+        # set the target for g to be a float and only relevant values
+        g_hat['targets'] = g_hat['targets'].astype(float)
+        g_hat['targets'][d != self.treatment] = np.nan
+
         if return_models:
             g_hat['models'] = fitted_models['ml_g']
             m_hat['models'] = fitted_models['ml_m']
