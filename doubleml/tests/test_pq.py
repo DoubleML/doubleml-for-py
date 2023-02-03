@@ -78,6 +78,7 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
 
     # synchronize the sample splitting
     dml_pq_obj.set_sample_splitting(all_smpls=all_smpls)
+    np.random.seed(42)
     dml_pq_obj.fit()
 
     np.random.seed(42)
@@ -107,22 +108,6 @@ def test_dml_pq_se(dml_pq_fixture):
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
-
-@pytest.mark.ci
-def test_doubleml_pq_exceptions():
-    np.random.seed(3141)
-    n = 100
-    (x, y, d) = make_irm_data(n, 5, 2, return_type='array')
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
-    ml_g = RandomForestClassifier()
-    ml_m = RandomForestClassifier()
-
-    msg = 'Nuisance tuning not implemented for potential quantiles.'
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_pq = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1)
-        _ = dml_pq.tune({'ml_g': {'n_estimators': [5, 10]},
-                         'ml_m': {'n_estimators': [5, 10]},
-                         'ml_m_prelim': {'n_estimators': [5, 10]}})
 
 
 @pytest.mark.ci

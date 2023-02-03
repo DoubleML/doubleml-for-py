@@ -3,12 +3,13 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
+from ._utils import tune_grid_search
 from .._utils import _dml_cv_predict, _default_kde, _normalize_ipw
 
 
 def fit_pq(y, x, d, quantile,
            learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
-           trimming_threshold=1e-2, normalize_ipw=True):
+           trimming_threshold=1e-2, normalize_ipw=True, g_params=None, m_params=None):
     n_obs = len(y)
 
     pqs = np.zeros(n_rep)
@@ -21,7 +22,8 @@ def fit_pq(y, x, d, quantile,
                                                 learner_g, learner_m, smpls, treatment,
                                                 trimming_threshold=trimming_threshold,
                                                 normalize_ipw=normalize_ipw,
-                                                dml_procedure=dml_procedure)
+                                                dml_procedure=dml_procedure,
+                                                g_params=g_params, m_params=m_params)
 
         if dml_procedure == 'dml1':
             pqs[i_rep], ses[i_rep] = pq_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
@@ -38,18 +40,23 @@ def fit_pq(y, x, d, quantile,
 
 
 def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
-                    trimming_threshold, normalize_ipw, dml_procedure):
+                    trimming_threshold, normalize_ipw, dml_procedure, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
-
-    ml_g = clone(learner_g)
-    ml_m = clone(learner_m)
 
     # initialize nuisance predictions
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
     m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
     for i_fold, _ in enumerate(smpls):
+        ml_g = clone(learner_g)
+        ml_m = clone(learner_m)
+        # set the params for the nuisance learners
+        if g_params is not None:
+            ml_g.set_params(**g_params[i_fold])
+        if m_params is not None:
+            ml_m.set_params(**m_params[i_fold])
+
         train_inds = smpls[i_fold][0]
         test_inds = smpls[i_fold][1]
 
@@ -198,3 +205,17 @@ def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, kde=_defaul
     score = (d == treatment) * ((y <= coef) - g_hat) / m_hat + g_hat - quantile
     var_est = 1/n_obs * np.mean(np.square(score)) / np.square(J)
     return var_est
+
+
+def tune_nuisance_pq(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
+                     param_grid_g, param_grid_m):
+    train_cond_treat = np.where(d == treatment)[0]
+    approx_goal =  y <= np.quantile(y, quantile)
+    g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond_treat)
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g_best_params = [xx.best_params_ for xx in g_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g_best_params, m_best_params

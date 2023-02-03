@@ -8,7 +8,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
     _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, _get_bracket_guess, \
-    _default_kde, _normalize_ipw
+    _default_kde, _normalize_ipw, _dml_tune
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -157,7 +157,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-        self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
+        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
         self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
@@ -292,6 +292,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             x_train_1 = x[train_inds_1, :]
 
             m_hat_prelim = _dml_cv_predict(self._learner['ml_m'], x_train_1, d_train_1,
+                                           est_params=self._get_params('ml_m'),
                                            method='predict_proba', smpls=smpls_prelim)['preds']
 
             m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
@@ -322,13 +323,23 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
             dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
             y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
+            
+            est_params = self._get_params('ml_g')[0]
+            if est_params is not None:
+                # set estimation parameters
+                assert isinstance(est_params, dict)
+                fitted_models['ml_g'][i_fold].set_params(**est_params)
             fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
             # predict nuisance values on the test data and the corresponding targets
             g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x[test_inds, :])
             g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
 
+            est_params = self._get_params('ml_m')[0]
             # refit the propensity score on the whole training set
+            if est_params is not None:
+                assert isinstance(est_params, dict)
+                fitted_models['ml_m'][i_fold].set_params(**est_params)
             fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
             m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x[test_inds, :])
 
@@ -371,7 +382,40 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
-        raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
+        
+        if scoring_methods is None:
+            scoring_methods = {'ml_g': None,
+                               'ml_m': None}
+        
+        train_inds = [train_index for (train_index, _) in smpls]
+        train_inds_treat = [np.intersect1d(np.where(d == self.treatment)[0], train) for train, _ in smpls]
+
+        # use self._coef_start_val as a very crude approximation of ipw_est
+        approx_goal =  y <= np.quantile(y, self.quantile)
+        g_tune_res = _dml_tune(approx_goal, x, train_inds_treat,
+                               self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        m_tune_res = _dml_tune(d, x, train_inds,
+                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+        params = {'ml_g': g_best_params,
+                  'ml_m': m_best_params}
+        tune_res = {'g_tune': g_tune_res,
+                    'm_tune': m_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return res
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
