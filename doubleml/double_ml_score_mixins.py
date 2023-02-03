@@ -39,16 +39,25 @@ class LinearScoreMixin:
     def _compute_score_deriv(self, psi_elements, coef):
         return psi_elements['psi_a']
 
-    def _est_coef(self, psi_elements, smpls, scaling_factor=None, inds=None):
+    def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         psi_a = psi_elements['psi_a']
         psi_b = psi_elements['psi_b']
         if inds is not None:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
 
-        if scaling_factor is None:
+        # check whether we have cluster data and dml2
+        is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
+        # for cluster and dml2 we need the smpls and the scaling factors
+        if is_dml2_and_cluster:
+            assert smpls is not None
+            assert scaling_factor is not None
+            assert inds is None
+
+        if not is_dml2_and_cluster:
             coef = - np.mean(psi_b) / np.mean(psi_a)
         else:
+            # if we have clustered data and dml2 the solution is the root of a weighted sum
             psi_a_subsample_mean = 0.
             psi_b_subsample_mean = 0.
             for i_fold, (_, test_index) in enumerate(smpls):
@@ -94,17 +103,28 @@ class NonLinearScoreMixin:
     def _compute_score_deriv(self, psi_elements, coef):
         pass
 
-    def _est_coef(self, psi_elements, smpls, scaling_factor=None, inds=None):
+    def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
+        # if the calculation is only done on a subset of observations
         if inds is not None:
             psi_elements = copy.deepcopy(psi_elements)
             for key, value in psi_elements.items():
                 psi_elements[key] = value[inds]
 
-        def score(theta):
-            psi = self._compute_score(psi_elements, theta)
+        # check whether we have cluster data and dml2
+        is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
+        # for cluster and dml2 we need the smpls and the scaling factors
+        if is_dml2_and_cluster:
+            assert smpls is not None
+            assert scaling_factor is not None
+            assert inds is None
 
-            if scaling_factor is None:
+        # how to agregate the score and score derivative
+        def _aggregate_obs(psi):
+            # usually the solution is found as the root of the average score
+            if not is_dml2_and_cluster:
                 psi_mean = np.mean(psi)
+
+            # if we have clustered data and dml2 the solution is the root of a weighted sum
             else:
                 psi_mean = 0.
                 for i_fold, (_, test_index) in enumerate(smpls):
@@ -112,17 +132,17 @@ class NonLinearScoreMixin:
 
             return psi_mean
 
+        # calculation of the score for a parameter theta
+        def score(theta):
+            psi = self._compute_score(psi_elements, theta)
+
+            return _aggregate_obs(psi)
+
+        # calculation of the score derivative for a parameter theta
         def score_deriv(theta):
             psi_deriv = self._compute_score_deriv(psi_elements, theta)
 
-            if scaling_factor is None:
-                psi_deriv_mean = np.mean(psi_deriv)
-            else:
-                psi_deriv_mean = 0.
-                for i_fold, (_, test_index) in enumerate(smpls):
-                    psi_deriv_mean += scaling_factor[i_fold] * np.sum(psi_deriv[test_index])
-
-            return psi_deriv_mean
+            return _aggregate_obs(psi_deriv)
 
         if self._coef_bounds is None:
             bounded = False
