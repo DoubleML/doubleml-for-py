@@ -90,7 +90,7 @@ def test_irm_defaults():
     assert dml_irm.dml_procedure == 'dml2'
     assert dml_irm.trimming_rule == 'truncate'
     assert dml_irm.trimming_threshold == 1e-2
-    assert not dml_irm._normalize_ipw
+    assert not dml_irm.normalize_ipw
 
 
 @pytest.mark.ci
@@ -101,7 +101,8 @@ def test_iivm_defaults():
     assert dml_iivm.dml_procedure == 'dml2'
     assert dml_iivm.trimming_rule == 'truncate'
     assert dml_iivm.trimming_threshold == 1e-2
-    assert not dml_iivm._normalize_ipw
+    assert not dml_iivm.normalize_ipw
+
 
 @pytest.mark.ci
 def test_cvar_defaults():
