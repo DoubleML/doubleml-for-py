@@ -10,7 +10,8 @@ from .double_ml_blp import DoubleMLBLP
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
+    _trimm, _normalize_ipw
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -48,6 +49,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
+
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -113,6 +118,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='ATE',
                  dml_procedure='dml2',
+                 normalize_ipw=False,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
@@ -132,6 +138,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        self._normalize_ipw = normalize_ipw
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
@@ -263,9 +270,14 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
-        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
-            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
-            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+
+        if self._normalize_ipw:
+            if self.dml_procedure == 'dml1':
+                for _, test_index in smpls:
+                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            else:
+                m_hat = _normalize_ipw(m_hat, d)
 
         # compute residuals
         u_hat0 = y - g_hat0
