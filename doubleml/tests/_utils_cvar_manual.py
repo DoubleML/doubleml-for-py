@@ -45,7 +45,7 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     n_obs = len(y)
     coef_bounds = (y.min(), y.max())
     y_treat = y[d == treatment]
-    coef_start_val = np.mean(y_treat[ y_treat >= np.quantile(y_treat, quantile)])
+    coef_start_val = np.mean(y_treat[y_treat >= np.quantile(y_treat, quantile)])
 
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)

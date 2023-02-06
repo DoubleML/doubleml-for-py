@@ -429,7 +429,7 @@ class DoubleMLQTE:
                                          normalize_ipw=self.normalize_ipw,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)
-            
+
             elif self.score == 'CVaR':
                 model_PQ_0 = DoubleMLCVAR(self._dml_data,
                                           self._learner['ml_g'],
