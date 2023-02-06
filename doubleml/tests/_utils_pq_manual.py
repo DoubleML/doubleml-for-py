@@ -44,7 +44,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                     trimming_threshold, normalize_ipw, dml_procedure, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
-    coef_start_val = np.quantile(y, q=quantile)
+    coef_start_val = np.quantile(y[d == treatment], q=quantile)
 
     # initialize nuisance predictions
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
@@ -212,9 +212,9 @@ def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, kde=_defaul
 def tune_nuisance_pq(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
                      param_grid_g, param_grid_m):
     train_cond_treat = np.where(d == treatment)[0]
-    approx_goal =  y <= np.quantile(y, quantile)
+    approx_goal = y <= np.quantile(y[d == treatment], quantile)
     g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                   train_cond=train_cond_treat)
+                                  train_cond=train_cond_treat)
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g_best_params = [xx.best_params_ for xx in g_tune_res]

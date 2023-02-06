@@ -148,7 +148,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
-        self._coef_start_val = np.quantile(self._dml_data.y, self.quantile)
+        self._coef_start_val = np.quantile(self._dml_data.y[self._dml_data.d == self.treatment], self.quantile)
 
         # initialize and check trimming
         self._trimming_rule = trimming_rule
@@ -299,7 +299,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             d_train_1 = d[train_inds_1]
             y_train_1 = y[train_inds_1]
             x_train_1 = x[train_inds_1, :]
-            
+
             # get a copy of ml_m as a preliminary learner
             ml_m_prelim = clone(fitted_models['ml_m'][i_fold])
             m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
@@ -387,16 +387,16 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        
+
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
                                'ml_m': None}
-        
+
         train_inds = [train_index for (train_index, _) in smpls]
         train_inds_treat = [np.intersect1d(np.where(d == self.treatment)[0], train) for train, _ in smpls]
 
         # use self._coef_start_val as a very crude approximation of ipw_est
-        approx_goal =  y <= np.quantile(y, self.quantile)
+        approx_goal = y <= np.quantile(y[d == self.treatment], self.quantile)
         g_tune_res = _dml_tune(approx_goal, x, train_inds_treat,
                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)

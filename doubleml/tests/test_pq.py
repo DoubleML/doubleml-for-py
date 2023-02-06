@@ -12,8 +12,6 @@ from sklearn.ensemble import RandomForestClassifier
 from ._utils import draw_smpls
 from ._utils_pq_manual import fit_pq
 
-from doubleml.datasets import make_irm_data
-
 
 @pytest.fixture(scope='module',
                 params=[0, 1])
@@ -107,7 +105,6 @@ def test_dml_pq_se(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['se'],
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-
 
 
 @pytest.mark.ci

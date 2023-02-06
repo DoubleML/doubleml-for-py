@@ -3,13 +3,13 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
-from ._utils import fit_predict_proba
+from ._utils import fit_predict_proba, tune_grid_search
 from .._utils import _dml_cv_predict, _normalize_ipw
 
 
 def fit_cvar(y, x, d, quantile,
              learner_g, learner_m, all_smpls, treatment, dml_procedure, normalize_ipw=True, n_rep=1,
-             trimming_threshold=1e-2):
+             trimming_threshold=1e-2, g_params=None, m_params=None):
     n_obs = len(y)
 
     cvars = np.zeros(n_rep)
@@ -22,7 +22,8 @@ def fit_cvar(y, x, d, quantile,
                                                   learner_g, learner_m, smpls, treatment,
                                                   dml_procedure=dml_procedure,
                                                   normalize_ipw=normalize_ipw,
-                                                  trimming_threshold=trimming_threshold)
+                                                  trimming_threshold=trimming_threshold,
+                                                  g_params=g_params, m_params=m_params)
 
         if dml_procedure == 'dml1':
             cvars[i_rep], ses[i_rep] = cvar_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
@@ -39,9 +40,10 @@ def fit_cvar(y, x, d, quantile,
 
 
 def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment, dml_procedure,
-                      normalize_ipw, trimming_threshold):
+                      normalize_ipw, trimming_threshold, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
+    coef_start_val = np.quantile(y[d == treatment], q=quantile)
 
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
@@ -51,6 +53,14 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
     for i_fold, _ in enumerate(smpls):
+        ml_g = clone(learner_g)
+        ml_m = clone(learner_m)
+        # set the params for the nuisance learners
+        if g_params is not None:
+            ml_g.set_params(**g_params[i_fold])
+        if m_params is not None:
+            ml_m.set_params(**m_params[i_fold])
+
         train_inds = smpls[i_fold][0]
         test_inds = smpls[i_fold][1]
 
@@ -111,6 +121,7 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                                bracket=bracket_guess,
                                method='brentq')
         ipw_est = root_res.root
+        coef_start_val = ipw_est
 
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
@@ -189,3 +200,17 @@ def cvar_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, ipw_est, n_obs):
     psi = psi_a * coef + psi_b
     var_est = 1 / n_obs * np.mean(np.power(psi, 2)) / np.power(J, 2)
     return var_est
+
+
+def tune_nuisance_cvar(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
+                       param_grid_g, param_grid_m):
+    train_cond_treat = np.where(d == treatment)[0]
+    approx_goal = y <= np.quantile(y[d == treatment], quantile)
+    g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                  train_cond=train_cond_treat)
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g_best_params = [xx.best_params_ for xx in g_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g_best_params, m_best_params

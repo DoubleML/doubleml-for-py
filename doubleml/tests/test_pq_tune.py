@@ -65,7 +65,8 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, learner_m, dml_procedure, normalize_ipw, tune_on_folds):
+def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, learner_m, dml_procedure, normalize_ipw,
+                   tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -90,10 +91,10 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
                                 normalize_ipw=normalize_ipw,
                                 trimming_threshold=0.01,
                                 draw_sample_splitting=False)
-    
+
     # synchronize the sample splitting
     dml_pq_obj.set_sample_splitting(all_smpls=all_smpls)
-     # tune hyperparameters
+    # tune hyperparameters
     np.random.seed(42)
     tune_res = dml_pq_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False)
     assert isinstance(tune_res, dml.DoubleMLPQ)
@@ -103,17 +104,17 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
 
     np.random.seed(42)
     if tune_on_folds:
-        g_params, m_params = tune_nuisance_pq(y, x, d, 
+        g_params, m_params = tune_nuisance_pq(y, x, d,
                                               clone(learner_g), clone(learner_m),
                                               smpls, treatment, quantile,
                                               n_folds_tune, par_grid['ml_g'], par_grid['ml_m'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g_params, m_params = tune_nuisance_pq(y, x, d, 
+        g_params, m_params = tune_nuisance_pq(y, x, d,
                                               clone(learner_g), clone(learner_m),
                                               xx, treatment, quantile,
                                               n_folds_tune, par_grid['ml_g'], par_grid['ml_m'])
-        
+
         g_params = g_params * n_folds
         m_params = m_params * n_folds
 
@@ -124,7 +125,7 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
                         all_smpls=all_smpls,
                         treatment=treatment,
                         dml_procedure=dml_procedure,
-                        n_rep=1, trimming_threshold=0.01, 
+                        n_rep=1, trimming_threshold=0.01,
                         normalize_ipw=normalize_ipw,
                         g_params=g_params, m_params=m_params)
 
@@ -132,9 +133,9 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
                 'coef_manual': res_manual['pq'],
                 'se': dml_pq_obj.se,
                 'se_manual': res_manual['se']}
-    
+
     return res_dict
-    
+
 
 @pytest.mark.ci
 def test_dml_pq_coef(dml_pq_fixture):
