@@ -12,28 +12,27 @@ import doubleml as dml
 from ._utils import draw_smpls
 from ._utils_pq_manual import fit_pq, tune_nuisance_pq
 
-from doubleml.datasets import make_irm_data
 
 @pytest.fixture(scope='module',
-                params=[0])
+                params=[0, 1])
 def treatment(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[0.5])
+                params=[0.25, 0.5, 0.75])
 def quantile(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=2)])
+                params=[RandomForestClassifier(max_depth=5, random_state=42)])
 def learner_g(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier()])
+                params=[RandomForestClassifier(max_depth=5, random_state=42)])
 def learner_m(request):
     return request.param
 
@@ -45,7 +44,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[True])
+                params=[True, False])
 def normalize_ipw(request):
     return request.param
 
@@ -58,7 +57,7 @@ def tune_on_folds(request):
 
 def get_par_grid(learner):
     if learner.__class__ in [RandomForestClassifier]:
-        par_grid = {'n_estimators': [20]}
+        par_grid = {'n_estimators': [5, 10, 15, 20]}
     else:
         assert learner.__class__ in [LogisticRegression]
         par_grid = {'C': np.logspace(-4, 2, 10)}
@@ -80,32 +79,25 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     smpls = all_smpls[0]
 
-    # Set machine learning methods for m & g
-    ml_g = clone(learner_g)
-    ml_m = clone(learner_m)
-
     np.random.seed(42)
     dml_pq_obj = dml.DoubleMLPQ(obj_dml_data,
-                                 clone(ml_g), clone(ml_m),
-                                 treatment=treatment,
-                                 quantile=quantile,
-                                 n_folds=n_folds,
-                                 score="PQ",
-                                 dml_procedure=dml_procedure,
-                                 normalize_ipw=normalize_ipw,
-                                 trimming_threshold=0.01,
-                                 apply_cross_fitting=False)
+                                clone(learner_g), clone(learner_m),
+                                treatment=treatment,
+                                quantile=quantile,
+                                n_folds=n_folds,
+                                n_rep=1,
+                                dml_procedure=dml_procedure,
+                                normalize_ipw=normalize_ipw,
+                                trimming_threshold=0.01,
+                                draw_sample_splitting=False)
     
     # synchronize the sample splitting
     dml_pq_obj.set_sample_splitting(all_smpls=all_smpls)
      # tune hyperparameters
     np.random.seed(42)
-    #tune_res = dml_pq_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False)
-    print(f"Truning Results: {dml_pq_obj.params} \n")
-    #assert isinstance(tune_res, dml.DoubleMLPQ)
+    tune_res = dml_pq_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False)
+    assert isinstance(tune_res, dml.DoubleMLPQ)
 
-    dml_pq_obj.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': 5})
-    dml_pq_obj.set_ml_nuisance_params('ml_m', 'd', {'n_estimators': 5})
     np.random.seed(42)
     dml_pq_obj.fit()
 
@@ -124,15 +116,14 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
         
         g_params = g_params * n_folds
         m_params = m_params * n_folds
-    
-    g_params = [{'n_estimators': 5}, {'n_estimators': 5}] 
-    m_params = [{'n_estimators': 5}, {'n_estimators': 5}] 
-    print(f"Truning Results Manual g: {g_params} \n")
-    print(f"Truning Results Manual m: {g_params} \n")
+
     np.random.seed(42)
     res_manual = fit_pq(y, x, d, quantile,
-                        clone(learner_g), clone(learner_m),
-                        all_smpls, treatment, dml_procedure,
+                        learner_g=clone(learner_g),
+                        learner_m=clone(learner_m),
+                        all_smpls=all_smpls,
+                        treatment=treatment,
+                        dml_procedure=dml_procedure,
                         n_rep=1, trimming_threshold=0.01, 
                         normalize_ipw=normalize_ipw,
                         g_params=g_params, m_params=m_params)

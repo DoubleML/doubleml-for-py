@@ -276,6 +276,15 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
                          'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
                          }
+        # set nuisance model parameters
+        est_params_g = self._get_params('ml_g')
+        if est_params_g is not None:
+            [fitted_models['ml_g'][i_fold].set_params(**est_params_g[i_fold]) for i_fold in range(self.n_folds)]
+
+        est_params_m = self._get_params('ml_m')
+        if est_params_m is not None:
+            [fitted_models['ml_m'][i_fold].set_params(**est_params_m[i_fold]) for i_fold in range(self.n_folds)]
+
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
@@ -290,9 +299,10 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             d_train_1 = d[train_inds_1]
             y_train_1 = y[train_inds_1]
             x_train_1 = x[train_inds_1, :]
-
-            m_hat_prelim = _dml_cv_predict(self._learner['ml_m'], x_train_1, d_train_1,
-                                           est_params=self._get_params('ml_m'),
+            
+            # get a copy of ml_m as a preliminary learner
+            ml_m_prelim = clone(fitted_models['ml_m'][i_fold])
+            m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
                                            method='predict_proba', smpls=smpls_prelim)['preds']
 
             m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
@@ -323,23 +333,14 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
             dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
             y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
-            
-            est_params = self._get_params('ml_g')[0]
-            if est_params is not None:
-                # set estimation parameters
-                assert isinstance(est_params, dict)
-                fitted_models['ml_g'][i_fold].set_params(**est_params)
+
             fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
             # predict nuisance values on the test data and the corresponding targets
             g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x[test_inds, :])
             g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
 
-            est_params = self._get_params('ml_m')[0]
             # refit the propensity score on the whole training set
-            if est_params is not None:
-                assert isinstance(est_params, dict)
-                fitted_models['ml_m'][i_fold].set_params(**est_params)
             fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
             m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x[test_inds, :])
 

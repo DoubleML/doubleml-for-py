@@ -28,6 +28,7 @@ def fit_pq(y, x, d, quantile,
         if dml_procedure == 'dml1':
             pqs[i_rep], ses[i_rep] = pq_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
         else:
+            assert dml_procedure == 'dml2'
             pqs[i_rep], ses[i_rep] = pq_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
 
     pq = np.median(pqs)
@@ -43,6 +44,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                     trimming_threshold, normalize_ipw, dml_procedure, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
+    coef_start_val = np.quantile(y, q=quantile)
 
     # initialize nuisance predictions
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
@@ -71,7 +73,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
         x_train_1 = x[train_inds_1, :]
 
         # todo change prediction method
-        m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1,
+        m_hat_prelim = _dml_cv_predict(clone(ml_m), x_train_1, d_train_1,
                                        method='predict_proba', smpls=smpls_prelim)['preds']
 
         m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
@@ -101,7 +103,6 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                 delta += 0.1
             return s_different, b_guess
 
-        coef_start_val = np.quantile(y, q=quantile)
         coef_bounds = (y.min(), y.max())
         _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
 
@@ -109,6 +110,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                                bracket=bracket_guess,
                                method='brentq')
         ipw_est = root_res.root
+        coef_start_val = ipw_est
 
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
