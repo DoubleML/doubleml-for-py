@@ -44,12 +44,16 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                     trimming_threshold, normalize_ipw, dml_procedure, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
-    coef_start_val = np.quantile(y[d == treatment], q=quantile)
+    # initialize starting values and bounds
+    coef_bounds = (y.min(), y.max())
+    y_treat = y[d == treatment]
+    coef_start_val = np.quantile(y_treat, quantile)
 
     # initialize nuisance predictions
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
     m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
+    ipw_vec = np.full(shape=n_folds, fill_value=np.nan)
     for i_fold, _ in enumerate(smpls):
         ml_g = clone(learner_g)
         ml_m = clone(learner_m)
@@ -103,14 +107,13 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                 delta += 0.1
             return s_different, b_guess
 
-        coef_bounds = (y.min(), y.max())
         _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
 
         root_res = root_scalar(ipw_score,
                                bracket=bracket_guess,
                                method='brentq')
         ipw_est = root_res.root
-        coef_start_val = ipw_est
+        ipw_vec[i_fold] = ipw_est
 
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
@@ -141,6 +144,7 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     if treatment == 0:
         m_hat = 1 - m_hat
 
+    ipw_est = np.mean(ipw_vec)
     return g_hat, m_hat, ipw_est
 
 

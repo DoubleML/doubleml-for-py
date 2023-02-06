@@ -12,8 +12,6 @@ from sklearn.ensemble import RandomForestClassifier
 from ._utils import draw_smpls
 from ._utils_lpq_manual import fit_lpq
 
-from doubleml.datasets import make_iivm_data
-
 
 @pytest.fixture(scope='module',
                 params=[0, 1])
@@ -28,7 +26,7 @@ def quantile(request):
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
+                params=[RandomForestClassifier(max_depth=2, n_estimators=5, random_state=42),
                         LogisticRegression()])
 def learner(request):
     return request.param
@@ -107,23 +105,6 @@ def test_dml_lpq_se(dml_lpq_fixture):
     assert math.isclose(dml_lpq_fixture['se'],
                         dml_lpq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-
-
-@pytest.mark.ci
-def test_doubleml_lpq_exceptions():
-    np.random.seed(3141)
-    data = make_iivm_data(100, 5, 2, return_type='DataFrame')
-    obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
-    ml_m = RandomForestClassifier()
-
-    msg = 'Nuisance tuning not implemented for potential quantiles.'
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_lpq = dml.DoubleMLLPQ(obj_dml_data, ml_m, treatment=1)
-        _ = dml_lpq.tune({'ml_pi_z': {'n_estimators': [5, 10]},
-                          'ml_pi_du_z0': {'n_estimators': [5, 10]},
-                          'ml_pi_du_z1': {'n_estimators': [5, 10]},
-                          'ml_pi_d_z0': {'n_estimators': [5, 10]},
-                          'ml_pi_d_z1': {'n_estimators': [5, 10]}})
 
 
 @pytest.mark.ci

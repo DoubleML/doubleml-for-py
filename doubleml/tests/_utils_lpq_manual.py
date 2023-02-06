@@ -3,6 +3,7 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
+from ._utils import tune_grid_search
 from .._utils import _dml_cv_predict, _trimm, _default_kde, _normalize_ipw
 
 
@@ -10,7 +11,9 @@ def fit_lpq(y, x, d, z, quantile,
             learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
             trimming_rule='truncate',
             trimming_threshold=1e-2,
-            normalize_ipw=True):
+            normalize_ipw=True, pi_z_params=None,
+            pi_d_z0_params=None, pi_d_z1_params=None,
+            pi_du_z0_params=None, pi_du_z1_params=None):
     n_obs = len(y)
 
     lpqs = np.zeros(n_rep)
@@ -25,7 +28,12 @@ def fit_lpq(y, x, d, z, quantile,
                                                                    dml_procedure=dml_procedure,
                                                                    trimming_rule=trimming_rule,
                                                                    trimming_threshold=trimming_threshold,
-                                                                   normalize_ipw=normalize_ipw)
+                                                                   normalize_ipw=normalize_ipw,
+                                                                   pi_z_params=pi_z_params,
+                                                                   pi_d_z0_params=pi_d_z0_params,
+                                                                   pi_d_z1_params=pi_d_z1_params,
+                                                                   pi_du_z0_params=pi_du_z0_params,
+                                                                   pi_du_z1_params=pi_du_z1_params)
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, pi_z_hat, pi_du_z0_hat, pi_du_z1_hat, comp_prob_hat,
                                                treatment, quantile, ipw_vec, coef_bounds, smpls)
@@ -43,17 +51,16 @@ def fit_lpq(y, x, d, z, quantile,
 
 
 def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
-                     dml_procedure, trimming_rule, trimming_threshold, normalize_ipw):
+                     dml_procedure, trimming_rule, trimming_threshold, normalize_ipw, pi_z_params,
+                     pi_d_z0_params, pi_d_z1_params, pi_du_z0_params, pi_du_z1_params):
     n_folds = len(smpls)
     n_obs = len(y)
+    # initialize starting values and bounds
+    coef_bounds = (y.min(), y.max())
+    y_treat = y[d == treatment]
+    coef_start_val = np.quantile(y_treat, quantile)
 
     strata = d + 2 * z
-
-    ml_pi_z = clone(learner_m)
-    ml_pi_du_z0 = clone(learner_m)
-    ml_pi_du_z1 = clone(learner_m)
-    ml_pi_d_z0 = clone(learner_m)
-    ml_pi_d_z1 = clone(learner_m)
 
     # initialize nuisance predictions
     pi_z_hat = np.full(shape=n_obs, fill_value=np.nan)
@@ -64,6 +71,23 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
 
     ipw_vec = np.full(shape=n_folds, fill_value=np.nan)
     for i_fold, _ in enumerate(smpls):
+        ml_pi_z = clone(learner_m)
+        ml_pi_d_z0 = clone(learner_m)
+        ml_pi_d_z1 = clone(learner_m)
+        ml_pi_du_z0 = clone(learner_m)
+        ml_pi_du_z1 = clone(learner_m)
+        # set the params for the nuisance learners
+        if pi_z_params is not None:
+            ml_pi_z.set_params(**pi_z_params[i_fold])
+        if pi_d_z0_params is not None:
+            ml_pi_d_z0.set_params(**pi_d_z0_params[i_fold])
+        if pi_d_z1_params is not None:
+            ml_pi_d_z1.set_params(**pi_d_z1_params[i_fold])
+        if pi_du_z0_params is not None:
+            ml_pi_du_z0.set_params(**pi_du_z0_params[i_fold])
+        if pi_du_z1_params is not None:
+            ml_pi_du_z1.set_params(**pi_du_z1_params[i_fold])
+
         train_inds = smpls[i_fold][0]
         test_inds = smpls[i_fold][1]
 
@@ -80,8 +104,10 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
 
         # preliminary propensity for z
         # todo change prediction method
-        pi_z_hat_prelim = _dml_cv_predict(ml_pi_z, x_train_1, z_train_1,
+        ml_pi_z_prelim = clone(ml_pi_z)
+        pi_z_hat_prelim = _dml_cv_predict(ml_pi_z_prelim, x_train_1, z_train_1,
                                           method='predict_proba', smpls=smpls_prelim)['preds']
+
         pi_z_hat_prelim = _trimm(pi_z_hat_prelim, trimming_rule, trimming_threshold)
         if normalize_ipw:
             pi_z_hat_prelim = _normalize_ipw(pi_z_hat_prelim, z_train_1)
@@ -90,14 +116,16 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
         # propensity for d == 1 cond. on z == 0 (training set 1)
         x_z0_train_1 = x_train_1[z_train_1 == 0, :]
         d_z0_train_1 = d_train_1[z_train_1 == 0]
-        ml_pi_d_z0.fit(x_z0_train_1, d_z0_train_1)
-        pi_d_z0_hat_prelim = ml_pi_d_z0.predict_proba(x_train_1)[:, 1]
+        ml_pi_d_z0_prelim = clone(ml_pi_d_z0)
+        ml_pi_d_z0_prelim.fit(x_z0_train_1, d_z0_train_1)
+        pi_d_z0_hat_prelim = ml_pi_d_z0_prelim.predict_proba(x_train_1)[:, 1]
 
         # propensity for d == 1 cond. on z == 1 (training set 1)
         x_z1_train_1 = x_train_1[z_train_1 == 1, :]
         d_z1_train_1 = d_train_1[z_train_1 == 1]
-        ml_pi_d_z1.fit(x_z1_train_1, d_z1_train_1)
-        pi_d_z1_hat_prelim = ml_pi_d_z1.predict_proba(x_train_1)[:, 1]
+        ml_pi_d_z1_prelim = clone(ml_pi_d_z1)
+        ml_pi_d_z1_prelim.fit(x_z1_train_1, d_z1_train_1)
+        pi_d_z1_hat_prelim = ml_pi_d_z1_prelim.predict_proba(x_train_1)[:, 1]
 
         # preliminary estimate of theta_2_aux
         comp_prob_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim
@@ -127,9 +155,6 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
                 delta += 0.1
             return s_different, b_guess
 
-        y_treat = y[d == treatment]
-        coef_start_val = np.quantile(y_treat, q=quantile)
-        coef_bounds = (y_treat.min(), y_treat.max())
         _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
 
         root_res = root_scalar(ipw_score,
@@ -137,6 +162,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_m, smpls, treatment,
                                method='brentq')
         ipw_est = root_res.root
         ipw_vec[i_fold] = ipw_est
+
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
         y_train_2 = y[train_inds_2]
@@ -269,3 +295,33 @@ def lpq_var_est(coef, pi_z, pi_du_z0, pi_du_z1, comp_prob, d, y, z, treatment, q
     score = sign * (score1 + score2 - score3) / comp_prob - quantile
     var_est = 1/n_obs * np.mean(np.square(score)) / np.square(J)
     return var_est
+
+
+def tune_nuisance_lpq(y, x, d, z,
+                      ml_pi_z, ml_pi_d_z0, ml_pi_d_z1, ml_pi_du_z0, ml_pi_du_z1,
+                      smpls, treatment, quantile, n_folds_tune,
+                      param_grid_pi_z, param_grid_pi_d_z0, param_grid_pi_d_z1,
+                      param_grid_pi_du_z0, param_grid_pi_du_z1):
+    train_cond_z0 = np.where(z == 0)[0]
+    train_cond_z1 = np.where(z == 1)[0]
+
+    approx_quant = np.quantile(y[d == treatment], quantile)
+    du = (d == treatment) * (y <= approx_quant)
+
+    pi_z_tune_res = tune_grid_search(z, x, ml_pi_z, smpls, param_grid_pi_z, n_folds_tune)
+    pi_d_z0_tune_res = tune_grid_search(d, x, ml_pi_d_z0, smpls, param_grid_pi_d_z0, n_folds_tune,
+                                        train_cond=train_cond_z0)
+    pi_d_z1_tune_res = tune_grid_search(d, x, ml_pi_d_z1, smpls, param_grid_pi_d_z1, n_folds_tune,
+                                        train_cond=train_cond_z1)
+    pi_du_z0_tune_res = tune_grid_search(du, x, ml_pi_du_z0, smpls, param_grid_pi_du_z0, n_folds_tune,
+                                         train_cond=train_cond_z0)
+    pi_du_z1_tune_res = tune_grid_search(du, x, ml_pi_du_z1, smpls, param_grid_pi_du_z1, n_folds_tune,
+                                         train_cond=train_cond_z1)
+
+    pi_z_best_params = [xx.best_params_ for xx in pi_z_tune_res]
+    pi_d_z0_best_params = [xx.best_params_ for xx in pi_d_z0_tune_res]
+    pi_d_z1_best_params = [xx.best_params_ for xx in pi_d_z1_tune_res]
+    pi_du_z0_best_params = [xx.best_params_ for xx in pi_du_z0_tune_res]
+    pi_du_z1_best_params = [xx.best_params_ for xx in pi_du_z1_tune_res]
+
+    return pi_z_best_params, pi_d_z0_best_params, pi_d_z1_best_params, pi_du_z0_best_params, pi_du_z1_best_params

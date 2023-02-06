@@ -272,6 +272,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
 
+        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # initialize models
         fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
                          'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
@@ -322,9 +323,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                                    bracket=bracket_guess,
                                    method='brentq')
             ipw_est = root_res.root
-
-            # readjust start value for minimization
-            self._coef_start_val = ipw_est
+            ipw_vec[i_fold] = ipw_est
 
             # use the preliminary estimates to fit the nuisance parameters on train_2
             d_train_2 = d[train_inds_2]
@@ -368,6 +367,9 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
+
+        # readjust start value for minimization
+        self._coef_start_val = np.mean(ipw_vec)
 
         psi_elements = {'ind_d': d == self.treatment, 'g': g_hat['preds'],
                         'm': m_hat_adj, 'y': y}
