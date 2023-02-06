@@ -9,6 +9,7 @@ from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .double_ml_pq import DoubleMLPQ
 from .double_ml_lpq import DoubleMLLPQ
+from .double_ml_cvar import DoubleMLCVAR
 
 
 class DoubleMLQTE:
@@ -41,7 +42,7 @@ class DoubleMLQTE:
         Default is ``1``.
 
     score : str
-        A str (``'PQ'`` or ``'LPQ'``) specifying the score function.
+        A str (``'PQ'``, ``'LPQ'`` or ``'CVaR'``) specifying the score function.
         Default is ``'PQ'``.
 
     dml_procedure : str
@@ -120,7 +121,7 @@ class DoubleMLQTE:
 
         # check score
         self._score = score
-        valid_scores = ['PQ', 'LPQ']
+        valid_scores = ['PQ', 'LPQ', 'CVaR']
         _check_score(self.score, valid_scores)
 
         # check data
@@ -148,10 +149,11 @@ class DoubleMLQTE:
         self._smpls = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
-        if self.score == 'PQ':
+        if (self.score == 'PQ') | (self.score == 'CVaR'):
             self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
             self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
-        elif self.score == 'LPQ':
+        else:
+            assert self.score == 'LPQ'
             self._learner = {'ml_g': clone(ml_g)}
             self._predict_method = {'ml_g': 'predict_proba'}
 
@@ -427,6 +429,34 @@ class DoubleMLQTE:
                                          normalize_ipw=self.normalize_ipw,
                                          draw_sample_splitting=False,
                                          apply_cross_fitting=self._apply_cross_fitting)
+            
+            elif self.score == 'CVaR':
+                model_PQ_0 = DoubleMLCVAR(self._dml_data,
+                                          self._learner['ml_g'],
+                                          self._learner['ml_m'],
+                                          quantile=self._quantiles[i_quant],
+                                          treatment=0,
+                                          n_folds=self.n_folds,
+                                          n_rep=self.n_rep,
+                                          dml_procedure=self.dml_procedure,
+                                          trimming_rule=self.trimming_rule,
+                                          trimming_threshold=self.trimming_threshold,
+                                          normalize_ipw=self.normalize_ipw,
+                                          draw_sample_splitting=False,
+                                          apply_cross_fitting=self._apply_cross_fitting)
+                model_PQ_1 = DoubleMLCVAR(self._dml_data,
+                                          self._learner['ml_g'],
+                                          self._learner['ml_m'],
+                                          quantile=self._quantiles[i_quant],
+                                          treatment=1,
+                                          n_folds=self.n_folds,
+                                          n_rep=self.n_rep,
+                                          dml_procedure=self.dml_procedure,
+                                          trimming_rule=self.trimming_rule,
+                                          trimming_threshold=self.trimming_threshold,
+                                          normalize_ipw=self.normalize_ipw,
+                                          draw_sample_splitting=False,
+                                          apply_cross_fitting=self._apply_cross_fitting)
 
             # synchronize the sample splitting
             model_PQ_0.set_sample_splitting(all_smpls=self.smpls)
