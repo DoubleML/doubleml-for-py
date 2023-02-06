@@ -133,7 +133,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
         # initialize starting values and bounds
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
-        self._coef_start_val = np.quantile(self._dml_data.y[self._dml_data.d == self.treatment], self.quantile)
+        y_treat = self._dml_data.y[self._dml_data.d == self.treatment]
+        self._coef_start_val = np.mean(y_treat[ y_treat >= np.quantile(y_treat, self.quantile)])
 
         # initialize and check trimming
         self._trimming_rule = trimming_rule
