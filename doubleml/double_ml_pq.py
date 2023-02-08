@@ -345,8 +345,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         # set target for propensity score
         m_hat['targets'] = d
-        # set targets to relevant subsample
-        g_hat['targets'][d != self.treatment] = np.nan
 
         # set the target for g to be a float and only relevant values
         g_hat['targets'] = g_hat['targets'].astype(float)

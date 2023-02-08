@@ -407,8 +407,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             # the predictions of both should only be evaluated conditional on z == 0 or z == 1
             test_inds_z0 = test_inds[z_test == 0]
             test_inds_z1 = test_inds[z_test == 1]
-            pi_du_z0_hat['targets'][test_inds_z0] = (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
-            pi_du_z1_hat['targets'][test_inds_z1] = (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
+            pi_du_z0_hat['targets'][test_inds_z0] = 1.0 * (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
+            pi_du_z1_hat['targets'][test_inds_z1] = 1.0 * (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -437,12 +437,12 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         # set targets to relevant subsample
         pi_du_z0_hat['targets'][z == 1] = np.nan
         pi_du_z1_hat['targets'][z == 0] = np.nan
-        pi_d_z0_hat['targets'][z == 1] = np.nan
-        pi_d_z1_hat['targets'][z == 0] = np.nan
-
+        
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
         pi_d_z0_hat['targets'][z == 0] = d[z == 0]
+        pi_d_z0_hat['targets'][z == 1] = np.nan
         pi_d_z1_hat['targets'][z == 1] = d[z == 1]
+        pi_d_z1_hat['targets'][z == 0] = np.nan
 
         if return_models:
             pi_z_hat['models'] = fitted_models['ml_pi_z']

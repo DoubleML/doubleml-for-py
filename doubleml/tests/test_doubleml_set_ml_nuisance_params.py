@@ -15,17 +15,20 @@ test_values = [[{'n_estimators': 5}, {'n_estimators': 5}]]
 np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
 dml_data_pliv = make_pliv_CHS2015(n_obs=100, dim_z=1)
-dml_data_irm = make_irm_data(n_obs=500)
-dml_data_iivm = make_iivm_data(n_obs=1000)
+dml_data_irm = make_irm_data(n_obs=1000)
+dml_data_iivm = make_iivm_data(n_obs=2000)
+
+reg_learner = RandomForestRegressor(max_depth=2)
+class_learner = RandomForestClassifier(max_depth=2)
 
 # linear models
-dml_plr = DoubleMLPLR(dml_data_plr, RandomForestRegressor(), RandomForestRegressor(), n_folds=n_folds)
-dml_pliv = DoubleMLPLIV(dml_data_pliv, RandomForestRegressor(), RandomForestRegressor(),
-                        RandomForestRegressor(), n_folds=n_folds)
-dml_irm = DoubleMLIRM(dml_data_irm, RandomForestRegressor(), RandomForestClassifier(), n_folds=n_folds)
-dml_iivm = DoubleMLIIVM(dml_data_iivm, RandomForestRegressor(), RandomForestClassifier(),
-                        RandomForestClassifier(), n_folds=n_folds)
-dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(), n_folds=n_folds)
+dml_plr = DoubleMLPLR(dml_data_plr, reg_learner, reg_learner, n_folds=n_folds)
+dml_pliv = DoubleMLPLIV(dml_data_pliv, reg_learner, reg_learner,
+                        reg_learner, n_folds=n_folds)
+dml_irm = DoubleMLIRM(dml_data_irm, reg_learner, class_learner, n_folds=n_folds)
+dml_iivm = DoubleMLIIVM(dml_data_iivm, reg_learner, class_learner,
+                        class_learner, n_folds=n_folds)
+dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
 
 dml_plr.set_ml_nuisance_params('ml_l', 'd', {'n_estimators': n_est_test})
 dml_pliv.set_ml_nuisance_params('ml_l', 'd', {'n_estimators': n_est_test})
@@ -40,8 +43,8 @@ dml_iivm.fit(store_models=True)
 dml_cvar.fit(store_models=True)
 
 # nonlinear models
-dml_pq = DoubleMLPQ(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(), n_folds=n_folds)
-dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=RandomForestClassifier(), n_folds=n_folds)
+dml_pq = DoubleMLPQ(dml_data_irm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
+dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=class_learner, n_folds=n_folds)
 
 dml_pq.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': n_est_test})
 dml_lpq.set_ml_nuisance_params('ml_pi_z', 'd', {'n_estimators': n_est_test})
