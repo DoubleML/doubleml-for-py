@@ -268,8 +268,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
 
         # initialize nuisance predictions, targets and models
-        nuisance_names = ['pi_z_hat', 'pi_d_z0_hat', 'pi_d_z1_hat', 'pi_du_z0_hat', 'pi_du_z1_hat']
-        # initialize nuisance predictions, targets and models
         pi_z_hat = {'models': None,
                     'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                     'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
@@ -290,7 +288,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             else:
                 fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
 
-        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)    
+        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # calculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
