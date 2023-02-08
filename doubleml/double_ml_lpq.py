@@ -8,7 +8,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_zero_one_treatment, _check_score,\
-    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess, _default_kde, _normalize_ipw
+    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess, _default_kde, _normalize_ipw, _dml_tune
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -125,9 +125,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
 
         # initialize starting values and bounds
-        y_treat = self._dml_data.y[self._dml_data.d == self.treatment]
-        self._coef_bounds = (y_treat.min(), y_treat.max())
-        self._coef_start_val = np.quantile(y_treat, self.quantile)
+        self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
+        self._coef_start_val = np.quantile(self._dml_data.y[self._dml_data.d == self.treatment], self.quantile)
 
         # initialize and check trimming
         self._trimming_rule = trimming_rule
@@ -295,8 +294,29 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                          'ml_pi_d_z0': [clone(self._learner['ml_pi_d_z0']) for i_fold in range(self.n_folds)],
                          'ml_pi_d_z1': [clone(self._learner['ml_pi_d_z1']) for i_fold in range(self.n_folds)],
                          'ml_pi_du_z0': [clone(self._learner['ml_pi_du_z0']) for i_fold in range(self.n_folds)],
-                         'ml_pi_du_z1': [clone(self._learner['ml_pi_du_z1']) for i_fold in range(self.n_folds)],
+                         'ml_pi_du_z1': [clone(self._learner['ml_pi_du_z1']) for i_fold in range(self.n_folds)]
                          }
+
+        # set nuisance model parameters
+        est_params_pi_z = self._get_params('ml_pi_z')
+        if est_params_pi_z is not None:
+            [fitted_models['ml_pi_z'][i_fold].set_params(**est_params_pi_z[i_fold]) for i_fold in range(self.n_folds)]
+
+        est_params_pi_d_z0 = self._get_params('ml_pi_d_z0')
+        if est_params_pi_d_z0 is not None:
+            [fitted_models['ml_pi_d_z0'][i_fold].set_params(**est_params_pi_d_z0[i_fold]) for i_fold in range(self.n_folds)]
+
+        est_params_pi_d_z1 = self._get_params('ml_pi_d_z1')
+        if est_params_pi_d_z1 is not None:
+            [fitted_models['ml_pi_d_z1'][i_fold].set_params(**est_params_pi_d_z1[i_fold]) for i_fold in range(self.n_folds)]
+
+        est_params_pi_du_z0 = self._get_params('ml_pi_du_z0')
+        if est_params_pi_du_z0 is not None:
+            [fitted_models['ml_pi_du_z0'][i_fold].set_params(**est_params_pi_du_z0[i_fold]) for i_fold in range(self.n_folds)]
+
+        est_params_pi_du_z1 = self._get_params('ml_pi_du_z1')
+        if est_params_pi_du_z1 is not None:
+            [fitted_models['ml_pi_du_z1'][i_fold].set_params(**est_params_pi_du_z1[i_fold]) for i_fold in range(self.n_folds)]
 
         # calculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
@@ -315,10 +335,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             z_train_1 = z[train_inds_1]
 
             # preliminary propensity for z
-            pi_z_hat_prelim = _dml_cv_predict(self._learner['ml_pi_z'], x_train_1, z_train_1,
+            ml_pi_z_prelim = clone(fitted_models['ml_pi_z'][i_fold])
+            pi_z_hat_prelim = _dml_cv_predict(ml_pi_z_prelim, x_train_1, z_train_1,
                                               method='predict_proba', smpls=smpls_prelim)['preds']
-            pi_z_hat_prelim = _trimm(pi_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
+            pi_z_hat_prelim = _trimm(pi_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
             if self._normalize_ipw:
                 pi_z_hat_prelim = _normalize_ipw(pi_z_hat_prelim, z_train_1)
 
@@ -327,7 +348,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             z0_train_1 = z_train_1 == 0
             x_z0_train_1 = x_train_1[z0_train_1, :]
             d_z0_train_1 = d_train_1[z0_train_1]
-            ml_pi_d_z0_prelim = clone(self._learner['ml_pi_d_z0'])
+            ml_pi_d_z0_prelim = clone(fitted_models['ml_pi_d_z0'][i_fold])
             ml_pi_d_z0_prelim.fit(x_z0_train_1, d_z0_train_1)
             pi_d_z0_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z0_prelim, x_train_1)
 
@@ -335,7 +356,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             z1_train_1 = z_train_1 == 1
             x_z1_train_1 = x_train_1[z1_train_1, :]
             d_z1_train_1 = d_train_1[z1_train_1]
-            ml_pi_d_z1_prelim = clone(self._learner['ml_pi_d_z1'])
+            ml_pi_d_z1_prelim = clone(fitted_models['ml_pi_d_z1'][i_fold])
             ml_pi_d_z1_prelim.fit(x_z1_train_1, d_z1_train_1)
             pi_d_z1_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z1_prelim, x_train_1)
 
@@ -384,13 +405,10 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             pi_du_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z1'][i_fold], x_test)
 
             # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-            # to still have a full vectors targets will be set equal to predictions if this is false
             test_inds_z0 = test_inds[z_test == 0]
             test_inds_z1 = test_inds[z_test == 1]
             pi_du_z0_hat['targets'][test_inds_z0] = (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
-            pi_du_z0_hat['targets'][test_inds_z1] = pi_du_z0_hat['preds'][test_inds_z1]
             pi_du_z1_hat['targets'][test_inds_z1] = (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
-            pi_du_z1_hat['targets'][test_inds_z0] = pi_du_z1_hat['preds'][test_inds_z0]
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -423,13 +441,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         pi_d_z1_hat['targets'][z == 0] = np.nan
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-        # to still have a full vectors targets will be set equal to predictions if this is false
-        z0 = z == 0
-        z1 = z == 1
-        pi_d_z0_hat['targets'][z0] = d[z0]
-        pi_d_z0_hat['targets'][z1] = pi_d_z0_hat['preds'][z1]
-        pi_d_z1_hat['targets'][z1] = d[z1]
-        pi_d_z1_hat['targets'][z0] = pi_d_z1_hat['preds'][z0]
+        pi_d_z0_hat['targets'][z == 0] = d[z == 0]
+        pi_d_z1_hat['targets'][z == 1] = d[z == 1]
 
         if return_models:
             pi_z_hat['models'] = fitted_models['ml_pi_z']
@@ -480,7 +493,64 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
-        raise NotImplementedError('Nuisance tuning not implemented for potential quantiles.')
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z),
+                         force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {'ml_pi_z': None,
+                               'ml_pi_d_z0': None,
+                               'ml_pi_d_z1': None,
+                               'ml_pi_du_z0': None,
+                               'ml_pi_du_z1': None}
+
+        train_inds = [train_index for (train_index, _) in smpls]
+        train_inds_z0 = [np.intersect1d(np.where(z == 0)[0], train) for train, _ in smpls]
+        train_inds_z1 = [np.intersect1d(np.where(z == 1)[0], train) for train, _ in smpls]
+        # use a very crude approximation of ipw_est
+        approx_quant = np.quantile(y[d == self.treatment], self.quantile)
+        du = (d == self.treatment) * (y <= approx_quant)
+
+        pi_z_tune_res = _dml_tune(z, x, train_inds,
+                                  self._learner['ml_pi_z'], param_grids['ml_pi_z'], scoring_methods['ml_pi_z'],
+                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        pi_d_z0_tune_res = _dml_tune(d, x, train_inds_z0,
+                                     self._learner['ml_pi_d_z0'], param_grids['ml_pi_d_z0'], scoring_methods['ml_pi_d_z0'],
+                                     n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        pi_d_z1_tune_res = _dml_tune(d, x, train_inds_z1,
+                                     self._learner['ml_pi_d_z1'], param_grids['ml_pi_d_z1'], scoring_methods['ml_pi_d_z1'],
+                                     n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        pi_du_z0_tune_res = _dml_tune(du, x, train_inds_z0,
+                                      self._learner['ml_pi_d_z0'], param_grids['ml_pi_d_z0'], scoring_methods['ml_pi_d_z0'],
+                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        pi_du_z1_tune_res = _dml_tune(du, x, train_inds_z1,
+                                      self._learner['ml_pi_d_z1'], param_grids['ml_pi_d_z1'], scoring_methods['ml_pi_d_z1'],
+                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        pi_z_best_params = [xx.best_params_ for xx in pi_z_tune_res]
+        pi_d_z0_best_params = [xx.best_params_ for xx in pi_d_z0_tune_res]
+        pi_d_z1_best_params = [xx.best_params_ for xx in pi_d_z1_tune_res]
+        pi_du_z0_best_params = [xx.best_params_ for xx in pi_du_z0_tune_res]
+        pi_du_z1_best_params = [xx.best_params_ for xx in pi_du_z1_tune_res]
+
+        params = {'ml_pi_z': pi_z_best_params,
+                  'ml_pi_d_z0': pi_d_z0_best_params,
+                  'ml_pi_d_z1': pi_d_z1_best_params,
+                  'ml_pi_du_z0': pi_du_z0_best_params,
+                  'ml_pi_du_z1': pi_du_z1_best_params}
+        tune_res = {'ml_pi_z': pi_z_tune_res,
+                    'ml_pi_d_z0': pi_d_z0_tune_res,
+                    'ml_pi_d_z1':  pi_d_z1_tune_res,
+                    'ml_pi_du_z0': pi_du_z0_tune_res,
+                    'ml_pi_du_z1': pi_du_z1_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return res
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

@@ -5,6 +5,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import mean_squared_error
 from sklearn.utils.multiclass import type_of_target
 
 from statsmodels.nonparametric.kde import KDEUnivariate
@@ -113,7 +114,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             res['preds'] = preds[:, 1]
         else:
             res['preds'] = preds
-        res['targets'] = y
+        res['targets'] = np.copy(y)
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, 'combination of fold-specific y and no cross-fitting not implemented yet'
@@ -231,6 +232,22 @@ def _check_finite_predictions(preds, learner, learner_name, smpls):
     return
 
 
+def _trimm(preds, trimming_rule, trimming_threshold):
+    if trimming_rule == 'truncate':
+        preds[preds < trimming_threshold] = trimming_threshold
+        preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
+    return preds
+
+
+def _normalize_ipw(propensity, treatment):
+    mean_treat1 = np.mean(np.divide(treatment, propensity))
+    mean_treat0 = np.mean(np.divide(1.0-treatment, 1.0-propensity))
+    normalized_weights = np.multiply(treatment, np.multiply(propensity, mean_treat1)) \
+        + np.multiply(1.0-treatment, 1.0 - np.multiply(1.0-propensity, mean_treat0))
+
+    return normalized_weights
+
+
 def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
     if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
@@ -239,11 +256,10 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
     return
 
 
-def _trimm(preds, trimming_rule, trimming_threshold):
-    if trimming_rule == 'truncate':
-        preds[preds < trimming_threshold] = trimming_threshold
-        preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
-    return preds
+def _rmse(y_true, y_pred):
+    subset = np.logical_not(np.isnan(y_true))
+    rmse = mean_squared_error(y_true[subset], y_pred[subset], squared=False)
+    return rmse
 
 
 def _predict_zero_one_propensity(learner, X):
@@ -343,12 +359,3 @@ def _default_kde(u, weights):
     dens.fit(kernel='gau', bw='silverman', weights=weights, fft=False)
 
     return dens.evaluate(0)
-
-
-def _normalize_ipw(propensity, treatment):
-    mean_treat1 = np.mean(np.divide(treatment, propensity))
-    mean_treat0 = np.mean(np.divide(1.0-treatment, 1.0-propensity))
-    normalized_weights = np.multiply(treatment, np.multiply(propensity, mean_treat1)) \
-        + np.multiply(1.0-treatment, 1.0 - np.multiply(1.0-propensity, mean_treat0))
-
-    return normalized_weights
