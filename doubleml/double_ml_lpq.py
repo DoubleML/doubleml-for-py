@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from scipy.optimize import root_scalar
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
@@ -267,57 +268,29 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
 
         # initialize nuisance predictions, targets and models
+        nuisance_names = ['pi_z_hat', 'pi_d_z0_hat', 'pi_d_z1_hat', 'pi_du_z0_hat', 'pi_du_z1_hat']
+        # initialize nuisance predictions, targets and models
         pi_z_hat = {'models': None,
                     'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                     'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                     }
-        pi_d_z0_hat = {'models': None,
-                       'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                       'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                       }
-        pi_d_z1_hat = {'models': None,
-                       'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                       'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                       }
-        pi_du_z0_hat = {'models': None,
-                        'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                        'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                        }
-        pi_du_z1_hat = {'models': None,
-                        'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                        'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                        }
+        pi_d_z0_hat = copy.deepcopy(pi_z_hat)
+        pi_d_z1_hat = copy.deepcopy(pi_z_hat)
+        pi_du_z0_hat = copy.deepcopy(pi_z_hat)
+        pi_du_z1_hat = copy.deepcopy(pi_z_hat)
 
-        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # initialize models
-        fitted_models = {'ml_pi_z': [clone(self._learner['ml_pi_z']) for i_fold in range(self.n_folds)],
-                         'ml_pi_d_z0': [clone(self._learner['ml_pi_d_z0']) for i_fold in range(self.n_folds)],
-                         'ml_pi_d_z1': [clone(self._learner['ml_pi_d_z1']) for i_fold in range(self.n_folds)],
-                         'ml_pi_du_z0': [clone(self._learner['ml_pi_du_z0']) for i_fold in range(self.n_folds)],
-                         'ml_pi_du_z1': [clone(self._learner['ml_pi_du_z1']) for i_fold in range(self.n_folds)]
-                         }
+        fitted_models = {}
+        for learner in self.params_names:
+            # set nuisance model parameters
+            est_params = self._get_params(learner)
+            if est_params is not None:
+                fitted_models[learner] = [clone(self._learner[learner]).set_params(**est_params[i_fold])
+                                          for i_fold in range(self.n_folds)]
+            else:
+                fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
 
-        # set nuisance model parameters
-        est_params_pi_z = self._get_params('ml_pi_z')
-        if est_params_pi_z is not None:
-            [fitted_models['ml_pi_z'][i_fold].set_params(**est_params_pi_z[i_fold]) for i_fold in range(self.n_folds)]
-
-        est_params_pi_d_z0 = self._get_params('ml_pi_d_z0')
-        if est_params_pi_d_z0 is not None:
-            [fitted_models['ml_pi_d_z0'][i_fold].set_params(**est_params_pi_d_z0[i_fold]) for i_fold in range(self.n_folds)]
-
-        est_params_pi_d_z1 = self._get_params('ml_pi_d_z1')
-        if est_params_pi_d_z1 is not None:
-            [fitted_models['ml_pi_d_z1'][i_fold].set_params(**est_params_pi_d_z1[i_fold]) for i_fold in range(self.n_folds)]
-
-        est_params_pi_du_z0 = self._get_params('ml_pi_du_z0')
-        if est_params_pi_du_z0 is not None:
-            [fitted_models['ml_pi_du_z0'][i_fold].set_params(**est_params_pi_du_z0[i_fold]) for i_fold in range(self.n_folds)]
-
-        est_params_pi_du_z1 = self._get_params('ml_pi_du_z1')
-        if est_params_pi_du_z1 is not None:
-            [fitted_models['ml_pi_du_z1'][i_fold].set_params(**est_params_pi_du_z1[i_fold]) for i_fold in range(self.n_folds)]
-
+        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)    
         # calculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
@@ -407,8 +380,10 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             # the predictions of both should only be evaluated conditional on z == 0 or z == 1
             test_inds_z0 = test_inds[z_test == 0]
             test_inds_z1 = test_inds[z_test == 1]
-            pi_du_z0_hat['targets'][test_inds_z0] = 1.0 * (d_test[z_test == 0] == self._treatment) * (y_test[z_test == 0] <= ipw_est)
-            pi_du_z1_hat['targets'][test_inds_z1] = 1.0 * (d_test[z_test == 1] == self._treatment) * (y_test[z_test == 1] <= ipw_est)
+            pi_du_z0_hat['targets'][test_inds_z0] = (1.0 * (d_test[z_test == 0] == self._treatment) *
+                                                     (y_test[z_test == 0] <= ipw_est))
+            pi_du_z1_hat['targets'][test_inds_z1] = (1.0 * (d_test[z_test == 1] == self._treatment) *
+                                                     (y_test[z_test == 1] <= ipw_est))
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -437,7 +412,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         # set targets to relevant subsample
         pi_du_z0_hat['targets'][z == 1] = np.nan
         pi_du_z1_hat['targets'][z == 0] = np.nan
-        
+
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
         pi_d_z0_hat['targets'][z == 0] = d[z == 0]
         pi_d_z0_hat['targets'][z == 1] = np.nan

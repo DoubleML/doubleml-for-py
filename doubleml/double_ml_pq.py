@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from scipy.optimize import root_scalar
 from sklearn.base import clone
 from sklearn.utils import check_X_y
@@ -267,24 +268,19 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-        m_hat = {'models': None,
-                 'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                 'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                 }
+        m_hat = copy.deepcopy(g_hat)
 
         ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # initialize models
-        fitted_models = {'ml_g': [clone(self._learner['ml_g']) for i_fold in range(self.n_folds)],
-                         'ml_m': [clone(self._learner['ml_m']) for i_fold in range(self.n_folds)]
-                         }
-        # set nuisance model parameters
-        est_params_g = self._get_params('ml_g')
-        if est_params_g is not None:
-            [fitted_models['ml_g'][i_fold].set_params(**est_params_g[i_fold]) for i_fold in range(self.n_folds)]
-
-        est_params_m = self._get_params('ml_m')
-        if est_params_m is not None:
-            [fitted_models['ml_m'][i_fold].set_params(**est_params_m[i_fold]) for i_fold in range(self.n_folds)]
+        fitted_models = {}
+        for learner in self.params_names:
+            # set nuisance model parameters
+            est_params = self._get_params(learner)
+            if est_params is not None:
+                fitted_models[learner] = [clone(self._learner[learner]).set_params(**est_params[i_fold])
+                                          for i_fold in range(self.n_folds)]
+            else:
+                fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
 
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
