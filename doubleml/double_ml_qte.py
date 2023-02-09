@@ -4,6 +4,8 @@ from scipy.stats import norm
 
 from sklearn.base import clone
 
+from joblib import Parallel, delayed
+
 from ._utils import _draw_weights, _check_zero_one_treatment, _check_score, _check_trimming, _default_kde
 from ._utils_resampling import DoubleMLResampling
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
@@ -156,6 +158,9 @@ class DoubleMLQTE:
             assert self.score == 'LPQ'
             self._learner = {'ml_g': clone(ml_g)}
             self._predict_method = {'ml_g': 'predict_proba'}
+
+        # initialize all models
+        self._modellist_0, self._modellist_1 = self._initialize_models()
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv,\
@@ -327,6 +332,20 @@ class DoubleMLQTE:
         return self._boot_t_stat
 
     @property
+    def modellist_0(self):
+        """
+        List of the models for the control group (`treatment==0`).
+        """
+        return self._modellist_0
+
+    @property
+    def modellist_1(self):
+        """
+        List of the models for the treatment group (`treatment==1`).
+        """
+        return self._modellist_1
+
+    @property
     def summary(self):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
@@ -369,111 +388,57 @@ class DoubleMLQTE:
     def __all_se(self):
         return self._all_se[self._i_quant, self._i_rep]
 
-    def fit(self, n_jobs_cv=None):
-        for i_quant in range(self._n_quantiles):
+    def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False):
+        """
+        Estimate DoubleMLQTE models.
+
+        Parameters
+        ----------
+        n_jobs_models : None or int
+            The number of CPUs to use to fit the quantiles. ``None`` means ``1``.
+            Default is ``None``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to fit the learners. ``None`` means ``1``.
+            Does not speed up computation for quantile models.
+            Default is ``None``.
+
+        store_predictions : bool
+            Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
+            Default is ``True``.
+
+        store_models : bool
+            Indicates whether the fitted models for the nuisance functions should be stored in ``models``. This allows
+            to analyze the fitted models or extract information like variable importance.
+            Default is ``False``.
+
+        Returns
+        -------
+        self : object
+        """
+
+        # parallel estimation of the quantiles
+        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
+        fitted_models = parallel(delayed(self._fit_quantile)(i_quant, n_jobs_cv, store_predictions, store_models)
+                                 for i_quant in range(self.n_quantiles))
+
+        # combine the estimates and scores
+        for i_quant in range(self.n_quantiles):
             self._i_quant = i_quant
-            # initialize models for both potential quantiles
-            if self.score == 'PQ':
-                model_PQ_0 = DoubleMLPQ(self._dml_data,
-                                        self._learner['ml_g'],
-                                        self._learner['ml_m'],
-                                        quantile=self._quantiles[i_quant],
-                                        treatment=0,
-                                        n_folds=self.n_folds,
-                                        n_rep=self.n_rep,
-                                        dml_procedure=self.dml_procedure,
-                                        trimming_rule=self.trimming_rule,
-                                        trimming_threshold=self.trimming_threshold,
-                                        kde=self.kde,
-                                        normalize_ipw=self.normalize_ipw,
-                                        draw_sample_splitting=False,
-                                        apply_cross_fitting=self._apply_cross_fitting)
-                model_PQ_1 = DoubleMLPQ(self._dml_data,
-                                        self._learner['ml_g'],
-                                        self._learner['ml_m'],
-                                        quantile=self._quantiles[i_quant],
-                                        treatment=1,
-                                        n_folds=self.n_folds,
-                                        n_rep=self.n_rep,
-                                        dml_procedure=self.dml_procedure,
-                                        trimming_rule=self.trimming_rule,
-                                        trimming_threshold=self.trimming_threshold,
-                                        kde=self.kde,
-                                        normalize_ipw=self.normalize_ipw,
-                                        draw_sample_splitting=False,
-                                        apply_cross_fitting=self._apply_cross_fitting)
-            elif self.score == 'LPQ':
-                model_PQ_0 = DoubleMLLPQ(self._dml_data,
-                                         self._learner['ml_g'],
-                                         quantile=self._quantiles[i_quant],
-                                         treatment=0,
-                                         n_folds=self.n_folds,
-                                         n_rep=self.n_rep,
-                                         dml_procedure=self.dml_procedure,
-                                         trimming_rule=self.trimming_rule,
-                                         trimming_threshold=self.trimming_threshold,
-                                         kde=self.kde,
-                                         normalize_ipw=self.normalize_ipw,
-                                         draw_sample_splitting=False,
-                                         apply_cross_fitting=self._apply_cross_fitting)
-                model_PQ_1 = DoubleMLLPQ(self._dml_data,
-                                         self._learner['ml_g'],
-                                         quantile=self._quantiles[i_quant],
-                                         treatment=1,
-                                         n_folds=self.n_folds,
-                                         n_rep=self.n_rep,
-                                         dml_procedure=self.dml_procedure,
-                                         trimming_rule=self.trimming_rule,
-                                         trimming_threshold=self.trimming_threshold,
-                                         kde=self.kde,
-                                         normalize_ipw=self.normalize_ipw,
-                                         draw_sample_splitting=False,
-                                         apply_cross_fitting=self._apply_cross_fitting)
+            # save the parallel fitted models in the right list
+            self._modellist_0[self._i_quant] = fitted_models[self._i_quant][0]
+            self._modellist_1[self._i_quant] = fitted_models[self._i_quant][1]
 
-            elif self.score == 'CVaR':
-                model_PQ_0 = DoubleMLCVAR(self._dml_data,
-                                          self._learner['ml_g'],
-                                          self._learner['ml_m'],
-                                          quantile=self._quantiles[i_quant],
-                                          treatment=0,
-                                          n_folds=self.n_folds,
-                                          n_rep=self.n_rep,
-                                          dml_procedure=self.dml_procedure,
-                                          trimming_rule=self.trimming_rule,
-                                          trimming_threshold=self.trimming_threshold,
-                                          normalize_ipw=self.normalize_ipw,
-                                          draw_sample_splitting=False,
-                                          apply_cross_fitting=self._apply_cross_fitting)
-                model_PQ_1 = DoubleMLCVAR(self._dml_data,
-                                          self._learner['ml_g'],
-                                          self._learner['ml_m'],
-                                          quantile=self._quantiles[i_quant],
-                                          treatment=1,
-                                          n_folds=self.n_folds,
-                                          n_rep=self.n_rep,
-                                          dml_procedure=self.dml_procedure,
-                                          trimming_rule=self.trimming_rule,
-                                          trimming_threshold=self.trimming_threshold,
-                                          normalize_ipw=self.normalize_ipw,
-                                          draw_sample_splitting=False,
-                                          apply_cross_fitting=self._apply_cross_fitting)
-
-            # synchronize the sample splitting
-            model_PQ_0.set_sample_splitting(all_smpls=self.smpls)
-            model_PQ_1.set_sample_splitting(all_smpls=self.smpls)
-
-            model_PQ_0.fit(n_jobs_cv=n_jobs_cv)
-            model_PQ_1.fit(n_jobs_cv=n_jobs_cv)
-
-            # Quantile Treatment Effects
-            self._all_coef[self._i_quant, :] = model_PQ_1.all_coef - model_PQ_0.all_coef
+            # treatment Effects
+            self._all_coef[self._i_quant, :] = self.modellist_1[self._i_quant].all_coef - \
+                self.modellist_0[self._i_quant].all_coef
 
             # save scores and derivatives
-            self._psi0[:, :, self._i_quant] = np.squeeze(model_PQ_0.psi, 2)
-            self._psi1[:, :, self._i_quant] = np.squeeze(model_PQ_1.psi, 2)
+            self._psi0[:, :, self._i_quant] = np.squeeze(self.modellist_0[i_quant].psi, 2)
+            self._psi1[:, :, self._i_quant] = np.squeeze(self.modellist_1[i_quant].psi, 2)
 
-            self._psi0_deriv[:, :, self._i_quant] = np.squeeze(model_PQ_0.psi_deriv, 2)
-            self._psi1_deriv[:, :, self._i_quant] = np.squeeze(model_PQ_1.psi_deriv, 2)
+            self._psi0_deriv[:, :, self._i_quant] = np.squeeze(self.modellist_0[i_quant].psi_deriv, 2)
+            self._psi1_deriv[:, :, self._i_quant] = np.squeeze(self.modellist_1[i_quant].psi_deriv, 2)
 
             # Estimate the variance
             for i_rep in range(self.n_rep):
@@ -630,6 +595,16 @@ class DoubleMLQTE:
                              index=self._quantiles)
         return df_ci
 
+    def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
+
+        model_0 = self.modellist_0[i_quant]
+        model_1 = self.modellist_1[i_quant]
+
+        model_0.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
+        model_1.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
+
+        return model_0, model_1
+
     def _agg_cross_fit(self):
         # aggregate parameters from the repeated cross-fitting
         # don't use the getter (always for one treatment variable and one sample), but the private variable
@@ -703,3 +678,103 @@ class DoubleMLQTE:
         if np.any(self.quantiles <= 0) | np.any(self.quantiles >= 1):
             raise ValueError('Quantiles have be between 0 or 1. ' +
                              f'Quantiles {str(self.quantiles)} passed.')
+
+    def _initialize_models(self):
+        modellist_0 = [None] * self.n_quantiles
+        modellist_1 = [None] * self.n_quantiles
+        for i_quant in range(self.n_quantiles):
+            self._i_quant = i_quant
+            # initialize models for both potential quantiles
+            if self.score == 'PQ':
+                model_0 = DoubleMLPQ(self._dml_data,
+                                     self._learner['ml_g'],
+                                     self._learner['ml_m'],
+                                     quantile=self._quantiles[i_quant],
+                                     treatment=0,
+                                     n_folds=self.n_folds,
+                                     n_rep=self.n_rep,
+                                     dml_procedure=self.dml_procedure,
+                                     trimming_rule=self.trimming_rule,
+                                     trimming_threshold=self.trimming_threshold,
+                                     kde=self.kde,
+                                     normalize_ipw=self.normalize_ipw,
+                                     draw_sample_splitting=False,
+                                     apply_cross_fitting=self._apply_cross_fitting)
+                model_1 = DoubleMLPQ(self._dml_data,
+                                     self._learner['ml_g'],
+                                     self._learner['ml_m'],
+                                     quantile=self._quantiles[i_quant],
+                                     treatment=1,
+                                     n_folds=self.n_folds,
+                                     n_rep=self.n_rep,
+                                     dml_procedure=self.dml_procedure,
+                                     trimming_rule=self.trimming_rule,
+                                     trimming_threshold=self.trimming_threshold,
+                                     kde=self.kde,
+                                     normalize_ipw=self.normalize_ipw,
+                                     draw_sample_splitting=False,
+                                     apply_cross_fitting=self._apply_cross_fitting)
+            elif self.score == 'LPQ':
+                model_0 = DoubleMLLPQ(self._dml_data,
+                                      self._learner['ml_g'],
+                                      quantile=self._quantiles[i_quant],
+                                      treatment=0,
+                                      n_folds=self.n_folds,
+                                      n_rep=self.n_rep,
+                                      dml_procedure=self.dml_procedure,
+                                      trimming_rule=self.trimming_rule,
+                                      trimming_threshold=self.trimming_threshold,
+                                      kde=self.kde,
+                                      normalize_ipw=self.normalize_ipw,
+                                      draw_sample_splitting=False,
+                                      apply_cross_fitting=self._apply_cross_fitting)
+                model_1 = DoubleMLLPQ(self._dml_data,
+                                      self._learner['ml_g'],
+                                      quantile=self._quantiles[i_quant],
+                                      treatment=1,
+                                      n_folds=self.n_folds,
+                                      n_rep=self.n_rep,
+                                      dml_procedure=self.dml_procedure,
+                                      trimming_rule=self.trimming_rule,
+                                      trimming_threshold=self.trimming_threshold,
+                                      kde=self.kde,
+                                      normalize_ipw=self.normalize_ipw,
+                                      draw_sample_splitting=False,
+                                      apply_cross_fitting=self._apply_cross_fitting)
+
+            elif self.score == 'CVaR':
+                model_0 = DoubleMLCVAR(self._dml_data,
+                                       self._learner['ml_g'],
+                                       self._learner['ml_m'],
+                                       quantile=self._quantiles[i_quant],
+                                       treatment=0,
+                                       n_folds=self.n_folds,
+                                       n_rep=self.n_rep,
+                                       dml_procedure=self.dml_procedure,
+                                       trimming_rule=self.trimming_rule,
+                                       trimming_threshold=self.trimming_threshold,
+                                       normalize_ipw=self.normalize_ipw,
+                                       draw_sample_splitting=False,
+                                       apply_cross_fitting=self._apply_cross_fitting)
+                model_1 = DoubleMLCVAR(self._dml_data,
+                                       self._learner['ml_g'],
+                                       self._learner['ml_m'],
+                                       quantile=self._quantiles[i_quant],
+                                       treatment=1,
+                                       n_folds=self.n_folds,
+                                       n_rep=self.n_rep,
+                                       dml_procedure=self.dml_procedure,
+                                       trimming_rule=self.trimming_rule,
+                                       trimming_threshold=self.trimming_threshold,
+                                       normalize_ipw=self.normalize_ipw,
+                                       draw_sample_splitting=False,
+                                       apply_cross_fitting=self._apply_cross_fitting)
+
+            # synchronize the sample splitting
+            model_0.set_sample_splitting(all_smpls=self.smpls)
+            model_1.set_sample_splitting(all_smpls=self.smpls)
+
+            modellist_0[i_quant] = model_0
+            modellist_1[i_quant] = model_1
+
+        return modellist_0, modellist_1
