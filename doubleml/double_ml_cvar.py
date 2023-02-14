@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-from scipy.optimize import root_scalar
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -9,7 +8,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
     _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, \
-    _normalize_ipw, _dml_tune
+    _normalize_ipw, _dml_tune, _get_bracket_guess, _solve_ipw_score
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -265,27 +264,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                 res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, m_hat_prelim))
                 return res
 
-            def get_bracket_guess(coef_start, coef_bounds):
-                max_bracket_length = coef_bounds[1] - coef_bounds[0]
-                b_guess = coef_bounds
-                delta = 0.1
-                s_different = False
-                while (not s_different) & (delta <= 1.0):
-                    a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
-                    b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
-                    b_guess = (a, b)
-                    f_a = ipw_score(b_guess[0])
-                    f_b = ipw_score(b_guess[1])
-                    s_different = (np.sign(f_a) != np.sign(f_b))
-                    delta += 0.1
-                return s_different, b_guess
-
-            _, bracket_guess = get_bracket_guess(self._coef_start_val, self._coef_bounds)
-
-            root_res = root_scalar(ipw_score,
-                                   bracket=bracket_guess,
-                                   method='brentq')
-            ipw_est = root_res.root
+            _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
+            ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
 
             # use the preliminary estimates to fit the nuisance parameters on train_2
             d_train_2 = d[train_inds_2]

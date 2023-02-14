@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+from scipy.optimize import minimize_scalar
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
@@ -359,3 +360,14 @@ def _default_kde(u, weights):
     dens.fit(kernel='gau', bw='silverman', weights=weights, fft=False)
 
     return dens.evaluate(0)
+
+
+def _solve_ipw_score(ipw_score, bracket_guess):
+    def abs_ipw_score(theta):
+        return abs(ipw_score(theta))
+
+    res = minimize_scalar(abs_ipw_score,
+                          bracket=bracket_guess,
+                          method='brent')
+    ipw_est = res.x
+    return ipw_est

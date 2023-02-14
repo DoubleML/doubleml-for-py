@@ -1,10 +1,9 @@
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from scipy.optimize import root_scalar
 
 from ._utils import fit_predict_proba, tune_grid_search
-from .._utils import _dml_cv_predict, _normalize_ipw
+from .._utils import _dml_cv_predict, _normalize_ipw, _get_bracket_guess, _solve_ipw_score
 
 
 def fit_cvar(y, x, d, quantile,
@@ -100,27 +99,8 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
             res = np.mean((d_train_1 == treatment) * (y_train_1 <= theta) / m_hat_prelim - quantile)
             return res
 
-        def get_bracket_guess(coef_start, coef_bounds):
-            max_bracket_length = coef_bounds[1] - coef_bounds[0]
-            b_guess = coef_bounds
-            delta = 0.1
-            s_different = False
-            while (not s_different) & (delta <= 1.0):
-                a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
-                b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
-                b_guess = (a, b)
-                f_a = ipw_score(b_guess[0])
-                f_b = ipw_score(b_guess[1])
-                s_different = (np.sign(f_a) != np.sign(f_b))
-                delta += 0.1
-            return s_different, b_guess
-
-        _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
-
-        root_res = root_scalar(ipw_score,
-                               bracket=bracket_guess,
-                               method='brentq')
-        ipw_est = root_res.root
+        _, bracket_guess = _get_bracket_guess(ipw_score, coef_start_val, coef_bounds)
+        ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
 
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
