@@ -830,14 +830,14 @@ class DoubleMLDIDData(DoubleMLData):
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
         # initialize a basic DoubleMLData object
-        DoubleMLData._init__(self,
-                             data,
-                             y_col,
-                             d_cols,
-                             x_cols=x_cols,
-                             z_cols=None,
-                             use_other_treat_as_covariate=use_other_treat_as_covariate,
-                             force_all_x_finite=force_all_x_finite)
+        DoubleMLData.__init__(self,
+                              data,
+                              y_col,
+                              d_cols,
+                              x_cols=x_cols,
+                              z_cols=None,
+                              use_other_treat_as_covariate=use_other_treat_as_covariate,
+                              force_all_x_finite=force_all_x_finite)
 
         # set the time variable t
         self.t_col = t_col
@@ -917,9 +917,9 @@ class DoubleMLDIDData(DoubleMLData):
         x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
 
         data = pd.DataFrame(np.column_stack((x, y, d, t)),
-                            columns=x_cols + [y_col] + d_cols + t_col)
+                            columns=x_cols + [y_col] + d_cols + [t_col])
 
-        return cls(data, y_col, d_cols, x_cols, t_col, use_other_treat_as_covariate, force_all_x_finite)
+        return cls(data, y_col, d_cols, t_col, x_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def t(self):
