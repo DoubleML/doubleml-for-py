@@ -843,15 +843,93 @@ class DoubleMLDIDData(DoubleMLData):
         
         # set the time variable t
         self.t_col = t_col
+        self._check_disjoint_sets()
+        self._set_t()
 
-        self_binary_time = self._check_binary_time()
-        if not self_binary_time:
-            raise ValueError('Incompatible data. '
-                             'To fit an repeated cross sectional DiD model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as time variable.')
-        return
+    def _data_summary_str(self):
+        data_summary = f'Outcome variable: {self.y_col}\n' \
+                       f'Treatment variable(s): {self.d_cols}\n' \
+                       f'Covariates: {self.x_cols}\n' \
+                       f'Time variable: {self.t_col}\n' \
+                       f'No. Observations: {self.n_obs}\n'
+        return data_summary
+    
+    @classmethod
+    def from_arrays(cls, x, y, d, t, use_other_treat_as_covariate=True,
+                    force_all_x_finite=True):
+        """
+        Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
+        Parameters
+        ----------
+        x : :class:`numpy.ndarray`
+            Array of covariates.
+
+        y : :class:`numpy.ndarray`
+            Array of the outcome variable.
+
+        d : :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        t : :class:`numpy.ndarray`
+            Array of the time variable.
+
+        use_other_treat_as_covariate : bool
+            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
+            Default is ``True``.
+
+        force_all_x_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
+            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
+            in the covariates ``x``.
+            Default is ``True``.
+
+        Examples
+        --------
+        """
+        if isinstance(force_all_x_finite, str):
+            if force_all_x_finite != 'allow-nan':
+                raise ValueError("Invalid force_all_x_finite " + force_all_x_finite + ". " +
+                                 "force_all_x_finite must be True, False or 'allow-nan'.")
+        elif not isinstance(force_all_x_finite, bool):
+            raise TypeError("Invalid force_all_x_finite. " +
+                            "force_all_x_finite must be True, False or 'allow-nan'.")
+
+        x = check_array(x, ensure_2d=False, allow_nd=False,
+                        force_all_finite=force_all_x_finite)
+        d = check_array(d, ensure_2d=False, allow_nd=False)
+        y = column_or_1d(y, warn=True)
+        t = column_or_1d(t, warn=True)
+
+        x = _assure_2d_array(x)
+        d = _assure_2d_array(d)
+
+        check_consistent_length(x, y, d, t)
+        y_col = 'y'
+        t_col = 't'
+
+        if d.shape[1] == 1:
+            d_cols = ['d']
+        else:
+            d_cols = [f'd{i+1}' for i in np.arange(d.shape[1])]
+
+        x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
+
+        data = pd.DataFrame(np.column_stack((x, y, d, t)),
+                            columns=x_cols + [y_col] + d_cols + t_col)
+
+        return cls(data, y_col, d_cols, x_cols, t_col, use_other_treat_as_covariate, force_all_x_finite)
+
+    @property
+    def t(self):
+        """
+        Array of time variable.
+        """
+        return self._t.values
+    
     @property
     def t_col(self):
         """
@@ -859,9 +937,50 @@ class DoubleMLDIDData(DoubleMLData):
         """
         return self._t_col
     
-    def _check_binary_time(self):
+    @t_col.setter
+    def t_col(self, value):
+        reset_value = hasattr(self, '_t_col')
+        if not isinstance(value, str):
+            raise TypeError('The outcome variable t_col must be of str type. '
+                            f'{str(value)} of type {str(type(value))} was passed.')
+        if value not in self.all_variables:
+            raise ValueError('Invalid outcome variable t_col. '
+                             f'{value} is no data column.')
+        self._t_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_t()
+    
+    def _set_t(self):
         t = self.data.loc[:, self.t_col]
+        assert_all_finite(t)
         binary_outcome = (type_of_target(t) == 'binary')
         zero_one_t = np.all((np.power(t, 2) - t) == 0)
         is_binary = (binary_outcome & zero_one_t)
-        return is_binary
+        if not is_binary:
+            raise ValueError('Incompatible data. '
+                             'To fit an repeated cross sectional DiD model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as time variable.')
+        self._t = t
+
+    def _check_disjoint_sets(self):
+        # this function can be extended in inherited subclasses
+        self._check_disjoint_sets_y_d_x_z()
+        self._check_disjoint_sets_t
+
+    def _check_disjoint_sets_t(self):
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+        t_col_set = {self.t_col}
+
+        if not t_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in '
+                             '``x_cols``.')
+        if not t_col_set.isdisjoint(d_cols_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in '
+                             '``d_cols``.')
+        if not t_col_set.isdisjoint(y_col_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable in '
+                             '``y_col``.')
