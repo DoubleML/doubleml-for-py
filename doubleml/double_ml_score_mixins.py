@@ -48,15 +48,13 @@ class LinearScoreMixin:
 
         # check whether we have cluster data and dml2
         is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
+        if not is_dml2_and_cluster:
+            coef = - np.mean(psi_b) / np.mean(psi_a)
         # for cluster and dml2 we need the smpls and the scaling factors
-        if is_dml2_and_cluster:
+        else:
             assert smpls is not None
             assert scaling_factor is not None
             assert inds is None
-
-        if not is_dml2_and_cluster:
-            coef = - np.mean(psi_b) / np.mean(psi_a)
-        else:
             # if we have clustered data and dml2 the solution is the root of a weighted sum
             psi_a_subsample_mean = 0.
             psi_b_subsample_mean = 0.
@@ -112,7 +110,7 @@ class NonLinearScoreMixin:
 
         # check whether we have cluster data and dml2
         is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
-        # for cluster and dml2 we need the smpls and the scaling factors
+        # for cluster and dml2 we need the smpls and the scaling factors (only check once)
         if is_dml2_and_cluster:
             assert smpls is not None
             assert scaling_factor is not None
