@@ -1463,7 +1463,7 @@ class DoubleML(ABC):
         return sigma2_hat
 
     @abstractmethod
-    def _est_coef(self, psi_elements, smpls, scaling_factor=None, inds=None):
+    def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         pass
 
     @property
