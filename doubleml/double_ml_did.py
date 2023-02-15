@@ -11,6 +11,7 @@ from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
     _trimm
 
+
 class DoubleMLDID(LinearScoreMixin, DoubleML):
     """Double machine learning for interactive regression models
 
@@ -87,7 +88,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         # set stratication for resampling
         self._strata = self._dml_data.d
-        
+
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
@@ -121,7 +122,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
         return
-    
+
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
@@ -140,6 +141,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
+
 
 def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
     x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -177,13 +179,14 @@ def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
                     'psi_b': psi_b}
     preds = {'predictions': {'ml_g0': g_hat0['preds'],
                              'ml_m': m_hat['preds']},
-                'targets': {'ml_g0': g_hat0['targets'],
-                            'ml_m': m_hat['targets']},
-                'models': {'ml_g0': g_hat0['models'],
+             'targets': {'ml_g0': g_hat0['targets'],
+                         'ml_m': m_hat['targets']},
+             'models': {'ml_g0': g_hat0['models'],
                         'ml_m': m_hat['models']}
-                }
+             }
 
     return psi_elements, preds
+
 
 def _score_elements(self, y, d, g_hat0, m_hat, p_hat, smpls):
     m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
@@ -195,8 +198,7 @@ def _score_elements(self, y, d, g_hat0, m_hat, p_hat, smpls):
     if self.score == "RO":
         psi_b = np.multiply(np.divide(np.divide(d_resid, 1.0-m_hat), p_hat), y_resid_d0)
         psi_a = - np.divide(d, p_hat)
-    
-    
+
     return psi_a, psi_b
 
 

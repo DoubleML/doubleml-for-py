@@ -574,7 +574,6 @@ class DoubleMLData(DoubleMLBaseData):
                                  'variable in ``z_cols``.')
 
 
-
 class DoubleMLClusterData(DoubleMLData):
     """Double machine learning data-backend for data with cluster variables.
 
@@ -821,7 +820,6 @@ class DoubleMLClusterData(DoubleMLData):
         self._cluster_vars = self.data.loc[:, self.cluster_cols]
 
 
-
 class DoubleMLDIDData(DoubleMLData):
     def __init__(self,
                  data,
@@ -840,7 +838,7 @@ class DoubleMLDIDData(DoubleMLData):
                              z_cols=None,
                              use_other_treat_as_covariate=use_other_treat_as_covariate,
                              force_all_x_finite=force_all_x_finite)
-        
+
         # set the time variable t
         self.t_col = t_col
         self._check_disjoint_sets()
@@ -853,7 +851,7 @@ class DoubleMLDIDData(DoubleMLData):
                        f'Time variable: {self.t_col}\n' \
                        f'No. Observations: {self.n_obs}\n'
         return data_summary
-    
+
     @classmethod
     def from_arrays(cls, x, y, d, t, use_other_treat_as_covariate=True,
                     force_all_x_finite=True):
@@ -929,14 +927,14 @@ class DoubleMLDIDData(DoubleMLData):
         Array of time variable.
         """
         return self._t.values
-    
+
     @property
     def t_col(self):
         """
         The time variable.
         """
         return self._t_col
-    
+
     @t_col.setter
     def t_col(self, value):
         reset_value = hasattr(self, '_t_col')
@@ -950,7 +948,7 @@ class DoubleMLDIDData(DoubleMLData):
         if reset_value:
             self._check_disjoint_sets()
             self._set_t()
-    
+
     def _set_t(self):
         t = self.data.loc[:, self.t_col]
         assert_all_finite(t)
