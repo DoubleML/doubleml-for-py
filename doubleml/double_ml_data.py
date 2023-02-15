@@ -574,6 +574,7 @@ class DoubleMLData(DoubleMLBaseData):
                                  'variable in ``z_cols``.')
 
 
+
 class DoubleMLClusterData(DoubleMLData):
     """Double machine learning data-backend for data with cluster variables.
 
@@ -818,3 +819,49 @@ class DoubleMLClusterData(DoubleMLData):
     def _set_cluster_vars(self):
         assert_all_finite(self.data.loc[:, self.cluster_cols])
         self._cluster_vars = self.data.loc[:, self.cluster_cols]
+
+
+
+class DoubleMLDIDData(DoubleMLData):
+    def __init__(self,
+                 data,
+                 y_col,
+                 d_cols,
+                 t_col,
+                 x_cols=None,
+                 use_other_treat_as_covariate=True,
+                 force_all_x_finite=True):
+        # initialize a basic DoubleMLData object
+        DoubleMLData._init__(self,
+                             data,
+                             y_col,
+                             d_cols,
+                             x_cols=x_cols,
+                             z_cols=None,
+                             use_other_treat_as_covariate=use_other_treat_as_covariate,
+                             force_all_x_finite=force_all_x_finite)
+        
+        # set the time variable t
+        self.t_col = t_col
+
+        self_binary_time = self._check_binary_time()
+        if not self_binary_time:
+            raise ValueError('Incompatible data. '
+                             'To fit an repeated cross sectional DiD model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as time variable.')
+        return
+
+    @property
+    def t_col(self):
+        """
+        The time variable.
+        """
+        return self._t_col
+    
+    def _check_binary_time(self):
+        t = self.data.loc[:, self.t_col]
+        binary_outcome = (type_of_target(t) == 'binary')
+        zero_one_t = np.all((np.power(t, 2) - t) == 0)
+        is_binary = (binary_outcome & zero_one_t)
+        return is_binary
