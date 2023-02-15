@@ -115,7 +115,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self.trimming_threshold = trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g0', 'ml_m']
+        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
@@ -155,22 +155,61 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                        force_all_finite=False)
+                         force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
-                        force_all_finite=False)
+                         force_all_finite=False)
+        
+        if self.score == 'RCS':
+            x, t = check_X_y(x, self._dml_data.t,
+                             force_all_finite=False)
 
-        # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
+        lambda_hat = None
+        if self.score == 'RCS':
+            lambda_hat = np.full_like(t, np.mean(t), dtype='float64')
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+        if self.score == 'RO':
+            outcome_g = y
+            # get train indices for d == 0
+            smpls_d0, _ = _get_cond_smpls(smpls, d)
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat0['targets'] = g_hat0['targets'].astype(float)
+            g_hat0['targets'][d == 1] = np.nan
+
+        else:
+            assert self.score == 'RCS'
+            # (t-lambda)y
+            outcome_g = (t -  lambda_hat) * y
+            # create subsample for d == 0 and t == 0 
+            d0_t0 = (d == 0) & (t == 0)
+            smpls_d0_t0 = [(np.intersect1d(np.where(d0_t0)[0], train), test) for train, test in smpls]
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0_t0, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                 return_models=return_models)
-        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-        # adjust target values to consider only compatible subsamples
-        g_hat0['targets'] = g_hat0['targets'].astype(float)
-        g_hat0['targets'][d == 1] = np.nan
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat0['targets'] = g_hat0['targets'].astype(float)
+            g_hat0['targets'][np.invert(d0_t0)] = np.nan
 
+        # only relevant for RCS this fits (t-lambda)y for t == 1
+        g_hat1 = {'preds': None, 'targets': None, 'models': None}
+        if self.score == 'RCS':
+            # create subsample for d == 0 and t == 1 
+            d0_t1 = (d == 0) & (t == 1)
+            smpls_d0_t1 = [(np.intersect1d(np.where(d0_t1)[0], train), test) for train, test in smpls]
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0_t1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'] = g_hat1['targets'].astype(float)
+            g_hat1['targets'][np.invert(d0_t1)] = np.nan
+                
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
@@ -183,31 +222,56 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         for train_index, test_index in smpls:
             p_hat[test_index] = np.mean(d[train_index])
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], m_hat['preds'], p_hat, smpls)
+        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], g_hat1['preds'], m_hat['preds'], p_hat, lambda_hat)
 
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
-                                'ml_m': m_hat['preds']},
+                                 'ml_g1': g_hat0['preds'],
+                                 'ml_m': m_hat['preds']},
                 'targets': {'ml_g0': g_hat0['targets'],
+                            'ml_g1': g_hat0['targets'],
                             'ml_m': m_hat['targets']},
                 'models': {'ml_g0': g_hat0['models'],
-                            'ml_m': m_hat['models']}
+                           'ml_g1': g_hat0['models'],
+                           'ml_m': m_hat['models']}
                 }
 
         return psi_elements, preds
 
 
-    def _score_elements(self, y, d, g_hat0, m_hat, p_hat, smpls):
+    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat, lambda_hat):
+        # trimm propensities and propensity residuals
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
-
-        # compute residuals
-        y_resid_d0 = y - g_hat0
         d_resid = d - m_hat
+        residual_weight = np.divide(np.divide(d_resid, 1.0-m_hat), p_hat)
 
         if self.score == "RO":
-            psi_b = np.multiply(np.divide(np.divide(d_resid, 1.0-m_hat), p_hat), y_resid_d0)
-            psi_a = - np.divide(d, p_hat)
+            y_resid_d0 = y - g_hat0
+            psi_b = np.multiply(residual_weight, y_resid_d0)
+        
+        else:
+            assert self.score == 'RCS'
+            t = self._dml_data.t
+            
+            # compute residuals
+            outcome_g = (t -  lambda_hat) * y
+            y_resid_d0 = outcome_g - g_hat0
+            # Use the predictions of the different model for t == 1
+            y_resid_d0[t == 1] = outcome_g[t == 1] - g_hat1[t == 1]
+
+            psi_b_1 = np.divide(1.0, np.multiply(lambda_hat, 1-lambda_hat))
+            psi_b_2 = np.multiply(residual_weight, y_resid_d0)
+
+            lambda_deriv_1 = np.multiply(np.multiply(1-2*lambda_hat, np.square(psi_b_1)), psi_b_2)
+            lambda_deriv_2 = np.multiply(y, np.multiply(psi_b_1, residual_weight))
+            G_2lambda = np.mean(lambda_deriv_1 - lambda_deriv_2)
+            psi_b_3 = np.multiply(G_2lambda, t - lambda_hat)
+
+            psi_b = np.multiply(psi_b_1, psi_b_2) + psi_b_3
+
+        # psi_a is the same for RO and RCS
+        psi_a = - np.divide(d, p_hat)
 
         return psi_a, psi_b
 
