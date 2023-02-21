@@ -69,7 +69,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                  ml_m,
                  n_folds=5,
                  n_rep=1,
-                 score='RO',
+                 score='PA-1',
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
@@ -87,7 +87,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._check_score(self.score)
 
         # set stratication for resampling
-        if self.score == 'RO':
+        if (self.score == 'PA-1') or (self.score == 'PA-2'):
             self._strata = self._dml_data.d
         else:
             assert self.score == 'RCS'
@@ -121,14 +121,14 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['RO', 'RCS']
+            valid_score = ['PA-1', 'PA-2', 'RCS']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
         return
 
     def _check_data(self, obj_dml_data):
-        if self.score == 'RO':
+        if (self.score == 'PA-1') or (self.score == 'PA-2'):
             if not isinstance(obj_dml_data, DoubleMLData):
                 raise TypeError('For repeated outcomes the data must be of DoubleMLData type. '
                                 f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
@@ -169,10 +169,10 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             lambda_hat = np.full_like(t, np.mean(t), dtype='float64')
 
         # nuisance g
-        if self.score == 'RO':
+        if (self.score == 'PA-1') or (self.score == 'PA-2'):
             outcome_g = y
             # get train indices for d == 0
-            smpls_d0, _ = _get_cond_smpls(smpls, d)
+            smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
@@ -180,6 +180,14 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             # adjust target values to consider only compatible subsamples
             g_hat0['targets'] = g_hat0['targets'].astype(float)
             g_hat0['targets'][d == 1] = np.nan
+
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'] = g_hat1['targets'].astype(float)
+            g_hat1['targets'][d == 0] = np.nan
 
         else:
             assert self.score == 'RCS'
@@ -196,9 +204,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             g_hat0['targets'] = g_hat0['targets'].astype(float)
             g_hat0['targets'][np.invert(d0_t0)] = np.nan
 
-        # only relevant for RCS this fits (t-lambda)y for t == 1
-        g_hat1 = {'preds': None, 'targets': None, 'models': None}
-        if self.score == 'RCS':
             # create subsample for d == 0 and t == 1 
             d0_t1 = (d == 0) & (t == 1)
             smpls_d0_t1 = [(np.intersect1d(np.where(d0_t1)[0], train), test) for train, test in smpls]
@@ -209,7 +214,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = g_hat1['targets'].astype(float)
             g_hat1['targets'][np.invert(d0_t1)] = np.nan
-                
+
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
@@ -246,12 +251,25 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         d_resid = d - m_hat
         residual_weight = np.divide(np.divide(d_resid, 1.0-m_hat), p_hat)
 
-        if self.score == "RO":
+        if self.score == 'PA-1':
+            # psi_a is the same for RO and RCS
+            psi_a = - np.divide(d, p_hat)
             y_resid_d0 = y - g_hat0
             psi_b = np.multiply(residual_weight, y_resid_d0)
         
+        elif self.score == 'PA-2':
+            psi_a = -1.0
+            d_resid = d - p_hat
+            residual_weight = np.divide(np.divide(d_resid, 1.0-p_hat), p_hat)
+            y_resid_d0 = y - g_hat0
+            psi_b_1 = np.multiply(residual_weight, y_resid_d0)
+            psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
+            psi_b = psi_b_1 + psi_b_2
+        
         else:
             assert self.score == 'RCS'
+            # psi_a is the same for RO and RCS
+            psi_a = - np.divide(d, p_hat)
             t = self._dml_data.t
             
             # compute residuals
@@ -270,8 +288,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
             psi_b = np.multiply(psi_b_1, psi_b_2) + psi_b_3
 
-        # psi_a is the same for RO and RCS
-        psi_a = - np.divide(d, p_hat)
+
 
         return psi_a, psi_b
 

@@ -117,7 +117,7 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['CS-4', 'CS*-4']
+            valid_score = ['CS-4', 'CS*-4', 'CS-5', 'DR-1', 'DR-2']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -266,6 +266,51 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
                                            np.multiply(1.0-m_hat, np.multiply(p_hat, lambda_hat)))
             weight_resid_d0_t0 = np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)),
                                            np.multiply(1.0-m_hat, np.multiply(p_hat, 1.0-lambda_hat)))
+
+        elif self.score == 'CS-5':
+            #todo: improve this implementation
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = weight_psi_a
+            weight_g_d1_t0 = weight_psi_a
+            weight_g_d0_t1 = weight_psi_a 
+            weight_g_d0_t0 = weight_psi_a 
+            
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat))
+            weight_resid_d0_t1 = np.divide(np.multiply(1.0-d, t), np.multiply(1.0-p_hat, lambda_hat))
+            weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(1.0-p_hat, 1.0-lambda_hat))
+
+        elif self.score == 'DR-1':
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = np.zeros_like(weight_psi_a)
+            weight_g_d1_t0 = np.zeros_like(weight_psi_a)
+            weight_g_d0_t1 = np.zeros_like(weight_psi_a)
+            weight_g_d0_t0 = np.zeros_like(weight_psi_a)
+
+            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
+            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
+            weight_resid_d0_t1 = np.divide(np.multiply(d, t), np.mean(np.multiply(d, t))) \
+                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat),
+                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat)))
+            weight_resid_d0_t0 = np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t))) \
+                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat),
+                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat)))
+
+        elif self.score == 'DR-2':
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, t), np.mean(np.multiply(d, t)))
+            weight_g_d1_t0 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t)))
+            weight_g_d0_t1 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, t), np.mean(np.multiply(d, t)))
+            weight_g_d0_t0 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t)))
+
+            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
+            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
+            weight_resid_d0_t1 = np.divide(np.multiply(d, t), np.mean(np.multiply(d, t))) \
+                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat),
+                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat)))
+            weight_resid_d0_t0 = np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t))) \
+                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat),
+                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat)))
 
         psi_a = -1.0 * weight_psi_a
 
