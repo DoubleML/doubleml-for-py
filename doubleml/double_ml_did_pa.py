@@ -87,11 +87,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._check_score(self.score)
 
         # set stratication for resampling
-        if (self.score == 'PA-1') or (self.score == 'PA-2'):
-            self._strata = self._dml_data.d
-        else:
-            assert self.score == 'RCS'
-            self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
+        self._strata = self._dml_data.d
+
 
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
@@ -121,22 +118,16 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['PA-1', 'PA-2', 'RCS']
+            valid_score = ['PA-1', 'PA-2', 'DR']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
         return
 
     def _check_data(self, obj_dml_data):
-        if (self.score == 'PA-1') or (self.score == 'PA-2'):
-            if not isinstance(obj_dml_data, DoubleMLData):
-                raise TypeError('For repeated outcomes the data must be of DoubleMLData type. '
-                                f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        else:
-            assert self.score =='RCS'
-            if not isinstance(obj_dml_data, DoubleMLDIDData):
-                raise TypeError('For repeated cross sections the data must be of DoubleMLDIDData type. '
-                                f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('For repeated outcomes the data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
@@ -158,62 +149,30 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        
-        if self.score == 'RCS':
-            x, t = check_X_y(x, self._dml_data.t,
-                             force_all_finite=False)
-
-        # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
-        lambda_hat = None
-        if self.score == 'RCS':
-            lambda_hat = np.full_like(t, np.mean(t), dtype='float64')
 
         # nuisance g
-        if (self.score == 'PA-1') or (self.score == 'PA-2'):
-            outcome_g = y
-            # get train indices for d == 0
-            smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat0['targets'] = g_hat0['targets'].astype(float)
-            g_hat0['targets'][d == 1] = np.nan
+        # get train indices for d == 0
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
+    
+        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat0['targets'] = g_hat0['targets'].astype(float)
+        g_hat0['targets'][d == 1] = np.nan
+        
+        # only relevant for experimental setting PA-2
+        g_hat1 = {'preds': None, 'targets': None, 'models': None}
+        if self.score == 'PA-2':
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                return_models=return_models)
 
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = g_hat1['targets'].astype(float)
             g_hat1['targets'][d == 0] = np.nan
-
-        else:
-            assert self.score == 'RCS'
-            # (t-lambda)y
-            outcome_g = (t -  lambda_hat) * y
-            # create subsample for d == 0 and t == 0 
-            d0_t0 = (d == 0) & (t == 0)
-            smpls_d0_t0 = [(np.intersect1d(np.where(d0_t0)[0], train), test) for train, test in smpls]
-            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0_t0, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                return_models=return_models)
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat0['targets'] = g_hat0['targets'].astype(float)
-            g_hat0['targets'][np.invert(d0_t0)] = np.nan
-
-            # create subsample for d == 0 and t == 1 
-            d0_t1 = (d == 0) & (t == 1)
-            smpls_d0_t1 = [(np.intersect1d(np.where(d0_t1)[0], train), test) for train, test in smpls]
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, outcome_g, smpls=smpls_d0_t1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][np.invert(d0_t1)] = np.nan
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -227,68 +186,48 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         for train_index, test_index in smpls:
             p_hat[test_index] = np.mean(d[train_index])
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], g_hat1['preds'], m_hat['preds'], p_hat, lambda_hat)
+        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], g_hat1['preds'], m_hat['preds'], p_hat)
 
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
-                                 'ml_g1': g_hat0['preds'],
+                                 'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
                 'targets': {'ml_g0': g_hat0['targets'],
-                            'ml_g1': g_hat0['targets'],
+                            'ml_g1': g_hat1['targets'],
                             'ml_m': m_hat['targets']},
                 'models': {'ml_g0': g_hat0['models'],
-                           'ml_g1': g_hat0['models'],
+                           'ml_g1': g_hat1['models'],
                            'ml_m': m_hat['models']}
                 }
 
         return psi_elements, preds
 
 
-    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat, lambda_hat):
-        # trimm propensities and propensity residuals
+    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat):
+        # trimm propensities and propensity weights and residuals
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
-        d_resid = d - m_hat
-        residual_weight = np.divide(np.divide(d_resid, 1.0-m_hat), p_hat)
+        y_resid_d0 = y - g_hat0
 
         if self.score == 'PA-1':
-            # psi_a is the same for RO and RCS
-            psi_a = - np.divide(d, p_hat)
-            y_resid_d0 = y - g_hat0
-            psi_b = np.multiply(residual_weight, y_resid_d0)
+            psi_a = -1.0 * np.divide(d, p_hat)
+            y_resid_d0_weight = np.multiply(np.divide(d-m_hat, p_hat), 1.0-m_hat)
+            psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
         
         elif self.score == 'PA-2':
             psi_a = -1.0
-            d_resid = d - p_hat
-            residual_weight = np.divide(np.divide(d_resid, 1.0-p_hat), p_hat)
-            y_resid_d0 = y - g_hat0
-            psi_b_1 = np.multiply(residual_weight, y_resid_d0)
+            y_resid_d0_weight = np.multiply(np.divide(d-m_hat, p_hat), 1.0-m_hat)
+            psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
             psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
             psi_b = psi_b_1 + psi_b_2
-        
+
         else:
-            assert self.score == 'RCS'
-            # psi_a is the same for RO and RCS
-            psi_a = - np.divide(d, p_hat)
-            t = self._dml_data.t
-            
-            # compute residuals
-            outcome_g = (t -  lambda_hat) * y
-            y_resid_d0 = outcome_g - g_hat0
-            # Use the predictions of the different model for t == 1
-            y_resid_d0[t == 1] = outcome_g[t == 1] - g_hat1[t == 1]
-
-            psi_b_1 = np.divide(1.0, np.multiply(lambda_hat, 1-lambda_hat))
-            psi_b_2 = np.multiply(residual_weight, y_resid_d0)
-
-            lambda_deriv_1 = np.multiply(np.multiply(1-2*lambda_hat, np.square(psi_b_1)), psi_b_2)
-            lambda_deriv_2 = np.multiply(y, np.multiply(psi_b_1, residual_weight))
-            G_2lambda = np.mean(lambda_deriv_1 - lambda_deriv_2)
-            psi_b_3 = np.multiply(G_2lambda, t - lambda_hat)
-
-            psi_b = np.multiply(psi_b_1, psi_b_2) + psi_b_3
-
-
+            assert self.score == 'DR'
+            psi_a = -1.0 * np.divide(d, p_hat)
+            propensity_weight = np.divide(m_hat, 1.0-m_hat)
+            y_resid_d0_weight = np.divide(d, np.mean(d)) \
+                - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
+            psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
 
         return psi_a, psi_b
 

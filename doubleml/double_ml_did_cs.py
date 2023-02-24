@@ -63,6 +63,7 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
         Indicates whether cross-fitting should be applied.
         Default is ``True``.
     """
+
     def __init__(self,
                  obj_dml_data,
                  ml_g,
@@ -87,15 +88,18 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
         self._check_score(self.score)
 
         # set stratication for resampling
-        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
+        self._strata = self._dml_data.d.reshape(-1, 1) + \
+            2 * self._dml_data.t.reshape(-1, 1)
 
-        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        ml_g_is_classifier = self._check_learner(
+            ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
 
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
-                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+                self._predict_method = {
+                    'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
             else:
                 raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
                                  'but the outcome variable is not binary with values 0 and 1.')
@@ -111,13 +115,14 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
         self.trimming_threshold = trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1', 'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
+        valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
+                         'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['CS-4', 'CS*-4', 'CS-5', 'DR-1', 'DR-2']
+            valid_score = ['CS-4', 'CS*-4', 'CS-5', 'DR-1', 'DR-2', 'Chang']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -134,14 +139,14 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
                              'At the moment there are not DiD models with instruments implemented.')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        zero_one_treat = np.all(
+            (np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
                              'To fit an DiD model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
-
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -163,7 +168,8 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
             lambda_hat[test_index] = np.mean(t[train_index])
 
         # nuisance g
-        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
+        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(
+            smpls, d, t)
 
         g_hat_d0_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t0, n_jobs=n_jobs_cv,
                                       est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
@@ -188,16 +194,18 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
                                       return_models=return_models)
         g_hat_d1_t1['targets'] = g_hat_d1_t1['targets'].astype(float)
         g_hat_d1_t1['targets'][np.invert((d == 1) & (t == 1))] = np.nan
-                
+
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
-        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        _check_finite_predictions(
+            m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        _check_is_propensity(
+            m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         psi_a, psi_b = self._score_elements(y, d, t,
-                                            g_hat_d0_t0['preds'], g_hat_d0_t1['preds'], 
+                                            g_hat_d0_t0['preds'], g_hat_d0_t1['preds'],
                                             g_hat_d1_t0['preds'], g_hat_d1_t1['preds'],
                                             m_hat['preds'], p_hat, lambda_hat)
 
@@ -208,26 +216,25 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
                                  'ml_g_d1_t0': g_hat_d1_t0['preds'],
                                  'ml_g_d1_t1': g_hat_d1_t1['preds'],
                                  'ml_m': m_hat['preds']},
-                'targets': {'ml_g_d0_t0': g_hat_d0_t0['targets'],
-                            'ml_g_d0_t1': g_hat_d0_t1['targets'],
-                            'ml_g_d1_t0': g_hat_d1_t0['targets'],
-                            'ml_g_d1_t1': g_hat_d1_t1['targets'],
-                            'ml_m': m_hat['targets']},
-                'models': {'ml_g_d0_t0': g_hat_d0_t0['models'],
-                           'ml_g_d0_t1': g_hat_d0_t1['models'],
-                           'ml_g_d1_t0': g_hat_d1_t0['models'],
-                           'ml_g_d1_t1': g_hat_d1_t1['models'],
-                           'ml_m': m_hat['models']}
-                }
+                 'targets': {'ml_g_d0_t0': g_hat_d0_t0['targets'],
+                             'ml_g_d0_t1': g_hat_d0_t1['targets'],
+                             'ml_g_d1_t0': g_hat_d1_t0['targets'],
+                             'ml_g_d1_t1': g_hat_d1_t1['targets'],
+                             'ml_m': m_hat['targets']},
+                 'models': {'ml_g_d0_t0': g_hat_d0_t0['models'],
+                            'ml_g_d0_t1': g_hat_d0_t1['models'],
+                            'ml_g_d1_t0': g_hat_d1_t0['models'],
+                            'ml_g_d1_t1': g_hat_d1_t1['models'],
+                            'ml_m': m_hat['models']}
+                 }
 
         return psi_elements, preds
-
 
     def _score_elements(self, y, d, t,
                         g_hat_d0_t0, g_hat_d0_t1,
                         g_hat_d1_t0, g_hat_d1_t1,
                         m_hat, p_hat, lambda_hat):
-        
+
         # trimm propensities
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
         # calculate residuals
@@ -236,52 +243,68 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
         resid_d1_t0 = y - g_hat_d1_t0
         resid_d1_t1 = y - g_hat_d1_t1
 
+        # default term for chang and not efficient Zimmert to correct for the form of the score
+        psi_b_3 = np.zeros_like(y)
+
         if self.score == 'CS-4':
             weight_psi_a = np.divide(d, p_hat)
             weight_g_d1_t1 = weight_psi_a
-            weight_g_d1_t0 = weight_psi_a
-            weight_g_d0_t1 = weight_psi_a
+            weight_g_d1_t0 = -1.0 * weight_psi_a
+            weight_g_d0_t1 = -1.0 * weight_psi_a
             weight_g_d0_t0 = weight_psi_a
+
+            weight_resid_d1_t1 = np.divide(np.multiply(
+                d, t), np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * \
+                np.divide(np.multiply(d, 1.0-t),
+                          np.multiply(p_hat, 1.0-lambda_hat))
             
-            weight_resid_d1_t1 = np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
-            weight_resid_d1_t0 = np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat))
-            weight_resid_d0_t1 = np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)),
-                                           np.multiply(1.0-m_hat, np.multiply(p_hat, lambda_hat)))
-            weight_resid_d0_t0 = np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)),
-                                           np.multiply(1.0-m_hat, np.multiply(p_hat, 1.0-lambda_hat)))
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t), np.multiply(p_hat, lambda_hat)),
+                                                    prop_weighting)
+            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)),
+                                             prop_weighting)
         elif self.score == 'CS*-4':
-            #todo: improve this implementation
+            # todo: improve this implementation
             weight_psi_a = np.divide(d, p_hat)
             weight_g_d1_t1 = np.zeros_like(weight_psi_a)
             weight_g_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t1 = weight_psi_a 
-            weight_g_d0_t0 = weight_psi_a 
+            weight_g_d0_t1 = -1.0 * weight_psi_a
+            weight_g_d0_t0 = weight_psi_a
+
+            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
+            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
+
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t), np.multiply(p_hat, lambda_hat)),
+                                                    prop_weighting)
+            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)),
+                                             prop_weighting)
             
-            # reset residuals
-            resid_d1_t0 = y
-            resid_d1_t1 = y
-            weight_resid_d1_t1 = np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
-            weight_resid_d1_t0 = np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat))
-            weight_resid_d0_t1 = np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)),
-                                           np.multiply(1.0-m_hat, np.multiply(p_hat, lambda_hat)))
-            weight_resid_d0_t0 = np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)),
-                                           np.multiply(1.0-m_hat, np.multiply(p_hat, 1.0-lambda_hat)))
+            psi_b_3 = np.multiply(np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
+                                  - np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)), y)
 
         elif self.score == 'CS-5':
-            #todo: improve this implementation
+            # todo: improve this implementation
             weight_psi_a = np.ones_like(d)
             weight_g_d1_t1 = weight_psi_a
-            weight_g_d1_t0 = weight_psi_a
-            weight_g_d0_t1 = weight_psi_a 
-            weight_g_d0_t0 = weight_psi_a 
-            
-            weight_resid_d1_t1 = np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
-            weight_resid_d1_t0 = np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat))
-            weight_resid_d0_t1 = np.divide(np.multiply(1.0-d, t), np.multiply(1.0-p_hat, lambda_hat))
-            weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(1.0-p_hat, 1.0-lambda_hat))
+            weight_g_d1_t0 = -1.0 * weight_psi_a
+            weight_g_d0_t1 = -1.0 * weight_psi_a
+            weight_g_d0_t0 = weight_psi_a
+
+            weight_resid_d1_t1 = np.divide(np.multiply(
+                d, t), np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * \
+                np.divide(np.multiply(d, 1.0-t),
+                          np.multiply(p_hat, 1.0-lambda_hat))
+            weight_resid_d0_t1 = -1.0 * \
+                np.divide(np.multiply(1.0-d, t),
+                          np.multiply(1.0-p_hat, lambda_hat))
+            weight_resid_d0_t0 = np.divide(np.multiply(
+                1.0-d, 1.0-t), np.multiply(1.0-p_hat, 1.0-lambda_hat))
 
         elif self.score == 'DR-1':
-            weight_psi_a = np.ones_like(d)
+            weight_psi_a = np.ones_like(y)
             weight_g_d1_t1 = np.zeros_like(weight_psi_a)
             weight_g_d1_t0 = np.zeros_like(weight_psi_a)
             weight_g_d0_t1 = np.zeros_like(weight_psi_a)
@@ -289,41 +312,93 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
 
             weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
             weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_resid_d0_t1 = np.divide(np.multiply(d, t), np.mean(np.multiply(d, t))) \
-                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat),
-                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat)))
-            weight_resid_d0_t0 = np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t))) \
-                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat),
-                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat)))
+
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            scaling_d0_t1 = np.mean(np.multiply(
+                np.multiply(1.0-d, t), prop_weighting))
+            weight_resid_d0_t1 = np.multiply(t, (np.divide(d, np.mean(np.multiply(d, t)))
+                                                 - np.divide(np.multiply(1.0-d, prop_weighting),
+                                                             scaling_d0_t1)))
+
+            scaling_d0_t0 = np.mean(np.multiply(
+                np.multiply(1.0-d, 1.0-t), prop_weighting))
+            weight_resid_d0_t0 = -1.0 * np.multiply(1.0-t, (np.divide(d, np.mean(np.multiply(d, 1.0-t)))
+                                                            - np.divide(np.multiply(1.0-d, prop_weighting),
+                                                                        scaling_d0_t0)))
 
         elif self.score == 'DR-2':
-            weight_psi_a = np.ones_like(d)
-            weight_g_d1_t1 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, t), np.mean(np.multiply(d, t)))
-            weight_g_d1_t0 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t)))
-            weight_g_d0_t1 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, t), np.mean(np.multiply(d, t)))
-            weight_g_d0_t0 = np.divide(d, np.mean(d)) - np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t)))
+            weight_psi_a = np.ones_like(y)
+            weight_g_d1_t1 = np.divide(d, np.mean(d))
+            weight_g_d1_t0 = -1.0 * np.divide(d, np.mean(d))
+            weight_g_d0_t1 = weight_g_d1_t0
+            weight_g_d0_t0 = weight_g_d1_t1
+
+            weight_resid_d1_t1 = np.divide(
+                np.multiply(d, t), np.mean(np.multiply(d, t)))
+            weight_resid_d1_t0 = -1.0 * \
+                np.divide(np.multiply(d, 1.0-t),
+                          np.mean(np.multiply(d, 1.0-t)))
+
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            scaling_d0_t1 = np.mean(np.multiply(
+                np.multiply(1.0-d, t), prop_weighting))
+            weight_resid_d0_t1 = -1.0 * \
+                np.divide(np.multiply(np.multiply(1.0-d, t),
+                          prop_weighting), scaling_d0_t1)
+
+            scaling_d0_t0 = np.mean(np.multiply(
+                np.multiply(1.0-d, 1.0-t), prop_weighting))
+            weight_resid_d0_t0 = np.divide(np.multiply(
+                np.multiply(1.0-d, 1.0-t), prop_weighting), scaling_d0_t0)
+
+        elif self.score == 'Chang':
+            weight_psi_a = np.divide(d, p_hat)
+            weight_g_d1_t1 = np.zeros_like(weight_psi_a)
+            weight_g_d1_t0 = np.zeros_like(weight_psi_a)
+            weight_g_d0_t1 = np.zeros_like(weight_psi_a)
+            weight_g_d0_t0 = np.zeros_like(weight_psi_a)
 
             weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
             weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_resid_d0_t1 = np.divide(np.multiply(d, t), np.mean(np.multiply(d, t))) \
-                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat),
-                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, t)), 1.0-m_hat)))
-            weight_resid_d0_t0 = np.divide(np.multiply(d, 1.0-t), np.mean(np.multiply(d, 1.0-t))) \
-                - np.divide(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat),
-                            np.mean(np.divide(np.multiply(m_hat, np.multiply(1.0-d, 1.0-t)), 1.0-m_hat)))
 
+            # part of the weights for t==0 and t==1
+            weight_d0 = d - np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+            # calc weight für resid_d0_t1
+            weight_resid_d0_t1_1 = np.divide(t, np.divide(lambda_hat, p_hat))
+            weight_resid_d0_t1 = np.multiply(weight_resid_d0_t1_1, weight_d0)
+            # calc weight für resid_d0_t0
+            weight_resid_d0_t0_1 = np.divide(
+                1.0-t, np.divide(1.0-lambda_hat, p_hat))
+            weight_resid_d0_t0 = -1.0 * \
+                np.multiply(weight_resid_d0_t0_1, weight_d0)
+
+            resid_d0 = np.multiply(t, y-resid_d0_t1) + \
+                np.multiply(1.0-t, y-resid_d0_t0)
+            G_2lambda_weight = np.divide(
+                d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+            G_2lambda_1 = np.multiply(np.divide(
+                1-2*lambda_hat, np.square(np.multiply(lambda_hat, 1.0-lambda_hat))), G_2lambda_weight)
+            G_2lambda_2 = np.multiply(np.divide(1, np.multiply(
+                lambda_hat, 1.0-lambda_hat)), G_2lambda_weight)
+            G_2lambda = np.mean(np.multiply(G_2lambda_1, np.multiply(
+                t-lambda_hat, resid_d0)) - np.multiply(G_2lambda_2, y))
+            psi_b_3 = np.multiply(G_2lambda, t - lambda_hat)
+
+        # set score elements
         psi_a = -1.0 * weight_psi_a
 
         # psi_b
-        psi_b_1 = np.multiply(weight_g_d1_t1,  g_hat_d1_t1) - np.multiply(weight_g_d1_t0,  g_hat_d1_t0) \
-            + np.multiply(weight_g_d0_t0,  g_hat_d0_t0) - np.multiply(weight_g_d0_t1,  g_hat_d0_t1) 
-        psi_b_2 = np.multiply(weight_resid_d1_t1,  resid_d1_t1) - np.multiply(weight_resid_d1_t0,  resid_d1_t0) \
-            + np.multiply(weight_resid_d0_t0,  resid_d0_t0) - np.multiply(weight_resid_d0_t1,  resid_d0_t1) 
-        psi_b = psi_b_1 + psi_b_2
+        psi_b_1 = np.multiply(weight_g_d1_t1,  g_hat_d1_t1) + np.multiply(weight_g_d1_t0,  g_hat_d1_t0) \
+            + np.multiply(weight_g_d0_t0,  g_hat_d0_t0) + \
+            np.multiply(weight_g_d0_t1,  g_hat_d0_t1)
+        psi_b_2 = np.multiply(weight_resid_d1_t1,  resid_d1_t1) + np.multiply(weight_resid_d1_t0,  resid_d1_t0) \
+            + np.multiply(weight_resid_d0_t0,  resid_d0_t0) + \
+            np.multiply(weight_resid_d0_t1,  resid_d0_t1)
+
+        psi_b = psi_b_1 + psi_b_2 + psi_b_3
 
         return psi_a, psi_b
 
-
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                        search_mode, n_iter_randomized_search):
+                         search_mode, n_iter_randomized_search):
         pass
