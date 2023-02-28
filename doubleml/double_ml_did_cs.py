@@ -5,7 +5,7 @@ from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
-from .double_ml_data import DoubleMLData, DoubleMLDIDData
+from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
@@ -129,8 +129,8 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
         return
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLDIDData):
-            raise TypeError('For repeated cross sections the data must be of DoubleMLDIDData type. '
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('For repeated cross sections the data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
@@ -146,6 +146,17 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
                              'To fit an DiD model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
+
+        binary_time = (type_of_target(obj_dml_data.t) == 'binary')
+        zero_one_time = np.all(
+            (np.power(obj_dml_data.t, 2) - obj_dml_data.t) == 0)
+
+        if not (binary_time & zero_one_time):
+            raise ValueError('Incompatible data. '
+                    'To fit an DiD model with DML '
+                    'exactly one binary variable with values 0 and 1 '
+                    'needs to be specified as time variable.')
+
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
