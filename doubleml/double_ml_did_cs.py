@@ -375,11 +375,11 @@ class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
             # part of the weights for t==0 and t==1
             weight_d0 = d - np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
             # calc weight für resid_d0_t1
-            weight_resid_d0_t1_1 = np.divide(t, np.divide(lambda_hat, p_hat))
+            weight_resid_d0_t1_1 = np.divide(t, np.multiply(lambda_hat, p_hat))
             weight_resid_d0_t1 = np.multiply(weight_resid_d0_t1_1, weight_d0)
             # calc weight für resid_d0_t0
             weight_resid_d0_t0_1 = np.divide(
-                1.0-t, np.divide(1.0-lambda_hat, p_hat))
+                1.0-t, np.multiply(1.0-lambda_hat, p_hat))
             weight_resid_d0_t0 = -1.0 * \
                 np.multiply(weight_resid_d0_t0_1, weight_d0)
 
