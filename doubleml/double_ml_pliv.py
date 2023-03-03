@@ -347,6 +347,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                                 return_models=return_models)
         _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
+        predictions = {'ml_l': l_hat['preds']}
+        targets = {'ml_l': l_hat['targets']}
+        models = {'ml_l': l_hat['models']}
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
@@ -355,6 +358,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                     return_models=return_models)
+            predictions['ml_m'] = m_hat['preds']
+            targets['ml_m'] = m_hat['targets']
+            models['ml_m'] = m_hat['models']
         else:
             # several instruments: 2SLS
             m_hat = {'preds': np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan),
@@ -366,8 +372,13 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 res_cv_predict = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
                                                  est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
                                                  method=self._predict_method['ml_m'], return_models=return_models)
+
                 m_hat['preds'][:, i_instr] = res_cv_predict['preds']
-                m_hat['models'][i_instr] = res_cv_predict['models']
+
+                predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['preds']
+                targets['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['targets']
+                models['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['models']
+
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
@@ -375,8 +386,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                                 est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
                                 return_models=return_models)
         _check_finite_predictions(r_hat['preds'], self._learner['ml_r'], 'ml_r', smpls)
+        predictions['ml_r'] = r_hat['preds']
+        targets['ml_r'] = r_hat['targets']
+        models['ml_r'] = r_hat['models']
 
-        g_hat = {'preds': None, 'models': None}
+        g_hat = {'preds': None, 'targets': None, 'models': None}
         if (self._dml_data.n_instr == 1) & ('ml_g' in self._learner):
             # an estimate of g is obtained for the IV-type score and callable scores
             # get an initial estimate for theta using the partialling out score
@@ -389,22 +403,20 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                                     return_models=return_models)
             _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
+        predictions['ml_g'] = g_hat['preds']
+        targets['ml_g'] = g_hat['targets']
+        models['ml_g'] = g_hat['models']
         psi_a, psi_b = self._score_elements(y, z, d,
                                             l_hat['preds'], m_hat['preds'], r_hat['preds'], g_hat['preds'],
                                             smpls)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
-        preds = {'predictions': {'ml_l': l_hat['preds'],
-                                 'ml_m': m_hat['preds'],
-                                 'ml_r': r_hat['preds'],
-                                 'ml_g': g_hat['preds']},
-                 'models': {'ml_l': l_hat['models'],
-                            'ml_m': m_hat['models'],
-                            'ml_r': r_hat['models'],
-                            'ml_g': g_hat['models']}
-                 }
+        predictions = {'predictions': predictions,
+                       'targets': targets,
+                       'models': models
+                       }
 
-        return psi_elements, preds
+        return psi_elements, predictions
 
     def _score_elements(self, y, z, d, l_hat, m_hat, r_hat, g_hat, smpls):
         # compute residuals
@@ -469,6 +481,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         preds = {'predictions': {'ml_r': r_hat['preds']},
+                 'targets': {'ml_r': r_hat['targets']},
                  'models': {'ml_r': r_hat['models']}}
 
         return psi_elements, preds
@@ -517,6 +530,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_r': m_hat_tilde['preds']},
+                 'targets': {'ml_l': l_hat['targets'],
+                             'ml_m': m_hat['targets'],
+                             'ml_r': m_hat_tilde['targets']},
                  'models': {'ml_l': l_hat['models'],
                             'ml_m': m_hat['models'],
                             'ml_r': m_hat_tilde['models']}

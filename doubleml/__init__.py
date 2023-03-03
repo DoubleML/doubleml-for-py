@@ -4,10 +4,11 @@ from .double_ml_plr import DoubleMLPLR
 from .double_ml_pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
 from .double_ml_iivm import DoubleMLIIVM
-from doubleml.double_ml_pcorr import DoubleMLPartialCorr
-from doubleml.double_ml_copula import DoubleMLPartialCopula
+from .double_ml_pcorr import DoubleMLPartialCorr
+from .double_ml_copula import DoubleMLPartialCopula
 
 from .double_ml_data import DoubleMLData, DoubleMLClusterData, DoubleMLPartialDependenceData
+from .double_ml_blp import DoubleMLBLP
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',
@@ -17,6 +18,7 @@ __all__ = ['DoubleMLPLR',
            'DoubleMLPartialCopula',
            'DoubleMLData',
            'DoubleMLClusterData',
-           'DoubleMLPartialDependenceData']
+           'DoubleMLPartialDependenceData',
+           'DoubleMLBLP']
 
 __version__ = get_distribution('doubleml').version

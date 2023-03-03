@@ -1,11 +1,17 @@
 import numpy as np
+import pandas as pd
+import warnings
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
+
+from .double_ml_blp import DoubleMLBLP
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
+
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
+    _trimm, _normalize_ipw
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -44,13 +50,17 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
 
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
+
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
         Default is ``'truncate'``.
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -108,8 +118,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='ATE',
                  dml_procedure='dml2',
+                 normalize_ipw=False,
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -122,9 +133,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
+        # set stratication for resampling
+        self._strata = self._dml_data.d
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        self._normalize_ipw = normalize_ipw
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
@@ -171,7 +185,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
-        if not(one_treat & binary_treat & zero_one_treat):
+        if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
                              'To fit an IRM model with DML '
                              'exactly one binary variable with values 0 and 1 '
@@ -191,6 +205,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat0['targets'] = g_hat0['targets'].astype(float)
+        g_hat0['targets'][d == 1] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
@@ -201,12 +218,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        g_hat1 = {'preds': None, 'models': None}
+        g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if (self.score == 'ATE') | callable(self.score):
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'] = g_hat1['targets'].astype(float)
+            g_hat1['targets'][d == 0] = np.nan
 
             if self._dml_data.binary_outcome:
                 binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
@@ -222,6 +242,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
@@ -231,6 +252,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets']},
                  'models': {'ml_g0': g_hat0['models'],
                             'ml_g1': g_hat1['models'],
                             'ml_m': m_hat['models']}
@@ -246,9 +270,14 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
-        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
-            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
-            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+
+        if self._normalize_ipw:
+            if self.dml_procedure == 'dml1':
+                for _, test_index in smpls:
+                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            else:
+                m_hat = _normalize_ipw(m_hat, d)
 
         # compute residuals
         u_hat0 = y - g_hat0
@@ -325,3 +354,80 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def cate(self, basis):
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model.
+        """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        # define the orthogonal signal
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        # fit the best linear predictor
+        model = DoubleMLBLP(orth_signal, basis=basis).fit()
+
+        return model
+
+    def gate(self, groups):
+        """
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLPGATE`
+            Best linear Predictor model for Group Effects.
+        """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError('Groups must be of DataFrame type. '
+                            f'Groups of type {str(type(groups))} was passed.')
+
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
+            else:
+                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
+                                'Alternatively, groups should only contain one column.')
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn('At least one group effect is estimated with less than 6 observations.')
+
+        # define the orthogonal signal
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        # fit the best linear predictor for GATE (different confint() method)
+        model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
+
+        return model

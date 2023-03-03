@@ -9,7 +9,7 @@ from functools import wraps
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity
 
 
 # To be removed in version 0.6.0
@@ -219,6 +219,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        if self._check_learner(self._learner['ml_m'], 'ml_m', regressor=True, classifier=True):
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
             binary_preds = (type_of_target(m_hat['preds']) == 'binary')
@@ -230,7 +232,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # an estimate of g is obtained for the IV-type score and callable scores
-        g_hat = {'preds': None, 'models': None}
+        g_hat = {'preds': None, 'targets': None, 'models': None}
         if 'ml_g' in self._learner:
             # get an initial estimate for theta using the partialling out score
             psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
@@ -248,6 +250,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_l': l_hat['preds'],
                                  'ml_m': m_hat['preds'],
                                  'ml_g': g_hat['preds']},
+                 'targets': {'ml_l': l_hat['targets'],
+                             'ml_m': m_hat['targets'],
+                             'ml_g': g_hat['targets']},
                  'models': {'ml_l': l_hat['models'],
                             'ml_m': m_hat['models'],
                             'ml_g': g_hat['models']}}

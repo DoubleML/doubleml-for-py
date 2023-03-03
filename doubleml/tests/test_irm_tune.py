@@ -39,6 +39,12 @@ def dml_procedure(request):
 
 @pytest.fixture(scope='module',
                 params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=[True, False])
 def tune_on_folds(request):
     return request.param
 
@@ -53,7 +59,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedure, normalize_ipw, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -75,7 +81,8 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
-                                  dml_procedure=dml_procedure)
+                                  dml_procedure=dml_procedure,
+                                  normalize_ipw=normalize_ipw)
 
     # tune hyperparameters
     tune_res = dml_irm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
@@ -110,6 +117,7 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
 
     res_manual = fit_irm(y, x, d, clone(learner_g), clone(learner_m),
                          all_smpls, dml_procedure, score,
+                         normalize_ipw=normalize_ipw,
                          g0_params=g0_params, g1_params=g1_params, m_params=m_params)
 
     res_dict = {'coef': dml_irm_obj.coef,
@@ -123,7 +131,9 @@ def dml_irm_fixture(generate_data_irm, learner_g, learner_m, score, dml_procedur
         boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                            res_manual['all_m_hat'], res_manual['all_p_hat'],
-                                           all_smpls, score, bootstrap, n_rep_boot)
+                                           all_smpls, score, bootstrap, n_rep_boot,
+                                           normalize_ipw=normalize_ipw,
+                                           dml_procedure=dml_procedure)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

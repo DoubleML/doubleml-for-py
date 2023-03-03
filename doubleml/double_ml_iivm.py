@@ -5,7 +5,8 @@ from sklearn.utils.multiclass import type_of_target
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
+    _trimm, _normalize_ipw
 
 
 class DoubleMLIIVM(LinearScoreMixin, DoubleML):
@@ -55,13 +56,17 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
 
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
+
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
         Default is ``'truncate'``.
 
     trimming_threshold : float
         The threshold used for trimming.
-        Default is ``1e-12``.
+        Default is ``1e-2``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -128,8 +133,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                  score='LATE',
                  subgroups=None,
                  dml_procedure='dml2',
+                 normalize_ipw=False,
                  trimming_rule='truncate',
-                 trimming_threshold=1e-12,
+                 trimming_threshold=1e-2,
                  draw_sample_splitting=True,
                  apply_cross_fitting=True):
         super().__init__(obj_dml_data,
@@ -142,10 +148,13 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
+        # set stratication for resampling
+        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         _ = self._check_learner(ml_r, 'ml_r', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m, 'ml_r': ml_r}
+        self._normalize_ipw = normalize_ipw
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba', 'ml_r': 'predict_proba'}
@@ -206,7 +215,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
-        if not(one_treat & binary_treat & zero_one_treat):
+        if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
                              'To fit an IIVM model with DML '
                              'exactly one binary variable with values 0 and 1 '
@@ -219,7 +228,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         if one_instr:
             binary_instr = (type_of_target(obj_dml_data.z) == 'binary')
             zero_one_instr = np.all((np.power(obj_dml_data.z, 2) - obj_dml_data.z) == 0)
-            if not(one_instr & binary_instr & zero_one_instr):
+            if not (one_instr & binary_instr & zero_one_instr):
                 raise ValueError(err_msg)
         else:
             raise ValueError(err_msg)
@@ -241,6 +250,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat0['targets'] = g_hat0['targets'].astype(float)
+        g_hat0['targets'][z == 1] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
@@ -251,10 +263,15 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
+            _check_is_propensity(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls, eps=1e-12)
+
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat1['targets'] = g_hat1['targets'].astype(float)
+        g_hat1['targets'][z == 0] = np.nan
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
@@ -265,11 +282,14 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
+            _check_is_propensity(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls, eps=1e-12)
+
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         # nuisance r
         if self.subgroups['always_takers']:
@@ -277,16 +297,22 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                      est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'],
                                      return_models=return_models)
         else:
-            r_hat0 = {'preds': np.zeros_like(d), 'models': None}
+            r_hat0 = {'preds': np.zeros_like(d), 'targets': np.zeros_like(d), 'models': None}
         _check_finite_predictions(r_hat0['preds'], self._learner['ml_r'], 'ml_r', smpls)
+        # adjust target values to consider only compatible subsamples
+        r_hat0['targets'] = r_hat0['targets'].astype(float)
+        r_hat0['targets'][z == 1] = np.nan
 
         if self.subgroups['never_takers']:
             r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'],
                                      return_models=return_models)
         else:
-            r_hat1 = {'preds': np.ones_like(d), 'models': None}
+            r_hat1 = {'preds': np.ones_like(d), 'targets': np.ones_like(d), 'models': None}
         _check_finite_predictions(r_hat1['preds'], self._learner['ml_r'], 'ml_r', smpls)
+        # adjust target values to consider only compatible subsamples
+        r_hat1['targets'] = r_hat1['targets'].astype(float)
+        r_hat1['targets'][z == 0] = np.nan
 
         psi_a, psi_b = self._score_elements(y, z, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
@@ -298,6 +324,11 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                  'ml_m': m_hat['preds'],
                                  'ml_r0': r_hat0['preds'],
                                  'ml_r1': r_hat1['preds']},
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets'],
+                             'ml_r0': r_hat0['targets'],
+                             'ml_r1': r_hat1['targets']},
                  'models': {'ml_g0': g_hat0['models'],
                             'ml_g1': g_hat1['models'],
                             'ml_m': m_hat['models'],
@@ -314,9 +345,14 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         w_hat0 = d - r_hat0
         w_hat1 = d - r_hat1
 
-        if (self.trimming_rule == 'truncate') & (self.trimming_threshold > 0):
-            m_hat[m_hat < self.trimming_threshold] = self.trimming_threshold
-            m_hat[m_hat > 1 - self.trimming_threshold] = 1 - self.trimming_threshold
+        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
+
+        if self._normalize_ipw:
+            if self.dml_procedure == 'dml1':
+                for _, test_index in smpls:
+                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            else:
+                m_hat = _normalize_ipw(m_hat, d)
 
         if isinstance(self.score, str):
             assert self.score == 'LATE'

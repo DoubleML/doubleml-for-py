@@ -35,13 +35,19 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
+                params=[True, False])
+def normalize_ipw(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=[0.01, 0.05])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming_threshold):
+def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, normalize_ipw, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
@@ -49,6 +55,10 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
     # collect data
     data = generate_data_iivm
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
+    y = data['y'].values
+    x = data.loc[:, x_cols].values
+    d = data['d'].values
+    z = data['z'].values
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -56,26 +66,30 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
     ml_r = clone(learner[1])
 
     np.random.seed(3141)
+    n_obs = len(y)
+    strata = d + 2 * z
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=strata)
+
+    np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, 'z')
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
                                     dml_procedure=dml_procedure,
+                                    draw_sample_splitting=False,
+                                    normalize_ipw=normalize_ipw,
                                     trimming_threshold=trimming_threshold)
-
+    # synchronize the sample splitting
+    dml_iivm_obj.set_sample_splitting(all_smpls=all_smpls)
     dml_iivm_obj.fit()
 
     np.random.seed(3141)
-    y = data['y'].values
-    x = data.loc[:, x_cols].values
-    d = data['d'].values
-    z = data['z'].values
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                          all_smpls, dml_procedure, score, trimming_threshold=trimming_threshold)
+                          all_smpls, dml_procedure, score,
+                          normalize_ipw=normalize_ipw,
+                          trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_iivm_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -88,7 +102,8 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, trimming
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot)
+                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
+                                            normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)

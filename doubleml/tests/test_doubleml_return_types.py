@@ -190,3 +190,63 @@ def test_stored_models():
 
     assert np.all([isinstance(mdl, plr_dml1.learner['ml_l'].__class__) for mdl in plr_dml1.models['ml_l']['d'][0]])
     assert np.all([isinstance(mdl, plr_dml1.learner['ml_m'].__class__) for mdl in plr_dml1.models['ml_m']['d'][0]])
+
+
+@pytest.mark.ci
+def test_stored_predictions():
+    assert plr_dml1.predictions['ml_l'].shape == (n_obs, n_rep, n_treat)
+    assert plr_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
+
+    assert pliv_dml1.predictions['ml_l'].shape == (n_obs, n_rep, n_treat)
+    assert pliv_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
+    assert pliv_dml1.predictions['ml_r'].shape == (n_obs, n_rep, n_treat)
+
+    assert irm_dml1.predictions['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert irm_dml1.predictions['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert irm_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
+
+    assert iivm_dml1.predictions['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.predictions['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.predictions['ml_r0'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.predictions['ml_r1'].shape == (n_obs, n_rep, n_treat)
+
+
+@pytest.mark.ci
+def test_stored_nuisance_targets():
+    assert plr_dml1.nuisance_targets['ml_l'].shape == (n_obs, n_rep, n_treat)
+    assert plr_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
+
+    assert pliv_dml1.nuisance_targets['ml_l'].shape == (n_obs, n_rep, n_treat)
+    assert pliv_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
+    assert pliv_dml1.nuisance_targets['ml_r'].shape == (n_obs, n_rep, n_treat)
+
+    assert irm_dml1.nuisance_targets['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert irm_dml1.nuisance_targets['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert irm_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
+
+    assert iivm_dml1.nuisance_targets['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.nuisance_targets['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.nuisance_targets['ml_r0'].shape == (n_obs, n_rep, n_treat)
+    assert iivm_dml1.nuisance_targets['ml_r1'].shape == (n_obs, n_rep, n_treat)
+
+
+@pytest.mark.ci
+def test_rmses():
+    assert plr_dml1.rmses['ml_l'].shape == (n_rep, n_treat)
+    assert plr_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+
+    assert pliv_dml1.rmses['ml_l'].shape == (n_rep, n_treat)
+    assert pliv_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert pliv_dml1.rmses['ml_r'].shape == (n_rep, n_treat)
+
+    assert irm_dml1.rmses['ml_g0'].shape == (n_rep, n_treat)
+    assert irm_dml1.rmses['ml_g1'].shape == (n_rep, n_treat)
+    assert irm_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+
+    assert iivm_dml1.rmses['ml_g0'].shape == (n_rep, n_treat)
+    assert iivm_dml1.rmses['ml_g1'].shape == (n_rep, n_treat)
+    assert iivm_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert iivm_dml1.rmses['ml_r0'].shape == (n_rep, n_treat)
+    assert iivm_dml1.rmses['ml_r1'].shape == (n_rep, n_treat)
