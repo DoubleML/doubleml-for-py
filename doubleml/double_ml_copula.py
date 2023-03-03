@@ -239,6 +239,8 @@ class DoubleMLPartialCopula(NonLinearScoreMixin, DoubleML):
         score_elements = self._score_elements(y, z, g_hat['preds'], m_hat['preds'], smpls)
         preds = {'predictions': {'ml_g': g_hat['preds'],
                                  'ml_m': m_hat['preds']},
+                 'targets': {'ml_g': g_hat['targets'],
+                             'ml_m': m_hat['targets']},
                  'models': {'ml_g': g_hat['models'],
                             'ml_m': m_hat['models']}
                  }
