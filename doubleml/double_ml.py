@@ -1304,20 +1304,23 @@ class DoubleML(ABC):
         dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
-        if not self._is_cluster_data:
-            if dml_procedure == 'dml1':
-                # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
-                dml1_coefs = np.zeros(len(smpls))
-                for idx, (_, test_index) in enumerate(smpls):
-                    dml1_coefs[idx] = self._est_coef(psi_elements, test_index)
-                coef = np.mean(dml1_coefs)
-            else:
-                assert dml_procedure == 'dml2'
-                dml1_coefs = None
-                coef = self._est_coef(psi_elements)
+        if dml_procedure == 'dml1':
+            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
+            dml1_coefs = np.zeros(len(smpls))
+            for idx, (_, test_index) in enumerate(smpls):
+                dml1_coefs[idx] = self._est_coef(psi_elements, inds=test_index)
+            coef = np.mean(dml1_coefs)
         else:
-            smpls_cluster = self.__smpls_cluster
-            coef, dml1_coefs = self._est_coef_cluster_data(psi_elements, dml_procedure, smpls, smpls_cluster)
+            assert dml_procedure == 'dml2'
+            dml1_coefs = None
+            if not self._is_cluster_data:
+                coef = self._est_coef(psi_elements)
+            else:
+                scaling_factor = [1.] * len(smpls)
+                for i_fold, (_, test_index) in enumerate(smpls):
+                    test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                    scaling_factor[i_fold] = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                coef = self._est_coef(psi_elements, smpls=smpls, scaling_factor=scaling_factor)
 
         return coef, dml1_coefs
 
@@ -1460,11 +1463,7 @@ class DoubleML(ABC):
         return sigma2_hat
 
     @abstractmethod
-    def _est_coef(self, psi_elements, inds=None):
-        pass
-
-    @abstractmethod
-    def _est_coef_cluster_data(self, psi_elements, dml_procedure, smpls, smpls_cluster):
+    def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         pass
 
     @property
