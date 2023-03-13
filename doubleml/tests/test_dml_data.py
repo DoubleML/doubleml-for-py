@@ -4,7 +4,7 @@ import pandas as pd
 
 from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
-    make_pliv_multiway_cluster_CKMS2021
+    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 from sklearn.linear_model import Lasso
 
 
@@ -247,6 +247,35 @@ def test_z_cols_setter():
     z_comp = dml_data.data[['z2']].values
     dml_data.z_cols = 'z2'
     assert np.array_equal(dml_data.z, z_comp)
+
+    # check None
+    dml_data.z_cols = None
+    assert dml_data.n_instr == 0
+    assert dml_data.z is None
+
+
+@pytest.mark.ci
+def test_t_col_setter():
+    np.random.seed(3141)
+    df = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=pd.DataFrame)
+    df['t_new'] = np.ones(shape=(100,))
+    dml_data = DoubleMLData(df, 'y', 'd',
+                            [f'Z{i + 1}' for i in np.arange(4)],
+                            t_col='t')
+
+    # check that after changing t_col, the t array gets updated
+    t_comp = dml_data.data['t_new'].values
+    dml_data.t_col = 't_new'
+    assert np.array_equal(dml_data.t, t_comp)
+
+    msg = r'Invalid time variable t_col. a13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.t_col = 'a13'
+
+    msg = (r'The time variable t_col must be of str type \(or None\). '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.t_col = 5
 
     # check None
     dml_data.z_cols = None

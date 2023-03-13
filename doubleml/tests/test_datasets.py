@@ -4,7 +4,8 @@ import numpy as np
 
 from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
-    make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021
+    make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, \
+    make_did_SZ2020
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -148,3 +149,34 @@ def test_make_pliv_multiway_cluster_CKMS2021_return_types():
     assert isinstance(z, np.ndarray)
     with pytest.raises(ValueError, match=msg_inv_return_type):
         _ = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type='matrix')
+
+
+@pytest.mark.ci
+def test_make_did_SZ2020_pa_return_types():
+    np.random.seed(3141)
+    res = make_did_SZ2020(n_obs=100, cross_sectional_data=False, return_type=DoubleMLData)
+    assert isinstance(res, DoubleMLData)
+    res = make_did_SZ2020(n_obs=100, cross_sectional_data=False, return_type=pd.DataFrame)
+    assert isinstance(res, pd.DataFrame)
+    x, y, d = make_did_SZ2020(n_obs=100, cross_sectional_data=False, return_type=np.ndarray)
+    assert isinstance(x, np.ndarray)
+    assert isinstance(y, np.ndarray)
+    assert isinstance(d, np.ndarray)
+    with pytest.raises(ValueError, match=msg_inv_return_type):
+        _ = make_did_SZ2020(n_obs=100, cross_sectional_data=False, return_type='matrix')
+
+
+@pytest.mark.ci
+def test_make_did_SZ2020_cs_return_types():
+    np.random.seed(3141)
+    res = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=DoubleMLData)
+    assert isinstance(res, DoubleMLData)
+    res = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=pd.DataFrame)
+    assert isinstance(res, pd.DataFrame)
+    x, y, d, t = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=np.ndarray)
+    assert isinstance(x, np.ndarray)
+    assert isinstance(y, np.ndarray)
+    assert isinstance(d, np.ndarray)
+    assert isinstance(t, np.ndarray)
+    with pytest.raises(ValueError, match=msg_inv_return_type):
+        _ = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type='matrix')

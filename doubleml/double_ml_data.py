@@ -491,10 +491,10 @@ class DoubleMLData(DoubleMLBaseData):
         reset_value = hasattr(self, '_t_col')
         if value is not None:
             if not isinstance(value, str):
-                raise TypeError('The outcome variable t_col must be of str type. '
+                raise TypeError('The time variable t_col must be of str type (or None). '
                                 f'{str(value)} of type {str(type(value))} was passed.')
             if value not in self.all_variables:
-                raise ValueError('Invalid outcome variable t_col. '
+                raise ValueError('Invalid time variable t_col. '
                                  f'{value} is no data column.')
             self._t_col = value
         else:

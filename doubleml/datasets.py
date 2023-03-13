@@ -808,6 +808,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     dim_x = 4
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    # x = np.random.normal(loc=0, scale=1, size=[n_obs, 4])
 
     z_tilde_1 = np.exp(0.5*x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
@@ -862,13 +863,13 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         if return_type in _array_alias:
             return z, y, d
         elif return_type in _data_frame_alias + _dml_data_alias:
-            x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+            z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d)),
-                                columns=x_cols + ['y', 'd'])
+                                columns=z_cols + ['y', 'd'])
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLData(data, 'y', 'd', x_cols)
+                return DoubleMLData(data, 'y', 'd', z_cols)
         else:
             raise ValueError('Invalid return_type.')
 
@@ -880,12 +881,12 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         if return_type in _array_alias:
             return z, y, d, t
         elif return_type in _data_frame_alias + _dml_data_alias:
-            x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-            data = pd.DataFrame(np.column_stack((x, y, d, t)),
-                                columns=x_cols + ['y', 'd', 't'])
+            z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
+            data = pd.DataFrame(np.column_stack((z, y, d, t)),
+                                columns=z_cols + ['y', 'd', 't'])
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLData(data, 'y', 'd', x_cols, t_col='t')
+                return DoubleMLData(data, 'y', 'd', z_cols, t_col='t')
         else:
             raise ValueError('Invalid return_type.')
