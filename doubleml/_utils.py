@@ -24,6 +24,7 @@ def _get_cond_smpls(smpls, bin_var):
     smpls_1 = [(np.intersect1d(np.where(bin_var == 1)[0], train), test) for train, test in smpls]
     return smpls_0, smpls_1
 
+
 def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
     subset_00 = (bin_var1 == 0) & (bin_var2 == 0)
     smpls_00 = [(np.intersect1d(np.where(subset_00)[0], train), test) for train, test in smpls]
@@ -34,6 +35,7 @@ def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
     subset_11 = (bin_var1 == 1) & (bin_var2 == 1)
     smpls_11 = [(np.intersect1d(np.where(subset_11)[0], train), test) for train, test in smpls]
     return smpls_00, smpls_01, smpls_10, smpls_11
+
 
 def _check_is_partition(smpls, n_obs):
     test_indices = np.concatenate([test_index for _, test_index in smpls])

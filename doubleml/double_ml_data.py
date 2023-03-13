@@ -174,7 +174,7 @@ class DoubleMLData(DoubleMLBaseData):
                        f'Instrument variable(s): {self.z_cols}\n'
         if self.t_col is not None:
             data_summary += f'Time variable: {self.t_col}\n'
-        
+
         data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
 
@@ -251,7 +251,7 @@ class DoubleMLData(DoubleMLBaseData):
                 z_cols = ['z']
             else:
                 z_cols = [f'z{i + 1}' for i in np.arange(z.shape[1])]
-        
+
         if t is None:
             t_col = None
         else:
@@ -278,7 +278,7 @@ class DoubleMLData(DoubleMLBaseData):
         elif (z is not None) and (t is not None):
             data = pd.DataFrame(np.column_stack((x, y, d, z, t)),
                                 columns=x_cols + [y_col] + d_cols + z_cols + [t_col])
-            
+
         return cls(data, y_col, d_cols, x_cols, z_cols, t_col, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
@@ -495,7 +495,7 @@ class DoubleMLData(DoubleMLBaseData):
                                 f'{str(value)} of type {str(type(value))} was passed.')
             if value not in self.all_variables:
                 raise ValueError('Invalid outcome variable t_col. '
-                                f'{value} is no data column.')
+                                 f'{value} is no data column.')
             self._t_col = value
         else:
             self._t_col = None
@@ -750,7 +750,7 @@ class DoubleMLClusterData(DoubleMLData):
                        f'Instrument variable(s): {self.z_cols}\n'
         if self.t_col is not None:
             data_summary += f'Time variable: {self.t_col}\n'
-        
+
         data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
 
