@@ -78,19 +78,19 @@ class DoubleMLQTE:
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_iivm_data
+    >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, return_type='DataFrame')
+    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_qte_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, quantiles=[0.25, 0.5, 0.75])
     >>> dml_qte_obj.fit().summary
-            coef   std err         t     P>|t|     2.5 %    97.5 %
-    0.25  0.326284  0.300531  1.085693  0.277615 -0.262746  0.915314
-    0.50  0.396295  0.182873  2.167045  0.030231  0.037870  0.754720
-    0.75  0.707186  0.186397  3.793974  0.000148  0.341854  1.072517
+              coef   std err         t     P>|t|     2.5 %    97.5 %
+    0.25  0.274825  0.347310  0.791297  0.428771 -0.405890  0.955541
+    0.50  0.449150  0.192539  2.332782  0.019660  0.071782  0.826519
+    0.75  0.709606  0.193308  3.670867  0.000242  0.330731  1.088482
     """
     def __init__(self,
                  obj_dml_data,

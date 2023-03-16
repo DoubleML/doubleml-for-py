@@ -82,14 +82,14 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
     >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_cvar_obj = dml.DoubleMLCVAR(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
     >>> dml_cvar_obj.fit().summary
-          coef  std err          t         P>|t|     2.5 %    97.5 %
-    d  1.55593  0.08458  18.395994  1.414441e-75  1.390157  1.721704
+           coef   std err          t         P>|t|     2.5 %   97.5 %
+    d  1.462533  0.075714  19.316536  3.899567e-83  1.314136  1.61093
     """
 
     def __init__(self,

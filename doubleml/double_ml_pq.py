@@ -88,14 +88,14 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
     >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_pq_obj = dml.DoubleMLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
     >>> dml_pq_obj.fit().summary
-          coef  std err         t     P>|t|     2.5 %    97.5 %
-    d  0.52983  0.15365  3.448284  0.000564  0.228681  0.830978
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d  0.553878  0.149858  3.696011  0.000219  0.260161  0.847595
     """
 
     def __init__(self,
