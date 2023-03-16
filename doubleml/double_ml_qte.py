@@ -24,12 +24,13 @@ class DoubleMLQTE:
 
     ml_g : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function
-         :math:`g_0(X) = E[Y <= \theta|X, D=d]`.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance elements.
+        For the score ``'LPQ'``, this learner will be used for``'ml_pi'`` to fit the propensities.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=d|X]`.
+        Not used for the score ``'LPQ'``.
 
     quantiles : float or array_like
         Quantiles for treatment effect estimation. Entries have to be between ``0`` and ``1``.
@@ -80,13 +81,16 @@ class DoubleMLQTE:
     >>> from doubleml.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_pi = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
-    >>> dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data, ml_pi, treatment=1, quantile=0.5)
-    >>> dml_lpq_obj.fit().summary
-           coef   std err         t    P>|t|     2.5 %    97.5 %
-    d  0.451843  0.399553  1.130871  0.25811 -0.331267  1.234953
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    >>> dml_qte_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, quantiles=[0.25, 0.5, 0.75])
+    >>> dml_qte_obj.fit().summary
+            coef   std err         t     P>|t|     2.5 %    97.5 %
+    0.25  0.326284  0.300531  1.085693  0.277615 -0.262746  0.915314
+    0.50  0.396295  0.182873  2.167045  0.030231  0.037870  0.754720
+    0.75  0.707186  0.186397  3.793974  0.000148  0.341854  1.072517
     """
     def __init__(self,
                  obj_dml_data,
