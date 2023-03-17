@@ -12,7 +12,6 @@ from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _chec
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
-from .double_ml_pq import DoubleMLPQ
 
 class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     """Double machine learning for conditional value at risk for potential outcomes
@@ -194,11 +193,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         score = (d == self.treatment) / prop * (y <= theta) - self.quantile
         return score
 
-    def _score_elements(self, y, d, g_hat, m_hat, ipw_vec):
-        # recalculate the target for g based on the averge ipw estimate
-        ipw_est = np.mean(ipw_vec)
-        g_target_1 = np.ones_like(y) * ipw_est
-        g_target_2 = (y - self.quantile * ipw_est) / (1 - self.quantile)
+    def _score_elements(self, y, d, g_hat, m_hat, pq_est):
+        # recalculate the target for g based on the pq_est
+        g_target_1 = np.ones_like(y) * pq_est
+        g_target_2 = (y - self.quantile * pq_est) / (1 - self.quantile)
         g_target = np.max(np.column_stack((g_target_1, g_target_2)), 1)
 
         psi_b = (d == self.treatment) * (g_target - g_hat) / m_hat + g_hat
@@ -214,7 +212,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        
+
         # initialize nuisance predictions, targets and models
         g_hat = {'models': None,
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
@@ -318,7 +316,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat['preds'], m_hat_adj, ipw_vec)
+        # use the average of the ipw estimates to approximate the potential quantile for U (p.4 Kallus et. al)
+        pq_est = np.mean(ipw_vec)
+        psi_a, psi_b = self._score_elements(y, d, g_hat['preds'], m_hat_adj, pq_est)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         preds = {'predictions': {'ml_g': g_hat['preds'],
