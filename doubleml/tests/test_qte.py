@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
@@ -161,19 +160,6 @@ def test_doubleml_qte_exceptions():
     with pytest.raises(ValueError, match=msg):
         dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, draw_sample_splitting=False)
         _ = dml_obj.smpls
-
-
-@pytest.mark.ci
-def test_doubleml_cluster_not_implemented_exception():
-    np.random.seed(3141)
-    (x, y, d, cluster_vars, _) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
-    d = np.zeros_like(d)
-    dml_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
-    ml_g = RandomForestClassifier()
-    ml_m = RandomForestClassifier()
-    msg = 'Estimation with clustering not implemented.'
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml.DoubleMLQTE(dml_data, ml_g, ml_m)
 
 
 def test_doubleml_qte_return_types(dml_qte_fixture):

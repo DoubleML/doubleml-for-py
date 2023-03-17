@@ -3,7 +3,6 @@ import pytest
 import math
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
@@ -105,15 +104,3 @@ def test_dml_pq_se(dml_pq_fixture):
     assert math.isclose(dml_pq_fixture['se'],
                         dml_pq_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-
-
-@pytest.mark.ci
-def test_doubleml_cluster_not_implemented_exception():
-    np.random.seed(3141)
-    dml_data = make_pliv_multiway_cluster_CKMS2021()
-    dml_data.z_cols = None
-    ml_g = RandomForestClassifier()
-    ml_m = RandomForestClassifier()
-    msg = 'Estimation with clustering not implemented.'
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml.DoubleMLPQ(dml_data, ml_g, ml_m, treatment=1)

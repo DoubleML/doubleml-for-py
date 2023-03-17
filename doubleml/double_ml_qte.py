@@ -134,8 +134,6 @@ class DoubleMLQTE:
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
             self._is_cluster_data = True
-        if self._is_cluster_data:
-            raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)
 
         # initialize and check trimming

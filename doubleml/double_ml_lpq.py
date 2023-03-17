@@ -133,8 +133,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             self._kde = kde
         self._normalize_ipw = normalize_ipw
 
-        if self._is_cluster_data:
-            raise NotImplementedError('Estimation with clustering not implemented.')
         self._check_data(self._dml_data)
 
         valid_score = ['LPQ']
