@@ -24,13 +24,11 @@ class DoubleMLQTE:
 
     ml_g : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance elements.
-        For the score ``'LPQ'``, this learner will be used for``'ml_pi'`` to fit the propensities.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance elements which depend on priliminary estimation.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=d|X]`.
-        Not used for the score ``'LPQ'``.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the propensity nuisance functions.
 
     quantiles : float or array_like
         Quantiles for treatment effect estimation. Entries have to be between ``0`` and ``1``.
@@ -153,13 +151,9 @@ class DoubleMLQTE:
         self._smpls = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
-        if (self.score == 'PQ') | (self.score == 'CVaR'):
-            self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
-            self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
-        else:
-            assert self.score == 'LPQ'
-            self._learner = {'ml_g': clone(ml_g)}
-            self._predict_method = {'ml_g': 'predict_proba'}
+
+        self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
+        self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
 
         # initialize all models
         self._modellist_0, self._modellist_1 = self._initialize_models()
