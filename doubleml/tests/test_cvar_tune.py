@@ -5,7 +5,7 @@ import math
 from sklearn.base import clone
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
@@ -26,7 +26,7 @@ def quantile(request):
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=5, random_state=42)])
+                params=[RandomForestRegressor(max_depth=5, random_state=42)])
 def learner_g(request):
     return request.param
 
@@ -56,7 +56,7 @@ def tune_on_folds(request):
 
 
 def get_par_grid(learner):
-    if learner.__class__ in [RandomForestClassifier]:
+    if learner.__class__ in [RandomForestRegressor, RandomForestClassifier]:
         par_grid = {'n_estimators': [5, 10, 15, 20]}
     else:
         assert learner.__class__ in [LogisticRegression]

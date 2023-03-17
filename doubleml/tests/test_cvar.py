@@ -5,8 +5,8 @@ import math
 import doubleml as dml
 
 from sklearn.base import clone
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from ._utils import draw_smpls
 from ._utils_cvar_manual import fit_cvar
@@ -25,8 +25,10 @@ def quantile(request):
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
-                        LogisticRegression()])
+                params=[[LinearRegression(),
+                         LogisticRegression(solver='lbfgs', max_iter=250)],
+                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
+                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
 def learner(request):
     return request.param
 
@@ -54,6 +56,10 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
                      dml_procedure, normalize_ipw, trimming_threshold):
     n_folds = 3
 
+    # Set machine learning methods for m & g
+    ml_g = clone(learner[0])
+    ml_m = clone(learner[1])
+
     # collect data
     (x, y, d) = generate_data_quantiles
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
@@ -63,7 +69,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
 
     np.random.seed(42)
     dml_cvar_obj = dml.DoubleMLCVAR(obj_dml_data,
-                                    clone(learner), clone(learner),
+                                    clone(ml_g), clone(ml_m),
                                     treatment=treatment,
                                     quantile=quantile,
                                     n_folds=n_folds,
@@ -79,7 +85,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
 
     np.random.seed(42)
     res_manual = fit_cvar(y, x, d, quantile,
-                          clone(learner), clone(learner),
+                          clone(ml_g), clone(ml_m),
                           all_smpls, treatment, dml_procedure,
                           normalize_ipw=normalize_ipw,
                           n_rep=1, trimming_threshold=trimming_threshold)

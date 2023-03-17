@@ -28,7 +28,7 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, reg_learner, reg_learner,
 dml_irm = DoubleMLIRM(dml_data_irm, reg_learner, class_learner, n_folds=n_folds)
 dml_iivm = DoubleMLIIVM(dml_data_iivm, reg_learner, class_learner,
                         class_learner, n_folds=n_folds)
-dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
+dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=reg_learner, ml_m=class_learner, n_folds=n_folds)
 
 dml_plr.set_ml_nuisance_params('ml_l', 'd', {'n_estimators': n_est_test})
 dml_pliv.set_ml_nuisance_params('ml_l', 'd', {'n_estimators': n_est_test})

@@ -12,6 +12,7 @@ from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _chec
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
+from .double_ml_pq import DoubleMLPQ
 
 class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     """Double machine learning for conditional value at risk for potential outcomes
@@ -139,10 +140,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
+        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
-        self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
 
@@ -193,12 +194,14 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         score = (d == self.treatment) / prop * (y <= theta) - self.quantile
         return score
 
-    def _score_elements(self, ipw_est, y, d, g_hat, m_hat):
-        u1 = np.ones_like(y) * ipw_est
-        u2 = (y - self.quantile * ipw_est) / (1 - self.quantile)
-        u = np.max(np.column_stack((u1, u2)), 1)
+    def _score_elements(self, y, d, g_hat, m_hat, ipw_vec):
+        # recalculate the target for g based on the averge ipw estimate
+        ipw_est = np.mean(ipw_vec)
+        g_target_1 = np.ones_like(y) * ipw_est
+        g_target_2 = (y - self.quantile * ipw_est) / (1 - self.quantile)
+        g_target = np.max(np.column_stack((g_target_1, g_target_2)), 1)
 
-        psi_b = (d == self.treatment) * (u - g_hat) / m_hat + g_hat
+        psi_b = (d == self.treatment) * (g_target - g_hat) / m_hat + g_hat
         psi_a = np.full_like(m_hat, -1.0)
         return psi_a, psi_b
 
@@ -211,7 +214,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-
+        
         # initialize nuisance predictions, targets and models
         g_hat = {'models': None,
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
@@ -230,6 +233,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             else:
                 fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
 
+        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
         # caculate nuisance functions over different folds
         for i_fold in range(self.n_folds):
             train_inds = smpls[i_fold][0]
@@ -264,21 +268,27 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
             _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
             ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
+            ipw_vec[i_fold] = ipw_est
 
             # use the preliminary estimates to fit the nuisance parameters on train_2
             d_train_2 = d[train_inds_2]
-            y_train_2 = y[train_inds_2]
             x_train_2 = x[train_inds_2, :]
-
             x_test = x[test_inds, :]
 
+            # calculate the target for g
+            g_target_1 = np.ones_like(y) * ipw_est
+            g_target_2 = (y - self.quantile * ipw_est) / (1 - self.quantile)
+            g_target = np.max(np.column_stack((g_target_1, g_target_2)), 1)
+            g_target_train_2 = g_target[train_inds_2]
+
+            # only consider values with the right treatment status and fit the model
             dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
-            y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
-            fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
+            g_target_train_2_d = g_target_train_2[d_train_2 == self.treatment]
+            fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, g_target_train_2_d)
 
             # predict nuisance values on the test data and the corresponding targets
-            g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x_test)
-            g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
+            g_hat['preds'][test_inds] = fitted_models['ml_g'][i_fold].predict(x_test)
+            g_hat['targets'][test_inds] = g_target[test_inds]
 
             # refit the propensity score on the whole training set
             fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
@@ -308,7 +318,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
 
-        psi_a, psi_b = self._score_elements(ipw_est, y, d, g_hat['preds'], m_hat_adj)
+        psi_a, psi_b = self._score_elements(y, d, g_hat['preds'], m_hat_adj, ipw_vec)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         preds = {'predictions': {'ml_g': g_hat['preds'],
@@ -335,8 +345,11 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         train_inds_treat = [np.intersect1d(np.where(d == self.treatment)[0], train) for train, _ in smpls]
 
         # use self._coef_start_val as a very crude approximation of ipw_est
-        approx_goal = y <= np.quantile(y[d == self.treatment], self.quantile)
-        g_tune_res = _dml_tune(approx_goal, x, train_inds_treat,
+        quantile_approx = np.quantile(y[d == self.treatment], self.quantile)
+        g_target_1 = np.ones_like(y) * quantile_approx
+        g_target_2 = (y - self.quantile * quantile_approx) / (1 - self.quantile)
+        g_target_approx = np.max(np.column_stack((g_target_1, g_target_2)), 1)
+        g_tune_res = _dml_tune(g_target_approx, x, train_inds_treat,
                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 

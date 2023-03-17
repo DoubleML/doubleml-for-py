@@ -53,6 +53,7 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     g_hat = np.full(shape=n_obs, fill_value=np.nan)
     m_hat = np.full(shape=n_obs, fill_value=np.nan)
 
+    ipw_vec = np.full(shape=n_folds, fill_value=np.nan)
     for i_fold, _ in enumerate(smpls):
         ml_g = clone(learner_g)
         ml_m = clone(learner_m)
@@ -101,18 +102,24 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
 
         _, bracket_guess = _get_bracket_guess(ipw_score, coef_start_val, coef_bounds)
         ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
+        ipw_vec[i_fold] = ipw_est
 
         # use the preliminary estimates to fit the nuisance parameters on train_2
         d_train_2 = d[train_inds_2]
-        y_train_2 = y[train_inds_2]
         x_train_2 = x[train_inds_2, :]
 
+        # calculate the target for g
+        g_target_1 = np.ones_like(y) * ipw_est
+        g_target_2 = (y - quantile * ipw_est) / (1 - quantile)
+        g_target = np.max(np.column_stack((g_target_1, g_target_2)), 1)
+        g_target_train_2 = g_target[train_inds_2]
+
         dx_treat_train_2 = x_train_2[d_train_2 == treatment, :]
-        y_treat_train_2 = y_train_2[d_train_2 == treatment]
-        ml_g.fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
+        g_target_train_2_d = g_target_train_2[d_train_2 == treatment]
+        ml_g.fit(dx_treat_train_2, g_target_train_2_d)
 
         # predict nuisance values on the test data
-        g_hat[test_inds] = ml_g.predict_proba(x[test_inds, :])[:, 1]
+        g_hat[test_inds] = ml_g.predict(x[test_inds, :])
 
         # refit the propensity score on the whole training set
         ml_m.fit(x[train_inds, :], d[train_inds])
@@ -131,6 +138,7 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     if treatment == 0:
         m_hat = 1 - m_hat
 
+    ipw_est = np.mean(ipw_vec)
     return g_hat, m_hat, ipw_est
 
 
@@ -184,8 +192,12 @@ def cvar_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, ipw_est, n_obs):
 def tune_nuisance_cvar(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
                        param_grid_g, param_grid_m):
     train_cond_treat = np.where(d == treatment)[0]
-    approx_goal = y <= np.quantile(y[d == treatment], quantile)
-    g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune,
+
+    quantile_approx = np.quantile(y[d == treatment], quantile)
+    g_target_1 = np.ones_like(y) * quantile_approx
+    g_target_2 = (y - quantile * quantile_approx) / (1 - quantile)
+    g_target_approx = np.max(np.column_stack((g_target_1, g_target_2)), 1)
+    g_tune_res = tune_grid_search(g_target_approx, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                   train_cond=train_cond_treat)
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
