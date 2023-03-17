@@ -719,6 +719,7 @@ class DoubleMLQTE:
             elif self.score == 'LPQ':
                 model_0 = DoubleMLLPQ(self._dml_data,
                                       self._learner['ml_g'],
+                                      self._learner['ml_m'],
                                       quantile=self._quantiles[i_quant],
                                       treatment=0,
                                       n_folds=self.n_folds,
@@ -732,6 +733,7 @@ class DoubleMLQTE:
                                       apply_cross_fitting=self._apply_cross_fitting)
                 model_1 = DoubleMLLPQ(self._dml_data,
                                       self._learner['ml_g'],
+                                      self._learner['ml_m'],
                                       quantile=self._quantiles[i_quant],
                                       treatment=1,
                                       n_folds=self.n_folds,
