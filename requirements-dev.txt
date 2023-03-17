@@ -6,3 +6,4 @@ xgboost
 # doc
 sphinx
 pydata-sphinx-theme
+lightgbm
