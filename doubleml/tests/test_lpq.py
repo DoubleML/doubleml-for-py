@@ -65,7 +65,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
 
     np.random.seed(42)
     dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data,
-                                  clone(learner),
+                                  clone(learner), clone(learner),
                                   treatment=treatment,
                                   quantile=quantile,
                                   n_folds=n_folds,
@@ -80,7 +80,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     dml_lpq_obj.fit()
 
     np.random.seed(42)
-    res_manual = fit_lpq(y, x, d, z, quantile, clone(learner),
+    res_manual = fit_lpq(y, x, d, z, quantile, clone(learner), clone(learner),
                          all_smpls, treatment, dml_procedure,
                          normalize_ipw=normalize_ipw,
                          n_rep=1, trimming_threshold=trimming_threshold)
@@ -112,6 +112,7 @@ def test_doubleml_cluster_not_implemented_exception():
     np.random.seed(3141)
     dml_data = make_pliv_multiway_cluster_CKMS2021()
     ml_g = RandomForestClassifier()
+    ml_m = RandomForestClassifier()
     msg = 'Estimation with clustering not implemented.'
     with pytest.raises(NotImplementedError, match=msg):
-        _ = dml.DoubleMLLPQ(dml_data, ml_g, treatment=1)
+        _ = dml.DoubleMLLPQ(dml_data, ml_g, ml_m, treatment=1)

@@ -22,9 +22,13 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_pi : classifier implementing ``fit()`` and ``predict()``
+    ml_g : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the propensity nuisance functions.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance elements which depend on priliminary estimation.
+
+    ml_m : classifier implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the treatment propensity nuisance functions.
 
     treatment : int
         Binary treatment indicator. Has to be either ``0`` or ``1``. Determines the potential outcome to be considered.
@@ -84,18 +88,20 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     >>> from doubleml.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
-    >>> ml_pi = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
     >>> data = make_iivm_data(theta=0.5, n_obs=1000, dim_x=20, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='z')
-    >>> dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data, ml_pi, treatment=1, quantile=0.5)
+    >>> dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
     >>> dml_lpq_obj.fit().summary
-           coef   std err       t     P>|t|     2.5 %    97.5 %
-    d  0.327341  0.548862  0.5964  0.550908 -0.748408  1.403091
+           coef   std err         t    P>|t|    2.5 %    97.5 %
+    d  0.217244  0.636453  0.341336  0.73285 -1.03018  1.464668
     """
 
     def __init__(self,
                  obj_dml_data,
-                 ml_pi,
+                 ml_g,
+                 ml_m,
                  treatment=1,
                  quantile=0.5,
                  n_folds=5,
@@ -149,13 +155,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
-        self._learner = {'ml_pi_z': clone(ml_pi),
-                         'ml_pi_du_z0': clone(ml_pi), 'ml_pi_du_z1': clone(ml_pi),
-                         'ml_pi_d_z0': clone(ml_pi), 'ml_pi_d_z1': clone(ml_pi)}
-        self._predict_method = {'ml_pi_z': 'predict_proba',
-                                'ml_pi_du_z0': 'predict_proba', 'ml_pi_du_z1': 'predict_proba',
-                                'ml_pi_d_z0': 'predict_proba', 'ml_pi_d_z1': 'predict_proba'}
+        _ = self._check_learner(ml_g, 'ml_g', regressor=False, classifier=True)
+        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        self._learner = {'ml_m_z': clone(ml_m),
+                         'ml_g_du_z0': clone(ml_g), 'ml_g_du_z1': clone(ml_g),
+                         'ml_m_d_z0': clone(ml_m), 'ml_m_d_z1': clone(ml_m)}
+        self._predict_method = {'ml_m_z': 'predict_proba',
+                                'ml_g_du_z0': 'predict_proba', 'ml_g_du_z1': 'predict_proba',
+                                'ml_m_d_z0': 'predict_proba', 'ml_m_d_z1': 'predict_proba'}
 
         self._initialize_ml_nuisance_params()
 
@@ -212,7 +219,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     @property
     def _score_element_names(self):
-        return ['ind_d', 'pi_z', 'pi_du_z0', 'pi_du_z1', 'y', 'z', 'comp_prob']
+        return ['ind_d', 'm_z', 'g_du_z0', 'g_du_z1', 'y', 'z', 'comp_prob']
 
     def _compute_ipw_score(self, theta, d, y, prop, z, comp_prob):
         sign = 2 * self.treatment - 1.0
@@ -225,24 +232,24 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     def _compute_score(self, psi_elements, coef, inds=None):
         sign = 2 * self.treatment - 1.0
         ind_d = psi_elements['ind_d']
-        pi_z = psi_elements['pi_z']
-        pi_du_z0 = psi_elements['pi_du_z0']
-        pi_du_z1 = psi_elements['pi_du_z1']
+        m_z = psi_elements['m_z']
+        g_du_z0 = psi_elements['g_du_z0']
+        g_du_z1 = psi_elements['g_du_z1']
         y = psi_elements['y']
         z = psi_elements['z']
         comp_prob = psi_elements['comp_prob']
 
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
-            pi_z = psi_elements['pi_z']
-            pi_du_z0 = psi_elements['pi_du_z0'][inds]
-            pi_du_z1 = psi_elements['pi_du_z1'][inds]
+            m_z = psi_elements['m_z']
+            g_du_z0 = psi_elements['g_du_z0'][inds]
+            g_du_z1 = psi_elements['g_du_z1'][inds]
             y = psi_elements['y'][inds]
             z = psi_elements['z'][inds]
 
-        score1 = pi_du_z1 - pi_du_z0
-        score2 = (z / pi_z) * (ind_d * (y <= coef) - pi_du_z1)
-        score3 = (1 - z) / (1 - pi_z) * (ind_d * (y <= coef) - pi_du_z0)
+        score1 = g_du_z1 - g_du_z0
+        score2 = (z / m_z) * (ind_d * (y <= coef) - g_du_z1)
+        score3 = (1 - z) / (1 - m_z) * (ind_d * (y <= coef) - g_du_z0)
         score = sign * (score1 + score2 - score3) / comp_prob - self.quantile
         return score
 
@@ -250,17 +257,17 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         sign = 2 * self.treatment - 1.0
         ind_d = psi_elements['ind_d']
         y = psi_elements['y']
-        pi_z = psi_elements['pi_z']
+        m_z = psi_elements['m_z']
         z = psi_elements['z']
         comp_prob = psi_elements['comp_prob']
 
         if inds is not None:
             ind_d = psi_elements['ind_d'][inds]
             y = psi_elements['y'][inds]
-            pi_z = psi_elements['pi_z'][inds]
+            m_z = psi_elements['m_z'][inds]
             z = psi_elements['z'][inds]
 
-        score_weights = sign * ((z / pi_z) - (1 - z) / (1 - pi_z)) * ind_d / comp_prob
+        score_weights = sign * ((z / m_z) - (1 - z) / (1 - m_z)) * ind_d / comp_prob
         u = (y - coef).reshape(-1, 1)
         deriv = self.kde(u, score_weights)
 
@@ -268,8 +275,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
-                        for learner in ['ml_pi_z', 'ml_pi_du_z0', 'ml_pi_du_z1',
-                                        'ml_pi_d_z0', 'ml_pi_d_z1']}
+                        for learner in ['ml_m_z', 'ml_g_du_z0', 'ml_g_du_z1',
+                                        'ml_m_d_z0', 'ml_m_d_z1']}
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -283,14 +290,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
 
         # initialize nuisance predictions, targets and models
-        pi_z_hat = {'models': None,
-                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                    'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                    }
-        pi_d_z0_hat = copy.deepcopy(pi_z_hat)
-        pi_d_z1_hat = copy.deepcopy(pi_z_hat)
-        pi_du_z0_hat = copy.deepcopy(pi_z_hat)
-        pi_du_z1_hat = copy.deepcopy(pi_z_hat)
+        m_z_hat = {'models': None,
+                   'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                   'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                   }
+        m_d_z0_hat = copy.deepcopy(m_z_hat)
+        m_d_z1_hat = copy.deepcopy(m_z_hat)
+        g_du_z0_hat = copy.deepcopy(m_z_hat)
+        g_du_z1_hat = copy.deepcopy(m_z_hat)
 
         # initialize models
         fitted_models = {}
@@ -321,39 +328,38 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             z_train_1 = z[train_inds_1]
 
             # preliminary propensity for z
-            ml_pi_z_prelim = clone(fitted_models['ml_pi_z'][i_fold])
-            pi_z_hat_prelim = _dml_cv_predict(ml_pi_z_prelim, x_train_1, z_train_1,
-                                              method='predict_proba', smpls=smpls_prelim)['preds']
+            ml_m_z_prelim = clone(fitted_models['ml_m_z'][i_fold])
+            m_z_hat_prelim = _dml_cv_predict(ml_m_z_prelim, x_train_1, z_train_1,
+                                             method='predict_proba', smpls=smpls_prelim)['preds']
 
-            pi_z_hat_prelim = _trimm(pi_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
+            m_z_hat_prelim = _trimm(m_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
             if self._normalize_ipw:
-                pi_z_hat_prelim = _normalize_ipw(pi_z_hat_prelim, z_train_1)
+                m_z_hat_prelim = _normalize_ipw(m_z_hat_prelim, z_train_1)
 
-            # todo add extra fold loop
             # propensity for d == 1 cond. on z == 0 (training set 1)
             z0_train_1 = z_train_1 == 0
             x_z0_train_1 = x_train_1[z0_train_1, :]
             d_z0_train_1 = d_train_1[z0_train_1]
-            ml_pi_d_z0_prelim = clone(fitted_models['ml_pi_d_z0'][i_fold])
-            ml_pi_d_z0_prelim.fit(x_z0_train_1, d_z0_train_1)
-            pi_d_z0_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z0_prelim, x_train_1)
+            ml_m_d_z0_prelim = clone(fitted_models['ml_m_d_z0'][i_fold])
+            ml_m_d_z0_prelim.fit(x_z0_train_1, d_z0_train_1)
+            m_d_z0_hat_prelim = _predict_zero_one_propensity(ml_m_d_z0_prelim, x_train_1)
 
             # propensity for d == 1 cond. on z == 1 (training set 1)
             z1_train_1 = z_train_1 == 1
             x_z1_train_1 = x_train_1[z1_train_1, :]
             d_z1_train_1 = d_train_1[z1_train_1]
-            ml_pi_d_z1_prelim = clone(fitted_models['ml_pi_d_z1'][i_fold])
-            ml_pi_d_z1_prelim.fit(x_z1_train_1, d_z1_train_1)
-            pi_d_z1_hat_prelim = _predict_zero_one_propensity(ml_pi_d_z1_prelim, x_train_1)
+            ml_m_d_z1_prelim = clone(fitted_models['ml_m_d_z1'][i_fold])
+            ml_m_d_z1_prelim.fit(x_z1_train_1, d_z1_train_1)
+            m_d_z1_hat_prelim = _predict_zero_one_propensity(ml_m_d_z1_prelim, x_train_1)
 
             # preliminary estimate of theta_2_aux
-            comp_prob_prelim = np.mean(pi_d_z1_hat_prelim - pi_d_z0_hat_prelim
-                                       + z_train_1 / pi_z_hat_prelim * (d_train_1 - pi_d_z1_hat_prelim)
-                                       - (1 - z_train_1) / (1 - pi_z_hat_prelim) * (d_train_1 - pi_d_z0_hat_prelim))
+            comp_prob_prelim = np.mean(m_d_z1_hat_prelim - m_d_z0_hat_prelim
+                                       + z_train_1 / m_z_hat_prelim * (d_train_1 - m_d_z1_hat_prelim)
+                                       - (1 - z_train_1) / (1 - m_z_hat_prelim) * (d_train_1 - m_d_z0_hat_prelim))
 
             # preliminary ipw estimate
             def ipw_score(theta):
-                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, pi_z_hat_prelim,
+                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, m_z_hat_prelim,
                                                       z_train_1, comp_prob_prelim))
                 return res
 
@@ -377,23 +383,23 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             z0_train_2 = z_train_2 == 0
             x_z0_train_2 = x_train_2[z0_train_2, :]
             du_z0_train_2 = (d_train_2[z0_train_2] == self._treatment) * (y_train_2[z0_train_2] <= ipw_est)
-            fitted_models['ml_pi_du_z0'][i_fold].fit(x_z0_train_2, du_z0_train_2)
-            pi_du_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z0'][i_fold], x_test)
+            fitted_models['ml_g_du_z0'][i_fold].fit(x_z0_train_2, du_z0_train_2)
+            g_du_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g_du_z0'][i_fold], x_test)
 
             # propensity for (D == treatment)*Ind(Y <= ipq_est) cond. on z == 1
             z1_train_2 = z_train_2 == 1
             x_z1_train_2 = x_train_2[z1_train_2, :]
             du_z1_train_2 = (d_train_2[z1_train_2] == self._treatment) * (y_train_2[z1_train_2] <= ipw_est)
-            fitted_models['ml_pi_du_z1'][i_fold].fit(x_z1_train_2, du_z1_train_2)
-            pi_du_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_du_z1'][i_fold], x_test)
+            fitted_models['ml_g_du_z1'][i_fold].fit(x_z1_train_2, du_z1_train_2)
+            g_du_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g_du_z1'][i_fold], x_test)
 
             # the predictions of both should only be evaluated conditional on z == 0 or z == 1
             test_inds_z0 = test_inds[z_test == 0]
             test_inds_z1 = test_inds[z_test == 1]
-            pi_du_z0_hat['targets'][test_inds_z0] = (1.0 * (d_test[z_test == 0] == self._treatment) *
-                                                     (y_test[z_test == 0] <= ipw_est))
-            pi_du_z1_hat['targets'][test_inds_z1] = (1.0 * (d_test[z_test == 1] == self._treatment) *
-                                                     (y_test[z_test == 1] <= ipw_est))
+            g_du_z0_hat['targets'][test_inds_z0] = (1.0 * (d_test[z_test == 0] == self._treatment) *
+                                                    (y_test[z_test == 0] <= ipw_est))
+            g_du_z1_hat['targets'][test_inds_z1] = (1.0 * (d_test[z_test == 1] == self._treatment) *
+                                                    (y_test[z_test == 1] <= ipw_est))
 
             # refit nuisance elements for the local potential quantile
             z_train = z[train_inds]
@@ -401,78 +407,78 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             d_train = d[train_inds]
 
             # refit propensity for z (whole training set)
-            fitted_models['ml_pi_z'][i_fold].fit(x_train, z_train)
-            pi_z_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_z'][i_fold], x_test)
+            fitted_models['ml_m_z'][i_fold].fit(x_train, z_train)
+            m_z_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m_z'][i_fold], x_test)
 
             # refit propensity for d == 1 cond. on z == 0 (whole training set)
             z0_train = z_train == 0
             x_z0_train = x_train[z0_train, :]
             d_z0_train = d_train[z0_train]
-            fitted_models['ml_pi_d_z0'][i_fold].fit(x_z0_train, d_z0_train)
-            pi_d_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_d_z0'][i_fold], x_test)
+            fitted_models['ml_m_d_z0'][i_fold].fit(x_z0_train, d_z0_train)
+            m_d_z0_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m_d_z0'][i_fold], x_test)
 
             # propensity for d == 1 cond. on z == 1 (whole training set)
             x_z1_train = x_train[z_train == 1, :]
             d_z1_train = d_train[z_train == 1]
-            fitted_models['ml_pi_d_z1'][i_fold].fit(x_z1_train, d_z1_train)
-            pi_d_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_pi_d_z1'][i_fold], x_test)
+            fitted_models['ml_m_d_z1'][i_fold].fit(x_z1_train, d_z1_train)
+            m_d_z1_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m_d_z1'][i_fold], x_test)
 
         # save targets and models
-        pi_z_hat['targets'] = z
+        m_z_hat['targets'] = z
         # set targets to relevant subsample
-        pi_du_z0_hat['targets'][z == 1] = np.nan
-        pi_du_z1_hat['targets'][z == 0] = np.nan
+        g_du_z0_hat['targets'][z == 1] = np.nan
+        g_du_z1_hat['targets'][z == 0] = np.nan
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-        pi_d_z0_hat['targets'][z == 0] = d[z == 0]
-        pi_d_z0_hat['targets'][z == 1] = np.nan
-        pi_d_z1_hat['targets'][z == 1] = d[z == 1]
-        pi_d_z1_hat['targets'][z == 0] = np.nan
+        m_d_z0_hat['targets'][z == 0] = d[z == 0]
+        m_d_z0_hat['targets'][z == 1] = np.nan
+        m_d_z1_hat['targets'][z == 1] = d[z == 1]
+        m_d_z1_hat['targets'][z == 0] = np.nan
 
         if return_models:
-            pi_z_hat['models'] = fitted_models['ml_pi_z']
-            pi_d_z0_hat['models'] = fitted_models['ml_pi_d_z0']
-            pi_d_z1_hat['models'] = fitted_models['ml_pi_d_z1']
-            pi_du_z0_hat['models'] = fitted_models['ml_pi_du_z0']
-            pi_du_z1_hat['models'] = fitted_models['ml_pi_du_z1']
+            m_z_hat['models'] = fitted_models['ml_m_z']
+            m_d_z0_hat['models'] = fitted_models['ml_m_d_z0']
+            m_d_z1_hat['models'] = fitted_models['ml_m_d_z1']
+            g_du_z0_hat['models'] = fitted_models['ml_g_du_z0']
+            g_du_z1_hat['models'] = fitted_models['ml_g_du_z1']
 
         # clip propensities
-        pi_z_hat_adj = _trimm(pi_z_hat['preds'], self.trimming_rule, self.trimming_threshold)
+        m_z_hat_adj = _trimm(m_z_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         if self._normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    pi_z_hat_adj[test_index] = _normalize_ipw(pi_z_hat_adj[test_index], z[test_index])
+                    m_z_hat_adj[test_index] = _normalize_ipw(m_z_hat_adj[test_index], z[test_index])
             else:
-                pi_z_hat_adj = _normalize_ipw(pi_z_hat_adj, z)
+                m_z_hat_adj = _normalize_ipw(m_z_hat_adj, z)
 
         # this could be adjusted to be compatible with dml1
         # estimate final nuisance parameter
-        comp_prob_hat = np.mean(pi_d_z1_hat['preds'] - pi_d_z0_hat['preds']
-                                + z / pi_z_hat_adj * (d - pi_d_z1_hat['preds'])
-                                - (1 - z) / (1 - pi_z_hat_adj) * (d - pi_d_z0_hat['preds']))
+        comp_prob_hat = np.mean(m_d_z1_hat['preds'] - m_d_z0_hat['preds']
+                                + z / m_z_hat_adj * (d - m_d_z1_hat['preds'])
+                                - (1 - z) / (1 - m_z_hat_adj) * (d - m_d_z0_hat['preds']))
 
         # readjust start value for minimization
         self._coef_start_val = np.mean(ipw_vec)
 
-        psi_elements = {'ind_d': d == self._treatment, 'pi_z': pi_z_hat_adj,
-                        'pi_du_z0': pi_du_z0_hat['preds'], 'pi_du_z1': pi_du_z1_hat['preds'],
+        psi_elements = {'ind_d': d == self._treatment, 'm_z': m_z_hat_adj,
+                        'g_du_z0': g_du_z0_hat['preds'], 'g_du_z1': g_du_z1_hat['preds'],
                         'y': y, 'z': z, 'comp_prob': comp_prob_hat}
-        preds = {'predictions': {'ml_pi_z':  pi_z_hat['preds'],
-                                 'ml_pi_d_z0': pi_d_z0_hat['preds'],
-                                 'ml_pi_d_z1': pi_d_z1_hat['preds'],
-                                 'ml_pi_du_z0': pi_du_z0_hat['preds'],
-                                 'ml_pi_du_z1': pi_du_z1_hat['preds']},
-                 'targets': {'ml_pi_z':  pi_z_hat['targets'],
-                             'ml_pi_d_z0': pi_d_z0_hat['targets'],
-                             'ml_pi_d_z1': pi_d_z1_hat['targets'],
-                             'ml_pi_du_z0': pi_du_z0_hat['targets'],
-                             'ml_pi_du_z1': pi_du_z1_hat['targets']},
-                 'models': {'ml_pi_z':  pi_z_hat['models'],
-                            'ml_pi_d_z0': pi_d_z0_hat['models'],
-                            'ml_pi_d_z1': pi_d_z1_hat['models'],
-                            'ml_pi_du_z0': pi_du_z0_hat['models'],
-                            'ml_pi_du_z1': pi_du_z1_hat['models']}
+        preds = {'predictions': {'ml_m_z':  m_z_hat['preds'],
+                                 'ml_m_d_z0': m_d_z0_hat['preds'],
+                                 'ml_m_d_z1': m_d_z1_hat['preds'],
+                                 'ml_g_du_z0': g_du_z0_hat['preds'],
+                                 'ml_g_du_z1': g_du_z1_hat['preds']},
+                 'targets': {'ml_m_z':  m_z_hat['targets'],
+                             'ml_m_d_z0': m_d_z0_hat['targets'],
+                             'ml_m_d_z1': m_d_z1_hat['targets'],
+                             'ml_g_du_z0': g_du_z0_hat['targets'],
+                             'ml_g_du_z1': g_du_z1_hat['targets']},
+                 'models': {'ml_m_z':  m_z_hat['models'],
+                            'ml_m_d_z0': m_d_z0_hat['models'],
+                            'ml_m_d_z1': m_d_z1_hat['models'],
+                            'ml_g_du_z0': g_du_z0_hat['models'],
+                            'ml_g_du_z1': g_du_z1_hat['models']}
                  }
         return psi_elements, preds
 
@@ -486,11 +492,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_pi_z': None,
-                               'ml_pi_d_z0': None,
-                               'ml_pi_d_z1': None,
-                               'ml_pi_du_z0': None,
-                               'ml_pi_du_z1': None}
+            scoring_methods = {'ml_m_z': None,
+                               'ml_m_d_z0': None,
+                               'ml_m_d_z1': None,
+                               'ml_g_du_z0': None,
+                               'ml_g_du_z1': None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         train_inds_z0 = [np.intersect1d(np.where(z == 0)[0], train) for train, _ in smpls]
@@ -499,38 +505,38 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         approx_quant = np.quantile(y[d == self.treatment], self.quantile)
         du = (d == self.treatment) * (y <= approx_quant)
 
-        pi_z_tune_res = _dml_tune(z, x, train_inds,
-                                  self._learner['ml_pi_z'], param_grids['ml_pi_z'], scoring_methods['ml_pi_z'],
-                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_d_z0_tune_res = _dml_tune(d, x, train_inds_z0,
-                                     self._learner['ml_pi_d_z0'], param_grids['ml_pi_d_z0'], scoring_methods['ml_pi_d_z0'],
+        m_z_tune_res = _dml_tune(z, x, train_inds,
+                                 self._learner['ml_m_z'], param_grids['ml_m_z'], scoring_methods['ml_m_z'],
+                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        m_d_z0_tune_res = _dml_tune(d, x, train_inds_z0,
+                                    self._learner['ml_m_d_z0'], param_grids['ml_m_d_z0'], scoring_methods['ml_m_d_z0'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        m_d_z1_tune_res = _dml_tune(d, x, train_inds_z1,
+                                    self._learner['ml_m_d_z1'], param_grids['ml_m_d_z1'], scoring_methods['ml_m_d_z1'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g_du_z0_tune_res = _dml_tune(du, x, train_inds_z0,
+                                     self._learner['ml_g_du_z0'], param_grids['ml_g_du_z0'], scoring_methods['ml_g_du_z0'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_d_z1_tune_res = _dml_tune(d, x, train_inds_z1,
-                                     self._learner['ml_pi_d_z1'], param_grids['ml_pi_d_z1'], scoring_methods['ml_pi_d_z1'],
+        g_du_z1_tune_res = _dml_tune(du, x, train_inds_z1,
+                                     self._learner['ml_g_du_z1'], param_grids['ml_g_du_z1'], scoring_methods['ml_g_du_z1'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_du_z0_tune_res = _dml_tune(du, x, train_inds_z0,
-                                      self._learner['ml_pi_d_z0'], param_grids['ml_pi_d_z0'], scoring_methods['ml_pi_d_z0'],
-                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_du_z1_tune_res = _dml_tune(du, x, train_inds_z1,
-                                      self._learner['ml_pi_d_z1'], param_grids['ml_pi_d_z1'], scoring_methods['ml_pi_d_z1'],
-                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        pi_z_best_params = [xx.best_params_ for xx in pi_z_tune_res]
-        pi_d_z0_best_params = [xx.best_params_ for xx in pi_d_z0_tune_res]
-        pi_d_z1_best_params = [xx.best_params_ for xx in pi_d_z1_tune_res]
-        pi_du_z0_best_params = [xx.best_params_ for xx in pi_du_z0_tune_res]
-        pi_du_z1_best_params = [xx.best_params_ for xx in pi_du_z1_tune_res]
+        m_z_best_params = [xx.best_params_ for xx in m_z_tune_res]
+        m_d_z0_best_params = [xx.best_params_ for xx in m_d_z0_tune_res]
+        m_d_z1_best_params = [xx.best_params_ for xx in m_d_z1_tune_res]
+        g_du_z0_best_params = [xx.best_params_ for xx in g_du_z0_tune_res]
+        g_du_z1_best_params = [xx.best_params_ for xx in g_du_z1_tune_res]
 
-        params = {'ml_pi_z': pi_z_best_params,
-                  'ml_pi_d_z0': pi_d_z0_best_params,
-                  'ml_pi_d_z1': pi_d_z1_best_params,
-                  'ml_pi_du_z0': pi_du_z0_best_params,
-                  'ml_pi_du_z1': pi_du_z1_best_params}
-        tune_res = {'ml_pi_z': pi_z_tune_res,
-                    'ml_pi_d_z0': pi_d_z0_tune_res,
-                    'ml_pi_d_z1':  pi_d_z1_tune_res,
-                    'ml_pi_du_z0': pi_du_z0_tune_res,
-                    'ml_pi_du_z1': pi_du_z1_tune_res}
+        params = {'ml_m_z': m_z_best_params,
+                  'ml_m_d_z0': m_d_z0_best_params,
+                  'ml_m_d_z1': m_d_z1_best_params,
+                  'ml_g_du_z0': g_du_z0_best_params,
+                  'ml_g_du_z1': g_du_z1_best_params}
+        tune_res = {'ml_m_z': m_z_tune_res,
+                    'ml_m_d_z0': m_d_z0_tune_res,
+                    'ml_m_d_z1':  m_d_z1_tune_res,
+                    'ml_g_du_z0': g_du_z0_tune_res,
+                    'ml_g_du_z1': g_du_z1_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}

@@ -44,10 +44,10 @@ dml_cvar.fit(store_models=True)
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
-dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=class_learner, n_folds=n_folds)
+dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
 
 dml_pq.set_ml_nuisance_params('ml_g', 'd', {'n_estimators': n_est_test})
-dml_lpq.set_ml_nuisance_params('ml_pi_z', 'd', {'n_estimators': n_est_test})
+dml_lpq.set_ml_nuisance_params('ml_m_z', 'd', {'n_estimators': n_est_test})
 
 dml_pq.fit(store_models=True)
 dml_lpq.fit(store_models=True)
@@ -95,10 +95,10 @@ def test_pq_params():
 
 @pytest.mark.ci
 def test_lpq_params():
-    _assert_nuisance_params(dml_lpq, 'ml_pi_z', 'ml_pi_d_z0')
-    param_list_2 = [dml_lpq.models['ml_pi_d_z1']['d'][0][fold].n_estimators for fold in range(n_folds)]
+    _assert_nuisance_params(dml_lpq, 'ml_m_z', 'ml_m_d_z0')
+    param_list_2 = [dml_lpq.models['ml_m_d_z1']['d'][0][fold].n_estimators for fold in range(n_folds)]
     assert all(param == n_est_default for param in param_list_2)
-    param_list_2 = [dml_lpq.models['ml_pi_du_z0']['d'][0][fold].n_estimators for fold in range(n_folds)]
+    param_list_2 = [dml_lpq.models['ml_g_du_z0']['d'][0][fold].n_estimators for fold in range(n_folds)]
     assert all(param == n_est_default for param in param_list_2)
-    param_list_2 = [dml_lpq.models['ml_pi_du_z1']['d'][0][fold].n_estimators for fold in range(n_folds)]
+    param_list_2 = [dml_lpq.models['ml_g_du_z1']['d'][0][fold].n_estimators for fold in range(n_folds)]
     assert all(param == n_est_default for param in param_list_2)

@@ -27,7 +27,7 @@ def quantile(request):
 
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=5, random_state=42)])
-def learner_pi(request):
+def learner(request):
     return request.param
 
 
@@ -59,13 +59,13 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner_pi, dml_procedure, normalize_ipw,
+def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner, dml_procedure, normalize_ipw,
                     tune_on_folds):
-    par_grid = {'ml_pi_z': get_par_grid(learner_pi),
-                'ml_pi_d_z0': get_par_grid(learner_pi),
-                'ml_pi_d_z1': get_par_grid(learner_pi),
-                'ml_pi_du_z0': get_par_grid(learner_pi),
-                'ml_pi_du_z1': get_par_grid(learner_pi)}
+    par_grid = {'ml_m_z': get_par_grid(learner),
+                'ml_m_d_z0': get_par_grid(learner),
+                'ml_m_d_z1': get_par_grid(learner),
+                'ml_g_du_z0': get_par_grid(learner),
+                'ml_g_du_z1': get_par_grid(learner)}
     n_folds_tune = 4
     n_folds = 2
 
@@ -80,7 +80,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner_
 
     np.random.seed(42)
     dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data,
-                                  clone(learner_pi),
+                                  clone(learner), clone(learner),
                                   treatment=treatment,
                                   quantile=quantile,
                                   n_folds=n_folds,
@@ -102,45 +102,46 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner_
 
     np.random.seed(42)
     if tune_on_folds:
-        pi_z_params, pi_d_z0_params, pi_d_z1_params, \
-            pi_du_z0_params, pi_du_z1_params = tune_nuisance_lpq(y, x, d, z,
-                                                                 clone(learner_pi),
-                                                                 clone(learner_pi), clone(learner_pi),
-                                                                 clone(learner_pi), clone(learner_pi),
-                                                                 smpls, treatment, quantile, n_folds_tune,
-                                                                 par_grid['ml_pi_z'],
-                                                                 par_grid['ml_pi_d_z0'], par_grid['ml_pi_d_z1'],
-                                                                 par_grid['ml_pi_du_z0'], par_grid['ml_pi_du_z1'])
+        m_z_params, m_d_z0_params, m_d_z1_params, \
+            g_du_z0_params, g_du_z1_params = tune_nuisance_lpq(y, x, d, z,
+                                                               clone(learner),
+                                                               clone(learner), clone(learner),
+                                                               clone(learner), clone(learner),
+                                                               smpls, treatment, quantile, n_folds_tune,
+                                                               par_grid['ml_m_z'],
+                                                               par_grid['ml_m_d_z0'], par_grid['ml_m_d_z1'],
+                                                               par_grid['ml_g_du_z0'], par_grid['ml_g_du_z1'])
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        pi_z_params, pi_d_z0_params, pi_d_z1_params, \
-            pi_du_z0_params, pi_du_z1_params = tune_nuisance_lpq(y, x, d, z,
-                                                                 clone(learner_pi),
-                                                                 clone(learner_pi), clone(learner_pi),
-                                                                 clone(learner_pi), clone(learner_pi),
-                                                                 xx, treatment, quantile, n_folds_tune,
-                                                                 par_grid['ml_pi_z'],
-                                                                 par_grid['ml_pi_d_z0'], par_grid['ml_pi_d_z1'],
-                                                                 par_grid['ml_pi_du_z0'], par_grid['ml_pi_du_z1'])
+        m_z_params, m_d_z0_params, m_d_z1_params, \
+            g_du_z0_params, g_du_z1_params = tune_nuisance_lpq(y, x, d, z,
+                                                               clone(learner),
+                                                               clone(learner), clone(learner),
+                                                               clone(learner), clone(learner),
+                                                               xx, treatment, quantile, n_folds_tune,
+                                                               par_grid['ml_m_z'],
+                                                               par_grid['ml_m_d_z0'], par_grid['ml_m_d_z1'],
+                                                               par_grid['ml_g_du_z0'], par_grid['ml_g_du_z1'])
 
-        pi_z_params = pi_z_params * n_folds
-        pi_d_z0_params = pi_d_z0_params * n_folds
-        pi_d_z1_params = pi_d_z1_params * n_folds
-        pi_du_z0_params = pi_du_z0_params * n_folds
-        pi_du_z1_params = pi_du_z1_params * n_folds
+        m_z_params = m_z_params * n_folds
+        m_d_z0_params = m_d_z0_params * n_folds
+        m_d_z1_params = m_d_z1_params * n_folds
+        g_du_z0_params = g_du_z0_params * n_folds
+        g_du_z1_params = g_du_z1_params * n_folds
 
     np.random.seed(42)
     res_manual = fit_lpq(y, x, d, z,
                          quantile=quantile,
-                         learner_m=clone(learner_pi),
+                         learner_g=clone(learner),
+                         learner_m=clone(learner),
                          all_smpls=all_smpls,
                          treatment=treatment,
                          dml_procedure=dml_procedure,
                          n_rep=1, trimming_threshold=0.01,
                          normalize_ipw=normalize_ipw,
-                         pi_z_params=pi_z_params,
-                         pi_d_z0_params=pi_d_z0_params, pi_d_z1_params=pi_d_z1_params,
-                         pi_du_z0_params=pi_du_z0_params, pi_du_z1_params=pi_du_z1_params)
+                         m_z_params=m_z_params,
+                         m_d_z0_params=m_d_z0_params, m_d_z1_params=m_d_z1_params,
+                         g_du_z0_params=g_du_z0_params, g_du_z1_params=g_du_z1_params)
 
     res_dict = {'coef': dml_lpq_obj.coef,
                 'coef_manual': res_manual['lpq'],

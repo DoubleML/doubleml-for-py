@@ -63,7 +63,7 @@ def test_doubleml_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, treatment=1)
+        _ = DoubleMLLPQ(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLCVAR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
@@ -159,12 +159,12 @@ def test_doubleml_exception_data():
     with pytest.raises(ValueError, match=msg):
         # non-binary D for LPQ
         _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
-                        LogisticRegression(), treatment=1)
+                        LogisticRegression(), LogisticRegression(), treatment=1)
     df_iivm = dml_data_iivm.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for LPQ
         _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', ['d', 'X1'], 'z'),
-                        LogisticRegression(), treatment=1)
+                        LogisticRegression(), LogisticRegression(), treatment=1)
     msg = ('Incompatible data. To fit an LPQ model with DML exactly one binary variable with values 0 and 1 '
            'needs to be specified as instrumental variable.')
     df_iivm = dml_data_iivm.data.copy()
@@ -172,7 +172,7 @@ def test_doubleml_exception_data():
     with pytest.raises(ValueError, match=msg):
         # non-binary Z for LPQ
         _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
-                        LogisticRegression(), treatment=1)
+                        LogisticRegression(), LogisticRegression(), treatment=1)
 
     # CVAR with IV
     msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
@@ -253,10 +253,10 @@ def test_doubleml_exception_scores():
     # LPQ
     msg = 'Invalid score IV. Valid score LPQ.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, score='IV')
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1, score='IV')
     msg = 'Invalid score. Valid score LPQ.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, score=2)
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1, score=2)
 
     # CVaR
     msg = 'Invalid score IV. Valid score CVaR.'
@@ -285,7 +285,7 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), treatment=1, trimming_rule='discard')
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
@@ -308,7 +308,7 @@ def test_doubleml_exception_quantiles():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, quantile="0.4")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment=1, quantile="0.4")
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, quantile="0.4")
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=1, quantile="0.4")
 
@@ -316,7 +316,7 @@ def test_doubleml_exception_quantiles():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, quantile=1.)
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_g,  treatment=1, quantile=1.)
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, quantile=1.)
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=1, quantile=1.)
 
@@ -331,7 +331,7 @@ def test_doubleml_exception_treatment():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment="1")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment="1")
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment="1")
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment="1")
 
@@ -339,7 +339,7 @@ def test_doubleml_exception_treatment():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=2)
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_g, treatment=2)
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=2)
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLCVAR(dml_data_irm, ml_g, ml_m, treatment=2)
 
@@ -350,7 +350,7 @@ def test_doubleml_exception_kde():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, kde="0.1")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, kde="0.1")
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, kde="0.1")
 
 
 @pytest.mark.ci
@@ -361,7 +361,7 @@ def test_doubleml_exception_normalization():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, ml_m, treatment=1, normalize_ipw=1)
+        _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, normalize_ipw=1)
 
 
 @pytest.mark.ci

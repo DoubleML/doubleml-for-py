@@ -34,7 +34,7 @@ dml_cvar.bootstrap()
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
-dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_pi=RandomForestClassifier())
+dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
 dml_qte = DoubleMLQTE(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
 
 dml_pq.fit()
