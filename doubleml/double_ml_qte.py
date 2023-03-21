@@ -330,14 +330,14 @@ class DoubleMLQTE:
     @property
     def modellist_0(self):
         """
-        List of the models for the control group (`treatment==0`).
+        List of the models for the control group (``treatment==0``).
         """
         return self._modellist_0
 
     @property
     def modellist_1(self):
         """
-        List of the models for the treatment group (`treatment==1`).
+        List of the models for the treatment group (``treatment==1``).
         """
         return self._modellist_1
 
