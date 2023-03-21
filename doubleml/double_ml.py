@@ -1052,7 +1052,7 @@ class DoubleML(ABC):
 
     def evaluate_learners(self, learners=None, metric=_rmse):
         """
-       Evaluate fitted learners for DoubleML models on cross-validated predictions.
+        Evaluate fitted learners for DoubleML models on cross-validated predictions.
 
         Parameters
         ----------
