@@ -87,6 +87,55 @@ def test_dml_blp_ci_2(dml_blp_fixture):
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.mark.ci
 def test_dml_blp_return_types(dml_blp_fixture):
     assert isinstance(dml_blp_fixture['blp_model'].__str__(), str)
     assert isinstance(dml_blp_fixture['blp_model'].summary, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_blp():
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
+    signal = np.array([1, 2])
+
+    msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml.DoubleMLBLP(orth_signal=1, basis=random_basis)
+    msg = 'The signal must be of one dimensional. Signal of dimensions 2 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml.DoubleMLBLP(orth_signal=np.array([[1], [2]]), basis=random_basis)
+    msg = "The basis must be of DataFrame type. Basis of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml.DoubleMLBLP(orth_signal=signal, basis=1)
+    msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
+    with pytest.raises(ValueError, match=msg):
+        dml.DoubleMLBLP(orth_signal=signal, basis=pd.DataFrame(np.array([[1, 2], [4, 5]]),
+                                                               columns=['a_1', 'a_1']))
+
+    dml_blp_confint = dml.DoubleMLBLP(orth_signal=signal, basis=random_basis)
+    msg = r'Apply fit\(\) before confint\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis)
+
+    dml_blp_confint.fit()
+    msg = 'joint must be True or False. Got 1.'
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, joint=1)
+    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, level='5%')
+    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis, level=0.)
+    msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_blp_confint.confint(random_basis, n_rep_boot='500')
+    msg = 'The number of bootstrap replications must be positive. 0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(random_basis, n_rep_boot=0)
+    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1], [4]]), columns=['a_1']))
+    msg = 'Invalid basis: DataFrame has to have the exact same number and ordering of columns.'
+    with pytest.raises(ValueError, match=msg):
+        dml_blp_confint.confint(basis=pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6]]), columns=['x_1', 'x_2', 'x_3']))

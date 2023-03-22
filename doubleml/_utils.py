@@ -1,12 +1,15 @@
 import numpy as np
 import warnings
+from scipy.optimize import minimize_scalar
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import KFold
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error
+from sklearn.utils.multiclass import type_of_target
+
+from statsmodels.nonparametric.kde import KDEUnivariate
 
 from joblib import Parallel, delayed
 
@@ -270,3 +273,113 @@ def _rmse(y_true, y_pred):
     subset = np.logical_not(np.isnan(y_true))
     rmse = mean_squared_error(y_true[subset], y_pred[subset], squared=False)
     return rmse
+
+
+def _predict_zero_one_propensity(learner, X):
+    pred_proba = learner.predict_proba(X)
+    if pred_proba.shape[1] == 2:
+        res = pred_proba[:, 1]
+    else:
+        warnings.warn("Subsample has not common support. Results are based on adjusted propensities.")
+        res = learner.predict(X)
+    return res
+
+
+def _check_contains_iv(obj_dml_data):
+    if obj_dml_data.z_cols is not None:
+        raise ValueError('Incompatible data. ' +
+                         ' and '.join(obj_dml_data.z_cols) +
+                         ' have been set as instrumental variable(s). '
+                         'To fit an local model see the documentation.')
+
+
+def _check_zero_one_treatment(obj_dml):
+    one_treat = (obj_dml._dml_data.n_treat == 1)
+    binary_treat = (type_of_target(obj_dml._dml_data.d) == 'binary')
+    zero_one_treat = np.all((np.power(obj_dml._dml_data.d, 2) - obj_dml._dml_data.d) == 0)
+    if not (one_treat & binary_treat & zero_one_treat):
+        raise ValueError('Incompatible data. '
+                         f'To fit an {str(obj_dml.score)} model with DML '
+                         'exactly one binary variable with values 0 and 1 '
+                         'needs to be specified as treatment variable.')
+
+
+def _check_quantile(quantile):
+    if not isinstance(quantile, float):
+        raise TypeError('Quantile has to be a float. ' +
+                        f'Object of type {str(type(quantile))} passed.')
+
+    if (quantile <= 0) | (quantile >= 1):
+        raise ValueError('Quantile has be between 0 or 1. ' +
+                         f'Quantile {str(quantile)} passed.')
+    return
+
+
+def _check_treatment(treatment):
+    if not isinstance(treatment, int):
+        raise TypeError('Treatment indicator has to be an integer. ' +
+                        f'Object of type {str(type(treatment))} passed.')
+
+    if (treatment != 0) & (treatment != 1):
+        raise ValueError('Treatment indicator has be either 0 or 1. ' +
+                         f'Treatment indicator {str(treatment)} passed.')
+    return
+
+
+def _check_trimming(trimming_rule, trimming_threshold):
+    valid_trimming_rule = ['truncate']
+    if trimming_rule not in valid_trimming_rule:
+        raise ValueError('Invalid trimming_rule ' + str(trimming_rule) + '. ' +
+                         'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
+    if not isinstance(trimming_threshold, float):
+        raise TypeError('trimming_threshold has to be a float. ' +
+                        f'Object of type {str(type(trimming_threshold))} passed.')
+    if (trimming_threshold <= 0) | (trimming_threshold >= 0.5):
+        raise ValueError('Invalid trimming_threshold ' + str(trimming_threshold) + '. ' +
+                         'trimming_threshold has to be between 0 and 0.5.')
+    return
+
+
+def _check_score(score, valid_score):
+    if isinstance(score, str):
+        if score not in valid_score:
+            raise ValueError('Invalid score ' + score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+    else:
+        raise TypeError('Invalid score. ' +
+                        'Valid score ' + ' or '.join(valid_score) + '.')
+    return
+
+
+def _get_bracket_guess(score, coef_start, coef_bounds):
+    max_bracket_length = coef_bounds[1] - coef_bounds[0]
+    b_guess = coef_bounds
+    delta = 0.1
+    s_different = False
+    while (not s_different) & (delta <= 1.0):
+        a = np.maximum(coef_start - delta * max_bracket_length / 2, coef_bounds[0])
+        b = np.minimum(coef_start + delta * max_bracket_length / 2, coef_bounds[1])
+        b_guess = (a, b)
+        f_a = score(b_guess[0])
+        f_b = score(b_guess[1])
+        s_different = (np.sign(f_a) != np.sign(f_b))
+        delta += 0.1
+    return s_different, b_guess
+
+
+def _default_kde(u, weights):
+    dens = KDEUnivariate(u)
+    dens.fit(kernel='gau', bw='silverman', weights=weights, fft=False)
+
+    return dens.evaluate(0)
+
+
+def _solve_ipw_score(ipw_score, bracket_guess):
+    def abs_ipw_score(theta):
+        return abs(ipw_score(theta))
+
+    res = minimize_scalar(abs_ipw_score,
+                          bracket=bracket_guess,
+                          method='brent')
+    ipw_est = res.x
+    return ipw_est

@@ -191,6 +191,13 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         self.trimming_rule = trimming_rule
         self.trimming_threshold = trimming_threshold
 
+    @property
+    def normalize_ipw(self):
+        """
+        Indicates whether the inverse probability weights are normalized.
+        """
+        return self._normalize_ipw
+
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m', 'ml_r0', 'ml_r1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
@@ -347,7 +354,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
 
-        if self._normalize_ipw:
+        if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
                     m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
