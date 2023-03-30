@@ -715,10 +715,6 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, Lasso(), LogisticRegression())
 
-    msg = 'ml_g was renamed to ml_l'
-    with pytest.warns(DeprecationWarning, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_g=Lasso(), ml_m=ml_m)  # pylint: disable=no-value-for-parameter
-
     msg = r"For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone\(ml_l\)."
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=ml_m, score='IV-type')
@@ -726,10 +722,6 @@ def test_doubleml_exception_learner():
     msg = 'A learner ml_g has been provided for score = "partialling out" but will be ignored.'
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l=Lasso(), ml_m=Lasso(), ml_g=Lasso(), score='partialling out')
-
-    msg = 'ml_g was renamed to ml_l'
-    with pytest.warns(DeprecationWarning, match=msg):
-        _ = DoubleMLPLIV(dml_data_pliv, ml_g=Lasso(), ml_m=ml_m, ml_r=ml_r)  # pylint: disable=no-value-for-parameter
 
     msg = "For score = 'IV-type', learners ml_l, ml_m, ml_r and ml_g need to be specified."
     with pytest.raises(ValueError, match=msg):

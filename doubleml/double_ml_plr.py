@@ -4,28 +4,11 @@ from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
 import warnings
-from functools import wraps
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity
-
-
-# To be removed in version 0.6.0
-def changed_api_decorator(f):
-    @wraps(f)
-    def wrapper(*args, **kwds):
-        ml_l_missing = (len(set(kwds).intersection({'obj_dml_data', 'ml_l', 'ml_m'})) + len(args)) < 4
-        if ml_l_missing & ('ml_g' in kwds):
-            warnings.warn(("The required positional argument ml_g was renamed to ml_l. "
-                          "Please adapt the argument name accordingly. "
-                           "ml_g is redirected to ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            kwds['ml_l'] = kwds.pop('ml_g')
-        return f(*args, **kwds)
-    return wrapper
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -110,7 +93,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates,
     and :math:`\\zeta` and :math:`V` are stochastic errors.
     """
-    @changed_api_decorator
+
     def __init__(self,
                  obj_dml_data,
                  ml_l,

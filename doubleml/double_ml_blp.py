@@ -7,7 +7,7 @@ from scipy.linalg import sqrtm
 
 
 class DoubleMLBLP:
-    """Best linear predictor (BLP) for DoubleML with orthogonal signals.
+    """Best linear predictor (BLP) for DoubleML with orthogonal signals. Mainly used for CATE and GATE estimation for IRM models.
 
         Parameters
         ----------
@@ -110,7 +110,7 @@ class DoubleMLBLP:
 
     def fit(self):
         """
-        Estimate DoubleML models.
+        Estimate DoubleMLBLP models.
 
         Returns
         -------

@@ -24,7 +24,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     ml_g : classifier implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function
-         :math:`g_0(X) = E[Y <= \\theta | X, D=d]` .
+        :math:`g_0(X) = E[Y <= \\theta | X, D=d]` .
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
