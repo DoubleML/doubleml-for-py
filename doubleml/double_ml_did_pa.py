@@ -13,7 +13,7 @@ from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_p
 
 
 class DoubleMLDID(LinearScoreMixin, DoubleML):
-    """Double machine learning for interactive regression models
+    """Double machine learning for difference-in-differences models with panel data (two time periods).
 
     Parameters
     ----------
@@ -40,8 +40,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'RO'`` or ``'RCS'``) specifying the score function.
-        Default is ``'RO'``.
+        A str (``'PA-1'``, ``'PA-2'`` or ``'DR'``) specifying the score function.
+        Default is ``'PA-1'``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -211,12 +211,12 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         if self.score == 'PA-1':
             psi_a = -1.0 * np.divide(d, p_hat)
-            y_resid_d0_weight = np.multiply(np.divide(d-m_hat, p_hat), 1.0-m_hat)
+            y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
             psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
         
         elif self.score == 'PA-2':
-            psi_a = -1.0
-            y_resid_d0_weight = np.multiply(np.divide(d-m_hat, p_hat), 1.0-m_hat)
+            psi_a = -1.0 * np.ones_like(d)
+            y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
             psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
             psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
             psi_b = psi_b_1 + psi_b_2

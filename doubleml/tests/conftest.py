@@ -7,7 +7,8 @@ from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 from sklearn.datasets import make_regression, make_classification
 
-from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015
+from doubleml.datasets import make_plr_turrell2018, make_irm_data, make_iivm_data, make_pliv_CHS2015, \
+    make_did_SZ2020
 
 
 def _g(x):
@@ -411,5 +412,22 @@ def generate_data_local_quantiles(request):
 
     y = f_loc(d, x, x_conf) + f_scale(d, x, x_conf)*epsilon
     data = (x, y, d, z)
+
+    return data
+
+
+@pytest.fixture(scope='session',
+                params=[(500, 1),
+                        (1000, 1),
+                        (1000, 2)])
+def generate_data_did(request):
+    params = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n = params[0]
+    dpg = params[1]
+
+    # generating data
+    data = make_did_SZ2020(n, dgp_type=dpg, return_type='array')
 
     return data

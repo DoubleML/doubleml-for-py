@@ -12,7 +12,7 @@ from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_p
     _trimm, _get_cond_smpls_2d
 
 
-class DoubleMLDiDCS(LinearScoreMixin, DoubleML):
+class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     """Double machine learning for difference-in-difference with repeated cross-sections.
 
     Parameters
