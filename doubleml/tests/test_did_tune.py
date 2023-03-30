@@ -1,26 +1,27 @@
 import numpy as np
-import pandas as pd
 import pytest
 import math
 
 from sklearn.base import clone
 
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
-from ._utils_did_manual import fit_did, boot_did
+from ._utils_did_manual import fit_did, boot_did, tune_nuisance_did
 
 
 @pytest.fixture(scope='module',
-                params=[[LinearRegression(),
-                         LogisticRegression(solver='lbfgs', max_iter=250)],
-                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
-                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
-def learner(request):
+                params=[RandomForestRegressor(random_state=42)])
+def learner_g(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=[LogisticRegression()])
+def learner_m(request):
     return request.param
 
 
@@ -31,19 +32,32 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
+                params=['dml2'])
 def dml_procedure(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[0.01, 0.05])
-def trimming_threshold(request):
+                params=[True, False])
+def tune_on_folds(request):
     return request.param
 
 
+def get_par_grid(learner):
+    if learner.__class__ in [RandomForestRegressor]:
+        par_grid = {'n_estimators': [5, 10, 20]}
+    else:
+        assert learner.__class__ in [LogisticRegression]
+        par_grid = {'C': np.logspace(-4, 2, 10)}
+    return par_grid
+
+
 @pytest.fixture(scope='module')
-def dml_did_fixture(generate_data_did, learner, score, dml_procedure, trimming_threshold):
+def dml_did_fixture(generate_data_did, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+    par_grid = {'ml_g': get_par_grid(learner_g),
+                'ml_m': get_par_grid(learner_m)}
+    n_folds_tune = 4
+
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -52,32 +66,51 @@ def dml_did_fixture(generate_data_did, learner, score, dml_procedure, trimming_t
     (x, y, d) = generate_data_did
 
     # Set machine learning methods for m & g
-    ml_g = clone(learner[0])
-    ml_m = clone(learner[1])
+    ml_g = clone(learner_g)
+    ml_m = clone(learner_m)
 
     np.random.seed(3141)
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
-
-    np.random.seed(3141)
     dml_did_obj = dml.DoubleMLDID(obj_dml_data,
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
-                                  dml_procedure=dml_procedure,
-                                  draw_sample_splitting=False,
-                                  trimming_threshold=trimming_threshold)
+                                  dml_procedure=dml_procedure)
 
-    # synchronize the sample splitting
-    dml_did_obj.set_sample_splitting(all_smpls=all_smpls)
+    # tune hyperparameters
+    tune_res = dml_did_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
+                                return_tune_res=False)
+    assert isinstance(tune_res, dml.DoubleMLDID)
+
     dml_did_obj.fit()
 
     np.random.seed(3141)
-    res_manual = fit_did(y, x, d,
-                         clone(learner[0]), clone(learner[1]),
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+    smpls = all_smpls[0]
+
+    if tune_on_folds:
+        g0_params, g1_params, m_params = tune_nuisance_did(y, x, d,
+                                                           clone(learner_g), clone(learner_m), smpls, score,
+                                                           n_folds_tune,
+                                                           par_grid['ml_g'], par_grid['ml_m'])
+    else:
+        xx = [(np.arange(len(y)), np.array([]))]
+        g0_params, g1_params, m_params = tune_nuisance_did(y, x, d,
+                                                           clone(learner_g), clone(learner_m), xx, score,
+                                                           n_folds_tune,
+                                                           par_grid['ml_g'], par_grid['ml_m'])
+        g0_params = g0_params * n_folds
+        m_params = m_params * n_folds
+        if score == 'PA-2':
+            g1_params = g1_params * n_folds
+        else:
+            assert (score == 'PA-1') or (score == 'DR')
+            g1_params = None
+
+    res_manual = fit_did(y, x, d, clone(learner_g), clone(learner_m),
                          all_smpls, dml_procedure, score,
-                         trimming_threshold=trimming_threshold)
+                         g0_params=g0_params, g1_params=g1_params, m_params=m_params)
 
     res_dict = {'coef': dml_did_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -113,7 +146,7 @@ def test_dml_did_se(dml_did_fixture):
     assert math.isclose(dml_did_fixture['se'],
                         dml_did_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    
+
 
 @pytest.mark.ci
 def test_dml_did_boot(dml_did_fixture):

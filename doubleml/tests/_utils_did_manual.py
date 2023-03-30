@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.base import clone, is_classifier
+from sklearn.base import clone
 
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
@@ -19,36 +19,45 @@ def fit_did(y, x, d,
     all_g_hat1 = list()
     all_m_hat = list()
     all_p_hat = list()
+    all_psi_a = list()
+    all_psi_b = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat0, g_hat1, m_hat, p_hat = fit_nuisance_did(y, x, d,
-                                                        learner_g, learner_m, smpls,
-                                                        score,
-                                                        g0_params=g0_params, g1_params=g1_params, m_params=m_params,
-                                                        trimming_threshold=trimming_threshold)
+        g_hat0_list, g_hat1_list, m_hat_list, \
+            p_hat_list = fit_nuisance_did(y, x, d,
+                                          learner_g, learner_m, smpls,
+                                          score,
+                                          g0_params=g0_params, g1_params=g1_params, m_params=m_params,
+                                          trimming_threshold=trimming_threshold)
 
-        all_g_hat0.append(g_hat0)
-        all_g_hat1.append(g_hat1)
-        all_m_hat.append(m_hat)
-        all_p_hat.append(p_hat)
+        all_g_hat0.append(g_hat0_list)
+        all_g_hat1.append(g_hat1_list)
+        all_m_hat.append(m_hat_list)
+        all_p_hat.append(p_hat_list)
+
+        y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
+            y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+    
+        psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
+                                      y_resid_d0, d, score)
+
+        all_psi_a.append(psi_a)
+        all_psi_b.append(psi_b)
 
         if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = did_dml1(y, x, d,
-                                                 g_hat0, g_hat1, m_hat, p_hat,
-                                                 smpls, score)
+            thetas[i_rep], ses[i_rep] = did_dml1(psi_a, psi_b, smpls)
         else:
             assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = did_dml2(y, x, d,
-                                                 g_hat0, g_hat1, m_hat, p_hat,
-                                                 smpls, score)
+            thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
 
     res = {'theta': theta, 'se': se,
            'thetas': thetas, 'ses': ses,
-           'all_g_hat0': all_g_hat0, 'all_g_hat1': all_g_hat1, 'all_m_hat': all_m_hat, 'all_p_hat': all_p_hat}
+           'all_g_hat0': all_g_hat0, 'all_g_hat1': all_g_hat1, 'all_m_hat': all_m_hat, 'all_p_hat': all_p_hat,
+           'all_psi_a': all_psi_a, 'all_psi_b': all_psi_b}
 
     return res
 
@@ -102,48 +111,29 @@ def compute_did_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, s
     return y_resid_d0, g_hat0, g_hat1, m_hat, p_hat
 
 
-def did_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
+def did_dml1(psi_a, psi_b, smpls):
     thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
-        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
-    
-    psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
-                                      y_resid_d0, d, score)
+    n_obs = len(psi_a)
+
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = - np.mean(psi_b[test_index]) / np.mean(psi_a[test_index])
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
-        se = np.sqrt(var_did(theta_hat, g_hat0, g_hat1,
-                             m_hat, p_hat,
-                             y_resid_d0,
-                             d, score, n_obs))
+        se = np.sqrt(var_did(theta_hat, psi_a, psi_b, n_obs))
     else:
         assert len(smpls) == 1
         test_index = smpls[0][1]
         n_obs = len(test_index)
-        se = np.sqrt(var_did(theta_hat, g_hat0[test_index], g_hat1[test_index],
-                             m_hat[test_index], p_hat[test_index],
-                             y_resid_d0[test_index],
-                             d[test_index], score, n_obs))
+        se = np.sqrt(var_did(theta_hat, psi_a[test_index], psi_b[test_index], n_obs))
 
     return theta_hat, se
 
 
-def did_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, score):
-    n_obs = len(y)
-    y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
-        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
-
-    psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
-                                      y_resid_d0, d, score)
-    
+def did_dml2(psi_a, psi_b):
+    n_obs = len(psi_a)
     theta_hat = - np.mean(psi_b) / np.mean(psi_a)
-    se = np.sqrt(var_did(theta_hat, g_hat0, g_hat1,
-                         m_hat, p_hat,
-                         y_resid_d0,
-                         d, score, n_obs))
+    se = np.sqrt(var_did(theta_hat, psi_a, psi_b, n_obs))
 
     return theta_hat, se
 
@@ -173,35 +163,14 @@ def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
     return psi_a, psi_b
 
 
-def var_did(theta, g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score, n_obs):
-
-    if score == 'PA-1':
-        psi_a = -1.0 * np.divide(d, p_hat)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-
-    elif score == 'PA-2':
-        psi_a = -1.0 * np.ones_like(d)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
-        psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
-        psi_b = psi_b_1 + psi_b_2
-
-    else:
-        assert score == 'DR'
-        psi_a = -1.0 * np.divide(d, p_hat)
-        propensity_weight = np.divide(m_hat, 1.0-m_hat)
-        y_resid_d0_weight = np.divide(d, np.mean(d)) \
-            - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-        
-    var = 1/n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2))
+def var_did(theta, psi_a, psi_b, n_obs):  
+    J = np.mean(psi_a)
+    var = 1/n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2)) / np.power(J, 2)
     return var
 
 
-def boot_did(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
-             all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
-             n_rep=1, apply_cross_fitting=True):
+def boot_did(y, thetas, ses, all_psi_a, all_psi_b,
+             all_smpls, bootstrap, n_rep_boot, n_rep=1, apply_cross_fitting=True):
     all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
@@ -213,9 +182,8 @@ def boot_did(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
             n_obs = len(test_index)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_theta, boot_t_stat = boot_did_single_split(
-            thetas[i_rep], y, d,
-            all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_p_hat[i_rep], smpls,
-            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting, dml_procedure)
+            thetas[i_rep], all_psi_a[i_rep], all_psi_b[i_rep], smpls,
+            ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
         all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
@@ -225,50 +193,38 @@ def boot_did(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
     return boot_theta, boot_t_stat
 
 
-def boot_did_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list,
-                          smpls, score, se, weights, n_rep_boot, apply_cross_fitting, dml_procedure):
-    y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
-        y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
+def boot_did_single_split(theta, psi_a, psi_b,
+                          smpls, se, weights, n_rep_boot, apply_cross_fitting):
 
     if apply_cross_fitting:
-        if score == 'PA-1':
-            J = np.mean(-np.divide(d, p_hat))
-        elif score == 'PA-2':
-            J = -1.0
-        else:
-            assert score == 'DR'
-            J = np.mean(-np.divide(d, np.mean(d)))
+        J = np.mean(psi_a)
     else:
         test_index = smpls[0][1]
-        if score == 'PA-1':
-            J = np.mean(-np.divide(d[test_index], p_hat[test_index]))
-        elif score == 'PA-2':
-            J = -1.0
-        else:
-            assert score == 'DR'
-            J = np.mean(-np.divide(d[test_index], np.mean(d)))
-
-    if score == 'PA-1':
-        psi_a = -1.0 * np.divide(d, p_hat)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-
-    elif score == 'PA-2':
-        psi_a = -1.0 * np.ones_like(d)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
-        psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
-        psi_b = psi_b_1 + psi_b_2
-
-    else:
-        assert score == 'DR'
-        psi_a = -1.0 * np.divide(d, np.mean(d))
-        propensity_weight = np.divide(m_hat, 1.0-m_hat)
-        y_resid_d0_weight = np.divide(d, np.mean(d)) \
-            - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
+        J = np.mean(psi_a[test_index])
 
     psi = np.multiply(psi_a, theta) + psi_b
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
     return boot_theta, boot_t_stat
+
+
+def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
+                      param_grid_g, param_grid_m):
+    train_cond0 = np.where(d == 0)[0]
+    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond0)
+
+    if score == 'PA-2':
+        train_cond1 = np.where(d == 1)[0]
+        g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                       train_cond=train_cond1)
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    else:
+        g1_best_params = None
+
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g0_best_params, g1_best_params, m_best_params
