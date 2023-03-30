@@ -20,8 +20,7 @@ The R package is also available on [GitHub](https://github.com/DoubleML/doubleml
 Documentation and website: [https://docs.doubleml.org/](https://docs.doubleml.org/)
 
 **DoubleML** is currently maintained by
-[@MalteKurz](https://github.com/MalteKurz) and
-[@PhilippBach](https://github.com/PhilippBach).
+[@MalteKurz](https://github.com/MalteKurz), [@PhilippBach](https://github.com/PhilippBach) and [@SvenKlaassen](https://github.com/SvenKlaassen).
 
 Bugs can be reported to the issue tracker at
 [https://github.com/DoubleML/doubleml-for-py/issues](https://github.com/DoubleML/doubleml-for-py/issues).
