@@ -62,7 +62,6 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
     g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                                 train_cond=train_cond0)
 
-
     if score == 'PA-2':
         train_cond1 = np.where(d == 1)[0]
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
@@ -80,8 +79,8 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
                                    trimming_threshold=trimming_threshold)
 
     p_hat_list = []
-    for (_, test_index) in smpls:
-        p_hat_list.append(np.mean(d[test_index]))
+    for (train_index, test_index) in smpls:
+        p_hat_list.append(np.mean(d[train_index]))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 
@@ -108,12 +107,11 @@ def did_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     n_obs = len(y)
     y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
-
+    
+    psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
+                                      y_resid_d0, d, score)
     for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = did_orth(g_hat0[test_index], g_hat1[test_index],
-                               m_hat[test_index], p_hat[test_index],
-                               y_resid_d0[test_index],
-                               d[test_index], score)
+        thetas[idx] = - np.mean(psi_b[test_index]) / np.mean(psi_a[test_index])
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
@@ -138,8 +136,10 @@ def did_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
-    theta_hat = did_orth(g_hat0, g_hat1, m_hat, p_hat,
-                         y_resid_d0, d, score)
+    psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
+                                      y_resid_d0, d, score)
+    
+    theta_hat = - np.mean(psi_b) / np.mean(psi_a)
     se = np.sqrt(var_did(theta_hat, g_hat0, g_hat1,
                          m_hat, p_hat,
                          y_resid_d0,
@@ -148,7 +148,7 @@ def did_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     return theta_hat, se
 
 
-def did_orth(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
+def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
 
     if score == 'PA-1':
         psi_a = -1.0 * np.divide(d, p_hat)
@@ -164,14 +164,13 @@ def did_orth(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
     
     else:
         assert score == 'DR'
-        psi_a = -1.0 * np.divide(d, p_hat)
+        psi_a = -1.0 * np.divide(d, np.mean(d))
         propensity_weight = np.divide(m_hat, 1.0-m_hat)
         y_resid_d0_weight = np.divide(d, np.mean(d)) \
             - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
         psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-                          
-    theta = -1.0 * np.divide(np.mean(psi_b), np.mean(psi_a))
-    return theta
+
+    return psi_a, psi_b
 
 
 def var_did(theta, g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score, n_obs):
@@ -238,7 +237,7 @@ def boot_did_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
             J = -1.0
         else:
             assert score == 'DR'
-            J = np.mean(-np.divide(d, p_hat))
+            J = np.mean(-np.divide(d, np.mean(d)))
     else:
         test_index = smpls[0][1]
         if score == 'PA-1':
@@ -247,7 +246,7 @@ def boot_did_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
             J = -1.0
         else:
             assert score == 'DR'
-            J = np.mean(-np.divide(d[test_index], p_hat[test_index]))
+            J = np.mean(-np.divide(d[test_index], np.mean(d)))
 
     if score == 'PA-1':
         psi_a = -1.0 * np.divide(d, p_hat)
@@ -263,7 +262,7 @@ def boot_did_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
 
     else:
         assert score == 'DR'
-        psi_a = -1.0 * np.divide(d, p_hat)
+        psi_a = -1.0 * np.divide(d, np.mean(d))
         propensity_weight = np.divide(m_hat, 1.0-m_hat)
         y_resid_d0_weight = np.divide(d, np.mean(d)) \
             - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))

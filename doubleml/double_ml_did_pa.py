@@ -165,7 +165,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         # only relevant for experimental setting PA-2
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'PA-2':
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                 return_models=return_models)
 
@@ -205,7 +205,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat):
-        # trimm propensities and propensity weights and residuals
+        # trimm propensities and calc residuals
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
         y_resid_d0 = y - g_hat0
 
@@ -223,7 +223,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         else:
             assert self.score == 'DR'
-            psi_a = -1.0 * np.divide(d, p_hat)
+            psi_a = -1.0 * np.divide(d, np.mean(d))
             propensity_weight = np.divide(m_hat, 1.0-m_hat)
             y_resid_d0_weight = np.divide(d, np.mean(d)) \
                 - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))

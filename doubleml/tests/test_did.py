@@ -18,8 +18,8 @@ from ._utils_did_manual import fit_did, boot_did
 @pytest.fixture(scope='module',
                 params=[[LinearRegression(),
                          LogisticRegression(solver='lbfgs', max_iter=250)],
-                        [RandomForestRegressor(max_depth=5, n_estimators=10),
-                         RandomForestClassifier(max_depth=5, n_estimators=10)]])
+                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
+                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
 def learner(request):
     return request.param
 
@@ -108,3 +108,21 @@ def test_dml_did_coef(dml_did_fixture):
     assert math.isclose(dml_did_fixture['coef'],
                         dml_did_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    
+
+@pytest.mark.ci
+def test_dml_did_se(dml_did_fixture):
+    assert math.isclose(dml_did_fixture['se'],
+                        dml_did_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    
+
+@pytest.mark.ci
+def test_dml_did_boot(dml_did_fixture):
+    for bootstrap in dml_did_fixture['boot_methods']:
+        assert np.allclose(dml_did_fixture['boot_coef' + bootstrap],
+                           dml_did_fixture['boot_coef' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_did_fixture['boot_t_stat' + bootstrap],
+                           dml_did_fixture['boot_t_stat' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
