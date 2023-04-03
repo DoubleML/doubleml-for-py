@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLQTE
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLQTE, DoubleMLDID
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, make_did_SZ2020
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -12,6 +12,7 @@ dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)
 dml_data_pliv = make_pliv_CHS2015(n_obs=100, dim_z=1)
 dml_data_irm = make_irm_data(n_obs=500)
 dml_data_iivm = make_iivm_data(n_obs=1000)
+dml_data_did = make_did_SZ2020(n_obs=100)
 
 # linear models
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
@@ -19,18 +20,21 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
 dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
 dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression())
 dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
+dml_did = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
 
 dml_plr.fit()
 dml_pliv.fit()
 dml_irm.fit()
 dml_iivm.fit()
 dml_cvar.fit()
+dml_did.fit()
 
 dml_plr.bootstrap()
 dml_pliv.bootstrap()
 dml_irm.bootstrap()
 dml_iivm.bootstrap()
 dml_cvar.bootstrap()
+dml_did.bootstrap()
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
@@ -148,3 +152,12 @@ def test_qte_defaults():
     assert dml_qte.trimming_rule == 'truncate'
     assert dml_qte.trimming_threshold == 1e-2
     assert dml_qte.normalize_ipw
+
+
+@pytest.mark.ci
+def test_did_defaults():
+    _assert_resampling_default_settings(dml_did)
+    assert dml_did.score == 'PA-1'
+    assert dml_did.dml_procedure == 'dml2'
+    assert dml_did.trimming_rule == 'truncate'
+    assert dml_did.trimming_threshold == 1e-2
