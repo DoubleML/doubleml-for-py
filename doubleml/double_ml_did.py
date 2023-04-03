@@ -9,7 +9,7 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
-    _trimm, _check_score
+    _trimm, _check_score, _check_trimming
 
 
 class DoubleMLDID(LinearScoreMixin, DoubleML):
@@ -104,13 +104,24 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         else:
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
+        
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        valid_trimming_rule = ['truncate']
-        if trimming_rule not in valid_trimming_rule:
-            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
-                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
-        self.trimming_rule = trimming_rule
-        self.trimming_threshold = trimming_threshold
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']

@@ -322,16 +322,56 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule='discard')
+    
 
     # check the trimming_threshold exceptions
     msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
                        trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1,
+                        trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, Lasso(), LogisticRegression(), treatment=1,
+                         trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold="0.1")
+        
     msg = 'Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
+                         trimming_rule='truncate', trimming_threshold=0.6)
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1,
                        trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1,
+                        trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, Lasso(), LogisticRegression(), treatment=1,
+                         trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
+                        trimming_rule='truncate', trimming_threshold=0.6)
 
 
 @pytest.mark.ci
@@ -388,6 +428,10 @@ def test_doubleml_exception_kde():
 @pytest.mark.ci
 def test_doubleml_exception_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, ml_g, LogisticRegression(), normalize_ipw=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIIVM(dml_data_iivm, ml_g, LogisticRegression(), LogisticRegression(), normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
