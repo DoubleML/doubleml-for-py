@@ -340,15 +340,21 @@ def _check_trimming(trimming_rule, trimming_threshold):
     return
 
 
-def _check_score(score, valid_score):
+def _check_score(score, valid_score, allow_callable=True):
     if isinstance(score, str):
         if score not in valid_score:
             raise ValueError('Invalid score ' + score + '. ' +
                              'Valid score ' + ' or '.join(valid_score) + '.')
     else:
-        raise TypeError('Invalid score. ' +
-                        'Valid score ' + ' or '.join(valid_score) + '.')
+        if allow_callable:
+            if not callable(score):
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
+        else:
+            raise TypeError('score should be a string. '
+                            '%r was passed.' % score)
     return
+
 
 
 def _get_bracket_guess(score, coef_start, coef_bounds):

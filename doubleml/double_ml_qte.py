@@ -126,7 +126,7 @@ class DoubleMLQTE:
         # check score
         self._score = score
         valid_scores = ['PQ', 'LPQ', 'CVaR']
-        _check_score(self.score, valid_scores)
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         # check data
         self._is_cluster_data = False

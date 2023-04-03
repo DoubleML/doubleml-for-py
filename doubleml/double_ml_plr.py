@@ -9,7 +9,7 @@ from functools import wraps
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity
+from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity, _check_score
 
 
 # To be removed in version 0.6.0
@@ -131,7 +131,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
+        valid_scores = ['IV-type', 'partialling out']
+        _check_score(self.score, valid_scores, allow_callable=True)
 
         _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
@@ -167,18 +168,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in self._learner}
-
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['IV-type', 'partialling out']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
-        return
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

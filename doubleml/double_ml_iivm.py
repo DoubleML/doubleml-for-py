@@ -6,7 +6,7 @@ from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
-    _trimm, _normalize_ipw
+    _trimm, _normalize_ipw, _check_score
 
 
 class DoubleMLIIVM(LinearScoreMixin, DoubleML):
@@ -147,7 +147,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
+        valid_scores = ['LATE']
+        _check_score(self.score, valid_scores, allow_callable=True)
+
         # set stratication for resampling
         self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
@@ -202,18 +204,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m', 'ml_r0', 'ml_r1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
-
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['LATE']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. '
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
-        return
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

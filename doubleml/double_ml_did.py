@@ -9,7 +9,7 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
-    _trimm
+    _trimm, _check_score
 
 
 class DoubleMLDID(LinearScoreMixin, DoubleML):
@@ -84,7 +84,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
+        valid_scores = ['PA-1', 'PA-2', 'DR']
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         # set stratication for resampling
         self._strata = self._dml_data.d
@@ -116,14 +117,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['PA-1', 'PA-2', 'DR']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        return
-
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('For repeated outcomes the data must be of DoubleMLData type. '
@@ -138,7 +131,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
-                             'To fit an DiD model with DML '
+                             'To fit an DID model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
