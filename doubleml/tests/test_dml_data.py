@@ -76,6 +76,19 @@ def test_obj_vs_from_arrays():
                                                    dml_data.data[dml_data.d_cols])
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
+    dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=False)
+    dml_data_from_array = DoubleMLData.from_arrays(x=dml_data.data[dml_data.x_cols],
+                                                   y=dml_data.data[dml_data.y_col],
+                                                   d=dml_data.data[dml_data.d_cols])
+    assert np.array_equal(dml_data_from_array.data, dml_data.data)
+
+    dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
+    dml_data_from_array = DoubleMLData.from_arrays(x=dml_data.data[dml_data.x_cols],
+                                                   y=dml_data.data[dml_data.y_col],
+                                                   d=dml_data.data[dml_data.d_cols],
+                                                   t=dml_data.data[dml_data.t_col])
+    assert np.array_equal(dml_data_from_array.data, dml_data.data)
+
     dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
     dml_data_from_array = DoubleMLClusterData.from_arrays(dml_data.data[dml_data.x_cols],
                                                           dml_data.data[dml_data.y_col],
