@@ -88,7 +88,7 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
                                    trimming_threshold=trimming_threshold)
 
     p_hat_list = []
-    for (train_index, test_index) in smpls:
+    for (train_index, _) in smpls:
         p_hat_list.append(np.mean(d[train_index]))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
