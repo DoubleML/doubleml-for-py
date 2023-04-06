@@ -7,21 +7,22 @@ from scipy.linalg import sqrtm
 
 
 class DoubleMLBLP:
-    """Best linear predictor (BLP) for DoubleML with orthogonal signals. Mainly used for CATE and GATE estimation for IRM models.
+    """Best linear predictor (BLP) for DoubleML with orthogonal signals.
+    Manily used for CATE and GATE estimation for IRM models.
 
-        Parameters
-        ----------
-        orth_signal : :class:`numpy.array`
-            The orthogonal signal to be predicted. Has to be of shape ``(n_obs,)``,
-            where ``n_obs`` is the number of observations.
+    Parameters
+    ----------
+    orth_signal : :class:`numpy.array`
+        The orthogonal signal to be predicted. Has to be of shape ``(n_obs,)``,
+        where ``n_obs`` is the number of observations.
 
-        basis : :class:`pandas.DataFrame`
-            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
-            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+    basis : :class:`pandas.DataFrame`
+        The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+        where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
-        is_gate : bool
-            Indicates whether the basis is constructed for GATEs (dummy-basis).
-            Default is ``False``.
+    is_gate : bool
+        Indicates whether the basis is constructed for GATEs (dummy-basis).
+        Default is ``False``.
     """
 
     def __init__(self,

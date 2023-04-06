@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import warnings
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -8,7 +6,7 @@ from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
+from ._utils import _dml_cv_predict, _check_finite_predictions, _check_is_propensity, \
     _trimm, _get_cond_smpls_2d
 
 
@@ -153,9 +151,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         if not (binary_time & zero_one_time):
             raise ValueError('Incompatible data. '
-                    'To fit an DiD model with DML '
-                    'exactly one binary variable with values 0 and 1 '
-                    'needs to be specified as time variable.')
+                             'To fit an DiD model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as time variable.')
 
         return
 
@@ -269,7 +267,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             weight_resid_d1_t0 = -1.0 * \
                 np.divide(np.multiply(d, 1.0-t),
                           np.multiply(p_hat, 1.0-lambda_hat))
-            
+
             prop_weighting = np.divide(m_hat, 1.0-m_hat)
             weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t), np.multiply(p_hat, lambda_hat)),
                                                     prop_weighting)
@@ -291,7 +289,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                                                     prop_weighting)
             weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)),
                                              prop_weighting)
-            
+
             psi_b_3 = np.multiply(np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
                                   - np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)), y)
 

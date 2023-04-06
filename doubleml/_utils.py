@@ -356,7 +356,6 @@ def _check_score(score, valid_score, allow_callable=True):
     return
 
 
-
 def _get_bracket_guess(score, coef_start, coef_bounds):
     max_bracket_length = coef_bounds[1] - coef_bounds[0]
     b_guess = coef_bounds

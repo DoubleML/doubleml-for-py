@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import pytest
 import math
 
@@ -9,7 +8,6 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
 from ._utils_did_manual import fit_did, boot_did
@@ -106,14 +104,14 @@ def test_dml_did_coef(dml_did_fixture):
     assert math.isclose(dml_did_fixture['coef'],
                         dml_did_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    
+
 
 @pytest.mark.ci
 def test_dml_did_se(dml_did_fixture):
     assert math.isclose(dml_did_fixture['se'],
                         dml_did_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    
+
 
 @pytest.mark.ci
 def test_dml_did_boot(dml_did_fixture):

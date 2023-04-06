@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import warnings
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -90,7 +88,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         # set stratication for resampling
         self._strata = self._dml_data.d
 
-
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
@@ -104,7 +101,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         else:
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
-        
+
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
@@ -147,7 +144,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                              'needs to be specified as treatment variable.')
         return
 
-
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
@@ -160,18 +156,18 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
-    
+
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
         # adjust target values to consider only compatible subsamples
         g_hat0['targets'] = g_hat0['targets'].astype(float)
         g_hat0['targets'][d == 1] = np.nan
-        
+
         # only relevant for experimental setting PA-2
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'PA-2':
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                return_models=return_models)
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
 
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
@@ -197,16 +193,16 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
-                'targets': {'ml_g0': g_hat0['targets'],
-                            'ml_g1': g_hat1['targets'],
-                            'ml_m': m_hat['targets']},
-                'models': {'ml_g0': g_hat0['models'],
-                           'ml_g1': g_hat1['models'],
-                           'ml_m': m_hat['models']}
-                }
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets']},
+                 'models': {'ml_g0': g_hat0['models'],
+                            'ml_g1': g_hat1['models'],
+                            'ml_m': m_hat['models']
+                            }
+                 }
 
         return psi_elements, preds
-
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat):
         # trimm propensities and calc residuals
@@ -217,7 +213,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             psi_a = -1.0 * np.divide(d, p_hat)
             y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
             psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-        
+
         elif self.score == 'PA-2':
             psi_a = -1.0 * np.ones_like(d)
             y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
@@ -235,9 +231,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
-
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                        search_mode, n_iter_randomized_search):
+                         search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -261,11 +256,11 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             g1_tune_res = _dml_tune(y, x, train_inds_d1,
                                     self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                     n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-            
+
         m_tune_res = _dml_tune(d, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
         if (self.score == 'PA-1') or (self.score == 'DR'):

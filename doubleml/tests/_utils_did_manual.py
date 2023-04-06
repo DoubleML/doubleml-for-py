@@ -4,7 +4,7 @@ from sklearn.base import clone
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _check_is_propensity, _normalize_ipw
+from .._utils import _check_is_propensity
 
 
 def fit_did(y, x, d,
@@ -38,9 +38,9 @@ def fit_did(y, x, d,
 
         y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
             y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
-    
+
         psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
-                                      y_resid_d0, d, score)
+                                          y_resid_d0, d, score)
 
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
@@ -69,12 +69,12 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
     ml_g1 = clone(learner_g)
     train_cond0 = np.where(d == 0)[0]
     g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
-                                train_cond=train_cond0)
+                              train_cond=train_cond0)
 
     if score == 'PA-2':
         train_cond1 = np.where(d == 1)[0]
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                    train_cond=train_cond1)
+                                  train_cond=train_cond1)
 
     else:
         assert (score == 'PA-1') | (score == 'DR')
@@ -144,14 +144,14 @@ def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
         psi_a = -1.0 * np.divide(d, p_hat)
         y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
         psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-        
+
     elif score == 'PA-2':
         psi_a = -1.0 * np.ones_like(d)
         y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
         psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
         psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
         psi_b = psi_b_1 + psi_b_2
-    
+
     else:
         assert score == 'DR'
         psi_a = -1.0 * np.divide(d, np.mean(d))
@@ -163,7 +163,7 @@ def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
     return psi_a, psi_b
 
 
-def var_did(theta, psi_a, psi_b, n_obs):  
+def var_did(theta, psi_a, psi_b, n_obs):
     J = np.mean(psi_a)
     var = 1/n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2)) / np.power(J, 2)
     return var

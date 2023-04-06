@@ -139,7 +139,7 @@ def test_dml_did_coef(dml_did_fixture):
     assert math.isclose(dml_did_fixture['coef'],
                         dml_did_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    
+
 
 @pytest.mark.ci
 def test_dml_did_se(dml_did_fixture):

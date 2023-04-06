@@ -835,14 +835,17 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         features_ps = x
         features_reg = x
     elif dgp_type == 5:
+        features_ps = None
         features_reg = z
     elif dgp_type == 6:
+        features_ps = None
         features_reg = x
     else:
         raise ValueError('The dgp_type is not valid.')
 
     # treatment and propensities
-    if (dgp_type == 5) or (dgp_type == 6):
+    is_experimental = (dgp_type == 5) or (dgp_type == 6)
+    if is_experimental:
         # Set D to be experimental
         p = 0.5 * np.ones(n_obs)
     else:

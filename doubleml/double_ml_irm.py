@@ -164,7 +164,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Indicates whether the inverse probability weights are normalized.
         """
         return self._normalize_ipw
-    
+
     @property
     def trimming_rule(self):
         """

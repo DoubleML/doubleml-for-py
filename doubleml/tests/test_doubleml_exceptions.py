@@ -69,7 +69,7 @@ def test_doubleml_exception_data():
         _ = DoubleMLCVAR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLQTE(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
-    msg = 'For repeated outcomes the data must be of DoubleMLData type.' 
+    msg = 'For repeated outcomes the data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
 
@@ -210,7 +210,7 @@ def test_doubleml_exception_data():
         # multiple D for QTE
         _ = DoubleMLQTE(DoubleMLData(df_irm, 'y', ['d', 'X1']),
                         LogisticRegression(), LogisticRegression())
-        
+
     # DID with IV
     msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
     with pytest.raises(ValueError, match=msg):
@@ -228,8 +228,6 @@ def test_doubleml_exception_data():
         # multiple D for DID
         _ = DoubleMLDID(DoubleMLData(df_irm, 'y', ['d', 'X1']),
                         Lasso(), LogisticRegression())
-
-
 
 
 @pytest.mark.ci
@@ -324,7 +322,6 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule='discard')
-    
 
     # check the trimming_threshold exceptions
     msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
@@ -349,7 +346,7 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
                         trimming_rule='truncate', trimming_threshold="0.1")
-        
+
     msg = 'Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),

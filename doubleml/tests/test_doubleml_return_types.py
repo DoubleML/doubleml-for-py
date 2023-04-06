@@ -29,6 +29,7 @@ dml_pq = DoubleMLPQ(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomFore
 dml_lpq = DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier())
 dml_did = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
 
+
 @pytest.mark.ci
 @pytest.mark.parametrize('dml_obj, cls',
                          [(dml_plr, DoubleMLPLR),
@@ -206,6 +207,7 @@ def test_stored_models():
     assert np.all([isinstance(mdl, plr_dml1.learner['ml_m'].__class__) for mdl in plr_dml1.models['ml_m']['d'][0]])
     # extend these tests to more models
 
+
 @pytest.mark.ci
 def test_stored_predictions():
     assert plr_dml1.predictions['ml_l'].shape == (n_obs, n_rep, n_treat)
@@ -236,6 +238,7 @@ def test_stored_predictions():
     assert lpq_dml1.predictions['ml_m_z'].shape == (n_obs, n_rep, n_treat)
     assert lpq_dml1.predictions['ml_m_d_z0'].shape == (n_obs, n_rep, n_treat)
     assert lpq_dml1.predictions['ml_m_d_z1'].shape == (n_obs, n_rep, n_treat)
+
 
 @pytest.mark.ci
 def test_stored_nuisance_targets():
