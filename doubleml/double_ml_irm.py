@@ -406,7 +406,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         groups : :class:`pandas.DataFrame`
             The group indicator for estimating the best linear predictor.
             Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
-            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups.
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
 
         Returns
         -------

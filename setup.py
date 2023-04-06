@@ -11,7 +11,7 @@ PROJECT_URLS = {
 
 setup(
     name='DoubleML',
-    version='0.6.dev0',
+    version='0.7.dev0',
     author='Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.',
     maintainer='Malte S. Kurz',
     maintainer_email='malte.simon.kurz@uni-hamburg.de',
@@ -36,7 +36,9 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
     ],
 )
