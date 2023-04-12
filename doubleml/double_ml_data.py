@@ -146,8 +146,8 @@ class DoubleMLData(DoubleMLBaseData):
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
-        self.x_cols = x_cols
         self.t_col = t_col
+        self.x_cols = x_cols
         self._check_disjoint_sets_y_d_x_z_t()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
@@ -323,7 +323,10 @@ class DoubleMLData(DoubleMLBaseData):
         """
         Array of time variable.
         """
-        return self._t.values
+        if self.t_col is not None:
+            return self._t.values
+        else:
+            return None
 
     @property
     def n_treat(self):
@@ -389,10 +392,16 @@ class DoubleMLData(DoubleMLBaseData):
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
         else:
-            # x_cols defaults to all columns but y_col, d_cols and z_cols
-            if self.z_cols is not None:
+            # x_cols defaults to all columns but y_col, d_cols and z_cols (and t_col)
+            if (self.z_cols is not None) & (self.t_col is not None):
+                y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col})
+                x_cols = [col for col in self.data.columns if col not in y_d_z_t]
+            elif self.z_cols is not None:
                 y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d_z]
+            elif self.t_col is not None:
+                y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col})
+                x_cols = [col for col in self.data.columns if col not in y_d_t]
             else:
                 y_d = set.union({self.y_col}, set(self.d_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]

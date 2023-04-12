@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData,\
-    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID
+    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 from doubleml.double_ml_data import DoubleMLBaseData
@@ -29,6 +29,7 @@ dml_data_irm = make_irm_data(n_obs=n)
 dml_data_iivm = make_iivm_data(n_obs=n)
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 dml_data_did = make_did_SZ2020(n_obs=n)
+dml_data_did_cs = make_did_SZ2020(n_obs=n, cross_sectional_data=True)
 (x, y, d, z) = make_iivm_data(n_obs=n, return_type="array")
 y[y > 0] = 1
 y[y < 0] = 0
@@ -72,6 +73,9 @@ def test_doubleml_exception_data():
     msg = 'For repeated outcomes the data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
+    msg = 'For repeated cross sections the data must be of DoubleMLData type. '
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDIDCS(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
 
     # PLR with IV
     msg = (r'Incompatible data. Z1 have been set as instrumental variable\(s\). '
@@ -229,6 +233,37 @@ def test_doubleml_exception_data():
         _ = DoubleMLDID(DoubleMLData(df_irm, 'y', ['d', 'X1']),
                         Lasso(), LogisticRegression())
 
+    # DIDCS with IV
+    msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_iivm, Lasso(), LogisticRegression())
+
+    # DIDCS treatment exceptions
+    msg = ('Incompatible data. To fit an DIDCS model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as treatment variable.')
+    df_did_cs = dml_data_did_cs.data.copy()
+    df_did_cs['d'] = df_did_cs['d'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary D for DIDCS
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols='d', t_col='t'),
+                          Lasso(), LogisticRegression())
+    df_did_cs = dml_data_did_cs.data.copy()
+    with pytest.raises(ValueError, match=msg):
+        # multiple D for DIDCS
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols=['d', 'Z1'], t_col='t'),
+                          Lasso(), LogisticRegression())
+        
+    # DIDCS time exceptions
+    msg = ('Incompatible data. To fit an DIDCS model with DML exactly one binary variable with values 0 and 1 '
+           'needs to be specified as time variable.')
+    df_did_cs = dml_data_did_cs.data.copy()
+    df_did_cs['t'] = df_did_cs['t'] * 2
+    with pytest.raises(ValueError, match=msg):
+        # non-binary t for DIDCS
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols='d', t_col='t'),
+                          Lasso(), LogisticRegression())
+        
+
 
 @pytest.mark.ci
 def test_doubleml_exception_scores():
@@ -304,6 +339,14 @@ def test_doubleml_exception_scores():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), score=2)
 
+    # DIDCS
+    msg = 'Invalid score IV. Valid score CS-4 or CS-5 or DR-2.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), score='IV')
+    msg = 'score should be a string. 2 was passed.'
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), score=2)
+
 
 @pytest.mark.ci
 def test_doubleml_exception_trimming_rule():
@@ -322,6 +365,8 @@ def test_doubleml_exception_trimming_rule():
         _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule='discard')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule='discard')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), trimming_rule='discard')
 
     # check the trimming_threshold exceptions
     msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
@@ -346,6 +391,9 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
                         trimming_rule='truncate', trimming_threshold="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
+                          trimming_rule='truncate', trimming_threshold="0.1")
 
     msg = 'Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5.'
     with pytest.raises(ValueError, match=msg):
@@ -369,6 +417,9 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
                         trimming_rule='truncate', trimming_threshold=0.6)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
+                          trimming_rule='truncate', trimming_threshold=0.6)
 
 
 @pytest.mark.ci

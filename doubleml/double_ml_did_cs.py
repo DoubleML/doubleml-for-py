@@ -7,7 +7,7 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _check_finite_predictions, _check_is_propensity, \
-    _trimm, _get_cond_smpls_2d, _dml_tune
+    _trimm, _get_cond_smpls_2d, _dml_tune, _check_score, _check_trimming
 
 
 class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
@@ -87,7 +87,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
+        valid_scores = ['CS-4', 'CS-5', 'DR-2']
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         # set stratication for resampling
         self._strata = self._dml_data.d.reshape(-1, 1) + \
@@ -109,26 +110,15 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
-        valid_trimming_rule = ['truncate']
-        if trimming_rule not in valid_trimming_rule:
-            raise ValueError('Invalid trimming_rule ' + trimming_rule + '. ' +
-                             'Valid trimming_rule ' + ' or '.join(valid_trimming_rule) + '.')
-        self.trimming_rule = trimming_rule
-        self.trimming_threshold = trimming_threshold
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
                          'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
-
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['CS-4', 'CS-5', 'DR-2']
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        return
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
@@ -138,14 +128,14 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). '
-                             'At the moment there are not DiD models with instruments implemented.')
+                             'At the moment there are no DiD models with instruments implemented.')
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all(
             (np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
             raise ValueError('Incompatible data. '
-                             'To fit an DiD model with DML '
+                             'To fit an DIDCS model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
 
@@ -155,7 +145,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         if not (binary_time & zero_one_time):
             raise ValueError('Incompatible data. '
-                             'To fit an DiD model with DML '
+                             'To fit an DIDCS model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as time variable.')
 
