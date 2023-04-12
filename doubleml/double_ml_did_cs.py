@@ -124,7 +124,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['CS-4', 'CS-5', 'DR-1']
+            valid_score = ['CS-4', 'CS-5', 'DR-2']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -274,7 +274,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                                              prop_weighting)
 
         elif self.score == 'CS-5':
-            # todo: improve this implementation
+
             weight_psi_a = np.ones_like(d)
             weight_g_d1_t1 = weight_psi_a
             weight_g_d1_t0 = -1.0 * weight_psi_a
@@ -317,11 +317,13 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         psi_a = -1.0 * weight_psi_a
 
         # psi_b
-        psi_b_1 = np.multiply(weight_g_d1_t1,  g_hat_d1_t1) + np.multiply(weight_g_d1_t0,  g_hat_d1_t0) \
-            + np.multiply(weight_g_d0_t0,  g_hat_d0_t0) + \
+        psi_b_1 = np.multiply(weight_g_d1_t1,  g_hat_d1_t1) + \
+            np.multiply(weight_g_d1_t0,  g_hat_d1_t0) + \
+            np.multiply(weight_g_d0_t0,  g_hat_d0_t0) + \
             np.multiply(weight_g_d0_t1,  g_hat_d0_t1)
-        psi_b_2 = np.multiply(weight_resid_d1_t1,  resid_d1_t1) + np.multiply(weight_resid_d1_t0,  resid_d1_t0) \
-            + np.multiply(weight_resid_d0_t0,  resid_d0_t0) + \
+        psi_b_2 = np.multiply(weight_resid_d1_t1,  resid_d1_t1) + \
+            np.multiply(weight_resid_d1_t0,  resid_d1_t0) + \
+            np.multiply(weight_resid_d0_t0,  resid_d0_t0) + \
             np.multiply(weight_resid_d0_t1,  resid_d0_t1)
 
         psi_b = psi_b_1 + psi_b_2
