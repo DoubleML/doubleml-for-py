@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.base import clone
 
-from ._utils import fit_predict, fit_predict_proba
+from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ._utils_did_manual import did_dml1, did_dml2
 
 from .._utils import _check_is_propensity
@@ -233,3 +233,33 @@ def did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
     psi_b = psi_b_1 + psi_b_2
 
     return psi_a, psi_b
+
+
+def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune,
+                      param_grid_g, param_grid_m):
+    
+
+    smpls_d0_t0 = np.intersect1d(np.where(d == 0)[0], np.where(t == 0)[0])
+    smpls_d0_t1 = np.intersect1d(np.where(d == 0)[0], np.where(t == 1)[0])
+    smpls_d1_t0 = np.intersect1d(np.where(d == 1)[0], np.where(t == 0)[0])
+    smpls_d1_t1 = np.intersect1d(np.where(d == 1)[0], np.where(t == 1)[0])
+
+    g_d0_t0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                        train_cond=smpls_d0_t0)
+    g_d0_t1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                        train_cond=smpls_d0_t1)
+    g_d1_t0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                        train_cond=smpls_d1_t0)
+    g_d1_t1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                        train_cond=smpls_d1_t1)
+
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
+    g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
+    g_d1_t0_best_params = [xx.best_params_ for xx in g_d1_t0_tune_res]
+    g_d1_t1_best_params = [xx.best_params_ for xx in g_d1_t1_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g_d0_t0_best_params, g_d0_t1_best_params, \
+         g_d1_t0_best_params, g_d1_t1_best_params, m_best_params
