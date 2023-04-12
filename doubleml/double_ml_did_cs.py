@@ -38,7 +38,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'CS-1'`` to ``'CS-5'``) specifying the score function.
+        A str (``'CS-4'``, ``'CS-5'`` or ``'DR-2'``) specifying the score function.
+        The scores ``'CS-4'`` and ``'DR-2'`` assume strong stationarity to identify the ATT, whereas ``'CS-5'``
+        consideres a experimental setting, where the treatment is independent of the covariates. The score ``'CS-4'``
+        refers to Zimmert (2018), wheras ``'DR-2'`` uses a different in-sample normalization
+        from Sant'Anna and Zhao (2020), but both are based on the sam doubly robust score.
         Default is ``'CS-4'``.
 
     dml_procedure : str
@@ -120,7 +124,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['CS-4', 'CS*-4', 'CS-5', 'DR-1', 'DR-2', 'Chang']
+            valid_score = ['CS-4', 'CS-5', 'DR-1']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -177,8 +181,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             lambda_hat[test_index] = np.mean(t[train_index])
 
         # nuisance g
-        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(
-            smpls, d, t)
+        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
 
         g_hat_d0_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t0, n_jobs=n_jobs_cv,
                                       est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
@@ -208,10 +211,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                 return_models=return_models)
-        _check_finite_predictions(
-            m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-        _check_is_propensity(
-            m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         psi_a, psi_b = self._score_elements(y, d, t,
                                             g_hat_d0_t0['preds'], g_hat_d0_t1['preds'],
@@ -252,9 +253,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         resid_d1_t0 = y - g_hat_d1_t0
         resid_d1_t1 = y - g_hat_d1_t1
 
-        # default term for chang and not efficient Zimmert to correct for the form of the score
-        psi_b_3 = np.zeros_like(y)
-
         if self.score == 'CS-4':
             weight_psi_a = np.divide(d, p_hat)
             weight_g_d1_t1 = weight_psi_a
@@ -262,36 +260,18 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             weight_g_d0_t1 = -1.0 * weight_psi_a
             weight_g_d0_t0 = weight_psi_a
 
-            weight_resid_d1_t1 = np.divide(np.multiply(
-                d, t), np.multiply(p_hat, lambda_hat))
-            weight_resid_d1_t0 = -1.0 * \
-                np.divide(np.multiply(d, 1.0-t),
-                          np.multiply(p_hat, 1.0-lambda_hat))
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.multiply(p_hat, 1.0-lambda_hat))
 
             prop_weighting = np.divide(m_hat, 1.0-m_hat)
-            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t), np.multiply(p_hat, lambda_hat)),
+            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t),
+                                                              np.multiply(p_hat, lambda_hat)),
                                                     prop_weighting)
-            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)),
+            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
+                                                       np.multiply(p_hat, 1.0-lambda_hat)),
                                              prop_weighting)
-        elif self.score == 'CS*-4':
-            # todo: improve this implementation
-            weight_psi_a = np.divide(d, p_hat)
-            weight_g_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_g_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t1 = -1.0 * weight_psi_a
-            weight_g_d0_t0 = weight_psi_a
-
-            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
-
-            prop_weighting = np.divide(m_hat, 1.0-m_hat)
-            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t), np.multiply(p_hat, lambda_hat)),
-                                                    prop_weighting)
-            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)),
-                                             prop_weighting)
-
-            psi_b_3 = np.multiply(np.divide(np.multiply(d, t), np.multiply(p_hat, lambda_hat))
-                                  - np.divide(np.multiply(d, 1.0-t), np.multiply(p_hat, 1.0-lambda_hat)), y)
 
         elif self.score == 'CS-5':
             # todo: improve this implementation
@@ -301,39 +281,14 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             weight_g_d0_t1 = -1.0 * weight_psi_a
             weight_g_d0_t0 = weight_psi_a
 
-            weight_resid_d1_t1 = np.divide(np.multiply(
-                d, t), np.multiply(p_hat, lambda_hat))
-            weight_resid_d1_t0 = -1.0 * \
-                np.divide(np.multiply(d, 1.0-t),
-                          np.multiply(p_hat, 1.0-lambda_hat))
-            weight_resid_d0_t1 = -1.0 * \
-                np.divide(np.multiply(1.0-d, t),
-                          np.multiply(1.0-p_hat, lambda_hat))
-            weight_resid_d0_t0 = np.divide(np.multiply(
-                1.0-d, 1.0-t), np.multiply(1.0-p_hat, 1.0-lambda_hat))
-
-        elif self.score == 'DR-1':
-            weight_psi_a = np.ones_like(y)
-            weight_g_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_g_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t1 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t0 = np.zeros_like(weight_psi_a)
-
-            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
-
-            prop_weighting = np.divide(m_hat, 1.0-m_hat)
-            scaling_d0_t1 = np.mean(np.multiply(
-                np.multiply(1.0-d, t), prop_weighting))
-            weight_resid_d0_t1 = np.multiply(t, (np.divide(d, np.mean(np.multiply(d, t)))
-                                                 - np.divide(np.multiply(1.0-d, prop_weighting),
-                                                             scaling_d0_t1)))
-
-            scaling_d0_t0 = np.mean(np.multiply(
-                np.multiply(1.0-d, 1.0-t), prop_weighting))
-            weight_resid_d0_t0 = -1.0 * np.multiply(1.0-t, (np.divide(d, np.mean(np.multiply(d, 1.0-t)))
-                                                            - np.divide(np.multiply(1.0-d, prop_weighting),
-                                                                        scaling_d0_t0)))
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.multiply(p_hat, 1.0-lambda_hat))
+            weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
+                                                  np.multiply(1.0-p_hat, lambda_hat))
+            weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
+                                           np.multiply(1.0-p_hat, 1.0-lambda_hat))
 
         elif self.score == 'DR-2':
             weight_psi_a = np.ones_like(y)
@@ -342,56 +297,21 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             weight_g_d0_t1 = weight_g_d1_t0
             weight_g_d0_t0 = weight_g_d1_t1
 
-            weight_resid_d1_t1 = np.divide(
-                np.multiply(d, t), np.mean(np.multiply(d, t)))
-            weight_resid_d1_t0 = -1.0 * \
-                np.divide(np.multiply(d, 1.0-t),
-                          np.mean(np.multiply(d, 1.0-t)))
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.mean(np.multiply(d, t)))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.mean(np.multiply(d, 1.0-t)))
 
             prop_weighting = np.divide(m_hat, 1.0-m_hat)
-            scaling_d0_t1 = np.mean(np.multiply(
-                np.multiply(1.0-d, t), prop_weighting))
-            weight_resid_d0_t1 = -1.0 * \
-                np.divide(np.multiply(np.multiply(1.0-d, t),
-                          prop_weighting), scaling_d0_t1)
+            scaling_d0_t1 = np.mean(np.multiply(np.multiply(1.0-d, t),
+                                                prop_weighting))
+            weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(np.multiply(1.0-d, t),
+                                                              prop_weighting), scaling_d0_t1)
 
-            scaling_d0_t0 = np.mean(np.multiply(
-                np.multiply(1.0-d, 1.0-t), prop_weighting))
-            weight_resid_d0_t0 = np.divide(np.multiply(
-                np.multiply(1.0-d, 1.0-t), prop_weighting), scaling_d0_t0)
-
-        elif self.score == 'Chang':
-            weight_psi_a = np.divide(d, p_hat)
-            weight_g_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_g_d1_t0 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t1 = np.zeros_like(weight_psi_a)
-            weight_g_d0_t0 = np.zeros_like(weight_psi_a)
-
-            weight_resid_d1_t1 = np.zeros_like(weight_psi_a)
-            weight_resid_d1_t0 = np.zeros_like(weight_psi_a)
-
-            # part of the weights for t==0 and t==1
-            weight_d0 = d - np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
-            # calc weight für resid_d0_t1
-            weight_resid_d0_t1_1 = np.divide(t, np.multiply(lambda_hat, p_hat))
-            weight_resid_d0_t1 = np.multiply(weight_resid_d0_t1_1, weight_d0)
-            # calc weight für resid_d0_t0
-            weight_resid_d0_t0_1 = np.divide(
-                1.0-t, np.multiply(1.0-lambda_hat, p_hat))
-            weight_resid_d0_t0 = -1.0 * \
-                np.multiply(weight_resid_d0_t0_1, weight_d0)
-
-            resid_d0 = np.multiply(t, y-resid_d0_t1) + \
-                np.multiply(1.0-t, y-resid_d0_t0)
-            G_2lambda_weight = np.divide(
-                d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-            G_2lambda_1 = np.multiply(np.divide(
-                1-2*lambda_hat, np.square(np.multiply(lambda_hat, 1.0-lambda_hat))), G_2lambda_weight)
-            G_2lambda_2 = np.multiply(np.divide(1, np.multiply(
-                lambda_hat, 1.0-lambda_hat)), G_2lambda_weight)
-            G_2lambda = np.mean(np.multiply(G_2lambda_1, np.multiply(
-                t-lambda_hat, resid_d0)) - np.multiply(G_2lambda_2, y))
-            psi_b_3 = np.multiply(G_2lambda, t - lambda_hat)
+            scaling_d0_t0 = np.mean(np.multiply(np.multiply(1.0-d, 1.0-t),
+                                                prop_weighting))
+            weight_resid_d0_t0 = np.divide(np.multiply(np.multiply(1.0-d, 1.0-t),
+                                                       prop_weighting), scaling_d0_t0)
 
         # set score elements
         psi_a = -1.0 * weight_psi_a
@@ -404,7 +324,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             + np.multiply(weight_resid_d0_t0,  resid_d0_t0) + \
             np.multiply(weight_resid_d0_t1,  resid_d0_t1)
 
-        psi_b = psi_b_1 + psi_b_2 + psi_b_3
+        psi_b = psi_b_1 + psi_b_2
 
         return psi_a, psi_b
 

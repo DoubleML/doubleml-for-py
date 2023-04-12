@@ -37,7 +37,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Number of repetitons for the sample splitting.
         Default is ``1``.
 
-    score : str or callable
+    score : str
         A str (``'PA-1'``, ``'PA-2'`` or ``'DR'``) specifying the score function.
         Default is ``'PA-1'``.
 
