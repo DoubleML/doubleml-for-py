@@ -252,7 +252,7 @@ def test_doubleml_exception_data():
         # multiple D for DIDCS
         _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols=['d', 'Z1'], t_col='t'),
                           Lasso(), LogisticRegression())
-        
+
     # DIDCS time exceptions
     msg = ('Incompatible data. To fit an DIDCS model with DML exactly one binary variable with values 0 and 1 '
            'needs to be specified as time variable.')
@@ -262,7 +262,6 @@ def test_doubleml_exception_data():
         # non-binary t for DIDCS
         _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols='d', t_col='t'),
                           Lasso(), LogisticRegression())
-        
 
 
 @pytest.mark.ci

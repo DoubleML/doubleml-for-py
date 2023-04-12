@@ -236,8 +236,7 @@ def did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
 
 
 def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune,
-                      param_grid_g, param_grid_m):
-    
+                         param_grid_g, param_grid_m):
 
     smpls_d0_t0 = np.intersect1d(np.where(d == 0)[0], np.where(t == 0)[0])
     smpls_d0_t1 = np.intersect1d(np.where(d == 0)[0], np.where(t == 1)[0])
@@ -262,4 +261,4 @@ def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune,
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g_d0_t0_best_params, g_d0_t1_best_params, \
-         g_d1_t0_best_params, g_d1_t1_best_params, m_best_params
+        g_d1_t0_best_params, g_d1_t1_best_params, m_best_params

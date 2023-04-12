@@ -114,6 +114,20 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
+
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
                          'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
@@ -328,11 +342,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, t = check_X_y(x, self._dml_data.t,
                          force_all_finite=False)
-        
+
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
                                'ml_m': None}
-            
+
         # nuisance training sets conditional on d and t
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
         train_inds = [train_index for (train_index, _) in smpls]
@@ -344,23 +358,23 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         g_d0_t0_tune_res = _dml_tune(y, x, train_inds_d0_t0,
                                      self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g_d0_t1_tune_res = _dml_tune(y, x, train_inds_d0_t1,
                                      self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g_d1_t0_tune_res = _dml_tune(y, x, train_inds_d1_t0,
                                      self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g_d1_t1_tune_res = _dml_tune(y, x, train_inds_d1_t1,
                                      self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         m_tune_res = _dml_tune(d, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
         g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
         g_d1_t0_best_params = [xx.best_params_ for xx in g_d1_t0_tune_res]
