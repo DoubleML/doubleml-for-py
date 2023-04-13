@@ -132,16 +132,18 @@ def test_add_vars_in_df():
 
 
 @pytest.mark.ci
-def test_dml_data_no_instr():
+def test_dml_data_no_instr_no_time():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
+    assert dml_data.t is None
 
     x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type='array')
     dml_data = DoubleMLData.from_arrays(x, y, d)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
+    assert dml_data.t is None
 
 
 @pytest.mark.ci
@@ -149,6 +151,24 @@ def test_x_cols_setter_defaults():
     df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2'])
     dml_data = DoubleMLData(df, y_col='yy', d_cols='dd')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument
+    df = pd.DataFrame(np.tile(np.arange(5), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument with time
+    df = pd.DataFrame(np.tile(np.arange(5), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument with time
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
@@ -162,9 +182,24 @@ def test_x_cols_setter_defaults_w_cluster():
     assert dml_data.x_cols == ['xx1', 'xx3']
     dml_data.x_cols = None
     assert dml_data.x_cols == ['xx1', 'xx2', 'xx3']
+
+    # with instrument
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2', 'z', 'cluster1'])
     dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', z_cols='z')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument and with time
+    df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument and with time
+    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
+                                   z_cols='zz', t_col='tt')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
@@ -291,9 +326,8 @@ def test_t_col_setter():
         dml_data.t_col = 5
 
     # check None
-    dml_data.z_cols = None
-    assert dml_data.n_instr == 0
-    assert dml_data.z is None
+    dml_data.t_col = None
+    assert dml_data.t is None
 
 
 @pytest.mark.ci
@@ -425,7 +459,17 @@ def test_disjoint_sets():
            '``z_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
+    msg = 'xx2 cannot be set as time variable ``t_col`` and covariate in ``x_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='xx2')
+    msg = 'dd1 cannot be set as time variable ``t_col`` and treatment variable in ``d_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='dd1')
+    msg = 'yy cannot be set as time variable ``t_col`` and outcome variable ``y_col``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='yy')
 
+    # cluster data
     msg = 'yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], cluster_cols='yy')
@@ -441,6 +485,9 @@ def test_disjoint_sets():
            '``cluster_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], z_cols=['xx2'], cluster_cols='xx2')
+    msg = 'xx2 cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], t_col='xx2', cluster_cols='xx2')
 
 
 @pytest.mark.ci

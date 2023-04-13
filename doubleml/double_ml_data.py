@@ -653,7 +653,7 @@ class DoubleMLData(DoubleMLBaseData):
             raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in '
                              '``d_cols``.')
         if not t_col_set.isdisjoint(y_col_set):
-            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable in '
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable '
                              '``y_col``.')
 
 
@@ -871,9 +871,15 @@ class DoubleMLClusterData(DoubleMLData):
             # this call might become much easier with https://github.com/python/cpython/pull/26194
             super(self.__class__, self.__class__).x_cols.__set__(self, value)
         else:
-            if self.z_cols is not None:
+            if (self.z_cols is not None) & (self.t_col is not None):
+                y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_z_t]
+            elif self.z_cols is not None:
                 y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.cluster_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d_z]
+            elif self.t_col is not None:
+                y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col}, set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_t]
             else:
                 y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]
@@ -912,9 +918,8 @@ class DoubleMLClusterData(DoubleMLData):
                 raise ValueError('At least one variable/column is set as instrumental variable (``z_cols``) and '
                                  'cluster variable in ``cluster_cols``.')
         if self.t_col is not None:
-            t_col_set = set(self.t_col)
             if not t_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(f'{str(self.t_col)} cannot be set as time variable variable ``t_col`` and '
+                raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and '
                                  'cluster variable in ``cluster_cols``.')
 
     def _set_cluster_vars(self):
