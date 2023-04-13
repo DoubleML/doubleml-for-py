@@ -2,10 +2,10 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
-from sklearn.linear_model import Lasso
+from sklearn.linear_model import Lasso, LogisticRegression
 
 
 @pytest.fixture(scope="module")
@@ -89,6 +89,16 @@ def test_obj_vs_from_arrays():
                                                    t=dml_data.data[dml_data.t_col])
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
+    # check with instrument and time variable
+    dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
+    dml_data.data['z']= dml_data.data['t']
+    dml_data_from_array = DoubleMLData.from_arrays(x=dml_data.data[dml_data.x_cols],
+                                                   y=dml_data.data[dml_data.y_col],
+                                                   d=dml_data.data[dml_data.d_cols],
+                                                   z=dml_data.data['z'],
+                                                   t=dml_data.data[dml_data.t_col])
+    assert np.array_equal(dml_data_from_array.data, dml_data.data)
+
     dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
     dml_data_from_array = DoubleMLClusterData.from_arrays(dml_data.data[dml_data.x_cols],
                                                           dml_data.data[dml_data.y_col],
@@ -144,6 +154,14 @@ def test_dml_data_no_instr_no_time():
     assert dml_data.z is None
     assert dml_data.n_instr == 0
     assert dml_data.t is None
+
+
+@pytest.mark.ci
+def test_dml_cluster_summary_with_time():
+    dml_data_did_cs = make_did_SZ2020(n_obs=200, cross_sectional_data=True)
+    dml_did_cs = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
+    assert isinstance(dml_did_cs.__str__(), str)
+    assert isinstance(dml_did_cs.summary, pd.DataFrame)
 
 
 @pytest.mark.ci
