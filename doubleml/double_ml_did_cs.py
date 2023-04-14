@@ -39,7 +39,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     score : str
         A str (``'observational'`` or ``'experimental'``) specifying the score function.
-        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent from the pretreatment covariates.
+        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
+        from the pretreatment covariates.
         Default is ``'observational'``.
 
     in_sample_normalization : bool
@@ -65,8 +66,23 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     apply_cross_fitting : bool
         Indicates whether cross-fitting should be applied.
         Default is ``True``.
-    """
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.datasets import make_did_SZ2020
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(42)
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
+    >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', t_col='t')
+    >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
+    >>> dml_did_obj.fit().summary
+           coef   std err         t     P>|t|      2.5 %     97.5 %
+    d -6.604603  8.725802 -0.756905  0.449107 -23.706862  10.497655
+    """
     def __init__(self,
                  obj_dml_data,
                  ml_g,
@@ -127,7 +143,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Indicates whether the in sample normalization of weights are used.
         """
         return self._in_sample_normalization
-    
+
     @property
     def trimming_rule(self):
         """
@@ -273,7 +289,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         if self.score == 'observational':
             if self.in_sample_normalization:
-                weight_psi_a = np.ones_like(y) # would be the same with np.divide(d, np.mean(d))
+                weight_psi_a = np.ones_like(y)   # would be the same with np.divide(d, np.mean(d))
                 weight_g_d1_t1 = np.divide(d, np.mean(d))
                 weight_g_d1_t0 = -1.0 * weight_g_d1_t1
                 weight_g_d0_t1 = -1.0 * weight_g_d1_t1
@@ -298,9 +314,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 weight_g_d0_t0 = weight_psi_a
 
                 weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                                np.multiply(p_hat, lambda_hat))
+                                               np.multiply(p_hat, lambda_hat))
                 weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                                        np.multiply(p_hat, 1.0-lambda_hat))
+                                                      np.multiply(p_hat, 1.0-lambda_hat))
 
                 prop_weighting = np.divide(m_hat, 1.0-m_hat)
                 weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t),
@@ -308,7 +324,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                                                         prop_weighting)
                 weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
                                                            np.multiply(p_hat, 1.0-lambda_hat)),
-                                                    prop_weighting)
+                                                 prop_weighting)
         else:
             assert self.score == 'experimental'
             if self.in_sample_normalization:

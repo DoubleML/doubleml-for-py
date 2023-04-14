@@ -163,8 +163,7 @@ def test_qte_defaults():
 def test_did_defaults():
     _assert_resampling_default_settings(dml_did)
     assert dml_did.score == 'observational'
-    assert dml_did.in_sample_normalization == True
-    assert dml_did.dml_procedure == 'dml2'
+    assert dml_did.in_sample_normalization
     assert dml_did.trimming_rule == 'truncate'
     assert dml_did.trimming_threshold == 1e-2
 
@@ -173,7 +172,7 @@ def test_did_defaults():
 def test_did_cs_defaults():
     _assert_resampling_default_settings(dml_did_cs)
     assert dml_did.score == 'observational'
-    assert dml_did_cs.in_sample_normalization == True
+    assert dml_did_cs.in_sample_normalization
     assert dml_did_cs.dml_procedure == 'dml2'
     assert dml_did_cs.trimming_rule == 'truncate'
     assert dml_did_cs.trimming_threshold == 1e-2

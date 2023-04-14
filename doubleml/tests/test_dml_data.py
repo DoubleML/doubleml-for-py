@@ -91,7 +91,7 @@ def test_obj_vs_from_arrays():
 
     # check with instrument and time variable
     dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
-    dml_data.data['z']= dml_data.data['t']
+    dml_data.data['z'] = dml_data.data['t']
     dml_data_from_array = DoubleMLData.from_arrays(x=dml_data.data[dml_data.x_cols],
                                                    y=dml_data.data[dml_data.y_col],
                                                    d=dml_data.data[dml_data.d_cols],

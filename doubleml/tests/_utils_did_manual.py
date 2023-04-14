@@ -156,13 +156,13 @@ def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, resid_d0, d, score, in_samp
         if in_sample_normalization:
             weight_psi_a = np.ones_like(d)
             weight_g0 = np.divide(d, np.mean(d)) - 1.0
-            weight_g1 = 1.0 - np.divide(d, np.mean(d)) 
+            weight_g1 = 1.0 - np.divide(d, np.mean(d))
             propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
             weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
         else:
             weight_psi_a = np.ones_like(d)
             weight_g0 = np.divide(d, p_hat) - 1.0
-            weight_g1 = 1.0 - np.divide(d, p_hat) 
+            weight_g1 = 1.0 - np.divide(d, p_hat)
             weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
 
         psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)

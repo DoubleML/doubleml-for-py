@@ -192,7 +192,7 @@ def did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
                                                     prop_weighting)
             weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
                                                        np.multiply(p_hat, 1.0-lambda_hat)),
-                                            prop_weighting)
+                                             prop_weighting)
 
     else:
         assert score == 'experimental'

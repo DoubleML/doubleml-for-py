@@ -39,7 +39,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     score : str
         A str (``'observational'`` or ``'experimental'``) specifying the score function.
-        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent from the pretreatment covariates.
+        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
+        from the pretreatment covariates.
         Default is ``'observational'``.
 
     in_sample_normalization : bool
@@ -65,6 +66,22 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
     apply_cross_fitting : bool
         Indicates whether cross-fitting should be applied.
         Default is ``True``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.datasets import make_did_SZ2020
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(42)
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
+    >>> data = make_did_SZ2020(n_obs=500, return_type='DataFrame')
+    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    >>> dml_did_obj = dml.DoubleMLDID(obj_dml_data, ml_g, ml_m)
+    >>> dml_did_obj.fit().summary
+           coef   std err         t     P>|t|     2.5 %   97.5 %
+    d -2.685104  1.798071 -1.493325  0.135352 -6.209257  0.83905
     """
     def __init__(self,
                  obj_dml_data,
@@ -123,7 +140,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Indicates whether the in sample normalization of weights are used.
         """
         return self._in_sample_normalization
-    
+
     @property
     def trimming_rule(self):
         """
@@ -235,7 +252,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             else:
                 weight_psi_a = np.divide(d, p_hat)
                 weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-            
+
             psi_b_1 = np.zeros_like(y)
 
         else:
@@ -243,13 +260,13 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             if self.in_sample_normalization:
                 weight_psi_a = np.ones_like(y)
                 weight_g0 = np.divide(d, np.mean(d)) - 1.0
-                weight_g1 = 1.0 - np.divide(d, np.mean(d)) 
+                weight_g1 = 1.0 - np.divide(d, np.mean(d))
                 propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
                 weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
             else:
                 weight_psi_a = np.ones_like(y)
                 weight_g0 = np.divide(d, p_hat) - 1.0
-                weight_g1 = 1.0 - np.divide(d, p_hat) 
+                weight_g1 = 1.0 - np.divide(d, p_hat)
                 weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
 
             psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)
