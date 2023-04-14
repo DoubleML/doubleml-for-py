@@ -331,7 +331,7 @@ def test_doubleml_exception_scores():
         _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), score=2)
 
     # DID
-    msg = 'Invalid score IV. Valid score PA-1 or PA-2 or DR.'
+    msg = 'Invalid score IV. Valid score observational or experimental.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), score='IV')
     msg = 'score should be a string. 2 was passed.'
@@ -339,7 +339,7 @@ def test_doubleml_exception_scores():
         _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), score=2)
 
     # DIDCS
-    msg = 'Invalid score IV. Valid score CS-4 or CS-5 or DR-2.'
+    msg = 'Invalid score IV. Valid score observational or experimental.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), score='IV')
     msg = 'score should be a string. 2 was passed.'
@@ -485,6 +485,13 @@ def test_doubleml_exception_normalization():
         _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, normalize_ipw=1)
+
+    # DID models in_sample_normalization
+    msg = "in_sample_normalization indicator has to be boolean. Object of type <class 'int'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDID(dml_data_did, ml_g, ml_m, in_sample_normalization=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, ml_g, ml_m, in_sample_normalization=1)
 
 
 @pytest.mark.ci
