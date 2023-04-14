@@ -8,7 +8,7 @@ from .._utils import _check_is_propensity
 
 
 def fit_did_cs(y, x, d, t,
-               learner_g, learner_m, all_smpls, dml_procedure, score,
+               learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
                n_rep=1, g_d0_t0_params=None, g_d0_t1_params=None,
                g_d1_t0_params=None, g_d1_t1_params=None, m_params=None,
                trimming_threshold=1e-2):
@@ -54,7 +54,7 @@ def fit_did_cs(y, x, d, t,
 
         psi_a, psi_b = did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
                                              g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1,
-                                             m_hat, p_hat, lambda_hat, d, t, score)
+                                             m_hat, p_hat, lambda_hat, d, t, score, in_sample_normalization)
 
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
@@ -153,74 +153,80 @@ def compute_did_cs_residuals(y, g_hat_d0_t0_list, g_hat_d0_t1_list,
 
 def did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
                           g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1,
-                          m_hat, p_hat, lambda_hat, d, t, score):
+                          m_hat, p_hat, lambda_hat, d, t, score, in_sample_normalization):
 
-    if score == 'CS-4':
+    if score == 'observational':
+        if in_sample_normalization:
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = np.divide(d, np.mean(d))
+            weight_g_d1_t0 = -1.0 * weight_g_d1_t1
+            weight_g_d0_t1 = -1.0 * weight_g_d1_t1
+            weight_g_d0_t0 = weight_g_d1_t1
 
-        weight_psi_a = np.divide(d, p_hat)
-        weight_g_d1_t1 = weight_psi_a
-        weight_g_d1_t0 = -1.0 * weight_psi_a
-        weight_g_d0_t1 = -1.0 * weight_psi_a
-        weight_g_d0_t0 = weight_psi_a
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.mean(np.multiply(d, t)))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.mean(np.multiply(d, 1.0-t)))
 
-        weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                       np.multiply(p_hat, lambda_hat))
-        weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                              np.multiply(p_hat, 1.0-lambda_hat))
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            unscaled_d0_t1 = np.multiply(np.multiply(1.0-d, t), prop_weighting)
+            weight_resid_d0_t1 = -1.0 * np.divide(unscaled_d0_t1, np.mean(unscaled_d0_t1))
 
-        prop_weighting = np.divide(m_hat, 1.0-m_hat)
-        weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t),
-                                                          np.multiply(p_hat, lambda_hat)),
-                                                prop_weighting)
-        weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
-                                                   np.multiply(p_hat, 1.0-lambda_hat)),
-                                         prop_weighting)
+            unscaled_d0_t0 = np.multiply(np.multiply(1.0-d, 1.0-t), prop_weighting)
+            weight_resid_d0_t0 = np.divide(unscaled_d0_t0, np.mean(unscaled_d0_t0))
+        else:
+            weight_psi_a = np.divide(d, p_hat)
+            weight_g_d1_t1 = weight_psi_a
+            weight_g_d1_t0 = -1.0 * weight_psi_a
+            weight_g_d0_t1 = -1.0 * weight_psi_a
+            weight_g_d0_t0 = weight_psi_a
 
-    elif score == 'CS-5':
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.multiply(p_hat, 1.0-lambda_hat))
 
-        weight_psi_a = np.ones_like(d)
-        weight_g_d1_t1 = weight_psi_a
-        weight_g_d1_t0 = -1.0 * weight_psi_a
-        weight_g_d0_t1 = -1.0 * weight_psi_a
-        weight_g_d0_t0 = weight_psi_a
-
-        weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                       np.multiply(p_hat, lambda_hat))
-        weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                              np.multiply(p_hat, 1.0-lambda_hat))
-        weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
-                                              np.multiply(1.0-p_hat, lambda_hat))
-        weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
-                                       np.multiply(1.0-p_hat, 1.0-lambda_hat))
+            prop_weighting = np.divide(m_hat, 1.0-m_hat)
+            weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t),
+                                                              np.multiply(p_hat, lambda_hat)),
+                                                    prop_weighting)
+            weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
+                                                       np.multiply(p_hat, 1.0-lambda_hat)),
+                                            prop_weighting)
 
     else:
-        assert score == 'DR-2'
-        weight_psi_a = np.ones_like(d)
-        weight_g_d1_t1 = np.divide(d, np.mean(d))
-        weight_g_d1_t0 = -1.0 * np.divide(d, np.mean(d))
-        weight_g_d0_t1 = weight_g_d1_t0
-        weight_g_d0_t0 = weight_g_d1_t1
+        assert score == 'experimental'
+        if in_sample_normalization:
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = weight_psi_a
+            weight_g_d1_t0 = -1.0 * weight_psi_a
+            weight_g_d0_t1 = -1.0 * weight_psi_a
+            weight_g_d0_t0 = weight_psi_a
 
-        weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                       np.mean(np.multiply(d, t)))
-        weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                              np.mean(np.multiply(d, 1.0-t)))
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.mean(np.multiply(d, t)))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.mean(np.multiply(d, 1.0-t)))
+            weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
+                                                  np.mean(np.multiply(1.0-d, t)))
+            weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
+                                           np.mean(np.multiply(1.0-d, 1.0-t)))
+        else:
+            weight_psi_a = np.ones_like(d)
+            weight_g_d1_t1 = weight_psi_a
+            weight_g_d1_t0 = -1.0 * weight_psi_a
+            weight_g_d0_t1 = -1.0 * weight_psi_a
+            weight_g_d0_t0 = weight_psi_a
 
-        prop_weighting = np.divide(m_hat, 1.0-m_hat)
-        scaling_d0_t1 = np.mean(np.multiply(np.multiply(1.0-d, t),
-                                            prop_weighting))
-        weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(np.multiply(1.0-d, t),
-                                                          prop_weighting), scaling_d0_t1)
+            weight_resid_d1_t1 = np.divide(np.multiply(d, t),
+                                           np.multiply(p_hat, lambda_hat))
+            weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
+                                                  np.multiply(p_hat, 1.0-lambda_hat))
+            weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
+                                                  np.multiply(1.0-p_hat, lambda_hat))
+            weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
+                                           np.multiply(1.0-p_hat, 1.0-lambda_hat))
 
-        scaling_d0_t0 = np.mean(np.multiply(np.multiply(1.0-d, 1.0-t),
-                                            prop_weighting))
-        weight_resid_d0_t0 = np.divide(np.multiply(np.multiply(1.0-d, 1.0-t),
-                                                   prop_weighting), scaling_d0_t0)
-
-    # set score elements
-    psi_a = -1.0 * weight_psi_a
-
-    # psi_b
     psi_b_1 = np.multiply(weight_g_d1_t1,  g_hat_d1_t1) + \
         np.multiply(weight_g_d1_t0,  g_hat_d1_t0) + \
         np.multiply(weight_g_d0_t0,  g_hat_d0_t0) + \
@@ -230,6 +236,7 @@ def did_cs_score_elements(resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1,
         np.multiply(weight_resid_d0_t0,  resid_d0_t0) + \
         np.multiply(weight_resid_d0_t1,  resid_d0_t1)
 
+    psi_a = -1.0 * weight_psi_a
     psi_b = psi_b_1 + psi_b_2
 
     return psi_a, psi_b

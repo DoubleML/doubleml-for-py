@@ -27,8 +27,14 @@ def learner_m(request):
 
 
 @pytest.fixture(scope='module',
-                params=['CS-4', 'CS-5', 'DR-2'])
+                params=['observational', 'experimental'])
 def score(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=[True, False])
+def in_sample_normalization(request):
     return request.param
 
 
@@ -54,7 +60,8 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sample_normalization,
+                       dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -76,6 +83,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, dml_pr
                                        ml_g, ml_m,
                                        n_folds,
                                        score=score,
+                                       in_sample_normalization=in_sample_normalization,
                                        dml_procedure=dml_procedure)
 
     # tune hyperparameters
@@ -111,7 +119,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, dml_pr
         m_params = m_params * n_folds
 
     res_manual = fit_did_cs(y, x, d, t, clone(learner_g), clone(learner_m),
-                            all_smpls, dml_procedure, score,
+                            all_smpls, dml_procedure, score, in_sample_normalization,
                             g_d0_t0_params=g_d0_t0_params, g_d0_t1_params=g_d0_t1_params,
                             g_d1_t0_params=g_d1_t0_params, g_d1_t1_params=g_d1_t1_params,
                             m_params=m_params)
