@@ -37,13 +37,14 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Number of repetitons for the sample splitting.
         Default is ``1``.
 
-    score : str or callable
-        A str (``'CS-4'``, ``'CS-5'`` or ``'DR-2'``) specifying the score function.
-        The scores ``'CS-4'`` and ``'DR-2'`` assume strong stationarity to identify the ATT, whereas ``'CS-5'``
-        consideres a experimental setting, where the treatment is independent of the covariates. The score ``'CS-4'``
-        refers to Zimmert (2018), wheras ``'DR-2'`` uses a different in-sample normalization
-        from Sant'Anna and Zhao (2020), but both are based on the sam doubly robust score.
-        Default is ``'CS-4'``.
+    score : str
+        A str (``'observational'`` or ``'experimental'``) specifying the score function.
+        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent from the pretreatment covariates.
+        Default is ``'observational'``.
+
+    in_sample_normalization : bool
+        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Default is ``True``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.

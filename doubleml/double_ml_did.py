@@ -38,8 +38,13 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str
-        A str (``'PA-1'``, ``'PA-2'`` or ``'DR'``) specifying the score function.
-        Default is ``'PA-1'``.
+        A str (``'observational'`` or ``'experimental'``) specifying the score function.
+        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent from the pretreatment covariates.
+        Default is ``'observational'``.
+
+    in_sample_normalization : bool
+        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Default is ``True``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
