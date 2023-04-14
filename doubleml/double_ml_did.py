@@ -67,7 +67,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                  ml_m,
                  n_folds=5,
                  n_rep=1,
-                 score='PA-1',
+                 score='observational',
+                 in_sample_normalization=True,
                  dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
@@ -82,8 +83,13 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._check_data(self._dml_data)
-        valid_scores = ['PA-1', 'PA-2', 'DR']
+        valid_scores = ['observational', 'experimental']
         _check_score(self.score, valid_scores, allow_callable=False)
+
+        self._in_sample_normalization = in_sample_normalization
+        if not isinstance(self.in_sample_normalization, bool):
+            raise TypeError('in_sample_normalization indicator has to be boolean. ' +
+                            f'Object of type {str(type(self.in_sample_normalization))} passed.')
 
         # set stratication for resampling
         self._strata = self._dml_data.d
@@ -106,6 +112,13 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+    @property
+    def in_sample_normalization(self):
+        """
+        Indicates whether the in sample normalization of weights are used.
+        """
+        return self._in_sample_normalization
+    
     @property
     def trimming_rule(self):
         """
@@ -162,9 +175,9 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0['targets'] = g_hat0['targets'].astype(float)
         g_hat0['targets'][d == 1] = np.nan
 
-        # only relevant for experimental setting PA-2
+        # only relevant for experimental setting
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
-        if self.score == 'PA-2':
+        if self.score == 'experimental':
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
@@ -207,27 +220,38 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat):
         # trimm propensities and calc residuals
         m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
-        y_resid_d0 = y - g_hat0
+        resid_d0 = y - g_hat0
 
-        if self.score == 'PA-1':
-            psi_a = -1.0 * np.divide(d, p_hat)
-            y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-            psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
-
-        elif self.score == 'PA-2':
-            psi_a = -1.0 * np.ones_like(d)
-            y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-            psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
-            psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
-            psi_b = psi_b_1 + psi_b_2
+        if self.score == 'observational':
+            if self.in_sample_normalization:
+                weight_psi_a = np.divide(d, np.mean(d))
+                propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+            else:
+                weight_psi_a = np.divide(d, p_hat)
+                weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+            
+            psi_b_1 = np.zeros_like(y)
 
         else:
-            assert self.score == 'DR'
-            psi_a = -1.0 * np.divide(d, np.mean(d))
-            propensity_weight = np.divide(m_hat, 1.0-m_hat)
-            y_resid_d0_weight = np.divide(d, np.mean(d)) \
-                - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
-            psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
+            assert self.score == 'experimental'
+            if self.in_sample_normalization:
+                weight_psi_a = np.ones_like(y)
+                weight_g0 = np.divide(d, np.mean(d)) - 1.0
+                weight_g1 = 1.0 - np.divide(d, np.mean(d)) 
+                propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+            else:
+                weight_psi_a = np.ones_like(y)
+                weight_g0 = np.divide(d, p_hat) - 1.0
+                weight_g1 = 1.0 - np.divide(d, p_hat) 
+                weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+
+            psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)
+
+        # set score elements
+        psi_a = -1.0 * weight_psi_a
+        psi_b = psi_b_1 + np.multiply(weight_resid_d0,  resid_d0)
 
         return psi_a, psi_b
 
@@ -252,7 +276,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         g1_tune_res = list()
-        if self.score == 'PA-2':
+        if self.score == 'experimental':
             g1_tune_res = _dml_tune(y, x, train_inds_d1,
                                     self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                     n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
@@ -263,7 +287,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        if (self.score == 'PA-1') or (self.score == 'DR'):
+        if self.score == 'observational':
             params = {'ml_g0': g0_best_params,
                       'ml_m': m_best_params}
             tune_res = {'g0_tune': g0_tune_res,
