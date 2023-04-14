@@ -26,8 +26,14 @@ def learner_m(request):
 
 
 @pytest.fixture(scope='module',
-                params=['PA-1', 'PA-2', 'DR'])
+                params=['observational', 'experimental'])
 def score(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=[True, False])
+def in_sample_normalization(request):
     return request.param
 
 
@@ -53,7 +59,8 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_did_fixture(generate_data_did, learner_g, learner_m, score, dml_procedure, tune_on_folds):
+def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_normalization,
+                    dml_procedure, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -75,6 +82,7 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, dml_procedur
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
+                                  in_sample_normalization=in_sample_normalization,
                                   dml_procedure=dml_procedure)
 
     # tune hyperparameters
@@ -102,14 +110,14 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, dml_procedur
                                                            par_grid['ml_g'], par_grid['ml_m'])
         g0_params = g0_params * n_folds
         m_params = m_params * n_folds
-        if score == 'PA-2':
+        if score == 'experimental':
             g1_params = g1_params * n_folds
         else:
-            assert (score == 'PA-1') or (score == 'DR')
+            assert score == 'observational'
             g1_params = None
 
     res_manual = fit_did(y, x, d, clone(learner_g), clone(learner_m),
-                         all_smpls, dml_procedure, score,
+                         all_smpls, dml_procedure, score, in_sample_normalization,
                          g0_params=g0_params, g1_params=g1_params, m_params=m_params)
 
     res_dict = {'coef': dml_did_obj.coef,

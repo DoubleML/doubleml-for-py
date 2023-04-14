@@ -23,8 +23,14 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['PA-1', 'PA-2', 'DR'])
+                params=['observational', 'experimental'])
 def score(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
+                params=[True, False])
+def in_sample_normalization(request):
     return request.param
 
 
@@ -41,7 +47,8 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_did_fixture(generate_data_did, learner, score, dml_procedure, trimming_threshold):
+def dml_did_fixture(generate_data_did, learner, score, in_sample_normalization,
+                    dml_procedure, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -63,6 +70,7 @@ def dml_did_fixture(generate_data_did, learner, score, dml_procedure, trimming_t
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
+                                  in_sample_normalization=in_sample_normalization,
                                   dml_procedure=dml_procedure,
                                   draw_sample_splitting=False,
                                   trimming_threshold=trimming_threshold)
@@ -74,7 +82,7 @@ def dml_did_fixture(generate_data_did, learner, score, dml_procedure, trimming_t
     np.random.seed(3141)
     res_manual = fit_did(y, x, d,
                          clone(learner[0]), clone(learner[1]),
-                         all_smpls, dml_procedure, score,
+                         all_smpls, dml_procedure, score, in_sample_normalization,
                          trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_did_obj.coef,

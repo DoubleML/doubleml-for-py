@@ -8,7 +8,7 @@ from .._utils import _check_is_propensity
 
 
 def fit_did(y, x, d,
-            learner_g, learner_m, all_smpls, dml_procedure, score,
+            learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
             trimming_threshold=1e-2):
     n_obs = len(y)
@@ -36,11 +36,11 @@ def fit_did(y, x, d,
         all_m_hat.append(m_hat_list)
         all_p_hat.append(p_hat_list)
 
-        y_resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
+        resid_d0, g_hat0, g_hat1, m_hat, p_hat = compute_did_residuals(
             y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
         psi_a, psi_b = did_score_elements(g_hat0, g_hat1, m_hat, p_hat,
-                                          y_resid_d0, d, score)
+                                          resid_d0, d, score, in_sample_normalization)
 
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
@@ -71,13 +71,13 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
     g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                               train_cond=train_cond0)
 
-    if score == 'PA-2':
+    if score == 'experimental':
         train_cond1 = np.where(d == 1)[0]
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
                                   train_cond=train_cond1)
 
     else:
-        assert (score == 'PA-1') | (score == 'DR')
+        assert score == 'observational'
         g_hat1_list = list()
         for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
@@ -95,20 +95,20 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
 
 
 def compute_did_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls):
-    y_resid_d0 = np.full_like(y, np.nan, dtype='float64')
+    resid_d0 = np.full_like(y, np.nan, dtype='float64')
     g_hat0 = np.full_like(y, np.nan, dtype='float64')
     g_hat1 = np.full_like(y, np.nan, dtype='float64')
     m_hat = np.full_like(y, np.nan, dtype='float64')
     p_hat = np.full_like(y, np.nan, dtype='float64')
     for idx, (_, test_index) in enumerate(smpls):
-        y_resid_d0[test_index] = y[test_index] - g_hat0_list[idx]
+        resid_d0[test_index] = y[test_index] - g_hat0_list[idx]
         g_hat0[test_index] = g_hat0_list[idx]
         g_hat1[test_index] = g_hat1_list[idx]
         m_hat[test_index] = m_hat_list[idx]
         p_hat[test_index] = p_hat_list[idx]
 
     _check_is_propensity(m_hat, 'learner_m', 'ml_m', smpls, eps=1e-12)
-    return y_resid_d0, g_hat0, g_hat1, m_hat, p_hat
+    return resid_d0, g_hat0, g_hat1, m_hat, p_hat
 
 
 def did_dml1(psi_a, psi_b, smpls):
@@ -138,27 +138,37 @@ def did_dml2(psi_a, psi_b):
     return theta_hat, se
 
 
-def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, y_resid_d0, d, score):
+def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, resid_d0, d, score, in_sample_normalization):
 
-    if score == 'PA-1':
-        psi_a = -1.0 * np.divide(d, p_hat)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
+    if score == 'observational':
+        if in_sample_normalization:
+            weight_psi_a = np.divide(d, np.mean(d))
+            propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+            weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+        else:
+            weight_psi_a = np.divide(d, p_hat)
+            weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
 
-    elif score == 'PA-2':
-        psi_a = -1.0 * np.ones_like(d)
-        y_resid_d0_weight = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
-        psi_b_1 = np.multiply(y_resid_d0_weight, y_resid_d0)
-        psi_b_2 = np.multiply(1.0-np.divide(d, p_hat), g_hat1 - g_hat0)
-        psi_b = psi_b_1 + psi_b_2
+        psi_b_1 = np.zeros_like(d)
 
     else:
-        assert score == 'DR'
-        psi_a = -1.0 * np.divide(d, np.mean(d))
-        propensity_weight = np.divide(m_hat, 1.0-m_hat)
-        y_resid_d0_weight = np.divide(d, np.mean(d)) \
-            - np.divide(np.multiply(1.0-d, propensity_weight), np.mean(np.multiply(1.0-d, propensity_weight)))
-        psi_b = np.multiply(y_resid_d0_weight, y_resid_d0)
+        assert score == 'experimental'
+        if in_sample_normalization:
+            weight_psi_a = np.ones_like(d)
+            weight_g0 = np.divide(d, np.mean(d)) - 1.0
+            weight_g1 = 1.0 - np.divide(d, np.mean(d)) 
+            propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+            weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+        else:
+            weight_psi_a = np.ones_like(d)
+            weight_g0 = np.divide(d, p_hat) - 1.0
+            weight_g1 = 1.0 - np.divide(d, p_hat) 
+            weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+
+        psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)
+
+    psi_a = -1.0 * weight_psi_a
+    psi_b = psi_b_1 + np.multiply(weight_resid_d0,  resid_d0)
 
     return psi_a, psi_b
 
@@ -214,7 +224,7 @@ def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
     g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                    train_cond=train_cond0)
 
-    if score == 'PA-2':
+    if score == 'experimental':
         train_cond1 = np.where(d == 1)[0]
         g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                        train_cond=train_cond1)
