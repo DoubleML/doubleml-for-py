@@ -20,7 +20,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y|D=d, X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[\Delta Y|D=d, X]`.
         For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
         ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
         ``predict_proba()`` is used otherwise ``predict()``.
