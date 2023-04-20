@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
+import warnings
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
@@ -27,7 +28,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
+        Only relevant for ``score='observational'``.
 
     n_folds : int
         Number of folds.
@@ -86,7 +88,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     def __init__(self,
                  obj_dml_data,
                  ml_g,
-                 ml_m,
+                 ml_m=None,
                  n_folds=5,
                  n_rep=1,
                  score='observational',
@@ -114,23 +116,31 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                             f'Object of type {str(type(self.in_sample_normalization))} passed.')
 
         # set stratication for resampling
-        self._strata = self._dml_data.d.reshape(-1, 1) + \
-            2 * self._dml_data.t.reshape(-1, 1)
+        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
 
-        ml_g_is_classifier = self._check_learner(
-            ml_g, 'ml_g', regressor=True, classifier=True)
-        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        # check learners
+        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        if self.score == 'observational':
+            _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        else:
+            assert self.score == 'experimental'
+            if ml_m is not None:
+                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. "'
+                               'A learner ml_m is not required for estimation.'))
+            self._learner = {'ml_g': ml_g}
 
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
-                self._predict_method = {
-                    'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+                self._predict_method = {'ml_g': 'predict_proba'}
             else:
                 raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
                                  'but the outcome variable is not binary with values 0 and 1.')
         else:
-            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+            self._predict_method = {'ml_g': 'predict'}
+
+        if 'ml_m' in self._learner:
+            self._predict_method['ml_m'] = 'predict_proba'
         self._initialize_ml_nuisance_params()
 
         self._trimming_rule = trimming_rule
@@ -241,12 +251,16 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         g_hat_d1_t1['targets'] = g_hat_d1_t1['targets'].astype(float)
         g_hat_d1_t1['targets'][np.invert((d == 1) & (t == 1))] = np.nan
 
-        # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                return_models=return_models)
-        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        # only relevant for observational or experimental setting
+        m_hat = {'preds': None, 'targets': None, 'models': None}
+        if self.score == 'observational':
+            # nuisance m
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
+            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         psi_a, psi_b = self._score_elements(y, d, t,
                                             g_hat_d0_t0['preds'], g_hat_d0_t1['preds'],
@@ -279,8 +293,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                         g_hat_d1_t0, g_hat_d1_t1,
                         m_hat, p_hat, lambda_hat):
 
-        # trimm propensities
-        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
         # calculate residuals
         resid_d0_t0 = y - g_hat_d0_t0
         resid_d0_t1 = y - g_hat_d0_t1
@@ -412,26 +424,38 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                                      self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                      n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        m_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        m_tune_res = list()
+        if self.score == 'observational':
+            m_tune_res = _dml_tune(d, x, train_inds,
+                                    self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
         g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
         g_d1_t0_best_params = [xx.best_params_ for xx in g_d1_t0_tune_res]
         g_d1_t1_best_params = [xx.best_params_ for xx in g_d1_t1_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'ml_g_d0_t0': g_d0_t0_best_params,
-                  'ml_g_d0_t1': g_d0_t1_best_params,
-                  'ml_g_d1_t0': g_d1_t0_best_params,
-                  'ml_g_d1_t1': g_d1_t1_best_params,
-                  'ml_m': m_best_params}
-        tune_res = {'g_d0_t0_tune': g_d0_t0_tune_res,
-                    'g_d0_t1_tune': g_d0_t1_tune_res,
-                    'g_d1_t0_tune': g_d1_t0_tune_res,
-                    'g_d1_t1_tune': g_d1_t1_tune_res,
-                    'm_tune': m_tune_res}
+        if self.score == 'observational':
+            m_best_params = [xx.best_params_ for xx in m_tune_res]
+            params = {'ml_g_d0_t0': g_d0_t0_best_params,
+                    'ml_g_d0_t1': g_d0_t1_best_params,
+                    'ml_g_d1_t0': g_d1_t0_best_params,
+                    'ml_g_d1_t1': g_d1_t1_best_params,
+                    'ml_m': m_best_params}
+            tune_res = {'g_d0_t0_tune': g_d0_t0_tune_res,
+                        'g_d0_t1_tune': g_d0_t1_tune_res,
+                        'g_d1_t0_tune': g_d1_t0_tune_res,
+                        'g_d1_t1_tune': g_d1_t1_tune_res,
+                        'm_tune': m_tune_res}
+        else:
+            params = {'ml_g_d0_t0': g_d0_t0_best_params,
+                    'ml_g_d0_t1': g_d0_t1_best_params,
+                    'ml_g_d1_t0': g_d1_t0_best_params,
+                    'ml_g_d1_t1': g_d1_t1_best_params}
+            tune_res = {'g_d0_t0_tune': g_d0_t0_tune_res,
+                        'g_d0_t1_tune': g_d0_t1_tune_res,
+                        'g_d1_t0_tune': g_d1_t0_tune_res,
+                        'g_d1_t1_tune': g_d1_t1_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
