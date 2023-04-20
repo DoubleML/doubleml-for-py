@@ -21,7 +21,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[\Delta Y|D=d, X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
         For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
         ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
         ``predict_proba()`` is used otherwise ``predict()``.
@@ -126,19 +126,19 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         else:
             assert self.score == 'experimental'
             if ml_m is not None:
-                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. "'
+                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. '
                                'A learner ml_m is not required for estimation.'))
             self._learner = {'ml_g': ml_g}
 
         if ml_g_is_classifier:
-            if obj_dml_data.binary_outcome: 
+            if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba'}
             else:
                 raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
                                  'but the outcome variable is not binary with values 0 and 1.')
         else:
             self._predict_method = {'ml_g': 'predict'}
-        
+
         if 'ml_m' in self._learner:
             self._predict_method['ml_m'] = 'predict_proba'
         self._initialize_ml_nuisance_params()
@@ -313,8 +313,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         m_tune_res = list()
         if self.score == 'observational':
             m_tune_res = _dml_tune(d, x, train_inds,
-                        self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                        n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         g1_tune_res = list()
         if self.score == 'experimental':
             g1_tune_res = _dml_tune(y, x, train_inds_d1,

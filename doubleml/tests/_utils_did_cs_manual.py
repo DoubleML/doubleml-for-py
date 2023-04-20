@@ -4,8 +4,6 @@ from sklearn.base import clone
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ._utils_did_manual import did_dml1, did_dml2
 
-from .._utils import _check_is_propensity
-
 
 def fit_did_cs(y, x, d, t,
                learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
@@ -105,10 +103,16 @@ def fit_nuisance_did_cs(y, x, d, t,
     train_cond_d1_t1 = np.intersect1d(np.where(d == 1)[0], np.where(t == 1)[0])
     g_hat_d1_t1_list = fit_predict(y, x, ml_g_d1_t1, g_d1_t1_params, smpls,
                                    train_cond=train_cond_d1_t1)
-
-    ml_m = clone(learner_m)
-    m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
-                                   trimming_threshold=trimming_threshold)
+    if score == 'observational':
+        ml_m = clone(learner_m)
+        m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
+                                       trimming_threshold=trimming_threshold)
+    else:
+        assert score == 'experimental'
+        m_hat_list = list()
+        for idx, _ in enumerate(smpls):
+            # fill it up, but its not further used
+            m_hat_list.append(np.zeros_like(g_hat_d1_t1_list[idx], dtype='float64'))
 
     p_hat_list = []
     for (train_index, _) in smpls:
@@ -145,7 +149,6 @@ def compute_did_cs_residuals(y, g_hat_d0_t0_list, g_hat_d0_t1_list,
     resid_d0_t1 = y - g_hat_d0_t1
     resid_d1_t0 = y - g_hat_d1_t0
     resid_d1_t1 = y - g_hat_d1_t1
-    _check_is_propensity(m_hat, 'learner_m', 'ml_m', smpls, eps=1e-12)
     return resid_d0_t0, resid_d0_t1, resid_d1_t0, resid_d1_t1, \
         g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1, \
         m_hat, p_hat, lambda_hat
@@ -259,13 +262,17 @@ def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune,
     g_d1_t1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                         train_cond=smpls_d1_t1)
 
-    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
-
     g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
     g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
     g_d1_t0_best_params = [xx.best_params_ for xx in g_d1_t0_tune_res]
     g_d1_t1_best_params = [xx.best_params_ for xx in g_d1_t1_tune_res]
-    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    if score == 'observational':
+        m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+    else:
+        assert score == 'experimental'
+        m_best_params = None
 
     return g_d0_t0_best_params, g_d0_t1_best_params, \
         g_d1_t0_best_params, g_d1_t1_best_params, m_best_params

@@ -130,3 +130,40 @@ def test_dml_did_boot(dml_did_fixture):
         assert np.allclose(dml_did_fixture['boot_t_stat' + bootstrap],
                            dml_did_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_did_experimental(generate_data_did, in_sample_normalization, learner):
+    # collect data
+    (x, y, d) = generate_data_did
+
+    # Set machine learning methods for m & g
+    ml_g = clone(learner[0])
+    ml_m = clone(learner[1])
+
+    np.random.seed(3141)
+    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+
+    np.random.seed(3141)
+    dml_did_obj_without_ml_m = dml.DoubleMLDID(obj_dml_data,
+                                               ml_g,
+                                               score='experimental',
+                                               in_sample_normalization=in_sample_normalization)
+    dml_did_obj_without_ml_m.fit()
+
+    np.random.seed(3141)
+    dml_did_obj_with_ml_m = dml.DoubleMLDID(obj_dml_data,
+                                            ml_g, ml_m,
+                                            score='experimental',
+                                            in_sample_normalization=in_sample_normalization)
+    dml_did_obj_with_ml_m.fit()
+    assert math.isclose(dml_did_obj_with_ml_m.coef,
+                        dml_did_obj_without_ml_m.coef,
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+    msg = ('A learner ml_m has been provided for score = "experimental" but will be ignored. '
+           'A learner ml_m is not required for estimation.')
+    with pytest.warns(UserWarning, match=msg):
+        dml.DoubleMLDID(obj_dml_data, ml_g, ml_m,
+                        score='experimental',
+                        in_sample_normalization=in_sample_normalization)

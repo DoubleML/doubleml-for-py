@@ -126,7 +126,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         else:
             assert self.score == 'experimental'
             if ml_m is not None:
-                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. "'
+                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. '
                                'A learner ml_m is not required for estimation.'))
             self._learner = {'ml_g': ml_g}
 
@@ -427,8 +427,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         m_tune_res = list()
         if self.score == 'observational':
             m_tune_res = _dml_tune(d, x, train_inds,
-                                    self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
         g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
@@ -438,10 +438,10 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         if self.score == 'observational':
             m_best_params = [xx.best_params_ for xx in m_tune_res]
             params = {'ml_g_d0_t0': g_d0_t0_best_params,
-                    'ml_g_d0_t1': g_d0_t1_best_params,
-                    'ml_g_d1_t0': g_d1_t0_best_params,
-                    'ml_g_d1_t1': g_d1_t1_best_params,
-                    'ml_m': m_best_params}
+                      'ml_g_d0_t1': g_d0_t1_best_params,
+                      'ml_g_d1_t0': g_d1_t0_best_params,
+                      'ml_g_d1_t1': g_d1_t1_best_params,
+                      'ml_m': m_best_params}
             tune_res = {'g_d0_t0_tune': g_d0_t0_tune_res,
                         'g_d0_t1_tune': g_d0_t1_tune_res,
                         'g_d1_t0_tune': g_d1_t0_tune_res,
@@ -449,9 +449,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                         'm_tune': m_tune_res}
         else:
             params = {'ml_g_d0_t0': g_d0_t0_best_params,
-                    'ml_g_d0_t1': g_d0_t1_best_params,
-                    'ml_g_d1_t0': g_d1_t0_best_params,
-                    'ml_g_d1_t1': g_d1_t1_best_params}
+                      'ml_g_d0_t1': g_d0_t1_best_params,
+                      'ml_g_d1_t0': g_d1_t0_best_params,
+                      'ml_g_d1_t1': g_d1_t1_best_params}
             tune_res = {'g_d0_t0_tune': g_d0_t0_tune_res,
                         'g_d0_t1_tune': g_d0_t1_tune_res,
                         'g_d1_t0_tune': g_d1_t0_tune_res,

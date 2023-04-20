@@ -4,8 +4,6 @@ from sklearn.base import clone
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _check_is_propensity
-
 
 def fit_did(y, x, d,
             learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
@@ -75,6 +73,10 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
         train_cond1 = np.where(d == 1)[0]
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
                                   train_cond=train_cond1)
+        m_hat_list = list()
+        for idx, _ in enumerate(smpls):
+            # fill it up, but its not further used
+            m_hat_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
 
     else:
         assert score == 'observational'
@@ -83,9 +85,9 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
             # fill it up, but its not further used
             g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
 
-    ml_m = clone(learner_m)
-    m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
-                                   trimming_threshold=trimming_threshold)
+        ml_m = clone(learner_m)
+        m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
+                                       trimming_threshold=trimming_threshold)
 
     p_hat_list = []
     for (train_index, _) in smpls:
@@ -107,7 +109,6 @@ def compute_did_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, s
         m_hat[test_index] = m_hat_list[idx]
         p_hat[test_index] = p_hat_list[idx]
 
-    _check_is_propensity(m_hat, 'learner_m', 'ml_m', smpls, eps=1e-12)
     return resid_d0, g_hat0, g_hat1, m_hat, p_hat
 
 
@@ -157,13 +158,12 @@ def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, resid_d0, d, score, in_samp
             weight_psi_a = np.ones_like(d)
             weight_g0 = np.divide(d, np.mean(d)) - 1.0
             weight_g1 = 1.0 - np.divide(d, np.mean(d))
-            propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
-            weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+            weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(1.0-d, np.mean(1.0-d))
         else:
             weight_psi_a = np.ones_like(d)
             weight_g0 = np.divide(d, p_hat) - 1.0
             weight_g1 = 1.0 - np.divide(d, p_hat)
-            weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+            weight_resid_d0 = np.divide(d-p_hat, np.multiply(p_hat, 1.0-p_hat))
 
         psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)
 
@@ -223,18 +223,18 @@ def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
     train_cond0 = np.where(d == 0)[0]
     g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                    train_cond=train_cond0)
-
+    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
     if score == 'experimental':
         train_cond1 = np.where(d == 1)[0]
         g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                        train_cond=train_cond1)
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        m_best_params = None
     else:
+        assert score == 'observational'
         g1_best_params = None
 
-    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
-
-    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-    m_best_params = [xx.best_params_ for xx in m_tune_res]
+        m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g0_best_params, g1_best_params, m_best_params

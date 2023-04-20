@@ -109,12 +109,13 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
                                                            n_folds_tune,
                                                            par_grid['ml_g'], par_grid['ml_m'])
         g0_params = g0_params * n_folds
-        m_params = m_params * n_folds
         if score == 'experimental':
             g1_params = g1_params * n_folds
+            m_params = None
         else:
             assert score == 'observational'
             g1_params = None
+            m_params = m_params * n_folds
 
     res_manual = fit_did(y, x, d, clone(learner_g), clone(learner_m),
                          all_smpls, dml_procedure, score, in_sample_normalization,

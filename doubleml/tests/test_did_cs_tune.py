@@ -116,7 +116,11 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
         g_d0_t1_params = g_d0_t1_params * n_folds
         g_d1_t0_params = g_d1_t0_params * n_folds
         g_d1_t1_params = g_d1_t1_params * n_folds
-        m_params = m_params * n_folds
+        if score == 'observational':
+            m_params = m_params * n_folds
+        else:
+            assert score == 'experimental'
+            m_params = None
 
     res_manual = fit_did_cs(y, x, d, t, clone(learner_g), clone(learner_m),
                             all_smpls, dml_procedure, score, in_sample_normalization,
