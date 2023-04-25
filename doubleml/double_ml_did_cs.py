@@ -301,11 +301,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         if self.score == 'observational':
             if self.in_sample_normalization:
-                weight_psi_a = np.ones_like(y)   # would be the same with np.divide(d, np.mean(d))
-                weight_g_d1_t1 = np.divide(d, np.mean(d))
-                weight_g_d1_t0 = -1.0 * weight_g_d1_t1
-                weight_g_d0_t1 = -1.0 * weight_g_d1_t1
-                weight_g_d0_t0 = weight_g_d1_t1
+                weight_psi_a = np.divide(d, np.mean(d))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
 
                 weight_resid_d1_t1 = np.divide(np.multiply(d, t),
                                                np.mean(np.multiply(d, t)))
