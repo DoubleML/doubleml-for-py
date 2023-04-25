@@ -458,7 +458,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False):
+    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False, supply_predictions=None):
         """
         Estimate DoubleML models.
 
@@ -477,6 +477,11 @@ class DoubleML(ABC):
             to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
 
+        supply_predictions : None or dict
+            If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
+            for a specific learner is supplied, the model will use the supplied nuisance predictions instead.
+            Default is `None`.
+
         Returns
         -------
         self : object
@@ -494,6 +499,11 @@ class DoubleML(ABC):
         if not isinstance(store_models, bool):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
+
+        if supply_predictions is not None:
+            if not isinstance(supply_predictions, dict):
+                raise TypeError('The predictions must be a dictionary. '
+                                f'{str(supply_predictions)} of type {str(type(supply_predictions))} was passed.')
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()
