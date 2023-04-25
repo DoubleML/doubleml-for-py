@@ -8,7 +8,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
     _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, _get_bracket_guess, \
-    _default_kde, _normalize_ipw, _dml_tune, _solve_ipw_score
+    _default_kde, _normalize_ipw, _dml_tune, _solve_ipw_score, _cond_targets
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -337,8 +337,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         m_hat['targets'] = d
 
         # set the target for g to be a float and only relevant values
-        g_hat['targets'] = g_hat['targets'].astype(float)
-        g_hat['targets'][d != self.treatment] = np.nan
+        g_hat['targets'] = _cond_targets(g_hat['targets'], cond_sample=(d == self.treatment))
 
         if return_models:
             g_hat['models'] = fitted_models['ml_g']

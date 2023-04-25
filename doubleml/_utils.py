@@ -371,3 +371,9 @@ def _solve_ipw_score(ipw_score, bracket_guess):
                           method='brent')
     ipw_est = res.x
     return ipw_est
+
+
+def _cond_targets(target, cond_sample):
+    cond_target = target.astype(float)
+    cond_target[np.invert(cond_sample)] = np.nan
+    return cond_target

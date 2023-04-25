@@ -9,7 +9,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_zero_one_treatment, _check_score,\
     _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess, _default_kde, _normalize_ipw, _dml_tune, \
-    _solve_ipw_score
+    _solve_ipw_score, _cond_targets
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
 
@@ -423,15 +423,14 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
         # save targets and models
         m_z_hat['targets'] = z
+
         # set targets to relevant subsample
-        g_du_z0_hat['targets'][z == 1] = np.nan
-        g_du_z1_hat['targets'][z == 0] = np.nan
+        g_du_z0_hat['targets'] = _cond_targets(g_du_z0_hat['targets'], cond_sample=(z == 0))
+        g_du_z1_hat['targets'] = _cond_targets(g_du_z1_hat['targets'], cond_sample=(z == 1))
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
-        m_d_z0_hat['targets'][z == 0] = d[z == 0]
-        m_d_z0_hat['targets'][z == 1] = np.nan
-        m_d_z1_hat['targets'][z == 1] = d[z == 1]
-        m_d_z1_hat['targets'][z == 0] = np.nan
+        m_d_z0_hat['targets'] = _cond_targets(d, cond_sample=(z == 0))
+        m_d_z0_hat['targets'] = _cond_targets(d, cond_sample=(z == 1))
 
         if return_models:
             m_z_hat['models'] = fitted_models['ml_m_z']

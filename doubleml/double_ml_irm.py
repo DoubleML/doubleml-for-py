@@ -11,7 +11,7 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
-    _trimm, _normalize_ipw
+    _trimm, _normalize_ipw, _cond_targets
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -212,9 +212,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                  return_models=return_models)
         _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-        # adjust target values to consider only compatible subsamples
-        g_hat0['targets'] = g_hat0['targets'].astype(float)
-        g_hat0['targets'][d == 1] = np.nan
+        g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
 
         if self._dml_data.binary_outcome:
             binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
@@ -231,9 +229,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][d == 0] = np.nan
+            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
             if self._dml_data.binary_outcome:
                 binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
