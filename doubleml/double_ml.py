@@ -458,7 +458,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False, supply_predictions=None):
+    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False, supplied_predictions=None):
         """
         Estimate DoubleML models.
 
@@ -477,7 +477,7 @@ class DoubleML(ABC):
             to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
 
-        supply_predictions : None or dict
+        supplied_predictions : None or dict
             If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
             for a specific learner is supplied, the model will use the supplied nuisance predictions instead.
             Default is `None`.
@@ -500,10 +500,8 @@ class DoubleML(ABC):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
 
-        if supply_predictions is not None:
-            if not isinstance(supply_predictions, dict):
-                raise TypeError('The predictions must be a dictionary. '
-                                f'{str(supply_predictions)} of type {str(type(supply_predictions))} was passed.')
+        # check prediction format
+        self._check_supplied_predictions(supplied_predictions)
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()
@@ -1002,6 +1000,51 @@ class DoubleML(ABC):
                 raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
 
         return learner_is_classifier
+
+    def _check_supplied_predictions(self, supplied_predictions):
+        if supplied_predictions is not None:
+            if not isinstance(supplied_predictions, dict):
+                raise TypeError('The predictions must be a dictionary. '
+                                f'{str(supplied_predictions)} of type {str(type(supplied_predictions))} was passed.')
+
+            if self.n_rep > 1:
+                raise NotImplementedError('supplied_predictions is not yet implmented for ``n_rep > 1``.')
+
+            supplied_treatments = list(supplied_predictions.keys())
+            valid_treatments = self._dml_data.d_cols
+            if not set(supplied_treatments).issubset(valid_treatments):
+                raise ValueError('Invalid supplied_predictions. '
+                                 f'Invalid treatment variable in {str(supplied_treatments)}. '
+                                 'Valid treatment variables ' + ' or '.join(valid_treatments) + '.')
+
+            for treatment in supplied_treatments:
+                if not isinstance(supplied_predictions[treatment], dict):
+                    raise TypeError('supplied_predictions must be a nested dictionary. '
+                                    f'For treatment {str(treatment)} a value of type '
+                                    f'{str(type(supplied_predictions[treatment]))} was passed.')
+
+                supplied_learners = list(supplied_predictions[treatment].keys())
+                valid_learners = self.params_names
+                if not set(supplied_learners).issubset(valid_learners):
+                    raise ValueError('Invalid supplied_predictions. '
+                                     f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
+                                     'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
+
+                for learner in supplied_learners:
+                    if not isinstance(supplied_predictions[treatment][learner],  np.ndarray):
+                        raise TypeError('Invalid supplied_predictions. '
+                                        'The values of the nested list must be a numpy array. '
+                                        'Invalid predictions for treatment ' + str(treatment) +
+                                        ' and learner ' + str(learner) + '. ' +
+                                        f'Object of type {str(type(supplied_predictions[treatment][learner]))} was passed.')
+
+                    expected_shape = (self._dml_data.n_obs, )
+                    if supplied_predictions[treatment][learner].shape != expected_shape:
+                        raise ValueError('Invalid supplied_predictions. '
+                                         f'The supplied predictions have to be of shape {str(expected_shape)}. '
+                                         'Invalid predictions for treatment ' + str(treatment) +
+                                         ' and learner ' + str(learner) + '. ' +
+                                         f'Predictions of shape {str(supplied_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
