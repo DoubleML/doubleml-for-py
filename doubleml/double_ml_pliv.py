@@ -292,7 +292,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner = 'ml_l'
         super(DoubleMLPLIV, self).set_ml_nuisance_params(learner, treat_var, params)
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         if self.partialX & (not self.partialZ):
             psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, return_models)
         elif (not self.partialX) & self.partialZ:

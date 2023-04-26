@@ -185,7 +185,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             learner = 'ml_l'
         super(DoubleMLPLR, self).set_ml_nuisance_params(learner, treat_var, params)
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,

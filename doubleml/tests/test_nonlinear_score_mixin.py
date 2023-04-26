@@ -99,7 +99,7 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         pass
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,

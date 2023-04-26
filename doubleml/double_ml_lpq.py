@@ -276,7 +276,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                         for learner in ['ml_m_z', 'ml_g_du_z0', 'ml_g_du_z1',
                                         'ml_m_d_z0', 'ml_m_d_z1']}
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,

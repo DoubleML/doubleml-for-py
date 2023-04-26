@@ -241,7 +241,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             raise ValueError(err_msg)
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z),

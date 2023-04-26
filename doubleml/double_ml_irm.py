@@ -209,7 +209,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         # nuisance g
-        if external_predictions['ml_g0'] is None:
+        if external_predictions['ml_g0'] is not None:
+            # use external predictions
+            g_hat0 = {'preds': external_predictions['ml_g0'],
+                      'targets': None,
+                      'models': None}
+        else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                         return_models=return_models)
@@ -224,14 +229,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                         f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
                                         'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                         'probabilities and not labels are predicted.')
-        else:
-            g_hat0 = {'preds': external_predictions['ml_g0'],
-                      'targets': None,
-                      'models': None}
 
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if (self.score == 'ATE') | callable(self.score):
-            if external_predictions['ml_g1'] is None:
+            if external_predictions['ml_g1'] is not None:
+                # use external predictions
+                g_hat1 = {'preds': external_predictions['ml_g1'],
+                          'targets': None,
+                          'models': None}
+            else:
                 g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
                                         return_models=return_models)
@@ -246,23 +252,20 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                         f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
                                         'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                         'probabilities and not labels are predicted.')
-            else:
-                g_hat1 = {'preds': external_predictions['ml_g1'],
-                          'targets': None,
-                          'models': None}
 
         # nuisance m
-        if external_predictions['ml_m'] is None:
+        if external_predictions['ml_m'] is not None:
+            # use external predictions
+            m_hat = {'preds': external_predictions['ml_m'],
+                     'targets': None,
+                     'models': None}
+        else:
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                     return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
             m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
-        else:
-            m_hat = {'preds': external_predictions['ml_m'],
-                     'targets': None,
-                     'models': None}
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
