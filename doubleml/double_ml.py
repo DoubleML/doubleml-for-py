@@ -458,7 +458,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False, supplied_predictions=None):
+    def fit(self, n_jobs_cv=None, store_predictions=True, external_predictions=None, store_models=False):
         """
         Estimate DoubleML models.
 
@@ -477,9 +477,11 @@ class DoubleML(ABC):
             to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
 
-        supplied_predictions : None or dict
+        external_predictions : None or dict
             If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
-            for a specific learner is supplied, the model will use the supplied nuisance predictions instead.
+            for a specific learner is supplied, the model will use the supplied nuisance predictions instead. Has to
+            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the 
+            corresponding learners.
             Default is `None`.
 
         Returns
@@ -501,7 +503,7 @@ class DoubleML(ABC):
                             f'Got {str(store_models)}.')
 
         # check prediction format
-        self._check_supplied_predictions(supplied_predictions)
+        self._check_external_predictions(external_predictions)
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()
@@ -516,13 +518,19 @@ class DoubleML(ABC):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
-
+                
                 # this step could be skipped for the single treatment variable case
                 if self._dml_data.n_treat > 1:
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
+                # set the supplied predictions for the treatment and each learner (including None)
+                prediction_dict = {}
+                for learner in self.params_names:
+                    prediction_dict[learner] = None
+
                 # ml estimation of nuisance models and computation of score elements
-                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
+                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
+                                                           return_models=store_models)
 
                 self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
@@ -949,7 +957,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models, external_predictions):
         pass
 
     @abstractmethod
@@ -1001,50 +1009,50 @@ class DoubleML(ABC):
 
         return learner_is_classifier
 
-    def _check_supplied_predictions(self, supplied_predictions):
-        if supplied_predictions is not None:
-            if not isinstance(supplied_predictions, dict):
-                raise TypeError('The predictions must be a dictionary. '
-                                f'{str(supplied_predictions)} of type {str(type(supplied_predictions))} was passed.')
+    def _check_external_predictions(self, external_predictions):
+        if external_predictions is not None:
+            if not isinstance(external_predictions, dict):
+                raise TypeError('external_predictions must be a dictionary. '
+                                f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
 
             if self.n_rep > 1:
-                raise NotImplementedError('supplied_predictions is not yet implmented for ``n_rep > 1``.')
+                raise NotImplementedError('external_predictions is not yet implmented for ``n_rep > 1``.')
 
-            supplied_treatments = list(supplied_predictions.keys())
+            supplied_treatments = list(external_predictions.keys())
             valid_treatments = self._dml_data.d_cols
             if not set(supplied_treatments).issubset(valid_treatments):
-                raise ValueError('Invalid supplied_predictions. '
+                raise ValueError('Invalid external_predictions. '
                                  f'Invalid treatment variable in {str(supplied_treatments)}. '
                                  'Valid treatment variables ' + ' or '.join(valid_treatments) + '.')
 
             for treatment in supplied_treatments:
-                if not isinstance(supplied_predictions[treatment], dict):
-                    raise TypeError('supplied_predictions must be a nested dictionary. '
+                if not isinstance(external_predictions[treatment], dict):
+                    raise TypeError('external_predictions must be a nested dictionary. '
                                     f'For treatment {str(treatment)} a value of type '
-                                    f'{str(type(supplied_predictions[treatment]))} was passed.')
+                                    f'{str(type(external_predictions[treatment]))} was passed.')
 
-                supplied_learners = list(supplied_predictions[treatment].keys())
+                supplied_learners = list(external_predictions[treatment].keys())
                 valid_learners = self.params_names
                 if not set(supplied_learners).issubset(valid_learners):
-                    raise ValueError('Invalid supplied_predictions. '
+                    raise ValueError('Invalid external_predictions. '
                                      f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
                                      'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
 
                 for learner in supplied_learners:
-                    if not isinstance(supplied_predictions[treatment][learner],  np.ndarray):
-                        raise TypeError('Invalid supplied_predictions. '
+                    if not isinstance(external_predictions[treatment][learner],  np.ndarray):
+                        raise TypeError('Invalid external_predictions. '
                                         'The values of the nested list must be a numpy array. '
                                         'Invalid predictions for treatment ' + str(treatment) +
                                         ' and learner ' + str(learner) + '. ' +
-                                        f'Object of type {str(type(supplied_predictions[treatment][learner]))} was passed.')
+                                        f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
 
                     expected_shape = (self._dml_data.n_obs, )
-                    if supplied_predictions[treatment][learner].shape != expected_shape:
-                        raise ValueError('Invalid supplied_predictions. '
+                    if external_predictions[treatment][learner].shape != expected_shape:
+                        raise ValueError('Invalid external_predictions. '
                                          f'The supplied predictions have to be of shape {str(expected_shape)}. '
                                          'Invalid predictions for treatment ' + str(treatment) +
                                          ' and learner ' + str(learner) + '. ' +
-                                         f'Predictions of shape {str(supplied_predictions[treatment][learner].shape)} passed.')
+                                         f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)

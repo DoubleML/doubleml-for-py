@@ -980,7 +980,7 @@ def test_double_ml_exception_evaluate_learner():
 
 
 @pytest.mark.ci
-def test_double_ml_supply_predictions():
+def test_double_ml_external_predictions():
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
                               ml_m=LogisticRegression(),
@@ -989,14 +989,14 @@ def test_double_ml_supply_predictions():
                               score='ATE',
                               n_rep=2)
 
-    msg = "The predictions must be a dictionary. ml_m of type <class 'str'> was passed."
+    msg = "external_predictions must be a dictionary. ml_m of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.fit(supplied_predictions="ml_m")
+        dml_irm_obj.fit(external_predictions="ml_m")
 
     predictions = {'ml_f': 'test'}
-    msg = "supplied_predictions is not yet implmented for ``n_rep > 1``."
+    msg = "external_predictions is not yet implmented for ``n_rep > 1``."
     with pytest.raises(NotImplementedError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
@@ -1007,51 +1007,51 @@ def test_double_ml_supply_predictions():
                               n_rep=1)
 
     predictions = {'d': 'test', 'd_f': 'test'}
-    msg = (r"Invalid supplied_predictions. Invalid treatment variable in \['d', 'd_f'\]. "
+    msg = (r"Invalid external_predictions. Invalid treatment variable in \['d', 'd_f'\]. "
            "Valid treatment variables d.")
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': 'test'}
-    msg = ("supplied_predictions must be a nested dictionary. "
+    msg = ("external_predictions must be a nested dictionary. "
            "For treatment d a value of type <class 'str'> was passed.")
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': {'ml_f': 'test'}}
-    msg = ("Invalid supplied_predictions. "
+    msg = ("Invalid external_predictions. "
            r"Invalid nuisance learner for treatment d in \['ml_f'\]. "
            "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': {'ml_m': 'test', 'ml_f': 'test'}}
-    msg = ("Invalid supplied_predictions. "
+    msg = ("Invalid external_predictions. "
            r"Invalid nuisance learner for treatment d in \['ml_m', 'ml_f'\]. "
            "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': {'ml_m': 'test'}}
-    msg = ("Invalid supplied_predictions. "
+    msg = ("Invalid external_predictions. "
            "The values of the nested list must be a numpy array. "
            "Invalid predictions for treatment d and learner ml_m. "
            "Object of type <class 'str'> was passed.")
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': {'ml_m': np.array([0])}}
-    msg = ('Invalid supplied_predictions. '
+    msg = ('Invalid external_predictions. '
            r'The supplied predictions have to be of shape \(100,\). '
            'Invalid predictions for treatment d and learner ml_m. '
            r'Predictions of shape \(1,\) passed.')
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {'d': {'ml_m': np.ones(shape=(5, 3))}}
-    msg = ('Invalid supplied_predictions. '
+    msg = ('Invalid external_predictions. '
            r'The supplied predictions have to be of shape \(100,\). '
            'Invalid predictions for treatment d and learner ml_m. '
            r'Predictions of shape \(5, 3\) passed.')
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.fit(supplied_predictions=predictions)
+        dml_irm_obj.fit(external_predictions=predictions)
