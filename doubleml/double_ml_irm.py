@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import warnings
+import copy
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -199,7 +200,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                              'needs to be specified as treatment variable.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -208,44 +209,60 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
-        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-        g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
+        if external_predictions['ml_g0'] is None:
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
 
-        if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
+            if self._dml_data.binary_outcome:
+                binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
+                zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
+                if binary_preds & zero_one_preds:
+                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                        f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                        'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                        'probabilities and not labels are predicted.')
+        else:
+            g_hat0 = {'preds': external_predictions['ml_g0'],
+                      'targets': None,
+                      'models': None}
 
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if (self.score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
+            if external_predictions['ml_g1'] is None:
+                g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
+                _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+                g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
-            if self._dml_data.binary_outcome:
-                binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
-                zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
-                if binary_preds & zero_one_preds:
-                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                     'probabilities and not labels are predicted.')
+                if self._dml_data.binary_outcome:
+                    binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
+                    zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
+                    if binary_preds & zero_one_preds:
+                        raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                        f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                        'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                        'probabilities and not labels are predicted.')
+            else:
+                g_hat1 = {'preds': external_predictions['ml_g1'],
+                          'targets': None,
+                          'models': None}
 
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                return_models=return_models)
-        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        if external_predictions['ml_m'] is None:
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
+            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+        else:
+            m_hat = {'preds': external_predictions['ml_m'],
+                     'targets': None,
+                     'models': None}
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
@@ -273,14 +290,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
-        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
-
+        m_hat_adj = copy.deepcopy(m_hat)
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                    m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
             else:
-                m_hat = _normalize_ipw(m_hat, d)
+                m_hat_adj = _normalize_ipw(m_hat, d)
 
         # compute residuals
         u_hat0 = y - g_hat0
@@ -291,19 +307,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if isinstance(self.score, str):
             if self.score == 'ATE':
                 psi_b = g_hat1 - g_hat0 \
-                    + np.divide(np.multiply(d, u_hat1), m_hat) \
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
-                psi_a = np.full_like(m_hat, -1.0)
+                    + np.divide(np.multiply(d, u_hat1), m_hat_adj) \
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj)
+                psi_a = np.full_like(m_hat_adj, -1.0)
             else:
                 assert self.score == 'ATTE'
                 psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                    - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                                np.multiply(p_hat, (1.0 - m_hat)))
+                    - np.divide(np.multiply(m_hat_adj, np.multiply(1.0-d, u_hat0)),
+                                np.multiply(p_hat, (1.0 - m_hat_adj)))
                 psi_a = - np.divide(d, p_hat)
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y=y, d=d,
-                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat,
+                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj,
                                       smpls=smpls)
 
         return psi_a, psi_b

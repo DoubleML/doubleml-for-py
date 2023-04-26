@@ -18,8 +18,8 @@ from ._utils_irm_manual import fit_irm, boot_irm
 @pytest.fixture(scope='module',
                 params=[[LinearRegression(),
                          LogisticRegression(solver='lbfgs', max_iter=250)],
-                        [RandomForestRegressor(max_depth=5, n_estimators=10),
-                         RandomForestClassifier(max_depth=5, n_estimators=10)]])
+                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
+                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
 def learner(request):
     return request.param
 
@@ -87,10 +87,31 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                          normalize_ipw=normalize_ipw,
                          trimming_threshold=trimming_threshold)
 
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    dml_irm_obj_ext = dml.DoubleMLIRM(obj_dml_data,
+                                      ml_g, ml_m,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure,
+                                      normalize_ipw=normalize_ipw,
+                                      draw_sample_splitting=False,
+                                      trimming_threshold=trimming_threshold)
+
+    # synchronize the sample splitting
+    dml_irm_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+ 
+    prediction_dict = {'d': {'ml_g0': dml_irm_obj.predictions['ml_g0'].reshape(-1),
+                             'ml_g1': dml_irm_obj.predictions['ml_g1'].reshape(-1),
+                             'ml_m': dml_irm_obj.predictions['ml_m'].reshape(-1)}}
+    dml_irm_obj_ext.fit(external_predictions=prediction_dict)
+
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual['theta'],
+                'coef_ext': dml_irm_obj_ext.coef,
                 'se': dml_irm_obj.se,
                 'se_manual': res_manual['se'],
+                'se_ext': dml_irm_obj_ext.se,
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
@@ -104,10 +125,14 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+        np.random.seed(3141)
+        dml_irm_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_coef' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_coef
+        res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_t_stat
 
     return res_dict
 
@@ -117,6 +142,9 @@ def test_dml_irm_coef(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['coef'],
                         dml_irm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_fixture['coef'],
+                        dml_irm_fixture['coef_ext'],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
@@ -124,7 +152,9 @@ def test_dml_irm_se(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['se'],
                         dml_irm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-
+    assert math.isclose(dml_irm_fixture['se'],
+                        dml_irm_fixture['se_ext'],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 @pytest.mark.ci
 def test_dml_irm_boot(dml_irm_fixture):
@@ -132,8 +162,14 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
                            dml_irm_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
+                           dml_irm_fixture['boot_coef' + bootstrap + '_ext'],
+                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
+                           dml_irm_fixture['boot_t_stat' + bootstrap + '_ext'],
                            rtol=1e-9, atol=1e-4)
 
 

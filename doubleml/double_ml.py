@@ -524,12 +524,18 @@ class DoubleML(ABC):
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
                 # set the supplied predictions for the treatment and each learner (including None)
-                prediction_dict = {}
+                ext_prediction_dict = {}
                 for learner in self.params_names:
-                    prediction_dict[learner] = None
+                    if external_predictions is None:
+                        ext_prediction_dict[learner] = None
+                    elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
+                        ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner]
+                    else:
+                        ext_prediction_dict[learner] = None
 
                 # ml estimation of nuisance models and computation of score elements
                 score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
+                                                           external_predictions=ext_prediction_dict,
                                                            return_models=store_models)
 
                 self._set_score_elements(score_elements, self._i_rep, self._i_treat)
