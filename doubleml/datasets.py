@@ -378,7 +378,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
     :math:`\\beta_j=\\frac{1}{j^2}`.
 
     The data generating process is inspired by a process used in the simulation experiment of Farbmacher, Gruber and
-    Klaaßen (2020).
+    Klaassen (2020).
 
     Parameters
     ----------
@@ -716,7 +716,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         f_{reg}(W) &= 210 + 27.4 \\cdot W_1 +13.7 \\cdot (W_2 + W_3 + W_4),
 
-        f_{ps}(W) &= \\Xi \\cdot (-W_1 + 0.5 \\cdot W_2 -0.25 \\cdot W_3 - 0.1 \\cdot W_4).
+        f_{ps}(W) &= 0.75 \\cdot (-W_1 + 0.5 \\cdot W_2 -0.25 \\cdot W_3 - 0.1 \\cdot W_4).
 
 
     Let :math:`X= (X_1, X_2, X_3, X_4)^T \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` is a matrix with entries
@@ -728,13 +728,13 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
     .. math::
 
-        Y_0(0) = f_{reg}(W_{reg}) + \\nu(W_{reg}, D) + \\varepsilon_0,
+        Y_0(0) &= f_{reg}(W_{reg}) + \\nu(W_{reg}, D) + \\varepsilon_0,
 
-        Y_1(d) = 2 \\cdot f_{reg}(W_{reg}) + \\nu(W_{reg}, D) + \\varepsilon_1(d),
+        Y_1(d) &= 2 \\cdot f_{reg}(W_{reg}) + \\nu(W_{reg}, D) + \\varepsilon_1(d),
 
-        p(W_{ps}) = \\frac{\\exp(f_{ps}(W_{ps}))}{1 + \\exp(f_{ps}(W_{ps}))},
+        p(W_{ps}) &= \\frac{\\exp(f_{ps}(W_{ps}))}{1 + \\exp(f_{ps}(W_{ps}))},
 
-        D = 1\\{p(W_{ps}) \\ge U\\},
+        D &= 1\\{p(W_{ps}) \\ge U\\},
 
     where :math:`\\varepsilon_0, \\varepsilon_1(d), d=0, 1` are independent standard normal random variables,
     :math:`U \\sim \\mathcal{U}[0, 1]` is a independent standard uniform
@@ -743,17 +743,17 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
     .. math::
 
-        DGP1 W_{reg} = Z \\quad W_{ps} = Z
+        DGP1:\\quad W_{reg} &= Z \\quad W_{ps} = Z
 
-        DGP2 W_{reg} = Z \\quad W_{ps} = X
+        DGP2:\\quad W_{reg} &= Z \\quad W_{ps} = X
 
-        DGP3 W_{reg} = X \\quad W_{ps} = Z
+        DGP3:\\quad W_{reg} &= X \\quad W_{ps} = Z
 
-        DGP4 W_{reg} = X \\quad W_{ps} = X
+        DGP4:\\quad W_{reg} &= X \\quad W_{ps} = X
 
-        DGP5 W_{reg} = Z \\quad W_{ps} = 0
+        DGP5:\\quad W_{reg} &= Z \\quad W_{ps} = 0
 
-        DGP6 W_{reg} = X \\quad W_{ps} = 0,
+        DGP6:\\quad W_{reg} &= X \\quad W_{ps} = 0,
 
     such that the last two settings correspond to an experimental setting with treatment probability
     of :math:`P(D=1) = \\frac{1}{2}.`
@@ -765,7 +765,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         Y = T \\cdot Y_1(D) + (1-T) \\cdot Y_0(0),
 
-    where :math:`T = 1\\{U_T\\le \\lambda_T \\}` with :math:`U_T \\mathcal{U}[0, 1]` and :math:`\\lambda_T=0.5`.
+    where :math:`T = 1\\{U_T\\le \\lambda_T \\}` with :math:`U_T\\sim \\mathcal{U}[0, 1]` and :math:`\\lambda_T=0.5`.
     The true average treatment effect on the treated is zero for all data generating processes.
 
     Parameters
@@ -785,7 +785,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         or ``(x, y, d, t)``.
     **kwargs
         Additional keyword arguments to set non-default values for the parameter
-        :math:`xi=0.75`, :math:`c=0.0` and :math:`\\lambda_t=0.5`.
+        :math:`xi=0.75`, :math:`c=0.0` and :math:`\\lambda_T=0.5`.
 
     References
     ----------
