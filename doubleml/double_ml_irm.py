@@ -258,6 +258,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
         _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
         if self._auto_calibrate:
+            self.ml_m_prelim = m_hat['preds']
             isotonic_reg_model = IsotonicRegression(increasing=True,
                                                     y_max=1.0,
                                                     y_min=0.0,
@@ -270,6 +271,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                              return_models=False)
             m_hat['preds'] = m_hat_isotonic['preds']
             m_hat['preds'] = isotonic_reg_model.fit_transform(X=m_hat['preds'], y=d)
+            self.isotonic_reg_model = isotonic_reg_model
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
