@@ -9,6 +9,7 @@ from .double_ml import DoubleML
 from .double_ml_blp import DoubleMLBLP
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
+from sklearn.isotonic import IsotonicRegression
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
     _trimm, _normalize_ipw, _check_score, _check_trimming
@@ -119,6 +120,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  score='ATE',
                  dml_procedure='dml2',
                  normalize_ipw=False,
+                 auto_calibrate=True,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
@@ -130,7 +132,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-
+        
         self._check_data(self._dml_data)
         valid_scores = ['ATE', 'ATTE']
         _check_score(self.score, valid_scores, allow_callable=True)
@@ -154,6 +156,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if not isinstance(self.normalize_ipw, bool):
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
+        self._auto_calibrate = auto_calibrate
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
@@ -254,6 +257,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
         _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        if self._auto_calibrate:
+            isotonic_reg_model = IsotonicRegression(increasing=True,
+                                                    y_max=1.0,
+                                                    y_min=0.0,
+                                                    out_of_bounds='clip')
+            m_hat_isotonic = _dml_cv_predict(isotonic_reg_model, 
+                                             x=m_hat['preds'], 
+                                             y=d,
+                                             smpls=smpls,
+                                             method='predict',
+                                             return_models=False)
+            m_hat['preds'] = m_hat_isotonic['preds']
+            m_hat['preds'] = isotonic_reg_model.fit_transform(X=m_hat['preds'], y=d)
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
