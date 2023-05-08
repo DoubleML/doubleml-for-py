@@ -126,7 +126,7 @@ class DoubleMLQTE:
         # check score
         self._score = score
         valid_scores = ['PQ', 'LPQ', 'CVaR']
-        _check_score(self.score, valid_scores)
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         # check data
         self._is_cluster_data = False
@@ -567,7 +567,7 @@ class DoubleMLQTE:
 
         if not isinstance(level, float):
             raise TypeError('The confidence level must be of float type. '
-                            f'Object of type {str(type(level))} was passed.')
+                            f'{str(level)} of type {str(type(level))} was passed.')
         if (level <= 0) | (level >= 1):
             raise ValueError('The confidence level must be in (0,1). '
                              f'{str(level)} was passed.')

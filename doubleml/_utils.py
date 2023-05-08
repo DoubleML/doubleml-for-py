@@ -28,6 +28,18 @@ def _get_cond_smpls(smpls, bin_var):
     return smpls_0, smpls_1
 
 
+def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
+    subset_00 = (bin_var1 == 0) & (bin_var2 == 0)
+    smpls_00 = [(np.intersect1d(np.where(subset_00)[0], train), test) for train, test in smpls]
+    subset_01 = (bin_var1 == 0) & (bin_var2 == 1)
+    smpls_01 = [(np.intersect1d(np.where(subset_01)[0], train), test) for train, test in smpls]
+    subset_10 = (bin_var1 == 1) & (bin_var2 == 0)
+    smpls_10 = [(np.intersect1d(np.where(subset_10)[0], train), test) for train, test in smpls]
+    subset_11 = (bin_var1 == 1) & (bin_var2 == 1)
+    smpls_11 = [(np.intersect1d(np.where(subset_11)[0], train), test) for train, test in smpls]
+    return smpls_00, smpls_01, smpls_10, smpls_11
+
+
 def _check_is_partition(smpls, n_obs):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
     if len(test_indices) != n_obs:
@@ -328,14 +340,19 @@ def _check_trimming(trimming_rule, trimming_threshold):
     return
 
 
-def _check_score(score, valid_score):
+def _check_score(score, valid_score, allow_callable=True):
     if isinstance(score, str):
         if score not in valid_score:
             raise ValueError('Invalid score ' + score + '. ' +
                              'Valid score ' + ' or '.join(valid_score) + '.')
     else:
-        raise TypeError('Invalid score. ' +
-                        'Valid score ' + ' or '.join(valid_score) + '.')
+        if allow_callable:
+            if not callable(score):
+                raise TypeError('score should be either a string or a callable. '
+                                '%r was passed.' % score)
+        else:
+            raise TypeError('score should be a string. '
+                            '%r was passed.' % score)
     return
 
 

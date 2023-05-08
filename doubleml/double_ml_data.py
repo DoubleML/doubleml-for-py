@@ -104,6 +104,10 @@ class DoubleMLData(DoubleMLBaseData):
         The instrumental variable(s).
         Default is ``None``.
 
+    t_col : None or str
+        The time variable (only relevant/used for DiD Estimators).
+        Default is ``None``.
+
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
@@ -134,6 +138,7 @@ class DoubleMLData(DoubleMLBaseData):
                  d_cols,
                  x_cols=None,
                  z_cols=None,
+                 t_col=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
         DoubleMLBaseData.__init__(self, data)
@@ -141,13 +146,14 @@ class DoubleMLData(DoubleMLBaseData):
         self.y_col = y_col
         self.d_cols = d_cols
         self.z_cols = z_cols
+        self.t_col = t_col
         self.x_cols = x_cols
-        self._check_disjoint_sets_y_d_x_z()
+        self._check_disjoint_sets_y_d_x_z_t()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
         self._binary_treats = self._check_binary_treats()
         self._binary_outcome = self._check_binary_outcome()
-        self._set_y_z()
+        self._set_y_z_t()
         # by default, we initialize to the first treatment variable
         self.set_x_d(self.d_cols[0])
 
@@ -165,12 +171,15 @@ class DoubleMLData(DoubleMLBaseData):
         data_summary = f'Outcome variable: {self.y_col}\n' \
                        f'Treatment variable(s): {self.d_cols}\n' \
                        f'Covariates: {self.x_cols}\n' \
-                       f'Instrument variable(s): {self.z_cols}\n' \
-                       f'No. Observations: {self.n_obs}\n'
+                       f'Instrument variable(s): {self.z_cols}\n'
+        if self.t_col is not None:
+            data_summary += f'Time variable: {self.t_col}\n'
+
+        data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, use_other_treat_as_covariate=True,
+    def from_arrays(cls, x, y, d, z=None, t=None, use_other_treat_as_covariate=True,
                     force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
@@ -188,6 +197,10 @@ class DoubleMLData(DoubleMLBaseData):
 
         z : None or :class:`numpy.ndarray`
             Array of instrumental variables.
+            Default is ``None``.
+
+        t : :class:`numpy.ndarray`
+            Array of the time variable (only relevant/used for DiD models).
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -239,6 +252,13 @@ class DoubleMLData(DoubleMLBaseData):
             else:
                 z_cols = [f'z{i + 1}' for i in np.arange(z.shape[1])]
 
+        if t is None:
+            t_col = None
+        else:
+            t = column_or_1d(t, warn=True)
+            check_consistent_length(x, y, d, t)
+            t_col = 't'
+
         if d.shape[1] == 1:
             d_cols = ['d']
         else:
@@ -246,14 +266,20 @@ class DoubleMLData(DoubleMLBaseData):
 
         x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
 
-        if z is None:
+        if (z is None) and (t is None):
             data = pd.DataFrame(np.column_stack((x, y, d)),
                                 columns=x_cols + [y_col] + d_cols)
-        else:
+        elif (z is not None) and (t is None):
             data = pd.DataFrame(np.column_stack((x, y, d, z)),
                                 columns=x_cols + [y_col] + d_cols + z_cols)
+        elif (z is None) and (t is not None):
+            data = pd.DataFrame(np.column_stack((x, y, d, t)),
+                                columns=x_cols + [y_col] + d_cols + [t_col])
+        elif (z is not None) and (t is not None):
+            data = pd.DataFrame(np.column_stack((x, y, d, z, t)),
+                                columns=x_cols + [y_col] + d_cols + z_cols + [t_col])
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, use_other_treat_as_covariate, force_all_x_finite)
+        return cls(data, y_col, d_cols, x_cols, z_cols, t_col, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def x(self):
@@ -289,6 +315,16 @@ class DoubleMLData(DoubleMLBaseData):
         """
         if self.z_cols is not None:
             return self._z.values
+        else:
+            return None
+
+    @property
+    def t(self):
+        """
+        Array of time variable.
+        """
+        if self.t_col is not None:
+            return self._t.values
         else:
             return None
 
@@ -356,10 +392,16 @@ class DoubleMLData(DoubleMLBaseData):
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
         else:
-            # x_cols defaults to all columns but y_col, d_cols and z_cols
-            if self.z_cols is not None:
+            # x_cols defaults to all columns but y_col, d_cols and z_cols (and t_col)
+            if (self.z_cols is not None) & (self.t_col is not None):
+                y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col})
+                x_cols = [col for col in self.data.columns if col not in y_d_z_t]
+            elif self.z_cols is not None:
                 y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d_z]
+            elif self.t_col is not None:
+                y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col})
+                x_cols = [col for col in self.data.columns if col not in y_d_t]
             else:
                 y_d = set.union({self.y_col}, set(self.d_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]
@@ -415,7 +457,7 @@ class DoubleMLData(DoubleMLBaseData):
         self._y_col = value
         if reset_value:
             self._check_disjoint_sets()
-            self._set_y_z()
+            self._set_y_z_t()
 
     @property
     def z_cols(self):
@@ -444,7 +486,31 @@ class DoubleMLData(DoubleMLBaseData):
             self._z_cols = None
         if reset_value:
             self._check_disjoint_sets()
-            self._set_y_z()
+            self._set_y_z_t()
+
+    @property
+    def t_col(self):
+        """
+        The time variable.
+        """
+        return self._t_col
+
+    @t_col.setter
+    def t_col(self, value):
+        reset_value = hasattr(self, '_t_col')
+        if value is not None:
+            if not isinstance(value, str):
+                raise TypeError('The time variable t_col must be of str type (or None). '
+                                f'{str(value)} of type {str(type(value))} was passed.')
+            if value not in self.all_variables:
+                raise ValueError('Invalid time variable t_col. '
+                                 f'{value} is no data column.')
+            self._t_col = value
+        else:
+            self._t_col = None
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_t()
 
     @property
     def use_other_treat_as_covariate(self):
@@ -486,7 +552,7 @@ class DoubleMLData(DoubleMLBaseData):
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
-    def _set_y_z(self):
+    def _set_y_z_t(self):
         assert_all_finite(self.data.loc[:, self.y_col])
         self._y = self.data.loc[:, self.y_col]
         if self.z_cols is None:
@@ -494,6 +560,12 @@ class DoubleMLData(DoubleMLBaseData):
         else:
             assert_all_finite(self.data.loc[:, self.z_cols])
             self._z = self.data.loc[:, self.z_cols]
+
+        if self.t_col is None:
+            self._t = None
+        else:
+            assert_all_finite(self.data.loc[:, self.t_col])
+            self._t = self.data.loc[:, self.t_col]
 
     def set_x_d(self, treatment_var):
         """
@@ -542,12 +614,13 @@ class DoubleMLData(DoubleMLBaseData):
 
     def _check_disjoint_sets(self):
         # this function can be extended in inherited subclasses
-        self._check_disjoint_sets_y_d_x_z()
+        self._check_disjoint_sets_y_d_x_z_t()
 
-    def _check_disjoint_sets_y_d_x_z(self):
+    def _check_disjoint_sets_y_d_x_z_t(self):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
+        t_col_set = {self.t_col}
 
         if not y_col_set.isdisjoint(x_cols_set):
             raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in '
@@ -572,6 +645,16 @@ class DoubleMLData(DoubleMLBaseData):
             if not x_cols_set.isdisjoint(z_cols_set):
                 raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
                                  'variable in ``z_cols``.')
+
+        if not t_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in '
+                             '``x_cols``.')
+        if not t_col_set.isdisjoint(d_cols_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in '
+                             '``d_cols``.')
+        if not t_col_set.isdisjoint(y_col_set):
+            raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable '
+                             '``y_col``.')
 
 
 class DoubleMLClusterData(DoubleMLData):
@@ -602,6 +685,10 @@ class DoubleMLClusterData(DoubleMLData):
 
     z_cols : None, str or list
         The instrumental variable(s).
+        Default is ``None``.
+
+    t_col : None or str
+        The time variable (only relevant/used for DiD Estimators).
         Default is ``None``.
 
     use_other_treat_as_covariate : bool
@@ -635,6 +722,7 @@ class DoubleMLClusterData(DoubleMLData):
                  cluster_cols,
                  x_cols=None,
                  z_cols=None,
+                 t_col=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
         DoubleMLBaseData.__init__(self, data)
@@ -648,6 +736,7 @@ class DoubleMLClusterData(DoubleMLData):
                               d_cols,
                               x_cols,
                               z_cols,
+                              t_col,
                               use_other_treat_as_covariate,
                               force_all_x_finite)
         self._check_disjoint_sets_cluster_cols()
@@ -667,12 +756,15 @@ class DoubleMLClusterData(DoubleMLData):
                        f'Treatment variable(s): {self.d_cols}\n' \
                        f'Cluster variable(s): {self.cluster_cols}\n' \
                        f'Covariates: {self.x_cols}\n' \
-                       f'Instrument variable(s): {self.z_cols}\n' \
-                       f'No. Observations: {self.n_obs}\n'
+                       f'Instrument variable(s): {self.z_cols}\n'
+        if self.t_col is not None:
+            data_summary += f'Time variable: {self.t_col}\n'
+
+        data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, cluster_vars, z=None, use_other_treat_as_covariate=True,
+    def from_arrays(cls, x, y, d, cluster_vars, z=None, t=None, use_other_treat_as_covariate=True,
                     force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
@@ -695,6 +787,10 @@ class DoubleMLClusterData(DoubleMLData):
             Array of instrumental variables.
             Default is ``None``.
 
+        t : :class:`numpy.ndarray`
+            Array of the time variable (only relevant/used for DiD models).
+            Default is ``None``.
+
         use_other_treat_as_covariate : bool
             Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
             Default is ``True``.
@@ -715,7 +811,7 @@ class DoubleMLClusterData(DoubleMLData):
         >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
-        dml_data = DoubleMLData.from_arrays(x, y, d, z, use_other_treat_as_covariate, force_all_x_finite)
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, t, use_other_treat_as_covariate, force_all_x_finite)
         cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
         cluster_vars = _assure_2d_array(cluster_vars)
         if cluster_vars.shape[1] == 1:
@@ -726,7 +822,7 @@ class DoubleMLClusterData(DoubleMLData):
         data = pd.concat((pd.DataFrame(cluster_vars, columns=cluster_cols), dml_data.data), axis=1)
 
         return (cls(data, dml_data.y_col, dml_data.d_cols, cluster_cols,
-                    dml_data.x_cols, dml_data.z_cols,
+                    dml_data.x_cols, dml_data.z_cols, dml_data.t_col,
                     dml_data.use_other_treat_as_covariate, dml_data.force_all_x_finite))
 
     @property
@@ -775,9 +871,15 @@ class DoubleMLClusterData(DoubleMLData):
             # this call might become much easier with https://github.com/python/cpython/pull/26194
             super(self.__class__, self.__class__).x_cols.__set__(self, value)
         else:
-            if self.z_cols is not None:
+            if (self.z_cols is not None) & (self.t_col is not None):
+                y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_z_t]
+            elif self.z_cols is not None:
                 y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.cluster_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d_z]
+            elif self.t_col is not None:
+                y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col}, set(self.cluster_cols))
+                x_cols = [col for col in self.data.columns if col not in y_d_t]
             else:
                 y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
                 x_cols = [col for col in self.data.columns if col not in y_d]
@@ -798,6 +900,7 @@ class DoubleMLClusterData(DoubleMLData):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
+        t_col_set = {self.t_col}
 
         if not y_col_set.isdisjoint(cluster_cols_set):
             raise ValueError(f'{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster '
@@ -813,6 +916,10 @@ class DoubleMLClusterData(DoubleMLData):
             z_cols_set = set(self.z_cols)
             if not z_cols_set.isdisjoint(cluster_cols_set):
                 raise ValueError('At least one variable/column is set as instrumental variable (``z_cols``) and '
+                                 'cluster variable in ``cluster_cols``.')
+        if self.t_col is not None:
+            if not t_col_set.isdisjoint(cluster_cols_set):
+                raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and '
                                  'cluster variable in ``cluster_cols``.')
 
     def _set_cluster_vars(self):
