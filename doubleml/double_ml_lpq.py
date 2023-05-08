@@ -136,7 +136,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
 
         valid_score = ['LPQ']
-        _check_score(self.score, valid_score)
+        _check_score(self.score, valid_score, allow_callable=False)
         _check_quantile(self.quantile)
         _check_treatment(self.treatment)
 
