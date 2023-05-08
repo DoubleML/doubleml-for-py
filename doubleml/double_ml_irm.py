@@ -220,8 +220,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
 
@@ -230,9 +230,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                 zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
                 if binary_preds & zero_one_preds:
                     raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                        f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                        'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                        'probabilities and not labels are predicted.')
+                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                     'probabilities and not labels are predicted.')
 
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if (self.score == 'ATE') | callable(self.score):
@@ -243,8 +243,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                           'models': None}
             else:
                 g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
+                                         est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                         return_models=return_models)
                 _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
                 g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
@@ -253,9 +253,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                     zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
                     if binary_preds & zero_one_preds:
                         raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                        f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                        'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                        'probabilities and not labels are predicted.')
+                                         f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                         'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                         'probabilities and not labels are predicted.')
 
         # nuisance m
         if external_predictions['ml_m'] is not None:

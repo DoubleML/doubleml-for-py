@@ -100,7 +100,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
 
     # synchronize the sample splitting
     dml_irm_obj_ext.set_sample_splitting(all_smpls=all_smpls)
- 
+
     prediction_dict = {'d': {'ml_g0': dml_irm_obj.predictions['ml_g0'].reshape(-1),
                              'ml_g1': dml_irm_obj.predictions['ml_g1'].reshape(-1),
                              'ml_m': dml_irm_obj.predictions['ml_m'].reshape(-1)}}
@@ -155,6 +155,7 @@ def test_dml_irm_se(dml_irm_fixture):
     assert math.isclose(dml_irm_fixture['se'],
                         dml_irm_fixture['se_ext'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
 
 @pytest.mark.ci
 def test_dml_irm_boot(dml_irm_fixture):

@@ -480,7 +480,7 @@ class DoubleML(ABC):
         external_predictions : None or dict
             If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
             for a specific learner is supplied, the model will use the supplied nuisance predictions instead. Has to
-            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the 
+            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the
             corresponding learners.
             Default is `None`.
 
@@ -518,7 +518,7 @@ class DoubleML(ABC):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
-                
+
                 # this step could be skipped for the single treatment variable case
                 if self._dml_data.n_treat > 1:
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
