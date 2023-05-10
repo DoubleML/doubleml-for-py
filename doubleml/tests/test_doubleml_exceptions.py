@@ -960,6 +960,23 @@ def test_doubleml_exception_and_warning_learner():
 
 
 @pytest.mark.ci
+def test_doubleml_sensitivity_not_yet_implemented():
+    dml_plr = DoubleMLPLR(dml_data, ml_l, ml_m)
+    dml_plr.fit()
+
+    msg = ("Sensitivity analysis not yet implemented for <class 'doubleml.double_ml_plr.DoubleMLPLR'>")
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_plr._sensitivity_element_est()
+
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
+    dml_irm.fit()
+
+    msg = ("Sensitivity analysis not yet implemented for <class 'doubleml.double_ml_irm.DoubleMLIRM'>")
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_irm._sensitivity_element_est()
+
+
+@pytest.mark.ci
 def test_doubleml_cluster_not_yet_implemented():
     dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
     dml_pliv_cluster.fit()

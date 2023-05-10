@@ -54,6 +54,9 @@ class DoubleML(ABC):
         # initialize models to None which are only stored if method fit is called with store_models=True
         self._models = None
 
+        # initialize sensitivity elements to None (only available if implemented for the class
+        self._sensitivity_elements = None
+
         # check resampling specifications
         if not isinstance(n_folds, int):
             raise TypeError('The number of folds must be of int type. '
@@ -416,6 +419,14 @@ class DoubleML(ABC):
         return self._all_dml1_coef
 
     @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity elements after calling :meth:`fit`;
+        If available a dictionary with ``sigma2``, ``nu2``, ``psi_scaled``, ``psi_sigma`` and ``psi_nu``.
+        """
+        return self._sensitivity_elements
+
+    @property
     def summary(self):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
@@ -515,7 +526,6 @@ class DoubleML(ABC):
 
                 # ml estimation of nuisance models and computation of score elements
                 score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
-
                 self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
                 # calculate rmses and store predictions and targets of the nuisance models
@@ -543,6 +553,11 @@ class DoubleML(ABC):
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+
+                if self.sensitivity_elements is not None:
+                    # compute sensitivity analysis elements
+                    element_dict = self._sensitivity_element_est(preds)
+                    self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -994,10 +1009,12 @@ class DoubleML(ABC):
         return learner_is_classifier
 
     def _initialize_arrays(self):
+        # scores
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
 
+        # coefficients and ses
         coef = np.full(self._dml_data.n_coefs, np.nan)
         se = np.full(self._dml_data.n_coefs, np.nan)
 
@@ -1462,6 +1479,7 @@ class DoubleML(ABC):
 
         return sigma2_hat
 
+    # Score estimation and elements
     @abstractmethod
     def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         pass
@@ -1498,3 +1516,36 @@ class DoubleML(ABC):
     def _initialize_score_elements(self, score_dim):
         psi_elements = {key: np.full(score_dim, np.nan) for key in self._score_element_names}
         return psi_elements
+
+    # Sensitivity estimation and elements
+    @abstractmethod
+    def _sensitivity_element_est(self, preds):
+        pass
+
+    @property
+    def _sensitivity_element_names(self):
+        return ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2','psi_nu2']
+
+    def _initialize_sensitivity_elements(self, score_dim):
+        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'psi_scaled': np.full(score_dim, np.nan),
+                                'psi_sigma2': np.full(score_dim, np.nan),
+                                'psi_nu2': np.full(score_dim, np.nan)}
+        return sensitivity_elements
+
+    def _get_sensitivity_elements(self, i_rep, i_treat):
+        sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}
+        return sensitivity_elements
+
+    def _set_sensitivity_elements(self, sensitivity_elements, i_rep, i_treat):
+        if not isinstance(sensitivity_elements, dict):
+            raise TypeError('_sensitivity_element_est must return sensitivity elements in a dict. '
+                            f'Got type {str(type(sensitivity_elements))}.')
+        if not (set(self._sensitivity_element_names) == set(sensitivity_elements.keys())):
+            raise ValueError('_sensitivity_element_est returned incomplete sensitivity elements. '
+                             'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '.'
+                             'Got dict with keys: ' + ' and '.join(set(sensitivity_elements.keys())) + '.')
+        for key in self._sensitivity_element_names:
+            self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
+        return
