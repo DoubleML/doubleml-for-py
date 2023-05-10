@@ -158,6 +158,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+        self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
+                                                                            self.n_rep,
+                                                                            self._dml_data.n_coefs))
+
     @property
     def normalize_ipw(self):
         """
@@ -315,6 +319,38 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                       smpls=smpls)
 
         return psi_a, psi_b
+
+    def _sensitivity_element_est(self, preds):
+        
+        # set elments for readability
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        g_hat0 = preds['predictions']['ml_g0']
+        g_hat1 = preds['predictions']['ml_g1']
+        m_hat = preds['predictions']['ml_m']
+
+        # start with calc m(W,alpha) and Riesz representer
+        m_alpha = np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat)
+        rr = np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)
+
+        # compute the sensitivity elements (score doesnt have to be scaled)
+        psi_scaled = self._psi[:, self._i_rep, self._i_treat]
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = dict({'sigma2': sigma2,
+                             'nu2': nu2,
+                             'psi_scaled': psi_scaled,
+                             'psi_sigma2': psi_sigma2,
+                             'psi_nu2': psi_nu2})
+        return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
