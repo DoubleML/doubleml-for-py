@@ -388,3 +388,15 @@ def _solve_ipw_score(ipw_score, bracket_guess):
                           method='brent')
     ipw_est = res.x
     return ipw_est
+
+def aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
+    # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
+    n_rep = all_coefs.shape[1]
+    coefs = np.median(all_coefs, 1)
+
+    xx = np.tile(coefs.reshape(-1, 1), n_rep)
+    ses = np.sqrt(np.divide(np.median(np.multiply(np.power(all_ses, 2), var_scaling_factor) +
+                                              np.power(all_coefs - xx, 2), 1), var_scaling_factor))
+    
+    return coefs, ses
+    

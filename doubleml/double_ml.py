@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
-    _rmse
+    _rmse, aggregate_coefs_and_ses
 
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -1526,6 +1526,7 @@ class DoubleML(ABC):
     def _sensitivity_element_names(self):
         return ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2','psi_nu2']
 
+    # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
         sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
@@ -1550,7 +1551,43 @@ class DoubleML(ABC):
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
     
-    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1):
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1, level=0.95):
+        if self._is_cluster_data:
+            raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
+        if not self.apply_cross_fitting:
+            raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
         if self._sensitivity_elements is None:
             raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
 
+        # get elements for readability
+        sigma2 = self.sensitivity_elements['sigma2']
+        nu2 = self.sensitivity_elements['sigma2']
+        psi = self.sensitivity_elements['psi_scaled']
+        psi_sigma = self.sensitivity_elements['psi_sigma2']
+        psi_nu = self.sensitivity_elements['psi_nu2']
+
+        confounding_strength = np.multiply(np.multiply(np.abs(rho), cf_y), np.divide(cf_d, 1.0-cf_d))
+        S = np.sqrt(np.multiply(sigma2, nu2))
+
+        # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
+        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
+        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
+
+        psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
+        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)) , psi_S2)
+        psi_lower = psi - psi_bias
+        psi_upper = psi + psi_bias
+
+        # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
+        all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), self._var_scaling_factor)))
+        all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), self._var_scaling_factor)))
+
+        # aggregate coefs and ses over n_rep
+        theta_lower, sigma_lower = aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
+        theta_upper, sigma_upper = aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
+
+        quant = norm.ppf(level)
+        ci_lower = theta_lower - np.multiply(quant, sigma_lower)
+        ci_upper = theta_upper + np.multiply(quant, sigma_upper)
+
+        return theta_lower, theta_upper, sigma_lower, sigma_upper, ci_lower, ci_upper

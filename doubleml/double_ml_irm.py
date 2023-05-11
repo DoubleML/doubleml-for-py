@@ -339,16 +339,16 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             weights = np.ones_like(d)
             weights_bar = np.ones_like(d)
 
-        # start with calc m(W,alpha) and Riesz representer
-        m_alpha = weights * (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))
-        rr = weights_bar * (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat))
-
         # compute the sensitivity elements (score doesnt have to be scaled)
         psi_scaled = self._psi[:, self._i_rep, self._i_treat]
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
+        
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
