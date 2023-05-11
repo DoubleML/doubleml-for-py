@@ -233,24 +233,22 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-        g_hat1 = {'preds': None, 'targets': None, 'models': None}
-        if (self.score == 'ATE') | callable(self.score):
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][d == 0] = np.nan
+        g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                    return_models=return_models)
+        _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat1['targets'] = g_hat1['targets'].astype(float)
+        g_hat1['targets'][d == 0] = np.nan
 
-            if self._dml_data.binary_outcome:
-                binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
-                zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
-                if binary_preds & zero_one_preds:
-                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                     'probabilities and not labels are predicted.')
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                    f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                    'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                    'probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -326,13 +324,24 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         y = self._dml_data.y
         d = self._dml_data.d
 
+        m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
-        m_hat = preds['predictions']['ml_m']
+
+        # use weights make this extendable
+        if self.score == 'ATE':
+            weights = np.ones_like(d)
+            weights_bar = np.ones_like(d)
+        elif self.score == 'ATTE':
+            weights = np.divide(d, np.mean(d))
+            weights_bar = np.divide(m_hat, np.mean(d))
+        else:
+            weights = np.ones_like(d)
+            weights_bar = np.ones_like(d)
 
         # start with calc m(W,alpha) and Riesz representer
-        m_alpha = np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat)
-        rr = np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)
+        m_alpha = weights * (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))
+        rr = weights_bar * (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat))
 
         # compute the sensitivity elements (score doesnt have to be scaled)
         psi_scaled = self._psi[:, self._i_rep, self._i_treat]
