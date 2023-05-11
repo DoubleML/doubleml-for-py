@@ -559,3 +559,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         else:
             raise ValueError(err_msg)
         return
+
+    def _sensitivity_element_est(self, preds):
+        pass
+

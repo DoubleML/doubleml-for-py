@@ -1549,3 +1549,8 @@ class DoubleML(ABC):
         for key in self._sensitivity_element_names:
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
+    
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1):
+        if self._sensitivity_elements is None:
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+

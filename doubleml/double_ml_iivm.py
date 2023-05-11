@@ -449,3 +449,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def _sensitivity_element_est(self, preds):
+        pass

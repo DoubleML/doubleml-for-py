@@ -417,3 +417,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         _check_contains_iv(obj_dml_data)
         _check_zero_one_treatment(self)
         return
+
+    def _sensitivity_element_est(self, preds):
+        pass
+
