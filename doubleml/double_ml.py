@@ -9,6 +9,7 @@ from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
+import plotly.graph_objects as go
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
@@ -1590,4 +1591,100 @@ class DoubleML(ABC):
         ci_lower = theta_lower - np.multiply(quant, sigma_lower)
         ci_upper = theta_upper + np.multiply(quant, sigma_upper)
 
-        return theta_lower, theta_upper, sigma_lower, sigma_upper, ci_lower, ci_upper
+        theta_dict = dict({'lower': theta_lower,
+                           'upper': theta_upper})
+
+        se_dict = dict({'lower': sigma_lower,
+                        'upper': sigma_upper})
+
+        ci_dict = dict({'lower': ci_lower,
+                        'upper': ci_upper})
+
+        res_dict = dict({'theta': theta_dict,
+                         'se': se_dict,
+                         'ci': ci_dict})
+
+        return res_dict
+
+    def sensitivity_plot(self, cf_y=0.03, cf_d=0.03, rho=1, theta=0, level=0.95, idx_treatment=0, fill=True):
+
+        unadjusted_theta = self.coef[idx_treatment]
+
+        # check which side is relvant
+        if (theta > unadjusted_theta): 
+            bound = 'upper'
+        else:
+            bound = 'lower'
+        
+        # create evaluation grid
+        grid_size = 100
+        cf_d_vec = np.linspace(0, .15, grid_size)
+        cf_y_vec = np.linspace(0, .15, grid_size)
+        cf_d_grid, cf_y_grid = np.meshgrid(cf_d_vec, cf_y_vec)
+
+        # compute contour values
+        contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
+        for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
+            for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
+                sens_dict = self.sensitivity_analysis(cf_y=cf_y_grid, cf_d=cf_d_grid, rho=rho, level=level)
+                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict['theta'][bound]
+        
+        scenario_value = self.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)['theta'][bound]
+        
+        if fill:
+            text_col = 'white'
+            contours_coloring = 'heatmap'
+        else:
+            text_col = 'black'
+            contours_coloring = 'lines'
+
+        # create figure
+        axis_names = ['cf_d', 'cf_d', 'Bound']
+        fig = go.Figure()
+        # basic contour plot
+        hov_temp = axis_names[0] + ': %{x:.3f}' + '<br>' + axis_names[1] + ': %{x:.3f}' + '</b>' +\
+            '<br>' + axis_names[2]
+        fig.add_trace(go.Contour(z=contour_values,
+                                 x=cf_d_vec,
+                                 y=cf_y_vec,
+                                 hovertemplate = hov_temp + ': %{z:.3f}' + '</b>',
+                                 contours=dict(coloring = contours_coloring,
+                                               showlabels = True, # show labels on contours
+                                               labelfont = dict(size = 12, color = text_col)),
+                                 name='Contour'))
+
+        # add scenario
+        fig.add_trace(go.Scatter(x=[cf_d],
+                                 y=[cf_y],
+                                 mode="markers+text",
+                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
+                                 hovertemplate = hov_temp + f': {round(scenario_value[0], 3)}' + '</b>',
+                                 name='Scenario',
+                                 textfont=dict(color=text_col, size=14),
+                                 text=[f'<b>Scenario</b>'],
+                                 textposition="top right",
+                                 showlegend=False)
+                     )
+
+        # add unadjusted
+        fig.add_trace(go.Scatter(x=[0],
+                                 y=[0],
+                                 mode="markers+text",
+                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
+                                 hovertemplate = hov_temp + f': {round(unadjusted_theta, 3)}' + '</b>',
+                                 name='Unadjusted',
+                                 text=[f'<b>Unadjusted</b>'],
+                                 textfont=dict(color=text_col, size=14),
+                                 textposition="top right",
+                                 showlegend=False)
+                     )
+
+        fig.update_layout(title=None, 
+                          xaxis_title=axis_names[0],
+                          yaxis_title=axis_names[1])
+
+        fig.update_xaxes(range=[0, 0.15])
+        fig.update_yaxes(range=[0, 0.15])
+
+
+        return fig

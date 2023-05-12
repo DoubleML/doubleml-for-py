@@ -897,19 +897,19 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 def make_conf_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, return_type='DoubleMLData', **kwargs):
     # xi = kwargs.get('xi', 0.75)
     c = kwargs.get('c', 0.0)
+    dim_x = kwargs.get('dim_x', 4)
 
     # observed covariates
-    dim_x = 4
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    z = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    x_tilde_1 = np.exp(0.5*z[:, 0])
-    x_tilde_2 = 10 + z[:, 1] / (1 + np.exp(z[:, 0]))
-    x_tilde_3 = (0.6 + z[:, 0]*z[:, 2]/25)**3
-    x_tilde_4 = (20 + z[:, 1] + z[:, 3])**2
+    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
 
-    x_tilde = np.column_stack((x_tilde_1, x_tilde_2, x_tilde_3, x_tilde_4))
-    x = (x_tilde - np.mean(x_tilde, axis=0)) / np.std(x_tilde, axis=0)
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
+    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
 
     # error terms and unobserved confounder
     var_eps_y = 5
@@ -921,7 +921,7 @@ def make_conf_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, return_type='DoubleMLDat
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
     # short and long version of g
-    g_short = 210 + 27.4*x[:, 0] + 13.7*(x[:, 1] + x[:, 2] + x[:, 3])
+    g_short = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
     g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
     g_long = g_short + g_coef_a*a
 
@@ -942,7 +942,8 @@ def make_conf_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, return_type='DoubleMLDat
                           'm_long': m_long,
                           'm_short': m_short,
                           'y0': y,
-                          'y1': y})
+                          'y1': y,
+                          'z': z})
 
     res_dict = dict({'x': x,
                      'y': y,
