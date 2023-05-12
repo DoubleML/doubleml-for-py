@@ -893,7 +893,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         else:
             raise ValueError('Invalid return_type.')
 
-def make_conf_irm_data(n_obs=500, cf_y = 0.04, return_type='DoubleMLData', **kwargs):
+def make_conf_irm_data(n_obs=500, cf_y = 0.04, cf_d = 0.03, return_type='DoubleMLData', **kwargs):
     xi = kwargs.get('xi', 0.75)
     c = kwargs.get('c', 0.0)
 
@@ -909,9 +909,6 @@ def make_conf_irm_data(n_obs=500, cf_y = 0.04, return_type='DoubleMLData', **kwa
 
     x_tilde = np.column_stack((x_tilde_1, x_tilde_2, x_tilde_3, x_tilde_4))
     x = (x_tilde - np.mean(x_tilde, axis=0)) / np.std(x_tilde, axis=0)
-    # one uniform observed regressor
-    x_0_bounds = (-0.5*np.sqrt(12), 0.5*np.sqrt(12))
-    x_0 = np.random.uniform(low=x_0_bounds[0], high=x_0_bounds[1], size=n_obs)
 
     # error terms and unobserved confounder
     var_eps_y = 5
@@ -923,16 +920,32 @@ def make_conf_irm_data(n_obs=500, cf_y = 0.04, return_type='DoubleMLData', **kwa
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
     # short and long version of g
-    g_short = 210 + 4*x_0 + 27.4*x[:, 0] + 13.7*(x[:, 1] + x[:, 2] + x[:, 3]) 
+    g_short = 210 + 27.4*x[:, 0] + 13.7*(x[:, 1] + x[:, 2] + x[:, 3]) 
     g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
     g_long = g_short + g_coef_a*a
 
-    # complicated to additionally input cf_d
-    m_coef_a = 1
+    # get the required impact of the confounder on the propensity score
+    possible_coefs = np.arange(0.001,0.4999,0.001)
+    m_coef_a = possible_coefs[(np.arctanh(2*possible_coefs) / (2*possible_coefs)) - 1 - cf_d/(1 - cf_d) >= 0][0]
+
+    # compute short and long form of riesz representer
     m_long = 0.5 + m_coef_a*a
+    m_short = 0.5
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
 
     y = g_long + eps_y
+
+    oracle_values = dict({'g_long': g_long,
+                          'g_short': g_short,
+                          'm_long': m_long,
+                          'm_short': m_short,
+                          'y0': y,
+                          'y1': y})
+
+    res_dict = dict({'x': x,
+                     'y': y,
+                     'd': d,
+                     'oracle_values': oracle_values})
         
-    return x, y, d
+    return res_dict
