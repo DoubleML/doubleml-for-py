@@ -726,29 +726,6 @@ def test_doubleml_exception_tune():
         dml_plr_iv_type.tune({'ml_g': {'alpha': [0.05, 0.5]},
                               'ml_m': {'alpha': [0.05, 0.5]}})
 
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}},
-                     scoring_methods={'ml_g': 'explained_variance',
-                                      'ml_m': 'explained_variance'})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}},
-                      scoring_methods={'ml_g': 'explained_variance',
-                                       'ml_m': 'explained_variance',
-                                       'ml_r': 'explained_variance'})
-
     param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
@@ -938,14 +915,6 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
 
 
 @pytest.mark.ci
