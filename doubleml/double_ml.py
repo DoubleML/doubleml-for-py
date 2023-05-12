@@ -10,11 +10,13 @@ from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
 import plotly.graph_objects as go
+from scipy.optimize import root_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
-    _rmse, aggregate_coefs_and_ses
+    _rmse, _aggregate_coefs_and_ses, _check_level
+from ._utils_checks import _check_in_zero_one
 
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -1552,13 +1554,19 @@ class DoubleML(ABC):
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
 
-    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1, level=0.95):
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95):
         if self._is_cluster_data:
             raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
         if not self.apply_cross_fitting:
             raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
         if self._sensitivity_elements is None:
             raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+
+        # checks
+        _check_in_zero_one(cf_y, 'cf_y')
+        _check_in_zero_one(cf_d, 'cf_d')
+        _check_in_zero_one(rho, 'The absolute value of rho')
+        _check_level(level)
 
         # set elements for readability
         sigma2 = self.sensitivity_elements['sigma2']
@@ -1584,8 +1592,8 @@ class DoubleML(ABC):
         all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), self._var_scaling_factor)))
 
         # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
-        theta_upper, sigma_upper = aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
 
         quant = norm.ppf(level)
         ci_lower = theta_lower - np.multiply(quant, sigma_lower)
@@ -1606,16 +1614,42 @@ class DoubleML(ABC):
 
         return res_dict
 
-    def sensitivity_plot(self, cf_y=0.03, cf_d=0.03, rho=1, theta=0, level=0.95, idx_treatment=0, fill=True):
+    def _calc_robustness_value(self, theta=0, level=0.95, rho=1.0, idx_treatment=0):
+        
+        if not isinstance(idx_treatment, int):
+            raise TypeError('Treatment index has to be an integer.'
+                            f' {str(idx_treatment)} of type {str(type(idx_treatment))} was passed.')
+        if (idx_treatment >= self._dml_data.n_treat):
+            raise ValueError('Treatment index out of range. '
+                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} was passed.')
+        # check which side is relvant
+        bound = 'upper' if (theta > self.coef[idx_treatment]) else 'lower'
+
+        def rv_fct(value, param):
+            return self.sensitivity_analysis(cf_y=value, cf_d=value, rho=rho, level=level)[param][bound][idx_treatment] - theta
+
+        rv = root_scalar(rv_fct, x0=0.001, bracket=[0, 0.9999], method='brentq', args=('theta')).root
+        rva = root_scalar(rv_fct, x0=0.001, bracket=[0, 0.9999], method='brentq', args=('ci')).root
+
+        return rv, rva
+
+
+    def sensitivity_plot(self, cf_y=0.03, cf_d=0.03, rho=1.0, theta=0, level=0.95, idx_treatment=0, fill=True):
+        
+        if not isinstance(idx_treatment, int):
+            raise TypeError('Treatment index has to be an integer.'
+                            f' {str(idx_treatment)} of type {str(type(idx_treatment))} was passed.')
+        if (idx_treatment >= self._dml_data.n_treat):
+            raise ValueError('Treatment index out of range. '
+                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} was passed.')
+        if not isinstance(fill, bool):
+            raise TypeError('fill has to be boolean.'
+                            f' {str(fill)} of type {str(type(fill))} was passed.')
 
         unadjusted_theta = self.coef[idx_treatment]
-
         # check which side is relvant
-        if (theta > unadjusted_theta): 
-            bound = 'upper'
-        else:
-            bound = 'lower'
-        
+        bound = 'upper' if (theta > unadjusted_theta) else 'lower'
+
         # create evaluation grid
         grid_size = 100
         cf_d_vec = np.linspace(0, .15, grid_size)
@@ -1627,9 +1661,9 @@ class DoubleML(ABC):
         for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
             for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
                 sens_dict = self.sensitivity_analysis(cf_y=cf_y_grid, cf_d=cf_d_grid, rho=rho, level=level)
-                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict['theta'][bound]
+                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict['theta'][bound][idx_treatment]
         
-        scenario_value = self.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)['theta'][bound]
+        scenario_value = self.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)['theta'][bound][idx_treatment]
         
         if fill:
             text_col = 'white'
@@ -1658,7 +1692,7 @@ class DoubleML(ABC):
                                  y=[cf_y],
                                  mode="markers+text",
                                  marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
-                                 hovertemplate = hov_temp + f': {round(scenario_value[0], 3)}' + '</b>',
+                                 hovertemplate = hov_temp + f': {round(scenario_value, 3)}' + '</b>',
                                  name='Scenario',
                                  textfont=dict(color=text_col, size=14),
                                  text=[f'<b>Scenario</b>'],
@@ -1685,6 +1719,5 @@ class DoubleML(ABC):
 
         fig.update_xaxes(range=[0, 0.15])
         fig.update_yaxes(range=[0, 0.15])
-
 
         return fig

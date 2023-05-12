@@ -390,7 +390,7 @@ def _solve_ipw_score(ipw_score, bracket_guess):
     return ipw_est
 
 
-def aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
+def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
     n_rep = all_coefs.shape[1]
     coefs = np.median(all_coefs, 1)
@@ -400,3 +400,13 @@ def aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
                                       np.power(all_coefs - xx, 2), 1), var_scaling_factor))
 
     return coefs, ses
+
+
+def _check_level(level):
+    if not isinstance(level, float):
+        raise TypeError('The confidence level must be of float type. '
+                        f'{str(level)} of type {str(type(level))} was passed.')
+    if (level <= 0) | (level >= 1):
+        raise ValueError('The confidence level must be in (0,1). '
+                        f'{str(level)} was passed.')
+    return
