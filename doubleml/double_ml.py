@@ -1566,7 +1566,7 @@ class DoubleML(ABC):
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
 
-        confounding_strength = np.multiply(np.multiply(np.abs(rho), cf_y), np.divide(cf_d, 1.0-cf_d))
+        confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
         S = np.sqrt(np.multiply(sigma2, nu2))
 
         # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
