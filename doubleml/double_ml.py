@@ -1559,7 +1559,7 @@ class DoubleML(ABC):
         if self._sensitivity_elements is None:
             raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
 
-        # get elements for readability
+        # set elements for readability
         sigma2 = self.sensitivity_elements['sigma2']
         nu2 = self.sensitivity_elements['sigma2']
         psi = self.sensitivity_elements['psi_scaled']
