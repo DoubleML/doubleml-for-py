@@ -286,6 +286,40 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                                  n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
         return tune_res
 
+    def _sensitivity_element_est(self, preds):
+
+        # set elments for readability
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        m_hat = preds['predictions']['ml_m']
+        theta = self.all_coef[self._i_treat, self._i_rep]
+        if self.score == 'ATE':
+            l_hat = preds['predictions']['ml_l']
+            sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
+        elif self.score == 'ATTE':
+            g_hat = preds['predictions']['ml_g']
+            sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
+        else:
+            raise NotImplementedError('Sensitivity analysis not implemented with user defined scores.')
+
+        # compute the sensitivity elements (score has to be scaled)
+        scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))
+        psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
+
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        nu2 = scaling
+        psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
+
+        element_dict = dict({'sigma2': sigma2,
+                             'nu2': nu2,
+                             'psi_scaled': psi_scaled,
+                             'psi_sigma2': psi_sigma2,
+                             'psi_nu2': psi_nu2})
+        return element_dict
+
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -342,5 +376,4 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         return res
     
-    def _sensitivity_element_est(self, preds):
-        pass
+
