@@ -562,4 +562,3 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     def _sensitivity_element_est(self, preds):
         pass
-

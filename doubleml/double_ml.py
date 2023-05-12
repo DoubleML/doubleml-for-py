@@ -1524,7 +1524,7 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2','psi_nu2']
+        return ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
@@ -1550,7 +1550,7 @@ class DoubleML(ABC):
         for key in self._sensitivity_element_names:
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
-    
+
     def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1, level=0.95):
         if self._is_cluster_data:
             raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
@@ -1574,7 +1574,7 @@ class DoubleML(ABC):
         all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
 
         psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
-        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)) , psi_S2)
+        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
         psi_lower = psi - psi_bias
         psi_upper = psi + psi_bias
 

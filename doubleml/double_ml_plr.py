@@ -147,7 +147,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             self._predict_method['ml_m'] = 'predict'
 
         self._initialize_ml_nuisance_params()
-
+        self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
+                                                                            self.n_rep,
+                                                                            self._dml_data.n_coefs))
+                                                                            
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in self._learner}
@@ -287,17 +290,16 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         return tune_res
 
     def _sensitivity_element_est(self, preds):
-
         # set elments for readability
         y = self._dml_data.y
         d = self._dml_data.d
 
         m_hat = preds['predictions']['ml_m']
         theta = self.all_coef[self._i_treat, self._i_rep]
-        if self.score == 'ATE':
+        if self.score == 'partialling out':
             l_hat = preds['predictions']['ml_l']
             sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
-        elif self.score == 'ATTE':
+        elif self.score == 'IV-type':
             g_hat = preds['predictions']['ml_g']
             sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
         else:
@@ -375,5 +377,3 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
-    
-

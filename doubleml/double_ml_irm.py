@@ -234,8 +234,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
         _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
         # adjust target values to consider only compatible subsamples
         g_hat1['targets'] = g_hat1['targets'].astype(float)
@@ -246,9 +246,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
             if binary_preds & zero_one_preds:
                 raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                    f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                    'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                    'probabilities and not labels are predicted.')
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
 
         # nuisance m
         m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -319,7 +319,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _sensitivity_element_est(self, preds):
-        
         # set elments for readability
         y = self._dml_data.y
         d = self._dml_data.d
@@ -336,8 +335,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
         else:
-            weights = np.ones_like(d)
-            weights_bar = np.ones_like(d)
+            raise NotImplementedError('Sensitivity analysis not implemented with user defined scores.')
 
         # compute the sensitivity elements (score doesnt have to be scaled)
         psi_scaled = self._psi[:, self._i_rep, self._i_treat]
@@ -345,7 +343,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
-        
+
         # calc m(W,alpha) and Riesz representer
         m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
         rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
