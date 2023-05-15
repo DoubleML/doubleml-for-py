@@ -65,8 +65,6 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
                                    ml_l, ml_m, ml_g,
                                    score=score,
-                                   n_folds=n_folds,
-                                   n_rep=n_rep,
                                    dml_procedure=dml_procedure,
                                    draw_sample_splitting=False)
     dml_plr_obj2.set_sample_splitting(smpls)

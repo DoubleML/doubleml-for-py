@@ -157,10 +157,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
-
-        self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
-                                                                            self.n_rep,
-                                                                            self._dml_data.n_coefs))
+        
+        self._sensitivity_implemented = True
 
     @property
     def normalize_ipw(self):

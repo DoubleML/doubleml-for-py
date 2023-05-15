@@ -58,6 +58,7 @@ class DoubleML(ABC):
         self._models = None
 
         # initialize sensitivity elements to None (only available if implemented for the class
+        self._sensitivity_implemented = False
         self._sensitivity_elements = None
         self._sensitivity_params = None
 
@@ -529,6 +530,11 @@ class DoubleML(ABC):
         if store_models:
             self._initialize_models()
 
+        if self._sensitivity_implemented:
+            self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
+                                                                                self.n_rep,
+                                                                                self._dml_data.n_coefs))
+
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
@@ -568,7 +574,7 @@ class DoubleML(ABC):
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
-                if self.sensitivity_elements is not None:
+                if self._sensitivity_implemented:
                     # not yet implemented
                     if self._is_cluster_data or self.apply_cross_fitting:
                         pass
