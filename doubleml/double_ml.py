@@ -569,6 +569,9 @@ class DoubleML(ABC):
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
                 if self.sensitivity_elements is not None:
+                    # not yet implemented
+                    if self._is_cluster_data or self.apply_cross_fitting:
+                        pass
                     # check if callable score
                     if callable(self.score):
                         warnings.warn('Sensitivity analysis not implemented for callable scores.')

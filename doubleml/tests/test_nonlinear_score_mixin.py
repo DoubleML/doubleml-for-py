@@ -164,6 +164,9 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
                          search_mode, n_iter_randomized_search):
         pass
 
+    def _sensitivity_element_est(self, preds):
+        pass
+
 
 @pytest.fixture(scope='module',
                 params=[LinearRegression()])

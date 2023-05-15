@@ -981,6 +981,18 @@ def test_doubleml_sensitivity_not_yet_implemented():
 
 
 @pytest.mark.ci
+def test_doubleml_sensitivity_inputs():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
+    dml_irm.fit()
+
+    msg = "cf_y must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=1)
+    msg = r'cf_y must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=1.0)
+
+@pytest.mark.ci
 def test_doubleml_cluster_not_yet_implemented():
     dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
     dml_pliv_cluster.fit()

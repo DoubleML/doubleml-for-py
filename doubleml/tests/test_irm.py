@@ -18,8 +18,8 @@ from ._utils_irm_manual import fit_irm, boot_irm
 @pytest.fixture(scope='module',
                 params=[[LinearRegression(),
                          LogisticRegression(solver='lbfgs', max_iter=250)],
-                        [RandomForestRegressor(max_depth=5, n_estimators=10),
-                         RandomForestClassifier(max_depth=5, n_estimators=10)]])
+                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
+                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
 def learner(request):
     return request.param
 
