@@ -1625,7 +1625,7 @@ class DoubleML(ABC):
 
         return res_dict
 
-    def _calc_robustness_value(self, theta=0, level=0.95, rho=1.0, idx_treatment=0):
+    def _calc_robustness_value(self, theta=0.0, level=0.95, rho=1.0, idx_treatment=0):
         if not isinstance(theta, float):
             raise TypeError(f'theta must be of float type. '
                             f'{str(theta)} of type {str(type(theta))} was passed.')
@@ -1651,7 +1651,7 @@ class DoubleML(ABC):
 
         return rv, rva
 
-    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, theta=0):
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, theta=0.0):
 
         # compute sensitivity analysis
         sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
