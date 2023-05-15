@@ -894,8 +894,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             raise ValueError('Invalid return_type.')
 
 
-def make_conf_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, return_type='DoubleMLData', **kwargs):
-    # xi = kwargs.get('xi', 0.75)
+def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     c = kwargs.get('c', 0.0)
     dim_x = kwargs.get('dim_x', 4)
 
