@@ -299,11 +299,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if self.score == 'partialling out':
             l_hat = preds['predictions']['ml_l']
             sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
-        elif self.score == 'IV-type':
+        else:
+            assert self.score == 'IV-type'
             g_hat = preds['predictions']['ml_g']
             sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
-        else:
-            raise NotImplementedError('Sensitivity analysis not implemented with user defined scores.')
 
         # compute the sensitivity elements (score has to be scaled)
         scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))

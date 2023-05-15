@@ -331,11 +331,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if self.score == 'ATE':
             weights = np.ones_like(d)
             weights_bar = np.ones_like(d)
-        elif self.score == 'ATTE':
+        else:
+            assert self.score == 'ATTE'
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
-        else:
-            raise NotImplementedError('Sensitivity analysis not implemented with user defined scores.')
 
         # compute the sensitivity elements (score doesnt have to be scaled)
         psi_scaled = self._psi[:, self._i_rep, self._i_treat]

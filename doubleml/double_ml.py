@@ -569,9 +569,13 @@ class DoubleML(ABC):
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
                 if self.sensitivity_elements is not None:
-                    # compute sensitivity analysis elements
-                    element_dict = self._sensitivity_element_est(preds)
-                    self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
+                    # check if callable score
+                    if callable(self.score):
+                        warnings.warn('Sensitivity analysis not implemented for callable scores.')
+                    else:
+                        # compute sensitivity analysis elements
+                        element_dict = self._sensitivity_element_est(preds)
+                        self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
@@ -1692,7 +1696,8 @@ class DoubleML(ABC):
                               f'rho={self.sensitivity_params["input"]["rho"]}'
 
             rvs_col_names = ['RV (%)', 'RVa (%)']
-            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'], self._sensitivity_params['rva'])))
+            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
+                                          self._sensitivity_params['rva']))) * 100
             df_rvs = pd.DataFrame(rvs,
                                   columns=rvs_col_names,
                                   index=self._dml_data.d_cols)
