@@ -59,7 +59,7 @@ class DoubleML(ABC):
 
         # initialize sensitivity elements to None (only available if implemented for the class
         self._sensitivity_elements = None
-        self._sensitifiy_params = None
+        self._sensitivity_params = None
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -1664,7 +1664,6 @@ class DoubleML(ABC):
 
         sensitivity_dict['rv'] = rv
         sensitivity_dict['rva'] = rva
-        self._sensitivity_params = sensitivity_dict
 
         # add all input parameters
         input_params = dict({'cf_y': cf_y,
@@ -1674,10 +1673,57 @@ class DoubleML(ABC):
                              'theta': theta})
         sensitivity_dict['input'] = input_params
 
+        self._sensitivity_params = sensitivity_dict
         return self
 
-    def plot_sensitivity(self, idx_treatment=0, theta=0.0, fill=True, grid_size=100, grid_bounds=(0.15, 0.15)):
+    @property
+    def sensitivity_summary(self):
+        """
+        Prints a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
+        """
+        header = '================== Sensitivity Analysis ==================\n'
+        if self.sensitivity_params is None:
+            res = header + 'Apply sensitivity_analysis() to generate sensitivity_summary.'
+        else:
+            hypothesis = f'Null Hypothesis: theta={self._sensitivity_params["input"]["theta"]}\n'
+            sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
+            scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
+                              f'cf_d={self.sensitivity_params["input"]["cf_y"]}, ' \
+                              f'rho={self.sensitivity_params["input"]["rho"]}'
 
+            rvs_col_names = ['RV (%)', 'RVa (%)']
+            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'], self._sensitivity_params['rva'])))
+            df_rvs = pd.DataFrame(rvs,
+                                  columns=rvs_col_names,
+                                  index=self._dml_data.d_cols)
+            rvs_summary = str(df_rvs)
+
+            theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
+            theta_and_ci = np.transpose(np.vstack((self._sensitivity_params['ci']['lower'],
+                                                   self._sensitivity_params['theta']['lower'],
+                                                   self.coef,
+                                                   self._sensitivity_params['theta']['upper'],
+                                                   self._sensitivity_params['ci']['upper'])))
+            df_theta_and_ci = pd.DataFrame(theta_and_ci,
+                                           columns=theta_and_ci_col_names,
+                                           index=self._dml_data.d_cols)
+            theta_and_ci_summary = str(df_theta_and_ci)
+
+            res = header + \
+                '\n------------------ Scenario          ------------------\n' + \
+                hypothesis + sig_level + scenario_params + '\n' + \
+                '\n------------------ Robustness Values ------------------\n' + \
+                rvs_summary + '\n' + \
+                '\n------------------ Bounds with CI    ------------------\n' + \
+                theta_and_ci_summary
+
+        return res
+
+    def sensitivity_plot(self, idx_treatment=0, theta=0.0, include_scenario=True, fill=True, grid_size=100, grid_bounds=(0.15, 0.15)):
+
+        if self.sensitivity_params is None:
+            raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
+                             'The values of rho and the level are used for the scenario.')
         _check_pos_integer(idx_treatment, "idx_treatment")
         if (idx_treatment >= self._dml_data.n_treat):
             raise ValueError('Treatment index out of range. '
@@ -1686,6 +1732,9 @@ class DoubleML(ABC):
         if not isinstance(theta, float):
             raise TypeError(f'theta must be of float type. '
                             f'{str(theta)} of type {str(type(theta))} was passed.')
+        if not isinstance(include_scenario, bool):
+            raise TypeError('include_scenario has to be boolean.'
+                            f' {str(include_scenario)} of type {str(type(include_scenario))} was passed.')
         if not isinstance(fill, bool):
             raise TypeError('fill has to be boolean.'
                             f' {str(fill)} of type {str(type(fill))} was passed.')
@@ -1708,16 +1757,16 @@ class DoubleML(ABC):
             for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
                 sens_dict = self._calc_sensitivity_analysis(cf_y=cf_y_grid,
                                                             cf_d=cf_d_grid,
-                                                            rho=self._sensitivity_params['input']['rho'],
-                                                            level=self._sensitivity_params['input']['level'])
+                                                            rho=self.sensitivity_params['input']['rho'],
+                                                            level=self.sensitivity_params['input']['level'])
                 contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict['theta'][bound][idx_treatment]
 
         fig = _sensitivity_contour_plot(x=cf_d_vec,
                                         y=cf_y_vec,
                                         contour_values=contour_values,
                                         unadjusted_theta=unadjusted_theta,
-                                        scenario_x=self._sensitivity_params['input']['cf_d'],
-                                        scenario_y=self._sensitivity_params['input']['cf_y'],
-                                        scenario_value=self._sensitivity_params['theta'][bound][idx_treatment],
+                                        scenario_x=self.sensitivity_params['input']['cf_d'],
+                                        scenario_y=self.sensitivity_params['input']['cf_y'],
+                                        scenario_value=self.sensitivity_params['theta'][bound][idx_treatment],
                                         fill=fill)
         return fig
