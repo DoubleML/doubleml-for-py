@@ -150,7 +150,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
                                                                             self.n_rep,
                                                                             self._dml_data.n_coefs))
-                                                                            
+
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in self._learner}

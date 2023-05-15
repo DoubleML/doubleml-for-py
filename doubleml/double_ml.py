@@ -9,14 +9,14 @@ from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
-import plotly.graph_objects as go
-from scipy.optimize import root_scalar
+from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
     _rmse, _aggregate_coefs_and_ses, _check_level
-from ._utils_checks import _check_in_zero_one
+from ._utils_checks import _check_in_zero_one, _check_pos_integer
+from ._utils_plots import _sensitivity_contour_plot
 
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -59,6 +59,7 @@ class DoubleML(ABC):
 
         # initialize sensitivity elements to None (only available if implemented for the class
         self._sensitivity_elements = None
+        self._sensitifiy_params = None
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -348,6 +349,24 @@ class DoubleML(ABC):
         return self._psi_elements
 
     @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity components after calling :meth:`fit`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_scaled``, ``psi_sigma2``
+        and ``psi_nu2``.
+        """
+        return self._sensitivity_elements
+
+    @property
+    def sensitivity_params(self):
+        """
+        Values of the sensitivity parameters after calling :meth:`sesitivity_analysis`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
+        and ``rva``.
+        """
+        return self._sensitivity_params
+
+    @property
     def coef(self):
         """
         Estimates for the causal parameter(s) after calling :meth:`fit`.
@@ -420,14 +439,6 @@ class DoubleML(ABC):
         with ``dml_procedure='dml1'``.
         """
         return self._all_dml1_coef
-
-    @property
-    def sensitivity_elements(self):
-        """
-        Values of the sensitivity elements after calling :meth:`fit`;
-        If available a dictionary with ``sigma2``, ``nu2``, ``psi_scaled``, ``psi_sigma`` and ``psi_nu``.
-        """
-        return self._sensitivity_elements
 
     @property
     def summary(self):
@@ -1554,7 +1565,7 @@ class DoubleML(ABC):
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
 
-    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95):
+    def _calc_sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95):
         if self._is_cluster_data:
             raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
         if not self.apply_cross_fitting:
@@ -1563,14 +1574,14 @@ class DoubleML(ABC):
             raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
 
         # checks
-        _check_in_zero_one(cf_y, 'cf_y')
-        _check_in_zero_one(cf_d, 'cf_d')
-        _check_in_zero_one(rho, 'The absolute value of rho')
+        _check_in_zero_one(cf_y, 'cf_y', include_one=False)
+        _check_in_zero_one(cf_d, 'cf_d', include_one=False)
+        _check_in_zero_one(abs(rho), 'The absolute value of rho')
         _check_level(level)
 
         # set elements for readability
         sigma2 = self.sensitivity_elements['sigma2']
-        nu2 = self.sensitivity_elements['sigma2']
+        nu2 = self.sensitivity_elements['nu2']
         psi = self.sensitivity_elements['psi_scaled']
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
@@ -1615,109 +1626,98 @@ class DoubleML(ABC):
         return res_dict
 
     def _calc_robustness_value(self, theta=0, level=0.95, rho=1.0, idx_treatment=0):
-        
-        if not isinstance(idx_treatment, int):
-            raise TypeError('Treatment index has to be an integer.'
-                            f' {str(idx_treatment)} of type {str(type(idx_treatment))} was passed.')
+        if not isinstance(theta, float):
+            raise TypeError(f'theta must be of float type. '
+                            f'{str(theta)} of type {str(type(theta))} was passed.')
+        _check_pos_integer(idx_treatment, "idx_treatment")
         if (idx_treatment >= self._dml_data.n_treat):
             raise ValueError('Treatment index out of range. '
-                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} was passed.')
+                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} '
+                             'was passed.')
+
         # check which side is relvant
         bound = 'upper' if (theta > self.coef[idx_treatment]) else 'lower'
 
+        # minimize the square to find boundary solutions
         def rv_fct(value, param):
-            return self.sensitivity_analysis(cf_y=value, cf_d=value, rho=rho, level=level)[param][bound][idx_treatment] - theta
+            res = self._calc_sensitivity_analysis(cf_y=value,
+                                                  cf_d=value,
+                                                  rho=rho,
+                                                  level=level)[param][bound][idx_treatment] - theta
+            return(np.square(res))
 
-        rv = root_scalar(rv_fct, x0=0.001, bracket=[0, 0.9999], method='brentq', args=('theta')).root
-        rva = root_scalar(rv_fct, x0=0.001, bracket=[0, 0.9999], method='brentq', args=('ci')).root
+        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta',)).x
+        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci',)).x
 
         return rv, rva
 
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, theta=0):
 
-    def sensitivity_plot(self, cf_y=0.03, cf_d=0.03, rho=1.0, theta=0, level=0.95, idx_treatment=0, fill=True):
-        
-        if not isinstance(idx_treatment, int):
-            raise TypeError('Treatment index has to be an integer.'
-                            f' {str(idx_treatment)} of type {str(type(idx_treatment))} was passed.')
+        # compute sensitivity analysis
+        sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
+
+        # compute robustess values with respect to theta
+        rv = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
+        rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
+        for i_treat in range(self._dml_data.n_treat):
+            rv[i_treat], rva[i_treat] = self._calc_robustness_value(theta=theta, level=level, rho=rho, idx_treatment=i_treat)
+
+        sensitivity_dict['rv'] = rv
+        sensitivity_dict['rva'] = rva
+        self._sensitivity_params = sensitivity_dict
+
+        # add all input parameters
+        input_params = dict({'cf_y': cf_y,
+                             'cf_d': cf_d,
+                             'rho': rho,
+                             'level': level,
+                             'theta': theta})
+        sensitivity_dict['input'] = input_params
+
+        return self
+
+    def plot_sensitivity(self, idx_treatment=0, theta=0.0, fill=True, grid_size=100, grid_bounds=(0.15, 0.15)):
+
+        _check_pos_integer(idx_treatment, "idx_treatment")
         if (idx_treatment >= self._dml_data.n_treat):
             raise ValueError('Treatment index out of range. '
-                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} was passed.')
+                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} '
+                             'was passed.')
+        if not isinstance(theta, float):
+            raise TypeError(f'theta must be of float type. '
+                            f'{str(theta)} of type {str(type(theta))} was passed.')
         if not isinstance(fill, bool):
             raise TypeError('fill has to be boolean.'
                             f' {str(fill)} of type {str(type(fill))} was passed.')
+        _check_pos_integer(grid_size, "grid_size")
+        _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
+        _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
 
         unadjusted_theta = self.coef[idx_treatment]
         # check which side is relvant
         bound = 'upper' if (theta > unadjusted_theta) else 'lower'
 
         # create evaluation grid
-        grid_size = 100
-        cf_d_vec = np.linspace(0, .15, grid_size)
-        cf_y_vec = np.linspace(0, .15, grid_size)
+        cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
+        cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
         cf_d_grid, cf_y_grid = np.meshgrid(cf_d_vec, cf_y_vec)
 
         # compute contour values
         contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
         for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
             for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
-                sens_dict = self.sensitivity_analysis(cf_y=cf_y_grid, cf_d=cf_d_grid, rho=rho, level=level)
+                sens_dict = self._calc_sensitivity_analysis(cf_y=cf_y_grid,
+                                                            cf_d=cf_d_grid,
+                                                            rho=self._sensitivity_params['input']['rho'],
+                                                            level=self._sensitivity_params['input']['level'])
                 contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict['theta'][bound][idx_treatment]
-        
-        scenario_value = self.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)['theta'][bound][idx_treatment]
-        
-        if fill:
-            text_col = 'white'
-            contours_coloring = 'heatmap'
-        else:
-            text_col = 'black'
-            contours_coloring = 'lines'
 
-        # create figure
-        axis_names = ['cf_d', 'cf_d', 'Bound']
-        fig = go.Figure()
-        # basic contour plot
-        hov_temp = axis_names[0] + ': %{x:.3f}' + '<br>' + axis_names[1] + ': %{x:.3f}' + '</b>' +\
-            '<br>' + axis_names[2]
-        fig.add_trace(go.Contour(z=contour_values,
-                                 x=cf_d_vec,
-                                 y=cf_y_vec,
-                                 hovertemplate = hov_temp + ': %{z:.3f}' + '</b>',
-                                 contours=dict(coloring = contours_coloring,
-                                               showlabels = True, # show labels on contours
-                                               labelfont = dict(size = 12, color = text_col)),
-                                 name='Contour'))
-
-        # add scenario
-        fig.add_trace(go.Scatter(x=[cf_d],
-                                 y=[cf_y],
-                                 mode="markers+text",
-                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
-                                 hovertemplate = hov_temp + f': {round(scenario_value, 3)}' + '</b>',
-                                 name='Scenario',
-                                 textfont=dict(color=text_col, size=14),
-                                 text=[f'<b>Scenario</b>'],
-                                 textposition="top right",
-                                 showlegend=False)
-                     )
-
-        # add unadjusted
-        fig.add_trace(go.Scatter(x=[0],
-                                 y=[0],
-                                 mode="markers+text",
-                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
-                                 hovertemplate = hov_temp + f': {round(unadjusted_theta, 3)}' + '</b>',
-                                 name='Unadjusted',
-                                 text=[f'<b>Unadjusted</b>'],
-                                 textfont=dict(color=text_col, size=14),
-                                 textposition="top right",
-                                 showlegend=False)
-                     )
-
-        fig.update_layout(title=None, 
-                          xaxis_title=axis_names[0],
-                          yaxis_title=axis_names[1])
-
-        fig.update_xaxes(range=[0, 0.15])
-        fig.update_yaxes(range=[0, 0.15])
-
+        fig = _sensitivity_contour_plot(x=cf_d_vec,
+                                        y=cf_y_vec,
+                                        contour_values=contour_values,
+                                        unadjusted_theta=unadjusted_theta,
+                                        scenario_x=self._sensitivity_params['input']['cf_d'],
+                                        scenario_y=self._sensitivity_params['input']['cf_y'],
+                                        scenario_value=self._sensitivity_params['theta'][bound][idx_treatment],
+                                        fill=fill)
         return fig

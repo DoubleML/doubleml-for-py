@@ -408,5 +408,5 @@ def _check_level(level):
                         f'{str(level)} of type {str(type(level))} was passed.')
     if (level <= 0) | (level >= 1):
         raise ValueError('The confidence level must be in (0,1). '
-                        f'{str(level)} was passed.')
+                         f'{str(level)} was passed.')
     return
