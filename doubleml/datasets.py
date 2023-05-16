@@ -919,11 +919,6 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     a = np.random.uniform(low=a_bounds[0], high=a_bounds[1], size=n_obs)
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
-    # short and long version of g
-    g_short = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
-    g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
-    g_long = g_short + g_coef_a*a
-
     # get the required impact of the confounder on the propensity score
     possible_coefs = np.arange(0.001, 0.4999, 0.001)
     m_coef_a = possible_coefs[(np.arctanh(2*possible_coefs) / (2*possible_coefs)) - 1 - cf_d/(1 - cf_d) >= 0][0]
@@ -934,14 +929,27 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
 
-    y = g_long + eps_y
+    # short and long version of g
+    g_short_d0 = 210 + 27.4*z[:, 0]*0.0 + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_short_d1 = 210 + 27.4*z[:, 0]*1.0 + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_short = d*g_short_d1 + (1.0-d)*g_short_d0
+
+    g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
+    g_long_d0 = g_short_d0 + g_coef_a*a
+    g_long_d1 = g_short_d1 + g_coef_a*a
+    g_long = d*g_long_d1 + (1.0-d)*g_long_d0
+
+    y0 = g_long_d0 + eps_y
+    y1 = g_long_d1 + eps_y
+
+    y = d*y1 + (1.0-d)*y0
 
     oracle_values = dict({'g_long': g_long,
                           'g_short': g_short,
                           'm_long': m_long,
                           'm_short': m_short,
-                          'y0': y,
-                          'y1': y,
+                          'y0': y0,
+                          'y1': y1,
                           'z': z})
 
     res_dict = dict({'x': x,
