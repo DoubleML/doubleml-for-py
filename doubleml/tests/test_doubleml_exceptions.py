@@ -1061,6 +1061,86 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm._calc_robustness_value(rho=1.0, level=0.0)
 
+    # test theta
+    msg = "theta must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(theta=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(theta=1)
+    with pytest.raises(TypeError, match=msg):
+        dml_irm.sensitivity_analysis()
+        _ = dml_irm.sensitivity_plot(theta=1)
+
+    # test idx_treatment
+    msg = "idx_treatment must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=0.0)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=0.0)
+
+    msg = "idx_treatment must be larger or equal to 0. -1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=-1)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=-1)
+
+    msg = "idx_treatment must be smaller or equal to 0. 1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=1)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=1)
+
+    # test setter
+    msg = ("_sensitivity_element_est must return sensitivity elements in a dict. "
+           "Got type <class 'int'>.")
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._set_sensitivity_elements(sensitivity_elements=1, i_rep=0, i_treat=0)
+
+    sensitivity_elements = dict({'sigma2': 1})
+    with pytest.raises(ValueError):
+        _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
+
+def test_doubleml_sensitivity_plot_input():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
+    dml_irm.fit()
+
+    msg = (r'Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. '
+           'The values of rho and the level are used for the scenario.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot()
+
+    dml_irm.sensitivity_analysis()
+    msg = "include_scenario has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(include_scenario="True")
+
+    msg = "fill has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(fill="True")
+
+    msg = "grid_size must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_size=0.0)
+    msg = "grid_size must be larger or equal to 5. 4 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_size=4)
+
+    msg = "grid_bounds must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,1))
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1,0.15))
+    msg = r'grid_bounds must be in \(0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1.0,0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,1.0))
+    msg = r'grid_bounds must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.0,0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,0.0))
+
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_yet_implemented():

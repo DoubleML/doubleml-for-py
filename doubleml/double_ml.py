@@ -15,7 +15,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
     _rmse, _aggregate_coefs_and_ses, _check_level
-from ._utils_checks import _check_in_zero_one, _check_pos_integer
+from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool
 from ._utils_plots import _sensitivity_contour_plot
 
 
@@ -1555,11 +1555,11 @@ class DoubleML(ABC):
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
-        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                'psi_scaled': np.full(score_dim, np.nan),
-                                'psi_sigma2': np.full(score_dim, np.nan),
-                                'psi_nu2': np.full(score_dim, np.nan)}
+        sensitivity_elements = dict({'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                     'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                     'psi_scaled': np.full(score_dim, np.nan),
+                                     'psi_sigma2': np.full(score_dim, np.nan),
+                                     'psi_nu2': np.full(score_dim, np.nan)})
         return sensitivity_elements
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
@@ -1572,7 +1572,7 @@ class DoubleML(ABC):
                             f'Got type {str(type(sensitivity_elements))}.')
         if not (set(self._sensitivity_element_names) == set(sensitivity_elements.keys())):
             raise ValueError('_sensitivity_element_est returned incomplete sensitivity elements. '
-                             'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '.'
+                             'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '. '
                              'Got dict with keys: ' + ' and '.join(set(sensitivity_elements.keys())) + '.')
         for key in self._sensitivity_element_names:
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
@@ -1642,14 +1642,8 @@ class DoubleML(ABC):
         return res_dict
 
     def _calc_robustness_value(self, theta=0.0, level=0.95, rho=1.0, idx_treatment=0):
-        if not isinstance(theta, float):
-            raise TypeError(f'theta must be of float type. '
-                            f'{str(theta)} of type {str(type(theta))} was passed.')
-        _check_pos_integer(idx_treatment, "idx_treatment")
-        if (idx_treatment >= self._dml_data.n_treat):
-            raise ValueError('Treatment index out of range. '
-                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} '
-                             'was passed.')
+        _check_float(theta, "theta")
+        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
 
         # check which side is relvant
         bound = 'upper' if (theta > self.coef[idx_treatment]) else 'lower'
@@ -1741,21 +1735,11 @@ class DoubleML(ABC):
         if self.sensitivity_params is None:
             raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
                              'The values of rho and the level are used for the scenario.')
-        _check_pos_integer(idx_treatment, "idx_treatment")
-        if (idx_treatment >= self._dml_data.n_treat):
-            raise ValueError('Treatment index out of range. '
-                             f'Only {str(self._dml_data.n_treat)} treatment(s) and treatment index {str(idx_treatment)} '
-                             'was passed.')
-        if not isinstance(theta, float):
-            raise TypeError(f'theta must be of float type. '
-                            f'{str(theta)} of type {str(type(theta))} was passed.')
-        if not isinstance(include_scenario, bool):
-            raise TypeError('include_scenario has to be boolean.'
-                            f' {str(include_scenario)} of type {str(type(include_scenario))} was passed.')
-        if not isinstance(fill, bool):
-            raise TypeError('fill has to be boolean.'
-                            f' {str(fill)} of type {str(type(fill))} was passed.')
-        _check_pos_integer(grid_size, "grid_size")
+        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
+        _check_float(theta, "theta")
+        _check_bool(include_scenario, 'include_scenario')
+        _check_bool(fill, 'fill')
+        _check_integer(grid_size, "grid_size", lower_bound=5)
         _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
 

@@ -21,11 +21,36 @@ def _check_in_zero_one(value, name, include_zero=True, include_one=True):
     return
 
 
-def _check_pos_integer(value, name):
+def _check_integer(value, name, lower_bound=None, upper_bound=None):
     if not isinstance(value, int):
-        raise TypeError(f'{name} has to be an integer.'
+        raise TypeError(f'{name} must be an integer.'
                         f' {str(value)} of type {str(type(value))} was passed.')
-    if value < 0:
-        raise ValueError(f'{name} has to be larger or equal to zero.'
-                         f' {str(value)} was passed.')
+    if lower_bound is not None:
+        if value < lower_bound:
+            raise ValueError(f'{name} must be larger or equal to {lower_bound}. '
+                             f'{str(value)} was passed.')
+    if upper_bound is not None:
+        if value > upper_bound:
+            raise ValueError(f'{name} must be smaller or equal to {upper_bound}. '
+                             f'{str(value)} was passed.')
     return
+
+
+def _check_float(value, name, lower_bound=None, upper_bound=None):
+    if not isinstance(value, float):
+        raise TypeError(f'{name} must be of float type.'
+                        f' {str(value)} of type {str(type(value))} was passed.')
+    if lower_bound is not None:
+        if value < lower_bound:
+            raise ValueError(f'{name} must be larger or equal to {lower_bound}. '
+                             f'{str(value)} was passed.')
+    if upper_bound is not None:
+        if value > upper_bound:
+            raise ValueError(f'{name} must be smaller or equal to {upper_bound}. '
+                             f'{str(value)} was passed.')
+
+
+def _check_bool(value, name):
+    if not isinstance(value, bool):
+            raise TypeError(f'{name} has to be boolean.'
+                            f' {str(value)} of type {str(type(value))} was passed.')
