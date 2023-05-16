@@ -22,7 +22,7 @@ def _sensitivity_contour_plot(x,
     axis_names = ['cf_d', 'cf_d', 'Bound']
     fig = go.Figure()
     # basic contour plot
-    hov_temp = axis_names[0] + ': %{x:.3f}' + '<br>' + axis_names[1] + ': %{x:.3f}' + '</b>' +\
+    hov_temp = axis_names[0] + ': %{x:.3f}' + '<br>' + axis_names[1] + ': %{y:.3f}' + '</b>' +\
         '<br>' + axis_names[2]
     fig.add_trace(go.Contour(z=contour_values,
                              x=x,
