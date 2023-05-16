@@ -985,12 +985,82 @@ def test_doubleml_sensitivity_inputs():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
     dml_irm.fit()
 
+    # test cf_y
     msg = "cf_y must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1)
+
     msg = r'cf_y must be in \[0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1.0)
+
+    # test cf_d
+    msg = "cf_d must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1)
+
+    msg = r'cf_d must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1.0)
+
+    # test rho
+    msg = "rho must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1)
+
+    msg = "rho must be of float type. 1 of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1")
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1")
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho="1")
+
+    msg = r'The absolute value of rho must be in \[0,1\]. 1.1 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.1)
+    
+    # test level
+    msg = "The confidence level must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1)
+
+    msg = r'The confidence level must be in \(0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1.0)
+
+    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=0.0)
+
 
 @pytest.mark.ci
 def test_doubleml_cluster_not_yet_implemented():

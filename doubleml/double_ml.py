@@ -1589,8 +1589,11 @@ class DoubleML(ABC):
         # checks
         _check_in_zero_one(cf_y, 'cf_y', include_one=False)
         _check_in_zero_one(cf_d, 'cf_d', include_one=False)
+        if not isinstance(rho, float):
+            raise TypeError(f'rho must be of float type. '
+                            f'{str(rho)} of type {str(type(rho))} was passed.')
         _check_in_zero_one(abs(rho), 'The absolute value of rho')
-        _check_level(level)
+        _check_in_zero_one(level, 'The confidence level', include_zero=False, include_one=False)
 
         # set elements for readability
         sigma2 = self.sensitivity_elements['sigma2']
