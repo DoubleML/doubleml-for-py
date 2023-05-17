@@ -990,51 +990,51 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=1)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=1)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1, cf_d=0.03, rho=1.0, level=0.95)
 
     msg = r'cf_y must be in \[0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=1.0)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=1.0)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1.0, cf_d=0.03, rho=1.0, level=0.95)
 
     # test cf_d
     msg = "cf_d must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1, rho=1.0, level=0.95)
 
     msg = r'cf_d must be in \[0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1.0)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1.0)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1.0, rho=1.0, level=0.95)
 
     # test rho
     msg = "rho must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1, level=0.95)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho=1)
+        _ = dml_irm._calc_robustness_value(rho=1, theta=0.0, level=0.95, idx_treatment=0)
 
     msg = "rho must be of float type. 1 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1")
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1")
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1", level=0.95)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho="1")
+        _ = dml_irm._calc_robustness_value(rho="1", theta=0.0, level=0.95, idx_treatment=0)
 
     msg = r'The absolute value of rho must be in \[0,1\]. 1.1 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1)
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1, level=0.95)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho=1.1)
+        _ = dml_irm._calc_robustness_value(rho=1.1, theta=0.0, level=0.95, idx_treatment=0)
     
     # test level
     msg = "The confidence level must be of float type. 1 of type <class 'int'> was passed."
@@ -1043,7 +1043,7 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho=1.0, level=1)
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1, theta=0.0, idx_treatment=0)
 
     msg = r'The confidence level must be in \(0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
@@ -1051,7 +1051,7 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1.0)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho=1.0, level=1.0)
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1.0, theta=0.0, idx_treatment=0)
 
     msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
     with pytest.raises(ValueError, match=msg):
@@ -1059,14 +1059,14 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.0)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_robustness_value(rho=1.0, level=0.0)
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=0.0, theta=0.0, idx_treatment=0)
 
     # test theta
     msg = "theta must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_analysis(theta=1)
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_robustness_value(theta=1)
+        _ = dml_irm._calc_robustness_value(theta=1, level=0.95, rho=1.0, idx_treatment=0)
     with pytest.raises(TypeError, match=msg):
         dml_irm.sensitivity_analysis()
         _ = dml_irm.sensitivity_plot(theta=1)
@@ -1074,19 +1074,19 @@ def test_doubleml_sensitivity_inputs():
     # test idx_treatment
     msg = "idx_treatment must be an integer. 0.0 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm._calc_robustness_value(idx_treatment=0.0)
+        _ = dml_irm._calc_robustness_value(idx_treatment=0.0, theta=0.0, level=0.95, rho=1.0)
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(idx_treatment=0.0)
 
     msg = "idx_treatment must be larger or equal to 0. -1 was passed."
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_robustness_value(idx_treatment=-1)
+        _ = dml_irm._calc_robustness_value(idx_treatment=-1, theta=0.0, level=0.95, rho=1.0)
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_plot(idx_treatment=-1)
 
     msg = "idx_treatment must be smaller or equal to 0. 1 was passed."
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm._calc_robustness_value(idx_treatment=1)
+        _ = dml_irm._calc_robustness_value(idx_treatment=1, theta=0.0, level=0.95, rho=1.0)
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_plot(idx_treatment=1)
 

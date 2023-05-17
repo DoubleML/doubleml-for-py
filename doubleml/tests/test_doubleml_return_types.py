@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLClusterData, \
     DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS
@@ -340,3 +341,18 @@ def test_rmses():
     assert did_cs_dml1.rmses['ml_g_d1_t0'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_g_d1_t1'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+
+
+@pytest.mark.ci
+def test_sensitivity():
+    plr_dml1.sensitivity_analysis()
+    assert isinstance(plr_dml1.sensitivity_summary, str)
+    assert isinstance(plr_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    assert isinstance(plr_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(plr_dml1._calc_robustness_value(theta=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
+
+    irm_dml1.sensitivity_analysis()
+    assert isinstance(irm_dml1.sensitivity_summary, str)
+    assert isinstance(irm_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    assert isinstance(irm_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(irm_dml1._calc_robustness_value(theta=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)

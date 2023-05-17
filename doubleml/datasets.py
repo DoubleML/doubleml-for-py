@@ -907,7 +907,7 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
     z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
 
-    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
 
     # error terms and unobserved confounder
@@ -944,17 +944,17 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
 
     y = d*y1 + (1.0-d)*y0
 
-    oracle_values = dict({'g_long': g_long,
-                          'g_short': g_short,
-                          'm_long': m_long,
-                          'm_short': m_short,
-                          'y0': y0,
-                          'y1': y1,
-                          'z': z})
+    oracle_values = {'g_long': g_long,
+                     'g_short': g_short,
+                     'm_long': m_long,
+                     'm_short': m_short,
+                     'y0': y0,
+                     'y1': y1,
+                     'z': z}
 
-    res_dict = dict({'x': x,
-                     'y': y,
-                     'd': d,
-                     'oracle_values': oracle_values})
+    res_dict = {'x': x,
+                'y': y,
+                'd': d,
+                'oracle_values': oracle_values}
 
     return res_dict

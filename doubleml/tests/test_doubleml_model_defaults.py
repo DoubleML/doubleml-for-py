@@ -176,3 +176,15 @@ def test_did_cs_defaults():
     assert dml_did_cs.dml_procedure == 'dml2'
     assert dml_did_cs.trimming_rule == 'truncate'
     assert dml_did_cs.trimming_threshold == 1e-2
+
+
+@pytest.mark.ci
+def test_sensitivity_defaults():
+    input_dict = {'cf_y': 0.03,
+                  'cf_d': 0.03,
+                  'rho': 1.0,
+                  'level': 0.95,
+                  'theta': 0.0}
+
+    dml_plr.sensitivity_analysis()
+    assert dml_plr._sensitivity_params['input'] == input_dict

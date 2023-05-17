@@ -19,7 +19,7 @@ def _sensitivity_contour_plot(x,
         contours_coloring = 'lines'
 
     # create figure
-    axis_names = ['cf_d', 'cf_d', 'Bound']
+    axis_names = ['cf_d', 'cf_y ', 'Bound']
     fig = go.Figure()
     # basic contour plot
     hov_temp = axis_names[0] + ': %{x:.3f}' + '<br>' + axis_names[1] + ': %{y:.3f}' + '</b>' +\

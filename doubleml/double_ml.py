@@ -1555,11 +1555,11 @@ class DoubleML(ABC):
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
-        sensitivity_elements = dict({'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                     'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                     'psi_scaled': np.full(score_dim, np.nan),
-                                     'psi_sigma2': np.full(score_dim, np.nan),
-                                     'psi_nu2': np.full(score_dim, np.nan)})
+        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'psi_scaled': np.full(score_dim, np.nan),
+                                'psi_sigma2': np.full(score_dim, np.nan),
+                                'psi_nu2': np.full(score_dim, np.nan)}
         return sensitivity_elements
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
@@ -1578,7 +1578,7 @@ class DoubleML(ABC):
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
 
-    def _calc_sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95):
+    def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
         if self._is_cluster_data:
             raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
         if not self.apply_cross_fitting:
@@ -1626,22 +1626,22 @@ class DoubleML(ABC):
         ci_lower = theta_lower - np.multiply(quant, sigma_lower)
         ci_upper = theta_upper + np.multiply(quant, sigma_upper)
 
-        theta_dict = dict({'lower': theta_lower,
-                           'upper': theta_upper})
+        theta_dict = {'lower': theta_lower,
+                      'upper': theta_upper}
 
-        se_dict = dict({'lower': sigma_lower,
-                        'upper': sigma_upper})
+        se_dict = {'lower': sigma_lower,
+                   'upper': sigma_upper}
 
-        ci_dict = dict({'lower': ci_lower,
-                        'upper': ci_upper})
+        ci_dict = {'lower': ci_lower,
+                   'upper': ci_upper}
 
-        res_dict = dict({'theta': theta_dict,
-                         'se': se_dict,
-                         'ci': ci_dict})
+        res_dict = {'theta': theta_dict,
+                    'se': se_dict,
+                    'ci': ci_dict}
 
         return res_dict
 
-    def _calc_robustness_value(self, theta=0.0, level=0.95, rho=1.0, idx_treatment=0):
+    def _calc_robustness_value(self, theta, level, rho, idx_treatment):
         _check_float(theta, "theta")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
 
@@ -1676,11 +1676,11 @@ class DoubleML(ABC):
         sensitivity_dict['rva'] = rva
 
         # add all input parameters
-        input_params = dict({'cf_y': cf_y,
-                             'cf_d': cf_d,
-                             'rho': rho,
-                             'level': level,
-                             'theta': theta})
+        input_params = {'cf_y': cf_y,
+                        'cf_d': cf_d,
+                        'rho': rho,
+                        'level': level,
+                        'theta': theta}
         sensitivity_dict['input'] = input_params
 
         self._sensitivity_params = sensitivity_dict
