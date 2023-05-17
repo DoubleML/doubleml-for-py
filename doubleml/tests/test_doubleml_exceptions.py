@@ -1035,7 +1035,7 @@ def test_doubleml_sensitivity_inputs():
         _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1, level=0.95)
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm._calc_robustness_value(rho=1.1, theta=0.0, level=0.95, idx_treatment=0)
-    
+
     # test level
     msg = "The confidence level must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -1100,6 +1100,7 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(ValueError):
         _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
 
+
 def test_doubleml_sensitivity_plot_input():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression())
     dml_irm.fit()
@@ -1114,6 +1115,13 @@ def test_doubleml_sensitivity_plot_input():
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(include_scenario="True")
 
+    msg = "value must be a string. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(value=2)
+    msg = "Invalid value test. Valid values theta or ci."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(value='test')
+
     msg = "fill has to be boolean. True of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(fill="True")
@@ -1121,25 +1129,25 @@ def test_doubleml_sensitivity_plot_input():
     msg = "grid_size must be an integer. 0.0 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(grid_size=0.0)
-    msg = "grid_size must be larger or equal to 5. 4 was passed."
+    msg = "grid_size must be larger or equal to 10. 9 was passed."
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_size=4)
+        _ = dml_irm.sensitivity_plot(grid_size=9)
 
     msg = "grid_bounds must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,1))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 1))
     with pytest.raises(TypeError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(1,0.15))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1, 0.15))
     msg = r'grid_bounds must be in \(0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(1.0,0.15))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1.0, 0.15))
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,1.0))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 1.0))
     msg = r'grid_bounds must be in \(0,1\). 0.0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(0.0,0.15))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.0, 0.15))
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15,0.0))
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 0.0))
 
 
 @pytest.mark.ci

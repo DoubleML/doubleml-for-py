@@ -52,5 +52,5 @@ def _check_float(value, name, lower_bound=None, upper_bound=None):
 
 def _check_bool(value, name):
     if not isinstance(value, bool):
-            raise TypeError(f'{name} has to be boolean.'
-                            f' {str(value)} of type {str(type(value))} was passed.')
+        raise TypeError(f'{name} has to be boolean.'
+                        f' {str(value)} of type {str(type(value))} was passed.')

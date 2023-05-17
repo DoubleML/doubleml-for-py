@@ -349,10 +349,10 @@ def _check_score(score, valid_score, allow_callable=True):
         if allow_callable:
             if not callable(score):
                 raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
+                                f'{str(score)} was passed.')
         else:
             raise TypeError('score should be a string. '
-                            '%r was passed.' % score)
+                            f'{str(score)} was passed.')
     return
 
 

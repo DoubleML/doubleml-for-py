@@ -157,7 +157,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
-        
+
         self._sensitivity_implemented = True
 
     @property
