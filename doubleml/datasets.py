@@ -958,3 +958,63 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
                 'oracle_values': oracle_values}
 
     return res_dict
+
+
+def make_confounded_plr_data(n_obs=500, theta = 5, cf_y=0.04, cf_d=0.03, **kwargs):
+    c = kwargs.get('c', 0.0)
+    dim_x = kwargs.get('dim_x', 4)
+
+    # observed covariates
+    cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
+    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
+
+    # error terms
+    var_eps_y = 5
+    eps_y = np.random.normal(loc=0, scale=np.sqrt(var_eps_y), size=n_obs)
+    var_eps_d = 1
+    eps_d = np.random.normal(loc=0, scale=np.sqrt(var_eps_d), size=n_obs)
+
+    # unobserved confounder
+    a_bounds = (0, 2)
+    a = np.random.uniform(low=a_bounds[0], high=a_bounds[1], size=n_obs)
+    var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
+
+    # get the required impact of the confounder on the propensity score
+    m_coef_a = np.sqrt(var_eps_d / var_a * cf_d / (1.0-cf_d))
+    # compute short and long form of riesz representer
+    m_short = -z[:, 0] + 0.5*z[:, 1] - 0.25*z[:, 2] - 0.1*z[:, 3]
+    m_long = m_short + m_coef_a*a
+    d = m_long + eps_d
+
+    # short and long version of g
+    g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_short = theta*d + g_partial_reg
+
+    g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
+    g_long = g_short + g_coef_a*a
+
+    y = g_long + eps_y
+
+    oracle_values = {'g_long': g_long,
+                     'g_short': g_short,
+                     'm_long': m_long,
+                     'm_short': m_short,
+                     'theta': theta,
+                     'm_coef_a': m_coef_a,
+                     'g_coef_a': g_coef_a,
+                     'z': z}
+
+    res_dict = {'x': x,
+                'y': y,
+                'd': d,
+                'oracle_values': oracle_values}
+
+    return res_dict

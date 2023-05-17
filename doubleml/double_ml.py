@@ -1718,6 +1718,7 @@ class DoubleML(ABC):
         self._sensitivity_params = sensitivity_dict
         return self
 
+    @property
     def sensitivity_summary(self):
         """
         Returns a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
