@@ -402,6 +402,25 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
     return coefs, ses
 
 
+def _var_est(psi, psi_deriv, apply_cross_fitting, smpls):
+
+    # psi and psi_deriv should be of shape (n_obs, ...)
+    if apply_cross_fitting:
+        var_scaling_factor = psi.shape[0]
+    else:
+        # In case of no-cross-fitting, the score function was only evaluated on the test data set
+        test_index = smpls[0][1]
+        psi_deriv = psi_deriv[test_index]
+        psi = psi[test_index]
+        var_scaling_factor = len(test_index)
+
+    J = np.mean(psi_deriv)
+    scaling = np.divide(1.0, np.multiply(var_scaling_factor, np.square(J)))
+    sigma2_hat = np.multiply(scaling, np.mean(np.square(psi)))
+
+    return sigma2_hat, var_scaling_factor
+
+
 def _check_level(level):
     if not isinstance(level, float):
         raise TypeError('The confidence level must be of float type. '

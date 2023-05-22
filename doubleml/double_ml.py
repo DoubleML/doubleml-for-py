@@ -14,7 +14,7 @@ from scipy.optimize import minimize_scalar
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
-    _rmse, _aggregate_coefs_and_ses
+    _rmse, _aggregate_coefs_and_ses, _var_est
 from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool
 from ._utils_plots import _sensitivity_contour_plot
 
@@ -587,7 +587,7 @@ class DoubleML(ABC):
                         self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
         return self
 
@@ -1376,19 +1376,7 @@ class DoubleML(ABC):
 
         return se
 
-    def _agg_cross_fit(self):
-        # aggregate parameters from the repeated cross-fitting
-        # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self.coef = np.median(self._all_coef, 1)
-
-        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        # TODO: In the edge case of repeated no-cross-fitting, the test sets might have different size and therefore
-        #  it would note be valid to always use the same self._var_scaling_factor
-        xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), self._var_scaling_factor) +
-                                              np.power(self._all_coef - xx, 2), 1), self._var_scaling_factor))
-
+    # to estimate causal parameters without predictions
     def _est_causal_pars_and_se(self):
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -1414,8 +1402,8 @@ class DoubleML(ABC):
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
-            # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
+        # aggregated parameter estimates and standard errors from repeated cross-fitting
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
     def _compute_bootstrap(self, weights):
         if self.apply_cross_fitting:
@@ -1453,6 +1441,11 @@ class DoubleML(ABC):
         J = np.mean(psi_deriv)
         sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
 
+        sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
+                                                  psi_deriv=self.__psi_deriv,
+                                                  apply_cross_fitting=self.apply_cross_fitting,
+                                                  smpls=self.__smpls)
+        self._var_scaling_factor = var_scaling_factor                                     
         return sigma2_hat
 
     def _var_est_cluster_data(self):
