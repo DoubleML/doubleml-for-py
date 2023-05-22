@@ -895,9 +895,9 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             raise ValueError('Invalid return_type.')
 
 
-def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
+def make_confounded_irm_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs):
     c = kwargs.get('c', 0.0)
-    dim_x = kwargs.get('dim_x', 4)
+    dim_x = kwargs.get('dim_x', 5)
 
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
@@ -927,17 +927,28 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     # compute short and long form of riesz representer
     m_long = 0.5 + m_coef_a*a
     m_short = 0.5
+
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
 
     # short and long version of g
-    g_short_d0 = 210 + 27.4*z[:, 0]*0.0 + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
-    g_short_d1 = 210 + 27.4*z[:, 0]*1.0 + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    
+    dx = d*x[:, 4]
+    var_dx = np.var(dx)
+    cov_adx = np.cov(a, dx)[0,1] 
+    def f_g(beta_a):
+        g_diff = beta_a *(a - cov_adx / var_dx) 
+        y_diff = eps_y + g_diff
+        return np.square(np.mean(np.square(g_diff)) / np.mean(np.square(y_diff)) - cf_y)
+
+    g_coef_a = minimize_scalar(f_g).x
+    g_short_d0 = g_partial_reg
+    g_short_d1 = (theta + g_coef_a* cov_adx / var_dx)*dx + g_partial_reg
     g_short = d*g_short_d1 + (1.0-d)*g_short_d0
 
-    g_coef_a = np.sqrt(var_eps_y * cf_y / (1.0 - cf_y) / var_a)
-    g_long_d0 = g_short_d0 + g_coef_a*a
-    g_long_d1 = g_short_d1 + g_coef_a*a
+    g_long_d0 = g_partial_reg + g_coef_a*a
+    g_long_d1 = theta*dx + g_partial_reg + g_coef_a*a
     g_long = d*g_long_d1 + (1.0-d)*g_long_d0
 
     y0 = g_long_d0 + eps_y
@@ -949,6 +960,7 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
                      'g_short': g_short,
                      'm_long': m_long,
                      'm_short': m_short,
+                     'a' : a,
                      'y0': y0,
                      'y1': y1,
                      'z': z}
@@ -961,7 +973,7 @@ def make_confounded_irm_data(n_obs=500, cf_y=0.04, cf_d=0.03, **kwargs):
     return res_dict
 
 
-def make_confounded_plr_data(n_obs=500, theta = 5, cf_y=0.04, cf_d=0.03, **kwargs):
+def make_confounded_plr_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs):
     c = kwargs.get('c', 0.0)
     dim_x = kwargs.get('dim_x', 4)
 
