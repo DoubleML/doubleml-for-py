@@ -284,3 +284,49 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
     return boot_theta, boot_t_stat
+
+
+def fit_sensitivity_elements_irm(y, d, psi, predictions, score, n_rep):
+    n_treat = 1
+    n_obs = len(y)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_scaled = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+
+        m_hat = predictions['ml_m'][:, i_rep, 0]
+        g_hat0 = predictions['ml_g0'][:, i_rep, 0]
+        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+
+        if score == 'ATE':
+            weights = np.ones_like(d)
+            weights_bar = np.ones_like(d)
+        else:
+            assert score == 'ATTE'
+            weights = np.divide(d, np.mean(d))
+            weights_bar = np.divide(m_hat, np.mean(d))
+
+        psi_scaled[:, i_rep, 0] = psi[:, i_rep, 0]
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
+        psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
+
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2[0, i_rep, 0] = np.mean(nu2_score_element)
+        psi_nu2[:, i_rep, 0] = nu2_score_element - nu2[0, i_rep, 0]
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_scaled': psi_scaled,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict

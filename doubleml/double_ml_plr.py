@@ -312,11 +312,11 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         nu2 = scaling
         psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
 
-        element_dict = dict({'sigma2': sigma2,
-                             'nu2': nu2,
-                             'psi_scaled': psi_scaled,
-                             'psi_sigma2': psi_sigma2,
-                             'psi_nu2': psi_nu2})
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_scaled': psi_scaled,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
         return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,

@@ -12,7 +12,7 @@ import doubleml as dml
 from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
-from ._utils_irm_manual import fit_irm, boot_irm
+from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
 
 
 @pytest.fixture(scope='module',
@@ -109,6 +109,14 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
+    # sensitivity tests
+    res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
+    res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_irm(y, d,
+                                                                           psi=dml_irm_obj.psi,
+                                                                           predictions=dml_irm_obj.predictions,
+                                                                           score=score,
+                                                                           n_rep=1)
+
     return res_dict
 
 
@@ -135,6 +143,14 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_sensitivity(dml_irm_fixture):
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(dml_irm_fixture['sensitivity_elements'][sensitivity_element],
+                           dml_irm_fixture['sensitivity_elements_manual'][sensitivity_element])
 
 
 @pytest.mark.ci

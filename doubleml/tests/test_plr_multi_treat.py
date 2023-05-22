@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 import doubleml as dml
 
 from ._utils import draw_smpls, _clone
-from ._utils_plr_manual import fit_plr_multitreat, boot_plr_multitreat
+from ._utils_plr_manual import fit_plr_multitreat, boot_plr_multitreat, fit_sensitivity_elements_plr
 
 
 @pytest.fixture(scope='module',
@@ -109,6 +109,15 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
+    print(d)
+    # sensitivity tests
+    res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
+    res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_plr(y, d,
+                                                                           all_coef=dml_plr_obj.all_coef,
+                                                                           psi=dml_plr_obj.psi,
+                                                                           predictions=dml_plr_obj.predictions,
+                                                                           score=score,
+                                                                           n_rep=n_rep)
     return res_dict
 
 
@@ -135,3 +144,11 @@ def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
         assert np.allclose(dml_plr_multitreat_fixture['boot_t_stat' + bootstrap],
                            dml_plr_multitreat_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_plr_sensitivity(dml_plr_multitreat_fixture):
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(dml_plr_multitreat_fixture['sensitivity_elements'][sensitivity_element],
+                           dml_plr_multitreat_fixture['sensitivity_elements_manual'][sensitivity_element])

@@ -1602,6 +1602,7 @@ class DoubleML(ABC):
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
 
+        # elementwise operations
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
         S = np.sqrt(np.multiply(sigma2, nu2))
 
@@ -1785,7 +1786,7 @@ class DoubleML(ABC):
 
         value : str
             Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
-            and ``'ci'`` (refers to the bounds including statistical uncertainty). 
+            and ``'ci'`` (refers to the bounds including statistical uncertainty).
             Default is ``'theta'``.
 
         include_scenario : bool
@@ -1817,7 +1818,7 @@ class DoubleML(ABC):
         if not isinstance(value, str):
             raise TypeError('value must be a string. '
                             f'{str(value)} of type {type(value)} was passed.')
-        valid_values =  ['theta', 'ci']
+        valid_values = ['theta', 'ci']
         if value not in valid_values:
             raise ValueError('Invalid value ' + value + '. ' +
                              'Valid values ' + ' or '.join(valid_values) + '.')
@@ -1849,7 +1850,7 @@ class DoubleML(ABC):
         # get the correct unadjusted value for confidence bands
         if value == 'theta':
             unadjusted_value = unadjusted_theta
-        else: 
+        else:
             assert value == 'ci'
             ci = self.confint(level=self.sensitivity_params['input']['level'])
             if bound == 'upper':

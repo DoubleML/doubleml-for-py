@@ -918,7 +918,7 @@ def make_confounded_irm_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
     # unobserved confounder
     a_bounds = (-1, 1)
     a = np.random.uniform(low=a_bounds[0], high=a_bounds[1], size=n_obs)
-    var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
+    # var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
     # get the required impact of the confounder on the propensity score
     possible_coefs = np.arange(0.001, 0.4999, 0.001)
@@ -933,23 +933,24 @@ def make_confounded_irm_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
 
     # short and long version of g
     g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
-    
+
     dx = d*x[:, 4]
     var_dx = np.var(dx)
-    cov_adx = np.cov(a, dx)[0,1] 
+    cov_adx = np.cov(a, dx)[0, 1]
+
     def f_g(beta_a):
-        g_diff = beta_a *(a - cov_adx / var_dx) 
+        g_diff = beta_a * (a - cov_adx / var_dx)
         y_diff = eps_y + g_diff
         return np.square(np.mean(np.square(g_diff)) / np.mean(np.square(y_diff)) - cf_y)
 
     g_coef_a = minimize_scalar(f_g).x
     g_short_d0 = g_partial_reg
-    g_short_d1 = (theta + g_coef_a* cov_adx / var_dx)*dx + g_partial_reg
-    g_short = d*g_short_d1 + (1.0-d)*g_short_d0
+    g_short_d1 = (theta + g_coef_a * cov_adx / var_dx) * dx + g_partial_reg
+    g_short = d * g_short_d1 + (1.0-d) * g_short_d0
 
-    g_long_d0 = g_partial_reg + g_coef_a*a
-    g_long_d1 = theta*dx + g_partial_reg + g_coef_a*a
-    g_long = d*g_long_d1 + (1.0-d)*g_long_d0
+    g_long_d0 = g_partial_reg + g_coef_a * a
+    g_long_d1 = theta*dx + g_partial_reg + g_coef_a * a
+    g_long = d * g_long_d1 + (1.0-d) * g_long_d0
 
     y0 = g_long_d0 + eps_y
     y1 = g_long_d1 + eps_y
@@ -960,7 +961,7 @@ def make_confounded_irm_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
                      'g_short': g_short,
                      'm_long': m_long,
                      'm_short': m_short,
-                     'a' : a,
+                     'a': a,
                      'y0': y0,
                      'y1': y1,
                      'z': z}
@@ -1002,16 +1003,17 @@ def make_confounded_plr_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
 
     # get the required impact of the confounder on the propensity score
     m_short = -z[:, 0] + 0.5*z[:, 1] - 0.25*z[:, 2] - 0.1*z[:, 3]
+
     def f_m(gamma_a):
         rr_long = eps_d / var_eps_d
         rr_short = (gamma_a * a + eps_d) / (gamma_a**2 * var_a + var_eps_d)
         C2_D = (np.mean(np.square(rr_long)) - np.mean(np.square(rr_short))) / np.mean(np.square(rr_short))
         return np.square(C2_D / (1 + C2_D) - cf_d)
 
-    #m_coef_a = np.sqrt(var_eps_d / var_a * cf_d / (1.0+cf_d))
+    # m_coef_a = np.sqrt(var_eps_d / var_a * cf_d / (1.0+cf_d))
     m_coef_a = minimize_scalar(f_m).x
     # compute short and long form of riesz representer
-    
+
     m_long = m_short + m_coef_a*a
     d = m_long + eps_d
 
@@ -1019,16 +1021,17 @@ def make_confounded_plr_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
     g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
 
     var_d = np.var(d)
+
     def f_g(beta_a):
-        g_diff = beta_a *(a - m_coef_a* (var_a/var_d) *d) 
+        g_diff = beta_a * (a - m_coef_a * (var_a/var_d) * d)
         y_diff = eps_y + g_diff
         return np.square(np.mean(np.square(g_diff)) / np.mean(np.square(y_diff)) - cf_y)
 
     g_coef_a = minimize_scalar(f_g).x
 
-    #g_coef_a = - b_quad - np.sqrt(b_quad**2 - 4*a_quad*c_quad) / (2*a_quad)
+    # g_coef_a = - b_quad - np.sqrt(b_quad**2 - 4*a_quad*c_quad) / (2*a_quad)
     g_long = theta*d + g_partial_reg + g_coef_a*a
-    g_short = (theta + m_coef_a*g_coef_a* var_a / var_d)*d + g_partial_reg
+    g_short = (theta + m_coef_a*g_coef_a * var_a / var_d)*d + g_partial_reg
 
     y = g_long + eps_y
 
@@ -1039,7 +1042,7 @@ def make_confounded_plr_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
                      'theta': theta,
                      'm_coef_a': m_coef_a,
                      'g_coef_a': g_coef_a,
-                     'a' : a,
+                     'a': a,
                      'z': z}
 
     res_dict = {'x': x,
