@@ -1370,10 +1370,28 @@ class DoubleML(ABC):
 
     def _se_causal_pars(self):
         if not self._is_cluster_data:
-            se = np.sqrt(self._var_est())
-        else:
-            se = np.sqrt(self._var_est_cluster_data())
+            cluster_vars = None
+            smpls_cluster = None
+            n_folds_per_cluster = None
 
+        else:
+            cluster_vars = self._dml_data.cluster_vars
+            smpls_cluster = self.__smpls_cluster
+            n_folds_per_cluster = self._n_folds_per_cluster
+            
+        sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
+                                                  psi_deriv=self.__psi_deriv,
+                                                  apply_cross_fitting=self.apply_cross_fitting,
+                                                  smpls=self.__smpls,
+                                                  is_cluster_data=self._is_cluster_data,
+                                                  cluster_vars=cluster_vars,
+                                                  smpls_cluster=smpls_cluster,
+                                                  n_folds_per_cluster=n_folds_per_cluster)
+
+
+        
+        self._var_scaling_factor = var_scaling_factor
+        se = np.sqrt(sigma2_hat)
         return se
 
     # to estimate causal parameters without predictions
@@ -1420,84 +1438,6 @@ class DoubleML(ABC):
             boot_t_stat = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
 
         return boot_coef, boot_t_stat
-
-    def _var_est(self):
-        """
-        Estimate the standard errors of the structural parameter
-        """
-        psi_deriv = self.__psi_deriv
-        psi = self.__psi
-
-        if self.apply_cross_fitting:
-            self._var_scaling_factor = self._dml_data.n_obs
-        else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            psi_deriv = psi_deriv[test_index]
-            psi = psi[test_index]
-            self._var_scaling_factor = len(test_index)
-
-        J = np.mean(psi_deriv)
-        sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
-
-        sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
-                                                  psi_deriv=self.__psi_deriv,
-                                                  apply_cross_fitting=self.apply_cross_fitting,
-                                                  smpls=self.__smpls)
-        self._var_scaling_factor = var_scaling_factor                                     
-        return sigma2_hat
-
-    def _var_est_cluster_data(self):
-        psi_deriv = self.__psi_deriv
-        psi = self.__psi
-
-        if self._dml_data.n_cluster_vars == 1:
-            this_cluster_var = self._dml_data.cluster_vars[:, 0]
-            clusters = np.unique(this_cluster_var)
-            gamma_hat = 0
-            j_hat = 0
-            for i_fold in range(self.n_folds):
-                test_inds = self.__smpls[i_fold][1]
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                I_k = test_cluster_inds[0]
-                const = 1 / len(I_k)
-                for cluster_value in I_k:
-                    ind_cluster = (this_cluster_var == cluster_value)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_deriv[test_inds]) / len(I_k)
-
-            gamma_hat = gamma_hat / self._n_folds_per_cluster
-            j_hat = j_hat / self._n_folds_per_cluster
-            self._var_scaling_factor = len(clusters)
-            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
-        else:
-            assert self._dml_data.n_cluster_vars == 2
-            first_cluster_var = self._dml_data.cluster_vars[:, 0]
-            second_cluster_var = self._dml_data.cluster_vars[:, 1]
-            gamma_hat = 0
-            j_hat = 0
-            for i_fold in range(self.n_folds):
-                test_inds = self.__smpls[i_fold][1]
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                I_k = test_cluster_inds[0]
-                J_l = test_cluster_inds[1]
-                const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
-                for cluster_value in I_k:
-                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                for cluster_value in J_l:
-                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_deriv[test_inds]) / (len(I_k) * len(J_l))
-            gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
-            j_hat = j_hat / (self._n_folds_per_cluster ** 2)
-            n_first_clusters = len(np.unique(first_cluster_var))
-            n_second_clusters = len(np.unique(second_cluster_var))
-            self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
-            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
-
-        return sigma2_hat
 
     # Score estimation and elements
     @abstractmethod
@@ -1600,8 +1540,8 @@ class DoubleML(ABC):
         S = np.sqrt(np.multiply(sigma2, nu2))
 
         # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
-        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
-        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
+        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
 
         psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
         psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
@@ -1609,8 +1549,44 @@ class DoubleML(ABC):
         psi_upper = psi + psi_bias
 
         # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
-        all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), self._var_scaling_factor)))
-        all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), self._var_scaling_factor)))
+        all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
+        all_sigma_upper = np.full_like(all_theta_upper, fill_value=np.nan)
+        for i_rep in range(self.n_rep):
+            self._i_rep = i_rep
+            for i_d in range(self._dml_data.n_treat):
+                self._i_treat = i_d
+
+                if not self._is_cluster_data:
+                    cluster_vars = None
+                    smpls_cluster = None
+                    n_folds_per_cluster = None
+                else:
+                    cluster_vars = self._dml_data.cluster_vars
+                    smpls_cluster = self.__smpls_cluster
+                    n_folds_per_cluster = self._n_folds_per_cluster
+            
+                sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
+                                               psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
+                                               apply_cross_fitting=self.apply_cross_fitting,
+                                               smpls=self.__smpls,
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+                sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_rep, i_d],
+                                               psi_deriv=np.ones_like(psi_upper[:, i_rep, i_d]),
+                                               apply_cross_fitting=self.apply_cross_fitting,
+                                               smpls=self.__smpls,
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+                
+                all_sigma_lower[self._i_treat, self._i_rep] = np.sqrt(sigma2_lower_hat)
+                all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
+        
+        # all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), self._var_scaling_factor)))
+        # all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), self._var_scaling_factor)))
 
         # aggregate coefs and ses over n_rep
         theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)

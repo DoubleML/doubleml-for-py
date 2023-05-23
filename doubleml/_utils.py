@@ -402,21 +402,77 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
     return coefs, ses
 
 
-def _var_est(psi, psi_deriv, apply_cross_fitting, smpls):
+def _var_est(psi, psi_deriv, apply_cross_fitting, smpls, is_cluster_data,
+             cluster_vars=None, smpls_cluster=None, n_folds_per_cluster=None):
 
-    # psi and psi_deriv should be of shape (n_obs, ...)
-    if apply_cross_fitting:
-        var_scaling_factor = psi.shape[0]
+    if not is_cluster_data:
+        # psi and psi_deriv should be of shape (n_obs, ...)
+        if apply_cross_fitting:
+            var_scaling_factor = psi.shape[0]
+        else:
+            # In case of no-cross-fitting, the score function was only evaluated on the test data set
+            test_index = smpls[0][1]
+            psi_deriv = psi_deriv[test_index]
+            psi = psi[test_index]
+            var_scaling_factor = len(test_index)
+
+        J = np.mean(psi_deriv)
+        gamma_hat = np.mean(np.square(psi))
+
     else:
-        # In case of no-cross-fitting, the score function was only evaluated on the test data set
-        test_index = smpls[0][1]
-        psi_deriv = psi_deriv[test_index]
-        psi = psi[test_index]
-        var_scaling_factor = len(test_index)
+        assert cluster_vars is not None
+        assert smpls_cluster is not None
+        assert n_folds_per_cluster is not None
+        n_folds = len(smpls)
 
-    J = np.mean(psi_deriv)
+        # one cluster
+        if cluster_vars.shape[1] == 1:
+            first_cluster_var = cluster_vars[:, 0]
+            clusters = np.unique(first_cluster_var)
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(n_folds):
+                test_inds = smpls[i_fold][1]
+                test_cluster_inds = smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                const = 1 / len(I_k)
+                for cluster_value in I_k:
+                    ind_cluster = (first_cluster_var == cluster_value)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_deriv[test_inds]) / len(I_k)
+
+            var_scaling_factor = len(clusters)
+            J = np.divide(j_hat, n_folds_per_cluster)
+            gamma_hat = np.divide(gamma_hat, n_folds_per_cluster)
+
+        else:
+            assert cluster_vars.shape[1] == 2
+            first_cluster_var = cluster_vars[:, 0]
+            second_cluster_var = cluster_vars[:, 1]
+            gamma_hat = 0
+            j_hat = 0
+            for i_fold in range(n_folds):
+                test_inds = smpls[i_fold][1]
+                test_cluster_inds = smpls_cluster[i_fold][1]
+                I_k = test_cluster_inds[0]
+                J_l = test_cluster_inds[1]
+                const = np.divide(min(len(I_k), len(J_l)), (np.square(len(I_k) * len(J_l))))
+                for cluster_value in I_k:
+                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                for cluster_value in J_l:
+                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
+                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
+                j_hat += np.sum(psi_deriv[test_inds]) / (len(I_k) * len(J_l))
+
+            n_first_clusters = len(np.unique(first_cluster_var))
+            n_second_clusters = len(np.unique(second_cluster_var))
+            var_scaling_factor = min(n_first_clusters, n_second_clusters)
+            J = np.divide(j_hat, np.square(n_folds_per_cluster))
+            gamma_hat = np.divide(gamma_hat, np.square(n_folds_per_cluster))
+
     scaling = np.divide(1.0, np.multiply(var_scaling_factor, np.square(J)))
-    sigma2_hat = np.multiply(scaling, np.mean(np.square(psi)))
+    sigma2_hat = np.multiply(scaling, gamma_hat)
 
     return sigma2_hat, var_scaling_factor
 

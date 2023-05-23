@@ -16,8 +16,8 @@ def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, cf_y, cf_d, rho
     confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
     S = np.sqrt(np.multiply(sigma2, nu2))
 
-    all_theta_lower = all_coefs - np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
-    all_theta_upper = all_coefs + np.multiply(np.transpose(np.squeeze(S)), confounding_strength)
+    all_theta_lower = all_coefs - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+    all_theta_upper = all_coefs + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
 
     psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
     psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
