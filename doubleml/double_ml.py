@@ -1378,7 +1378,7 @@ class DoubleML(ABC):
             cluster_vars = self._dml_data.cluster_vars
             smpls_cluster = self.__smpls_cluster
             n_folds_per_cluster = self._n_folds_per_cluster
-            
+
         sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
                                                   psi_deriv=self.__psi_deriv,
                                                   apply_cross_fitting=self.apply_cross_fitting,
@@ -1388,8 +1388,6 @@ class DoubleML(ABC):
                                                   smpls_cluster=smpls_cluster,
                                                   n_folds_per_cluster=n_folds_per_cluster)
 
-
-        
         self._var_scaling_factor = var_scaling_factor
         se = np.sqrt(sigma2_hat)
         return se
@@ -1564,7 +1562,7 @@ class DoubleML(ABC):
                     cluster_vars = self._dml_data.cluster_vars
                     smpls_cluster = self.__smpls_cluster
                     n_folds_per_cluster = self._n_folds_per_cluster
-            
+
                 sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
                                                psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
                                                apply_cross_fitting=self.apply_cross_fitting,
@@ -1581,12 +1579,9 @@ class DoubleML(ABC):
                                                cluster_vars=cluster_vars,
                                                smpls_cluster=smpls_cluster,
                                                n_folds_per_cluster=n_folds_per_cluster)
-                
+
                 all_sigma_lower[self._i_treat, self._i_rep] = np.sqrt(sigma2_lower_hat)
                 all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
-        
-        # all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), self._var_scaling_factor)))
-        # all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), self._var_scaling_factor)))
 
         # aggregate coefs and ses over n_rep
         theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
@@ -1624,10 +1619,10 @@ class DoubleML(ABC):
                                                   cf_d=value,
                                                   rho=rho,
                                                   level=level)[param][bound][idx_treatment] - theta
-            return(np.square(res))
+            return np.square(res)
 
-        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta',)).x
-        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci',)).x
+        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
+        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci', )).x
 
         return rv, rva
 
