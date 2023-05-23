@@ -973,12 +973,6 @@ def test_doubleml_sensitivity_not_yet_implemented():
     with pytest.raises(NotImplementedError, match=msg):
         _ = dml_pliv.sensitivity_analysis()
 
-    dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
-    dml_pliv_cluster.fit()
-    msg = ("Sensitivity analysis not yet implemented with clustering.")
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml_pliv_cluster.sensitivity_analysis()
-
 
 @pytest.mark.ci
 def test_doubleml_sensitivity_inputs():

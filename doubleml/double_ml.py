@@ -1510,8 +1510,6 @@ class DoubleML(ABC):
         return
 
     def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
-        if self._is_cluster_data:
-            raise NotImplementedError('Sensitivity analysis not yet implemented with clustering.')
         if not self.apply_cross_fitting:
             raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
         if self._sensitivity_elements is None:
@@ -1799,7 +1797,6 @@ class DoubleML(ABC):
         # create evaluation grid
         cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
         cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
-        cf_d_grid, cf_y_grid = np.meshgrid(cf_d_vec, cf_y_vec)
 
         # compute contour values
         contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
