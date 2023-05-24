@@ -12,10 +12,11 @@ from abc import ABC, abstractmethod
 from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
+
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
-from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
-    _rmse, _aggregate_coefs_and_ses, _var_est
-from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool
+from ._utils import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
+from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
+    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl
 from ._utils_plots import _sensitivity_contour_plot
 
 

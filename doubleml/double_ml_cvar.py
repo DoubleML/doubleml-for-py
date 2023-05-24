@@ -6,11 +6,12 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
-    _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, \
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, \
     _normalize_ipw, _dml_tune, _get_bracket_guess, _solve_ipw_score
 from .double_ml_data import DoubleMLData
 from ._utils_resampling import DoubleMLResampling
+from ._utils_checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, \
+    _check_contains_iv, _check_quantile
 
 
 class DoubleMLCVAR(LinearScoreMixin, DoubleML):

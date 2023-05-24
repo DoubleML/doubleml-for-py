@@ -8,7 +8,9 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity, _check_score
+
+from ._utils import _dml_cv_predict, _dml_tune
+from ._utils_checks import _check_score, _check_finite_predictions, _check_is_propensity
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):

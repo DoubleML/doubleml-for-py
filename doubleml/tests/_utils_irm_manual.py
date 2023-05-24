@@ -4,7 +4,8 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _check_is_propensity, _normalize_ipw
+from .._utils import _normalize_ipw
+from .._utils_checks import _check_is_propensity
 
 
 def fit_irm(y, x, d,
