@@ -305,7 +305,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
 
         # compute the sensitivity elements (score has to be scaled)
-        scaling = np.divide(-1.0, np.mean(self._psi_deriv[:, self._i_rep, self._i_treat]))
+        scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))
         psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
 
         sigma2 = np.mean(sigma2_score_element)
