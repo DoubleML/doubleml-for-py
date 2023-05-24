@@ -181,6 +181,7 @@ def test_doubleml_exception_data():
         # no instrument Z for LPQ
         _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', x_cols=['z']),
                         LogisticRegression(), LogisticRegression(), treatment=1)
+    with pytest.raises(ValueError, match=msg):
         # non-binary Z for LPQ
         _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z']),
                         LogisticRegression(), LogisticRegression(), treatment=1)

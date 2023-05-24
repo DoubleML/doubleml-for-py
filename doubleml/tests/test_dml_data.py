@@ -24,7 +24,7 @@ def test_doubleml_basedata():
     dummy_dml_data = DummyDataClass(pd.DataFrame(np.zeros((100, 10))))
     assert dummy_dml_data.d_cols[0] == 'theta'
     assert dummy_dml_data.n_treat == 1
-
+    assert dummy_dml_data.n_coefs == 1
 
 @pytest.fixture(scope="module")
 def dml_data_fixture(generate_data1):
