@@ -6,7 +6,6 @@ import doubleml as dml
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from statsmodels.nonparametric.kde import KDEUnivariate
 
 from ._utils import draw_smpls

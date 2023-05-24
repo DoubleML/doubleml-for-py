@@ -3,8 +3,6 @@ import pytest
 import math
 
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
