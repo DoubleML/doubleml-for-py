@@ -109,7 +109,6 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
-    print(d)
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_plr(y, d,

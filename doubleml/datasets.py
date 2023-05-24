@@ -926,7 +926,7 @@ def make_confounded_irm_data(n_obs=500, theta=5, cf_y=0.04, cf_d=0.03, **kwargs)
 
     # compute short and long form of riesz representer
     m_long = 0.5 + m_coef_a*a
-    m_short = 0.5
+    m_short = 0.5 * np.ones_like(m_long)
 
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
