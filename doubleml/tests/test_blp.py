@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import copy
 
 import doubleml as dml
 
@@ -26,7 +27,10 @@ def dml_blp_fixture(ci_joint, ci_level):
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
     random_signal = np.random.normal(0, 1, size=(n, ))
 
-    blp = dml.DoubleMLBLP(random_signal, random_basis).fit()
+    blp = dml.DoubleMLBLP(random_signal, random_basis)
+
+    blp_obj = copy.copy(blp)
+    blp.fit()
     blp_manual = fit_blp(random_signal, random_basis)
 
     np.random.seed(42)
@@ -47,7 +51,8 @@ def dml_blp_fixture(ci_joint, ci_level):
                 'ci_1': ci_1,
                 'ci_2': ci_2,
                 'ci_manual': ci_manual,
-                'blp_model': blp}
+                'blp_model': blp,
+                'unfitted_blp_model': blp_obj}
 
     return res_dict
 
@@ -91,6 +96,7 @@ def test_dml_blp_ci_2(dml_blp_fixture):
 def test_dml_blp_return_types(dml_blp_fixture):
     assert isinstance(dml_blp_fixture['blp_model'].__str__(), str)
     assert isinstance(dml_blp_fixture['blp_model'].summary, pd.DataFrame)
+    assert isinstance(dml_blp_fixture['unfitted_blp_model'].summary, pd.DataFrame)
 
 
 @pytest.mark.ci

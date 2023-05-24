@@ -52,9 +52,6 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ in [RandomForestClassifier]:
         par_grid = {'n_estimators': [5, 10, 20]}
-    else:
-        assert learner.__class__ in [LogisticRegression]
-        par_grid = {'C': np.logspace(-4, 2, 10)}
     return par_grid
 
 

@@ -178,8 +178,11 @@ def test_doubleml_exception_data():
     df_iivm = dml_data_iivm.data.copy()
     df_iivm['z'] = df_iivm['z'] * 2
     with pytest.raises(ValueError, match=msg):
+        # no instrument Z for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', x_cols=['z']),
+                        LogisticRegression(), LogisticRegression(), treatment=1)
         # non-binary Z for LPQ
-        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z']),
                         LogisticRegression(), LogisticRegression(), treatment=1)
 
     # CVAR with IV
@@ -470,10 +473,12 @@ def test_doubleml_exception_kde():
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, kde="0.1")
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, kde="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, kde="0.1")
 
 
 @pytest.mark.ci
-def test_doubleml_exception_normalization():
+def test_doubleml_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, ml_g, LogisticRegression(), normalize_ipw=1)
@@ -485,6 +490,8 @@ def test_doubleml_exception_normalization():
         _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, normalize_ipw=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, Lasso(), LogisticRegression(), treatment=1, normalize_ipw=1)
 
     # DID models in_sample_normalization
     msg = "in_sample_normalization indicator has to be boolean. Object of type <class 'int'> passed."
@@ -868,6 +875,18 @@ def test_doubleml_exception_learner():
            'but the outcome variable is not binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, LogisticRegression(), LogisticRegression(), LogisticRegression())
+
+    # we allow classifiers for ml_g for binary treatment variables in DID
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDID(dml_data_did, LogisticRegression(), LogisticRegression())
+
+    # we allow classifiers for ml_g for binary treatment variables in DIDCS
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, LogisticRegression(), LogisticRegression())
 
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
