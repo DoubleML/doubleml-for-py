@@ -254,6 +254,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                 return_models=return_models)
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
         _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+        m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
@@ -274,14 +275,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
+
         # fraction of treated for ATTE
         p_hat = None
         if self.score == 'ATTE':
             p_hat = np.full_like(d, np.nan, dtype='float64')
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
-
-        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
 
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
@@ -317,6 +317,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _sensitivity_element_est(self, preds):
+        if self.normalize_ipw:
+            raise NotImplementedError("Sensitivity analysis not yet implemented with normalize_ipw.")
         # set elments for readability
         y = self._dml_data.y
         d = self._dml_data.d
@@ -324,6 +326,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
+
+        psi_a = self._psi_elements['psi_a'][:, self._i_rep, self._i_treat]
+        psi_b = self._psi_elements['psi_b'][:, self._i_rep, self._i_treat]
+        theta = self.all_coef[self._i_treat, self._i_rep]
 
         # use weights make this extendable
         if self.score == 'ATE':
@@ -334,8 +340,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
 
-        # compute the sensitivity elements (score doesnt have to be scaled)
-        psi_scaled = self._psi[:, self._i_rep, self._i_treat]
+        # compute the sensitivity elements
+        psi_scaled = np.divide(psi_b, np.multiply(-1.0, np.mean(psi_a))) - theta 
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
@@ -385,12 +391,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
         
         params = {'ml_g0': g0_best_params,
-                    'ml_g1': g1_best_params,
-                    'ml_m': m_best_params}
+                  'ml_g1': g1_best_params,
+                  'ml_m': m_best_params}
         tune_res = {'g0_tune': g0_tune_res,
                     'g1_tune': g1_tune_res,
                     'm_tune': m_tune_res}

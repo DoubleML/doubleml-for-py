@@ -295,7 +295,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
 
         m_hat = preds['predictions']['ml_m']
+        psi_a = self._psi_elements['psi_a'][:, self._i_rep, self._i_treat]
+        psi_b = self._psi_elements['psi_b'][:, self._i_rep, self._i_treat]
         theta = self.all_coef[self._i_treat, self._i_rep]
+
         if self.score == 'partialling out':
             l_hat = preds['predictions']['ml_l']
             sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
@@ -304,14 +307,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             g_hat = preds['predictions']['ml_g']
             sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
 
-        # compute the sensitivity elements (score has to be scaled)
-        scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))
-        psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
+        # compute the sensitivity elements
+        psi_scaled = np.divide(psi_b, np.multiply(-1.0, np.mean(psi_a))) - theta 
 
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
-        nu2 = scaling
+        nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
         psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
 
         element_dict = {'sigma2': sigma2,

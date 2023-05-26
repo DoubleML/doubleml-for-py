@@ -37,7 +37,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[True, False])
+                params=[False])
 def normalize_ipw(request):
     return request.param
 
@@ -112,11 +112,11 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_irm(y, d,
-                                                                           psi=dml_irm_obj.psi,
+                                                                           all_coef=dml_irm_obj.all_coef,
+                                                                           psi_elements=dml_irm_obj.psi_elements,
                                                                            predictions=dml_irm_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
-
     return res_dict
 
 

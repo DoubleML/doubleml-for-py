@@ -113,7 +113,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_plr(y, d,
                                                                            all_coef=dml_plr_obj.all_coef,
-                                                                           psi=dml_plr_obj.psi,
+                                                                           psi_elements=dml_plr_obj.psi_elements,
                                                                            predictions=dml_plr_obj.predictions,
                                                                            score=score,
                                                                            n_rep=n_rep)
