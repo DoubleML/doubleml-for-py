@@ -1532,6 +1532,11 @@ class DoubleML(ABC):
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
 
+        if (sigma2 < 0) | (nu2 < 0):
+            raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
+                             f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
+                             'Most likely this is due to low quality learners (especially propensity scores).')
+
         # elementwise operations
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
         S = np.sqrt(np.multiply(sigma2, nu2))
