@@ -68,11 +68,11 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
     train_cond0 = np.where(d == 0)[0]
     g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                               train_cond=train_cond0)
-
+    
+    train_cond1 = np.where(d == 1)[0]
+    g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+                                train_cond=train_cond1)
     if score == 'experimental':
-        train_cond1 = np.where(d == 1)[0]
-        g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                  train_cond=train_cond1)
         m_hat_list = list()
         for idx, _ in enumerate(smpls):
             # fill it up, but its not further used
@@ -80,11 +80,6 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
 
     else:
         assert score == 'observational'
-        g_hat1_list = list()
-        for idx, _ in enumerate(smpls):
-            # fill it up, but its not further used
-            g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
-
         ml_m = clone(learner_m)
         m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
                                        trimming_threshold=trimming_threshold)
@@ -224,16 +219,16 @@ def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
     g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                    train_cond=train_cond0)
     g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+
+    train_cond1 = np.where(d == 1)[0]
+    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                    train_cond=train_cond1)
+    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+
     if score == 'experimental':
-        train_cond1 = np.where(d == 1)[0]
-        g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                       train_cond=train_cond1)
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = None
     else:
         assert score == 'observational'
-        g1_best_params = None
-
         m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 

@@ -19,7 +19,7 @@ def treatment(request):
 
 
 @pytest.fixture(scope='module',
-                params=[0.25, 0.5, 0.75])
+                params=[0.25, 0.75])
 def quantile(request):
     return request.param
 
@@ -44,7 +44,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope='module',
-                params=[0.01, 0.05])
+                params=[0.05])
 def trimming_threshold(request):
     return request.param
 

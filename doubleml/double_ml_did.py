@@ -210,9 +210,17 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0['targets'] = g_hat0['targets'].astype(float)
         g_hat0['targets'][d == 1] = np.nan
 
-        # only relevant for observational or experimental setting
+        g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
+
+        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat1['targets'] = g_hat1['targets'].astype(float)
+        g_hat1['targets'][d == 0] = np.nan
+
+        # only relevant for observational setting
         m_hat = {'preds': None, 'targets': None, 'models': None}
-        g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'observational':
             # nuisance m
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -221,16 +229,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
             m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
-
-        if self.score == 'experimental':
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][d == 0] = np.nan
 
         # nuisance estimates of the uncond. treatment prob.
         p_hat = np.full_like(d, np.nan, dtype='float64')
@@ -310,26 +308,26 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g0_tune_res = _dml_tune(y, x, train_inds_d0,
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g1_tune_res = _dml_tune(y, x, train_inds_d1,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        
+        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+
         m_tune_res = list()
         if self.score == 'observational':
             m_tune_res = _dml_tune(d, x, train_inds,
                                    self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g1_tune_res = list()
-        if self.score == 'experimental':
-            g1_tune_res = _dml_tune(y, x, train_inds_d1,
-                                    self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        if self.score == 'observational':
             m_best_params = [xx.best_params_ for xx in m_tune_res]
             params = {'ml_g0': g0_best_params,
+                      'ml_g1': g1_best_params,
                       'ml_m': m_best_params}
             tune_res = {'g0_tune': g0_tune_res,
+                        'g1_tune': g1_tune_res,
                         'm_tune': m_tune_res}
         else:
-            g1_best_params = [xx.best_params_ for xx in g1_tune_res]
             params = {'ml_g0': g0_best_params,
                       'ml_g1': g1_best_params}
             tune_res = {'g0_tune': g0_tune_res,
