@@ -289,6 +289,63 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
+    def _sensitivity_element_est(self, preds):
+        # set elments for readability
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        m_hat = preds['predictions']['ml_m']
+        g_hat0 = preds['predictions']['ml_g0']
+        g_hat1 = preds['predictions']['ml_g1']
+
+        # compute the sensitivity elements 
+        scaling = np.divide(1.0, -np.mean(self._psi_elements['psi_a'][:, self._i_rep, self._i_treat]))
+        psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
+
+        if self.score == 'observational':
+            if self.in_sample_normalization:
+                pass
+            else:
+                pass
+        else:
+            assert self.score == 'experimental'
+            if self.in_sample_normalization:
+                pass
+            else:
+                pass
+
+        # use weights make this extendable
+        if self.score == 'ATE':
+            weights = np.ones_like(d)
+            weights_bar = np.ones_like(d)
+        else:
+            assert self.score == 'ATTE'
+            weights = np.divide(d, np.mean(d))
+            weights_bar = np.divide(m_hat, np.mean(d))
+
+        # compute the sensitivity elements 
+        scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))
+        psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_scaled': psi_scaled,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
+        return element_dict
+
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -337,6 +394,3 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
-
-    def _sensitivity_element_est(self, preds):
-        pass
