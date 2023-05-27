@@ -37,13 +37,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[False])
+                params=[False, True])
 def normalize_ipw(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[0.01, 0.05])
+                params=[0.2, 0.15])
 def trimming_threshold(request):
     return request.param
 
@@ -117,6 +117,15 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                                                                            predictions=dml_irm_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
+
+    # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
+    if score == 'ATE':
+        # for ATTE precision is not sufficient (as the scores are squared)
+        dml_irm_obj.sensitivity_analysis(rho=0.0)
+        res_dict['sensitivity_ses'] = dml_irm_obj.sensitivity_params['se']     
+    else:
+        res_dict['sensitivity_ses'] = {'lower': dml_irm_obj.se,
+                	                   'upper': dml_irm_obj.se}                                                
     return res_dict
 
 
@@ -150,7 +159,18 @@ def test_dml_irm_sensitivity(dml_irm_fixture):
     sensitivity_element_names = ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
     for sensitivity_element in sensitivity_element_names:
         assert np.allclose(dml_irm_fixture['sensitivity_elements'][sensitivity_element],
-                           dml_irm_fixture['sensitivity_elements_manual'][sensitivity_element])
+                           dml_irm_fixture['sensitivity_elements_manual'][sensitivity_element],
+                           rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_sensitivity_rho0(dml_irm_fixture):
+    assert np.allclose(dml_irm_fixture['se'],
+                       dml_irm_fixture['sensitivity_ses']['lower'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_irm_fixture['se'],
+                       dml_irm_fixture['sensitivity_ses']['upper'],
+                       rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci

@@ -317,8 +317,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _sensitivity_element_est(self, preds):
-        if self.normalize_ipw:
-            raise NotImplementedError("Sensitivity analysis not yet implemented with normalize_ipw.")
         # set elments for readability
         y = self._dml_data.y
         d = self._dml_data.d

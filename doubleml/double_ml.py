@@ -87,7 +87,7 @@ class DoubleML(ABC):
 
         # set resampling specifications
         if self._is_cluster_data:
-            if (n_folds == 1) | (not apply_cross_fitting):
+            if (n_folds == 1) or (not apply_cross_fitting):
                 raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
                                           'is not yet implemented with clustering.')
             self._n_folds_per_cluster = n_folds
@@ -1532,7 +1532,7 @@ class DoubleML(ABC):
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
 
-        if (sigma2 < 0) | (nu2 < 0):
+        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
             raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
                              f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
                              'Most likely this is due to low quality learners (especially propensity scores).')

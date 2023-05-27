@@ -345,13 +345,13 @@ def test_rmses():
 
 @pytest.mark.ci
 def test_sensitivity():
-    #assert isinstance(plr_dml1.sensitivity_summary, str)
-    #plr_dml1.sensitivity_analysis()
-    #assert isinstance(plr_dml1.sensitivity_summary, str)
-    #assert isinstance(plr_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
-    #assert isinstance(plr_dml1.sensitivity_plot(value='ci'), plotly.graph_objs._figure.Figure)
-    #assert isinstance(plr_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
-    #assert isinstance(plr_dml1._calc_robustness_value(theta=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
+    assert isinstance(plr_dml1.sensitivity_summary, str)
+    plr_dml1.sensitivity_analysis()
+    assert isinstance(plr_dml1.sensitivity_summary, str)
+    assert isinstance(plr_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    assert isinstance(plr_dml1.sensitivity_plot(value='ci'), plotly.graph_objs._figure.Figure)
+    assert isinstance(plr_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(plr_dml1._calc_robustness_value(theta=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
 
     assert isinstance(irm_dml1.sensitivity_summary, str)
     irm_dml1.sensitivity_analysis()

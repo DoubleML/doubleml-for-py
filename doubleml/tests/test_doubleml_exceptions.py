@@ -973,12 +973,6 @@ def test_doubleml_sensitivity_not_yet_implemented():
     with pytest.raises(NotImplementedError, match=msg):
         _ = dml_pliv.sensitivity_analysis()
 
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), normalize_ipw=True)
-
-    msg = ("Sensitivity analysis not yet implemented with normalize_ipw.")
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_irm.fit()
-
 
 def test_doubleml_sensitivity_inputs():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
