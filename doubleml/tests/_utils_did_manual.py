@@ -233,3 +233,51 @@ def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g0_best_params, g1_best_params, m_best_params
+
+
+def fit_sensitivity_elements_did(y, d, all_coef, predictions, score, in_sample_normalization, n_rep):
+    n_treat = 1
+    n_obs = len(y)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+
+        m_hat = predictions['ml_m'][:, i_rep, 0]
+        g_hat0 = predictions['ml_g0'][:, i_rep, 0]
+        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
+        psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
+
+        if score == 'observational':
+            propensity_weight_d0 = np.divide(m_hat, 1.0-m_hat)
+            if in_sample_normalization:
+                m_alpha_1 = np.divide(d, np.mean(d))
+                m_alpha_2 = np.divide(1, np.mean(d)) + \
+                    np.divide(propensity_weight_d0, np.mean(np.multiply(1.0-d, propensity_weight_d0)))
+                m_alpha = np.multiply(m_alpha_1, m_alpha_2)
+                rr_1 = np.multiply(1.0-d, propensity_weight_d0)
+                rr = np.divide(d, np.mean(d)) - np.divide(rr_1, np.mean(rr_1))
+            else:
+                m_alpha_1 = np.divide(d, np.square(np.mean(d)))
+                m_alpha = np.multiply(m_alpha_1, 1.0+propensity_weight_d0)
+                rr = np.divide(d, np.mean(d)) - np.multiply(np.divide(1.0-d, np.mean(d)), propensity_weight_d0)
+        else:
+            assert score == 'experimental'
+            m_alpha = np.divide(1.0, np.mean(d)) + np.divide(1.0, 1.0-np.mean(d))
+            rr = np.divide(d, np.mean(d)) - np.divide(1.0-d, 1.0-np.mean(d))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2[0, i_rep, 0] = np.mean(nu2_score_element)
+        psi_nu2[:, i_rep, 0] = nu2_score_element - nu2[0, i_rep, 0]
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict

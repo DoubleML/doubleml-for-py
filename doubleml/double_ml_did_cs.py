@@ -147,6 +147,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+        self._sensitivity_implemented = True
+
     @property
     def in_sample_normalization(self):
         """
@@ -384,15 +386,16 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         t = self._dml_data.t
 
         m_hat = preds['predictions']['ml_m']
-        g_hat_d0_t0 = preds['predictions']['g_hat_d0_t0']
-        g_hat_d0_t1 = preds['predictions']['g_hat_d0_t1']
-        g_hat_d1_t0 = preds['predictions']['g_hat_d1_t0']
-        g_hat_d1_t1 = preds['predictions']['g_hat_d1_t1']
+        g_hat_d0_t0 = preds['predictions']['ml_g_d0_t0']
+        g_hat_d0_t1 = preds['predictions']['ml_g_d0_t1']
+        g_hat_d1_t0 = preds['predictions']['ml_g_d1_t0']
+        g_hat_d1_t1 = preds['predictions']['ml_g_d1_t1']
 
         d0t0 = np.multiply(1.0-d, 1.0-t)
         d0t1 = np.multiply(1.0-d, t)
         d1t0 = np.multiply(d, 1.0-t)
         d1t1 = np.multiply(d, t)
+
         g_hat = np.multiply(d0t0, g_hat_d0_t0) + np.multiply(d0t1, g_hat_d0_t1) + \
             np.multiply(d1t0, g_hat_d1_t0) + np.multiply(d1t1, g_hat_d1_t1)
         sigma2_score_element = np.square(y - g_hat)
@@ -429,7 +432,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 rr = np.multiply(rr_1, rr_2)
         else:
             assert self.score == 'experimental'
-            if self.score == 'observational':
+            if self.in_sample_normalization:
                 m_alpha = np.divide(1.0, np.mean(d1t1)) + \
                     np.divide(1.0, np.mean(d1t0)) + \
                     np.divide(1.0, np.mean(d0t1)) + \

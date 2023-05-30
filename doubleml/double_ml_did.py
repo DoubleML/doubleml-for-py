@@ -147,6 +147,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+        self._sensitivity_implemented = True
+
     @property
     def in_sample_normalization(self):
         """
@@ -297,7 +299,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        g_hat = np.multiply(d, g_hat1) + np.multiply(1.0-d, g_hat0)
+        sigma2_score_element = np.square(y - g_hat)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
