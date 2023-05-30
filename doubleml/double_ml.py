@@ -354,7 +354,7 @@ class DoubleML(ABC):
     def sensitivity_elements(self):
         """
         Values of the sensitivity components after calling :meth:`fit`;
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_scaled``, ``psi_sigma2``
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
         and ``psi_nu2``.
         """
         return self._sensitivity_elements
@@ -1483,13 +1483,12 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
+        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
         sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                'psi_scaled': np.full(score_dim, np.nan),
                                 'psi_sigma2': np.full(score_dim, np.nan),
                                 'psi_nu2': np.full(score_dim, np.nan)}
         return sensitivity_elements
@@ -1528,9 +1527,9 @@ class DoubleML(ABC):
         # set elements for readability
         sigma2 = self.sensitivity_elements['sigma2']
         nu2 = self.sensitivity_elements['nu2']
-        psi = self.sensitivity_elements['psi_scaled']
         psi_sigma = self.sensitivity_elements['psi_sigma2']
         psi_nu = self.sensitivity_elements['psi_nu2']
+        psi_scaled = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
 
         if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
             raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
@@ -1547,8 +1546,8 @@ class DoubleML(ABC):
 
         psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
         psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
-        psi_lower = psi - psi_bias
-        psi_upper = psi + psi_bias
+        psi_lower = psi_scaled - psi_bias
+        psi_upper = psi_scaled + psi_bias
 
         # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
         all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)

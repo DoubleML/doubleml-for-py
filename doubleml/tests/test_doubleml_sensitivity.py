@@ -69,6 +69,8 @@ def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level, theta=0.0)
     res_manual = doubleml_sensitivity_manual(sensitivity_elements=dml_plr_obj.sensitivity_elements,
                                              all_coefs=dml_plr_obj.all_coef,
+                                             psi=dml_plr_obj.psi,
+                                             psi_deriv=dml_plr_obj.psi_deriv,
                                              cf_y=cf_y,
                                              cf_d=cf_d,
                                              rho=rho,

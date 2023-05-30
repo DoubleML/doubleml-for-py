@@ -325,9 +325,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        psi = self._psi[:, self._i_rep, self._i_treat]
-        psi_deriv = self._psi_deriv[:, self._i_rep, self._i_treat]
-
         # use weights make this extendable
         if self.score == 'ATE':
             weights = np.ones_like(d)
@@ -336,9 +333,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             assert self.score == 'ATTE'
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
-
-        # compute the sensitivity elements
-        psi_scaled = np.divide(psi, np.mean(psi_deriv))
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
@@ -354,7 +348,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         element_dict = {'sigma2': sigma2,
                         'nu2': nu2,
-                        'psi_scaled': psi_scaled,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}
         return element_dict

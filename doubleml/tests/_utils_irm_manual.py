@@ -277,13 +277,12 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     return boot_theta, boot_t_stat
 
 
-def fit_sensitivity_elements_irm(y, d, all_coef, psi, psi_deriv, predictions, score, n_rep):
+def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
     n_treat = 1
     n_obs = len(y)
 
     sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
     nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
-    psi_scaled = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
     psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 
@@ -301,8 +300,6 @@ def fit_sensitivity_elements_irm(y, d, all_coef, psi, psi_deriv, predictions, sc
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
 
-        psi_scaled[:, i_rep, 0] = np.divide(psi[:, i_rep, 0], np.mean(psi_deriv[:, i_rep, 0]))
-
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
         psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
@@ -317,7 +314,6 @@ def fit_sensitivity_elements_irm(y, d, all_coef, psi, psi_deriv, predictions, sc
 
     element_dict = {'sigma2': sigma2,
                     'nu2': nu2,
-                    'psi_scaled': psi_scaled,
                     'psi_sigma2': psi_sigma2,
                     'psi_nu2': psi_nu2}
     return element_dict

@@ -295,8 +295,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
 
         m_hat = preds['predictions']['ml_m']
-        psi = self._psi[:, self._i_rep, self._i_treat]
-        psi_deriv = self._psi_deriv[:, self._i_rep, self._i_treat]
         theta = self.all_coef[self._i_treat, self._i_rep]
 
         if self.score == 'partialling out':
@@ -307,9 +305,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             g_hat = preds['predictions']['ml_g']
             sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
 
-        # compute the sensitivity elements
-        psi_scaled = np.divide(psi, np.mean(psi_deriv))
-
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
@@ -318,7 +313,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         element_dict = {'sigma2': sigma2,
                         'nu2': nu2,
-                        'psi_scaled': psi_scaled,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}
         return element_dict

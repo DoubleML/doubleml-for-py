@@ -113,8 +113,6 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
     res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_irm(y, d,
                                                                            all_coef=dml_irm_obj.all_coef,
-                                                                           psi=dml_irm_obj.psi,
-                                                                           psi_deriv=dml_irm_obj.psi_deriv,
                                                                            predictions=dml_irm_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
@@ -152,7 +150,7 @@ def test_dml_irm_boot(dml_irm_fixture):
 
 @pytest.mark.ci
 def test_dml_irm_sensitivity(dml_irm_fixture):
-    sensitivity_element_names = ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
     for sensitivity_element in sensitivity_element_names:
         assert np.allclose(dml_irm_fixture['sensitivity_elements'][sensitivity_element],
                            dml_irm_fixture['sensitivity_elements_manual'][sensitivity_element],

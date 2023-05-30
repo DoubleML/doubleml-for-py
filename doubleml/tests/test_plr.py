@@ -100,8 +100,6 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_plr(y, d.reshape(-1, 1),
                                                                            all_coef=dml_plr_obj.all_coef,
-                                                                           psi=dml_plr_obj.psi,
-                                                                           psi_deriv=dml_plr_obj.psi_deriv,
                                                                            predictions=dml_plr_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
@@ -138,7 +136,7 @@ def test_dml_plr_boot(dml_plr_fixture):
 
 @pytest.mark.ci
 def test_dml_plr_sensitivity(dml_plr_fixture):
-    sensitivity_element_names = ['sigma2', 'nu2', 'psi_scaled', 'psi_sigma2', 'psi_nu2']
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
     for sensitivity_element in sensitivity_element_names:
         assert np.allclose(dml_plr_fixture['sensitivity_elements'][sensitivity_element],
                            dml_plr_fixture['sensitivity_elements_manual'][sensitivity_element])

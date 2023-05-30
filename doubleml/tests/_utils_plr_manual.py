@@ -342,7 +342,7 @@ def boot_plr_single_split(theta, y, d, l_hat, m_hat, g_hat,
     return boot_theta, boot_t_stat
 
 
-def fit_sensitivity_elements_plr(y, d, all_coef, psi, psi_deriv, predictions, score, n_rep):
+def fit_sensitivity_elements_plr(y, d, all_coef, predictions, score, n_rep):
     n_treat = d.shape[1]
     n_obs = len(y)
 
@@ -365,8 +365,6 @@ def fit_sensitivity_elements_plr(y, d, all_coef, psi, psi_deriv, predictions, sc
                 g_hat = predictions['ml_g'][:, i_rep, i_treat]
                 sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d_tilde))
 
-            psi_scaled[:, i_rep, i_treat] = np.divide(psi[:, i_rep, i_treat], np.mean(psi_deriv[:, i_rep, i_treat]))
-
             sigma2[0, i_rep, i_treat] = np.mean(sigma2_score_element)
             psi_sigma2[:, i_rep, i_treat] = sigma2_score_element - sigma2[0, i_rep, i_treat]
 
@@ -376,7 +374,6 @@ def fit_sensitivity_elements_plr(y, d, all_coef, psi, psi_deriv, predictions, sc
 
     element_dict = {'sigma2': sigma2,
                     'nu2': nu2,
-                    'psi_scaled': psi_scaled,
                     'psi_sigma2': psi_sigma2,
                     'psi_nu2': psi_nu2}
     return element_dict
