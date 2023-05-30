@@ -348,7 +348,6 @@ def fit_sensitivity_elements_plr(y, d, all_coef, predictions, score, n_rep):
 
     sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
     nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
-    psi_scaled = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
     psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 

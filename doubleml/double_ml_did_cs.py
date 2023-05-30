@@ -299,6 +299,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         resid_d1_t0 = y - g_hat_d1_t0
         resid_d1_t1 = y - g_hat_d1_t1
 
+        d1t1 = np.multiply(d, t)
+        d1t0 = np.multiply(d, 1.0-t)
+        d0t1 = np.multiply(1.0-d, t)
+        d0t0 = np.multiply(1.0-d, 1.0-t)
+
         if self.score == 'observational':
             if self.in_sample_normalization:
                 weight_psi_a = np.divide(d, np.mean(d))
@@ -307,16 +312,14 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 weight_g_d0_t1 = -1.0 * weight_psi_a
                 weight_g_d0_t0 = weight_psi_a
 
-                weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                               np.mean(np.multiply(d, t)))
-                weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                                      np.mean(np.multiply(d, 1.0-t)))
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
 
                 prop_weighting = np.divide(m_hat, 1.0-m_hat)
-                unscaled_d0_t1 = np.multiply(np.multiply(1.0-d, t), prop_weighting)
+                unscaled_d0_t1 = np.multiply(d0t1, prop_weighting)
                 weight_resid_d0_t1 = -1.0 * np.divide(unscaled_d0_t1, np.mean(unscaled_d0_t1))
 
-                unscaled_d0_t0 = np.multiply(np.multiply(1.0-d, 1.0-t), prop_weighting)
+                unscaled_d0_t0 = np.multiply(d0t0, prop_weighting)
                 weight_resid_d0_t0 = np.divide(unscaled_d0_t0, np.mean(unscaled_d0_t0))
             else:
                 weight_psi_a = np.divide(d, p_hat)
@@ -325,17 +328,13 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 weight_g_d0_t1 = -1.0 * weight_psi_a
                 weight_g_d0_t0 = weight_psi_a
 
-                weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                               np.multiply(p_hat, lambda_hat))
-                weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                                      np.multiply(p_hat, 1.0-lambda_hat))
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0-lambda_hat))
 
                 prop_weighting = np.divide(m_hat, 1.0-m_hat)
-                weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(np.multiply(1.0-d, t),
-                                                                  np.multiply(p_hat, lambda_hat)),
+                weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(d0t1, np.multiply(p_hat, lambda_hat)),
                                                         prop_weighting)
-                weight_resid_d0_t0 = np.multiply(np.divide(np.multiply(1.0-d, 1.0-t),
-                                                           np.multiply(p_hat, 1.0-lambda_hat)),
+                weight_resid_d0_t0 = np.multiply(np.divide(d0t0, np.multiply(p_hat, 1.0-lambda_hat)),
                                                  prop_weighting)
         else:
             assert self.score == 'experimental'
@@ -346,14 +345,10 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 weight_g_d0_t1 = -1.0 * weight_psi_a
                 weight_g_d0_t0 = weight_psi_a
 
-                weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                               np.mean(np.multiply(d, t)))
-                weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                                      np.mean(np.multiply(d, 1.0-t)))
-                weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
-                                                      np.mean(np.multiply(1.0-d, t)))
-                weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
-                                               np.mean(np.multiply(1.0-d, 1.0-t)))
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.mean(d0t1))
+                weight_resid_d0_t0 = np.divide(d0t0, np.mean(d0t0))
             else:
                 weight_psi_a = np.ones_like(y)
                 weight_g_d1_t1 = weight_psi_a
@@ -361,14 +356,10 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 weight_g_d0_t1 = -1.0 * weight_psi_a
                 weight_g_d0_t0 = weight_psi_a
 
-                weight_resid_d1_t1 = np.divide(np.multiply(d, t),
-                                               np.multiply(p_hat, lambda_hat))
-                weight_resid_d1_t0 = -1.0 * np.divide(np.multiply(d, 1.0-t),
-                                                      np.multiply(p_hat, 1.0-lambda_hat))
-                weight_resid_d0_t1 = -1.0 * np.divide(np.multiply(1.0-d, t),
-                                                      np.multiply(1.0-p_hat, lambda_hat))
-                weight_resid_d0_t0 = np.divide(np.multiply(1.0-d, 1.0-t),
-                                               np.multiply(1.0-p_hat, 1.0-lambda_hat))
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0-lambda_hat))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.multiply(1.0-p_hat, lambda_hat))
+                weight_resid_d0_t0 = np.divide(d0t0, np.multiply(1.0-p_hat, 1.0-lambda_hat))
 
         # set score elements
         psi_a = -1.0 * weight_psi_a
@@ -386,6 +377,86 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         psi_b = psi_b_1 + psi_b_2
 
         return psi_a, psi_b
+
+    def _sensitivity_element_est(self, preds):
+        y = self._dml_data.y
+        d = self._dml_data.d
+        t = self._dml_data.t
+
+        m_hat = preds['predictions']['ml_m']
+        g_hat_d0_t0 = preds['predictions']['g_hat_d0_t0']
+        g_hat_d0_t1 = preds['predictions']['g_hat_d0_t1']
+        g_hat_d1_t0 = preds['predictions']['g_hat_d1_t0']
+        g_hat_d1_t1 = preds['predictions']['g_hat_d1_t1']
+
+        d0t0 = np.multiply(1.0-d, 1.0-t)
+        d0t1 = np.multiply(1.0-d, t)
+        d1t0 = np.multiply(d, 1.0-t)
+        d1t1 = np.multiply(d, t)
+        g_hat = np.multiply(d0t0, g_hat_d0_t0) + np.multiply(d0t1, g_hat_d0_t1) + \
+            np.multiply(d1t0, g_hat_d1_t0) + np.multiply(d1t1, g_hat_d1_t1)
+        sigma2_score_element = np.square(y - g_hat)
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        # calc m(W,alpha) and Riesz representer
+        p_hat = np.mean(d)
+        lambda_hat = np.mean(t)
+        if self.score == 'observational':
+            propensity_weight_d0 = np.divide(m_hat, 1.0-m_hat)
+            if self.in_sample_normalization:
+                weight_d0t1 = np.multiply(d0t1, propensity_weight_d0)
+                weight_d0t0 = np.multiply(d0t0, propensity_weight_d0)
+                mean_weight_d0t1 = np.mean(weight_d0t1)
+                mean_weight_d0t0 = np.mean(weight_d0t0)
+
+                m_alpha = np.multiply(np.divide(d, p_hat),
+                                      np.divide(1.0, np.mean(d1t1)) +
+                                      np.divide(1.0, np.mean(d1t0)) +
+                                      np.divide(propensity_weight_d0, mean_weight_d0t1) +
+                                      np.divide(propensity_weight_d0, mean_weight_d0t0))
+
+                rr = np.divide(d1t1, np.mean(d1t1)) - \
+                    np.divide(d1t0, np.mean(d1t0)) - \
+                    np.divide(weight_d0t1, mean_weight_d0t1) + \
+                    np.divide(weight_d0t0, mean_weight_d0t0)
+            else:
+                m_alpha_1 = np.divide(1.0, lambda_hat) + np.divide(1.0, 1.0-lambda_hat)
+                m_alpha = np.multiply(np.divide(d, np.square(p_hat)), np.multiply(m_alpha_1, 1.0 + propensity_weight_d0))
+
+                rr_1 = np.divide(t, np.multiply(p_hat, lambda_hat)) + np.divide(1.0-t, np.multiply(p_hat, 1.0-lambda_hat))
+                rr_2 = d + np.multiply(1.0-d, propensity_weight_d0)
+                rr = np.multiply(rr_1, rr_2)
+        else:
+            assert self.score == 'experimental'
+            if self.score == 'observational':
+                m_alpha = np.divide(1.0, np.mean(d1t1)) + \
+                    np.divide(1.0, np.mean(d1t0)) + \
+                    np.divide(1.0, np.mean(d0t1)) + \
+                    np.divide(1.0, np.mean(d0t0))
+                rr = np.divide(d1t1, np.mean(d1t1)) - \
+                    np.divide(d1t0, np.mean(d1t0)) - \
+                    np.divide(d0t1, np.mean(d0t1)) + \
+                    np.divide(d0t0, np.mean(d0t0))
+            else:
+                m_alpha = np.divide(1.0, np.multiply(p_hat, lambda_hat)) + \
+                    np.divide(1.0, np.multiply(p_hat, 1.0-lambda_hat)) + \
+                    np.divide(1.0, np.multiply(1.0-p_hat, lambda_hat)) + \
+                    np.divide(1.0, np.multiply(1.0-p_hat, 1.0-lambda_hat))
+                rr = np.divide(d1t1, np.multiply(p_hat, lambda_hat)) - \
+                    np.divide(d1t0, np.multiply(p_hat, 1.0-lambda_hat)) - \
+                    np.divide(d0t1, np.multiply(1.0-p_hat, lambda_hat)) + \
+                    np.divide(d0t0, np.multiply(1.0-p_hat, 1.0-lambda_hat))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
+        return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
@@ -461,6 +532,3 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
-
-    def _sensitivity_element_est(self, preds):
-        pass
