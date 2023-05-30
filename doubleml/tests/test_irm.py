@@ -113,19 +113,15 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
     res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_irm(y, d,
                                                                            all_coef=dml_irm_obj.all_coef,
-                                                                           psi_elements=dml_irm_obj.psi_elements,
+                                                                           psi=dml_irm_obj.psi,
+                                                                           psi_deriv=dml_irm_obj.psi_deriv,
                                                                            predictions=dml_irm_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
 
     # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
-    if score == 'ATE':
-        # for ATTE precision is not sufficient (as the scores are squared)
-        dml_irm_obj.sensitivity_analysis(rho=0.0)
-        res_dict['sensitivity_ses'] = dml_irm_obj.sensitivity_params['se']     
-    else:
-        res_dict['sensitivity_ses'] = {'lower': dml_irm_obj.se,
-                	                   'upper': dml_irm_obj.se}                                                
+    dml_irm_obj.sensitivity_analysis(rho=0.0)
+    res_dict['sensitivity_ses'] = dml_irm_obj.sensitivity_params['se']
     return res_dict
 
 

@@ -68,10 +68,10 @@ def fit_nuisance_did(y, x, d, learner_g, learner_m, smpls, score,
     train_cond0 = np.where(d == 0)[0]
     g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                               train_cond=train_cond0)
-    
+
     train_cond1 = np.where(d == 1)[0]
     g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                train_cond=train_cond1)
+                              train_cond=train_cond1)
     if score == 'experimental':
         m_hat_list = list()
         for idx, _ in enumerate(smpls):
@@ -222,7 +222,7 @@ def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
 
     train_cond1 = np.where(d == 1)[0]
     g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                    train_cond=train_cond1)
+                                   train_cond=train_cond1)
     g1_best_params = [xx.best_params_ for xx in g1_tune_res]
 
     if score == 'experimental':

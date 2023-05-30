@@ -342,7 +342,7 @@ def boot_plr_single_split(theta, y, d, l_hat, m_hat, g_hat,
     return boot_theta, boot_t_stat
 
 
-def fit_sensitivity_elements_plr(y, d, all_coef, psi_elements, predictions, score, n_rep):
+def fit_sensitivity_elements_plr(y, d, all_coef, psi, psi_deriv, predictions, score, n_rep):
     n_treat = d.shape[1]
     n_obs = len(y)
 
@@ -356,8 +356,6 @@ def fit_sensitivity_elements_plr(y, d, all_coef, psi_elements, predictions, scor
         for i_treat in range(n_treat):
             d_tilde = d[:, i_treat]
             m_hat = predictions['ml_m'][:, i_rep, i_treat]
-            psi_a = psi_elements['psi_a'][:, i_rep, i_treat]
-            psi_b = psi_elements['psi_b'][:, i_rep, i_treat]
             theta = all_coef[i_treat, i_rep]
             if score == 'partialling out':
                 l_hat = predictions['ml_l'][:, i_rep, i_treat]
@@ -367,7 +365,7 @@ def fit_sensitivity_elements_plr(y, d, all_coef, psi_elements, predictions, scor
                 g_hat = predictions['ml_g'][:, i_rep, i_treat]
                 sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d_tilde))
 
-            psi_scaled[:, i_rep, i_treat] = np.divide(psi_b, np.multiply(-1.0, np.mean(psi_a))) - theta
+            psi_scaled[:, i_rep, i_treat] = np.divide(psi[:, i_rep, i_treat], np.mean(psi_deriv[:, i_rep, i_treat]))
 
             sigma2[0, i_rep, i_treat] = np.mean(sigma2_score_element)
             psi_sigma2[:, i_rep, i_treat] = sigma2_score_element - sigma2[0, i_rep, i_treat]

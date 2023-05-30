@@ -41,7 +41,7 @@ def score(request):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_multiway_cluster_sensitivity_rho0(dml_procedure, score):
+def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
     n_folds = 3
     cf_y = 0.03
     cf_d = 0.04
@@ -79,17 +79,17 @@ def dml_pliv_multiway_cluster_sensitivity_rho0(dml_procedure, score):
 
 
 @pytest.mark.ci
-def test_dml_pliv_multiway_cluster_sensitivity_coef(dml_pliv_multiway_cluster_sensitivity_rho0):
-    assert math.isclose(dml_pliv_multiway_cluster_sensitivity_rho0['coef'],
-                        dml_pliv_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['lower'],
+def test_dml_plr_multiway_cluster_sensitivity_coef(dml_plr_multiway_cluster_sensitivity_rho0):
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
+                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['lower'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_pliv_multiway_cluster_sensitivity_rho0['coef'],
-                        dml_pliv_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
+                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_multiway_cluster_sensitivity_rho0_se(dml_procedure):
+def dml_plr_multiway_cluster_sensitivity_rho0_se(dml_procedure):
     n_folds = 3
     cf_y = 0.03
     cf_d = 0.04
@@ -116,12 +116,13 @@ def dml_pliv_multiway_cluster_sensitivity_rho0_se(dml_procedure):
 
     return res_dict
 
+
 # only valid for 'partialling out '; This might have slightly less precision in the calculations
 @pytest.mark.ci
-def test_dml_pliv_multiway_cluster_sensitivity_se(dml_pliv_multiway_cluster_sensitivity_rho0_se):
-    assert math.isclose(dml_pliv_multiway_cluster_sensitivity_rho0_se['se'],
-                        dml_pliv_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['lower'],
+def test_dml_pliv_multiway_cluster_sensitivity_se(dml_plr_multiway_cluster_sensitivity_rho0_se):
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'],
+                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['lower'],
                         rel_tol=1e-9, abs_tol=1e-3)
-    assert math.isclose(dml_pliv_multiway_cluster_sensitivity_rho0_se['se'],
-                        dml_pliv_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['upper'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'],
+                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['upper'],
                         rel_tol=1e-9, abs_tol=1e-3)

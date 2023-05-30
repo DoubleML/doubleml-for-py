@@ -73,7 +73,7 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
                                         train_cond=train_cond1)
     else:
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                    train_cond=train_cond1)
+                                  train_cond=train_cond1)
 
     ml_m = clone(learner_m)
     m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
@@ -94,7 +94,7 @@ def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
 
     train_cond1 = np.where(d == 1)[0]
     g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                    train_cond=train_cond1)
+                                   train_cond=train_cond1)
 
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
@@ -277,7 +277,7 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     return boot_theta, boot_t_stat
 
 
-def fit_sensitivity_elements_irm(y, d, all_coef, psi_elements, predictions, score, n_rep):
+def fit_sensitivity_elements_irm(y, d, all_coef, psi, psi_deriv, predictions, score, n_rep):
     n_treat = 1
     n_obs = len(y)
 
@@ -292,9 +292,6 @@ def fit_sensitivity_elements_irm(y, d, all_coef, psi_elements, predictions, scor
         m_hat = predictions['ml_m'][:, i_rep, 0]
         g_hat0 = predictions['ml_g0'][:, i_rep, 0]
         g_hat1 = predictions['ml_g1'][:, i_rep, 0]
-        psi_a = psi_elements['psi_a'][:, i_rep, 0]
-        psi_b = psi_elements['psi_b'][:, i_rep, 0]
-        theta = all_coef[0, i_rep]
 
         if score == 'ATE':
             weights = np.ones_like(d)
@@ -304,7 +301,7 @@ def fit_sensitivity_elements_irm(y, d, all_coef, psi_elements, predictions, scor
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
 
-        psi_scaled[:, i_rep, 0] = np.divide(psi_b, np.multiply(-1.0, np.mean(psi_a))) - theta
+        psi_scaled[:, i_rep, 0] = np.divide(psi[:, i_rep, 0], np.mean(psi_deriv[:, i_rep, 0]))
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)

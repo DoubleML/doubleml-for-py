@@ -100,11 +100,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
     res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_plr(y, d.reshape(-1, 1),
                                                                            all_coef=dml_plr_obj.all_coef,
-                                                                           psi_elements=dml_plr_obj.psi_elements,
+                                                                           psi=dml_plr_obj.psi,
+                                                                           psi_deriv=dml_plr_obj.psi_deriv,
                                                                            predictions=dml_plr_obj.predictions,
                                                                            score=score,
                                                                            n_rep=1)
-   
+    # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
+    dml_plr_obj.sensitivity_analysis(rho=0.0)
+    res_dict['sensitivity_ses'] = dml_plr_obj.sensitivity_params['se']
     return res_dict
 
 
@@ -139,6 +142,16 @@ def test_dml_plr_sensitivity(dml_plr_fixture):
     for sensitivity_element in sensitivity_element_names:
         assert np.allclose(dml_plr_fixture['sensitivity_elements'][sensitivity_element],
                            dml_plr_fixture['sensitivity_elements_manual'][sensitivity_element])
+
+
+@pytest.mark.ci
+def test_dml_plr_sensitivity_rho0(dml_plr_fixture):
+    assert np.allclose(dml_plr_fixture['se'],
+                       dml_plr_fixture['sensitivity_ses']['lower'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_plr_fixture['se'],
+                       dml_plr_fixture['sensitivity_ses']['upper'],
+                       rtol=1e-9, atol=1e-4)
 
 
 @pytest.fixture(scope="module")

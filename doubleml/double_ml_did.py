@@ -298,7 +298,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        # compute the sensitivity elements 
+        # compute the sensitivity elements
         scaling = np.divide(1.0, -np.mean(self._psi_elements['psi_a'][:, self._i_rep, self._i_treat]))
         psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
 
@@ -323,7 +323,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
 
-        # compute the sensitivity elements 
+        # compute the sensitivity elements
         scaling = np.divide(1.0, np.mean(np.square(d - m_hat)))
         psi_scaled = np.multiply(scaling, self._psi[:, self._i_rep, self._i_treat])
 
@@ -368,7 +368,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g1_tune_res = _dml_tune(y, x, train_inds_d1,
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        
+
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
 

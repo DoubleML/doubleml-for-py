@@ -325,9 +325,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        psi_a = self._psi_elements['psi_a'][:, self._i_rep, self._i_treat]
-        psi_b = self._psi_elements['psi_b'][:, self._i_rep, self._i_treat]
-        theta = self.all_coef[self._i_treat, self._i_rep]
+        psi = self._psi[:, self._i_rep, self._i_treat]
+        psi_deriv = self._psi_deriv[:, self._i_rep, self._i_treat]
 
         # use weights make this extendable
         if self.score == 'ATE':
@@ -339,7 +338,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             weights_bar = np.divide(m_hat, np.mean(d))
 
         # compute the sensitivity elements
-        psi_scaled = np.divide(psi_b, np.multiply(-1.0, np.mean(psi_a))) - theta 
+        psi_scaled = np.divide(psi, np.mean(psi_deriv))
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
@@ -391,7 +390,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
-        
+
         params = {'ml_g0': g0_best_params,
                   'ml_g1': g1_best_params,
                   'ml_m': m_best_params}
