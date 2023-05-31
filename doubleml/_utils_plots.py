@@ -9,6 +9,7 @@ def _sensitivity_contour_plot(x,
                               scenario_x,
                               scenario_y,
                               scenario_value,
+                              include_scenario,
                               fill=True):
 
     if fill:
@@ -33,17 +34,17 @@ def _sensitivity_contour_plot(x,
                                            labelfont=dict(size=12, color=text_col)),
                              name='Contour'))
 
-    # add scenario
-    fig.add_trace(go.Scatter(x=[scenario_x],
-                             y=[scenario_y],
-                             mode="markers+text",
-                             marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
-                             hovertemplate=hov_temp + f': {round(scenario_value, 3)}' + '</b>',
-                             name='Scenario',
-                             textfont=dict(color=text_col, size=14),
-                             text=['<b>Scenario</b>'],
-                             textposition="top right",
-                             showlegend=False))
+    if include_scenario:
+        fig.add_trace(go.Scatter(x=[scenario_x],
+                                    y=[scenario_y],
+                                    mode="markers+text",
+                                    marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
+                                    hovertemplate=hov_temp + f': {round(scenario_value, 3)}' + '</b>',
+                                    name='Scenario',
+                                    textfont=dict(color=text_col, size=14),
+                                    text=['<b>Scenario</b>'],
+                                    textposition="top right",
+                                    showlegend=False))
 
     # add unadjusted
     fig.add_trace(go.Scatter(x=[0],

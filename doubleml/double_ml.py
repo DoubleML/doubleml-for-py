@@ -1831,5 +1831,6 @@ class DoubleML(ABC):
                                         scenario_x=self.sensitivity_params['input']['cf_d'],
                                         scenario_y=self.sensitivity_params['input']['cf_y'],
                                         scenario_value=self.sensitivity_params[value][bound][idx_treatment],
+                                        include_scenario=include_scenario,
                                         fill=fill)
         return fig
