@@ -957,7 +957,7 @@ def make_confounded_irm_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04):
 
     The observed data is given as :math:`W = (Y, D, X)`.
     Further, orcale values of the confounder :math:`A`, the transformed covariated :math:`Z`,
-    the potential outcomes of :math:`Y`, the long and short forms of the main regression and the propensity score
+    the potential outcomes of :math:`Y`, the coefficients :math:`\\gamma_a`, :math:`\\beta_a`, the long and short forms of the main regression and the propensity score
     are returned in a dictionary.
 
     Parameters
@@ -1051,6 +1051,8 @@ def make_confounded_irm_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04):
                      'g_short': g_short,
                      'm_long': m_long,
                      'm_short': m_short,
+                     'gamma_a': gamma_a,
+                     'beta_a': beta_a,
                      'a': a,
                      'y0': y0,
                      'y1': y1,
@@ -1123,8 +1125,9 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
     Both are chosen to obtain the desired confounding of the outcome and Riesz Representer (in sample).
 
     The observed data is given as :math:`W = (Y, D, X)`.
-    Further, orcale values of the confounder :math:`A`, the transformed covariated :math:`Z`, the potential outcomes
-    of :math:`Y`, the long and short forms of the main regression and the propensity score are returned in a dictionary.
+    Further, orcale values of the confounder :math:`A`, the transformed covariated :math:`Z`, the effect :math:`\\theta`,
+    the coefficients :math:`\\gamma_a`, :math:`\\beta_a`, the long and short forms of the main regression and
+    the propensity score are returned in a dictionary.
 
     Parameters
     ----------
