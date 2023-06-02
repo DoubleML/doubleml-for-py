@@ -5,8 +5,26 @@ import pandas as pd
 from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015,\
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
+from doubleml.double_ml_data import DoubleMLBaseData
+
 from sklearn.linear_model import Lasso, LogisticRegression
 
+
+class DummyDataClass(DoubleMLBaseData):
+    def __init__(self, data):
+        DoubleMLBaseData.__init__(self, data)
+
+    @property
+    def n_coefs(self):
+        return 1
+
+
+@pytest.mark.ci
+def test_doubleml_basedata():
+    dummy_dml_data = DummyDataClass(pd.DataFrame(np.zeros((100, 10))))
+    assert dummy_dml_data.d_cols[0] == 'theta'
+    assert dummy_dml_data.n_treat == 1
+    assert dummy_dml_data.n_coefs == 1
 
 @pytest.fixture(scope="module")
 def dml_data_fixture(generate_data1):
@@ -157,11 +175,21 @@ def test_dml_data_no_instr_no_time():
 
 
 @pytest.mark.ci
-def test_dml_cluster_summary_with_time():
+def test_dml_summary_with_time():
     dml_data_did_cs = make_did_SZ2020(n_obs=200, cross_sectional_data=True)
     dml_did_cs = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
     assert isinstance(dml_did_cs.__str__(), str)
     assert isinstance(dml_did_cs.summary, pd.DataFrame)
+
+    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+    df = dml_data.data.copy().iloc[:, :11]
+    df.columns = [f'X{i + 1}' for i in np.arange(8)] + ['y', 'd1', 'd2']
+    print(df)
+    dml_data = DoubleMLClusterData(df, 'y', ['d1', 'd2'],
+                                   cluster_cols=[f'X{i + 1}' for i in [5, 6]],
+                                   x_cols=[f'X{i + 1}' for i in np.arange(5)],
+                                   t_col='X8')
+    assert isinstance(dml_data._data_summary_str(), str)
 
 
 @pytest.mark.ci

@@ -1064,7 +1064,7 @@ class DoubleML(ABC):
             where ``n`` specifies the number of observations. Remark that some models like IRM are
             not able to provide all values for ``y_true`` for all learners and might contain
             some ``nan`` values in the target vector.
-            Default is the euclidean distance.
+            Default is the root-mean-square error.
 
         Returns
         -------
@@ -1085,10 +1085,13 @@ class DoubleML(ABC):
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
         >>> dml_irm_obj.fit()
-        >>> dml_irm_obj.evaluate_learners(metric=mean_absolute_error)
-        {'ml_g0': array([[1.13318973]]),
-         'ml_g1': array([[0.91659939]]),
-         'ml_m': array([[0.36350912]])}
+        >>> def mae(y_true, y_pred):
+        >>>     subset = np.logical_not(np.isnan(y_true))
+        >>>     return mean_absolute_error(y_true[subset], y_pred[subset])
+        >>> dml_irm_obj.evaluate_learners(metric=mae)
+        {'ml_g0': array([[0.85974356]]),
+         'ml_g1': array([[0.85280376]]),
+         'ml_m': array([[0.35365143]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:

@@ -178,8 +178,12 @@ def test_doubleml_exception_data():
     df_iivm = dml_data_iivm.data.copy()
     df_iivm['z'] = df_iivm['z'] * 2
     with pytest.raises(ValueError, match=msg):
+        # no instrument Z for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', x_cols=['z']),
+                        LogisticRegression(), LogisticRegression(), treatment=1)
+    with pytest.raises(ValueError, match=msg):
         # non-binary Z for LPQ
-        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z']),
                         LogisticRegression(), LogisticRegression(), treatment=1)
 
     # CVAR with IV
@@ -470,10 +474,12 @@ def test_doubleml_exception_kde():
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, kde="0.1")
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, kde="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, kde="0.1")
 
 
 @pytest.mark.ci
-def test_doubleml_exception_normalization():
+def test_doubleml_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, ml_g, LogisticRegression(), normalize_ipw=1)
@@ -485,6 +491,8 @@ def test_doubleml_exception_normalization():
         _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, normalize_ipw=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, Lasso(), LogisticRegression(), treatment=1, normalize_ipw=1)
 
     # DID models in_sample_normalization
     msg = "in_sample_normalization indicator has to be boolean. Object of type <class 'int'> passed."
@@ -726,29 +734,6 @@ def test_doubleml_exception_tune():
         dml_plr_iv_type.tune({'ml_g': {'alpha': [0.05, 0.5]},
                               'ml_m': {'alpha': [0.05, 0.5]}})
 
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}},
-                     scoring_methods={'ml_g': 'explained_variance',
-                                      'ml_m': 'explained_variance'})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}},
-                      scoring_methods={'ml_g': 'explained_variance',
-                                       'ml_m': 'explained_variance',
-                                       'ml_r': 'explained_variance'})
-
     param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
@@ -892,6 +877,18 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, LogisticRegression(), LogisticRegression(), LogisticRegression())
 
+    # we allow classifiers for ml_g for binary treatment variables in DID
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDID(dml_data_did, LogisticRegression(), LogisticRegression())
+
+    # we allow classifiers for ml_g for binary treatment variables in DIDCS
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, LogisticRegression(), LogisticRegression())
+
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegression()
@@ -938,14 +935,6 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
 
 
 @pytest.mark.ci
