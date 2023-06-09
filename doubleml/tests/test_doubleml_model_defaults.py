@@ -184,7 +184,7 @@ def test_sensitivity_defaults():
                   'cf_d': 0.03,
                   'rho': 1.0,
                   'level': 0.95,
-                  'theta': 0.0}
+                  'null_hypothesis': np.array([0.])}
 
     dml_plr.sensitivity_analysis()
     assert dml_plr._sensitivity_params['input'] == input_dict

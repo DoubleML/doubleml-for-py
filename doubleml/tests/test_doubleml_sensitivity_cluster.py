@@ -69,7 +69,7 @@ def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
 
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
-                                     rho=0.0, level=level, theta=0.0)
+                                     rho=0.0, level=level, null_hypothesis=0.0)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'se': dml_plr_obj.se,
@@ -108,7 +108,7 @@ def dml_plr_multiway_cluster_sensitivity_rho0_se(dml_procedure):
 
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
-                                     rho=0.0, level=level, theta=0.0)
+                                     rho=0.0, level=level, null_hypothesis=0.0)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'se': dml_plr_obj.se,

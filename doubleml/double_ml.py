@@ -1609,19 +1609,19 @@ class DoubleML(ABC):
 
         return res_dict
 
-    def _calc_robustness_value(self, theta, level, rho, idx_treatment):
-        _check_float(theta, "theta")
+    def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
+        _check_float(null_hypothesis, "null_hypothesis")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
 
         # check which side is relvant
-        bound = 'upper' if (theta > self.coef[idx_treatment]) else 'lower'
+        bound = 'upper' if (null_hypothesis > self.coef[idx_treatment]) else 'lower'
 
         # minimize the square to find boundary solutions
         def rv_fct(value, param):
             res = self._calc_sensitivity_analysis(cf_y=value,
                                                   cf_d=value,
                                                   rho=rho,
-                                                  level=level)[param][bound][idx_treatment] - theta
+                                                  level=level)[param][bound][idx_treatment] - null_hypothesis
             return np.square(res)
 
         rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
@@ -1629,7 +1629,7 @@ class DoubleML(ABC):
 
         return rv, rva
 
-    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, theta=0.0):
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
         """
         Performs a sensitivity analysis to account for unobserved confounders.
 
@@ -1655,8 +1655,9 @@ class DoubleML(ABC):
             The confidence level.
             Default is ``0.95``.
 
-        theta : float
+        null_hypothesis : float or numpy.ndarray
             Null hypothesis for the effect. Determines the robustness values.
+            If it is a single float uses the same null hypothesis for all estimated parameters. Else the array has to be of shape (n_coefs,). 
             Default is ``0.0``.
 
         Returns
@@ -1666,11 +1667,24 @@ class DoubleML(ABC):
         # compute sensitivity analysis
         sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
 
-        # compute robustess values with respect to theta
+        if isinstance(null_hypothesis, float):
+            null_hypothesis_vec = np.full(shape=self._dml_data.n_treat, fill_value=null_hypothesis)
+        elif isinstance(null_hypothesis, np.ndarray):
+            if null_hypothesis.shape == (self._dml_data.n_treat,):
+                null_hypothesis_vec = null_hypothesis
+            else:
+                raise ValueError(f"null_hypothesis is numpy.ndarray but does not have the required shape ({self._dml_data.n_treat},). "
+                                 f'Array of shape {str(null_hypothesis.shape)} was passed.')
+        else:
+            raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
+                            f"{str(null_hypothesis)} of type {str(type(null_hypothesis))} was passed.")
+
+        # compute robustess values with respect to null_hypothesis
         rv = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
         rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
+
         for i_treat in range(self._dml_data.n_treat):
-            rv[i_treat], rva[i_treat] = self._calc_robustness_value(theta=theta, level=level, rho=rho, idx_treatment=i_treat)
+            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat], level=level, rho=rho, idx_treatment=i_treat)
 
         sensitivity_dict['rv'] = rv
         sensitivity_dict['rva'] = rva
@@ -1680,7 +1694,7 @@ class DoubleML(ABC):
                         'cf_d': cf_d,
                         'rho': rho,
                         'level': level,
-                        'theta': theta}
+                        'null_hypothesis': null_hypothesis_vec}
         sensitivity_dict['input'] = input_params
 
         self._sensitivity_params = sensitivity_dict
@@ -1700,19 +1714,10 @@ class DoubleML(ABC):
         if self.sensitivity_params is None:
             res = header + 'Apply sensitivity_analysis() to generate sensitivity_summary.'
         else:
-            hypothesis = f'Null Hypothesis: theta={self._sensitivity_params["input"]["theta"]}\n'
             sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
             scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
                               f'cf_d={self.sensitivity_params["input"]["cf_d"]}, ' \
                               f'rho={self.sensitivity_params["input"]["rho"]}'
-
-            rvs_col_names = ['RV (%)', 'RVa (%)']
-            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
-                                          self._sensitivity_params['rva']))) * 100
-            df_rvs = pd.DataFrame(rvs,
-                                  columns=rvs_col_names,
-                                  index=self._dml_data.d_cols)
-            rvs_summary = str(df_rvs)
 
             theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
             theta_and_ci = np.transpose(np.vstack((self._sensitivity_params['ci']['lower'],
@@ -1725,17 +1730,26 @@ class DoubleML(ABC):
                                            index=self._dml_data.d_cols)
             theta_and_ci_summary = str(df_theta_and_ci)
 
+            rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
+            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
+                                          self._sensitivity_params['rva']))) * 100
+
+            df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
+                                  columns=rvs_col_names,
+                                  index=self._dml_data.d_cols)
+            rvs_summary = str(df_rvs)
+
             res = header + \
                 '\n------------------ Scenario          ------------------\n' + \
-                hypothesis + sig_level + scenario_params + '\n' + \
-                '\n------------------ Robustness Values ------------------\n' + \
-                rvs_summary + '\n' + \
+                sig_level + scenario_params + '\n' + \
                 '\n------------------ Bounds with CI    ------------------\n' + \
-                theta_and_ci_summary
+                theta_and_ci_summary + '\n' + \
+                '\n------------------ Robustness Values ------------------\n' + \
+                rvs_summary
 
         return res
 
-    def sensitivity_plot(self, idx_treatment=0, theta=0.0, value='theta', include_scenario=True,
+    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True,
                          fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
@@ -1745,11 +1759,6 @@ class DoubleML(ABC):
         idx_treatment : int
             Index of the treatment to perform the sensitivity analysis.
             Default is ``0``.
-
-        theta : float
-            Null hypothesis for the effect. Determines whether the upper or lower bound of the estimates has to be considered.
-            If the null hypothesis is smaller than the treatment effect estimate the lower bounds are used and vice versa.
-            Default is ``0.0``.
 
         value : str
             Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
@@ -1781,7 +1790,6 @@ class DoubleML(ABC):
             raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
                              'The values of rho and the level are used for the scenario.')
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
-        _check_float(theta, "theta")
         if not isinstance(value, str):
             raise TypeError('value must be a string. '
                             f'{str(value)} of type {type(value)} was passed.')
@@ -1795,9 +1803,10 @@ class DoubleML(ABC):
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
         _check_integer(grid_size, "grid_size", lower_bound=10)
 
+        null_hypothesis = self.sensitivity_params['input']['null_hypothesis'][idx_treatment]
         unadjusted_theta = self.coef[idx_treatment]
         # check which side is relvant
-        bound = 'upper' if (theta > unadjusted_theta) else 'lower'
+        bound = 'upper' if (null_hypothesis > unadjusted_theta) else 'lower'
 
         # create evaluation grid
         cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
