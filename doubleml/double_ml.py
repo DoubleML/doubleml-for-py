@@ -1703,7 +1703,7 @@ class DoubleML(ABC):
             hypothesis = f'Null Hypothesis: theta={self._sensitivity_params["input"]["theta"]}\n'
             sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
             scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
-                              f'cf_d={self.sensitivity_params["input"]["cf_y"]}, ' \
+                              f'cf_d={self.sensitivity_params["input"]["cf_d"]}, ' \
                               f'rho={self.sensitivity_params["input"]["rho"]}'
 
             rvs_col_names = ['RV (%)', 'RVa (%)']
@@ -1765,7 +1765,7 @@ class DoubleML(ABC):
             Default is ``True``.
 
         grid_bounds : tuple
-            Determines the evaluation bounds of the grid for ``cf_y`` and ``cf_d``. Has to contain two floats in [0, 1).
+            Determines the evaluation bounds of the grid for ``cf_d`` and ``cf_y``. Has to contain two floats in [0, 1).
             Default is ``(0.15, 0.15)``.
 
         grid_size : int
