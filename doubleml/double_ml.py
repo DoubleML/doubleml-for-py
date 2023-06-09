@@ -1657,7 +1657,8 @@ class DoubleML(ABC):
 
         null_hypothesis : float or numpy.ndarray
             Null hypothesis for the effect. Determines the robustness values.
-            If it is a single float uses the same null hypothesis for all estimated parameters. Else the array has to be of shape (n_coefs,). 
+            If it is a single float uses the same null hypothesis for all estimated parameters.
+            Else the array has to be of shape (n_coefs,).
             Default is ``0.0``.
 
         Returns
@@ -1673,7 +1674,8 @@ class DoubleML(ABC):
             if null_hypothesis.shape == (self._dml_data.n_treat,):
                 null_hypothesis_vec = null_hypothesis
             else:
-                raise ValueError(f"null_hypothesis is numpy.ndarray but does not have the required shape ({self._dml_data.n_treat},). "
+                raise ValueError("null_hypothesis is numpy.ndarray but does not have the required "
+                                 f"shape ({self._dml_data.n_treat},). "
                                  f'Array of shape {str(null_hypothesis.shape)} was passed.')
         else:
             raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
@@ -1684,7 +1686,8 @@ class DoubleML(ABC):
         rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
 
         for i_treat in range(self._dml_data.n_treat):
-            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat], level=level, rho=rho, idx_treatment=i_treat)
+            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat],
+                                                                    level=level, rho=rho, idx_treatment=i_treat)
 
         sensitivity_dict['rv'] = rv
         sensitivity_dict['rva'] = rva

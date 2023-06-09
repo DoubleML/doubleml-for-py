@@ -36,15 +36,15 @@ def _sensitivity_contour_plot(x,
 
     if include_scenario:
         fig.add_trace(go.Scatter(x=[scenario_x],
-                                    y=[scenario_y],
-                                    mode="markers+text",
-                                    marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
-                                    hovertemplate=hov_temp + f': {round(scenario_value, 3)}' + '</b>',
-                                    name='Scenario',
-                                    textfont=dict(color=text_col, size=14),
-                                    text=['<b>Scenario</b>'],
-                                    textposition="top right",
-                                    showlegend=False))
+                                 y=[scenario_y],
+                                 mode="markers+text",
+                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
+                                 hovertemplate=hov_temp + f': {round(scenario_value, 3)}' + '</b>',
+                                 name='Scenario',
+                                 textfont=dict(color=text_col, size=14),
+                                 text=['<b>Scenario</b>'],
+                                 textposition="top right",
+                                 showlegend=False))
 
     # add unadjusted
     fig.add_trace(go.Scatter(x=[0],

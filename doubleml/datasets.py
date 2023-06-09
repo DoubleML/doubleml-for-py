@@ -957,7 +957,8 @@ def make_confounded_irm_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04):
 
     The observed data is given as :math:`W = (Y, D, X)`.
     Further, orcale values of the confounder :math:`A`, the transformed covariated :math:`Z`,
-    the potential outcomes of :math:`Y`, the coefficients :math:`\\gamma_a`, :math:`\\beta_a`, the long and short forms of the main regression and the propensity score
+    the potential outcomes of :math:`Y`, the coefficients :math:`\\gamma_a`, :math:`\\beta_a`, the
+    long and short forms of the main regression and the propensity score
     are returned in a dictionary.
 
     Parameters
