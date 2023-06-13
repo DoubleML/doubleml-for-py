@@ -29,4 +29,3 @@ share/python-wheels/
 MANIFEST
 *.idea
 *.vscode
-test_plr_basic.py
