@@ -529,7 +529,7 @@ class DoubleML(ABC):
                     if external_predictions is None:
                         ext_prediction_dict[learner] = None
                     elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
-                        ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner]
+                        ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][0:, i_rep]
                     else:
                         ext_prediction_dict[learner] = None
 
@@ -1021,8 +1021,8 @@ class DoubleML(ABC):
                 raise TypeError('external_predictions must be a dictionary. '
                                 f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
 
-            if self.n_rep > 1:
-                raise NotImplementedError('external_predictions is not yet implmented for ``n_rep > 1``.')
+            # if self.n_rep > 1:
+            #     raise NotImplementedError('external_predictions is not yet implmented for ``n_rep > 1``.')
 
             supplied_treatments = list(external_predictions.keys())
             valid_treatments = self._dml_data.d_cols
@@ -1052,7 +1052,7 @@ class DoubleML(ABC):
                                         ' and learner ' + str(learner) + '. ' +
                                         f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
 
-                    expected_shape = (self._dml_data.n_obs, )
+                    expected_shape = (self._dml_data.n_obs, self.n_rep)
                     if external_predictions[treatment][learner].shape != expected_shape:
                         raise ValueError('Invalid external_predictions. '
                                          f'The supplied predictions have to be of shape {str(expected_shape)}. '
