@@ -1021,9 +1021,6 @@ class DoubleML(ABC):
                 raise TypeError('external_predictions must be a dictionary. '
                                 f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
 
-            # if self.n_rep > 1:
-            #     raise NotImplementedError('external_predictions is not yet implmented for ``n_rep > 1``.')
-
             supplied_treatments = list(external_predictions.keys())
             valid_treatments = self._dml_data.d_cols
             if not set(supplied_treatments).issubset(valid_treatments):
