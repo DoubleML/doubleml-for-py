@@ -101,9 +101,9 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
     # synchronize the sample splitting
     dml_irm_obj_ext.set_sample_splitting(all_smpls=all_smpls)
 
-    prediction_dict = {'d': {'ml_g0': dml_irm_obj.predictions['ml_g0'].reshape(-1),
-                             'ml_g1': dml_irm_obj.predictions['ml_g1'].reshape(-1),
-                             'ml_m': dml_irm_obj.predictions['ml_m'].reshape(-1)}}
+    prediction_dict = {'d': {'ml_g0': dml_irm_obj.predictions['ml_g0'].reshape(-1, 1),
+                             'ml_g1': dml_irm_obj.predictions['ml_g1'].reshape(-1, 1),
+                             'ml_m': dml_irm_obj.predictions['ml_m'].reshape(-1, 1)}}
     dml_irm_obj_ext.fit(external_predictions=prediction_dict)
 
     res_dict = {'coef': dml_irm_obj.coef,

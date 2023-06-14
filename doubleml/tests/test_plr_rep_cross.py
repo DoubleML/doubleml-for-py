@@ -74,13 +74,46 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
 
     res_manual = fit_plr(y, x, d, _clone(learner), _clone(learner), _clone(learner),
                          all_smpls, dml_procedure, score, n_rep)
+    
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    if score == 'partialling out':
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m,
+                                      n_folds,
+                                      n_rep,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+    else:
+        assert score == 'IV-type'
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m, ml_g,
+                                      n_folds,
+                                      n_rep,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+
+    # synchronize the sample splitting
+    dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+
+    if score == 'partialling out':
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, n_rep),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, n_rep)}}
+    else:
+        assert score == 'IV-type'
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, n_rep),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, n_rep),
+                                 'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, n_rep)}}
+        
+    dml_plr_obj_ext.fit(external_predictions=prediction_dict)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
+                'coef_ext': dml_plr_obj_ext.coef,
                 'se': dml_plr_obj.se,
                 'se_manual': res_manual['se'],
-                'boot_methods': boot_methods
-                }
+                'se_ext': dml_plr_obj_ext.se,
+                'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
         np.random.seed(3141)

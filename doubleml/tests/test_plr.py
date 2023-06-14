@@ -97,13 +97,13 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)
 
     if score == 'partialling out':
-        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1),
-                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1)}}
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1)}}
     else:
         assert score == 'IV-type'
-        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1),
-                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1),
-                                 'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1)}}
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1),
+                                 'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, 1)}}
         
     dml_plr_obj_ext.fit(external_predictions=prediction_dict)
 
