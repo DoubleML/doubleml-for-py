@@ -529,8 +529,10 @@ class DoubleML(ABC):
                     if external_predictions is None:
                         ext_prediction_dict[learner] = None
                     elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
-                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray):
+                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray) and self.n_rep > 1:
                             ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][0:, i_rep]
+                        elif isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray) and self.n_rep == 1:
+                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner]
                         else:
                             ext_prediction_dict[learner] = None
                     else:

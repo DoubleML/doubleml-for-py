@@ -5,7 +5,6 @@ from sklearn.linear_model import LinearRegression, LassoCV
 from doubleml import DoubleMLPLR, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018
 
-
 # @pytest.fixture(scope='module',
 #                 params=[LinearRegression(),
 #                         LassoCV()])
@@ -29,7 +28,7 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def adapted_doubleml_fixture(learner, score, dml_procedure):
+def adapted_doubleml_fixture(score, dml_procedure, n_rep):
     ext_predictions = {'d': {}}
 
     x, y, d = make_plr_CCDDHNR2018(n_obs=500,
@@ -37,30 +36,36 @@ def adapted_doubleml_fixture(learner, score, dml_procedure):
                                    alpha=0.5,
                                    return_type="np.array")
 
-    lm_m1 = LinearRegression()
-    lm_l1 = LinearRegression()
+    # lm_m1 = LinearRegression()
+    # lm_l1 = LinearRegression()
 
     np.random.seed(3141)
-    lm_m1.fit(x, d)
-    ext_predictions['d']['ml_m'] = np.stack([lm_m1.predict(x) for _ in range(n_rep)], axis=1)
 
-    lm_l1.fit(x, y)
-    ext_predictions['d']['ml_l'] = np.stack([lm_m1.predict(x) for _ in range(n_rep)], axis=1)
+    # lm_m1.fit(x, d)
+    # ext_predictions['d']['ml_m'] = np.stack([lm_m1.predict(x) for _ in range(n_rep)], axis=1)
+
+    # lm_l1.fit(x, y)
+    # ext_predictions['d']['ml_l'] = np.stack([lm_l1.predict(x) for _ in range(n_rep)], axis=1)
 
     dml_data = DoubleMLData.from_arrays(x=x, y=y, d=d)
 
     DMLPLR = DoubleMLPLR(obj_dml_data=dml_data,
-                         ml_m=learner,
-                         ml_l=learner,
+                         ml_m=LinearRegression(),
+                         ml_l=LinearRegression(),
                          score=score,
                          n_rep=n_rep,
                          dml_procedure=dml_procedure)
     np.random.seed(3141)
+
     DMLPLR.fit(store_predictions=True)
 
+    ext_predictions['d']['ml_m'] = DMLPLR.predictions['ml_m'].squeeze()
+    ext_predictions['d']['ml_l'] = DMLPLR.predictions['ml_l'].squeeze()
+
+
     DMLPLR_ext = DoubleMLPLR(obj_dml_data=dml_data,
-                             ml_m=learner,
-                             ml_l=learner,
+                             ml_m=LinearRegression(),
+                             ml_l=LinearRegression(),
                              score=score,
                              n_rep=n_rep,
                              dml_procedure=dml_procedure)
