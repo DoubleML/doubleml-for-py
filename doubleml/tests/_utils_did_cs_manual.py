@@ -276,3 +276,89 @@ def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune,
 
     return g_d0_t0_best_params, g_d0_t1_best_params, \
         g_d1_t0_best_params, g_d1_t1_best_params, m_best_params
+
+
+def fit_sensitivity_elements_did_cs(y, d, t, all_coef, predictions, score, in_sample_normalization, n_rep):
+    n_treat = 1
+    n_obs = len(y)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+
+        m_hat = predictions['ml_m'][:, i_rep, 0]
+        g_hat_d0_t0 = predictions['ml_g_d0_t0'][:, i_rep, 0]
+        g_hat_d0_t1 = predictions['ml_g_d0_t1'][:, i_rep, 0]
+        g_hat_d1_t0 = predictions['ml_g_d1_t0'][:, i_rep, 0]
+        g_hat_d1_t1 = predictions['ml_g_d1_t1'][:, i_rep, 0]
+
+        d0t0 = np.multiply(1.0-d, 1.0-t)
+        d0t1 = np.multiply(1.0-d, t)
+        d1t0 = np.multiply(d, 1.0-t)
+        d1t1 = np.multiply(d, t)
+
+        g_hat = np.multiply(d0t0, g_hat_d0_t0) + np.multiply(d0t1, g_hat_d0_t1) + \
+            np.multiply(d1t0, g_hat_d1_t0) + np.multiply(d1t1, g_hat_d1_t1)
+        sigma2_score_element = np.square(y - g_hat)
+        sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
+        psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
+
+        p_hat = np.mean(d)
+        lambda_hat = np.mean(t)
+        if score == 'observational':
+            propensity_weight_d0 = np.divide(m_hat, 1.0-m_hat)
+            if in_sample_normalization:
+                weight_d0t1 = np.multiply(d0t1, propensity_weight_d0)
+                weight_d0t0 = np.multiply(d0t0, propensity_weight_d0)
+                m_alpha_1 = np.divide(1.0, np.mean(d1t1)) + \
+                    np.divide(1.0, np.mean(d1t0)) + \
+                    np.divide(propensity_weight_d0, np.mean(weight_d0t1)) + \
+                    np.divide(propensity_weight_d0, np.mean(weight_d0t0))
+                m_alpha = np.multiply(np.divide(d, p_hat), m_alpha_1)
+                rr = np.divide(d1t1, np.mean(d1t1)) - \
+                    np.divide(d1t0, np.mean(d1t0)) - \
+                    np.divide(weight_d0t1, np.mean(weight_d0t1)) + \
+                    np.divide(weight_d0t0, np.mean(weight_d0t0))
+            else:
+                m_alpha_1 = np.divide(1.0, np.multiply(p_hat, lambda_hat)) + \
+                    np.divide(1.0, np.multiply(p_hat, 1.0-lambda_hat)) + \
+                    np.divide(propensity_weight_d0, np.multiply(p_hat, lambda_hat)) + \
+                    np.divide(propensity_weight_d0, np.multiply(p_hat, 1.0-lambda_hat))
+                m_alpha = np.multiply(np.divide(d, p_hat), m_alpha_1)
+                rr = np.divide(d1t1, np.multiply(p_hat, lambda_hat)) - \
+                    np.divide(d1t0, np.multiply(p_hat, 1.0-lambda_hat)) - \
+                    np.multiply(np.divide(d0t1, np.multiply(p_hat, lambda_hat)), propensity_weight_d0) + \
+                    np.multiply(np.divide(d0t0, np.multiply(p_hat, 1.0-lambda_hat)), propensity_weight_d0)
+        else:
+            assert score == 'experimental'
+            if in_sample_normalization:
+                m_alpha = np.divide(1.0, np.mean(d1t1)) + \
+                    np.divide(1.0, np.mean(d1t0)) + \
+                    np.divide(1.0, np.mean(d0t1)) + \
+                    np.divide(1.0, np.mean(d0t0))
+                rr = np.divide(d1t1, np.mean(d1t1)) - \
+                    np.divide(d1t0, np.mean(d1t0)) - \
+                    np.divide(d0t1, np.mean(d0t1)) + \
+                    np.divide(d0t0, np.mean(d0t0))
+            else:
+                m_alpha = np.divide(1.0, np.multiply(p_hat, lambda_hat)) + \
+                    np.divide(1.0, np.multiply(p_hat, 1.0-lambda_hat)) + \
+                    np.divide(1.0, np.multiply(1.0-p_hat, lambda_hat)) + \
+                    np.divide(1.0, np.multiply(1.0-p_hat, 1.0-lambda_hat))
+                rr = np.divide(d1t1, np.multiply(p_hat, lambda_hat)) - \
+                    np.divide(d1t0, np.multiply(p_hat, 1.0-lambda_hat)) - \
+                    np.divide(d0t1, np.multiply(1.0-p_hat, lambda_hat)) + \
+                    np.divide(d0t0, np.multiply(1.0-p_hat, 1.0-lambda_hat))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2[0, i_rep, 0] = np.mean(nu2_score_element)
+        psi_nu2[:, i_rep, 0] = nu2_score_element - nu2[0, i_rep, 0]
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict

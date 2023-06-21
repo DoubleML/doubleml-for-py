@@ -5,7 +5,7 @@ import numpy as np
 from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
     make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, \
-    make_did_SZ2020
+    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -184,3 +184,46 @@ def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
     msg = 'The dgp_type is not valid.'
     with pytest.raises(ValueError, match=msg):
         _ = make_did_SZ2020(n_obs=100, dgp_type="5", cross_sectional_data=cross_sectional, return_type='matrix')
+
+
+@pytest.mark.ci
+def test_make_confounded_irm_data_return_types():
+    np.random.seed(3141)
+    res = make_confounded_irm_data()
+    assert isinstance(res, dict)
+    assert isinstance(res['x'], np.ndarray)
+    assert isinstance(res['y'], np.ndarray)
+    assert isinstance(res['d'], np.ndarray)
+
+    assert isinstance(res['oracle_values'], dict)
+    assert isinstance(res['oracle_values']['g_long'], np.ndarray)
+    assert isinstance(res['oracle_values']['g_short'], np.ndarray)
+    assert isinstance(res['oracle_values']['m_long'], np.ndarray)
+    assert isinstance(res['oracle_values']['m_short'], np.ndarray)
+    assert isinstance(res['oracle_values']['gamma_a'], float)
+    assert isinstance(res['oracle_values']['beta_a'], float)
+    assert isinstance(res['oracle_values']['a'], np.ndarray)
+    assert isinstance(res['oracle_values']['y0'], np.ndarray)
+    assert isinstance(res['oracle_values']['y1'], np.ndarray)
+    assert isinstance(res['oracle_values']['z'], np.ndarray)
+
+
+@pytest.mark.ci
+def test_make_confounded_plr_data_return_types():
+    np.random.seed(3141)
+    res = make_confounded_plr_data(theta=5.0)
+    assert isinstance(res, dict)
+    assert isinstance(res['x'], np.ndarray)
+    assert isinstance(res['y'], np.ndarray)
+    assert isinstance(res['d'], np.ndarray)
+
+    assert isinstance(res['oracle_values'], dict)
+    assert isinstance(res['oracle_values']['g_long'], np.ndarray)
+    assert isinstance(res['oracle_values']['g_short'], np.ndarray)
+    assert isinstance(res['oracle_values']['m_long'], np.ndarray)
+    assert isinstance(res['oracle_values']['m_short'], np.ndarray)
+    assert isinstance(res['oracle_values']['theta'], float)
+    assert isinstance(res['oracle_values']['gamma_a'], float)
+    assert isinstance(res['oracle_values']['beta_a'], float)
+    assert isinstance(res['oracle_values']['a'], np.ndarray)
+    assert isinstance(res['oracle_values']['z'], np.ndarray)

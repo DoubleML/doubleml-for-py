@@ -8,7 +8,9 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity, _check_score
+
+from ._utils import _dml_cv_predict, _dml_tune
+from ._utils_checks import _check_score, _check_finite_predictions, _check_is_propensity
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -147,6 +149,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             self._predict_method['ml_m'] = 'predict'
 
         self._initialize_ml_nuisance_params()
+        self._sensitivity_implemented = True
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
@@ -240,6 +243,34 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                                       smpls=smpls)
 
         return psi_a, psi_b
+
+    def _sensitivity_element_est(self, preds):
+        # set elments for readability
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        m_hat = preds['predictions']['ml_m']
+        theta = self.all_coef[self._i_treat, self._i_rep]
+
+        if self.score == 'partialling out':
+            l_hat = preds['predictions']['ml_l']
+            sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
+        else:
+            assert self.score == 'IV-type'
+            g_hat = preds['predictions']['ml_g']
+            sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
+
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
+        psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
+        return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):

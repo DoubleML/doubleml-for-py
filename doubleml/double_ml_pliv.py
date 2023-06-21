@@ -10,7 +10,9 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
+
+from ._utils import _dml_cv_predict, _dml_tune
+from ._utils_checks import _check_finite_predictions
 
 
 class DoubleMLPLIV(LinearScoreMixin, DoubleML):
@@ -685,3 +687,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def _sensitivity_element_est(self, preds):
+        pass

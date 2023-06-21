@@ -4,7 +4,8 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _check_is_propensity, _normalize_ipw
+from .._utils import _normalize_ipw
+from .._utils_checks import _check_is_propensity
 
 
 def fit_irm(y, x, d,
@@ -66,20 +67,13 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
         g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls,
                                   train_cond=train_cond0)
 
-    if score == 'ATE':
-        train_cond1 = np.where(d == 1)[0]
-        if is_classifier(learner_g):
-            g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
-                                            train_cond=train_cond1)
-        else:
-            g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
-                                      train_cond=train_cond1)
+    train_cond1 = np.where(d == 1)[0]
+    if is_classifier(learner_g):
+        g_hat1_list = fit_predict_proba(y, x, ml_g1, g1_params, smpls,
+                                        train_cond=train_cond1)
     else:
-        assert score == 'ATTE'
-        g_hat1_list = list()
-        for idx, _ in enumerate(smpls):
-            # fill it up, but its not further used
-            g_hat1_list.append(np.zeros_like(g_hat0_list[idx], dtype='float64'))
+        g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls,
+                                  train_cond=train_cond1)
 
     ml_m = clone(learner_m)
     m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls,
@@ -98,17 +92,14 @@ def tune_nuisance_irm(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
     g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
                                    train_cond=train_cond0)
 
-    if score == 'ATE':
-        train_cond1 = np.where(d == 1)[0]
-        g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                       train_cond=train_cond1)
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
-    else:
-        g1_best_params = None
+    train_cond1 = np.where(d == 1)[0]
+    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond1)
 
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
 
     return g0_best_params, g1_best_params, m_best_params
@@ -284,3 +275,45 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
     return boot_theta, boot_t_stat
+
+
+def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
+    n_treat = 1
+    n_obs = len(y)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+
+        m_hat = predictions['ml_m'][:, i_rep, 0]
+        g_hat0 = predictions['ml_g0'][:, i_rep, 0]
+        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+
+        if score == 'ATE':
+            weights = np.ones_like(d)
+            weights_bar = np.ones_like(d)
+        else:
+            assert score == 'ATTE'
+            weights = np.divide(d, np.mean(d))
+            weights_bar = np.divide(m_hat, np.mean(d))
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
+        psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
+
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2[0, i_rep, 0] = np.mean(nu2_score_element)
+        psi_nu2[:, i_rep, 0] = nu2_score_element - nu2[0, i_rep, 0]
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict

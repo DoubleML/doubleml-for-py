@@ -7,8 +7,8 @@ from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _check_finite_predictions, _check_is_propensity, \
-    _trimm, _check_score, _check_trimming
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
 
 
 class DoubleMLDID(LinearScoreMixin, DoubleML):
@@ -147,6 +147,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
+        self._sensitivity_implemented = True
+
     @property
     def in_sample_normalization(self):
         """
@@ -210,9 +212,17 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat0['targets'] = g_hat0['targets'].astype(float)
         g_hat0['targets'][d == 1] = np.nan
 
-        # only relevant for observational or experimental setting
+        g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                 return_models=return_models)
+
+        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+        # adjust target values to consider only compatible subsamples
+        g_hat1['targets'] = g_hat1['targets'].astype(float)
+        g_hat1['targets'][d == 0] = np.nan
+
+        # only relevant for observational setting
         m_hat = {'preds': None, 'targets': None, 'models': None}
-        g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'observational':
             # nuisance m
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -221,16 +231,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
             m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
-
-        if self.score == 'experimental':
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][d == 0] = np.nan
 
         # nuisance estimates of the uncond. treatment prob.
         p_hat = np.full_like(d, np.nan, dtype='float64')
@@ -291,6 +291,49 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
+    def _sensitivity_element_est(self, preds):
+        y = self._dml_data.y
+        d = self._dml_data.d
+
+        m_hat = preds['predictions']['ml_m']
+        g_hat0 = preds['predictions']['ml_g0']
+        g_hat1 = preds['predictions']['ml_g1']
+
+        g_hat = np.multiply(d, g_hat1) + np.multiply(1.0-d, g_hat0)
+        sigma2_score_element = np.square(y - g_hat)
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        # calc m(W,alpha) and Riesz representer
+        p_hat = np.mean(d)
+        if self.score == 'observational':
+            propensity_weight_d0 = np.divide(m_hat, 1.0-m_hat)
+            if self.in_sample_normalization:
+                weight_d0 = np.multiply(1.0-d, propensity_weight_d0)
+                mean_weight_d0 = np.mean(weight_d0)
+
+                m_alpha = np.multiply(np.divide(d, p_hat),
+                                      np.divide(1.0, p_hat) + np.divide(propensity_weight_d0, mean_weight_d0))
+                rr = np.divide(d, p_hat) - np.divide(weight_d0, mean_weight_d0)
+            else:
+                m_alpha = np.multiply(np.divide(d, np.square(p_hat)), (1.0 + propensity_weight_d0))
+                rr = np.divide(d, p_hat) - np.multiply(np.divide(1.0-d, p_hat), propensity_weight_d0)
+        else:
+            assert self.score == 'experimental'
+            # the same with or without self-normalization
+            m_alpha = np.divide(1.0, p_hat) + np.divide(1.0, 1.0-p_hat)
+            rr = np.divide(d, p_hat) - np.divide(1.0-d, 1.0-p_hat)
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
+        return element_dict
+
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -310,26 +353,26 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g0_tune_res = _dml_tune(y, x, train_inds_d0,
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g1_tune_res = _dml_tune(y, x, train_inds_d1,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+
         m_tune_res = list()
         if self.score == 'observational':
             m_tune_res = _dml_tune(d, x, train_inds,
                                    self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g1_tune_res = list()
-        if self.score == 'experimental':
-            g1_tune_res = _dml_tune(y, x, train_inds_d1,
-                                    self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        if self.score == 'observational':
             m_best_params = [xx.best_params_ for xx in m_tune_res]
             params = {'ml_g0': g0_best_params,
+                      'ml_g1': g1_best_params,
                       'ml_m': m_best_params}
             tune_res = {'g0_tune': g0_tune_res,
+                        'g1_tune': g1_tune_res,
                         'm_tune': m_tune_res}
         else:
-            g1_best_params = [xx.best_params_ for xx in g1_tune_res]
             params = {'ml_g0': g0_best_params,
                       'ml_g1': g1_best_params}
             tune_res = {'g0_tune': g0_tune_res,

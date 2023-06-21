@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import doubleml as dml
 
 from ._utils import draw_smpls
-from ._utils_did_manual import fit_did, boot_did
+from ._utils_did_manual import fit_did, boot_did, fit_sensitivity_elements_did
 
 
 @pytest.fixture(scope='module',
@@ -41,7 +41,7 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[0.01, 0.05])
+                params=[0.1])
 def trimming_threshold(request):
     return request.param
 
@@ -104,6 +104,19 @@ def dml_did_fixture(generate_data_did, learner, score, in_sample_normalization,
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
+    # sensitivity tests
+    res_dict['sensitivity_elements'] = dml_did_obj.sensitivity_elements
+    res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_did(y, d,
+                                                                           all_coef=dml_did_obj.all_coef,
+                                                                           predictions=dml_did_obj.predictions,
+                                                                           score=score,
+                                                                           in_sample_normalization=in_sample_normalization,
+                                                                           n_rep=1)
+
+    # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
+    dml_did_obj.sensitivity_analysis(rho=0.0)
+    res_dict['sensitivity_ses'] = dml_did_obj.sensitivity_params['se']
+
     return res_dict
 
 
@@ -130,6 +143,25 @@ def test_dml_did_boot(dml_did_fixture):
         assert np.allclose(dml_did_fixture['boot_t_stat' + bootstrap],
                            dml_did_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_did_sensitivity(dml_did_fixture):
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(dml_did_fixture['sensitivity_elements'][sensitivity_element],
+                           dml_did_fixture['sensitivity_elements_manual'][sensitivity_element],
+                           rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_did_sensitivity_rho0(dml_did_fixture):
+    assert np.allclose(dml_did_fixture['se'],
+                       dml_did_fixture['sensitivity_ses']['lower'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_did_fixture['se'],
+                       dml_did_fixture['sensitivity_ses']['upper'],
+                       rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci

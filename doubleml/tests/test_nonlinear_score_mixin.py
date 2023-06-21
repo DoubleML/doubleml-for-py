@@ -8,7 +8,8 @@ from sklearn.utils import check_X_y
 
 import doubleml as dml
 from doubleml.double_ml import DoubleML
-from doubleml._utils import _dml_cv_predict, _check_finite_predictions
+from doubleml._utils import _dml_cv_predict
+from doubleml._utils_checks import _check_finite_predictions
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
 
@@ -162,6 +163,9 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
+        pass
+
+    def _sensitivity_element_est(self, preds):
         pass
 
 

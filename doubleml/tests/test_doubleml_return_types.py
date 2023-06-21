@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
     DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS
@@ -102,7 +103,7 @@ pliv_dml1.fit()
 pliv_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 irm_dml1 = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
 irm_dml1.fit()
 irm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
@@ -350,3 +351,22 @@ def test_rmses():
     assert did_cs_dml1.rmses['ml_g_d1_t0'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_g_d1_t1'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+
+
+@pytest.mark.ci
+def test_sensitivity():
+    assert isinstance(plr_dml1.sensitivity_summary, str)
+    plr_dml1.sensitivity_analysis()
+    assert isinstance(plr_dml1.sensitivity_summary, str)
+    assert isinstance(plr_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    assert isinstance(plr_dml1.sensitivity_plot(value='ci'), plotly.graph_objs._figure.Figure)
+    assert isinstance(plr_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(plr_dml1._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
+
+    assert isinstance(irm_dml1.sensitivity_summary, str)
+    irm_dml1.sensitivity_analysis()
+    assert isinstance(irm_dml1.sensitivity_summary, str)
+    assert isinstance(irm_dml1.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    assert isinstance(irm_dml1.sensitivity_plot(value='ci'), plotly.graph_objs._figure.Figure)
+    assert isinstance(irm_dml1._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(irm_dml1._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
