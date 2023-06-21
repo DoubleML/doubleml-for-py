@@ -7,11 +7,13 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_zero_one_treatment, _check_score,\
-    _check_trimming, _check_quantile, _check_treatment, _get_bracket_guess, _default_kde, _normalize_ipw, _dml_tune, \
-    _solve_ipw_score
 from .double_ml_data import DoubleMLData
+
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, \
+    _get_bracket_guess, _default_kde, _normalize_ipw, _dml_tune, _solve_ipw_score
 from ._utils_resampling import DoubleMLResampling
+from ._utils_checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, \
+    _check_quantile
 
 
 class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
@@ -559,3 +561,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         else:
             raise ValueError(err_msg)
         return
+
+    def _sensitivity_element_est(self, preds):
+        pass

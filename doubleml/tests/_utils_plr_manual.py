@@ -340,3 +340,39 @@ def boot_plr_single_split(theta, y, d, l_hat, m_hat, g_hat,
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
     return boot_theta, boot_t_stat
+
+
+def fit_sensitivity_elements_plr(y, d, all_coef, predictions, score, n_rep):
+    n_treat = d.shape[1]
+    n_obs = len(y)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+        for i_treat in range(n_treat):
+            d_tilde = d[:, i_treat]
+            m_hat = predictions['ml_m'][:, i_rep, i_treat]
+            theta = all_coef[i_treat, i_rep]
+            if score == 'partialling out':
+                l_hat = predictions['ml_l'][:, i_rep, i_treat]
+                sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d_tilde-m_hat))
+            else:
+                assert score == 'IV-type'
+                g_hat = predictions['ml_g'][:, i_rep, i_treat]
+                sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d_tilde))
+
+            sigma2[0, i_rep, i_treat] = np.mean(sigma2_score_element)
+            psi_sigma2[:, i_rep, i_treat] = sigma2_score_element - sigma2[0, i_rep, i_treat]
+
+            nu2[0, i_rep, i_treat] = np.divide(1.0, np.mean(np.square(d_tilde-m_hat)))
+            psi_nu2[:, i_rep, i_treat] = nu2[0, i_rep, i_treat] - \
+                np.multiply(np.square(d_tilde-m_hat), np.square(nu2[0, i_rep, i_treat]))
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict

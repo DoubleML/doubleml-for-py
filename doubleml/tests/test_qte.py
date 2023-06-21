@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import copy
 
 import doubleml as dml
 
@@ -14,6 +15,10 @@ from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
 from doubleml.datasets import make_irm_data
 from .._utils import _default_kde
 
+
+quantiles = [0.25, 0.5, 0.75]
+n_quantiles = len(quantiles)
+n_rep = 1
 
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
@@ -43,7 +48,6 @@ def kde(request):
 @pytest.fixture(scope="module")
 def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_ipw, kde):
     n_folds = 3
-    n_rep = 1
     boot_methods = ['normal']
     n_rep_boot = 2
 
@@ -56,7 +60,6 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
     ml_m = clone(learner)
 
     np.random.seed(42)
-    quantiles = [0.25, 0.5, 0.75]
     dml_qte_obj = dml.DoubleMLQTE(obj_dml_data,
                                   ml_g, ml_m,
                                   quantiles=quantiles,
@@ -66,7 +69,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
                                   normalize_ipw=normalize_ipw,
                                   trimming_threshold=1e-12,
                                   kde=kde)
-
+    unfitted_qte_model = copy.copy(dml_qte_obj)
     dml_qte_obj.fit()
 
     np.random.seed(42)
@@ -88,7 +91,8 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
                 'boot_methods': boot_methods,
                 'ci': ci.to_numpy(),
                 'ci_manual': ci_manual.to_numpy(),
-                'qte_model': dml_qte_obj}
+                'qte_model': dml_qte_obj,
+                'unfitted_qte_model': unfitted_qte_model}
 
     for bootstrap in boot_methods:
         np.random.seed(42)
@@ -165,3 +169,6 @@ def test_doubleml_qte_exceptions():
 def test_doubleml_qte_return_types(dml_qte_fixture):
     assert isinstance(dml_qte_fixture['qte_model'].__str__(), str)
     assert isinstance(dml_qte_fixture['qte_model'].summary, pd.DataFrame)
+
+    assert dml_qte_fixture['qte_model'].all_coef.shape == (n_quantiles, n_rep)
+    assert isinstance(dml_qte_fixture['unfitted_qte_model'].summary, pd.DataFrame)
