@@ -247,8 +247,8 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     References
     ----------
     Turrell, A. (2018), Econometrics in Python part I - Double machine learning, Markov Wanderer: A blog on economics,
-    science, coding and data. `http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/
-    <http://aeturrell.com/2018/02/10/econometrics-in-python-partI-ML/>`_.
+    science, coding and data. `https://aeturrell.com/blog/posts/econometrics-in-python-parti-ml/
+    <https://aeturrell.com/blog/posts/econometrics-in-python-parti-ml/>`_.
     """
     nu = kwargs.get('nu', 0.)
     gamma = kwargs.get('gamma', 1.)
