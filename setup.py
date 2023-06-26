@@ -28,6 +28,7 @@ setup(
         'scipy',
         'scikit-learn',
         'statsmodels',
+        'plotly',
     ],
     python_requires=">=3.6",
     classifiers=[
