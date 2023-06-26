@@ -20,6 +20,7 @@ quantiles = [0.25, 0.5, 0.75]
 n_quantiles = len(quantiles)
 n_rep = 1
 
+
 @pytest.fixture(scope='module',
                 params=[RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42),
                         LogisticRegression()])
