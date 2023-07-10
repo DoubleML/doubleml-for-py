@@ -201,31 +201,45 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         # nuisance g
         # get train indices for d == 0
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
+        if external_predictions['ml_g0'] is not None:
+            g_hat0 = {'preds': external_predictions['ml_g0'],
+                      'targets': None,
+                      'models': None}
+        else:
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                    return_models=return_models)
 
-        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
         # adjust target values to consider only compatible subsamples
-        g_hat0['targets'] = g_hat0['targets'].astype(float)
-        g_hat0['targets'][d == 1] = np.nan
-
+            g_hat0['targets'] = g_hat0['targets'].astype(float) # is None if external predictions are used
+            g_hat0['targets'][d == 1] = np.nan
+        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
         # only relevant for observational or experimental setting
         m_hat = {'preds': None, 'targets': None, 'models': None}
         g_hat1 = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'observational':
             # nuisance m
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
+            if external_predictions['ml_m'] is not None:
+                m_hat = {'preds': external_predictions['ml_m'],
+                        'targets': None,
+                        'models': None}
+            else:
+                m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                        return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
             m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         if self.score == 'experimental':
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
+            if external_predictions['ml_g1'] is not None:
+                g_hat1 = {'preds': external_predictions['ml_g1'],
+                        'targets': None,
+                        'models': None}
+            else:
+                g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
 
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
