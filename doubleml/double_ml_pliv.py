@@ -399,13 +399,18 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if (self._dml_data.n_instr == 1) & ('ml_g' in self._learner):
             # an estimate of g is obtained for the IV-type score and callable scores
             # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
-            psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
-            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
-            # nuisance g
-            g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial * d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+            if external_predictions['ml_g'] is not None:
+                g_hat = {'preds': external_predictions['ml_g'],
+                        'targets': None,
+                        'models': None}
+            else:
+                psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
+                psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
+                theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+                # nuisance g
+                g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial * d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
             _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         predictions['ml_g'] = g_hat['preds']
