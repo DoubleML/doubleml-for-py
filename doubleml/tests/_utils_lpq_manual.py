@@ -11,6 +11,7 @@ def fit_lpq(y, x, d, z, quantile,
             learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
             trimming_rule='truncate',
             trimming_threshold=1e-2,
+            kde=_default_kde,
             normalize_ipw=True, m_z_params=None,
             m_d_z0_params=None, m_d_z1_params=None,
             g_du_z0_params=None, g_du_z1_params=None):
@@ -37,10 +38,10 @@ def fit_lpq(y, x, d, z, quantile,
                                                                    g_du_z1_params=g_du_z1_params)
         if dml_procedure == 'dml1':
             lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec, coef_bounds, smpls)
+                                               treatment, quantile, ipw_vec, coef_bounds, smpls, kde)
         else:
             lpqs[i_rep], ses[i_rep] = lpq_dml2(y, d, z, m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec, coef_bounds)
+                                               treatment, quantile, ipw_vec, coef_bounds, kde)
 
     lpq = np.median(lpqs)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(lpqs - lpq, 2)) / n_obs)
@@ -200,7 +201,7 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_g, learner_m, smpls, treatmen
     return m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat, ipw_vec, coef_bounds
 
 
-def lpq_dml1(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, smpls):
+def lpq_dml1(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, smpls, kde):
     thetas = np.zeros(len(smpls))
     n_obs = len(y)
     ipw_est = ipw_vec.mean()
@@ -211,17 +212,17 @@ def lpq_dml1(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw
 
     theta_hat = np.mean(thetas)
 
-    se = np.sqrt(lpq_var_est(theta_hat, m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs))
+    se = np.sqrt(lpq_var_est(theta_hat, m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, kde))
 
     return theta_hat, se
 
 
-def lpq_dml2(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds):
+def lpq_dml2(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, kde):
     n_obs = len(y)
     ipw_est = ipw_vec.mean()
     theta_hat = lpq_est(m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est, coef_bounds)
 
-    se = np.sqrt(lpq_var_est(theta_hat, m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs))
+    se = np.sqrt(lpq_var_est(theta_hat, m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, kde))
 
     return theta_hat, se
 

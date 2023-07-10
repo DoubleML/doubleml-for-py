@@ -6,11 +6,13 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
-from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _check_contains_iv, \
-    _check_zero_one_treatment, _check_quantile, _check_treatment, _check_trimming, _check_score, _get_bracket_guess, \
-    _default_kde, _normalize_ipw, _dml_tune, _solve_ipw_score, _cond_targets
 from .double_ml_data import DoubleMLData
+
+from ._utils import _dml_cv_predict, _trimm, _predict_zero_one_propensity, _get_bracket_guess, \
+    _default_kde, _normalize_ipw, _dml_tune, _solve_ipw_score
 from ._utils_resampling import DoubleMLResampling
+from ._utils_checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, \
+    _check_contains_iv, _check_quantile
 
 
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
@@ -254,7 +256,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in ['ml_g', 'ml_m']}
 
-    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -337,7 +339,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         m_hat['targets'] = d
 
         # set the target for g to be a float and only relevant values
-        g_hat['targets'] = _cond_targets(g_hat['targets'], cond_sample=(d == self.treatment))
+        g_hat['targets'] = g_hat['targets'].astype(float)
+        g_hat['targets'][d != self.treatment] = np.nan
 
         if return_models:
             g_hat['models'] = fitted_models['ml_g']
@@ -416,3 +419,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         _check_contains_iv(obj_dml_data)
         _check_zero_one_treatment(self)
         return
+
+    def _sensitivity_element_est(self, preds):
+        pass

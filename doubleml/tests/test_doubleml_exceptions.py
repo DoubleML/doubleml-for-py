@@ -178,8 +178,12 @@ def test_doubleml_exception_data():
     df_iivm = dml_data_iivm.data.copy()
     df_iivm['z'] = df_iivm['z'] * 2
     with pytest.raises(ValueError, match=msg):
+        # no instrument Z for LPQ
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', x_cols=['z']),
+                        LogisticRegression(), LogisticRegression(), treatment=1)
+    with pytest.raises(ValueError, match=msg):
         # non-binary Z for LPQ
-        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', 'z'),
+        _ = DoubleMLLPQ(DoubleMLData(df_iivm, 'y', 'd', z_cols=['z']),
                         LogisticRegression(), LogisticRegression(), treatment=1)
 
     # CVAR with IV
@@ -470,10 +474,12 @@ def test_doubleml_exception_kde():
         _ = DoubleMLPQ(dml_data_irm, ml_g, ml_m, treatment=1, kde="0.1")
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, kde="0.1")
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, kde="0.1")
 
 
 @pytest.mark.ci
-def test_doubleml_exception_normalization():
+def test_doubleml_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, ml_g, LogisticRegression(), normalize_ipw=1)
@@ -485,6 +491,8 @@ def test_doubleml_exception_normalization():
         _ = DoubleMLQTE(dml_data_irm, ml_g, ml_m, normalize_ipw=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPQ(dml_data_iivm, ml_g, ml_m, treatment=1, normalize_ipw=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLCVAR(dml_data_irm, Lasso(), LogisticRegression(), treatment=1, normalize_ipw=1)
 
     # DID models in_sample_normalization
     msg = "in_sample_normalization indicator has to be boolean. Object of type <class 'int'> passed."
@@ -726,29 +734,6 @@ def test_doubleml_exception_tune():
         dml_plr_iv_type.tune({'ml_g': {'alpha': [0.05, 0.5]},
                               'ml_m': {'alpha': [0.05, 0.5]}})
 
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                      'ml_m': {'alpha': [0.05, 0.5]}},
-                     scoring_methods={'ml_g': 'explained_variance',
-                                      'ml_m': 'explained_variance'})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_g': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}})
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.tune({'ml_l': {'alpha': [0.05, 0.5]},
-                       'ml_m': {'alpha': [0.05, 0.5]},
-                       'ml_r': {'alpha': [0.05, 0.5]}},
-                      scoring_methods={'ml_g': 'explained_variance',
-                                       'ml_m': 'explained_variance',
-                                       'ml_r': 'explained_variance'})
-
     param_grids = {'ml_l': {'alpha': [0.05, 0.5]}, 'ml_m': {'alpha': [0.05, 0.5]}}
     msg = ('Invalid scoring_methods neg_mean_absolute_error. '
            'scoring_methods must be a dictionary. '
@@ -892,6 +877,18 @@ def test_doubleml_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, LogisticRegression(), LogisticRegression(), LogisticRegression())
 
+    # we allow classifiers for ml_g for binary treatment variables in DID
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDID(dml_data_did, LogisticRegression(), LogisticRegression())
+
+    # we allow classifiers for ml_g for binary treatment variables in DIDCS
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
+           'but the outcome variable is not binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLDIDCS(dml_data_did_cs, LogisticRegression(), LogisticRegression())
+
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegression()
@@ -939,14 +936,6 @@ def test_doubleml_exception_learner():
         dml_iivm_hidden_classifier.set_ml_nuisance_params('ml_g0', 'd', {'max_iter': 314})
         dml_iivm_hidden_classifier.fit()
 
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_plr.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
-
-    msg = 'Learner ml_g was renamed to ml_l. '
-    with pytest.warns(DeprecationWarning, match=msg):
-        dml_pliv.set_ml_nuisance_params('ml_g', 'd', {'max_iter': 314})
-
 
 @pytest.mark.ci
 @pytest.mark.filterwarnings("ignore:Learner provided for")
@@ -957,6 +946,204 @@ def test_doubleml_exception_and_warning_learner():
     msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), Lasso())
+
+
+@pytest.mark.ci
+def test_doubleml_sensitivity_not_yet_implemented():
+    dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r, n_folds=1, apply_cross_fitting=False)
+    dml_pliv.fit()
+    msg = ("Sensitivity analysis not yet implemented without cross-fitting.")
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv.sensitivity_analysis()
+
+    dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r)
+    dml_pliv.fit()
+    msg = ("Sensitivity analysis not yet implemented for <class 'doubleml.double_ml_pliv.DoubleMLPLIV'>.")
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_pliv.sensitivity_analysis()
+
+
+def test_doubleml_sensitivity_inputs():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm.fit()
+
+    # test cf_y
+    msg = "cf_y must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1, cf_d=0.03, rho=1.0, level=0.95)
+
+    msg = r'cf_y must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=1.0, cf_d=0.03, rho=1.0, level=0.95)
+
+    # test cf_d
+    msg = "cf_d must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1, rho=1.0, level=0.95)
+
+    msg = r'cf_d must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=1.0, rho=1.0, level=0.95)
+
+    # test rho
+    msg = "rho must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1, level=0.95)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1, null_hypothesis=0.0, level=0.95, idx_treatment=0)
+
+    msg = "rho must be of float type. 1 of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1")
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho="1", level=0.95)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho="1", null_hypothesis=0.0, level=0.95, idx_treatment=0)
+
+    msg = r'The absolute value of rho must be in \[0,1\]. 1.1 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.1, level=0.95)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.1, null_hypothesis=0.0, level=0.95, idx_treatment=0)
+
+    # test level
+    msg = "The confidence level must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1, null_hypothesis=0.0, idx_treatment=0)
+
+    msg = r'The confidence level must be in \(0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=1.0, null_hypothesis=0.0, idx_treatment=0)
+
+    msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(rho=1.0, level=0.0, null_hypothesis=0.0, idx_treatment=0)
+
+    # test null_hypothesis
+    msg = "null_hypothesis has to be of type float or np.ndarry. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_analysis(null_hypothesis=1)
+    msg = r"null_hypothesis is numpy.ndarray but does not have the required shape \(1,\). Array of shape \(2,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_analysis(null_hypothesis=np.array([1, 2]))
+    msg = "null_hypothesis must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(null_hypothesis=1, level=0.95, rho=1.0, idx_treatment=0)
+    msg = r"null_hypothesis must be of float type. \[1\] of type <class 'numpy.ndarray'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(null_hypothesis=np.array([1]), level=0.95, rho=1.0, idx_treatment=0)
+
+    # test idx_treatment
+    dml_irm.sensitivity_analysis()
+    msg = "idx_treatment must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=0.0, null_hypothesis=0.0, level=0.95, rho=1.0)
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=0.0)
+
+    msg = "idx_treatment must be larger or equal to 0. -1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=-1, null_hypothesis=0.0, level=0.95, rho=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=-1)
+
+    msg = "idx_treatment must be smaller or equal to 0. 1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm._calc_robustness_value(idx_treatment=1, null_hypothesis=0.0, level=0.95, rho=1.0)
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(idx_treatment=1)
+
+    # test setter
+    msg = ("_sensitivity_element_est must return sensitivity elements in a dict. "
+           "Got type <class 'int'>.")
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm._set_sensitivity_elements(sensitivity_elements=1, i_rep=0, i_treat=0)
+
+    sensitivity_elements = dict({'sigma2': 1})
+    with pytest.raises(ValueError):
+        _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
+
+    # test variances
+    sensitivity_elements = dict({'sigma2': 1.0, 'nu2': -2.4, 'psi_sigma2': 1.0, 'psi_nu2': 1.0})
+    _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
+    msg = ('sensitivity_elements sigma2 and nu2 have to be positive. '
+           r'Got sigma2 \[\[\[1.\]\]\] and nu2 \[\[\[-2.4\]\]\]. '
+           r'Most likely this is due to low quality learners \(especially propensity scores\).')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm.sensitivity_analysis()
+
+
+def test_doubleml_sensitivity_plot_input():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm.fit()
+
+    msg = (r'Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. '
+           'The values of rho and the level are used for the scenario.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot()
+
+    dml_irm.sensitivity_analysis()
+    msg = "include_scenario has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(include_scenario="True")
+
+    msg = "value must be a string. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(value=2)
+    msg = "Invalid value test. Valid values theta or ci."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(value='test')
+
+    msg = "fill has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(fill="True")
+
+    msg = "grid_size must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_size=0.0)
+    msg = "grid_size must be larger or equal to 10. 9 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_size=9)
+
+    msg = "grid_bounds must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 1))
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1, 0.15))
+    msg = r'grid_bounds must be in \(0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(1.0, 0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 1.0))
+    msg = r'grid_bounds must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.0, 0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(grid_bounds=(0.15, 0.0))
 
 
 @pytest.mark.ci
