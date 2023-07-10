@@ -183,8 +183,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         # nuisance l
         if external_predictions['ml_l'] is not None:
             l_hat = {'preds': external_predictions['ml_l'],
-                      'targets': None,
-                      'models': None}
+                     'targets': None,
+                     'models': None}
         else:
             l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],

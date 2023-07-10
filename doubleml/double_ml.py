@@ -1054,13 +1054,13 @@ class DoubleML(ABC):
                 #                         ' and learner ' + str(learner) + '. ' +
                 #                         f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
 
-                    expected_shape = (self._dml_data.n_obs, self.n_rep)
-                    if external_predictions[treatment][learner].shape != expected_shape:
-                        raise ValueError('Invalid external_predictions. '
-                                         f'The supplied predictions have to be of shape {str(expected_shape)}. '
-                                         'Invalid predictions for treatment ' + str(treatment) +
-                                         ' and learner ' + str(learner) + '. ' +
-                                         f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
+                #     expected_shape = (self._dml_data.n_obs, self.n_rep)
+                #     if external_predictions[treatment][learner].shape != expected_shape:
+                #         raise ValueError('Invalid external_predictions. '
+                #                          f'The supplied predictions have to be of shape {str(expected_shape)}. '
+                #                          'Invalid predictions for treatment ' + str(treatment) +
+                #                          ' and learner ' + str(learner) + '. ' +
+                #                          f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
