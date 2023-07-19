@@ -50,10 +50,10 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep):
               'score': score,
               'n_rep': n_rep,
               'dml_procedure': dml_procedure}
-    
+
     if score == 'IV-type':
         kwargs['ml_g'] = LinearRegression()
-    
+
     DMLPLR = DoubleMLPLR(ml_m=LinearRegression(),
                          ml_l=LinearRegression(),
                          **kwargs)
@@ -61,12 +61,12 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep):
 
     DMLPLR.fit(store_predictions=True)
 
-    ext_predictions['d']['ml_m'] = DMLPLR.predictions['ml_m'].squeeze()
-    ext_predictions['d']['ml_l'] = DMLPLR.predictions['ml_l'].squeeze()
+    ext_predictions['d']['ml_m'] = DMLPLR.predictions['ml_m'][:, :, 0]
+    ext_predictions['d']['ml_l'] = DMLPLR.predictions['ml_l'][:, :, 0]
 
     if score == 'IV-type':
         kwargs['ml_g'] = dummy_learner()
-        ext_predictions['d']['ml_g'] = DMLPLR.predictions['ml_g'].squeeze()
+        ext_predictions['d']['ml_g'] = DMLPLR.predictions['ml_g'][:, :, 0]
 
 
     DMLPLR_ext = DoubleMLPLR(ml_m=dummy_learner(),

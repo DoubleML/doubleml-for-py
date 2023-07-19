@@ -287,10 +287,10 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if self.partialX & (not self.partialZ):
             psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, external_predictions, return_models)
         elif (not self.partialX) & self.partialZ:
-            psi_elements, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, external_predictions, return_models)
+            psi_elements, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, return_models)
         else:
             assert (self.partialX & self.partialZ)
-            psi_elements, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv, external_predictions, return_models)
+            psi_elements, preds = self._nuisance_est_partial_xz(smpls, n_jobs_cv, return_models)
 
         return psi_elements, preds
 

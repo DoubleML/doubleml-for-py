@@ -1328,11 +1328,6 @@ def test_double_ml_external_predictions():
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.fit(external_predictions="ml_m")
 
-    predictions = {'ml_f': 'test'}
-    msg = "external_predictions is not yet implmented for ``n_rep > 1``."
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_irm_obj.fit(external_predictions=predictions)
-
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
                               ml_m=LogisticRegression(),
@@ -1377,15 +1372,23 @@ def test_double_ml_external_predictions():
 
     predictions = {'d': {'ml_m': np.array([0])}}
     msg = ('Invalid external_predictions. '
-           r'The supplied predictions have to be of shape \(100,\). '
+           r'The supplied predictions have to be of shape \(100, 1\). '
            'Invalid predictions for treatment d and learner ml_m. '
            r'Predictions of shape \(1,\) passed.')
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.fit(external_predictions=predictions)
 
+    predictions = {'d': {'ml_m': np.zeros(100)}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(100,\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
     predictions = {'d': {'ml_m': np.ones(shape=(5, 3))}}
     msg = ('Invalid external_predictions. '
-           r'The supplied predictions have to be of shape \(100,\). '
+           r'The supplied predictions have to be of shape \(100, 1\). '
            'Invalid predictions for treatment d and learner ml_m. '
            r'Predictions of shape \(5, 3\) passed.')
     with pytest.raises(ValueError, match=msg):
