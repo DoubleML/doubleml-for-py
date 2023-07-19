@@ -10,7 +10,9 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions
+
+from ._utils import _dml_cv_predict, _dml_tune
+from ._utils_checks import _check_finite_predictions
 
 
 class DoubleMLPLIV(LinearScoreMixin, DoubleML):
@@ -281,19 +283,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                              'use DoubleMLPLR instead of DoubleMLPLIV.')
         return
 
-    # To be removed in version 0.6.0
-    def set_ml_nuisance_params(self, learner, treat_var, params):
-        if isinstance(self.score, str) & (self.score == 'partialling out') & (learner == 'ml_g'):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the argument learner accordingly. "
-                           "The provided parameters are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            learner = 'ml_l'
-        super(DoubleMLPLIV, self).set_ml_nuisance_params(learner, treat_var, params)
-
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        if self.partialX & (not self.partialZ):          
+        if self.partialX & (not self.partialZ):
             psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, external_predictions, return_models)
         elif (not self.partialX) & self.partialZ:
             psi_elements, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, external_predictions, return_models)
@@ -550,41 +541,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
         return psi_elements, preds
 
-    # To be removed in version 0.6.0
-    def tune(self,
-             param_grids,
-             tune_on_folds=False,
-             scoring_methods=None,  # if None the estimator's score method is used
-             n_folds_tune=5,
-             search_mode='grid_search',
-             n_iter_randomized_search=100,
-             n_jobs_cv=None,
-             set_as_params=True,
-             return_tune_res=False):
-
-        if isinstance(self.score, str) and (self.score == 'partialling out') and (param_grids is not None) and \
-                ('ml_g' in param_grids) and ('ml_l' not in param_grids):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the key of param_grids accordingly. "
-                           "The provided param_grids for ml_g are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            param_grids['ml_l'] = param_grids.pop('ml_g')
-
-        if isinstance(self.score, str) and (self.score == 'partialling out') and (scoring_methods is not None) and \
-                ('ml_g' in scoring_methods) and ('ml_l' not in scoring_methods):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the key of scoring_methods accordingly. "
-                           "The provided scoring_methods for ml_g are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            scoring_methods['ml_l'] = scoring_methods.pop('ml_g')
-
-        tune_res = super(DoubleMLPLIV, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune,
-                                                  search_mode, n_iter_randomized_search, n_jobs_cv, set_as_params,
-                                                  return_tune_res)
-        return tune_res
-
     def _nuisance_tuning_partial_x(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                                    search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -758,3 +714,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def _sensitivity_element_est(self, preds):
+        pass

@@ -9,11 +9,15 @@ from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
 from abc import ABC, abstractmethod
+from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
+
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
-from ._utils import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _draw_weights, \
-    _rmse
+from ._utils import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
+from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
+    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl
+from ._utils_plots import _sensitivity_contour_plot
 
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -54,6 +58,11 @@ class DoubleML(ABC):
         # initialize models to None which are only stored if method fit is called with store_models=True
         self._models = None
 
+        # initialize sensitivity elements to None (only available if implemented for the class
+        self._sensitivity_implemented = False
+        self._sensitivity_elements = None
+        self._sensitivity_params = None
+
         # check resampling specifications
         if not isinstance(n_folds, int):
             raise TypeError('The number of folds must be of int type. '
@@ -78,7 +87,7 @@ class DoubleML(ABC):
 
         # set resampling specifications
         if self._is_cluster_data:
-            if (n_folds == 1) | (not apply_cross_fitting):
+            if (n_folds == 1) or (not apply_cross_fitting):
                 raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
                                           'is not yet implemented with clustering.')
             self._n_folds_per_cluster = n_folds
@@ -342,6 +351,24 @@ class DoubleML(ABC):
         return self._psi_elements
 
     @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity components after calling :meth:`fit`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
+        and ``psi_nu2``.
+        """
+        return self._sensitivity_elements
+
+    @property
+    def sensitivity_params(self):
+        """
+        Values of the sensitivity parameters after calling :meth:`sesitivity_analysis`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
+        and ``rva``.
+        """
+        return self._sensitivity_params
+
+    @property
     def coef(self):
         """
         Estimates for the causal parameter(s) after calling :meth:`fit`.
@@ -514,6 +541,11 @@ class DoubleML(ABC):
         if store_models:
             self._initialize_models()
 
+        if self._sensitivity_implemented:
+            self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
+                                                                                self.n_rep,
+                                                                                self._dml_data.n_coefs))
+
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             for i_d in range(self._dml_data.n_treat):
@@ -571,8 +603,20 @@ class DoubleML(ABC):
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
+                if self._sensitivity_implemented:
+                    # not yet implemented
+                    if self._is_cluster_data or self.apply_cross_fitting:
+                        pass
+                    # check if callable score
+                    if callable(self.score):
+                        warnings.warn('Sensitivity analysis not implemented for callable scores.')
+                    else:
+                        # compute sensitivity analysis elements
+                        element_dict = self._sensitivity_element_est(preds)
+                        self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
+
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
         return self
 
@@ -1063,10 +1107,12 @@ class DoubleML(ABC):
                 #                          f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
+        # scores
         psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
 
+        # coefficients and ses
         coef = np.full(self._dml_data.n_coefs, np.nan)
         se = np.full(self._dml_data.n_coefs, np.nan)
 
@@ -1133,7 +1179,7 @@ class DoubleML(ABC):
             where ``n`` specifies the number of observations. Remark that some models like IRM are
             not able to provide all values for ``y_true`` for all learners and might contain
             some ``nan`` values in the target vector.
-            Default is the euclidean distance.
+            Default is the root-mean-square error.
 
         Returns
         -------
@@ -1154,10 +1200,13 @@ class DoubleML(ABC):
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
         >>> dml_irm_obj.fit()
-        >>> dml_irm_obj.evaluate_learners(metric=mean_absolute_error)
-        {'ml_g0': array([[1.13318973]]),
-         'ml_g1': array([[0.91659939]]),
-         'ml_m': array([[0.36350912]])}
+        >>> def mae(y_true, y_pred):
+        >>>     subset = np.logical_not(np.isnan(y_true))
+        >>>     return mean_absolute_error(y_true[subset], y_pred[subset])
+        >>> dml_irm_obj.evaluate_learners(metric=mae)
+        {'ml_g0': array([[0.85974356]]),
+         'ml_g1': array([[0.85280376]]),
+         'ml_m': array([[0.35365143]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:
@@ -1395,25 +1444,29 @@ class DoubleML(ABC):
 
     def _se_causal_pars(self):
         if not self._is_cluster_data:
-            se = np.sqrt(self._var_est())
-        else:
-            se = np.sqrt(self._var_est_cluster_data())
+            cluster_vars = None
+            smpls_cluster = None
+            n_folds_per_cluster = None
 
+        else:
+            cluster_vars = self._dml_data.cluster_vars
+            smpls_cluster = self.__smpls_cluster
+            n_folds_per_cluster = self._n_folds_per_cluster
+
+        sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
+                                                  psi_deriv=self.__psi_deriv,
+                                                  apply_cross_fitting=self.apply_cross_fitting,
+                                                  smpls=self.__smpls,
+                                                  is_cluster_data=self._is_cluster_data,
+                                                  cluster_vars=cluster_vars,
+                                                  smpls_cluster=smpls_cluster,
+                                                  n_folds_per_cluster=n_folds_per_cluster)
+
+        self._var_scaling_factor = var_scaling_factor
+        se = np.sqrt(sigma2_hat)
         return se
 
-    def _agg_cross_fit(self):
-        # aggregate parameters from the repeated cross-fitting
-        # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self.coef = np.median(self._all_coef, 1)
-
-        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        # TODO: In the edge case of repeated no-cross-fitting, the test sets might have different size and therefore
-        #  it would note be valid to always use the same self._var_scaling_factor
-        xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), self._var_scaling_factor) +
-                                              np.power(self._all_coef - xx, 2), 1), self._var_scaling_factor))
-
+    # to estimate causal parameters without predictions
     def _est_causal_pars_and_se(self):
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -1439,8 +1492,8 @@ class DoubleML(ABC):
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
 
-            # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
+        # aggregated parameter estimates and standard errors from repeated cross-fitting
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
     def _compute_bootstrap(self, weights):
         if self.apply_cross_fitting:
@@ -1458,79 +1511,7 @@ class DoubleML(ABC):
 
         return boot_coef, boot_t_stat
 
-    def _var_est(self):
-        """
-        Estimate the standard errors of the structural parameter
-        """
-        psi_deriv = self.__psi_deriv
-        psi = self.__psi
-
-        if self.apply_cross_fitting:
-            self._var_scaling_factor = self._dml_data.n_obs
-        else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            psi_deriv = psi_deriv[test_index]
-            psi = psi[test_index]
-            self._var_scaling_factor = len(test_index)
-
-        J = np.mean(psi_deriv)
-        sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(psi, 2)) / np.power(J, 2)
-
-        return sigma2_hat
-
-    def _var_est_cluster_data(self):
-        psi_deriv = self.__psi_deriv
-        psi = self.__psi
-
-        if self._dml_data.n_cluster_vars == 1:
-            this_cluster_var = self._dml_data.cluster_vars[:, 0]
-            clusters = np.unique(this_cluster_var)
-            gamma_hat = 0
-            j_hat = 0
-            for i_fold in range(self.n_folds):
-                test_inds = self.__smpls[i_fold][1]
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                I_k = test_cluster_inds[0]
-                const = 1 / len(I_k)
-                for cluster_value in I_k:
-                    ind_cluster = (this_cluster_var == cluster_value)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_deriv[test_inds]) / len(I_k)
-
-            gamma_hat = gamma_hat / self._n_folds_per_cluster
-            j_hat = j_hat / self._n_folds_per_cluster
-            self._var_scaling_factor = len(clusters)
-            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
-        else:
-            assert self._dml_data.n_cluster_vars == 2
-            first_cluster_var = self._dml_data.cluster_vars[:, 0]
-            second_cluster_var = self._dml_data.cluster_vars[:, 1]
-            gamma_hat = 0
-            j_hat = 0
-            for i_fold in range(self.n_folds):
-                test_inds = self.__smpls[i_fold][1]
-                test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                I_k = test_cluster_inds[0]
-                J_l = test_cluster_inds[1]
-                const = min(len(I_k), len(J_l)) / ((len(I_k) * len(J_l)) ** 2)
-                for cluster_value in I_k:
-                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                for cluster_value in J_l:
-                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
-                    gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
-                j_hat += np.sum(psi_deriv[test_inds]) / (len(I_k) * len(J_l))
-            gamma_hat = gamma_hat / (self._n_folds_per_cluster ** 2)
-            j_hat = j_hat / (self._n_folds_per_cluster ** 2)
-            n_first_clusters = len(np.unique(first_cluster_var))
-            n_second_clusters = len(np.unique(second_cluster_var))
-            self._var_scaling_factor = min(n_first_clusters, n_second_clusters)
-            sigma2_hat = gamma_hat / (j_hat ** 2) / self._var_scaling_factor
-
-        return sigma2_hat
-
+    # Score estimation and elements
     @abstractmethod
     def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         pass
@@ -1567,3 +1548,374 @@ class DoubleML(ABC):
     def _initialize_score_elements(self, score_dim):
         psi_elements = {key: np.full(score_dim, np.nan) for key in self._score_element_names}
         return psi_elements
+
+    # Sensitivity estimation and elements
+    @abstractmethod
+    def _sensitivity_element_est(self, preds):
+        pass
+
+    @property
+    def _sensitivity_element_names(self):
+        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+
+    # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
+    def _initialize_sensitivity_elements(self, score_dim):
+        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'psi_sigma2': np.full(score_dim, np.nan),
+                                'psi_nu2': np.full(score_dim, np.nan)}
+        return sensitivity_elements
+
+    def _get_sensitivity_elements(self, i_rep, i_treat):
+        sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}
+        return sensitivity_elements
+
+    def _set_sensitivity_elements(self, sensitivity_elements, i_rep, i_treat):
+        if not isinstance(sensitivity_elements, dict):
+            raise TypeError('_sensitivity_element_est must return sensitivity elements in a dict. '
+                            f'Got type {str(type(sensitivity_elements))}.')
+        if not (set(self._sensitivity_element_names) == set(sensitivity_elements.keys())):
+            raise ValueError('_sensitivity_element_est returned incomplete sensitivity elements. '
+                             'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '. '
+                             'Got dict with keys: ' + ' and '.join(set(sensitivity_elements.keys())) + '.')
+        for key in self._sensitivity_element_names:
+            self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
+        return
+
+    def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
+        if not self.apply_cross_fitting:
+            raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
+        if self._sensitivity_elements is None:
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+
+        # checks
+        _check_in_zero_one(cf_y, 'cf_y', include_one=False)
+        _check_in_zero_one(cf_d, 'cf_d', include_one=False)
+        if not isinstance(rho, float):
+            raise TypeError(f'rho must be of float type. '
+                            f'{str(rho)} of type {str(type(rho))} was passed.')
+        _check_in_zero_one(abs(rho), 'The absolute value of rho')
+        _check_in_zero_one(level, 'The confidence level', include_zero=False, include_one=False)
+
+        # set elements for readability
+        sigma2 = self.sensitivity_elements['sigma2']
+        nu2 = self.sensitivity_elements['nu2']
+        psi_sigma = self.sensitivity_elements['psi_sigma2']
+        psi_nu = self.sensitivity_elements['psi_nu2']
+        psi_scaled = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
+
+        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
+            raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
+                             f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
+                             'Most likely this is due to low quality learners (especially propensity scores).')
+
+        # elementwise operations
+        confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
+        S = np.sqrt(np.multiply(sigma2, nu2))
+
+        # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
+        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+
+        psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
+        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
+        psi_lower = psi_scaled - psi_bias
+        psi_upper = psi_scaled + psi_bias
+
+        # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
+        all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
+        all_sigma_upper = np.full_like(all_theta_upper, fill_value=np.nan)
+        for i_rep in range(self.n_rep):
+            self._i_rep = i_rep
+            for i_d in range(self._dml_data.n_treat):
+                self._i_treat = i_d
+
+                if not self._is_cluster_data:
+                    cluster_vars = None
+                    smpls_cluster = None
+                    n_folds_per_cluster = None
+                else:
+                    cluster_vars = self._dml_data.cluster_vars
+                    smpls_cluster = self.__smpls_cluster
+                    n_folds_per_cluster = self._n_folds_per_cluster
+
+                sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
+                                               psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
+                                               apply_cross_fitting=self.apply_cross_fitting,
+                                               smpls=self.__smpls,
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+                sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_rep, i_d],
+                                               psi_deriv=np.ones_like(psi_upper[:, i_rep, i_d]),
+                                               apply_cross_fitting=self.apply_cross_fitting,
+                                               smpls=self.__smpls,
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+
+                all_sigma_lower[self._i_treat, self._i_rep] = np.sqrt(sigma2_lower_hat)
+                all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
+
+        # aggregate coefs and ses over n_rep
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
+
+        quant = norm.ppf(level)
+        ci_lower = theta_lower - np.multiply(quant, sigma_lower)
+        ci_upper = theta_upper + np.multiply(quant, sigma_upper)
+
+        theta_dict = {'lower': theta_lower,
+                      'upper': theta_upper}
+
+        se_dict = {'lower': sigma_lower,
+                   'upper': sigma_upper}
+
+        ci_dict = {'lower': ci_lower,
+                   'upper': ci_upper}
+
+        res_dict = {'theta': theta_dict,
+                    'se': se_dict,
+                    'ci': ci_dict}
+
+        return res_dict
+
+    def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
+        _check_float(null_hypothesis, "null_hypothesis")
+        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
+
+        # check which side is relvant
+        bound = 'upper' if (null_hypothesis > self.coef[idx_treatment]) else 'lower'
+
+        # minimize the square to find boundary solutions
+        def rv_fct(value, param):
+            res = self._calc_sensitivity_analysis(cf_y=value,
+                                                  cf_d=value,
+                                                  rho=rho,
+                                                  level=level)[param][bound][idx_treatment] - null_hypothesis
+            return np.square(res)
+
+        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
+        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci', )).x
+
+        return rv, rva
+
+    def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
+        """
+        Performs a sensitivity analysis to account for unobserved confounders.
+
+        The evaluated scenario is stored as a dictionary in the property ``sensitivity_params``.
+
+        Parameters
+        ----------
+        cf_y : float
+            Percentage of the residual variation of the outcome explained by latent/confounding variables.
+            Default is ``0.03``.
+
+        cf_d : float
+            Percentage gains in the variation of the Riesz representer generated by latent/confounding variables.
+            Default is ``0.03``.
+
+        rho : float
+            The correlation between the differences in short and long representations in the main regression and
+            Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
+            confounding (maximizes at 1.0).
+            Default is ``1.0``.
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        null_hypothesis : float or numpy.ndarray
+            Null hypothesis for the effect. Determines the robustness values.
+            If it is a single float uses the same null hypothesis for all estimated parameters.
+            Else the array has to be of shape (n_coefs,).
+            Default is ``0.0``.
+
+        Returns
+        -------
+        self : object
+        """
+        # compute sensitivity analysis
+        sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
+
+        if isinstance(null_hypothesis, float):
+            null_hypothesis_vec = np.full(shape=self._dml_data.n_treat, fill_value=null_hypothesis)
+        elif isinstance(null_hypothesis, np.ndarray):
+            if null_hypothesis.shape == (self._dml_data.n_treat,):
+                null_hypothesis_vec = null_hypothesis
+            else:
+                raise ValueError("null_hypothesis is numpy.ndarray but does not have the required "
+                                 f"shape ({self._dml_data.n_treat},). "
+                                 f'Array of shape {str(null_hypothesis.shape)} was passed.')
+        else:
+            raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
+                            f"{str(null_hypothesis)} of type {str(type(null_hypothesis))} was passed.")
+
+        # compute robustess values with respect to null_hypothesis
+        rv = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
+        rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
+
+        for i_treat in range(self._dml_data.n_treat):
+            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat],
+                                                                    level=level, rho=rho, idx_treatment=i_treat)
+
+        sensitivity_dict['rv'] = rv
+        sensitivity_dict['rva'] = rva
+
+        # add all input parameters
+        input_params = {'cf_y': cf_y,
+                        'cf_d': cf_d,
+                        'rho': rho,
+                        'level': level,
+                        'null_hypothesis': null_hypothesis_vec}
+        sensitivity_dict['input'] = input_params
+
+        self._sensitivity_params = sensitivity_dict
+        return self
+
+    @property
+    def sensitivity_summary(self):
+        """
+        Returns a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
+
+        Returns
+        -------
+        res : str
+            Summary for the sensitivity analysis.
+        """
+        header = '================== Sensitivity Analysis ==================\n'
+        if self.sensitivity_params is None:
+            res = header + 'Apply sensitivity_analysis() to generate sensitivity_summary.'
+        else:
+            sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
+            scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
+                              f'cf_d={self.sensitivity_params["input"]["cf_d"]}, ' \
+                              f'rho={self.sensitivity_params["input"]["rho"]}'
+
+            theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
+            theta_and_ci = np.transpose(np.vstack((self._sensitivity_params['ci']['lower'],
+                                                   self._sensitivity_params['theta']['lower'],
+                                                   self.coef,
+                                                   self._sensitivity_params['theta']['upper'],
+                                                   self._sensitivity_params['ci']['upper'])))
+            df_theta_and_ci = pd.DataFrame(theta_and_ci,
+                                           columns=theta_and_ci_col_names,
+                                           index=self._dml_data.d_cols)
+            theta_and_ci_summary = str(df_theta_and_ci)
+
+            rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
+            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
+                                          self._sensitivity_params['rva']))) * 100
+
+            df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
+                                  columns=rvs_col_names,
+                                  index=self._dml_data.d_cols)
+            rvs_summary = str(df_rvs)
+
+            res = header + \
+                '\n------------------ Scenario          ------------------\n' + \
+                sig_level + scenario_params + '\n' + \
+                '\n------------------ Bounds with CI    ------------------\n' + \
+                theta_and_ci_summary + '\n' + \
+                '\n------------------ Robustness Values ------------------\n' + \
+                rvs_summary
+
+        return res
+
+    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True,
+                         fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+        """
+        Contour plot of the sensivity with respect to latent/confounding variables.
+
+        Parameters
+        ----------
+        idx_treatment : int
+            Index of the treatment to perform the sensitivity analysis.
+            Default is ``0``.
+
+        value : str
+            Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
+            and ``'ci'`` (refers to the bounds including statistical uncertainty).
+            Default is ``'theta'``.
+
+        include_scenario : bool
+            Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
+            Default is ``True``.
+
+        fill : bool
+            Indicates whether to use a heatmap style or only contour lines.
+            Default is ``True``.
+
+        grid_bounds : tuple
+            Determines the evaluation bounds of the grid for ``cf_d`` and ``cf_y``. Has to contain two floats in [0, 1).
+            Default is ``(0.15, 0.15)``.
+
+        grid_size : int
+            Determines the number of evaluation points of the grid.
+            Default is ``100``.
+
+        Returns
+        -------
+        fig : object
+            Plotly figure of the sensitivity contours.
+        """
+        if self.sensitivity_params is None:
+            raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
+                             'The values of rho and the level are used for the scenario.')
+        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
+        if not isinstance(value, str):
+            raise TypeError('value must be a string. '
+                            f'{str(value)} of type {type(value)} was passed.')
+        valid_values = ['theta', 'ci']
+        if value not in valid_values:
+            raise ValueError('Invalid value ' + value + '. ' +
+                             'Valid values ' + ' or '.join(valid_values) + '.')
+        _check_bool(include_scenario, 'include_scenario')
+        _check_bool(fill, 'fill')
+        _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
+        _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
+        _check_integer(grid_size, "grid_size", lower_bound=10)
+
+        null_hypothesis = self.sensitivity_params['input']['null_hypothesis'][idx_treatment]
+        unadjusted_theta = self.coef[idx_treatment]
+        # check which side is relvant
+        bound = 'upper' if (null_hypothesis > unadjusted_theta) else 'lower'
+
+        # create evaluation grid
+        cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
+        cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
+
+        # compute contour values
+        contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
+        for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
+            for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
+                sens_dict = self._calc_sensitivity_analysis(cf_y=cf_y_grid,
+                                                            cf_d=cf_d_grid,
+                                                            rho=self.sensitivity_params['input']['rho'],
+                                                            level=self.sensitivity_params['input']['level'])
+                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict[value][bound][idx_treatment]
+
+        # get the correct unadjusted value for confidence bands
+        if value == 'theta':
+            unadjusted_value = unadjusted_theta
+        else:
+            assert value == 'ci'
+            ci = self.confint(level=self.sensitivity_params['input']['level'])
+            if bound == 'upper':
+                unadjusted_value = ci.iloc[idx_treatment, 1]
+            else:
+                unadjusted_value = ci.iloc[idx_treatment, 0]
+
+        fig = _sensitivity_contour_plot(x=cf_d_vec,
+                                        y=cf_y_vec,
+                                        contour_values=contour_values,
+                                        unadjusted_value=unadjusted_value,
+                                        scenario_x=self.sensitivity_params['input']['cf_d'],
+                                        scenario_y=self.sensitivity_params['input']['cf_y'],
+                                        scenario_value=self.sensitivity_params[value][bound][idx_treatment],
+                                        include_scenario=include_scenario,
+                                        fill=fill)
+        return fig

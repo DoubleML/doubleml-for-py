@@ -14,7 +14,7 @@ from ._utils_irm_manual import fit_irm, boot_irm, tune_nuisance_irm
 
 
 @pytest.fixture(scope='module',
-                params=[RandomForestRegressor()])
+                params=[RandomForestRegressor(random_state=42)])
 def learner_g(request):
     return request.param
 

@@ -12,7 +12,7 @@ import doubleml as dml
 from doubleml.datasets import make_irm_data
 
 from ._utils import draw_smpls
-from ._utils_irm_manual import fit_irm, boot_irm
+from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
 
 
 @pytest.fixture(scope='module',
@@ -37,13 +37,13 @@ def dml_procedure(request):
 
 
 @pytest.fixture(scope='module',
-                params=[True, False])
+                params=[False, True])
 def normalize_ipw(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=[0.01, 0.05])
+                params=[0.2, 0.15])
 def trimming_threshold(request):
     return request.param
 
@@ -134,6 +134,17 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
         res_dict['boot_coef' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_coef
         res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_t_stat
 
+    # sensitivity tests
+    res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
+    res_dict['sensitivity_elements_manual'] = fit_sensitivity_elements_irm(y, d,
+                                                                           all_coef=dml_irm_obj.all_coef,
+                                                                           predictions=dml_irm_obj.predictions,
+                                                                           score=score,
+                                                                           n_rep=1)
+
+    # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
+    dml_irm_obj.sensitivity_analysis(rho=0.0)
+    res_dict['sensitivity_ses'] = dml_irm_obj.sensitivity_params['se']
     return res_dict
 
 
@@ -172,6 +183,25 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_ext'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_sensitivity(dml_irm_fixture):
+    sensitivity_element_names = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(dml_irm_fixture['sensitivity_elements'][sensitivity_element],
+                           dml_irm_fixture['sensitivity_elements_manual'][sensitivity_element],
+                           rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_sensitivity_rho0(dml_irm_fixture):
+    assert np.allclose(dml_irm_fixture['se'],
+                       dml_irm_fixture['sensitivity_ses']['lower'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_irm_fixture['se'],
+                       dml_irm_fixture['sensitivity_ses']['upper'],
+                       rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci

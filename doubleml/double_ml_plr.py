@@ -8,7 +8,9 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions, _check_is_propensity, _check_score
+
+from ._utils import _dml_cv_predict, _dml_tune
+from ._utils_checks import _check_score, _check_finite_predictions, _check_is_propensity
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -147,6 +149,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             self._predict_method['ml_m'] = 'predict'
 
         self._initialize_ml_nuisance_params()
+        self._sensitivity_implemented = True
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
@@ -162,17 +165,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                              ' have been set as instrumental variable(s). '
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
-
-    # To be removed in version 0.6.0
-    def set_ml_nuisance_params(self, learner, treat_var, params):
-        if isinstance(self.score, str) & (self.score == 'partialling out') & (learner == 'ml_g'):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the argument learner accordingly. "
-                           "The provided parameters are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            learner = 'ml_l'
-        super(DoubleMLPLR, self).set_ml_nuisance_params(learner, treat_var, params)
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -267,39 +259,33 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
-    # To be removed in version 0.6.0
-    def tune(self,
-             param_grids,
-             tune_on_folds=False,
-             scoring_methods=None,  # if None the estimator's score method is used
-             n_folds_tune=5,
-             search_mode='grid_search',
-             n_iter_randomized_search=100,
-             n_jobs_cv=None,
-             set_as_params=True,
-             return_tune_res=False):
+    def _sensitivity_element_est(self, preds):
+        # set elments for readability
+        y = self._dml_data.y
+        d = self._dml_data.d
 
-        if isinstance(self.score, str) and (self.score == 'partialling out') and (param_grids is not None) and \
-                ('ml_g' in param_grids) and ('ml_l' not in param_grids):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the key of param_grids accordingly. "
-                           "The provided param_grids for ml_g are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            param_grids['ml_l'] = param_grids.pop('ml_g')
+        m_hat = preds['predictions']['ml_m']
+        theta = self.all_coef[self._i_treat, self._i_rep]
 
-        if isinstance(self.score, str) and (self.score == 'partialling out') and (scoring_methods is not None) and \
-                ('ml_g' in scoring_methods) and ('ml_l' not in scoring_methods):
-            warnings.warn(("Learner ml_g was renamed to ml_l. "
-                           "Please adapt the key of scoring_methods accordingly. "
-                           "The provided scoring_methods for ml_g are set for ml_l. "
-                           "The redirection will be removed in a future version."),
-                          DeprecationWarning, stacklevel=2)
-            scoring_methods['ml_l'] = scoring_methods.pop('ml_g')
+        if self.score == 'partialling out':
+            l_hat = preds['predictions']['ml_l']
+            sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
+        else:
+            assert self.score == 'IV-type'
+            g_hat = preds['predictions']['ml_g']
+            sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
 
-        tune_res = super(DoubleMLPLR, self).tune(param_grids, tune_on_folds, scoring_methods, n_folds_tune, search_mode,
-                                                 n_iter_randomized_search, n_jobs_cv, set_as_params, return_tune_res)
-        return tune_res
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
+        psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2}
+        return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):

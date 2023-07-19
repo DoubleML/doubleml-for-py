@@ -13,8 +13,8 @@ from ._utils_irm_manual import fit_irm, boot_irm
 
 
 @pytest.fixture(scope='module',
-                params=[[RandomForestRegressor(max_depth=2, n_estimators=10),
-                         RandomForestClassifier(max_depth=2, n_estimators=10)]])
+                params=[[RandomForestRegressor(max_depth=2, n_estimators=10, random_state=42),
+                         RandomForestClassifier(max_depth=2, n_estimators=10, random_state=42)]])
 def learner(request):
     return request.param
 
