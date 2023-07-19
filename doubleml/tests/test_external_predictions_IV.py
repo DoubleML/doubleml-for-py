@@ -90,8 +90,8 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
                 ext_predictions['d'][ml_m_key] = DMLPLIV.predictions[ml_m_key].squeeze()
 
         DMLPLIV_ext = DoubleMLPLIV(ml_m=dummy_learner(),
-                                ml_l=dummy_learner(),
-                                ml_r=dummy_learner(),
+                                   ml_l=dummy_learner(),
+                                   ml_r=dummy_learner(),
                                 **kwargs)
 
         np.random.seed(3141)
