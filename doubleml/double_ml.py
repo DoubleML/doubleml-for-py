@@ -561,10 +561,8 @@ class DoubleML(ABC):
                     if external_predictions is None:
                         ext_prediction_dict[learner] = None
                     elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
-                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray) and self.n_rep > 1:
-                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][0:, i_rep]
-                        elif isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray) and self.n_rep == 1:
-                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner]
+                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray):
+                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][:, i_rep]
                         else:
                             ext_prediction_dict[learner] = None
                     else:
@@ -1090,21 +1088,21 @@ class DoubleML(ABC):
                                      f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
                                      'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
 
-                # for learner in supplied_learners:
-                #     if not isinstance(external_predictions[treatment][learner],  np.ndarray):
-                #         raise TypeError('Invalid external_predictions. '
-                #                         'The values of the nested list must be a numpy array. '
-                #                         'Invalid predictions for treatment ' + str(treatment) +
-                #                         ' and learner ' + str(learner) + '. ' +
-                #                         f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
+                for learner in supplied_learners:
+                    if not isinstance(external_predictions[treatment][learner], np.ndarray):
+                        raise TypeError('Invalid external_predictions. '
+                                        'The values of the nested list must be a numpy array. '
+                                        'Invalid predictions for treatment ' + str(treatment) +
+                                        ' and learner ' + str(learner) + '. ' +
+                                        f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
 
-                #     expected_shape = (self._dml_data.n_obs, self.n_rep)
-                #     if external_predictions[treatment][learner].shape != expected_shape:
-                #         raise ValueError('Invalid external_predictions. '
-                #                          f'The supplied predictions have to be of shape {str(expected_shape)}. '
-                #                          'Invalid predictions for treatment ' + str(treatment) +
-                #                          ' and learner ' + str(learner) + '. ' +
-                #                          f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
+                    expected_shape = (self._dml_data.n_obs, self.n_rep)
+                    if external_predictions[treatment][learner].shape != expected_shape:
+                        raise ValueError('Invalid external_predictions. '
+                                         f'The supplied predictions have to be of shape {str(expected_shape)}. '
+                                         'Invalid predictions for treatment ' + str(treatment) +
+                                         ' and learner ' + str(learner) + '. ' +
+                                         f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
         # scores
