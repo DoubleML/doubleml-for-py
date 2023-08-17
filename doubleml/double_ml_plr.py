@@ -254,19 +254,25 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         if self.score == 'partialling out':
             l_hat = preds['predictions']['ml_l']
-            sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d-m_hat))
+            predictions_y = l_hat + np.multiply(theta, d-m_hat)
         else:
             assert self.score == 'IV-type'
             g_hat = preds['predictions']['ml_g']
-            sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
+            predictions_y = g_hat + np.multiply(theta, d)
 
+        residuals_y = y - predictions_y
+        sigma2_score_element = np.square(residuals_y)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
         psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
 
-        element_dict = {'sigma2': sigma2,
+        # add nonparametric R2 for the main regression (for benchmarking)
+        R2_y = 1 - np.var(residuals_y, axis=0) / np.var(y)
+
+        element_dict = {'R2_y': R2_y,
+                        'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}

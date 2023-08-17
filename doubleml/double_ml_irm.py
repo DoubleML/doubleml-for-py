@@ -334,7 +334,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             weights = np.divide(d, np.mean(d))
             weights_bar = np.divide(m_hat, np.mean(d))
 
-        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        residuals_y = y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0)
+        sigma2_score_element = np.square(residuals_y)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
@@ -346,7 +347,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        element_dict = {'sigma2': sigma2,
+        # add nonparametric R2 for the main regression (for benchmarking)
+        R2_y = 1 - np.var(residuals_y, axis=0) / np.var(y)
+        element_dict = {'R2_y': R2_y,
+                        'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}

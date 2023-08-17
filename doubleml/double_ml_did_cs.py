@@ -398,6 +398,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         g_hat = np.multiply(d0t0, g_hat_d0_t0) + np.multiply(d0t1, g_hat_d0_t1) + \
             np.multiply(d1t0, g_hat_d1_t0) + np.multiply(d1t1, g_hat_d1_t1)
+        residuals_y = y - g_hat
         sigma2_score_element = np.square(y - g_hat)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
@@ -455,7 +456,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        element_dict = {'sigma2': sigma2,
+        # add nonparametric R2 for the main regression (for benchmarking)
+        R2_y = 1 - np.var(residuals_y, axis=0) / np.var(y)
+
+        element_dict = {'R2_y': R2_y,
+                        'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}

@@ -300,7 +300,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g_hat1 = preds['predictions']['ml_g1']
 
         g_hat = np.multiply(d, g_hat1) + np.multiply(1.0-d, g_hat0)
-        sigma2_score_element = np.square(y - g_hat)
+        residuals_y = y - g_hat
+        sigma2_score_element = np.square(residuals_y)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
@@ -328,7 +329,11 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        element_dict = {'sigma2': sigma2,
+        # add nonparametric R2 for the main regression (for benchmarking)
+        R2_y = 1 - np.var(residuals_y, axis=0) / np.var(y)
+
+        element_dict = {'R2_y': R2_y,
+                        'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
                         'psi_nu2': psi_nu2}
