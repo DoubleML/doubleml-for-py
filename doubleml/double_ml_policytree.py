@@ -74,30 +74,19 @@ class DoubleMLPolicyTree:
         return self._orth_signal
 
     @property
-    def basis(self):
+    def x_vars(self):
         """
-        Basis.
+        Covariates.
         """
-        return self._basis
+        return self._x_vars
 
     @property
     def summary(self):
         """
-        A summary for the best linear predictor effect after calling :meth:`fit`.
+        A summary for the policy tree after calling :meth:`fit`.
         """
-        col_names = ['coef', 'std err', 't', 'P>|t|', '[0.025', '0.975]']
-        if self.blp_model is None:
-            df_summary = pd.DataFrame(columns=col_names)
-        else:
-            summary_stats = {'coef': self.blp_model.params,
-                             'std err': self.blp_model.bse,
-                             't': self.blp_model.tvalues,
-                             'P>|t|': self.blp_model.pvalues,
-                             '[0.025': self.blp_model.conf_int()[0],
-                             '0.975]': self.blp_model.conf_int()[1]}
-            df_summary = pd.DataFrame(summary_stats,
-                                      columns=col_names)
-        return df_summary
+        # TODO: Write summary function
+        return 
 
     def fit(self):
         """
@@ -118,5 +107,24 @@ class DoubleMLPolicyTree:
         return self
 
     def plot_tree(self):
+        """
+        Plots the DoubleMLPolicyTree.
+
+        Returns
+        -------
+        self : object
+        """
         # TODO: Implement plotting for fitted tree
-        return None
+        return
+    
+    def predict(self, x):
+        """
+        Predicts policy based on the DoubleMLPolicyTree.
+
+        Returns
+        -------
+        self : object
+        """
+        # TODO: Implement predict method for fitted tree
+        return
+
