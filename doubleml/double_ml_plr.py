@@ -269,7 +269,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
 
         # add nonparametric R2 for the main regression (for benchmarking)
-        R2_y = 1 - np.var(residuals_y, axis=0) / np.var(y)
+        R2_y = 1.0 - np.var(residuals_y, axis=0) / np.var(y)
 
         element_dict = {'R2_y': R2_y,
                         'sigma2': sigma2,

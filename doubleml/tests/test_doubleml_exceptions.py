@@ -963,6 +963,7 @@ def test_doubleml_sensitivity_not_yet_implemented():
         _ = dml_pliv.sensitivity_analysis()
 
 
+@pytest.mark.ci
 def test_doubleml_sensitivity_inputs():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
     dml_irm.fit()
@@ -1088,7 +1089,7 @@ def test_doubleml_sensitivity_inputs():
         _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
 
     # test variances
-    sensitivity_elements = dict({'sigma2': 1.0, 'nu2': -2.4, 'psi_sigma2': 1.0, 'psi_nu2': 1.0})
+    sensitivity_elements = dict({'R2_y': 0.5, 'sigma2': 1.0, 'nu2': -2.4, 'psi_sigma2': 1.0, 'psi_nu2': 1.0})
     _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
     msg = ('sensitivity_elements sigma2 and nu2 have to be positive. '
            r'Got sigma2 \[\[\[1.\]\]\] and nu2 \[\[\[-2.4\]\]\]. '
@@ -1097,6 +1098,23 @@ def test_doubleml_sensitivity_inputs():
         dml_irm.sensitivity_analysis()
 
 
+@pytest.mark.ci
+def test_doubleml_sensitivity_benchmark():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm.fit()
+
+    # test input
+    msg = "benchmarking_set must be a list. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_benchmark(benchmarking_set=1)
+
+    msg = (r"benchmarking_set must be a subset of features \['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', "
+           r"'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20'\]. \['test_var'\] was passed.")
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_benchmark(benchmarking_set=['test_var'])
+
+
+@pytest.mark.ci
 def test_doubleml_sensitivity_plot_input():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
     dml_irm.fit()

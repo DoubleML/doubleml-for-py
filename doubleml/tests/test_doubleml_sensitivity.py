@@ -76,8 +76,12 @@ def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n
                                              rho=rho,
                                              level=level)
 
+    benchmark = dml_plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
     res_dict = {'sensitivity_params': dml_plr_obj.sensitivity_params,
-                'sensitivity_params_manual': res_manual}
+                'sensitivity_params_manual': res_manual,
+                'benchmark': benchmark,
+                'dml_plr_obj': dml_plr_obj,
+                }
 
     return res_dict
 
@@ -89,3 +93,11 @@ def test_dml_sensitivity_params(dml_sensitivity_multitreat_fixture):
         for bound in ['lower', 'upper']:
             assert np.allclose(dml_sensitivity_multitreat_fixture['sensitivity_params'][sensitivity_param][bound],
                                dml_sensitivity_multitreat_fixture['sensitivity_params_manual'][sensitivity_param][bound])
+
+
+@pytest.mark.ci
+def test_dml_sensitivity_benchmark(dml_sensitivity_multitreat_fixture):
+    expected_columns = ["cf_y", "cf_d", "rho", "delta_theta"]
+    assert all(dml_sensitivity_multitreat_fixture['benchmark'].columns == expected_columns)
+    assert (dml_sensitivity_multitreat_fixture['benchmark'].shape[0] ==
+            dml_sensitivity_multitreat_fixture['dml_plr_obj']._dml_data.n_treat)

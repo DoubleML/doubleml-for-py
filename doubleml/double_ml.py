@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import warnings
+import copy
 
 from sklearn.base import is_regressor, is_classifier
 
@@ -1486,11 +1487,12 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+        return ['R2_y', 'sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
-        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
+        sensitivity_elements = {'R2_y': np.full((1, score_dim[1], score_dim[2]), np.nan),
+                                'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'psi_sigma2': np.full(score_dim, np.nan),
                                 'psi_nu2': np.full(score_dim, np.nan)}
@@ -1754,6 +1756,67 @@ class DoubleML(ABC):
                 rvs_summary
 
         return res
+
+    def sensitivity_benchmark(self, benchmarking_set):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
+        Returns
+        -------
+        benchmark_results ::lass:`pandas.DataFrame`
+            Benchmark results.
+        """
+        x_list_long = self._dml_data.x_cols
+
+        # input checks
+        if not isinstance(benchmarking_set, list):
+            raise TypeError('benchmarking_set must be a list. '
+                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+        if not set(benchmarking_set) <= set(x_list_long):
+            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                             f'{str(benchmarking_set)} was passed.')
+
+        # refit short form of the model
+        x_list_short = [x for x in x_list_long if x not in benchmarking_set]
+        dml_short = copy.deepcopy(self)
+        dml_short._dml_data.x_cols = x_list_short
+        dml_short.fit()
+
+        # obtain long and short forms
+        R2_y_long = np.squeeze(self.sensitivity_elements['R2_y'], axis=0)
+        R2_y_short = np.squeeze(dml_short.sensitivity_elements['R2_y'], axis=0)
+        R2_riesz = np.squeeze(dml_short.sensitivity_elements['nu2'] / self.sensitivity_elements['nu2'], axis=0)
+
+        # gain statistics
+        all_cf_y_benchmark = (R2_y_long - R2_y_short) / (1.0 - R2_y_long)
+        all_cf_d_benchmark = (1.0 - R2_riesz) / R2_riesz
+
+        cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
+        cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
+
+        # change in estimates
+        all_delta_theta = np.transpose(dml_short.all_coef - self.all_coef)
+        delta_theta = np.median(all_delta_theta, axis=0)
+
+        # reverse the variance of the residuals
+        var_y = np.var(self._dml_data.y)
+        var_residuals_long = (1.0 - R2_y_long) * var_y
+        var_residuals_short = (1.0 - R2_y_short) * var_y
+        all_rho_benchmark = all_delta_theta / \
+            np.sqrt((var_residuals_short - var_residuals_long) *
+                    np.squeeze(self.sensitivity_elements["nu2"] - dml_short.sensitivity_elements["nu2"], axis=0))
+        rho_benchmark = np.median(all_rho_benchmark, axis=0)
+
+        benchmark_dict = {
+            "cf_y": cf_y_benchmark,
+            "cf_d": cf_d_benchmark,
+            "rho": delta_theta,
+            "delta_theta": rho_benchmark,
+        }
+
+        benchmark_results = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
+        return benchmark_results
 
     def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True,
                          fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
