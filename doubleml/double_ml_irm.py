@@ -472,3 +472,42 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
 
         return model
+    
+    def policy_tree(self, x_vars, depth):
+        """
+        Estimate a decision tree for optimal treatment policy.
+
+        Parameters
+        ----------
+        depth : int
+            The depth of the estimated decision tree.
+            Has to be larger than 0. Deeper trees derive a more complex decision policy.
+            However, they tend to overfit more.
+
+        groups : :class:`pandas.DataFrame`
+            The covariates on which the policy tree is learnt.
+            Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of covariates to be included.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLPolicyTree`
+            Policy tree model.
+        """
+        if not isinstance(depth, int):
+            raise TypeError('Tree depth must be of int type. '
+                            f'Depth of type {str(type(depth))} was passed.')
+        
+        if not (depth>0):
+            raise ValueError('Tree depth must be greater than 0. '
+                             f'Depth {depth} was passed.')
+        
+        if not isinstance(x_vars, pd.DataFrame):
+            raise TypeError('Groups must be of DataFrame type. '
+                            f'Groups of type {str(type(x_vars))} was passed.')
+        
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        
+        model = DoubleMLPolicyTree(orth_signal, depth=depth, x_vars=x_vars).fit()
+
+        return model
