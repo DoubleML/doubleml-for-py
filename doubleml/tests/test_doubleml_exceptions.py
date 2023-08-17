@@ -1108,6 +1108,10 @@ def test_doubleml_sensitivity_benchmark():
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_benchmark(benchmarking_set=1)
 
+    msg = "benchmarking_set must not be empty."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_benchmark(benchmarking_set=[])
+
     msg = (r"benchmarking_set must be a subset of features \['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', "
            r"'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20'\]. \['test_var'\] was passed.")
     with pytest.raises(ValueError, match=msg):

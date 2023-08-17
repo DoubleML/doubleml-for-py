@@ -71,9 +71,13 @@ def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
                                      rho=0.0, level=level, null_hypothesis=0.0)
 
+    benchmark = dml_plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'se': dml_plr_obj.se,
-                'sensitivity_params': dml_plr_obj.sensitivity_params}
+                'sensitivity_params': dml_plr_obj.sensitivity_params,
+                'benchmark': benchmark,
+                'dml_plr_obj': dml_plr_obj}
 
     return res_dict
 
@@ -86,6 +90,14 @@ def test_dml_plr_multiway_cluster_sensitivity_coef(dml_plr_multiway_cluster_sens
     assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
                         dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_cluster_sensitivity_benchmark(dml_plr_multiway_cluster_sensitivity_rho0):
+    expected_columns = ["cf_y", "cf_d", "rho", "delta_theta"]
+    assert all(dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].columns == expected_columns)
+    assert (dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].shape[0] ==
+            dml_plr_multiway_cluster_sensitivity_rho0['dml_plr_obj']._dml_data.n_treat)
 
 
 @pytest.fixture(scope='module')

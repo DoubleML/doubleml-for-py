@@ -1773,6 +1773,8 @@ class DoubleML(ABC):
         if not isinstance(benchmarking_set, list):
             raise TypeError('benchmarking_set must be a list. '
                             f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+        if len(benchmarking_set) == 0:
+            raise ValueError('benchmarking_set must not be empty.')
         if not set(benchmarking_set) <= set(x_list_long):
             raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
                              f'{str(benchmarking_set)} was passed.')
