@@ -100,7 +100,8 @@ def test_dml_sensitivity_benchmark(dml_plr_multiway_cluster_sensitivity_rho0):
     expected_columns = ["cf_y", "cf_d", "rho", "delta_theta"]
     assert all(dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].columns == expected_columns)
     assert all(dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].index == ["d"])
-    assert dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].equals(dml_plr_multiway_cluster_sensitivity_rho0['benchmark_manual'])
+    assert dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].equals(
+        dml_plr_multiway_cluster_sensitivity_rho0['benchmark_manual'])
 
 
 @pytest.fixture(scope='module')
