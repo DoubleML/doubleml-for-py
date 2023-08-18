@@ -72,8 +72,8 @@ def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
     R2_y_short = 1.0 - var_y_short / var_y
     R2_riesz = nu2_short / nu2_long
 
-    all_cf_y_benchmark = (R2_y_long - R2_y_short) / (1.0 - R2_y_long)
-    all_cf_d_benchmark = (1.0 - R2_riesz) / R2_riesz
+    all_cf_y_benchmark = np.clip((R2_y_long - R2_y_short) / (1.0 - R2_y_long), 0, 1)
+    all_cf_d_benchmark = np.clip((1.0 - R2_riesz) / R2_riesz, 0, 1)
 
     cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
     cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
@@ -81,8 +81,10 @@ def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
     all_delta_theta = np.transpose(dml_short.all_coef - dml_obj.all_coef)
     delta_theta = np.median(all_delta_theta, axis=0)
 
-    all_rho_benchmark = all_delta_theta / \
-        np.sqrt((var_y_short - var_y_long) * (nu2_long - nu2_short))
+    var_g = var_y_short - var_y_long
+    var_riesz = nu2_long - nu2_short
+    denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
+    all_rho_benchmark = np.divide(all_delta_theta, denom, out=np.zeros_like(all_delta_theta), where=denom != 0)
     rho_benchmark = np.median(all_rho_benchmark, axis=0)
 
     benchmark_dict = {

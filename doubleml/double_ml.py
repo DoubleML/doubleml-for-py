@@ -1893,8 +1893,8 @@ class DoubleML(ABC):
         R2_riesz = np.divide(nu2_short, nu2_long)
 
         # Gain statistics
-        all_cf_y_benchmark = np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long))
-        all_cf_d_benchmark = np.divide((1.0 - R2_riesz), R2_riesz)
+        all_cf_y_benchmark = np.clip(np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long)), 0, 1)
+        all_cf_d_benchmark = np.clip(np.divide((1.0 - R2_riesz), R2_riesz), 0, 1)
         cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
         cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
 
@@ -1903,11 +1903,10 @@ class DoubleML(ABC):
         delta_theta = np.median(all_delta_theta, axis=0)
 
         # degree of adversity
-        all_rho_benchmark = np.divide(
-            all_delta_theta,
-            np.sqrt(np.multiply((var_y_residuals_short - var_y_residuals_long),
-                                (nu2_long - nu2_short)))
-        )
+        var_g = var_y_residuals_short - var_y_residuals_long
+        var_riesz = nu2_long - nu2_short
+        denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
+        all_rho_benchmark = np.divide(all_delta_theta, denom, out=np.zeros_like(all_delta_theta), where=denom != 0)
         rho_benchmark = np.median(all_rho_benchmark, axis=0)
         benchmark_dict = {
             "cf_y": cf_y_benchmark,
