@@ -1120,6 +1120,7 @@ def test_doubleml_sensitivity_benchmark():
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_benchmark(benchmarking_set=['test_var'])
 
+
 @pytest.mark.ci
 def test_doubleml_sensitivity_plot_input():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
