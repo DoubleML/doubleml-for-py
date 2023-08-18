@@ -1872,4 +1872,12 @@ class DoubleML(ABC):
         if not set(benchmarking_set) <= set(x_list_long):
             raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
                              f'{str(benchmarking_set)} was passed.')
-        return
+
+        benchmark_dict = {
+            "cf_y": [0],
+            "cf_d": [0],
+            "rho": [0],
+            "delta_theta": [0],
+        }
+        df_benchmark = pd.DataFrame(benchmark_dict)
+        return df_benchmark
