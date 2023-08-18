@@ -4,7 +4,8 @@ import numpy as np
 import doubleml as dml
 from sklearn.linear_model import LinearRegression
 
-from ._utils_doubleml_sensitivtiy_manual import doubleml_sensitivity_manual
+from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_manual, \
+    doubleml_sensitivity_benchmark_manual
 
 
 @pytest.fixture(scope='module',
@@ -76,9 +77,15 @@ def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n
                                              rho=rho,
                                              level=level)
     benchmark = dml_plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
+
+    benchmark_manual = doubleml_sensitivity_benchmark_manual(dml_obj=dml_plr_obj,
+                                                             benchmarking_set=["X1"])
     res_dict = {'sensitivity_params': dml_plr_obj.sensitivity_params,
                 'sensitivity_params_manual': res_manual,
-                'benchmark': benchmark}
+                'benchmark': benchmark,
+                'benchmark_manual': benchmark_manual,
+                'd_cols': d_cols,
+                }
 
     return res_dict
 
@@ -90,3 +97,12 @@ def test_dml_sensitivity_params(dml_sensitivity_multitreat_fixture):
         for bound in ['lower', 'upper']:
             assert np.allclose(dml_sensitivity_multitreat_fixture['sensitivity_params'][sensitivity_param][bound],
                                dml_sensitivity_multitreat_fixture['sensitivity_params_manual'][sensitivity_param][bound])
+
+
+@pytest.mark.ci
+def test_dml_sensitivity_benchmark(dml_sensitivity_multitreat_fixture):
+    expected_columns = ["cf_y", "cf_d", "rho", "delta_theta"]
+    assert all(dml_sensitivity_multitreat_fixture['benchmark'].columns == expected_columns)
+    assert all(dml_sensitivity_multitreat_fixture['benchmark'].index ==
+               dml_sensitivity_multitreat_fixture['d_cols'])
+    assert dml_sensitivity_multitreat_fixture['benchmark'].equals(dml_sensitivity_multitreat_fixture['benchmark_manual'])

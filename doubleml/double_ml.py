@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import warnings
+import copy
 
 from sklearn.base import is_regressor, is_classifier
 
@@ -1873,11 +1874,46 @@ class DoubleML(ABC):
             raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
                              f'{str(benchmarking_set)} was passed.')
 
+        # refit short form of the model
+        x_list_short = [x for x in x_list_long if x not in benchmarking_set]
+        dml_short = copy.deepcopy(self)
+        dml_short._dml_data.x_cols = x_list_short
+        dml_short.fit()
+
+        # save elements for readability
+        var_y = np.var(self._dml_data.y)
+        var_y_residuals_long = np.squeeze(self.sensitivity_elements['sigma2'], axis=0)
+        nu2_long = np.squeeze(self.sensitivity_elements['nu2'], axis=0)
+        var_y_residuals_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
+        nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
+
+        # compute nonparametric R2
+        R2_y_long = 1.0 - np.divide(var_y_residuals_long, var_y)
+        R2_y_short = 1.0 - np.divide(var_y_residuals_short, var_y)
+        R2_riesz = np.divide(nu2_short, nu2_long)
+
+        # Gain statistics
+        all_cf_y_benchmark = np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long))
+        all_cf_d_benchmark = np.divide((1.0 - R2_riesz), R2_riesz)
+        cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
+        cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
+
+        # change in estimates (slightly different to paper)
+        all_delta_theta = np.transpose(dml_short.all_coef - self.all_coef)
+        delta_theta = np.median(all_delta_theta, axis=0)
+
+        # degree of adversity
+        all_rho_benchmark = np.divide(
+            all_delta_theta,
+            np.sqrt(np.multiply((var_y_residuals_short - var_y_residuals_long),
+                                (nu2_long - nu2_short)))
+        )
+        rho_benchmark = np.median(all_rho_benchmark, axis=0)
         benchmark_dict = {
-            "cf_y": [0],
-            "cf_d": [0],
-            "rho": [0],
-            "delta_theta": [0],
+            "cf_y": cf_y_benchmark,
+            "cf_d": cf_d_benchmark,
+            "rho": rho_benchmark,
+            "delta_theta": delta_theta,
         }
-        df_benchmark = pd.DataFrame(benchmark_dict)
+        df_benchmark = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
         return df_benchmark
