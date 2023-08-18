@@ -75,9 +75,10 @@ def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n
                                              cf_d=cf_d,
                                              rho=rho,
                                              level=level)
-
+    benchmark = dml_plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
     res_dict = {'sensitivity_params': dml_plr_obj.sensitivity_params,
-                'sensitivity_params_manual': res_manual}
+                'sensitivity_params_manual': res_manual,
+                'benchmark': benchmark}
 
     return res_dict
 

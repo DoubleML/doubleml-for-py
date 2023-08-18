@@ -1849,3 +1849,27 @@ class DoubleML(ABC):
                                         include_scenario=include_scenario,
                                         fill=fill)
         return fig
+
+    def sensitivity_benchmark(self, benchmarking_set):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+        Returns
+        -------
+        benchmark_results ::lass:`pandas.DataFrame`
+            Benchmark results.
+        """
+        x_list_long = self._dml_data.x_cols
+
+        # input checks
+        if self._sensitivity_elements is None:
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+        if not isinstance(benchmarking_set, list):
+            raise TypeError('benchmarking_set must be a list. '
+                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+        if len(benchmarking_set) == 0:
+            raise ValueError('benchmarking_set must not be empty.')
+        if not set(benchmarking_set) <= set(x_list_long):
+            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                             f'{str(benchmarking_set)} was passed.')
+        return
