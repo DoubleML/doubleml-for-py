@@ -1927,7 +1927,7 @@ class DoubleML(ABC):
         all_rho_benchmark = np.clip(np.divide(all_delta_theta, denom,
                                               out=np.zeros_like(all_delta_theta),
                                               where=denom != 0),
-                                    0, 1)
+                                    -1.0, 1.0)
         rho_benchmark = np.median(all_rho_benchmark, axis=0)
         benchmark_dict = {
             "cf_y": cf_y_benchmark,

@@ -84,7 +84,8 @@ def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
     var_g = var_y_short - var_y_long
     var_riesz = nu2_long - nu2_short
     denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-    all_rho_benchmark = np.divide(all_delta_theta, denom, out=np.zeros_like(all_delta_theta), where=denom != 0)
+    all_rho_benchmark = np.clip(np.divide(all_delta_theta, denom, out=np.zeros_like(all_delta_theta), where=denom != 0),
+                                -1, 1)
     rho_benchmark = np.median(all_rho_benchmark, axis=0)
 
     benchmark_dict = {
