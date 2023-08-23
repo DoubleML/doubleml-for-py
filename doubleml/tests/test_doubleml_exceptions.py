@@ -1136,6 +1136,25 @@ def test_doubleml_sensitivity_plot_input():
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(include_scenario="True")
 
+    msg = "benchmarks has to be either None or a dictionary. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks="True")
+    msg = r"benchmarks has to be a dictionary with keys cf_y, cf_d and name. Got dict_keys\(\['cf_y', 'cf_d'\]\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks={'cf_y': 0.1, 'cf_d': 0.15})
+    msg = r"benchmarks has to be a dictionary with values of same length. Got \[1, 2, 2\]."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks={'cf_y': [0.1], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = "benchmarks cf_y must be of float type. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks={'cf_y': [0.1, 2], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = r'benchmarks cf_y must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks={'cf_y': [0.1, 1.0], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = "benchmarks name must be of string type. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_irm.sensitivity_plot(benchmarks={'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2], 'name': [2, 2]})
+
     msg = "value must be a string. 2 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm.sensitivity_plot(value=2)

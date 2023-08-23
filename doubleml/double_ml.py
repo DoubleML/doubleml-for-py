@@ -17,7 +17,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
 from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
-    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl
+    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks
 from ._utils_plots import _sensitivity_contour_plot
 
 
@@ -1756,7 +1756,7 @@ class DoubleML(ABC):
 
         return res
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True,
+    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True, benchmarks=None,
                          fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
@@ -1775,6 +1775,10 @@ class DoubleML(ABC):
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
             Default is ``True``.
+
+        benchmarks : dict or None
+            Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
+            Default is ``None``.
 
         fill : bool
             Indicates whether to use a heatmap style or only contour lines.
@@ -1805,6 +1809,7 @@ class DoubleML(ABC):
             raise ValueError('Invalid value ' + value + '. ' +
                              'Valid values ' + ' or '.join(valid_values) + '.')
         _check_bool(include_scenario, 'include_scenario')
+        _check_benchmarks(benchmarks)
         _check_bool(fill, 'fill')
         _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
@@ -1840,6 +1845,18 @@ class DoubleML(ABC):
             else:
                 unadjusted_value = ci.iloc[idx_treatment, 0]
 
+        # compute the values for the benchmarks
+        benchmark_dict = copy.deepcopy(benchmarks)
+        if benchmarks is not None:
+            n_benchmarks = len(benchmarks['name'])
+            benchmark_values = n_benchmarks * [np.nan]
+            for benchmark_idx in range(len(benchmarks['name'])):
+                sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
+                                                                  cf_d=benchmarks['cf_y'][benchmark_idx],
+                                                                  rho=self.sensitivity_params['input']['rho'],
+                                                                  level=self.sensitivity_params['input']['level'])
+                benchmark_values[benchmark_idx] = round(sens_dict_bench[value][bound][idx_treatment], 3)
+            benchmark_dict['value'] = benchmark_values
         fig = _sensitivity_contour_plot(x=cf_d_vec,
                                         y=cf_y_vec,
                                         contour_values=contour_values,
@@ -1848,6 +1865,7 @@ class DoubleML(ABC):
                                         scenario_y=self.sensitivity_params['input']['cf_y'],
                                         scenario_value=self.sensitivity_params[value][bound][idx_treatment],
                                         include_scenario=include_scenario,
+                                        benchmarks=benchmark_dict,
                                         fill=fill)
         return fig
 
@@ -1906,7 +1924,10 @@ class DoubleML(ABC):
         var_g = var_y_residuals_short - var_y_residuals_long
         var_riesz = nu2_long - nu2_short
         denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-        all_rho_benchmark = np.clip(np.divide(all_delta_theta, denom, out=np.zeros_like(all_delta_theta), where=denom != 0), 0, 1)
+        all_rho_benchmark = np.clip(np.divide(all_delta_theta, denom,
+                                              out=np.zeros_like(all_delta_theta),
+                                              where=denom != 0),
+                                    0, 1)
         rho_benchmark = np.median(all_rho_benchmark, axis=0)
         benchmark_dict = {
             "cf_y": cf_y_benchmark,

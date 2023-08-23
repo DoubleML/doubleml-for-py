@@ -10,6 +10,7 @@ def _sensitivity_contour_plot(x,
                               scenario_y,
                               scenario_value,
                               include_scenario,
+                              benchmarks=None,
                               fill=True):
 
     if fill:
@@ -58,6 +59,18 @@ def _sensitivity_contour_plot(x,
                              textposition="top right",
                              showlegend=False))
 
+    # add benchmarks
+    if benchmarks is not None:
+        fig.add_trace(go.Scatter(x=benchmarks['cf_d'],
+                                 y=benchmarks['cf_y'],
+                                 mode="markers+text",
+                                 marker=dict(size=10, color='red', line=dict(width=2, color=text_col)),
+                                 hovertemplate=hov_temp + f': {benchmarks["value"]}' + '</b>',
+                                 name="Benchmarks",
+                                 textfont=dict(color=text_col, size=14),
+                                 text=list(map(lambda s: "<b>" + s + "</b>", benchmarks['name'])),
+                                 textposition="top right",
+                                 showlegend=False))
     fig.update_layout(title=None,
                       xaxis_title=axis_names[0],
                       yaxis_title=axis_names[1])
