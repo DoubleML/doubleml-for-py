@@ -1924,10 +1924,13 @@ class DoubleML(ABC):
         var_g = var_y_residuals_short - var_y_residuals_long
         var_riesz = nu2_long - nu2_short
         denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-        all_rho_benchmark = np.clip(np.divide(all_delta_theta, denom,
-                                              out=np.zeros_like(all_delta_theta),
-                                              where=denom != 0),
-                                    -1.0, 1.0)
+        rho_sign = np.sign(all_delta_theta)
+        rho_values = np.clip(np.divide(np.absolute(all_delta_theta),
+                                       denom,
+                                       out=np.ones_like(all_delta_theta),
+                                       where=denom != 0),
+                             0.0, 1.0)
+        all_rho_benchmark = np.multiply(rho_values, rho_sign)
         rho_benchmark = np.median(all_rho_benchmark, axis=0)
         benchmark_dict = {
             "cf_y": cf_y_benchmark,
