@@ -1849,13 +1849,13 @@ class DoubleML(ABC):
         benchmark_dict = copy.deepcopy(benchmarks)
         if benchmarks is not None:
             n_benchmarks = len(benchmarks['name'])
-            benchmark_values = n_benchmarks * [np.nan]
+            benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
             for benchmark_idx in range(len(benchmarks['name'])):
                 sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
                                                                   cf_d=benchmarks['cf_y'][benchmark_idx],
                                                                   rho=self.sensitivity_params['input']['rho'],
                                                                   level=self.sensitivity_params['input']['level'])
-                benchmark_values[benchmark_idx] = round(sens_dict_bench[value][bound][idx_treatment], 3)
+                benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
             benchmark_dict['value'] = benchmark_values
         fig = _sensitivity_contour_plot(x=cf_d_vec,
                                         y=cf_y_vec,
@@ -1868,7 +1868,7 @@ class DoubleML(ABC):
                                         benchmarks=benchmark_dict,
                                         fill=fill)
         return fig
-
+    
     def sensitivity_benchmark(self, benchmarking_set):
         """
         Computes a benchmark for a given set of features.
