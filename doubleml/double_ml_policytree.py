@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.tree._tree import TREE_LEAF
+from sklearn.utils.validation import check_is_fitted
 
 
 class DoubleMLPolicyTree:
@@ -18,9 +20,8 @@ class DoubleMLPolicyTree:
         The covariates for estimating the policy tree. Has to have the shape ``(n_obs, d)``,
         where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
-    depth : bool
-        Indicates whether the basis is constructed for GATEs (dummy-basis).
-        Default is ``False``.
+    depth : int
+        The depth of the policy tree that will be built.
     """
 
     def __init__(self,
@@ -37,8 +38,8 @@ class DoubleMLPolicyTree:
                              f'Signal of dimensions {str(orth_signal.ndim)} was passed.')
 
         if not isinstance(x_vars, pd.DataFrame):
-            raise TypeError('The basis must be of DataFrame type. '
-                            f'Basis of type {str(type(x_vars))} was passed.')
+            raise TypeError('The features must be of DataFrame type. '
+                            f'Features of type {str(type(x_vars))} was passed.')
 
         if not x_vars.columns.is_unique:
             raise ValueError('Invalid pd.DataFrame: '
@@ -49,14 +50,15 @@ class DoubleMLPolicyTree:
         self._depth = depth
 
         # initialize tree
-        self._policy_tree = DecisionTreeClassifier(max_depth = depth)
+        self._policy_tree = DecisionTreeClassifier(max_depth = depth, ccp_alpha=.01,
+                                                   min_samples_leaf=5)
 
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
         fit_summary = str(self.summary)
         res = header + \
-            '\n------------------ Fit summary ------------------\n' + fit_summary
+            '\n------------------ Summary ------------------\n' + fit_summary
         return res
 
     @property
@@ -83,10 +85,10 @@ class DoubleMLPolicyTree:
     @property
     def summary(self):
         """
-        A summary for the policy tree after calling :meth:`fit`.
+        A summary for the policy tree.
         """
-        # TODO: Write summary function
-        return 
+        summary = f"Decision Variables: {set(self._x_vars.keys())}\nMax Depth: {self._depth}"
+        return summary
 
     def fit(self):
         """
@@ -101,7 +103,7 @@ class DoubleMLPolicyTree:
 
         # fit the tree with target binary score, sample weights absolute score and 
         # provided feature variables
-        self._blp_model = self._policy_tree.fit(X=self._x_vars, y=bin_signal, 
+        self._policy_tree.fit(X=self._x_vars, y=bin_signal, 
                                                 sample_weight=abs_signal)
 
         return self
@@ -114,17 +116,36 @@ class DoubleMLPolicyTree:
         -------
         self : object
         """
-        # TODO: Implement plotting for fitted tree
-        return
+        check_is_fitted(self._policy_tree)
+
+        artists = plot_tree(self.policy_tree, feature_names=self._x_vars.keys(), filled=True, 
+                  class_names=["No Treatment", "Treatment"], impurity=False)
+        return artists
     
-    def predict(self, x):
+    def predict(self, x_vars):
         """
         Predicts policy based on the DoubleMLPolicyTree.
+
+        Parameters
+        ----------
+        x_vars : :class:`pandas.DataFrame`
+            The covariates for predicting based on the policy tree. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors. Has to
+            have the identical keys as the original covariates.
 
         Returns
         -------
         self : object
         """
-        # TODO: Implement predict method for fitted tree
-        return
+        if not isinstance(x_vars, pd.DataFrame):
+            raise TypeError('The features must be of DataFrame type. '
+                            f'Features of type {str(type(x_vars))} was passed.')
+        
+        if not set(x_vars.keys()) == set(self._x_vars.keys()):
+            raise KeyError(f'The features must have the keys {self._x_vars.keys()}'
+                           f'Features with keys {x_vars.keys()} were passed.')
+        
+        predictions = self.policy_tree.predict(x_vars)
+
+        return x_vars.assign(pred_treatment=predictions.astype(int))
 

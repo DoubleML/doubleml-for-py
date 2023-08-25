@@ -7,11 +7,12 @@ from sklearn.utils.multiclass import type_of_target
 from .double_ml import DoubleML
 
 from .double_ml_blp import DoubleMLBLP
+from .double_ml_policytree import DoubleMLPolicyTree
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -494,13 +495,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLPolicyTree`
             Policy tree model.
         """
-        if not isinstance(depth, int):
-            raise TypeError('Tree depth must be of int type. '
-                            f'Depth of type {str(type(depth))} was passed.')
-        
-        if not (depth>0):
-            raise ValueError('Tree depth must be greater than 0. '
-                             f'Depth {depth} was passed.')
+        _check_integer(depth, "Depth", 0)        
         
         if not isinstance(x_vars, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
