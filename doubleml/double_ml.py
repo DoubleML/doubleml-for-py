@@ -1868,7 +1868,7 @@ class DoubleML(ABC):
                                         benchmarks=benchmark_dict,
                                         fill=fill)
         return fig
-    
+
     def sensitivity_benchmark(self, benchmarking_set):
         """
         Computes a benchmark for a given set of features.
