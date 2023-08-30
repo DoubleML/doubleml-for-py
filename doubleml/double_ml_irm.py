@@ -495,11 +495,20 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLPolicyTree`
             Policy tree model.
         """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+        
         _check_integer(depth, "Depth", 0)        
         
         if not isinstance(x_vars, pd.DataFrame):
-            raise TypeError('Groups must be of DataFrame type. '
-                            f'Groups of type {str(type(x_vars))} was passed.')
+            raise TypeError('Covariates must be of DataFrame type. '
+                            f'Covariates of type {str(type(x_vars))} was passed.')
         
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         
