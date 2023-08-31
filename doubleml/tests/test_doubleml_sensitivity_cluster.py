@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual
 
 np.random.seed(1234)
 # Set the simulation parameters
@@ -70,10 +71,16 @@ def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
                                      rho=0.0, level=level, null_hypothesis=0.0)
-
-    res_dict = {'coef': dml_plr_obj.coef,
-                'se': dml_plr_obj.se,
-                'sensitivity_params': dml_plr_obj.sensitivity_params}
+    benchmark = dml_plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
+    benchmark_manual = doubleml_sensitivity_benchmark_manual(dml_obj=dml_plr_obj,
+                                                             benchmarking_set=["X1"])
+    res_dict = {
+        'coef': dml_plr_obj.coef,
+        'se': dml_plr_obj.se,
+        'sensitivity_params': dml_plr_obj.sensitivity_params,
+        'benchmark': benchmark,
+        'benchmark_manual': benchmark_manual
+    }
 
     return res_dict
 
@@ -86,6 +93,15 @@ def test_dml_plr_multiway_cluster_sensitivity_coef(dml_plr_multiway_cluster_sens
     assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
                         dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'],
                         rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_sensitivity_benchmark(dml_plr_multiway_cluster_sensitivity_rho0):
+    expected_columns = ["cf_y", "cf_d", "rho", "delta_theta"]
+    assert all(dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].columns == expected_columns)
+    assert all(dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].index == ["d"])
+    assert dml_plr_multiway_cluster_sensitivity_rho0['benchmark'].equals(
+        dml_plr_multiway_cluster_sensitivity_rho0['benchmark_manual'])
 
 
 @pytest.fixture(scope='module')

@@ -26,6 +26,7 @@ def test_doubleml_basedata():
     assert dummy_dml_data.n_treat == 1
     assert dummy_dml_data.n_coefs == 1
 
+
 @pytest.fixture(scope="module")
 def dml_data_fixture(generate_data1):
     data = generate_data1
