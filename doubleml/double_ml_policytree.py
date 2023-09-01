@@ -21,13 +21,20 @@ class DoubleMLPolicyTree:
         where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
     depth : int
-        The depth of the policy tree that will be built.
+        The depth of the policy tree that will be built. Default is 2.
+
+    **tree_params : dict
+        Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
+        Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
+        ``min_samples_leaf = 5``. This can be adjusted.
+
     """
 
     def __init__(self,
                  orth_signal,
                  x_vars,
-                 depth):
+                 depth = 2,
+                 **tree_params):
 
         if not isinstance(orth_signal, np.ndarray):
             raise TypeError('The signal must be of np.ndarray type. '
@@ -48,10 +55,14 @@ class DoubleMLPolicyTree:
         self._orth_signal = orth_signal
         self._x_vars = x_vars
         self._depth = depth
+        self._tree_params = tree_params
+
+        self._tree_params.setdefault("ccp_alpha", .01)
+        self._tree_params.setdefault("min_samples_leaf", 5)
 
         # initialize tree
-        self._policy_tree = DecisionTreeClassifier(max_depth = depth, ccp_alpha=.01,
-                                                   min_samples_leaf=5)
+        self._policy_tree = DecisionTreeClassifier(max_depth = self._depth,
+                                                   **self._tree_params)
 
     def __str__(self):
         class_name = self.__class__.__name__
@@ -87,7 +98,7 @@ class DoubleMLPolicyTree:
         """
         A summary for the policy tree.
         """
-        summary = f"Decision Variables: {set(self._x_vars.keys())}\nMax Depth: {self._depth}"
+        summary = pd.DataFrame({"Decision Variables": self._x_vars.keys(),"Max Depth": self._depth})
         return summary
 
     def fit(self):
@@ -116,7 +127,7 @@ class DoubleMLPolicyTree:
         -------
         self : object
         """
-        check_is_fitted(self._policy_tree)
+        check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before plot_tree.')
 
         artists = plot_tree(self.policy_tree, feature_names=self._x_vars.keys(), filled=True, 
                   class_names=["No Treatment", "Treatment"], impurity=False)
@@ -137,12 +148,14 @@ class DoubleMLPolicyTree:
         -------
         self : object
         """
+        check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before predict.')
+
         if not isinstance(x_vars, pd.DataFrame):
             raise TypeError('The features must be of DataFrame type. '
                             f'Features of type {str(type(x_vars))} was passed.')
         
         if not set(x_vars.keys()) == set(self._x_vars.keys()):
-            raise KeyError(f'The features must have the keys {self._x_vars.keys()}'
+            raise KeyError(f'The features must have the keys {self._x_vars.keys()}. '
                            f'Features with keys {x_vars.keys()} were passed.')
         
         predictions = self.policy_tree.predict(x_vars)
