@@ -1329,7 +1329,7 @@ def test_doubleml_exception_policytree():
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.policy_tree(x_vars=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))),
                                 depth=-1)
-    msg = "Depth must be an integer. 0.1 of type  was passed."
+    msg = "Depth must be an integer. 0.1 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.policy_tree(x_vars=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))),
                                 depth=.1)
