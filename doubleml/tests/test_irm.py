@@ -210,6 +210,7 @@ def test_dml_irm_cate_gate():
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
 
+
 @pytest.mark.ci
 def test_dml_irm_policytree():
     n = 11
@@ -223,16 +224,16 @@ def test_dml_irm_policytree():
     ml_m = RandomForestClassifier(n_estimators=10)
 
     dml_irm_obj = dml.DoubleMLIRM(obj_dml_data,
-                                    ml_m=ml_m,
-                                    ml_g=ml_g,
-                                    trimming_threshold=0.05,
-                                    n_folds=5)
+                                  ml_m=ml_m,
+                                  ml_g=ml_g,
+                                  trimming_threshold=0.05,
+                                  n_folds=5)
 
     dml_irm_obj.fit()
     # create a covariate basis
-    x_vars = obj_dml_data.data.drop(columns=["y","d"])
+    x_vars = obj_dml_data.data.drop(columns=["y", "d"])
     policy_tree = dml_irm_obj.policy_tree(x_vars, depth=1)
     assert isinstance(policy_tree, dml.double_ml_policytree.DoubleMLPolicyTree)
     assert isinstance(policy_tree.plot_tree(), list)
-    predict_x_vars = pd.DataFrame(np.random.normal(size=(5,2)), columns=x_vars.keys())
+    predict_x_vars = pd.DataFrame(np.random.normal(size=(5, 2)), columns=x_vars.keys())
     assert isinstance(policy_tree.predict(predict_x_vars), pd.DataFrame)

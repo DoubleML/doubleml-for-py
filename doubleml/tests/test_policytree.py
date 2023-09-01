@@ -11,7 +11,7 @@ from sklearn.exceptions import NotFittedError
 
 
 @pytest.fixture(scope='module',
-                params=[1,2,3])
+                params=[1, 2, 3])
 def depth(request):
     return request.param
 
@@ -82,7 +82,7 @@ def test_doubleml_exception_policytree():
     msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
     with pytest.raises(ValueError, match=msg):
         dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=pd.DataFrame(np.array([[1, 2], [4, 5]]),
-                                                                columns=['a_1', 'a_1']))
+                                                                       columns=['a_1', 'a_1']))
 
     dml_policytree_predict = dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=random_x_vars)
     msg = 'Policy Tree not yet fitted. Call fit before predict.'
@@ -95,7 +95,7 @@ def test_doubleml_exception_policytree():
         dml_policytree_predict.predict(x_vars=1)
     msg = r'The features must have the keys Index\(\[\'a\', \'b\', \'c\'\], dtype\=\'object\'\). Features with keys Index\(\[\'d\'\], dtype=\'object\'\) were passed.'
     with pytest.raises(KeyError, match=msg):
-        dml_policytree_predict.predict(x_vars=pd.DataFrame({"d": [3,4]}))
+        dml_policytree_predict.predict(x_vars=pd.DataFrame({"d": [3, 4]}))
 
     dml_policytree_plot = dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=random_x_vars)
     msg = 'Policy Tree not yet fitted. Call fit before plot_tree.'

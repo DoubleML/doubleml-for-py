@@ -508,15 +508,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if self.n_rep != 1:
             raise NotImplementedError('Only implemented for one repetition. ' +
                                       f'Number of repetitions is {str(self.n_rep)}.')
-        
+
         _check_integer(depth, "Depth", 0)
-        
+
         if not isinstance(x_vars, pd.DataFrame):
             raise TypeError('Covariates must be of DataFrame type. '
                             f'Covariates of type {str(type(x_vars))} was passed.')
-        
+
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
-        
+
         model = DoubleMLPolicyTree(orth_signal, depth=depth, x_vars=x_vars, **tree_params).fit()
 
         return model

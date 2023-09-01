@@ -1313,6 +1313,7 @@ def test_double_ml_exception_evaluate_learner():
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.evaluate_learners(metric=eval_fct)
 
+
 @pytest.mark.ci
 def test_doubleml_exception_policytree():
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
@@ -1324,7 +1325,7 @@ def test_doubleml_exception_policytree():
 
     msg = "Covariates must be of DataFrame type. Covariates of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.policy_tree(x_vars=2, depth = 1)
+        dml_irm_obj.policy_tree(x_vars=2)
     msg = "Depth must be larger or equal to 0. -1 was passed."
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.policy_tree(x_vars=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))),

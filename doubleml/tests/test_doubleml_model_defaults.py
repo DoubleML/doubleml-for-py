@@ -54,7 +54,7 @@ dml_pq.bootstrap()
 dml_lpq.bootstrap()
 dml_qte.bootstrap()
 
-policy_tree = dml_irm.policy_tree(x_vars=dml_data_irm.data.drop(columns=["y","d"]))
+policy_tree = dml_irm.policy_tree(x_vars=dml_data_irm.data.drop(columns=["y", "d"]))
 
 
 def _assert_resampling_default_settings(dml_obj):
