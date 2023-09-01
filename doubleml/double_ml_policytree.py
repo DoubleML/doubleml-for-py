@@ -32,7 +32,7 @@ class DoubleMLPolicyTree:
     def __init__(self,
                  orth_signal,
                  x_vars,
-                 depth = 2,
+                 depth=2,
                  **tree_params):
 
         if not isinstance(orth_signal, np.ndarray):
@@ -60,7 +60,7 @@ class DoubleMLPolicyTree:
         self._tree_params.setdefault("min_samples_leaf", 5)
 
         # initialize tree
-        self._policy_tree = DecisionTreeClassifier(max_depth = self._depth,
+        self._policy_tree = DecisionTreeClassifier(max_depth=self._depth,
                                                    **self._tree_params)
 
     def __str__(self):
@@ -97,7 +97,7 @@ class DoubleMLPolicyTree:
         """
         A summary for the policy tree.
         """
-        summary = pd.DataFrame({"Decision Variables": self._x_vars.keys(),"Max Depth": self._depth})
+        summary = pd.DataFrame({"Decision Variables": self._x_vars.keys(), "Max Depth": self._depth})
         return summary
 
     def fit(self):
@@ -114,7 +114,7 @@ class DoubleMLPolicyTree:
         # fit the tree with target binary score, sample weights absolute score and
         # provided feature variables
         self._policy_tree.fit(X=self._x_vars, y=bin_signal,
-                                                sample_weight=abs_signal)
+                              sample_weight=abs_signal)
 
         return self
 
@@ -128,8 +128,8 @@ class DoubleMLPolicyTree:
         """
         check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before plot_tree.')
 
-        artists = plot_tree(self.policy_tree, feature_names=self._x_vars.keys(), filled=True,
-                  class_names=["No Treatment", "Treatment"], impurity=False)
+        artists = plot_tree(self.policy_tree, feature_names=list(self._x_vars.keys()), filled=True,
+                            class_names=["No Treatment", "Treatment"], impurity=False)
         return artists
 
     def predict(self, x_vars):
@@ -152,12 +152,11 @@ class DoubleMLPolicyTree:
         if not isinstance(x_vars, pd.DataFrame):
             raise TypeError('The features must be of DataFrame type. '
                             f'Features of type {str(type(x_vars))} was passed.')
-        
+
         if not set(x_vars.keys()) == set(self._x_vars.keys()):
             raise KeyError(f'The features must have the keys {self._x_vars.keys()}. '
                            f'Features with keys {x_vars.keys()} were passed.')
-        
+
         predictions = self.policy_tree.predict(x_vars)
 
         return x_vars.assign(pred_treatment=predictions.astype(int))
-
