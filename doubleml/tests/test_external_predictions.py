@@ -4,17 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression, LassoCV
 from doubleml import DoubleMLPLR, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018
-
-class dummy_learner:
-    _estimator_type = "regressor"
-    def fit(*args):
-        raise AttributeError("Accessed fit method!")
-    def predict(*args):
-        raise AttributeError("Accessed predict method!")
-    def set_params(*args):
-        raise AttributeError("Accessed set_params method!")
-    def get_params(*args, **kwargs):
-        raise AttributeError("Accessed get_params method!")
+from doubleml.utils import dummy_regressor
     
 
 @pytest.fixture(scope='module',
@@ -65,12 +55,12 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep):
     ext_predictions['d']['ml_l'] = DMLPLR.predictions['ml_l'][:, :, 0]
 
     if score == 'IV-type':
-        kwargs['ml_g'] = dummy_learner()
+        kwargs['ml_g'] = dummy_regressor()
         ext_predictions['d']['ml_g'] = DMLPLR.predictions['ml_g'][:, :, 0]
 
 
-    DMLPLR_ext = DoubleMLPLR(ml_m=dummy_learner(),
-                             ml_l=dummy_learner(),
+    DMLPLR_ext = DoubleMLPLR(ml_m=dummy_regressor(),
+                             ml_l=dummy_regressor(),
                              **kwargs)
 
     np.random.seed(3141)

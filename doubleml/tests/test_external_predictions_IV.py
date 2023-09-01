@@ -4,22 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression, LassoCV
 from doubleml import DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_pliv_CHS2015
-
-
-class dummy_learner:
-    _estimator_type = "regressor"
-
-    def fit(*args):
-        raise AttributeError("Accessed fit method!")
-
-    def predict(*args):
-        raise AttributeError("Accessed predict method!")
-
-    def set_params(*args):
-        raise AttributeError("Accessed set_params method!")
-
-    def get_params(*args, **kwargs):
-        raise AttributeError("Accessed get_params method!")
+from doubleml.utils import dummy_regressor
 
 
 @pytest.fixture(scope="module", params=["partialling out", "IV-type"])
@@ -87,7 +72,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         if dim_z == 1:
             ext_predictions["d"]["ml_m"] = DMLPLIV.predictions["ml_m"][:, :, 0]
             if score == "IV-type":
-                kwargs["ml_g"] = dummy_learner()
+                kwargs["ml_g"] = dummy_regressor()
                 ext_predictions["d"]["ml_g"] = DMLPLIV.predictions["ml_g"][:, :, 0]
         else:
             for instr in range(dim_z):
@@ -95,7 +80,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
                 ext_predictions["d"][ml_m_key] = DMLPLIV.predictions[ml_m_key][:, :, 0]
 
         DMLPLIV_ext = DoubleMLPLIV(
-            ml_m=dummy_learner(), ml_l=dummy_learner(), ml_r=dummy_learner(), **kwargs
+            ml_m=dummy_regressor(), ml_l=dummy_regressor(), ml_r=dummy_regressor(), **kwargs
         )
 
         np.random.seed(3141)
