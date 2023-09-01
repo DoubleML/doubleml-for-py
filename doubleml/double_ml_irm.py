@@ -474,21 +474,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return model
     
-    def policy_tree(self, x_vars, depth):
+    def policy_tree(self, x_vars, depth=2, **tree_params):
         """
-        Estimate a decision tree for optimal treatment policy.
+        Estimate a decision tree for optimal treatment policy by weighted classification.
 
         Parameters
         ----------
         depth : int
             The depth of the estimated decision tree.
             Has to be larger than 0. Deeper trees derive a more complex decision policy.
-            However, they tend to overfit more.
+            However, they tend to overfit more. Default is 2.
 
         groups : :class:`pandas.DataFrame`
             The covariates on which the policy tree is learnt.
             Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of covariates to be included.
+
+        **tree_params : dict
+            Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
+            Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
+            ``min_samples_leaf = 5``. This can be adjusted.
 
         Returns
         -------
@@ -512,6 +517,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         
-        model = DoubleMLPolicyTree(orth_signal, depth=depth, x_vars=x_vars).fit()
+        model = DoubleMLPolicyTree(orth_signal, depth=depth, x_vars=x_vars, **tree_params).fit()
 
         return model
