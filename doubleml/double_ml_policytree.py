@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from sklearn.tree import DecisionTreeClassifier, plot_tree
-from sklearn.tree._tree import TREE_LEAF
 from sklearn.utils.validation import check_is_fitted
 
 
@@ -112,9 +111,9 @@ class DoubleMLPolicyTree:
         bin_signal = (np.sign(self._orth_signal) + 1) / 2
         abs_signal = np.abs(self._orth_signal)
 
-        # fit the tree with target binary score, sample weights absolute score and 
+        # fit the tree with target binary score, sample weights absolute score and
         # provided feature variables
-        self._policy_tree.fit(X=self._x_vars, y=bin_signal, 
+        self._policy_tree.fit(X=self._x_vars, y=bin_signal,
                                                 sample_weight=abs_signal)
 
         return self
@@ -129,10 +128,10 @@ class DoubleMLPolicyTree:
         """
         check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before plot_tree.')
 
-        artists = plot_tree(self.policy_tree, feature_names=self._x_vars.keys(), filled=True, 
+        artists = plot_tree(self.policy_tree, feature_names=self._x_vars.keys(), filled=True,
                   class_names=["No Treatment", "Treatment"], impurity=False)
         return artists
-    
+
     def predict(self, x_vars):
         """
         Predicts policy based on the DoubleMLPolicyTree.

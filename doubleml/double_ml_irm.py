@@ -473,7 +473,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
 
         return model
-    
+
     def policy_tree(self, x_vars, depth=2, **tree_params):
         """
         Estimate a decision tree for optimal treatment policy by weighted classification.
@@ -509,7 +509,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             raise NotImplementedError('Only implemented for one repetition. ' +
                                       f'Number of repetitions is {str(self.n_rep)}.')
         
-        _check_integer(depth, "Depth", 0)        
+        _check_integer(depth, "Depth", 0)
         
         if not isinstance(x_vars, pd.DataFrame):
             raise TypeError('Covariates must be of DataFrame type. '

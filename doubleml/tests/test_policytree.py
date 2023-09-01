@@ -53,10 +53,6 @@ def test_dml_policytree_children(dml_policytree_fixture):
     assert np.allclose(dml_policytree_fixture['tree'].children_left,
                        dml_policytree_fixture['tree_manual'].children_left,
                        rtol=1e-9, atol=1e-4)
-
-
-@pytest.mark.ci
-def test_dml_policytree_children(dml_policytree_fixture):
     assert np.allclose(dml_policytree_fixture['tree'].children_right,
                        dml_policytree_fixture['tree_manual'].children_right,
                        rtol=1e-9, atol=1e-4)
