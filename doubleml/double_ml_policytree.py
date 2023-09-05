@@ -15,23 +15,23 @@ class DoubleMLPolicyTree:
         The orthogonal signal to be predicted. Has to be of shape ``(n_obs,)``,
         where ``n_obs`` is the number of observations.
 
-    x_vars : :class:`pandas.DataFrame`
+    features : :class:`pandas.DataFrame`
         The covariates for estimating the policy tree. Has to have the shape ``(n_obs, d)``,
         where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
 
     depth : int
-        The depth of the policy tree that will be built. Default is 2.
+        The depth of the policy tree that will be built. Default is ``2``.
 
     **tree_params : dict
         Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
         Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
-        ``min_samples_leaf = 5``. This can be adjusted.
+        ``min_samples_leaf = 8``. This can be adjusted.
 
     """
 
     def __init__(self,
                  orth_signal,
-                 x_vars,
+                 features,
                  depth=2,
                  **tree_params):
 
@@ -43,21 +43,21 @@ class DoubleMLPolicyTree:
             raise ValueError('The signal must be of one dimensional. '
                              f'Signal of dimensions {str(orth_signal.ndim)} was passed.')
 
-        if not isinstance(x_vars, pd.DataFrame):
+        if not isinstance(features, pd.DataFrame):
             raise TypeError('The features must be of DataFrame type. '
-                            f'Features of type {str(type(x_vars))} was passed.')
+                            f'Features of type {str(type(features))} was passed.')
 
-        if not x_vars.columns.is_unique:
+        if not features.columns.is_unique:
             raise ValueError('Invalid pd.DataFrame: '
                              'Contains duplicate column names.')
 
         self._orth_signal = orth_signal
-        self._x_vars = x_vars
+        self._features = features
         self._depth = depth
         self._tree_params = tree_params
 
         self._tree_params.setdefault("ccp_alpha", .01)
-        self._tree_params.setdefault("min_samples_leaf", 5)
+        self._tree_params.setdefault("min_samples_leaf", 8)
 
         # initialize tree
         self._policy_tree = DecisionTreeClassifier(max_depth=self._depth,
@@ -86,18 +86,18 @@ class DoubleMLPolicyTree:
         return self._orth_signal
 
     @property
-    def x_vars(self):
+    def features(self):
         """
         Covariates.
         """
-        return self._x_vars
+        return self._features
 
     @property
     def summary(self):
         """
         A summary for the policy tree.
         """
-        summary = pd.DataFrame({"Decision Variables": self._x_vars.keys(), "Max Depth": self._depth})
+        summary = pd.DataFrame({"Decision Variables": self._features.keys(), "Max Depth": self._depth})
         return summary
 
     def fit(self):
@@ -113,7 +113,7 @@ class DoubleMLPolicyTree:
 
         # fit the tree with target binary score, sample weights absolute score and
         # provided feature variables
-        self._policy_tree.fit(X=self._x_vars, y=bin_signal,
+        self._policy_tree.fit(X=self._features, y=bin_signal,
                               sample_weight=abs_signal)
 
         return self
@@ -128,17 +128,17 @@ class DoubleMLPolicyTree:
         """
         check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before plot_tree.')
 
-        artists = plot_tree(self.policy_tree, feature_names=list(self._x_vars.keys()), filled=True,
+        artists = plot_tree(self.policy_tree, feature_names=list(self._features.keys()), filled=True,
                             class_names=["No Treatment", "Treatment"], impurity=False)
         return artists
 
-    def predict(self, x_vars):
+    def predict(self, features):
         """
         Predicts policy based on the DoubleMLPolicyTree.
 
         Parameters
         ----------
-        x_vars : :class:`pandas.DataFrame`
+        features : :class:`pandas.DataFrame`
             The covariates for predicting based on the policy tree. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors. Has to
             have the identical keys as the original covariates.
@@ -149,14 +149,14 @@ class DoubleMLPolicyTree:
         """
         check_is_fitted(self._policy_tree, msg='Policy Tree not yet fitted. Call fit before predict.')
 
-        if not isinstance(x_vars, pd.DataFrame):
+        if not isinstance(features, pd.DataFrame):
             raise TypeError('The features must be of DataFrame type. '
-                            f'Features of type {str(type(x_vars))} was passed.')
+                            f'Features of type {str(type(features))} was passed.')
 
-        if not set(x_vars.keys()) == set(self._x_vars.keys()):
-            raise KeyError(f'The features must have the keys {self._x_vars.keys()}. '
-                           f'Features with keys {x_vars.keys()} were passed.')
+        if not set(features.keys()) == set(self._features.keys()):
+            raise KeyError(f'The features must have the keys {self._features.keys()}. '
+                           f'Features with keys {features.keys()} were passed.')
 
-        predictions = self.policy_tree.predict(x_vars)
+        predictions = self.policy_tree.predict(features)
 
-        return x_vars.assign(pred_treatment=predictions.astype(int))
+        return features.assign(pred_treatment=predictions.astype(int))

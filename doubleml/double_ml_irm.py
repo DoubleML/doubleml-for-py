@@ -474,7 +474,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return model
 
-    def policy_tree(self, x_vars, depth=2, **tree_params):
+    def policy_tree(self, features, depth=2, **tree_params):
         """
         Estimate a decision tree for optimal treatment policy by weighted classification.
 
@@ -482,18 +482,17 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         ----------
         depth : int
             The depth of the estimated decision tree.
-            Has to be larger than 0. Deeper trees derive a more complex decision policy.
-            However, they tend to overfit more. Default is 2.
+            Has to be larger than 0. Deeper trees derive a more complex decision policy. Default is ``2``.
 
-        groups : :class:`pandas.DataFrame`
-            The covariates on which the policy tree is learnt.
+        features : :class:`pandas.DataFrame`
+            The covariates on which the policy tree is learned.
             Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of covariates to be included.
 
         **tree_params : dict
             Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
             Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
-            ``min_samples_leaf = 5``. This can be adjusted.
+            ``min_samples_leaf = 8``. This can be adjusted.
 
         Returns
         -------
@@ -511,12 +510,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         _check_integer(depth, "Depth", 0)
 
-        if not isinstance(x_vars, pd.DataFrame):
+        if not isinstance(features, pd.DataFrame):
             raise TypeError('Covariates must be of DataFrame type. '
-                            f'Covariates of type {str(type(x_vars))} was passed.')
+                            f'Covariates of type {str(type(features))} was passed.')
 
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
 
-        model = DoubleMLPolicyTree(orth_signal, depth=depth, x_vars=x_vars, **tree_params).fit()
+        model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 
         return model

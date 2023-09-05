@@ -33,7 +33,7 @@ def dml_policytree_fixture(depth):
 
     res_dict = {'tree': policy_tree.policy_tree.tree_,
                 'tree_manual': policy_tree_manual.tree_,
-                'x_vars': policy_tree.x_vars,
+                'features': policy_tree.features,
                 'signal': policy_tree.orth_signal,
                 'policytree_model': policy_tree,
                 'unfitted_policytree_model': policy_tree_obj}
@@ -67,37 +67,37 @@ def test_dml_policytree_return_types(dml_policytree_fixture):
 
 @pytest.mark.ci
 def test_doubleml_exception_policytree():
-    random_x_vars = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)), columns=['a', 'b', 'c'])
+    random_features = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)), columns=['a', 'b', 'c'])
     signal = np.array([1, 2])
 
     msg = "The signal must be of np.ndarray type. Signal of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml.DoubleMLPolicyTree(orth_signal=1, x_vars=random_x_vars)
+        dml.DoubleMLPolicyTree(orth_signal=1, features=random_features)
     msg = 'The signal must be of one dimensional. Signal of dimensions 2 was passed.'
     with pytest.raises(ValueError, match=msg):
-        dml.DoubleMLPolicyTree(orth_signal=np.array([[1], [2]]), x_vars=random_x_vars)
+        dml.DoubleMLPolicyTree(orth_signal=np.array([[1], [2]]), features=random_features)
     msg = "The features must be of DataFrame type. Features of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=1)
+        dml.DoubleMLPolicyTree(orth_signal=signal, features=1)
     msg = 'Invalid pd.DataFrame: Contains duplicate column names.'
     with pytest.raises(ValueError, match=msg):
-        dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=pd.DataFrame(np.array([[1, 2], [4, 5]]),
-                                                                       columns=['a_1', 'a_1']))
+        dml.DoubleMLPolicyTree(orth_signal=signal, features=pd.DataFrame(np.array([[1, 2], [4, 5]]),
+                                                                         columns=['a_1', 'a_1']))
 
-    dml_policytree_predict = dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=random_x_vars)
+    dml_policytree_predict = dml.DoubleMLPolicyTree(orth_signal=signal, features=random_features)
     msg = 'Policy Tree not yet fitted. Call fit before predict.'
     with pytest.raises(NotFittedError, match=msg):
-        dml_policytree_predict.predict(random_x_vars)
+        dml_policytree_predict.predict(random_features)
 
     dml_policytree_predict.fit()
     msg = "The features must be of DataFrame type. Features of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml_policytree_predict.predict(x_vars=1)
+        dml_policytree_predict.predict(features=1)
     msg = r'The features must have the keys Index\(\[\'a\', \'b\', \'c\'\], dtype\=\'object\'\). Features with keys Index\(\[\'d\'\], dtype=\'object\'\) were passed.'
     with pytest.raises(KeyError, match=msg):
-        dml_policytree_predict.predict(x_vars=pd.DataFrame({"d": [3, 4]}))
+        dml_policytree_predict.predict(features=pd.DataFrame({"d": [3, 4]}))
 
-    dml_policytree_plot = dml.DoubleMLPolicyTree(orth_signal=signal, x_vars=random_x_vars)
+    dml_policytree_plot = dml.DoubleMLPolicyTree(orth_signal=signal, features=random_features)
     msg = 'Policy Tree not yet fitted. Call fit before plot_tree.'
     with pytest.raises(NotFittedError, match=msg):
         dml_policytree_plot.plot_tree()
