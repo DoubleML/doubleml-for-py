@@ -7,11 +7,12 @@ from sklearn.utils.multiclass import type_of_target
 from .double_ml import DoubleML
 
 from .double_ml_blp import DoubleMLBLP
+from .double_ml_policytree import DoubleMLPolicyTree
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -470,5 +471,51 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor for GATE (different confint() method)
         model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
+
+        return model
+
+    def policy_tree(self, features, depth=2, **tree_params):
+        """
+        Estimate a decision tree for optimal treatment policy by weighted classification.
+
+        Parameters
+        ----------
+        depth : int
+            The depth of the estimated decision tree.
+            Has to be larger than 0. Deeper trees derive a more complex decision policy. Default is ``2``.
+
+        features : :class:`pandas.DataFrame`
+            The covariates on which the policy tree is learned.
+            Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of covariates to be included.
+
+        **tree_params : dict
+            Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
+            Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
+            ``min_samples_leaf = 8``. This can be adjusted.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLPolicyTree`
+            Policy tree model.
+        """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        _check_integer(depth, "Depth", 0)
+
+        if not isinstance(features, pd.DataFrame):
+            raise TypeError('Covariates must be of DataFrame type. '
+                            f'Covariates of type {str(type(features))} was passed.')
+
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+
+        model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 
         return model

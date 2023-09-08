@@ -4,7 +4,7 @@ import numpy as np
 import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
-    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS
+    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 
@@ -395,3 +395,13 @@ def test_sensitivity():
     assert isinstance(did_cs_dml1._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple)
     did_cs_benchmark = did_cs_dml1.sensitivity_benchmark(benchmarking_set=['Z1'])
     assert isinstance(did_cs_benchmark, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_policytree():
+    features = dml_data_irm.data.drop(columns=["y", "d"])
+    policy_tree = dml_irm.policy_tree(features, depth=1)
+    assert isinstance(policy_tree, DoubleMLPolicyTree)
+    assert isinstance(policy_tree.plot_tree(), list)
+    predict_features = pd.DataFrame(np.random.normal(size=(5, 20)), columns=features.keys())
+    assert isinstance(policy_tree.predict(predict_features), pd.DataFrame)

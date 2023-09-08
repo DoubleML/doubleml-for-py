@@ -1356,3 +1356,49 @@ def test_double_ml_exception_evaluate_learner():
         return np.nan
     with pytest.raises(ValueError, match=msg):
         dml_irm_obj.evaluate_learners(metric=eval_fct)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_policytree():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5)
+    dml_irm_obj.fit()
+
+    msg = "Covariates must be of DataFrame type. Covariates of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.policy_tree(features=2)
+    msg = "Depth must be larger or equal to 0. -1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.policy_tree(features=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))),
+                                depth=-1)
+    msg = "Depth must be an integer. 0.1 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.policy_tree(features=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))),
+                                depth=.1)
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATTE')
+    dml_irm_obj.fit()
+
+    msg = 'Invalid score ATTE. Valid score ATE.'
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.policy_tree(features=2, depth=1)
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=2)
+    dml_irm_obj.fit()
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_irm_obj.policy_tree(features=2, depth=1)

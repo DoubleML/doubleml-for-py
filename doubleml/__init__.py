@@ -12,6 +12,7 @@ from .double_ml_qte import DoubleMLQTE
 from .double_ml_pq import DoubleMLPQ
 from .double_ml_lpq import DoubleMLLPQ
 from .double_ml_cvar import DoubleMLCVAR
+from .double_ml_policytree import DoubleMLPolicyTree
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',
@@ -25,6 +26,7 @@ __all__ = ['DoubleMLPLR',
            'DoubleMLPQ',
            'DoubleMLQTE',
            'DoubleMLLPQ',
-           'DoubleMLCVAR']
+           'DoubleMLCVAR',
+           'DoubleMLPolicyTree']
 
 __version__ = get_distribution('doubleml').version
