@@ -8,7 +8,7 @@ class dummy_regressor:
         raise AttributeError("Accessed predict method of dummy_regressor!")
 
     def set_params(*args):
-        raise AttributeError("Accessed set_params method of dummy_regressor!)
+        raise AttributeError("Accessed set_params method of dummy_regressor!")
 
     def get_params(*args, **kwargs):
         raise AttributeError("Accessed get_params method of dummy_regressor!")
