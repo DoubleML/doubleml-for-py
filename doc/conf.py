@@ -22,7 +22,7 @@ copyright = '2021, Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.'
 author = 'Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.'
 
 # The full version, including alpha/beta/rc tags
-release = '0.6.dev0'
+release = '0.7.0'
 
 
 # -- General configuration ---------------------------------------------------
