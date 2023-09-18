@@ -1875,7 +1875,7 @@ class DoubleML(ABC):
         Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
         Returns
         -------
-        benchmark_results ::lass:`pandas.DataFrame`
+        benchmark_results : pandas.DataFrame
             Benchmark results.
         """
         x_list_long = self._dml_data.x_cols
