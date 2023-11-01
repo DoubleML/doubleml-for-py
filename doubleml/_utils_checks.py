@@ -226,3 +226,17 @@ def _check_benchmarks(benchmarks):
                 raise TypeError('benchmarks name must be of string type. '
                                 f'{str(benchmarks["name"][i])} of type {str(type(benchmarks["name"][i]))} was passed.')
     return
+
+def _check_weights(weights, score, n_obs, n_treat):
+    if weights is not None:
+        if score != "ATE":
+            raise NotImplementedError("weights can only be set for score type 'ATE'. "
+                                      f"{score} was passed.")
+        if not isinstance(weights, np.ndarray):
+            raise ValueError("weights must be a numpy array. "
+                             f"weights of type {str(type(weights))} was passed.")
+        if not np.all((0 <= weights) & (weights <= 1)):
+            raise ValueError("All weights values must be between 0 and 1")
+        if len(weights.shape) != 2 or weights.shape[0] != n_treat or weights.shape[1] != n_obs:
+            raise ValueError(f"weights must have shape ({n_treat},{n_obs}). "
+                             f"weights of shape {weights.shape} was passed.")
