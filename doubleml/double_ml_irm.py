@@ -12,7 +12,7 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, _check_weights
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -46,6 +46,11 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         A str (``'ATE'`` or ``'ATTE'``) specifying the score function
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
         Default is ``'ATE'``.
+
+    weights : array or None
+        An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
+        is applied. Can only be used with ``score = 'ATE'``.
+        Default is ``None``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -118,6 +123,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='ATE',
+                 weights=None,
                  dml_procedure='dml2',
                  normalize_ipw=False,
                  trimming_rule='truncate',
@@ -160,6 +166,11 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
+        
+        _check_weights(weights, score, obj_dml_data.n_obs, obj_dml_data.n_treat)
+        if weights is None:
+            weights = np.ones((obj_dml_data.n_obs, obj_dml_data.n_treat))
+        self._weights = weights
 
     @property
     def normalize_ipw(self):
@@ -181,6 +192,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Specifies the used trimming threshold.
         """
         return self._trimming_threshold
+    
+    @property
+    def weights(self):
+        """
+        Specifies the weights for a weighted ATE.
+        """
+        return self._weights
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
