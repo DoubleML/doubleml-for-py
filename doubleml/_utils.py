@@ -7,6 +7,7 @@ from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import mean_squared_error
+from copy import copy
 
 from statsmodels.nonparametric.kde import KDEUnivariate
 
@@ -60,12 +61,12 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
     if not manual_cv_predict:
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            preds = cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+            preds = cross_val_predict(copy(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
         else:
             assert isinstance(est_params, dict)
             # if no fold-specific parameters we redirect to the standard method
             # warnings.warn("Using the same (hyper-)parameters for all folds")
-            preds = cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs,
+            preds = cross_val_predict(copy(estimator), x, y, cv=smpls, n_jobs=n_jobs,
                                       method=method)
         if method == 'predict_proba':
             res['preds'] = preds[:, 1]
@@ -97,17 +98,17 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
 
         if est_params is None:
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator), x, y_list[idx], train_index, idx)
+                copy(estimator), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
         elif isinstance(est_params, dict):
             # warnings.warn("Using the same (hyper-)parameters for all folds")
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx)
+                copy(estimator), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
         else:
             assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
             fitted_models = parallel(delayed(_fit)(
-                clone(estimator).set_params(**est_params[idx]), x, y_list[idx], train_index, idx)
+                copy(estimator).set_params(**est_params[idx]), x, y_list[idx], train_index, idx)
                                      for idx, (train_index, test_index) in enumerate(smpls))
 
         preds = np.full(n_obs, np.nan)
