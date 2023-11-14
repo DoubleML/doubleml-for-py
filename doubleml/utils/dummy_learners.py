@@ -28,3 +28,6 @@ class dummy_classifier:
 
     def get_params(*args, **kwargs):
         raise AttributeError("Accessed get_params method of dummy_classifier!")
+
+    def predict_proba(*args, **kwargs):
+        raise AttributeError("Accessed predict_proba method of dummy_classifier!")
