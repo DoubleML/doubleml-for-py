@@ -1,4 +1,6 @@
-class dummy_regressor:
+from sklearn.base import BaseEstimator
+
+class dummy_regressor(BaseEstimator):
     _estimator_type = "regressor"
 
     def fit(*args):
@@ -14,7 +16,7 @@ class dummy_regressor:
         raise AttributeError("Accessed get_params method of dummy_regressor!")
 
 
-class dummy_classifier:
+class dummy_classifier(BaseEstimator):
     _estimator_type = "classifier"
 
     def fit(*args):
