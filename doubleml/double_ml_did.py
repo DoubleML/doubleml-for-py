@@ -218,7 +218,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             # adjust target values to consider only compatible subsamples
             g_hat0['targets'] = g_hat0['targets'].astype(float)
             g_hat0['targets'][d == 1] = np.nan
-        
+
         # nuisance g for d==1
         if external_predictions['ml_g1'] is not None:
             g_hat1 = {'preds': external_predictions['ml_g1'],
