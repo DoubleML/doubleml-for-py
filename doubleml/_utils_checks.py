@@ -237,6 +237,9 @@ def _check_weights(weights, score, n_obs, n_treat):
                              f"weights of type {str(type(weights))} was passed.")
         if not np.all((0 <= weights) & (weights <= 1)):
             raise ValueError("All weights values must be between 0 and 1")
-        if len(weights.shape) != 2 or weights.shape[0] != n_treat or weights.shape[1] != n_obs:
-            raise ValueError(f"weights must have shape ({n_treat},{n_obs}). "
+        if len(weights.shape) != 1 or weights.shape[0] != n_obs:
+            raise ValueError(f"weights must have shape ({n_obs},). "
                              f"weights of shape {weights.shape} was passed.")
+        if weights.sum() == 0:
+            raise ValueError(f"At least one weight must be non-zero.")
+    return
