@@ -168,9 +168,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         
         _check_weights(weights, score, obj_dml_data.n_obs, obj_dml_data.n_treat)
-        if weights is None:
-            weights = np.ones((obj_dml_data.n_obs, obj_dml_data.n_treat))
-        self._weights = weights
+        if weights is not None:
+            self._weights = weights
 
     @property
     def normalize_ipw(self):
@@ -198,7 +197,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         """
         Specifies the weights for a weighted ATE.
         """
-        return self._weights
+        return self._weights if hasattr(self,"_weights") else None
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
