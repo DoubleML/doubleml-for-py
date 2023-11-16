@@ -1,5 +1,6 @@
 from sklearn.base import BaseEstimator
 
+
 class dummy_regressor(BaseEstimator):
     _estimator_type = "regressor"
 
@@ -11,9 +12,6 @@ class dummy_regressor(BaseEstimator):
 
     def set_params(*args):
         raise AttributeError("Accessed set_params method of dummy_regressor!")
-
-    def get_params(*args, **kwargs):
-        raise AttributeError("Accessed get_params method of dummy_regressor!")
 
 
 class dummy_classifier(BaseEstimator):
@@ -27,9 +25,6 @@ class dummy_classifier(BaseEstimator):
 
     def set_params(*args):
         raise AttributeError("Accessed set_params method of dummy_classifier!")
-
-    def get_params(*args, **kwargs):
-        raise AttributeError("Accessed get_params method of dummy_classifier!")
 
     def predict_proba(*args, **kwargs):
         raise AttributeError("Accessed predict_proba method of dummy_classifier!")
