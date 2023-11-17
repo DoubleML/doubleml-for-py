@@ -1,9 +1,10 @@
 from sklearn.utils import check_X_y
+import numpy as np
 
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_data import DoubleMLData
 # from .double_ml import DoubleML -- not working
-from doubleml._utils import _dml_cv_predict, _dml_tune
+from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml._utils_checks  import _check_finite_predictions
 #from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions -- also not working
 
@@ -97,6 +98,10 @@ class DoubleMLSS(DoubleML):
     >>> y = np.dot(x, beta) + 0.5 * d + e[1]  # Outcome equation
     >>> y[s == 0] = 0  # Setting values to 0 based on the selection equation
 
+    >>> from sklearn.linear_model import Lasso
+    >>> learner = Lasso(alpha=0.5)  # alpha controls the regularization strength, alpha=0 is linear regression
+    >>> ml_mu = clone(learner)
+
     #  The true ATE is equal to 0.5
     
 
@@ -107,16 +112,15 @@ class DoubleMLSS(DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_g,  # TODO add a entry for each nuisance function
-                 ml_m,
-                 selection,  # 1 if y is observed and 0 y is not observed (missing)
+                 ml_mu,  # default should be lasso
+                 selection=0,  # if 0, ATE is estimated, if 1, ATE for selection is estimated
                  non_random_missing = False,  # indicates whether MAR holds or not
-                 trim = 0.01, 
+                 trimming_threshold = 0.01, 
                  dtreat = 1,
                  dcontrol = 1,
                  n_folds=3,
                  n_rep=1,
-                 score='my_orthogonal_score',  # TODO give a name for your orthogonal score function
+                 score='mar_score',  # TODO implement other scores apart from MAR
                  dml_procedure='dml2',
                  normalize_ipw=True,
                  draw_sample_splitting=True,
@@ -129,25 +133,24 @@ class DoubleMLSS(DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
         
-        self._normalize_ipw = normalize_ipw
-        self.__selection = selection
+        self._normalize_ipw = normalize_ipw  ## TODO
+        self.__selection = selection  ## TODO
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        _ = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=False)  # TODO may needs adaption
-        _ = self._check_learner(ml_g, 'ml_m', regressor=False, classifier=True)  # TODO may needs adaption
-        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}  # TODO may needs adaption
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}  # TODO may needs adaption
-
+        _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)  # learner must be a regression method
+        self._learner = {'ml_mu': ml_mu}
+        self._predict_method = {'ml_mu': 'predict'}  
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
+        valid_learner = ['ml_mu_d0', 'ml_mu_d1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
-                        ['ml_g', 'ml_m']}  # TODO may needs adaption
+                        valid_learner}
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['my_orthogonal_score']  # TODO give a name for your orthogonal score function
+            valid_score = ['mar_score']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -157,7 +160,7 @@ class DoubleMLSS(DoubleML):
                                 '%r was passed.' % score)
         return
 
-    def _check_data(self, obj_dml_data):
+    def _check_data(self, obj_dml_data):  ## TODO add checks for missingness, treatment etc.
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
@@ -168,36 +171,42 @@ class DoubleMLSS(DoubleML):
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLSS.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv):
-        # TODO data checks may need adaptions
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+        # TODO: add checks depending on the type of sample selection
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
+       # x, s = check_X_y(x, self._dml_data.s,
+       #                  force_all_finite=False)
 
-        # TODO add a entry for each nuisance function
-        # nuisance g
-        g_hat = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'])
-        _check_finite_predictions(g_hat, self._learner['ml_g'], 'ml_g', smpls)
+        # nuisance mu
 
-        # TODO add a entry for each nuisance function
-        # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'])
-        _check_finite_predictions(m_hat, self._learner['ml_m'], 'ml_m', smpls)
+        # split sample into treatment and control (score function is estimated separately for each)
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat, m_hat, smpls)  # TODO may needs adaption
-        preds = {'ml_g': g_hat,
-                 'ml_m': m_hat}
+        mu_hat_d0 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
+                                return_models=return_models)
+        mu_hat_d0['targets'] = mu_hat_d0['targets'].astype(float)
+        mu_hat_d0['targets'][np.invert(d == 0)] = np.nan
 
-        return psi_a, psi_b, preds
+        mu_hat_d1 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
+                                return_models=return_models)
+        mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
+        mu_hat_d1['targets'][np.invert(d == 1)] = np.nan
 
-    def _score_elements(self, y, d, g_hat, m_hat, smpls):  # TODO may needs adaption
-        # TODO Here the score elements psi_a and psi_b of a linear score psi = psi_a * theta + psi_b should be computed
-        # TODO See also https://docs.doubleml.org/stable/guide/scores.html
-        # return psi_a, psi_b
-        pass
+        _check_finite_predictions(mu_hat_d0, self._learner['ml_mu_d0'], 'ml_mu_d0', smpls)
+
+        psi_d = self._score_elements(y, d, mu_hat_d0, mu_hat_d1, smpls)  # TODO may needs adaption
+        preds = {'ml_mu_d0': mu_hat_d0}
+
+        return psi_d, preds
+
+    def _score_elements(self, y, d, s, mu_hat, smpls):  # TODO may needs adaption
+        psi_d = None
+        return psi_d
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
@@ -208,26 +217,20 @@ class DoubleMLSS(DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
-                               'ml_m': None}  # TODO may needs adaption
+            scoring_methods = {'ml_mu': None}  # TODO may needs adaption
 
         train_inds = [train_index for (train_index, _) in smpls]
-        # TODO add a entry for each nuisance function
-        g_tune_res = _dml_tune(y, x, train_inds,
-                               self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        m_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+        
+        # hyperparameter tuning for ML 
+        mu_tune_res = _dml_tune(y, x, train_inds,
+                               self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        mu_best_params = [xx.best_params_ for xx in mu_tune_res]
 
-        params = {'ml_g': g_best_params,
-                  'ml_m': m_best_params}  # TODO may needs adaption
+        params = {'ml_mu': mu_best_params}
 
-        tune_res = {'g_tune': g_tune_res,
-                    'm_tune': m_tune_res}  # TODO may needs adaption
+        tune_res = {'mu_tune': mu_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
