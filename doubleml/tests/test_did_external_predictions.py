@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
 from doubleml import DoubleMLData, DoubleMLDID
 from doubleml.datasets import make_did_SZ2020
 from doubleml.utils import dummy_regressor, dummy_classifier
-
+from ._utils import draw_smpls
 
 @pytest.fixture(scope="module", params=["observational", "experimental"])
 def did_score(request):
@@ -26,8 +26,16 @@ def n_rep(request):
 def doubleml_did_fixture(did_score, dml_procedure, n_rep):
     ext_predictions = {"d": {}}
     dml_data = make_did_SZ2020(n_obs=500, return_type="DoubleMLData")
-    kwargs = {"obj_dml_data": dml_data, "score": did_score, "n_rep": n_rep, "dml_procedure": dml_procedure}
+    all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.d)
+    kwargs = {
+        "obj_dml_data": dml_data,
+        "score": did_score,
+        "n_rep": n_rep,
+        "dml_procedure": dml_procedure,
+        "draw_sample_splitting": False
+    }
     DMLDID = DoubleMLDID(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    DMLDID.set_sample_splitting(all_smpls)
     np.random.seed(3141)
     DMLDID.fit(store_predictions=True)
 
@@ -36,6 +44,7 @@ def doubleml_did_fixture(did_score, dml_procedure, n_rep):
     ext_predictions["d"]["ml_m"] = DMLDID.predictions["ml_m"][:, :, 0]
 
     DMLDID_ext = DoubleMLDID(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
+    DMLDID_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
     DMLDID_ext.fit(external_predictions=ext_predictions)
 
