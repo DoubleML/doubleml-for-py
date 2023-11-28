@@ -31,9 +31,7 @@ def dim_z(request):
 def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
     # IV-type score only allows dim_z = 1, so skip testcases with dim_z > 1 for IV-type score
     if dim_z > 1 and score == "IV-type":
-        res_dict = {"coef_normal": 1, "coef_ext": 1}
-
-        return res_dict
+        pytest.skip("IV-type score only allows dim_z = 1")
     else:
         ext_predictions = {"d": {}}
 
