@@ -8,6 +8,7 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
+from .double_ml_blp import DoubleMLBLP
 
 from ._utils import _dml_cv_predict, _dml_tune
 from ._utils_checks import _check_score, _check_finite_predictions, _check_is_propensity
@@ -327,3 +328,64 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def cate(self, basis):
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model.
+        """
+        if self._dml_data.n_treat > 1:
+            raise NotImplementedError('Only implemented for one treatment. ' +
+                                      f'Number of treatments is {str(self._dml_data.n_treat)}.')
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        Y_tilde, D_tilde = self._partial_out()
+
+        D_basis = basis * D_tilde
+        model = DoubleMLBLP(
+            orth_signal=Y_tilde.reshape(-1),
+            basis=D_basis,
+            is_gate=False,
+        )
+        model.fit()
+        return model
+
+    def _partial_out(self):
+        """
+        Helper function. Returns the partialled out quantities of Y and D.
+        Works with multiple repetitions.
+
+        Returns
+        -------
+        Y_tilde : :class:`numpy.ndarray`
+            The residual of the regression of Y on X.
+        D_tilde : :class:`numpy.ndarray`
+            The residual of the regression of D on X.
+        """
+        if self.predictions is None:
+            raise ValueError('predictions are None. Call .fit(store_predictions=True) to store the predictions.')
+
+        ml_m = self.predictions["ml_m"].squeeze(axis=2)
+        if self.score == "partialling out":
+            ml_l = self.predictions["ml_l"].squeeze(axis=2)
+            Y_tilde = self._dml_data.y - ml_l
+            D_tilde = self._dml_data.d - ml_m
+        else:
+            assert self.score == "IV-type"
+            ml_g = self.predictions["ml_g"].squeeze(axis=2)
+            Y_tilde = self._dml_data.y - (self.coef * ml_m) - ml_g
+            D_tilde = self._dml_data.d - ml_m
+
+        return Y_tilde, D_tilde

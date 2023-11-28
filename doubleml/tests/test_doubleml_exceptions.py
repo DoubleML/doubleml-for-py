@@ -1327,6 +1327,38 @@ def test_doubleml_exception_cate():
 
 
 @pytest.mark.ci
+def test_doubleml_exception_plr_cate():
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=2)
+    dml_plr_obj.fit()
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj.cate(basis=2)
+
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2)
+    dml_plr_obj.fit(store_predictions=False)
+    msg = r'predictions are None. Call .fit\(store_predictions=True\) to store the predictions.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_obj.cate(basis=2)
+
+    dml_data_multiple_treat = DoubleMLData(dml_data.data, y_col="y", d_cols=['d', 'X1'])
+    dml_plr_obj_multiple = DoubleMLPLR(dml_data_multiple_treat,
+                                       ml_l=Lasso(),
+                                       ml_m=Lasso(),
+                                       n_folds=2)
+    dml_plr_obj_multiple.fit()
+    msg = 'Only implemented for one treatment. Number of treatments is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj_multiple.cate(basis=2)
+
+
+@pytest.mark.ci
 def test_double_ml_exception_evaluate_learner():
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),

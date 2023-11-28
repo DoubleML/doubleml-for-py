@@ -282,3 +282,25 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
         assert np.allclose(dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap],
                            dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_gate():
+    n = 9
+
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = dml.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_g = LinearRegression()
+    ml_m = LinearRegression()
+
+    dml_irm_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_g, ml_m, ml_l,
+                                  n_folds=2,
+                                  score='IV-type',
+                                  dml_procedure='dml2')
+    dml_irm_obj.fit()
+    random_basis = np.random.normal(size=(n, 5))
+    cate = dml_irm_obj.cate(random_basis)
+    assert isinstance(cate, dml.DoubleMLBLP)
