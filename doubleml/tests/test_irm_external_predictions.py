@@ -52,12 +52,6 @@ def doubleml_irm_fixture(irm_score, dml_procedure, n_rep):
 
     return res_dict
 
-
-@pytest.mark.ci
-def test_doubleml_plr_coef(doubleml_plr_fixture):
-    assert math.isclose(doubleml_plr_fixture["coef_normal"], doubleml_plr_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)
-
-
 @pytest.mark.ci
 def test_doubleml_irm_coef(doubleml_irm_fixture):
     assert math.isclose(doubleml_irm_fixture["coef_normal"], doubleml_irm_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)
