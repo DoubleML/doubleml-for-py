@@ -261,79 +261,95 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-
+        
+        g = external_predictions['ml_g'] is not None
+        m = external_predictions['ml_m'] is not None
+        
         # initialize nuisance predictions, targets and models
-        g_hat = {'models': None,
-                 'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                 'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                 }
-        m_hat = copy.deepcopy(g_hat)
-
-        ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
-        # initialize models
-        fitted_models = {}
-        for learner in self.params_names:
-            # set nuisance model parameters
-            est_params = self._get_params(learner)
-            if est_params is not None:
-                fitted_models[learner] = [clone(self._learner[learner]).set_params(**est_params[i_fold])
-                                          for i_fold in range(self.n_folds)]
-            else:
-                fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
+        
+        if not (g and m):
+            g_hat = {'models': None,
+                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                    'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                    }
+            m_hat = copy.deepcopy(g_hat)
+            ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
+            # initialize models
+            fitted_models = {}
+            for learner in self.params_names:
+                # set nuisance model parameters
+                est_params = self._get_params(learner)
+                if est_params is not None:
+                    fitted_models[learner] = [clone(self._learner[learner]).set_params(**est_params[i_fold])
+                                            for i_fold in range(self.n_folds)]
+                else:
+                    fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
+        elif (g and not m) or (m and not g):
+            raise ValueError('External predictions for both g and m are required.')
+        else:
+            g_hat = {'models': None,
+                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                    'preds': external_predictions['ml_g']
+                    }
+            m_hat = {'models': None,
+                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                    'preds': external_predictions['ml_m']
+                    }
 
         # caculate nuisance functions over different folds
-        for i_fold in range(self.n_folds):
-            train_inds = smpls[i_fold][0]
-            test_inds = smpls[i_fold][1]
+        if not (g and m): 
+            for i_fold in range(self.n_folds):
+                train_inds = smpls[i_fold][0]
+                test_inds = smpls[i_fold][1]
 
-            # start nested crossfitting
-            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                          random_state=42, stratify=d[train_inds])
-            smpls_prelim = [(train, test) for train, test in
-                            StratifiedKFold(n_splits=self.n_folds).split(X=train_inds_1, y=d[train_inds_1])]
+                # start nested crossfitting
+                train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
+                                                            random_state=42, stratify=d[train_inds])
+                smpls_prelim = [(train, test) for train, test in
+                                StratifiedKFold(n_splits=self.n_folds).split(X=train_inds_1, y=d[train_inds_1])]
 
-            d_train_1 = d[train_inds_1]
-            y_train_1 = y[train_inds_1]
-            x_train_1 = x[train_inds_1, :]
+                d_train_1 = d[train_inds_1]
+                y_train_1 = y[train_inds_1]
+                x_train_1 = x[train_inds_1, :]
 
-            # get a copy of ml_m as a preliminary learner
-            ml_m_prelim = clone(fitted_models['ml_m'][i_fold])
-            m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
-                                           method='predict_proba', smpls=smpls_prelim)['preds']
+                # get a copy of ml_m as a preliminary learner
+                ml_m_prelim = clone(fitted_models['ml_m'][i_fold])
+                m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1,
+                                            method='predict_proba', smpls=smpls_prelim)['preds']
 
-            m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
+                m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
 
-            if self._normalize_ipw:
-                m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
-            if self.treatment == 0:
-                m_hat_prelim = 1 - m_hat_prelim
+                if self._normalize_ipw:
+                    m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
+                if self.treatment == 0:
+                    m_hat_prelim = 1 - m_hat_prelim
 
-            # preliminary ipw estimate
-            def ipw_score(theta):
-                res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, m_hat_prelim))
-                return res
+                # preliminary ipw estimate
+                def ipw_score(theta):
+                    res = np.mean(self._compute_ipw_score(theta, d_train_1, y_train_1, m_hat_prelim))
+                    return res
 
-            _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
-            ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
-            ipw_vec[i_fold] = ipw_est
+                _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
+                ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
+                ipw_vec[i_fold] = ipw_est
 
-            # use the preliminary estimates to fit the nuisance parameters on train_2
-            d_train_2 = d[train_inds_2]
-            y_train_2 = y[train_inds_2]
-            x_train_2 = x[train_inds_2, :]
+                # use the preliminary estimates to fit the nuisance parameters on train_2
+                d_train_2 = d[train_inds_2]
+                y_train_2 = y[train_inds_2]
+                x_train_2 = x[train_inds_2, :]
 
-            dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
-            y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
+                dx_treat_train_2 = x_train_2[d_train_2 == self.treatment, :]
+                y_treat_train_2 = y_train_2[d_train_2 == self.treatment]
 
-            fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
+                fitted_models['ml_g'][i_fold].fit(dx_treat_train_2, y_treat_train_2 <= ipw_est)
 
-            # predict nuisance values on the test data and the corresponding targets
-            g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x[test_inds, :])
-            g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
+                # predict nuisance values on the test data and the corresponding targets
+                g_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_g'][i_fold], x[test_inds, :])
+                g_hat['targets'][test_inds] = y[test_inds] <= ipw_est
 
-            # refit the propensity score on the whole training set
-            fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
-            m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x[test_inds, :])
+                # refit the propensity score on the whole training set
+                fitted_models['ml_m'][i_fold].fit(x[train_inds, :], d[train_inds])
+                m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], x[test_inds, :])
 
         # set target for propensity score
         m_hat['targets'] = d
@@ -348,6 +364,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         # clip propensities and normalize ipw weights
         # this is not done in the score to save computation due to multiple score evaluations
         # to be able to evaluate the raw models the m_hat['preds'] are not changed
+        #if not (g and m):
         m_hat_adj = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
         if self._normalize_ipw:
             if self.dml_procedure == 'dml1':
@@ -358,9 +375,12 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
-
         # readjust start value for minimization
-        self._coef_start_val = np.mean(ipw_vec)
+        if not (g and m):
+            self._coef_start_val = np.mean(ipw_vec)
+        #else:
+        #    m_hat_adj = m_hat['preds']
+            
 
         psi_elements = {'ind_d': d == self.treatment, 'g': g_hat['preds'],
                         'm': m_hat_adj, 'y': y}
