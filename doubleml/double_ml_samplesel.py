@@ -113,14 +113,16 @@ class DoubleMLSS(DoubleML):
     def __init__(self,
                  obj_dml_data,
                  ml_mu,  # default should be lasso
+                 ml_pi,  # propensity score
+                 ml_p,   # propensity score
                  selection=0,  # if 0, ATE is estimated, if 1, ATE for selection is estimated
                  non_random_missing = False,  # indicates whether MAR holds or not
                  trimming_threshold = 0.01, 
-                 dtreat = 1,
-                 dcontrol = 1,
+                 dtreat = 1, 
+                 dcontrol = 0,  # TODO: incorporate into estimation -- must subselect data corresponding to selected treatment and control values
                  n_folds=3,
                  n_rep=1,
-                 score='mar_score',  # TODO implement other scores apart from MAR
+                 score='mar_score',  # TODO implement other scores apart from MAR, this will determine the estimator type
                  dml_procedure='dml2',
                  normalize_ipw=True,
                  draw_sample_splitting=True,
@@ -139,12 +141,16 @@ class DoubleMLSS(DoubleML):
         self._check_data(self._dml_data)
         self._check_score(self.score)
         _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)  # learner must be a regression method
-        self._learner = {'ml_mu': ml_mu}
-        self._predict_method = {'ml_mu': 'predict'}  
+        _ = self._check_learner(ml_pi, 'ml_pi', regressor=True, classifier=False)  # learner must be a regression method, pi is probability
+        _ = self._check_learner(ml_p, 'ml_p', regressor=True, classifier=False)  # learner must be a regression method, p is probability
+        self._learner = {'ml_mu': ml_mu, 'ml_pi': ml_pi, 'ml_p': ml_p}
+        self._predict_method = {'ml_mu': 'predict', 
+                                'ml_pi': 'predict', 
+                                'ml_p': 'predict'}  ## TODO: is this really necessary?
         self._initialize_ml_nuisance_params()
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_mu_d0', 'ml_mu_d1']
+        valid_learner = ['ml_mu_d0', 'ml_mu_d1', 'ml_pi_d0', 'ml_pi_d1', 'ml_p_d0', 'ml_p_d1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
                         valid_learner}
 
@@ -183,6 +189,8 @@ class DoubleMLSS(DoubleML):
         # nuisance mu
 
         # split sample into treatment and control (score function is estimated separately for each)
+        # select
+        
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         mu_hat_d0 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
@@ -197,16 +205,59 @@ class DoubleMLSS(DoubleML):
         mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
         mu_hat_d1['targets'][np.invert(d == 1)] = np.nan
 
-        _check_finite_predictions(mu_hat_d0, self._learner['ml_mu_d0'], 'ml_mu_d0', smpls)
+        # is this necessary?
+        # _check_finite_predictions(mu_hat_d0, self._learner['ml_mu_d0'], 'ml_mu_d0', smpls)
 
-        psi_d = self._score_elements(y, d, mu_hat_d0, mu_hat_d1, smpls)  # TODO may needs adaption
-        preds = {'ml_mu_d0': mu_hat_d0}
+        # propensity score pi
+        pi_hat_d0 = _dml_cv_predict(self._learner['ml_pi'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi'],
+                                return_models=return_models)
+        pi_hat_d0['targets'] = pi_hat_d0['targets'].astype(float)
+        pi_hat_d0['targets'][np.invert(d == 0)] = np.nan
+
+        pi_hat_d1 = _dml_cv_predict(self._learner['ml_pi'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
+                                return_models=return_models)
+        pi_hat_d1['targets'] = pi_hat_d1['targets'].astype(float)  # why is this necessary?? 
+        pi_hat_d1['targets'][np.invert(d == 1)] = np.nan  # np.invert is necessary because of multiple possibilities 
+                                                          # for treatment values. We are calculating
+
+
+        # propensity score p
+        p_hat_d0 = _dml_cv_predict(self._learner['ml_p'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
+                                return_models=return_models)
+        p_hat_d0['targets'] = p_hat_d0['targets'].astype(float)
+        p_hat_d0['targets'][np.invert(d == 0)] = np.nan
+
+        p_hat_d1 = _dml_cv_predict(self._learner['ml_p'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
+                                return_models=return_models)
+        p_hat_d1['targets'] = p_hat_d1['targets'].astype(float)
+        p_hat_d1['targets'][np.invert(d == 1)] = np.nan
+
+        psi_d = self._score_elements(y, d, mu_hat_d0['preds'], mu_hat_d1['preds'], 
+                                     pi_hat_d0['preds'], pi_hat_d1['preds'],
+                                     p_hat_d0['preds'], p_hat_d1['preds'], smpls)
+        
+        preds = {'ml_mu_d0': mu_hat_d0, 
+                 'ml_mu_d1': mu_hat_d1,
+                 'pi_d0': pi_hat_d0,
+                 'pi_d1': pi_hat_d1,
+                 'p_d0': p_hat_d0,
+                 'p_d1': p_hat_d1}
 
         return psi_d, preds
+    
 
-    def _score_elements(self, y, d, s, mu_hat, smpls):  # TODO may needs adaption
-        psi_d = None
-        return psi_d
+    def _score_elements(self, y, d, s, pi_hat_d0, 
+                        pi_hat_d1, p_hat_d0, p_hat_d1, mu_hat_d0, 
+                        mu_hat_d1, smpls):
+        psi_d0 = None
+        psi_d1 = None
+
+        return psi_d0, psi_d1
+
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
@@ -217,8 +268,9 @@ class DoubleMLSS(DoubleML):
                          force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_mu': None}  # TODO may needs adaption
+            scoring_methods = {'ml_mu': None}
 
+        # TODO: This will need adaptation
         train_inds = [train_index for (train_index, _) in smpls]
         
         # hyperparameter tuning for ML 
