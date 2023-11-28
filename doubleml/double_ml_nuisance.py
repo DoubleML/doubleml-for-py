@@ -110,6 +110,10 @@ class DoubleMLNuisance(ABC):
                 self._store_models(preds['models'])
         return self
 
+    @abstractmethod
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models):
+        pass
+
     def _initialize_arrays(self):
         # scores
         psi = np.full(
