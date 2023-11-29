@@ -330,7 +330,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis):
+    def cate(self, basis, is_gate=False):
         """
         Calculate conditional average treatment effects (CATE) for a given basis.
 
@@ -339,6 +339,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
 
         Returns
         -------
@@ -358,7 +361,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         model = DoubleMLBLP(
             orth_signal=Y_tilde.reshape(-1),
             basis=D_basis,
-            is_gate=False,
+            is_gate=is_gate,
         )
         model.fit()
         return model
@@ -376,15 +379,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         Returns
         -------
-        model : :class:`doubleML.DoubleMLBLPGATE`
+        model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
         """
-        if self._dml_data.n_treat > 1:
-            raise NotImplementedError('Only implemented for single treatment. ' +
-                                      f'Number of treatments is {str(self._dml_data.n_treat)}.')
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
 
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
@@ -398,16 +395,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
-        Y_tilde, D_tilde = self._partial_out()
 
-        D_basis = groups * D_tilde
-        # fit the best linear predictor for GATE (different confint() method)
-        model = DoubleMLBLP(
-            orth_signal=Y_tilde.reshape(-1),
-            basis=D_basis,
-            is_gate=True,
-        )
-        model.fit()
+        model = self.cate(groups, is_gate=True)
         return model
 
     def _partial_out(self):

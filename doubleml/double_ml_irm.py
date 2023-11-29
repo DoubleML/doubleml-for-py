@@ -397,7 +397,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis):
+    def cate(self, basis, is_gate=False):
         """
         Calculate conditional average treatment effects (CATE) for a given basis.
 
@@ -406,6 +406,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
 
         Returns
         -------
@@ -424,8 +427,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         # define the orthogonal signal
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
-        model = DoubleMLBLP(orth_signal, basis=basis).fit()
-
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit()
         return model
 
     def gate(self, groups):
@@ -444,15 +447,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
         """
-        valid_score = ['ATE']
-        if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
-
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
-
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
                             f'Groups of type {str(type(groups))} was passed.')
@@ -467,11 +461,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        # define the orthogonal signal
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
-        # fit the best linear predictor for GATE (different confint() method)
-        model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
-
+        model = self.cate(groups, is_gate=True)
         return model
 
     def policy_tree(self, features, depth=2, **tree_params):
