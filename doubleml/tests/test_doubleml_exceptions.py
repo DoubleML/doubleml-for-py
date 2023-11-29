@@ -1375,6 +1375,7 @@ def test_doubleml_exception_plr_gate():
     with pytest.raises(TypeError, match=msg):
         dml_plr_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data.n_obs, 3))))
 
+
 @pytest.mark.ci
 def test_double_ml_exception_evaluate_learner():
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
