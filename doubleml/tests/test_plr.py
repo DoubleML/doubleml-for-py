@@ -286,7 +286,7 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
 
 
 @pytest.mark.ci
-def test_dml_plr_cate_gate():
+def test_dml_plr_cate_gate(score, dml_procedure):
     n = 9
 
     # collect data
@@ -299,8 +299,8 @@ def test_dml_plr_cate_gate():
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_g, ml_m, ml_l,
                                   n_folds=2,
-                                  score='IV-type',
-                                  dml_procedure='dml2')
+                                  score=score,
+                                  dml_procedure=dml_procedure)
     dml_plr_obj.fit()
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
     cate = dml_plr_obj.cate(random_basis)
