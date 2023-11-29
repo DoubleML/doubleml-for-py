@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
@@ -345,7 +346,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             Best linear Predictor model.
         """
         if self._dml_data.n_treat > 1:
-            raise NotImplementedError('Only implemented for one treatment. ' +
+            raise NotImplementedError('Only implemented for single treatment. ' +
                                       f'Number of treatments is {str(self._dml_data.n_treat)}.')
         if self.n_rep != 1:
             raise NotImplementedError('Only implemented for one repetition. ' +
@@ -358,6 +359,53 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             orth_signal=Y_tilde.reshape(-1),
             basis=D_basis,
             is_gate=False,
+        )
+        model.fit()
+        return model
+
+    def gate(self, groups):
+        """
+        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLPGATE`
+            Best linear Predictor model for Group Effects.
+        """
+        if self._dml_data.n_treat > 1:
+            raise NotImplementedError('Only implemented for single treatment. ' +
+                                      f'Number of treatments is {str(self._dml_data.n_treat)}.')
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError('Groups must be of DataFrame type. '
+                            f'Groups of type {str(type(groups))} was passed.')
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
+            else:
+                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
+                                'Alternatively, groups should only contain one column.')
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn('At least one group effect is estimated with less than 6 observations.')
+        Y_tilde, D_tilde = self._partial_out()
+
+        D_basis = groups * D_tilde
+        # fit the best linear predictor for GATE (different confint() method)
+        model = DoubleMLBLP(
+            orth_signal=Y_tilde.reshape(-1),
+            basis=D_basis,
+            is_gate=True,
         )
         model.fit()
         return model
@@ -377,15 +425,18 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if self.predictions is None:
             raise ValueError('predictions are None. Call .fit(store_predictions=True) to store the predictions.')
 
+        y = self._dml_data.y.reshape(-1, 1)
+        d = self._dml_data.d.reshape(-1, 1)
         ml_m = self.predictions["ml_m"].squeeze(axis=2)
+
         if self.score == "partialling out":
             ml_l = self.predictions["ml_l"].squeeze(axis=2)
-            Y_tilde = self._dml_data.y - ml_l
-            D_tilde = self._dml_data.d - ml_m
+            Y_tilde = y - ml_l
+            D_tilde = d - ml_m
         else:
             assert self.score == "IV-type"
             ml_g = self.predictions["ml_g"].squeeze(axis=2)
-            Y_tilde = self._dml_data.y - (self.coef * ml_m) - ml_g
-            D_tilde = self._dml_data.d - ml_m
+            Y_tilde = y - (self.coef * ml_m) - ml_g
+            D_tilde = d - ml_m
 
         return Y_tilde, D_tilde

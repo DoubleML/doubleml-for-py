@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData,\
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
     DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
@@ -1353,9 +1353,56 @@ def test_doubleml_exception_plr_cate():
                                        ml_m=Lasso(),
                                        n_folds=2)
     dml_plr_obj_multiple.fit()
-    msg = 'Only implemented for one treatment. Number of treatments is 2.'
+    msg = 'Only implemented for single treatment. Number of treatments is 2.'
     with pytest.raises(NotImplementedError, match=msg):
         dml_plr_obj_multiple.cate(basis=2)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_plr_gate():
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=2)
+    dml_plr_obj.fit()
+
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj.gate(groups=2)
+
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=1)
+    dml_plr_obj.fit()
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_obj.gate(groups=2)
+    msg = (r'Columns of groups must be of bool type or int type \(dummy coded\). '
+           'Alternatively, groups should only contain one column.')
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data.n_obs, 3))))
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=1)
+    dml_plr_obj.fit(store_predictions=False)
+    msg = r'predictions are None. Call .fit\(store_predictions=True\) to store the predictions.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_obj.gate(groups=pd.DataFrame(np.random.choice([True, False], (dml_data.n_obs, 2))))
+
+    dml_data_multiple_treat = DoubleMLData(dml_data.data, y_col="y", d_cols=['d', 'X1'])
+    dml_plr_obj_multiple = DoubleMLPLR(dml_data_multiple_treat,
+                                       ml_l=Lasso(),
+                                       ml_m=Lasso(),
+                                       n_folds=2)
+    dml_plr_obj_multiple.fit()
+    msg = 'Only implemented for single treatment. Number of treatments is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj_multiple.gate(groups=pd.DataFrame(np.random.choice([True, False], (dml_data.n_obs, 2))))
 
 
 @pytest.mark.ci
