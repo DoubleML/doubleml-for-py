@@ -5,6 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from doubleml import DoubleMLPQ, DoubleMLData
 from doubleml.datasets import make_irm_data
 from doubleml.utils import dummy_regressor, dummy_classifier
+from ._utils import draw_smpls
 
 
 @pytest.fixture(scope="module", params=["dml1", "dml2"])
@@ -29,6 +30,7 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw):
     data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type="DataFrame")
 
     dml_data = DoubleMLData(data, "y", "d")
+    all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=None)
 
     kwargs = {
         "obj_dml_data": dml_data,
@@ -36,12 +38,14 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw):
         "n_rep": n_rep,
         "dml_procedure": dml_procedure,
         "normalize_ipw": normalize_ipw,
+        "draw_sample_splitting": False
     }
 
     ml_g = LogisticRegression()
     ml_m = LogisticRegression()
 
     DMLPQ = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
+    DMLPQ.set_sample_splitting(all_smpls)
     np.random.seed(3141)
 
     DMLPQ.fit(store_predictions=True)
@@ -50,6 +54,7 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw):
     ext_predictions["d"]["ml_m"] = DMLPQ.predictions["ml_m"][:, :, 0]
 
     DMLPLQ_ext = DoubleMLPQ(ml_g=dummy_classifier(), ml_m=dummy_classifier(), **kwargs)
+    DMLPLQ_ext.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
     DMLPLQ_ext.fit(external_predictions=ext_predictions)
