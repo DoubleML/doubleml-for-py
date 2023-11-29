@@ -441,7 +441,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         Returns
         -------
-        model : :class:`doubleML.DoubleMLBLPGATE`
+        model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
         """
         valid_score = ['ATE']
