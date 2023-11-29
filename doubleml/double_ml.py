@@ -498,7 +498,7 @@ class DoubleML(ABC):
 
         store_predictions : bool
             Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
-            Default is ``False``.
+            Default is ``True``.
 
         store_models : bool
             Indicates whether the fitted models for the nuisance functions should be stored in ``models``. This allows
