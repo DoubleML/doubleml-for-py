@@ -34,17 +34,11 @@ class LinearScoreMixin:
         return ['psi_a', 'psi_b']
 
     def _compute_score(self, psi_elements, coef):
-        if hasattr(self, "_weights"):
-            psi = self.weights * (psi_elements['psi_a'] * coef + psi_elements['psi_b'])
-        else:
-            psi = psi_elements['psi_a'] * coef + psi_elements['psi_b']
+        psi = psi_elements['psi_a'] * coef + psi_elements['psi_b']
         return psi
 
     def _compute_score_deriv(self, psi_elements, coef):
-        if hasattr(self, "_weights"):
-            return self.weights * psi_elements['psi_a']
-        else:
-            return psi_elements['psi_a']
+        return psi_elements['psi_a']
 
     def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
         psi_a = psi_elements['psi_a']
@@ -56,10 +50,7 @@ class LinearScoreMixin:
         # check whether we have cluster data and dml2
         is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
         if not is_dml2_and_cluster:
-            if hasattr(self, "_weights"):
-                coef = - np.average(psi_b/psi_a, weights = self.weights)
-            else:
-                coef = - np.mean(psi_b) / np.mean(psi_a)
+            coef = - np.mean(psi_b) / np.mean(psi_a)
         # for cluster and dml2 we need the smpls and the scaling factors
         else:
             assert smpls is not None
