@@ -133,11 +133,11 @@ class DoubleMLBLP:
         basis : :class:`pandas.DataFrame`
             The basis for constructing the confidence interval. Has to have the same form as the basis from
             the construction. If ``None`` the basis for the construction of the model is used.
-            Default is ``None``
+            Default is ``None``.
 
         joint : bool
             Indicates whether joint confidence intervals are computed.
-            Default is ``False``
+            Default is ``False``.
 
         level : float
             The confidence level.
