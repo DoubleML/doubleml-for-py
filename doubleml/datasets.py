@@ -1301,10 +1301,10 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     # define treatment effects
     if n_x == 1:
         def treatment_effect(x):
-            return np.exp(2 * x[0]) + 3 * np.sin(4 * x[0])
+            return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 0])
     elif n_x == 2:
         def treatment_effect(x):
-            return np.exp(2 * x[0]) + 3 * np.sin(4 * x[1])
+            return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 1])
 
     # Outcome support and coefficients
     support_y = np.random.choice(np.arange(p), size=support_size, replace=False)
@@ -1320,7 +1320,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     # Generate controls, covariates, treatments and outcomes
     x = np.random.uniform(0, 1, size=(n_obs, p))
     # Heterogeneous treatment effects
-    te = np.array([treatment_effect(x_i) for x_i in x]).reshape(-1)
+    te = treatment_effect(x)
     d = np.dot(x[:, support_d], coefs_d) + eta
     y = te * d + np.dot(x[:, support_y], coefs_y) + epsilon
 
