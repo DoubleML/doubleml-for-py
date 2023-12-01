@@ -27,13 +27,10 @@ def normalize_ipw(request):
 def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
     ext_predictions = {"d": {}}
     np.random.seed(3141)
-    data = make_iivm_data(theta=0.5, n_obs=2000, dim_x=10, alpha_x=1.0, return_type='DataFrame')
+    data = make_iivm_data(theta=0.5, n_obs=500, dim_x=20, alpha_x=1.0, return_type="DataFrame")
 
-    dml_data = DoubleMLData(data, 'y', 'd', z_cols='z')
-    #all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.z)
+    dml_data = DoubleMLData(data, "y", "d", z_cols="z")
     all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.d)
-    #all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=[dml_data.d, dml_data.z])
-    #all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=None)
 
     kwargs = {
         "obj_dml_data": dml_data,
@@ -41,7 +38,7 @@ def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
         "n_rep": n_rep,
         "dml_procedure": dml_procedure,
         "normalize_ipw": normalize_ipw,
-        "draw_sample_splitting": False
+        "draw_sample_splitting": False,
     }
 
     ml_g = LogisticRegression()
@@ -49,7 +46,7 @@ def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
 
     DMLLPQ = DoubleMLLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
     DMLLPQ.set_sample_splitting(all_smpls)
-    
+
     np.random.seed(3141)
     DMLLPQ.fit(store_predictions=True)
 
