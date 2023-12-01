@@ -1233,7 +1233,7 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
 def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treatment=False):
     """
     Creates a simple synthetic example for heterogeneous treatment effects.
-    The data generating process is based on the Monte Carlo simulation from Oprescu et al. (2019) and a notebook from EconML.
+    The data generating process is based on the Monte Carlo simulation from Oprescu et al. (2019).
 
     The data is generated as
 
