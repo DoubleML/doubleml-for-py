@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
-    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
+    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, \
+    DoubleMLDIDCS, DoubleMLBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 from doubleml.double_ml_data import DoubleMLBaseData
@@ -1254,6 +1255,20 @@ def test_doubleml_nan_prediction():
     msg = r'Predictions from learner LassoWithInfPred\(\) for ml_m are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, LassoWithInfPred()).fit()
+
+
+@pytest.mark.ci
+def test_doubleml_warning_blp():
+    n = 5
+    np.random.seed(42)
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
+    random_signal = np.random.normal(0, 1, size=(n, ))
+    blp = DoubleMLBLP(random_signal, random_basis)
+    blp.fit()
+
+    msg = 'Returning pointwise confidence intervals for basis coefficients.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = blp.confint(joint=True)
 
 
 @pytest.mark.ci

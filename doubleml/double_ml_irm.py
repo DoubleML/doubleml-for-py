@@ -433,7 +433,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     def gate(self, groups):
         """
-        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+        Calculate group average treatment effects (GATE) for groups.
 
         Parameters
         ----------
@@ -462,9 +462,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
         # add intercept for ATE to groups
-        groups.insert(0, "ATE", [True] * groups.shape[0])
+        basis = groups.copy(deep=True)
+        basis.insert(0, "ATE", [True] * groups.shape[0])
+        # convert to float
+        basis = basis.astype(float)
 
-        model = self.cate(groups, is_gate=True)
+        model = self.cate(basis, is_gate=True)
         return model
 
     def policy_tree(self, features, depth=2, **tree_params):

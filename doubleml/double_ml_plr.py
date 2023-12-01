@@ -368,7 +368,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
     def gate(self, groups):
         """
-        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+        Calculate group average treatment effects (GATE) for groups.
 
         Parameters
         ----------
@@ -396,7 +396,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        model = self.cate(groups, is_gate=True)
+        # add intercept for ATE to groups
+        basis = groups.copy(deep=True)
+        basis.insert(0, "ATE", [True] * groups.shape[0])
+        # convert to float
+        basis = basis.astype(float)
+
+        model = self.cate(basis, is_gate=True)
         return model
 
     def _partial_out(self):

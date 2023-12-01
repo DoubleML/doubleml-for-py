@@ -182,12 +182,10 @@ class DoubleMLBLP:
             if self._is_gate:
                 # reduce to unique groups
                 basis = pd.DataFrame(np.diag(v=np.full((self._basis.shape[1]), True)))
-                # add intercept for ATE to groups
-                basis.insert(0, "ATE", [True] * basis.shape[0])
                 gate_names = list(self._basis.columns.values)
             else:
                 if joint:
-                    warnings.warn('Returning pointwise confidence intervals for basis coefficients.')
+                    warnings.warn('Returning pointwise confidence intervals for basis coefficients.', UserWarning)
                 # return the confidence intervals for the basis coefficients
                 ci = np.vstack((
                     self.blp_model.conf_int(alpha=alpha/2)[0],
