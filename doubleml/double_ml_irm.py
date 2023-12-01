@@ -461,6 +461,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
+        # add intercept for ATE to groups
+        groups.insert(0, "ATE", [True] * groups.shape[0])
+
         model = self.cate(groups, is_gate=True)
         return model
 
