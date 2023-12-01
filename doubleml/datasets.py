@@ -1258,12 +1258,12 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     If the heterogeneity is univariate the conditional treatment effect takes the following form
 
     .. math::
-            g(x) = \\exp(2x_1) + 3\\sin(4x_1),
+            g(x) = \\exp(2x_0) + 3\\sin(4x_0),
 
     whereas for the two-dimensional case the conditional treatment effect is defined as
 
     .. math::
-        g(x) = \\exp(2x_1) + 3\\sin(4x_2).
+        g(x) = \\exp(2x_0) + 3\\sin(4x_1).
 
     Parameters
     ----------
@@ -1290,7 +1290,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     Returns
     -------
     res_dict : dictionary
-       Dictionary with entries ``data``, ``treatment_effect``.
+       Dictionary with entries ``data``, ``effects``, ``treatment_effect``.
 
     """
     # simple input checks
@@ -1299,13 +1299,12 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     assert isinstance(binary_treatment, bool), 'binary_treatment must be a boolean.'
 
     # define treatment effects
-    def treatment_effect_1d(x):
-        te = np.exp(2 * x[0]) + 3 * np.sin(4 * x[0])
-        return te
-
-    def treatment_effect_2d(x):
-        te = np.exp(2 * x[0]) + 3 * np.sin(4 * x[1])
-        return te
+    if n_x == 1:
+        def treatment_effect(x):
+            return np.exp(2 * x[0]) + 3 * np.sin(4 * x[0])
+    elif n_x == 2:
+        def treatment_effect(x):
+            return np.exp(2 * x[0]) + 3 * np.sin(4 * x[1])
 
     # Outcome support and coefficients
     support_y = np.random.choice(np.arange(p), size=support_size, replace=False)
@@ -1321,10 +1320,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     # Generate controls, covariates, treatments and outcomes
     x = np.random.uniform(0, 1, size=(n_obs, p))
     # Heterogeneous treatment effects
-    if n_x == 1:
-        te = np.array([treatment_effect_1d(x_i) for x_i in x]).reshape(-1)
-    elif n_x == 2:
-        te = np.array([treatment_effect_2d(x_i) for x_i in x]).reshape(-1)
+    te = np.array([treatment_effect(x_i) for x_i in x]).reshape(-1)
     d = np.dot(x[:, support_d], coefs_d) + eta
     y = te * d + np.dot(x[:, support_y], coefs_y) + epsilon
 
@@ -1338,5 +1334,8 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     )
 
     data = pd.concat([y_df, d_df, x_df], axis=1)
-    res_dict = {'data': data, 'treatment_effect': te}
+    res_dict = {
+        'data': data,
+        'effects': te,
+        'treatment_effect': treatment_effect}
     return res_dict

@@ -247,7 +247,8 @@ def test_make_heterogeneous_data_return_types(binary_treatment, n_x):
     res = make_heterogeneous_data(n_obs=100, n_x=n_x, binary_treatment=binary_treatment)
     assert isinstance(res, dict)
     assert isinstance(res['data'], pd.DataFrame)
-    assert isinstance(res['treatment_effect'], np.ndarray)
+    assert isinstance(res['effects'], np.ndarray)
+    assert callable(res['treatment_effect'])
 
     # test input checks
     msg = 'n_x must be either 1 or 2.'
