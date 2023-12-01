@@ -1250,7 +1250,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     .. math::
         T_i = 1\\{\\langle X_i,\\beta_0\\rangle \\ge \\eta_i\\}.
 
-    The coefficient vectors :math:`\\gamma_0` and :math:`\beta_0` both have small random (identical) support
+    The coefficient vectors :math:`\\gamma_0` and :math:`\\beta_0` both have small random (identical) support
     which values are drawn independently from :math:`\\mathcal{U}[0,1]` and :math:`\\mathcal{U}[0,0.3]`.
     Further, :math:`g(x)` defines the conditional treatment effect, which is defined differently depending
     on the dimension of :math:`x`.
