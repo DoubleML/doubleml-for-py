@@ -1302,7 +1302,10 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     if n_x == 1:
         def treatment_effect(x):
             return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 0])
-    elif n_x == 2:
+    else:
+        assert n_x == 2
+
+        # redefine treatment effect
         def treatment_effect(x):
             return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 1])
 
