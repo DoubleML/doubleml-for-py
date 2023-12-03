@@ -1314,7 +1314,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     coefs_y = np.random.uniform(0, 1, size=support_size)
     # treatment support and coefficients
     support_d = support_y
-    coefs_d = np.random.uniform(0, 1, size=support_size)
+    coefs_d = np.random.uniform(0, 0.3, size=support_size)
 
     # noise
     epsilon = np.random.uniform(-1, 1, size=n_obs)
@@ -1324,7 +1324,10 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     x = np.random.uniform(0, 1, size=(n_obs, p))
     # Heterogeneous treatment effects
     te = treatment_effect(x)
-    d = np.dot(x[:, support_d], coefs_d) + eta
+    if binary_treatment:
+        d = 1.0 * (np.dot(x[:, support_d], coefs_d) >= eta)
+    else:
+        d = np.dot(x[:, support_d], coefs_d) + eta
     y = te * d + np.dot(x[:, support_y], coefs_y) + epsilon
 
     # Now we build the dataset
