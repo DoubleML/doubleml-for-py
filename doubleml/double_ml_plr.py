@@ -373,7 +373,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         Parameters
         ----------
         groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor.
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
             Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
 
@@ -396,13 +396,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        # add intercept for ATE to groups
-        basis = groups.copy(deep=True)
-        basis.insert(0, "ATE", [True] * groups.shape[0])
-        # convert to float
-        basis = basis.astype(float)
-
-        model = self.cate(basis, is_gate=True)
+        model = self.cate(groups, is_gate=True)
         return model
 
     def _partial_out(self):

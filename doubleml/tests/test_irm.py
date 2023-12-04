@@ -199,7 +199,7 @@ def test_dml_irm_cate_gate():
         gate_1 = dml_irm_obj.gate(groups_1)
     assert isinstance(gate_1, dml.double_ml_blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
-    assert all(gate_1.confint().index == ['ATE'] + groups_1.columns.to_list())
+    assert all(gate_1.confint().index == groups_1.columns.to_list())
 
     np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
@@ -208,4 +208,4 @@ def test_dml_irm_cate_gate():
         gate_2 = dml_irm_obj.gate(groups_2)
     assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
-    assert all(gate_2.confint().index == ["ATE", "Group_1", "Group_2"])
+    assert all(gate_2.confint().index == ["Group_1", "Group_2"])
