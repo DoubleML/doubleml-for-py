@@ -49,7 +49,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     weights : array or None
         An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
-        is applied. Can only be used with ``score = 'ATE'``.
+        is applied. Can only be used with ``score = 'ATE'``. Has to be shape (n,) or (n,2).
         Default is ``None``.
 
     dml_procedure : str
@@ -167,9 +167,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         self._sensitivity_implemented = True
         
-        _check_weights(weights, score, obj_dml_data.n_obs, obj_dml_data.n_treat)
-        if weights is not None:
-            self._weights = weights
+        _check_weights(weights, score, obj_dml_data.n_obs)
+        self._weights, self._weights_bar = self._initialize_weights(weights)
 
     @property
     def normalize_ipw(self):
@@ -197,12 +196,20 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         """
         Specifies the weights for a weighted ATE.
         """
-        return self._weights if hasattr(self,"_weights") else None
+        return np.c_[self._weights, self._weights_bar]
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
+
+    def _initialize_weights(self, weights):
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if weights.ndim == 1:
+            return weights, weights
+        else:
+            return weights[:, 0], weights[:, 1]
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
@@ -316,9 +323,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         if isinstance(self.score, str):
             if self.score == 'ATE':
-                psi_b = g_hat1 - g_hat0 \
-                    + np.divide(np.multiply(d, u_hat1), m_hat) \
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
+                psi_b = self._weights * (g_hat1 - g_hat0) \
+                    + self._weights_bar * (np.divide(np.multiply(d, u_hat1), m_hat) \
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat))
                 psi_a = np.full_like(m_hat, -1.0)
             else:
                 assert self.score == 'ATTE'
@@ -345,8 +352,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         # use weights make this extendable
         if self.score == 'ATE':
-            weights = np.ones_like(d)
-            weights_bar = np.ones_like(d)
+            weights = self._weights
+            weights_bar = self._weights_bar
         else:
             assert self.score == 'ATTE'
             weights = np.divide(d, np.mean(d))
