@@ -1244,7 +1244,7 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
         D_i & = \\langle X_i,\\beta_0\\rangle + \\eta_i,
 
     where :math:`X_i\\sim\\mathcal{U}[0,1]^{p}` and :math:`\\epsilon_i,\\eta_i
-    \\sim\\mathcal{U}[-1,1]``.
+    \\sim\\mathcal{U}[-1,1]`.
     If the treatment is set to be binary, the treatment is generated as
 
     .. math::
