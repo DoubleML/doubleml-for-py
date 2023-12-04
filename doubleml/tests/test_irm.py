@@ -209,3 +209,33 @@ def test_dml_irm_cate_gate():
     assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
+
+@pytest.mark.ci
+def test_dml_irm_weights():
+    n = 5000
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    # First stage estimation
+    ml_g = LinearRegression()
+    ml_m = LogisticRegression(penalty='none', random_state=42)
+
+    dml_irm_obj_ate = dml.DoubleMLIRM(obj_dml_data,
+                                      ml_m=ml_m,
+                                      ml_g=ml_g,
+                                      trimming_threshold=0.05,
+                                      n_folds=5)
+    
+    dml_irm_obj_atte = dml.DoubleMLIRM(obj_dml_data,
+                                       ml_m=ml_m,
+                                       ml_g=ml_g,
+                                       trimming_threshold=0.05,
+                                       n_folds=5,
+                                       score = 'ATTE') 
+    
+    dml_irm_obj_weights = dml.DoubleMLIRM(obj_dml_data,
+                                          ml_m=ml_m,
+                                          ml_g=ml_g,
+                                          trimming_threshold=0.05,
+                                          n_folds=5) 

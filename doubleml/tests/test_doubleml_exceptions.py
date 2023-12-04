@@ -426,6 +426,32 @@ def test_doubleml_exception_trimming_rule():
 
 
 @pytest.mark.ci
+def test_doubleml_exception_weights():
+    msg = "weights can only be set for score type 'ATE'. ATTE was passed."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        score='ATTE', weights = np.ones_like(dml_data_irm.d))
+    msg = "weights must be a numpy array. weights of type <class 'pandas.core.frame.DataFrame'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights = pd.DataFrame(np.ones_like(dml_data_irm.d)))
+    msg = "All weights values must be greater or equal 0."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights = -1 * np.ones_like(dml_data_irm.d))
+    msg = f"weights must have shape ({n},) or ({n},2). weights of shape ({n/2},) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights = np.ones(n/2))
+    msg = f"weights must have shape ({n},) or ({n},2). weights of shape ({n},3) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights = np.ones((n,3)))
+    msg = "At least one weight must be non-zero."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights = np.zeros((dml_data_irm.d.shape[0],2)))    
+
+
+@pytest.mark.ci
 def test_doubleml_exception_quantiles():
     msg = "Quantile has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
