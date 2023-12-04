@@ -1239,31 +1239,31 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
 
     .. math::
 
-        Y_i & = g(X_i)T_i + \\langle X_i,\\gamma_0\\rangle + \\epsilon_i
+        Y_i & = \\theta_0(X_i)D_i + \\langle X_i,\\gamma_0\\rangle + \\epsilon_i
 
-        T_i & = \\langle X_i,\\beta_0\\rangle + \\eta_i,
+        D_i & = \\langle X_i,\\beta_0\\rangle + \\eta_i,
 
     where :math:`X_i\\sim\\mathcal{U}[0,1]^{p}` and :math:`\\epsilon_i,\\eta_i
     \\sim\\mathcal{U}[-1,1]``.
     If the treatment is set to be binary, the treatment is generated as
 
     .. math::
-        T_i = 1\\{\\langle X_i,\\beta_0\\rangle \\ge \\eta_i\\}.
+        D_i = 1\\{\\langle X_i,\\beta_0\\rangle \\ge \\eta_i\\}.
 
     The coefficient vectors :math:`\\gamma_0` and :math:`\\beta_0` both have small random (identical) support
     which values are drawn independently from :math:`\\mathcal{U}[0,1]` and :math:`\\mathcal{U}[0,0.3]`.
-    Further, :math:`g(x)` defines the conditional treatment effect, which is defined differently depending
+    Further, :math:`\\theta_0(x)` defines the conditional treatment effect, which is defined differently depending
     on the dimension of :math:`x`.
 
     If the heterogeneity is univariate the conditional treatment effect takes the following form
 
     .. math::
-            g(x) = \\exp(2x_0) + 3\\sin(4x_0),
+            \\theta_0(x) = \\exp(2x_0) + 3\\sin(4x_0),
 
     whereas for the two-dimensional case the conditional treatment effect is defined as
 
     .. math::
-        g(x) = \\exp(2x_0) + 3\\sin(4x_1).
+        \\theta_0(x) = \\exp(2x_0) + 3\\sin(4x_1).
 
     Parameters
     ----------
