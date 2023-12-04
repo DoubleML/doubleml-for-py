@@ -227,19 +227,22 @@ def _check_benchmarks(benchmarks):
                                 f'{str(benchmarks["name"][i])} of type {str(type(benchmarks["name"][i]))} was passed.')
     return
 
-def _check_weights(weights, score, n_obs, n_treat):
+def _check_weights(weights, score, n_obs):
     if weights is not None:
         if score != "ATE":
             raise NotImplementedError("weights can only be set for score type 'ATE'. "
                                       f"{score} was passed.")
         if not isinstance(weights, np.ndarray):
-            raise ValueError("weights must be a numpy array. "
+            raise TypeError("weights must be a numpy array. "
                              f"weights of type {str(type(weights))} was passed.")
-        if not np.all((0 <= weights) & (weights <= 1)):
-            raise ValueError("All weights values must be between 0 and 1")
-        if len(weights.shape) != 1 or weights.shape[0] != n_obs:
-            raise ValueError(f"weights must have shape ({n_obs},). "
+        if not np.all(0 <= weights):
+            raise ValueError("All weights values must be greater or equal 0.")
+        if (weights.ndim != 1 and weights.ndim != 2) or weights.shape[0] != n_obs:
+            raise ValueError(f"weights must have shape ({n_obs},) or ({n_obs},2). "
+                             f"weights of shape {weights.shape} was passed.")
+        if weights.ndim == 2 and weights.shape[1] != 2:
+            raise ValueError(f"weights must have shape ({n_obs},) or ({n_obs},2). "
                              f"weights of shape {weights.shape} was passed.")
         if weights.sum() == 0:
-            raise ValueError(f"At least one weight must be non-zero.")
+            raise ValueError("At least one weight must be non-zero.")
     return
