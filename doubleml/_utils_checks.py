@@ -257,9 +257,9 @@ def _check_weights(weights, score, n_obs, n_rep):
                 raise ValueError(f"weights must have shape {expected_shapes[0]}. "
                                  f"weights of shape {weights['weights'].shape} was passed.")
             if weights["weights_bar"].shape != expected_shapes[1]:
-                raise ValueError(f"weights must have shape {expected_shapes[1]}. "
-                                 f"weights of shape {weights['weights_bar'].shape} was passed.")
-            if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 1)):
+                raise ValueError(f"weights_bar must have shape {expected_shapes[1]}. "
+                                 f"weights_bar of shape {weights['weights_bar'].shape} was passed.")
+            if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 0)):
                 raise ValueError("All weights values must be greater or equal 0.")
             if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
                 raise ValueError("At least one weight must be non-zero.")
