@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import warnings
 
 from sklearn.utils.multiclass import type_of_target
@@ -227,22 +228,39 @@ def _check_benchmarks(benchmarks):
                                 f'{str(benchmarks["name"][i])} of type {str(type(benchmarks["name"][i]))} was passed.')
     return
 
-def _check_weights(weights, score, n_obs):
+
+def _check_weights(weights, score, n_obs, n_rep):
     if weights is not None:
         if score != "ATE":
             raise NotImplementedError("weights can only be set for score type 'ATE'. "
                                       f"{score} was passed.")
-        if not isinstance(weights, np.ndarray):
-            raise TypeError("weights must be a numpy array. "
-                             f"weights of type {str(type(weights))} was passed.")
-        if not np.all(0 <= weights):
-            raise ValueError("All weights values must be greater or equal 0.")
-        if (weights.ndim != 1 and weights.ndim != 2) or weights.shape[0] != n_obs:
-            raise ValueError(f"weights must have shape ({n_obs},) or ({n_obs},2). "
-                             f"weights of shape {weights.shape} was passed.")
-        if weights.ndim == 2 and weights.shape[1] != 2:
-            raise ValueError(f"weights must have shape ({n_obs},) or ({n_obs},2). "
-                             f"weights of shape {weights.shape} was passed.")
-        if weights.sum() == 0:
-            raise ValueError("At least one weight must be non-zero.")
+        if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
+            raise TypeError("weights must be a numpy array or dictionary. "
+                            f"weights of type {str(type(weights))} was passed.")
+        if isinstance(weights, np.ndarray):
+            if (weights.ndim != 1) or weights.shape[0] != n_obs:
+                raise ValueError(f"weights must have shape ({n_obs},). "
+                                 f"weights of shape {weights.shape} was passed.")
+            if not np.all(0 <= weights):
+                raise ValueError("All weights values must be greater or equal 0.")
+            if weights.sum() == 0:
+                raise ValueError("At least one weight must be non-zero.")
+
+        if isinstance(weights, dict):
+            expected_keys = ["weights", "weights_bar"]
+            if not set(weights.keys()) == set(expected_keys):
+                raise ValueError(f"weights must have keys {expected_keys}. "
+                                 f"keys {str(weights.keys())} were passed.")
+
+            expected_shapes = [(n_obs,), (n_obs, n_rep)]
+            if weights["weights"].shape != expected_shapes[0]:
+                raise ValueError(f"weights must have shape {expected_shapes[0]}. "
+                                 f"weights of shape {weights['weights'].shape} was passed.")
+            if weights["weights_bar"].shape != expected_shapes[1]:
+                raise ValueError(f"weights must have shape {expected_shapes[1]}. "
+                                 f"weights of shape {weights['weights_bar'].shape} was passed.")
+            if (not np.all(weights["weights"] >= 0)) or (not np.all(weights["weights_bar"] >= 1)):
+                raise ValueError("All weights values must be greater or equal 0.")
+            if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
+                raise ValueError("At least one weight must be non-zero.")
     return

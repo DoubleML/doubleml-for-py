@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData,\
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
     DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
@@ -430,25 +430,48 @@ def test_doubleml_exception_weights():
     msg = "weights can only be set for score type 'ATE'. ATTE was passed."
     with pytest.raises(NotImplementedError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                        score='ATTE', weights = np.ones_like(dml_data_irm.d))
-    msg = "weights must be a numpy array. weights of type <class 'pandas.core.frame.DataFrame'> was passed."
+                        score='ATTE', weights=np.ones_like(dml_data_irm.d))
+    msg = "weights must be a numpy array or dictionary. weights of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=1)
+    msg = r"weights must have keys ['weights', 'weights_bar']. keys dict_keys\(['d']\) were passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights={'d': [1, 2, 3]})
+
+    # shape checks
+    msg = rf"weights must have shape \({n},\). weights of shape \(1,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones(1,))
+    msg = rf"weights must have shape \({n},\). weights of shape \({n}, 2\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones((n, 2)))
+
+    msg = rf"weights must have shape \({n},\). weights of shape \(1,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        w = {'d': np.ones(1,)}
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones(1,))
+    msg = rf"weights must have shape \({n},\). weights of shape \({n}, 2\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones((n, 2)))  
+
+    # value checks
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                        weights = pd.DataFrame(np.ones_like(dml_data_irm.d)))
+                        weights=1)
     msg = "All weights values must be greater or equal 0."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                        weights = -1 * np.ones_like(dml_data_irm.d))
+                        weights=-1*np.ones_like(dml_data_irm.d))
     msg = f"weights must have shape ({n},) or ({n},2). weights of shape ({n/2},) was passed."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights = np.ones(n/2))
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones(n/2))
     msg = f"weights must have shape ({n},) or ({n},2). weights of shape ({n},3) was passed."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights = np.ones((n,3)))
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones((n, 3)))
     msg = "At least one weight must be non-zero."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                        weights = np.zeros((dml_data_irm.d.shape[0],2)))    
+                        weights=np.zeros((dml_data_irm.d.shape[0], )))
 
 
 @pytest.mark.ci

@@ -48,9 +48,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
         Default is ``'ATE'``.
 
-    weights : array or None
+    weights : array, dict or None
         An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
-        is applied. Can only be used with ``score = 'ATE'``. Has to be shape (n,) or (n,2).
+        is applied (corresponds to weights equal to 1). Can only be used with ``score = 'ATE'``.
+        An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
+        A dictionary can be used to specify weights which depend on the treatment variable.
+        In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
+        have to be arrays of shape ``(n,)`` and ``(n, n_rep)``.
         Default is ``None``.
 
     dml_procedure : str
@@ -168,7 +172,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         self._sensitivity_implemented = True
 
-        _check_weights(weights, score, obj_dml_data.n_obs)
+        _check_weights(weights, score, obj_dml_data.n_obs, self.n_rep)
         self._weights, self._weights_bar = self._initialize_weights(weights)
 
     @property
