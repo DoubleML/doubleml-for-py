@@ -12,7 +12,8 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, _check_weights
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
+    _check_weights
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -166,7 +167,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
-        
+
         _check_weights(weights, score, obj_dml_data.n_obs)
         self._weights, self._weights_bar = self._initialize_weights(weights)
 
@@ -190,7 +191,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Specifies the used trimming threshold.
         """
         return self._trimming_threshold
-    
+
     @property
     def weights(self):
         """
@@ -304,9 +305,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         # fraction of treated for ATTE
         p_hat = None
         if self.score == 'ATTE':
-            p_hat = np.full_like(d, np.nan, dtype='float64')
-            for _, test_index in smpls:
-                p_hat[test_index] = np.mean(d[test_index])
+            p_hat = np.mean(d)
 
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
@@ -324,8 +323,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if isinstance(self.score, str):
             if self.score == 'ATE':
                 psi_b = self._weights * (g_hat1 - g_hat0) \
-                    + self._weights_bar * (np.divide(np.multiply(d, u_hat1), m_hat) \
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat))
+                    + self._weights_bar * (
+                        np.divide(np.multiply(d, u_hat1), m_hat)
+                        - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat))
                 psi_a = np.full_like(m_hat, -1.0)
             else:
                 assert self.score == 'ATTE'
