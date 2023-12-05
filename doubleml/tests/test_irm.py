@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data
+from doubleml._utils_resampling import DoubleMLResampling
 
 from ._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
@@ -210,32 +211,110 @@ def test_dml_irm_cate_gate():
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
 
-@pytest.mark.ci
-def test_dml_irm_weights():
-    n = 5000
+
+@pytest.fixture(scope='module')
+def dml_irm_weights_fixture():
+    n = 10000
     # collect data
     np.random.seed(42)
     obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    smpls = DoubleMLResampling(
+        n_folds=5,
+        n_rep=1,
+        n_obs=n,
+        apply_cross_fitting=True,
+        stratify=obj_dml_data.d).split_samples()
 
     # First stage estimation
     ml_g = LinearRegression()
     ml_m = LogisticRegression(penalty='none', random_state=42)
 
-    dml_irm_obj_ate = dml.DoubleMLIRM(obj_dml_data,
-                                      ml_m=ml_m,
-                                      ml_g=ml_g,
-                                      trimming_threshold=0.05,
-                                      n_folds=5)
-    
-    dml_irm_obj_atte = dml.DoubleMLIRM(obj_dml_data,
-                                       ml_m=ml_m,
-                                       ml_g=ml_g,
-                                       trimming_threshold=0.05,
-                                       n_folds=5,
-                                       score = 'ATTE') 
-    
-    dml_irm_obj_weights = dml.DoubleMLIRM(obj_dml_data,
-                                          ml_m=ml_m,
-                                          ml_g=ml_g,
-                                          trimming_threshold=0.05,
-                                          n_folds=5) 
+    # ATE with and without weights
+    dml_irm_obj_ate_no_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATTE',
+        trimming_threshold=0.05,
+        n_folds=5,
+        draw_sample_splitting=False)
+    dml_irm_obj_ate_no_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_ate_no_weights.fit()
+
+    dml_irm_obj_ate_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATE',
+        trimming_threshold=0.05,
+        n_folds=5,
+        draw_sample_splitting=False,
+        weights=np.ones_like(obj_dml_data.y))
+    dml_irm_obj_ate_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_ate_weights.fit()
+
+    # ATTE with and without weights
+    dml_irm_obj_atte_no_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATTE',
+        trimming_threshold=0.05,
+        n_folds=5,
+        draw_sample_splitting=False)
+    dml_irm_obj_atte_no_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_atte_no_weights.fit()
+
+    m_hat = dml_irm_obj_atte_no_weights.predictions["ml_m"][:, :, 0]
+    p_hat = obj_dml_data.d.mean()
+    weights = obj_dml_data.d.reshape(-1, 1) / p_hat
+    weights_bar = m_hat / p_hat
+    combined_weights = np.concatenate((weights, weights_bar), axis=1)
+    dml_irm_obj_atte_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        trimming_threshold=0.05,
+        n_folds=5,
+        draw_sample_splitting=False,
+        weights=combined_weights)
+    dml_irm_obj_atte_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_atte_weights.fit()
+
+    res_dict = {
+        'coef_ate': dml_irm_obj_ate_no_weights.coef,
+        'coef_ate_weights': dml_irm_obj_ate_weights.coef,
+        'coef_atte': dml_irm_obj_atte_no_weights.coef,
+        'coef_atte_weights': dml_irm_obj_atte_weights.coef,
+        'se_ate': dml_irm_obj_ate_no_weights.se,
+        'se_ate_weights': dml_irm_obj_ate_weights.se,
+        'se_atte': dml_irm_obj_atte_no_weights.se,
+        'se_atte_weights': dml_irm_obj_atte_weights.se,
+    }
+    return res_dict
+
+
+@pytest.mark.ci
+def test_dml_irm_ate_weights(dml_irm_weights_fixture):
+    assert math.isclose(dml_irm_weights_fixture['coef_ate'],
+                        dml_irm_weights_fixture['coef_ate_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_weights_fixture['se_ate'],
+                        dml_irm_weights_fixture['se_ate_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_atte_weights(dml_irm_weights_fixture):
+    assert math.isclose(dml_irm_weights_fixture['coef_atte'],
+                        dml_irm_weights_fixture['coef_atte_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    # Remark that the scores are slightly different (Y instead of g(1,X) and coefficient of theta)
+    assert math.isclose(dml_irm_weights_fixture['se_atte'],
+                        dml_irm_weights_fixture['se_atte_weights'],
+                        rel_tol=1e-5, abs_tol=1e-3)
