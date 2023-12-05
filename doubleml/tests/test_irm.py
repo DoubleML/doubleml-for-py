@@ -212,8 +212,14 @@ def test_dml_irm_cate_gate():
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
 
 
+@pytest.fixture(scope='module',
+                params=[1, 3])
+def n_rep(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_irm_weights_fixture():
+def dml_irm_weights_fixture(n_rep):
     n = 10000
     # collect data
     np.random.seed(42)
@@ -221,7 +227,7 @@ def dml_irm_weights_fixture():
 
     smpls = DoubleMLResampling(
         n_folds=5,
-        n_rep=1,
+        n_rep=n_rep,
         n_obs=n,
         apply_cross_fitting=True,
         stratify=obj_dml_data.d).split_samples()
@@ -235,9 +241,10 @@ def dml_irm_weights_fixture():
         obj_dml_data,
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
-        score='ATTE',
+        score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        dml_procedure='dml2',
         draw_sample_splitting=False)
     dml_irm_obj_ate_no_weights.set_sample_splitting(smpls)
     np.random.seed(42)
@@ -250,6 +257,7 @@ def dml_irm_weights_fixture():
         score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        dml_procedure='dml2',
         draw_sample_splitting=False,
         weights=np.ones_like(obj_dml_data.y))
     dml_irm_obj_ate_weights.set_sample_splitting(smpls)
@@ -264,6 +272,7 @@ def dml_irm_weights_fixture():
         score='ATTE',
         trimming_threshold=0.05,
         n_folds=5,
+        dml_procedure='dml2',
         draw_sample_splitting=False)
     dml_irm_obj_atte_no_weights.set_sample_splitting(smpls)
     np.random.seed(42)
@@ -278,8 +287,10 @@ def dml_irm_weights_fixture():
         obj_dml_data,
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
+        score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        dml_procedure='dml2',
         draw_sample_splitting=False,
         weights=combined_weights)
     dml_irm_obj_atte_weights.set_sample_splitting(smpls)
