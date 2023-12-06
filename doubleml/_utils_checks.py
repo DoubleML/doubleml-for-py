@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import warnings
 
 from sklearn.utils.multiclass import type_of_target
