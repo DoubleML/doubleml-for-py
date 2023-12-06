@@ -27,7 +27,7 @@ def normalize_ipw(request):
 def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
     ext_predictions = {"d": {}}
     np.random.seed(3141)
-    data = make_iivm_data(theta=0.5, n_obs=500, dim_x=20, alpha_x=1.0, return_type="DataFrame")
+    data = make_iivm_data(theta=0.5, n_obs=2000, dim_x=10, alpha_x=1.0, return_type="DataFrame")
 
     dml_data = DoubleMLData(data, "y", "d", z_cols="z")
     all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.d)
