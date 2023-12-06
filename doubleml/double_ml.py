@@ -124,7 +124,7 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_deriv, self._psi_elements,\
+        self._psi, self._psi_deriv, self._psi_elements, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications

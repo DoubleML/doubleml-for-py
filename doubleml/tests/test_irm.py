@@ -244,6 +244,7 @@ def dml_irm_weights_fixture(n_rep):
         score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        n_rep=n_rep,
         dml_procedure='dml2',
         draw_sample_splitting=False)
     dml_irm_obj_ate_no_weights.set_sample_splitting(smpls)
@@ -257,6 +258,7 @@ def dml_irm_weights_fixture(n_rep):
         score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        n_rep=n_rep,
         dml_procedure='dml2',
         draw_sample_splitting=False,
         weights=np.ones_like(obj_dml_data.y))
@@ -272,6 +274,7 @@ def dml_irm_weights_fixture(n_rep):
         score='ATTE',
         trimming_threshold=0.05,
         n_folds=5,
+        n_rep=n_rep,
         dml_procedure='dml2',
         draw_sample_splitting=False)
     dml_irm_obj_atte_no_weights.set_sample_splitting(smpls)
@@ -280,9 +283,9 @@ def dml_irm_weights_fixture(n_rep):
 
     m_hat = dml_irm_obj_atte_no_weights.predictions["ml_m"][:, :, 0]
     p_hat = obj_dml_data.d.mean()
-    weights = obj_dml_data.d.reshape(-1, 1) / p_hat
+    weights = obj_dml_data.d / p_hat
     weights_bar = m_hat / p_hat
-    combined_weights = np.concatenate((weights, weights_bar), axis=1)
+    weight_dict = {'weights': weights, 'weights_bar': weights_bar}
     dml_irm_obj_atte_weights = dml.DoubleMLIRM(
         obj_dml_data,
         ml_g=clone(ml_g),
@@ -290,9 +293,10 @@ def dml_irm_weights_fixture(n_rep):
         score='ATE',
         trimming_threshold=0.05,
         n_folds=5,
+        n_rep=n_rep,
         dml_procedure='dml2',
         draw_sample_splitting=False,
-        weights=combined_weights)
+        weights=weight_dict)
     dml_irm_obj_atte_weights.set_sample_splitting(smpls)
     np.random.seed(42)
     dml_irm_obj_atte_weights.fit()
