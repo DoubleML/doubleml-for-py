@@ -339,7 +339,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                 res = np.mean(self._compute_ipw_score(theta, d, y, m_hat['preds']))
                 return res
             _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
-            pq_est = _np.mean(solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess))
+            pq_est = np.mean(_solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess))
         psi_a, psi_b = self._score_elements(y, d, g_hat['preds'], m_hat_adj, pq_est)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
