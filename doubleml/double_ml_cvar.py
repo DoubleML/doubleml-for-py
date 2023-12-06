@@ -330,16 +330,17 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
 
-        # TODO: Model needs pq_est as input for solving score, but this is not available when using ext. predictions? @Sven
-        if not (g and m):
-            # use the average of the ipw estimates to approximate the potential quantile for U (p.4 Kallus et. al)
-            pq_est = np.mean(ipw_vec)
-        else:
-            def ipw_score(theta):
-                res = np.mean(self._compute_ipw_score(theta, d, y, m_hat['preds']))
-                return res
-            _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
-            pq_est = np.mean(_solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess))
+        if (g and m):
+            ipw_vec = np.full(shape=self.n_folds, fill_value=np.nan)
+            for i_fold, (_, test_index) in enumerate(smpls):
+                def ipw_score(theta):
+                    res = np.mean(self._compute_ipw_score(theta, d[test_index], y[test_index], m_hat['preds'][test_index]))
+                    return res
+                _, bracket_guess = _get_bracket_guess(ipw_score, self._coef_start_val, self._coef_bounds)
+                ipw_est = _solve_ipw_score(ipw_score=ipw_score, bracket_guess=bracket_guess)
+                ipw_vec[i_fold] = ipw_est
+        pq_est = np.mean(ipw_vec)
+            
         psi_a, psi_b = self._score_elements(y, d, g_hat['preds'], m_hat_adj, pq_est)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
