@@ -219,11 +219,18 @@ def n_rep(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_weights_fixture(n_rep):
+def dml_irm_weights_fixture(n_rep, dml_procedure):
     n = 10000
     # collect data
     np.random.seed(42)
     obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+    kwargs = {
+        "trimming_threshold": 0.05,
+        "n_folds": 5,
+        "n_rep": n_rep,
+        "dml_procedure": dml_procedure,
+        "draw_sample_splitting": False
+    }
 
     smpls = DoubleMLResampling(
         n_folds=5,
@@ -242,11 +249,7 @@ def dml_irm_weights_fixture(n_rep):
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
         score='ATE',
-        trimming_threshold=0.05,
-        n_folds=5,
-        n_rep=n_rep,
-        dml_procedure='dml2',
-        draw_sample_splitting=False)
+        **kwargs)
     dml_irm_obj_ate_no_weights.set_sample_splitting(smpls)
     np.random.seed(42)
     dml_irm_obj_ate_no_weights.fit()
@@ -256,12 +259,7 @@ def dml_irm_weights_fixture(n_rep):
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
         score='ATE',
-        trimming_threshold=0.05,
-        n_folds=5,
-        n_rep=n_rep,
-        dml_procedure='dml2',
-        draw_sample_splitting=False,
-        weights=np.ones_like(obj_dml_data.y))
+        weights=np.ones_like(obj_dml_data.y), **kwargs)
     dml_irm_obj_ate_weights.set_sample_splitting(smpls)
     np.random.seed(42)
     dml_irm_obj_ate_weights.fit()
@@ -272,11 +270,7 @@ def dml_irm_weights_fixture(n_rep):
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
         score='ATTE',
-        trimming_threshold=0.05,
-        n_folds=5,
-        n_rep=n_rep,
-        dml_procedure='dml2',
-        draw_sample_splitting=False)
+        **kwargs)
     dml_irm_obj_atte_no_weights.set_sample_splitting(smpls)
     np.random.seed(42)
     dml_irm_obj_atte_no_weights.fit()
@@ -291,12 +285,7 @@ def dml_irm_weights_fixture(n_rep):
         ml_g=clone(ml_g),
         ml_m=clone(ml_m),
         score='ATE',
-        trimming_threshold=0.05,
-        n_folds=5,
-        n_rep=n_rep,
-        dml_procedure='dml2',
-        draw_sample_splitting=False,
-        weights=weight_dict)
+        weights=weight_dict, **kwargs)
     dml_irm_obj_atte_weights.set_sample_splitting(smpls)
     np.random.seed(42)
     dml_irm_obj_atte_weights.fit()
