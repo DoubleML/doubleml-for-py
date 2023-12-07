@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import math
-from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
+from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLPLR, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018
 from doubleml.utils import dummy_regressor
@@ -22,8 +22,23 @@ def n_rep(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[True, False])
+def set_ml_m_ext(request):
+    return request.param
+
+
+@pytest.fixture(scope="module", params=[True, False])
+def set_ml_l_ext(request):
+    return request.param
+
+
+@pytest.fixture(scope="module", params=[True, False])
+def set_ml_g_ext(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def doubleml_plr_fixture(plr_score, dml_procedure, n_rep):
+def doubleml_plr_fixture(plr_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_l_ext, set_ml_g_ext):
     ext_predictions = {"d": {}}
 
     x, y, d = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type="np.array")
@@ -42,14 +57,27 @@ def doubleml_plr_fixture(plr_score, dml_procedure, n_rep):
 
     DMLPLR.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_m"] = DMLPLR.predictions["ml_m"][:, :, 0]
-    ext_predictions["d"]["ml_l"] = DMLPLR.predictions["ml_l"][:, :, 0]
+    if set_ml_m_ext:
+        ext_predictions["d"]["ml_m"] = DMLPLR.predictions["ml_m"][:, :, 0]
+        ml_m = dummy_regressor()
+    else:
+        ml_m = LinearRegression()
 
-    if plr_score == "IV-type":
-        kwargs["ml_g"] = dummy_regressor()
+    if set_ml_l_ext:
+        ext_predictions["d"]["ml_l"] = DMLPLR.predictions["ml_l"][:, :, 0]
+        ml_l = dummy_regressor()
+    else:
+        ml_l = LinearRegression()
+
+    if plr_score == "IV-type" and set_ml_g_ext:
         ext_predictions["d"]["ml_g"] = DMLPLR.predictions["ml_g"][:, :, 0]
+        kwargs["ml_g"] = dummy_regressor()
+    elif plr_score == "IV-type" and not set_ml_g_ext:
+        kwargs["ml_g"] = LinearRegression()
+    else:
+        pass
 
-    DMLPLR_ext = DoubleMLPLR(ml_m=dummy_regressor(), ml_l=dummy_regressor(), **kwargs)
+    DMLPLR_ext = DoubleMLPLR(ml_m=ml_m, ml_l=ml_l, **kwargs)
 
     np.random.seed(3141)
     DMLPLR_ext.fit(external_predictions=ext_predictions)
