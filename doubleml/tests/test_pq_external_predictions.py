@@ -36,7 +36,7 @@ def set_ml_g_ext(request):
 def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_ml_g_ext):
     ext_predictions = {"d": {}}
     np.random.seed(3141)
-    data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type="DataFrame")
+    data = make_irm_data(theta=0.5, n_obs=1000, dim_x=5, return_type="DataFrame")
 
     dml_data = DoubleMLData(data, "y", "d")
     all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=None)
@@ -56,7 +56,6 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_m
     DMLPQ = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
     DMLPQ.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-
     DMLPQ.fit(store_predictions=True)
 
     if set_ml_m_ext:
