@@ -386,7 +386,7 @@ class DoubleMLQTE:
     def __all_se(self):
         return self._all_se[self._i_quant, self._i_rep]
 
-    def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False):
+    def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
         """
         Estimate DoubleMLQTE models.
 
@@ -414,11 +414,15 @@ class DoubleMLQTE:
         -------
         self : object
         """
+        
+        if external_predictions is not None:
+            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
         # parallel estimation of the quantiles
         parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
         fitted_models = parallel(delayed(self._fit_quantile)(i_quant, n_jobs_cv, store_predictions, store_models)
                                  for i_quant in range(self.n_quantiles))
+
 
         # combine the estimates and scores
         for i_quant in range(self.n_quantiles):
