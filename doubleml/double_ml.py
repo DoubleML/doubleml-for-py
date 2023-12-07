@@ -63,6 +63,9 @@ class DoubleML(ABC):
         self._sensitivity_implemented = False
         self._sensitivity_elements = None
         self._sensitivity_params = None
+        
+        # initialize external predictions
+        self._external_predictions_implemented = False
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -530,8 +533,12 @@ class DoubleML(ABC):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
 
-        # check prediction format
-        self._check_external_predictions(external_predictions)
+        # check if external predictions are implemented
+        if self._external_predictions_implemented:
+            # check prediction format
+            self._check_external_predictions(external_predictions)
+        elif not self._external_predictions_implemented and external_predictions is not None:
+            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()

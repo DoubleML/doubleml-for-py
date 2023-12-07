@@ -148,6 +148,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
+        
+        self._external_predictions_implemented = True
+        
 
     @property
     def in_sample_normalization(self):

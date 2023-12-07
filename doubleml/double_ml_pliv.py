@@ -145,6 +145,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
         self._initialize_ml_nuisance_params()
+        
+        self._external_predictions_implemented = True
 
     @classmethod
     def _partialX(cls,

@@ -182,6 +182,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                 stratify=self._dml_data.d,
             )
             self._smpls = obj_dml_resampling.split_samples()
+            
+        self._external_predictions_implemented = True
 
     @property
     def quantile(self):
@@ -341,7 +343,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                         ml_m_prelim, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim
                     )["preds"]
                 else:
-                    m_hat_prelim = m_hat["preds"][np.concatenate([test for train, test in smpls_prelim])]
+                    m_hat_prelim = m_hat["preds"][np.concatenate([test for _, test in smpls_prelim])]
                 m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
                 if self._normalize_ipw:
                     m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)

@@ -150,6 +150,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         self._initialize_ml_nuisance_params()
         self._sensitivity_implemented = True
+        
+        self._external_predictions_implemented = True
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}

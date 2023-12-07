@@ -193,6 +193,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 raise TypeError("subgroups['never_takers'] must be True or False. "
                                 f'Got {str(subgroups["never_takers"])}.')
         self.subgroups = subgroups
+        
+        self._external_predictions_implemented = True
 
     @property
     def normalize_ipw(self):

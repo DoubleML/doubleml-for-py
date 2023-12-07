@@ -188,6 +188,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                 stratify=strata,
             )
             self._smpls = obj_dml_resampling.split_samples()
+            
+        self._external_predictions_implemented = True
 
     @property
     def quantile(self):
