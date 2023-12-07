@@ -24,16 +24,16 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[True, False])
-def set_ml_m_none(request):
+def set_ml_m_ext(request):
     return request.param
 
 @pytest.fixture(scope="module", params=[True, False])
-def set_ml_g_none(request):
+def set_ml_g_ext(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_none, set_ml_g_none):
+def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_ml_g_ext):
     ext_predictions = {"d": {}}
     np.random.seed(3141)
     data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type="DataFrame")
@@ -50,8 +50,8 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_none, set_
         "draw_sample_splitting": False
     }
 
-    ml_g = LogisticRegression(random_state=42)
     ml_m = LogisticRegression(random_state=42)
+    ml_g = LogisticRegression(random_state=42)
 
     DMLPQ = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
     DMLPQ.set_sample_splitting(all_smpls)
@@ -59,17 +59,17 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_none, set_
 
     DMLPQ.fit(store_predictions=True)
 
-    if set_ml_m_none:
-        ml_m = LogisticRegression(random_state=42)
-    else:
+    if set_ml_m_ext:
         ext_predictions["d"]["ml_m"] = DMLPQ.predictions["ml_m"][:, :, 0]
         ml_m = dummy_classifier()
-        
-    if set_ml_g_none:
-        ml_g = LogisticRegression(random_state=42)
     else:
+        ml_m = LogisticRegression(random_state=42)
+        
+    if set_ml_g_ext:
         ext_predictions["d"]["ml_g"] = DMLPQ.predictions["ml_g"][:, :, 0]
         ml_g = dummy_classifier()
+    else:
+        ml_g = LogisticRegression(random_state=42)
 
     DMLPLQ_ext = DoubleMLPQ(ml_g = ml_g, ml_m = ml_m, **kwargs)
     DMLPLQ_ext.set_sample_splitting(all_smpls)

@@ -337,14 +337,14 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                 if not m_external:
                     # get a copy of ml_m as a preliminary learner
                     ml_m_prelim = clone(fitted_models["ml_m"][i_fold])
-                    m_hat_prelim = _dml_cv_predict(ml_m_prelim, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim)[
-                        "preds"
-                    ]
+                    m_hat_prelim = _dml_cv_predict(
+                        ml_m_prelim, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim
+                    )["preds"]
                 else:
                     m_hat_prelim = m_hat["preds"][np.concatenate([test for train, test in smpls_prelim])]
-                m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)   
+                m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
                 if self._normalize_ipw:
-                        m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
+                    m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
                 if self.treatment == 0:
                     m_hat_prelim = 1 - m_hat_prelim
 
@@ -401,7 +401,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
         # readjust start value for minimization
-        if not (g_external or m_external):
+        if not g_external or not m_external:
             self._coef_start_val = np.mean(ipw_vec)
 
         psi_elements = {"ind_d": d == self.treatment, "g": g_hat["preds"], "m": m_hat_adj, "y": y}
