@@ -214,9 +214,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        
+        g0_external = external_predictions['ml_g0'] is not None
+        g1_external = external_predictions['ml_g1'] is not None
+        m_external = external_predictions['ml_m'] is not None
 
         # nuisance g
-        if external_predictions['ml_g0'] is not None:
+        if g0_external:
             # use external predictions
             g_hat0 = {'preds': external_predictions['ml_g0'],
                       'targets': None,
@@ -237,7 +241,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                      'probabilities and not labels are predicted.')
 
-        if external_predictions['ml_g1'] is not None:
+        if g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
                       'targets': None,
@@ -260,7 +264,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # nuisance m
-        if external_predictions['ml_m'] is not None:
+        if m_external:
             # use external predictions
             m_hat = {'preds': external_predictions['ml_m'],
                      'targets': None,
