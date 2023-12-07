@@ -171,9 +171,16 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
+        
+        m_external = external_predictions['ml_m'] is not None
+        l_external = external_predictions['ml_l'] is not None
+        if 'ml_g' in self._learner:
+            g_external = external_predictions['ml_g'] is not None
+        else:
+            g_external = False
 
         # nuisance l
-        if external_predictions['ml_l'] is not None:
+        if l_external:
             l_hat = {'preds': external_predictions['ml_l'],
                      'targets': None,
                      'models': None}
@@ -184,7 +191,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
-        if external_predictions['ml_m'] is not None:
+        if m_external:
             m_hat = {'preds': external_predictions['ml_m'],
                      'targets': None,
                      'models': None}
@@ -213,7 +220,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
-            if external_predictions['ml_g'] is not None:
+            if g_external:
                 g_hat = {'preds': external_predictions['ml_g'],
                         'targets': None,
                         'models': None}
