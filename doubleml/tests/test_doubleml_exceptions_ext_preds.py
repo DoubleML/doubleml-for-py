@@ -1,10 +1,9 @@
-import numpy as np
 import pytest
 from doubleml import DoubleMLCVAR, DoubleMLQTE, DoubleMLData
 from doubleml.datasets import make_irm_data
 from doubleml.utils import dummy_regressor, dummy_classifier
 
-df_irm = make_irm_data(n_obs=500, dim_x=20, theta=0.5, return_type="DataFrame")
+df_irm = make_irm_data(n_obs=10, dim_x=2, theta=0.5, return_type="DataFrame")
 ext_predictions = {"d": {}}
 
 

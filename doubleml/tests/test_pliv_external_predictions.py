@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import math
-from sklearn.linear_model import LinearRegression, LassoCV
+from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_pliv_CHS2015
 from doubleml.utils import dummy_regressor
@@ -32,6 +32,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
     # IV-type score only allows dim_z = 1, so skip testcases with dim_z > 1 for IV-type score
     if dim_z > 1 and score == "IV-type":
         pytest.skip("IV-type score only allows dim_z = 1")
+        res_dict = None
     else:
         ext_predictions = {"d": {}}
 
@@ -86,7 +87,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
 
         res_dict = {"coef_normal": DMLPLIV.coef, "coef_ext": DMLPLIV_ext.coef}
 
-        return res_dict
+    return res_dict
 
 
 @pytest.mark.ci
