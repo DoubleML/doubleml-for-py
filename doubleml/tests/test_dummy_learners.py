@@ -42,5 +42,5 @@ def test_clone(dl_fixture):
     try:
         _ = clone(dl_fixture["dummy_regressor"])
         _ = clone(dl_fixture["dummy_classifier"])
-    except Error as e:
+    except Exception as e:
         pytest.fail(f"clone() raised an exception:\n{str(e)}\n")
