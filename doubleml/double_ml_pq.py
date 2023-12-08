@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -115,25 +114,29 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     d  0.553878  0.149858  3.696011  0.000219  0.260161  0.847595
     """
 
-    def __init__(
-        self,
-        obj_dml_data,
-        ml_g,
-        ml_m,
-        treatment=1,
-        quantile=0.5,
-        n_folds=5,
-        n_rep=1,
-        score="PQ",
-        dml_procedure="dml2",
-        normalize_ipw=True,
-        kde=None,
-        trimming_rule="truncate",
-        trimming_threshold=1e-2,
-        draw_sample_splitting=True,
-        apply_cross_fitting=True,
-    ):
-        super().__init__(obj_dml_data, n_folds, n_rep, score, dml_procedure, draw_sample_splitting, apply_cross_fitting)
+    def __init__(self,
+                 obj_dml_data,
+                 ml_g,
+                 ml_m,
+                 treatment=1,
+                 quantile=0.5,
+                 n_folds=5,
+                 n_rep=1,
+                 score='PQ',
+                 dml_procedure='dml2',
+                 normalize_ipw=True,
+                 kde=None,
+                 trimming_rule='truncate',
+                 trimming_threshold=1e-2,
+                 draw_sample_splitting=True,
+                 apply_cross_fitting=True):
+        super().__init__(obj_dml_data,
+                         n_folds,
+                         n_rep,
+                         score,
+                         dml_procedure,
+                         draw_sample_splitting,
+                         apply_cross_fitting)
 
         self._quantile = quantile
         self._treatment = treatment
@@ -141,7 +144,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError("kde should be either a callable or None. " "%r was passed." % kde)
+                raise TypeError("kde should be either a callable or None. "
+                                "%r was passed." % kde)
             self._kde = kde
 
         self._normalize_ipw = normalize_ipw
@@ -182,7 +186,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                 stratify=self._dml_data.d,
             )
             self._smpls = obj_dml_resampling.split_samples()
-            
         self._external_predictions_implemented = True
 
     @property

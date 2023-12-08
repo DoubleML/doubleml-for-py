@@ -161,7 +161,7 @@ class DoubleMLQTE:
         self._modellist_0, self._modellist_1 = self._initialize_models()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv,\
+        self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
@@ -414,7 +414,7 @@ class DoubleMLQTE:
         -------
         self : object
         """
-        
+
         if external_predictions is not None:
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
@@ -422,7 +422,6 @@ class DoubleMLQTE:
         parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
         fitted_models = parallel(delayed(self._fit_quantile)(i_quant, n_jobs_cv, store_predictions, store_models)
                                  for i_quant in range(self.n_quantiles))
-
 
         # combine the estimates and scores
         for i_quant in range(self.n_quantiles):

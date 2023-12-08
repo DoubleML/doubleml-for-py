@@ -193,7 +193,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 raise TypeError("subgroups['never_takers'] must be True or False. "
                                 f'Got {str(subgroups["never_takers"])}.')
         self.subgroups = subgroups
-        
         self._external_predictions_implemented = True
 
     @property
@@ -266,8 +265,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
             g_hat0['targets'] = g_hat0['targets'].astype(float)
@@ -289,8 +288,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = g_hat1['targets'].astype(float)
@@ -328,8 +327,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                           'models': None}
             else:
                 r_hat0 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z0, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'],
-                                        return_models=return_models)
+                                         est_params=self._get_params('ml_r0'), method=self._predict_method['ml_r'],
+                                         return_models=return_models)
         else:
             r_hat0 = {'preds': np.zeros_like(d), 'targets': np.zeros_like(d), 'models': None}
         if not r0:
@@ -346,8 +345,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                           'models': None}
             else:
                 r_hat1 = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls_z1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'],
-                                        return_models=return_models)
+                                         est_params=self._get_params('ml_r1'), method=self._predict_method['ml_r'],
+                                         return_models=return_models)
         else:
             r_hat1 = {'preds': np.ones_like(d), 'targets': np.ones_like(d), 'models': None}
         if not r1:

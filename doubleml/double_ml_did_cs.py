@@ -148,9 +148,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
-        
         self._external_predictions_implemented = True
-        
 
     @property
     def in_sample_normalization(self):
@@ -237,9 +235,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                            'models': None}
         else:
             g_hat_d0_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t0, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
-            
+                                          est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
+
             g_hat_d0_t0['targets'] = g_hat_d0_t0['targets'].astype(float)
             g_hat_d0_t0['targets'][np.invert((d == 0) & (t == 0))] = np.nan
         if external_predictions['ml_g_d0_t1'] is not None:
@@ -248,8 +246,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                            'models': None}
         else:
             g_hat_d0_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g_d0_t1'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
+                                          est_params=self._get_params('ml_g_d0_t1'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
             g_hat_d0_t1['targets'] = g_hat_d0_t1['targets'].astype(float)
             g_hat_d0_t1['targets'][np.invert((d == 0) & (t == 1))] = np.nan
         if external_predictions['ml_g_d1_t0'] is not None:
@@ -258,8 +256,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                            'models': None}
         else:
             g_hat_d1_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t0, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g_d1_t0'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
+                                          est_params=self._get_params('ml_g_d1_t0'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
             g_hat_d1_t0['targets'] = g_hat_d1_t0['targets'].astype(float)
             g_hat_d1_t0['targets'][np.invert((d == 1) & (t == 0))] = np.nan
         if external_predictions['ml_g_d1_t1'] is not None:
@@ -268,8 +266,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                            'models': None}
         else:
             g_hat_d1_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_g_d1_t1'), method=self._predict_method['ml_g'],
-                                        return_models=return_models)
+                                          est_params=self._get_params('ml_g_d1_t1'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
             g_hat_d1_t1['targets'] = g_hat_d1_t1['targets'].astype(float)
             g_hat_d1_t1['targets'][np.invert((d == 1) & (t == 1))] = np.nan
 

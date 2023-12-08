@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 import math
-from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
-from doubleml import DoubleMLData, DoubleMLDID
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from doubleml import DoubleMLDID
 from doubleml.datasets import make_did_SZ2020
 from doubleml.utils import dummy_regressor, dummy_classifier
 from ._utils import draw_smpls
+
 
 @pytest.fixture(scope="module", params=["observational", "experimental"])
 def did_score(request):

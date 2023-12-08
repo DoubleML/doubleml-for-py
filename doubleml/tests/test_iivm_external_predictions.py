@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import math
-from sklearn.linear_model import LinearRegression, LassoCV, LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLIIVM, DoubleMLData
 from doubleml.datasets import make_iivm_data
 from doubleml.utils import dummy_regressor, dummy_classifier
@@ -45,14 +45,13 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
     np.random.seed(3141)
 
     DMLIIVM.fit(store_predictions=True)
-    
+
     ext_predictions["d"]["ml_g0"] = DMLIIVM.predictions["ml_g0"][:, :, 0]
     ext_predictions["d"]["ml_g1"] = DMLIIVM.predictions["ml_g1"][:, :, 0]
     ext_predictions["d"]["ml_m"] = DMLIIVM.predictions["ml_m"][:, :, 0]
     ext_predictions["d"]["ml_r0"] = DMLIIVM.predictions["ml_r0"][:, :, 0]
     ext_predictions["d"]["ml_r1"] = DMLIIVM.predictions["ml_r1"][:, :, 0]
 
-    
     DMLIIVM_ext = DoubleMLIIVM(
         ml_g=dummy_regressor(), ml_m=dummy_classifier(), ml_r=dummy_classifier(), **kwargs
     )

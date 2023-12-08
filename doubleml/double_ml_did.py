@@ -146,9 +146,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
-
         self._sensitivity_implemented = True
-        
         self._external_predictions_implemented = True
 
     @property
@@ -213,8 +211,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
 
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
@@ -228,8 +226,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
 
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
@@ -242,8 +240,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             # nuisance m
             if external_predictions['ml_m'] is not None:
                 m_hat = {'preds': external_predictions['ml_m'],
-                        'targets': None,
-                        'models': None}
+                         'targets': None,
+                         'models': None}
             else:
                 m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],

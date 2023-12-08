@@ -161,7 +161,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
-        
         self._external_predictions_implemented = True
 
     @property
@@ -216,7 +215,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-        
         g0_external = external_predictions['ml_g0'] is not None
         g1_external = external_predictions['ml_g1'] is not None
         m_external = external_predictions['ml_m'] is not None
@@ -250,8 +248,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))

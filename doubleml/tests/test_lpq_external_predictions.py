@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LogisticRegression
 from doubleml import DoubleMLLPQ, DoubleMLData
 from doubleml.datasets import make_iivm_data
-from doubleml.utils import dummy_regressor, dummy_classifier
+from doubleml.utils import dummy_classifier
 from ._utils import draw_smpls
 
 

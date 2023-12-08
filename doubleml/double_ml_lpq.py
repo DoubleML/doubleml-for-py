@@ -188,7 +188,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                 stratify=strata,
             )
             self._smpls = obj_dml_resampling.split_samples()
-            
         self._external_predictions_implemented = True
 
     @property
@@ -385,7 +384,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
                 # preliminary propensity for z
                 ml_m_z_prelim = clone(fitted_models["ml_m_z"][i_fold])
-                m_z_hat_prelim = _dml_cv_predict(ml_m_z_prelim, x_train_1, z_train_1, method="predict_proba", smpls=smpls_prelim)[
+                m_z_hat_prelim = _dml_cv_predict(ml_m_z_prelim, x_train_1, z_train_1,
+                                                 method="predict_proba", smpls=smpls_prelim)[
                     "preds"
                 ]
 

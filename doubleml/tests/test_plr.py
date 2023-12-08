@@ -76,7 +76,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
 
     res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
                          all_smpls, dml_procedure, score)
-    
+
     np.random.seed(3141)
     # test with external nuisance predictions
     if score == 'partialling out':
@@ -104,7 +104,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
         prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
                                  'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1),
                                  'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, 1)}}
-        
+
     dml_plr_obj_ext.fit(external_predictions=prediction_dict)
 
 

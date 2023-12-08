@@ -150,7 +150,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         self._initialize_ml_nuisance_params()
         self._sensitivity_implemented = True
-        
         self._external_predictions_implemented = True
 
     def _initialize_ml_nuisance_params(self):
@@ -173,7 +172,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        
         m_external = external_predictions['ml_m'] is not None
         l_external = external_predictions['ml_l'] is not None
         if 'ml_g' in self._learner:
@@ -224,8 +222,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             # nuisance g
             if g_external:
                 g_hat = {'preds': external_predictions['ml_g'],
-                        'targets': None,
-                        'models': None}
+                         'targets': None,
+                         'models': None}
             else:
                 g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
