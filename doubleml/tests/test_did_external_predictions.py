@@ -49,7 +49,7 @@ def doubleml_did_fixture(did_score, dml_procedure, n_rep):
     np.random.seed(3141)
     dml_did_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_did.coef, "coef_ext": dml_did_ext.coef}
+    res_dict = {"coef_normal": dml_did.coef[0], "coef_ext": dml_did_ext.coef[0]}
 
     return res_dict
 

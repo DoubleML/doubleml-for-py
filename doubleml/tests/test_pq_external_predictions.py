@@ -86,7 +86,7 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_m
         tol_rel = 1e-9
         tol_abs = 1e-4
 
-    res_dict = {"coef_normal": dml_pq.coef, "coef_ext": dml_pq_ext.coef, "tol_rel": tol_rel, "tol_abs": tol_abs}
+    res_dict = {"coef_normal": dml_pq.coef[0], "coef_ext": dml_pq_ext.coef[0], "tol_rel": tol_rel, "tol_abs": tol_abs}
 
     return res_dict
 

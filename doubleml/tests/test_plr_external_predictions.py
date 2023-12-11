@@ -82,7 +82,7 @@ def doubleml_plr_fixture(plr_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_l
     np.random.seed(3141)
     dml_plr_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_plr.coef, "coef_ext": dml_plr_ext.coef}
+    res_dict = {"coef_normal": dml_plr.coef[0], "coef_ext": dml_plr_ext.coef[0]}
 
     return res_dict
 

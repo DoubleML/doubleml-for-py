@@ -85,7 +85,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         np.random.seed(3141)
         dml_pliv_ext.fit(external_predictions=ext_predictions)
 
-        res_dict = {"coef_normal": dml_pliv.coef, "coef_ext": dml_pliv_ext.coef}
+        res_dict = {"coef_normal": dml_pliv.coef[0], "coef_ext": dml_pliv_ext.coef[0]}
 
     return res_dict
 

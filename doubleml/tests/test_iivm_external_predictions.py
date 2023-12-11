@@ -59,7 +59,7 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
     np.random.seed(3141)
     dml_iivm_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_iivm.coef, "coef_ext": dml_iivm_ext.coef}
+    res_dict = {"coef_normal": dml_iivm.coef[0], "coef_ext": dml_iivm_ext.coef[0]}
 
     return res_dict
 
