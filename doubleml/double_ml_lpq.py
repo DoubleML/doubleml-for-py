@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 from sklearn.utils import check_X_y
@@ -316,10 +315,26 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
                 "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                 "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
             }
-            m_d_z0_hat = copy.deepcopy(m_z_hat)
-            m_d_z1_hat = copy.deepcopy(m_z_hat)
-            g_du_z0_hat = copy.deepcopy(m_z_hat)
-            g_du_z1_hat = copy.deepcopy(m_z_hat)
+            m_d_z0_hat = {
+                "models": None,
+                "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+            }
+            m_d_z1_hat = {
+                "models": None,
+                "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+            }
+            g_du_z0_hat = {
+                "models": None,
+                "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+            }
+            g_du_z1_hat = {
+                "models": None,
+                "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+            }
 
             # initialize models
             fitted_models = {}
