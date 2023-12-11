@@ -145,6 +145,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
         self._initialize_ml_nuisance_params()
+        self._external_predictions_implemented = True
 
     @classmethod
     def _partialX(cls,
@@ -283,9 +284,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                              'use DoubleMLPLR instead of DoubleMLPLIV.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         if self.partialX & (not self.partialZ):
-            psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, return_models)
+            psi_elements, preds = self._nuisance_est_partial_x(smpls, n_jobs_cv, external_predictions, return_models)
         elif (not self.partialX) & self.partialZ:
             psi_elements, preds = self._nuisance_est_partial_z(smpls, n_jobs_cv, return_models)
         else:
@@ -309,16 +310,21 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
         return res
 
-    def _nuisance_est_partial_x(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est_partial_x(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
 
         # nuisance l
-        l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
-                                return_models=return_models)
+        if external_predictions['ml_l'] is not None:
+            l_hat = {'preds': external_predictions['ml_l'],
+                     'targets': None,
+                     'models': None}
+        else:
+            l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
+                                    return_models=return_models)
         _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         predictions = {'ml_l': l_hat['preds']}
@@ -329,36 +335,54 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             # one instrument: just identified
             x, z = check_X_y(x, np.ravel(self._dml_data.z),
                              force_all_finite=False)
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
+            if external_predictions['ml_m'] is not None:
+                m_hat = {'preds': external_predictions['ml_m'],
+                         'targets': None,
+                         'models': None}
+            else:
+                m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                        return_models=return_models)
             predictions['ml_m'] = m_hat['preds']
             targets['ml_m'] = m_hat['targets']
             models['ml_m'] = m_hat['models']
         else:
             # several instruments: 2SLS
             m_hat = {'preds': np.full((self._dml_data.n_obs, self._dml_data.n_instr), np.nan),
+                     'targets': [None] * self._dml_data.n_instr,
                      'models': [None] * self._dml_data.n_instr}
-            z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
+                z = self._dml_data.z
                 x, this_z = check_X_y(x, z[:, i_instr],
                                       force_all_finite=False)
-                res_cv_predict = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                 est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
-                                                 method=self._predict_method['ml_m'], return_models=return_models)
+                if external_predictions['ml_m_' + self._dml_data.z_cols[i_instr]] is not None:
+                    m_hat['preds'][:, i_instr] = external_predictions['ml_m_' + self._dml_data.z_cols[i_instr]]
+                    predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = external_predictions[
+                        'ml_m_' + self._dml_data.z_cols[i_instr]]
+                    targets['ml_m_' + self._dml_data.z_cols[i_instr]] = None
+                    models['ml_m_' + self._dml_data.z_cols[i_instr]] = None
+                else:
+                    res_cv_predict = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
+                                                     est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
+                                                     method=self._predict_method['ml_m'], return_models=return_models)
 
-                m_hat['preds'][:, i_instr] = res_cv_predict['preds']
+                    m_hat['preds'][:, i_instr] = res_cv_predict['preds']
 
-                predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['preds']
-                targets['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['targets']
-                models['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['models']
+                    predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['preds']
+                    targets['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['targets']
+                    models['ml_m_' + self._dml_data.z_cols[i_instr]] = res_cv_predict['models']
 
         _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         # nuisance r
-        r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
-                                return_models=return_models)
+        if external_predictions['ml_r'] is not None:
+            r_hat = {'preds': external_predictions['ml_r'],
+                     'targets': None,
+                     'models': None}
+        else:
+            r_hat = _dml_cv_predict(self._learner['ml_r'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_r'), method=self._predict_method['ml_r'],
+                                    return_models=return_models)
         _check_finite_predictions(r_hat['preds'], self._learner['ml_r'], 'ml_r', smpls)
         predictions['ml_r'] = r_hat['preds']
         targets['ml_r'] = r_hat['targets']
@@ -368,13 +392,18 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if (self._dml_data.n_instr == 1) & ('ml_g' in self._learner):
             # an estimate of g is obtained for the IV-type score and callable scores
             # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
-            psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
-            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
-            # nuisance g
-            g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial * d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
+            if external_predictions['ml_g'] is not None:
+                g_hat = {'preds': external_predictions['ml_g'],
+                         'targets': None,
+                         'models': None}
+            else:
+                psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
+                psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
+                theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+                # nuisance g
+                g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial * d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
             _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         predictions['ml_g'] = g_hat['preds']

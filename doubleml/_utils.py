@@ -333,3 +333,9 @@ def _var_est(psi, psi_deriv, apply_cross_fitting, smpls, is_cluster_data,
     sigma2_hat = np.multiply(scaling, gamma_hat)
 
     return sigma2_hat, var_scaling_factor
+
+
+def _cond_targets(target, cond_sample):
+    cond_target = target.astype(float)
+    cond_target[np.invert(cond_sample)] = np.nan
+    return cond_target

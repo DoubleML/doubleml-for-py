@@ -1402,3 +1402,84 @@ def test_doubleml_exception_policytree():
     msg = 'Only implemented for one repetition. Number of repetitions is 2.'
     with pytest.raises(NotImplementedError, match=msg):
         dml_irm_obj.policy_tree(features=2, depth=1)
+
+
+@pytest.mark.ci
+def test_double_ml_external_predictions():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=2)
+
+    msg = "external_predictions must be a dictionary. ml_m of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions="ml_m")
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=1)
+
+    predictions = {'d': 'test', 'd_f': 'test'}
+    msg = (r"Invalid external_predictions. Invalid treatment variable in \['d', 'd_f'\]. "
+           "Valid treatment variables d.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': 'test'}
+    msg = ("external_predictions must be a nested dictionary. "
+           "For treatment d a value of type <class 'str'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_f': 'test'}}
+    msg = ("Invalid external_predictions. "
+           r"Invalid nuisance learner for treatment d in \['ml_f'\]. "
+           "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': 'test', 'ml_f': 'test'}}
+    msg = ("Invalid external_predictions. "
+           r"Invalid nuisance learner for treatment d in \['ml_m', 'ml_f'\]. "
+           "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': 'test'}}
+    msg = ("Invalid external_predictions. "
+           "The values of the nested list must be a numpy array. "
+           "Invalid predictions for treatment d and learner ml_m. "
+           "Object of type <class 'str'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.array([0])}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(1,\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.zeros(100)}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(100,\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.ones(shape=(5, 3))}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(5, 3\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)

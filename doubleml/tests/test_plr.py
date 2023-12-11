@@ -77,10 +77,43 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
                          all_smpls, dml_procedure, score)
 
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    if score == 'partialling out':
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+    else:
+        assert score == 'IV-type'
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m, ml_g,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+
+    # synchronize the sample splitting
+    dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+
+    if score == 'partialling out':
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1)}}
+    else:
+        assert score == 'IV-type'
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1),
+                                 'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, 1)}}
+
+    dml_plr_obj_ext.fit(external_predictions=prediction_dict)
+
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
+                'coef_ext': dml_plr_obj_ext.coef,
                 'se': dml_plr_obj.se,
                 'se_manual': res_manual['se'],
+                'se_ext': dml_plr_obj_ext.se,
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
@@ -91,10 +124,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+        np.random.seed(3141)
+        dml_plr_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_coef' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_coef
+        res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_t_stat
 
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
@@ -114,12 +151,18 @@ def test_dml_plr_coef(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['coef'],
                         dml_plr_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_fixture['coef'],
+                        dml_plr_fixture['coef_ext'],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_se(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['se'],
                         dml_plr_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_fixture['se'],
+                        dml_plr_fixture['se_ext'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -129,8 +172,14 @@ def test_dml_plr_boot(dml_plr_fixture):
         assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
                            dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
+                           dml_plr_fixture['boot_coef' + bootstrap + '_ext'],
+                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
                            dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
+                           dml_plr_fixture['boot_t_stat' + bootstrap + '_ext'],
                            rtol=1e-9, atol=1e-4)
 
 
