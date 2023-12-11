@@ -150,21 +150,21 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
 
 @pytest.mark.ci
 def test_dml_irm_coef(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['coef'],
+    assert math.isclose(dml_irm_fixture['coef'][0],
                         dml_irm_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_irm_fixture['coef'],
-                        dml_irm_fixture['coef_ext'],
+    assert math.isclose(dml_irm_fixture['coef'][0],
+                        dml_irm_fixture['coef_ext'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_irm_se(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['se'],
+    assert math.isclose(dml_irm_fixture['se'][0],
                         dml_irm_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_irm_fixture['se'],
-                        dml_irm_fixture['se_ext'],
+    assert math.isclose(dml_irm_fixture['se'][0],
+                        dml_irm_fixture['se_ext'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 

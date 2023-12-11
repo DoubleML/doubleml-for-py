@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import warnings
-import copy
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -304,13 +303,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
-        m_hat_adj = copy.deepcopy(m_hat)
+        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
                     m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
             else:
                 m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
 
         # compute residuals
         u_hat0 = y - g_hat0

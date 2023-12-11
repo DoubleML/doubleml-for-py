@@ -67,7 +67,7 @@ def doubleml_irm_fixture(irm_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_g
     np.random.seed(3141)
     DMLIRM_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLIRM.coef, "coef_ext": DMLIRM_ext.coef}
+    res_dict = {"coef_normal": DMLIRM.coef[0], "coef_ext": DMLIRM_ext.coef[0]}
 
     return res_dict
 
