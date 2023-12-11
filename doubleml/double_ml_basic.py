@@ -58,6 +58,20 @@ class DoubleMLBasic(ABC):
         return self._all_thetas
 
     @property
+    def se(self):
+        """
+        Estimated standard error.
+        """
+        return self._se
+
+    @property
+    def all_ses(self):
+        """
+        Estimated standard error for each repetition.
+        """
+        return self._all_ses
+
+    @property
     def n_rep(self):
         """
         Number of repetitions.

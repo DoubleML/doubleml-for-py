@@ -22,10 +22,12 @@ def dml_basic_linear_fixture(n_rep):
     dml_basic_linear_obj.estimate_theta()
 
     expected_thetas = -1.0 * np.mean(psi_elements['psi_b'], axis=0)
+    expected_ses = np.sqrt(np.square(expected_thetas + psi_elements['psi_b']).mean(axis=0) / n_obs)
 
     result_dict = {
         'dml_basic_linear_obj': dml_basic_linear_obj,
         'expected_thetas': expected_thetas,
+        'expected_ses': expected_ses,
 
     }
 
@@ -41,4 +43,12 @@ def test_dml_basic_linear_estimation(dml_basic_linear_fixture):
     assert np.allclose(
         dml_basic_linear_fixture['dml_basic_linear_obj'].theta,
         np.median(dml_basic_linear_fixture['expected_thetas'])
+    )
+
+
+@pytest.mark.ci
+def test_dml_basic_linear_se(dml_basic_linear_fixture):
+    assert np.allclose(
+        dml_basic_linear_fixture['dml_basic_linear_obj'].all_ses,
+        dml_basic_linear_fixture['expected_ses']
     )
