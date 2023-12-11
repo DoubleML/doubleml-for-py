@@ -1,18 +1,18 @@
 import numpy as np
 import pandas as pd
 import warnings
-import copy
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 
 from .double_ml_blp import DoubleMLBLP
+from .double_ml_policytree import DoubleMLPolicyTree
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -160,6 +160,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
+        self._external_predictions_implemented = True
 
     @property
     def normalize_ipw(self):
@@ -213,9 +214,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        g0_external = external_predictions['ml_g0'] is not None
+        g1_external = external_predictions['ml_g1'] is not None
+        m_external = external_predictions['ml_m'] is not None
 
         # nuisance g
-        if external_predictions['ml_g0'] is not None:
+        if g0_external:
             # use external predictions
             g_hat0 = {'preds': external_predictions['ml_g0'],
                       'targets': None,
@@ -236,15 +240,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                      'probabilities and not labels are predicted.')
 
-        if external_predictions['ml_g1'] is not None:
+        if g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
                       'targets': None,
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
@@ -259,7 +263,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # nuisance m
-        if external_predictions['ml_m'] is not None:
+        if m_external:
             # use external predictions
             m_hat = {'preds': external_predictions['ml_m'],
                      'targets': None,
@@ -299,13 +303,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             for _, test_index in smpls:
                 p_hat[test_index] = np.mean(d[test_index])
 
-        m_hat_adj = copy.deepcopy(m_hat)
+        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
                     m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
             else:
                 m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
 
         # compute residuals
         u_hat0 = y - g_hat0
@@ -487,5 +493,51 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor for GATE (different confint() method)
         model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
+
+        return model
+
+    def policy_tree(self, features, depth=2, **tree_params):
+        """
+        Estimate a decision tree for optimal treatment policy by weighted classification.
+
+        Parameters
+        ----------
+        depth : int
+            The depth of the estimated decision tree.
+            Has to be larger than 0. Deeper trees derive a more complex decision policy. Default is ``2``.
+
+        features : :class:`pandas.DataFrame`
+            The covariates on which the policy tree is learned.
+            Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of covariates to be included.
+
+        **tree_params : dict
+            Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
+            Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
+            ``min_samples_leaf = 8``. This can be adjusted.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLPolicyTree`
+            Policy tree model.
+        """
+        valid_score = ['ATE']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        _check_integer(depth, "Depth", 0)
+
+        if not isinstance(features, pd.DataFrame):
+            raise TypeError('Covariates must be of DataFrame type. '
+                            f'Covariates of type {str(type(features))} was passed.')
+
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+
+        model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 
         return model

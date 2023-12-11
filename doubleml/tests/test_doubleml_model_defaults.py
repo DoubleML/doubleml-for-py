@@ -54,6 +54,8 @@ dml_pq.bootstrap()
 dml_lpq.bootstrap()
 dml_qte.bootstrap()
 
+policy_tree = dml_irm.policy_tree(features=dml_data_irm.data.drop(columns=["y", "d"]))
+
 
 def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.n_folds == 5
@@ -188,3 +190,10 @@ def test_sensitivity_defaults():
 
     dml_plr.sensitivity_analysis()
     assert dml_plr._sensitivity_params['input'] == input_dict
+
+
+@pytest.mark.ci
+def test_policytree_defaults():
+    assert policy_tree.policy_tree.max_depth == 2
+    assert policy_tree.policy_tree.min_samples_leaf == 8
+    assert policy_tree.policy_tree.ccp_alpha == 0.01

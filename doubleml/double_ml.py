@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import warnings
+import copy
 
 from sklearn.base import is_regressor, is_classifier
 
@@ -16,7 +17,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from ._utils_resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ._utils import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
 from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
-    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl
+    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks
 from ._utils_plots import _sensitivity_contour_plot
 
 
@@ -62,6 +63,9 @@ class DoubleML(ABC):
         self._sensitivity_implemented = False
         self._sensitivity_elements = None
         self._sensitivity_params = None
+
+        # initialize external predictions
+        self._external_predictions_implemented = False
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -529,8 +533,12 @@ class DoubleML(ABC):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
 
-        # check prediction format
-        self._check_external_predictions(external_predictions)
+        # check if external predictions are implemented
+        if self._external_predictions_implemented:
+            # check prediction format
+            self._check_external_predictions(external_predictions)
+        elif not self._external_predictions_implemented and external_predictions is not None:
+            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()
@@ -1823,7 +1831,7 @@ class DoubleML(ABC):
 
         return res
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True,
+    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True, benchmarks=None,
                          fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
@@ -1842,6 +1850,10 @@ class DoubleML(ABC):
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
             Default is ``True``.
+
+        benchmarks : dict or None
+            Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
+            Default is ``None``.
 
         fill : bool
             Indicates whether to use a heatmap style or only contour lines.
@@ -1872,6 +1884,7 @@ class DoubleML(ABC):
             raise ValueError('Invalid value ' + value + '. ' +
                              'Valid values ' + ' or '.join(valid_values) + '.')
         _check_bool(include_scenario, 'include_scenario')
+        _check_benchmarks(benchmarks)
         _check_bool(fill, 'fill')
         _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
         _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
@@ -1907,6 +1920,18 @@ class DoubleML(ABC):
             else:
                 unadjusted_value = ci.iloc[idx_treatment, 0]
 
+        # compute the values for the benchmarks
+        benchmark_dict = copy.deepcopy(benchmarks)
+        if benchmarks is not None:
+            n_benchmarks = len(benchmarks['name'])
+            benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
+            for benchmark_idx in range(len(benchmarks['name'])):
+                sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
+                                                                  cf_d=benchmarks['cf_y'][benchmark_idx],
+                                                                  rho=self.sensitivity_params['input']['rho'],
+                                                                  level=self.sensitivity_params['input']['level'])
+                benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
+            benchmark_dict['value'] = benchmark_values
         fig = _sensitivity_contour_plot(x=cf_d_vec,
                                         y=cf_y_vec,
                                         contour_values=contour_values,
@@ -1915,5 +1940,78 @@ class DoubleML(ABC):
                                         scenario_y=self.sensitivity_params['input']['cf_y'],
                                         scenario_value=self.sensitivity_params[value][bound][idx_treatment],
                                         include_scenario=include_scenario,
+                                        benchmarks=benchmark_dict,
                                         fill=fill)
         return fig
+
+    def sensitivity_benchmark(self, benchmarking_set):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+        Returns
+        -------
+        benchmark_results : pandas.DataFrame
+            Benchmark results.
+        """
+        x_list_long = self._dml_data.x_cols
+
+        # input checks
+        if self._sensitivity_elements is None:
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+        if not isinstance(benchmarking_set, list):
+            raise TypeError('benchmarking_set must be a list. '
+                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+        if len(benchmarking_set) == 0:
+            raise ValueError('benchmarking_set must not be empty.')
+        if not set(benchmarking_set) <= set(x_list_long):
+            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                             f'{str(benchmarking_set)} was passed.')
+
+        # refit short form of the model
+        x_list_short = [x for x in x_list_long if x not in benchmarking_set]
+        dml_short = copy.deepcopy(self)
+        dml_short._dml_data.x_cols = x_list_short
+        dml_short.fit()
+
+        # save elements for readability
+        var_y = np.var(self._dml_data.y)
+        var_y_residuals_long = np.squeeze(self.sensitivity_elements['sigma2'], axis=0)
+        nu2_long = np.squeeze(self.sensitivity_elements['nu2'], axis=0)
+        var_y_residuals_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
+        nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
+
+        # compute nonparametric R2
+        R2_y_long = 1.0 - np.divide(var_y_residuals_long, var_y)
+        R2_y_short = 1.0 - np.divide(var_y_residuals_short, var_y)
+        R2_riesz = np.divide(nu2_short, nu2_long)
+
+        # Gain statistics
+        all_cf_y_benchmark = np.clip(np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long)), 0, 1)
+        all_cf_d_benchmark = np.clip(np.divide((1.0 - R2_riesz), R2_riesz), 0, 1)
+        cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
+        cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
+
+        # change in estimates (slightly different to paper)
+        all_delta_theta = np.transpose(dml_short.all_coef - self.all_coef)
+        delta_theta = np.median(all_delta_theta, axis=0)
+
+        # degree of adversity
+        var_g = var_y_residuals_short - var_y_residuals_long
+        var_riesz = nu2_long - nu2_short
+        denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
+        rho_sign = np.sign(all_delta_theta)
+        rho_values = np.clip(np.divide(np.absolute(all_delta_theta),
+                                       denom,
+                                       out=np.ones_like(all_delta_theta),
+                                       where=denom != 0),
+                             0.0, 1.0)
+        all_rho_benchmark = np.multiply(rho_values, rho_sign)
+        rho_benchmark = np.median(all_rho_benchmark, axis=0)
+        benchmark_dict = {
+            "cf_y": cf_y_benchmark,
+            "cf_d": cf_d_benchmark,
+            "rho": rho_benchmark,
+            "delta_theta": delta_theta,
+        }
+        df_benchmark = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
+        return df_benchmark

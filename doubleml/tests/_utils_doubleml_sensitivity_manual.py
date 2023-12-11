@@ -1,5 +1,7 @@
 import numpy as np
+import pandas as pd
 from scipy.stats import norm
+import copy
 
 from .._utils import _aggregate_coefs_and_ses
 
@@ -50,3 +52,47 @@ def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv,
                 'ci': ci_dict}
 
     return res_dict
+
+
+def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
+    x_list_long = dml_obj._dml_data.x_cols
+    x_list_short = [x for x in x_list_long if x not in benchmarking_set]
+
+    dml_short = copy.deepcopy(dml_obj)
+    dml_short._dml_data.x_cols = x_list_short
+    dml_short.fit()
+
+    var_y = np.var(dml_obj._dml_data.y)
+    var_y_long = np.squeeze(dml_obj.sensitivity_elements['sigma2'], axis=0)
+    nu2_long = np.squeeze(dml_obj.sensitivity_elements['nu2'], axis=0)
+    var_y_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
+    nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
+
+    R2_y_long = 1.0 - var_y_long / var_y
+    R2_y_short = 1.0 - var_y_short / var_y
+    R2_riesz = nu2_short / nu2_long
+
+    all_cf_y_benchmark = np.clip((R2_y_long - R2_y_short) / (1.0 - R2_y_long), 0, 1)
+    all_cf_d_benchmark = np.clip((1.0 - R2_riesz) / R2_riesz, 0, 1)
+
+    cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
+    cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
+
+    all_delta_theta = np.transpose(dml_short.all_coef - dml_obj.all_coef)
+    delta_theta = np.median(all_delta_theta, axis=0)
+
+    var_g = var_y_short - var_y_long
+    var_riesz = nu2_long - nu2_short
+    denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
+    all_rho_benchmark = np.sign(all_delta_theta) * \
+        np.clip(np.divide(np.absolute(all_delta_theta), denom, out=np.ones_like(all_delta_theta), where=denom != 0),
+                0, 1)
+    rho_benchmark = np.median(all_rho_benchmark, axis=0)
+
+    benchmark_dict = {
+        'cf_y': cf_y_benchmark,
+        'cf_d': cf_d_benchmark,
+        'rho': rho_benchmark,
+        'delta_theta': delta_theta,
+    }
+    return pd.DataFrame(benchmark_dict, index=dml_obj._dml_data.d_cols)

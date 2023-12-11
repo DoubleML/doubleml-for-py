@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 from sklearn.base import clone, is_classifier
 
 from ._utils_boot import boot_manual, draw_weights
@@ -131,10 +130,12 @@ def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
-    m_hat_adj = copy.deepcopy(m_hat)
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         for _, test_index in smpls:
             m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+    else:
+        m_hat_adj = m_hat
 
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = irm_orth(g_hat0[test_index], g_hat1[test_index],
@@ -165,9 +166,10 @@ def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
-    m_hat_adj = copy.deepcopy(m_hat)
     if normalize_ipw:
         m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
     theta_hat = irm_orth(g_hat0, g_hat1, m_hat_adj, p_hat,
                          u_hat0, u_hat1, d, score)
@@ -243,13 +245,15 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
-    m_hat_adj = copy.deepcopy(m_hat)
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         if dml_procedure == 'dml1':
             for _, test_index in smpls:
                 m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
         else:
             m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
     if apply_cross_fitting:
         if score == 'ATE':

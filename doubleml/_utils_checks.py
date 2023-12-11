@@ -204,3 +204,25 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
         warnings.warn(f'Propensity predictions from learner {str(learner)} for'
                       f' {learner_name} are close to zero or one (eps={eps}).')
     return
+
+
+def _check_benchmarks(benchmarks):
+    if benchmarks is not None:
+        if not isinstance(benchmarks, dict):
+            raise TypeError('benchmarks has to be either None or a dictionary. '
+                            f'{str(benchmarks)} of type {type(benchmarks)} was passed.')
+        if not set(benchmarks.keys()) == {'cf_y', 'cf_d', 'name'}:
+            raise ValueError('benchmarks has to be a dictionary with keys cf_y, cf_d and name. '
+                             f'Got {str(benchmarks.keys())}.')
+
+        value_lengths = [len(value) for value in benchmarks.values()]
+        if not len(set(value_lengths)) == 1:
+            raise ValueError('benchmarks has to be a dictionary with values of same length. '
+                             f'Got {str(value_lengths)}.')
+        for i in (range(value_lengths[0])):
+            for key in ['cf_y', 'cf_d']:
+                _check_in_zero_one(benchmarks[key][i], f"benchmarks {key}", include_zero=True, include_one=False)
+            if not isinstance(benchmarks["name"][i], str):
+                raise TypeError('benchmarks name must be of string type. '
+                                f'{str(benchmarks["name"][i])} of type {str(type(benchmarks["name"][i]))} was passed.')
+    return

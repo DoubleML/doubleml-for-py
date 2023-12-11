@@ -148,6 +148,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
+        self._external_predictions_implemented = True
 
     @property
     def in_sample_normalization(self):
@@ -228,40 +229,62 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         # nuisance g
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
+        if external_predictions['ml_g_d0_t0'] is not None:
+            g_hat_d0_t0 = {'preds': external_predictions['ml_g_d0_t0'],
+                           'targets': None,
+                           'models': None}
+        else:
+            g_hat_d0_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t0, n_jobs=n_jobs_cv,
+                                          est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
 
-        g_hat_d0_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t0, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_g_d0_t0'), method=self._predict_method['ml_g'],
-                                      return_models=return_models)
-        g_hat_d0_t0['targets'] = g_hat_d0_t0['targets'].astype(float)
-        g_hat_d0_t0['targets'][np.invert((d == 0) & (t == 0))] = np.nan
-
-        g_hat_d0_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t1, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_g_d0_t1'), method=self._predict_method['ml_g'],
-                                      return_models=return_models)
-        g_hat_d0_t1['targets'] = g_hat_d0_t1['targets'].astype(float)
-        g_hat_d0_t1['targets'][np.invert((d == 0) & (t == 1))] = np.nan
-
-        g_hat_d1_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t0, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_g_d1_t0'), method=self._predict_method['ml_g'],
-                                      return_models=return_models)
-        g_hat_d1_t0['targets'] = g_hat_d1_t0['targets'].astype(float)
-        g_hat_d1_t0['targets'][np.invert((d == 1) & (t == 0))] = np.nan
-
-        g_hat_d1_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t1, n_jobs=n_jobs_cv,
-                                      est_params=self._get_params('ml_g_d1_t1'), method=self._predict_method['ml_g'],
-                                      return_models=return_models)
-        g_hat_d1_t1['targets'] = g_hat_d1_t1['targets'].astype(float)
-        g_hat_d1_t1['targets'][np.invert((d == 1) & (t == 1))] = np.nan
+            g_hat_d0_t0['targets'] = g_hat_d0_t0['targets'].astype(float)
+            g_hat_d0_t0['targets'][np.invert((d == 0) & (t == 0))] = np.nan
+        if external_predictions['ml_g_d0_t1'] is not None:
+            g_hat_d0_t1 = {'preds': external_predictions['ml_g_d0_t1'],
+                           'targets': None,
+                           'models': None}
+        else:
+            g_hat_d0_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d0_t1, n_jobs=n_jobs_cv,
+                                          est_params=self._get_params('ml_g_d0_t1'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
+            g_hat_d0_t1['targets'] = g_hat_d0_t1['targets'].astype(float)
+            g_hat_d0_t1['targets'][np.invert((d == 0) & (t == 1))] = np.nan
+        if external_predictions['ml_g_d1_t0'] is not None:
+            g_hat_d1_t0 = {'preds': external_predictions['ml_g_d1_t0'],
+                           'targets': None,
+                           'models': None}
+        else:
+            g_hat_d1_t0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t0, n_jobs=n_jobs_cv,
+                                          est_params=self._get_params('ml_g_d1_t0'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
+            g_hat_d1_t0['targets'] = g_hat_d1_t0['targets'].astype(float)
+            g_hat_d1_t0['targets'][np.invert((d == 1) & (t == 0))] = np.nan
+        if external_predictions['ml_g_d1_t1'] is not None:
+            g_hat_d1_t1 = {'preds': external_predictions['ml_g_d1_t1'],
+                           'targets': None,
+                           'models': None}
+        else:
+            g_hat_d1_t1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls_d1_t1, n_jobs=n_jobs_cv,
+                                          est_params=self._get_params('ml_g_d1_t1'), method=self._predict_method['ml_g'],
+                                          return_models=return_models)
+            g_hat_d1_t1['targets'] = g_hat_d1_t1['targets'].astype(float)
+            g_hat_d1_t1['targets'][np.invert((d == 1) & (t == 1))] = np.nan
 
         # only relevant for observational or experimental setting
         m_hat = {'preds': None, 'targets': None, 'models': None}
         if self.score == 'observational':
             # nuisance m
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
-            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            if external_predictions['ml_m'] is not None:
+                m_hat = {'preds': external_predictions['ml_m'],
+                         'targets': None,
+                         'models': None}
+            else:
+                m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                        return_models=return_models)
+                _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+                _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
             m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         psi_a, psi_b = self._score_elements(y, d, t,

@@ -78,15 +78,15 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
     np.random.seed(42)
     if kde == 'default':
         dml_lpq_obj = dml.DoubleMLLPQ(obj_dml_data,
-                                    clone(learner), clone(learner),
-                                    treatment=treatment,
-                                    quantile=quantile,
-                                    n_folds=n_folds,
-                                    n_rep=1,
-                                    dml_procedure=dml_procedure,
-                                    normalize_ipw=normalize_ipw,
-                                    trimming_threshold=trimming_threshold,
-                                    draw_sample_splitting=False)
+                                      clone(learner), clone(learner),
+                                      treatment=treatment,
+                                      quantile=quantile,
+                                      n_folds=n_folds,
+                                      n_rep=1,
+                                      dml_procedure=dml_procedure,
+                                      normalize_ipw=normalize_ipw,
+                                      trimming_threshold=trimming_threshold,
+                                      draw_sample_splitting=False)
         # synchronize the sample splitting
         dml_lpq_obj.set_sample_splitting(all_smpls=all_smpls)
         dml_lpq_obj.fit()
@@ -119,9 +119,9 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                              normalize_ipw=normalize_ipw, kde=kde,
                              n_rep=1, trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_lpq_obj.coef,
+    res_dict = {'coef': dml_lpq_obj.coef[0],
                 'coef_manual': res_manual['lpq'],
-                'se': dml_lpq_obj.se,
+                'se': dml_lpq_obj.se[0],
                 'se_manual': res_manual['se']}
 
     return res_dict

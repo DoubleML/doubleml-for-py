@@ -145,6 +145,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
         self._initialize_ml_nuisance_params()
+        self._external_predictions_implemented = True
 
     @classmethod
     def _partialX(cls,
@@ -318,8 +319,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         # nuisance l
         if external_predictions['ml_l'] is not None:
             l_hat = {'preds': external_predictions['ml_l'],
-                      'targets': None,
-                      'models': None}
+                     'targets': None,
+                     'models': None}
         else:
             l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
@@ -333,11 +334,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
             x, z = check_X_y(x, np.ravel(self._dml_data.z),
-                                force_all_finite=False)
+                             force_all_finite=False)
             if external_predictions['ml_m'] is not None:
                 m_hat = {'preds': external_predictions['ml_m'],
-                        'targets': None,
-                        'models': None}
+                         'targets': None,
+                         'models': None}
             else:
                 m_hat = _dml_cv_predict(self._learner['ml_m'], x, z, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
@@ -353,16 +354,17 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             for i_instr in range(self._dml_data.n_instr):
                 z = self._dml_data.z
                 x, this_z = check_X_y(x, z[:, i_instr],
-                                    force_all_finite=False)
+                                      force_all_finite=False)
                 if external_predictions['ml_m_' + self._dml_data.z_cols[i_instr]] is not None:
                     m_hat['preds'][:, i_instr] = external_predictions['ml_m_' + self._dml_data.z_cols[i_instr]]
-                    predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = external_predictions['ml_m_' + self._dml_data.z_cols[i_instr]]
+                    predictions['ml_m_' + self._dml_data.z_cols[i_instr]] = external_predictions[
+                        'ml_m_' + self._dml_data.z_cols[i_instr]]
                     targets['ml_m_' + self._dml_data.z_cols[i_instr]] = None
                     models['ml_m_' + self._dml_data.z_cols[i_instr]] = None
                 else:
                     res_cv_predict = _dml_cv_predict(self._learner['ml_m'], x, this_z, smpls=smpls, n_jobs=n_jobs_cv,
-                                                    est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
-                                                    method=self._predict_method['ml_m'], return_models=return_models)
+                                                     est_params=self._get_params('ml_m_' + self._dml_data.z_cols[i_instr]),
+                                                     method=self._predict_method['ml_m'], return_models=return_models)
 
                     m_hat['preds'][:, i_instr] = res_cv_predict['preds']
 
@@ -392,8 +394,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             # get an initial estimate for theta using the partialling out score
             if external_predictions['ml_g'] is not None:
                 g_hat = {'preds': external_predictions['ml_g'],
-                        'targets': None,
-                        'models': None}
+                         'targets': None,
+                         'models': None}
             else:
                 psi_a = -np.multiply(d - r_hat['preds'], z - m_hat['preds'])
                 psi_b = np.multiply(z - m_hat['preds'], y - l_hat['preds'])
@@ -423,7 +425,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         # compute residuals
         u_hat = y - l_hat
         w_hat = d - r_hat
-        v_hat = z- m_hat
+        v_hat = z - m_hat
 
         r_hat_tilde = None
         if self._dml_data.n_instr > 1:

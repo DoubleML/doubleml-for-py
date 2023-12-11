@@ -1,25 +1,10 @@
 import numpy as np
 import pytest
 import math
-from sklearn.linear_model import LinearRegression, LassoCV
+from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_pliv_CHS2015
-
-
-class dummy_learner:
-    _estimator_type = "regressor"
-
-    def fit(*args):
-        raise AttributeError("Accessed fit method!")
-
-    def predict(*args):
-        raise AttributeError("Accessed predict method!")
-
-    def set_params(*args):
-        raise AttributeError("Accessed set_params method!")
-
-    def get_params(*args, **kwargs):
-        raise AttributeError("Accessed get_params method!")
+from doubleml.utils import dummy_regressor
 
 
 @pytest.fixture(scope="module", params=["partialling out", "IV-type"])
@@ -46,9 +31,8 @@ def dim_z(request):
 def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
     # IV-type score only allows dim_z = 1, so skip testcases with dim_z > 1 for IV-type score
     if dim_z > 1 and score == "IV-type":
-        res_dict = {"coef_normal": 1, "coef_ext": 1}
-
-        return res_dict
+        pytest.skip("IV-type score only allows dim_z = 1")
+        res_dict = None
     else:
         ext_predictions = {"d": {}}
 
@@ -71,7 +55,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         if score == "IV-type":
             kwargs["ml_g"] = LinearRegression()
 
-        DMLPLIV = DoubleMLPLIV(
+        dml_pliv = DoubleMLPLIV(
             ml_m=LinearRegression(),
             ml_l=LinearRegression(),
             ml_r=LinearRegression(),
@@ -79,31 +63,31 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         )
         np.random.seed(3141)
 
-        DMLPLIV.fit(store_predictions=True)
+        dml_pliv.fit(store_predictions=True)
 
-        ext_predictions["d"]["ml_l"] = DMLPLIV.predictions["ml_l"][:, :, 0]
-        ext_predictions["d"]["ml_r"] = DMLPLIV.predictions["ml_r"][:, :, 0]
+        ext_predictions["d"]["ml_l"] = dml_pliv.predictions["ml_l"][:, :, 0]
+        ext_predictions["d"]["ml_r"] = dml_pliv.predictions["ml_r"][:, :, 0]
 
         if dim_z == 1:
-            ext_predictions["d"]["ml_m"] = DMLPLIV.predictions["ml_m"][:, :, 0]
+            ext_predictions["d"]["ml_m"] = dml_pliv.predictions["ml_m"][:, :, 0]
             if score == "IV-type":
-                kwargs["ml_g"] = dummy_learner()
-                ext_predictions["d"]["ml_g"] = DMLPLIV.predictions["ml_g"][:, :, 0]
+                kwargs["ml_g"] = dummy_regressor()
+                ext_predictions["d"]["ml_g"] = dml_pliv.predictions["ml_g"][:, :, 0]
         else:
             for instr in range(dim_z):
                 ml_m_key = "ml_m_" + "Z" + str(instr + 1)
-                ext_predictions["d"][ml_m_key] = DMLPLIV.predictions[ml_m_key][:, :, 0]
+                ext_predictions["d"][ml_m_key] = dml_pliv.predictions[ml_m_key][:, :, 0]
 
-        DMLPLIV_ext = DoubleMLPLIV(
-            ml_m=dummy_learner(), ml_l=dummy_learner(), ml_r=dummy_learner(), **kwargs
+        dml_pliv_ext = DoubleMLPLIV(
+            ml_m=dummy_regressor(), ml_l=dummy_regressor(), ml_r=dummy_regressor(), **kwargs
         )
 
         np.random.seed(3141)
-        DMLPLIV_ext.fit(external_predictions=ext_predictions)
+        dml_pliv_ext.fit(external_predictions=ext_predictions)
 
-        res_dict = {"coef_normal": DMLPLIV.coef, "coef_ext": DMLPLIV_ext.coef}
+        res_dict = {"coef_normal": dml_pliv.coef[0], "coef_ext": dml_pliv_ext.coef[0]}
 
-        return res_dict
+    return res_dict
 
 
 @pytest.mark.ci

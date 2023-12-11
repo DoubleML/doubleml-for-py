@@ -11,7 +11,7 @@ PROJECT_URLS = {
 
 setup(
     name='DoubleML',
-    version='0.7.dev0',
+    version='0.8.dev0',
     author='Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M.',
     maintainer='Malte S. Kurz',
     maintainer_email='malte.simon.kurz@uni-hamburg.de',
@@ -30,11 +30,9 @@ setup(
         'statsmodels',
         'plotly',
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     classifiers=[
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
