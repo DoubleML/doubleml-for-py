@@ -35,21 +35,21 @@ def doubleml_did_fixture(did_score, dml_procedure, n_rep):
         "dml_procedure": dml_procedure,
         "draw_sample_splitting": False
     }
-    DMLDID = DoubleMLDID(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    DMLDID.set_sample_splitting(all_smpls)
+    dml_did = DoubleMLDID(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    dml_did.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-    DMLDID.fit(store_predictions=True)
+    dml_did.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_g0"] = DMLDID.predictions["ml_g0"][:, :, 0]
-    ext_predictions["d"]["ml_g1"] = DMLDID.predictions["ml_g1"][:, :, 0]
-    ext_predictions["d"]["ml_m"] = DMLDID.predictions["ml_m"][:, :, 0]
+    ext_predictions["d"]["ml_g0"] = dml_did.predictions["ml_g0"][:, :, 0]
+    ext_predictions["d"]["ml_g1"] = dml_did.predictions["ml_g1"][:, :, 0]
+    ext_predictions["d"]["ml_m"] = dml_did.predictions["ml_m"][:, :, 0]
 
-    DMLDID_ext = DoubleMLDID(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
-    DMLDID_ext.set_sample_splitting(all_smpls)
+    dml_did_ext = DoubleMLDID(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
+    dml_did_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-    DMLDID_ext.fit(external_predictions=ext_predictions)
+    dml_did_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLDID.coef, "coef_ext": DMLDID_ext.coef}
+    res_dict = {"coef_normal": dml_did.coef, "coef_ext": dml_did_ext.coef}
 
     return res_dict
 

@@ -36,7 +36,7 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
         "dml_procedure": dml_procedure,
     }
 
-    DMLIIVM = DoubleMLIIVM(
+    dml_iivm = DoubleMLIIVM(
         ml_g=LinearRegression(),
         ml_m=LogisticRegression(),
         ml_r=LogisticRegression(),
@@ -44,22 +44,22 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
     )
     np.random.seed(3141)
 
-    DMLIIVM.fit(store_predictions=True)
+    dml_iivm.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_g0"] = DMLIIVM.predictions["ml_g0"][:, :, 0]
-    ext_predictions["d"]["ml_g1"] = DMLIIVM.predictions["ml_g1"][:, :, 0]
-    ext_predictions["d"]["ml_m"] = DMLIIVM.predictions["ml_m"][:, :, 0]
-    ext_predictions["d"]["ml_r0"] = DMLIIVM.predictions["ml_r0"][:, :, 0]
-    ext_predictions["d"]["ml_r1"] = DMLIIVM.predictions["ml_r1"][:, :, 0]
+    ext_predictions["d"]["ml_g0"] = dml_iivm.predictions["ml_g0"][:, :, 0]
+    ext_predictions["d"]["ml_g1"] = dml_iivm.predictions["ml_g1"][:, :, 0]
+    ext_predictions["d"]["ml_m"] = dml_iivm.predictions["ml_m"][:, :, 0]
+    ext_predictions["d"]["ml_r0"] = dml_iivm.predictions["ml_r0"][:, :, 0]
+    ext_predictions["d"]["ml_r1"] = dml_iivm.predictions["ml_r1"][:, :, 0]
 
-    DMLIIVM_ext = DoubleMLIIVM(
+    dml_iivm_ext = DoubleMLIIVM(
         ml_g=dummy_regressor(), ml_m=dummy_classifier(), ml_r=dummy_classifier(), **kwargs
     )
 
     np.random.seed(3141)
-    DMLIIVM_ext.fit(external_predictions=ext_predictions)
+    dml_iivm_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLIIVM.coef, "coef_ext": DMLIIVM_ext.coef}
+    res_dict = {"coef_normal": dml_iivm.coef, "coef_ext": dml_iivm_ext.coef}
 
     return res_dict
 

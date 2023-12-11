@@ -44,30 +44,30 @@ def doubleml_irm_fixture(irm_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_g
 
     kwargs = {"obj_dml_data": dml_data, "score": irm_score, "n_rep": n_rep, "dml_procedure": dml_procedure}
 
-    DMLIRM = DoubleMLIRM(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    dml_irm = DoubleMLIRM(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
     np.random.seed(3141)
 
-    DMLIRM.fit(store_predictions=True)
+    dml_irm.fit(store_predictions=True)
 
     if set_ml_m_ext:
-        ext_predictions["d"]["ml_m"] = DMLIRM.predictions["ml_m"][:, :, 0]
+        ext_predictions["d"]["ml_m"] = dml_irm.predictions["ml_m"][:, :, 0]
         ml_m = dummy_classifier()
     else:
         ml_m = LogisticRegression(random_state=42)
 
     if set_ml_g_ext:
-        ext_predictions["d"]["ml_g0"] = DMLIRM.predictions["ml_g0"][:, :, 0]
-        ext_predictions["d"]["ml_g1"] = DMLIRM.predictions["ml_g1"][:, :, 0]
+        ext_predictions["d"]["ml_g0"] = dml_irm.predictions["ml_g0"][:, :, 0]
+        ext_predictions["d"]["ml_g1"] = dml_irm.predictions["ml_g1"][:, :, 0]
         ml_g = dummy_regressor()
     else:
         ml_g = LinearRegression()
 
-    DMLIRM_ext = DoubleMLIRM(ml_g=ml_g, ml_m=ml_m, **kwargs)
+    dml_irm_ext = DoubleMLIRM(ml_g=ml_g, ml_m=ml_m, **kwargs)
 
     np.random.seed(3141)
-    DMLIRM_ext.fit(external_predictions=ext_predictions)
+    dml_irm_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLIRM.coef[0], "coef_ext": DMLIRM_ext.coef[0]}
+    res_dict = {"coef_normal": dml_irm.coef[0], "coef_ext": dml_irm_ext.coef[0]}
 
     return res_dict
 

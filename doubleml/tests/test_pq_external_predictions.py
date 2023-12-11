@@ -54,28 +54,28 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_m
     ml_m = LogisticRegression(random_state=42)
     ml_g = LogisticRegression(random_state=42)
 
-    DMLPQ = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
-    DMLPQ.set_sample_splitting(all_smpls)
+    dml_pq = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
+    dml_pq.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-    DMLPQ.fit(store_predictions=True)
+    dml_pq.fit(store_predictions=True)
 
     if set_ml_m_ext:
-        ext_predictions["d"]["ml_m"] = DMLPQ.predictions["ml_m"][:, :, 0]
+        ext_predictions["d"]["ml_m"] = dml_pq.predictions["ml_m"][:, :, 0]
         ml_m = dummy_classifier()
     else:
         ml_m = LogisticRegression(random_state=42)
 
     if set_ml_g_ext:
-        ext_predictions["d"]["ml_g"] = DMLPQ.predictions["ml_g"][:, :, 0]
+        ext_predictions["d"]["ml_g"] = dml_pq.predictions["ml_g"][:, :, 0]
         ml_g = dummy_classifier()
     else:
         ml_g = LogisticRegression(random_state=42)
 
-    DMLPLQ_ext = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
-    DMLPLQ_ext.set_sample_splitting(all_smpls)
+    dml_pq_ext = DoubleMLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
+    dml_pq_ext.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
-    DMLPLQ_ext.fit(external_predictions=ext_predictions)
+    dml_pq_ext.fit(external_predictions=ext_predictions)
 
     if set_ml_m_ext and not set_ml_g_ext:
         # adjust tolerance for the case that ml_m is set to external predictions
@@ -86,7 +86,7 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_m
         tol_rel = 1e-9
         tol_abs = 1e-4
 
-    res_dict = {"coef_normal": DMLPQ.coef, "coef_ext": DMLPLQ_ext.coef, "tol_rel": tol_rel, "tol_abs": tol_abs}
+    res_dict = {"coef_normal": dml_pq.coef, "coef_ext": dml_pq_ext.coef, "tol_rel": tol_rel, "tol_abs": tol_abs}
 
     return res_dict
 

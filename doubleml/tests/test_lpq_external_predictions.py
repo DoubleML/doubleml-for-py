@@ -44,25 +44,25 @@ def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
     ml_g = LogisticRegression()
     ml_m = LogisticRegression()
 
-    DMLLPQ = DoubleMLLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
-    DMLLPQ.set_sample_splitting(all_smpls)
+    dml_lpq = DoubleMLLPQ(ml_g=ml_g, ml_m=ml_m, **kwargs)
+    dml_lpq.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
-    DMLLPQ.fit(store_predictions=True)
+    dml_lpq.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_m_z"] = DMLLPQ.predictions["ml_m_z"][:, :, 0]
-    ext_predictions["d"]["ml_m_d_z0"] = DMLLPQ.predictions["ml_m_d_z0"][:, :, 0]
-    ext_predictions["d"]["ml_m_d_z1"] = DMLLPQ.predictions["ml_m_d_z1"][:, :, 0]
-    ext_predictions["d"]["ml_g_du_z0"] = DMLLPQ.predictions["ml_g_du_z0"][:, :, 0]
-    ext_predictions["d"]["ml_g_du_z1"] = DMLLPQ.predictions["ml_g_du_z1"][:, :, 0]
+    ext_predictions["d"]["ml_m_z"] = dml_lpq.predictions["ml_m_z"][:, :, 0]
+    ext_predictions["d"]["ml_m_d_z0"] = dml_lpq.predictions["ml_m_d_z0"][:, :, 0]
+    ext_predictions["d"]["ml_m_d_z1"] = dml_lpq.predictions["ml_m_d_z1"][:, :, 0]
+    ext_predictions["d"]["ml_g_du_z0"] = dml_lpq.predictions["ml_g_du_z0"][:, :, 0]
+    ext_predictions["d"]["ml_g_du_z1"] = dml_lpq.predictions["ml_g_du_z1"][:, :, 0]
 
-    DMLLPLQ_ext = DoubleMLLPQ(ml_g=dummy_classifier(), ml_m=dummy_classifier(), **kwargs)
-    DMLLPLQ_ext.set_sample_splitting(all_smpls)
+    dml_lpq_ext = DoubleMLLPQ(ml_g=dummy_classifier(), ml_m=dummy_classifier(), **kwargs)
+    dml_lpq_ext.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
-    DMLLPLQ_ext.fit(external_predictions=ext_predictions)
+    dml_lpq_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLLPQ.coef, "coef_ext": DMLLPLQ_ext.coef}
+    res_dict = {"coef_normal": dml_lpq.coef, "coef_ext": dml_lpq_ext.coef}
 
     return res_dict
 

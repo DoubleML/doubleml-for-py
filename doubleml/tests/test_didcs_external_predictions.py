@@ -36,23 +36,23 @@ def doubleml_didcs_fixture(did_score, dml_procedure, n_rep):
         "dml_procedure": dml_procedure,
         "draw_sample_splitting": False
     }
-    DMLDIDCS = DoubleMLDIDCS(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    DMLDIDCS.set_sample_splitting(all_smpls)
+    dml_did_cs = DoubleMLDIDCS(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    dml_did_cs.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-    DMLDIDCS.fit(store_predictions=True)
+    dml_did_cs.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_g_d0_t0"] = DMLDIDCS.predictions["ml_g_d0_t0"][:, :, 0]
-    ext_predictions["d"]["ml_g_d0_t1"] = DMLDIDCS.predictions["ml_g_d0_t1"][:, :, 0]
-    ext_predictions["d"]["ml_g_d1_t0"] = DMLDIDCS.predictions["ml_g_d1_t0"][:, :, 0]
-    ext_predictions["d"]["ml_g_d1_t1"] = DMLDIDCS.predictions["ml_g_d1_t1"][:, :, 0]
-    ext_predictions["d"]["ml_m"] = DMLDIDCS.predictions["ml_m"][:, :, 0]
+    ext_predictions["d"]["ml_g_d0_t0"] = dml_did_cs.predictions["ml_g_d0_t0"][:, :, 0]
+    ext_predictions["d"]["ml_g_d0_t1"] = dml_did_cs.predictions["ml_g_d0_t1"][:, :, 0]
+    ext_predictions["d"]["ml_g_d1_t0"] = dml_did_cs.predictions["ml_g_d1_t0"][:, :, 0]
+    ext_predictions["d"]["ml_g_d1_t1"] = dml_did_cs.predictions["ml_g_d1_t1"][:, :, 0]
+    ext_predictions["d"]["ml_m"] = dml_did_cs.predictions["ml_m"][:, :, 0]
 
-    DMLDIDCS_ext = DoubleMLDIDCS(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
-    DMLDIDCS_ext.set_sample_splitting(all_smpls)
+    dml_did_cs_ext = DoubleMLDIDCS(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
+    dml_did_cs_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
-    DMLDIDCS_ext.fit(external_predictions=ext_predictions)
+    dml_did_cs_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLDIDCS.coef, "coef_ext": DMLDIDCS_ext.coef}
+    res_dict = {"coef_normal": dml_did_cs.coef, "coef_ext": dml_did_cs_ext.coef}
 
     return res_dict
 

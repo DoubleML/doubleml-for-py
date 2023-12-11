@@ -55,7 +55,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         if score == "IV-type":
             kwargs["ml_g"] = LinearRegression()
 
-        DMLPLIV = DoubleMLPLIV(
+        dml_pliv = DoubleMLPLIV(
             ml_m=LinearRegression(),
             ml_l=LinearRegression(),
             ml_r=LinearRegression(),
@@ -63,29 +63,29 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         )
         np.random.seed(3141)
 
-        DMLPLIV.fit(store_predictions=True)
+        dml_pliv.fit(store_predictions=True)
 
-        ext_predictions["d"]["ml_l"] = DMLPLIV.predictions["ml_l"][:, :, 0]
-        ext_predictions["d"]["ml_r"] = DMLPLIV.predictions["ml_r"][:, :, 0]
+        ext_predictions["d"]["ml_l"] = dml_pliv.predictions["ml_l"][:, :, 0]
+        ext_predictions["d"]["ml_r"] = dml_pliv.predictions["ml_r"][:, :, 0]
 
         if dim_z == 1:
-            ext_predictions["d"]["ml_m"] = DMLPLIV.predictions["ml_m"][:, :, 0]
+            ext_predictions["d"]["ml_m"] = dml_pliv.predictions["ml_m"][:, :, 0]
             if score == "IV-type":
                 kwargs["ml_g"] = dummy_regressor()
-                ext_predictions["d"]["ml_g"] = DMLPLIV.predictions["ml_g"][:, :, 0]
+                ext_predictions["d"]["ml_g"] = dml_pliv.predictions["ml_g"][:, :, 0]
         else:
             for instr in range(dim_z):
                 ml_m_key = "ml_m_" + "Z" + str(instr + 1)
-                ext_predictions["d"][ml_m_key] = DMLPLIV.predictions[ml_m_key][:, :, 0]
+                ext_predictions["d"][ml_m_key] = dml_pliv.predictions[ml_m_key][:, :, 0]
 
-        DMLPLIV_ext = DoubleMLPLIV(
+        dml_pliv_ext = DoubleMLPLIV(
             ml_m=dummy_regressor(), ml_l=dummy_regressor(), ml_r=dummy_regressor(), **kwargs
         )
 
         np.random.seed(3141)
-        DMLPLIV_ext.fit(external_predictions=ext_predictions)
+        dml_pliv_ext.fit(external_predictions=ext_predictions)
 
-        res_dict = {"coef_normal": DMLPLIV.coef, "coef_ext": DMLPLIV_ext.coef}
+        res_dict = {"coef_normal": dml_pliv.coef, "coef_ext": dml_pliv_ext.coef}
 
     return res_dict
 

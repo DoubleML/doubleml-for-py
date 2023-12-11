@@ -52,37 +52,37 @@ def doubleml_plr_fixture(plr_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_l
     if plr_score == "IV-type":
         kwargs["ml_g"] = LinearRegression()
 
-    DMLPLR = DoubleMLPLR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
+    dml_plr = DoubleMLPLR(ml_m=LinearRegression(), ml_l=LinearRegression(), **kwargs)
     np.random.seed(3141)
 
-    DMLPLR.fit(store_predictions=True)
+    dml_plr.fit(store_predictions=True)
 
     if set_ml_m_ext:
-        ext_predictions["d"]["ml_m"] = DMLPLR.predictions["ml_m"][:, :, 0]
+        ext_predictions["d"]["ml_m"] = dml_plr.predictions["ml_m"][:, :, 0]
         ml_m = dummy_regressor()
     else:
         ml_m = LinearRegression()
 
     if set_ml_l_ext:
-        ext_predictions["d"]["ml_l"] = DMLPLR.predictions["ml_l"][:, :, 0]
+        ext_predictions["d"]["ml_l"] = dml_plr.predictions["ml_l"][:, :, 0]
         ml_l = dummy_regressor()
     else:
         ml_l = LinearRegression()
 
     if plr_score == "IV-type" and set_ml_g_ext:
-        ext_predictions["d"]["ml_g"] = DMLPLR.predictions["ml_g"][:, :, 0]
+        ext_predictions["d"]["ml_g"] = dml_plr.predictions["ml_g"][:, :, 0]
         kwargs["ml_g"] = dummy_regressor()
     elif plr_score == "IV-type" and not set_ml_g_ext:
         kwargs["ml_g"] = LinearRegression()
     else:
         pass
 
-    DMLPLR_ext = DoubleMLPLR(ml_m=ml_m, ml_l=ml_l, **kwargs)
+    dml_plr_ext = DoubleMLPLR(ml_m=ml_m, ml_l=ml_l, **kwargs)
 
     np.random.seed(3141)
-    DMLPLR_ext.fit(external_predictions=ext_predictions)
+    dml_plr_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": DMLPLR.coef, "coef_ext": DMLPLR_ext.coef}
+    res_dict = {"coef_normal": dml_plr.coef, "coef_ext": dml_plr_ext.coef}
 
     return res_dict
 
