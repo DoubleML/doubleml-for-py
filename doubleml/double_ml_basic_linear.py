@@ -1,6 +1,6 @@
 import numpy as np
 
-from double_ml_basic import DoubleMLBasic
+from .double_ml_basic import DoubleMLBasic
 
 
 class DoubleMLBasicLinear(DoubleMLBasic):
@@ -28,16 +28,18 @@ class DoubleMLBasicLinear(DoubleMLBasic):
     def _score_element_names(self):
         return ['psi_a', 'psi_b']
 
-    def _compute_score(self, psi_elements, coef):
-        psi = psi_elements['psi_a'] * coef + psi_elements['psi_b']
+    def _compute_score(self, psi_elements, theta, i_rep):
+        psi_a = psi_elements['psi_a'][:, i_rep]
+        psi_b = psi_elements['psi_b'][:, i_rep]
+        psi = psi_a * theta + psi_b
         return psi
 
-    def _compute_score_deriv(self, psi_elements, coef):
-        return psi_elements['psi_a']
+    def _compute_score_deriv(self, psi_elements, theta, i_rep):
+        return psi_elements['psi_a'][:, i_rep]
 
-    def estimate_theta(self, psi_elements):
-        psi_a = psi_elements['psi_a']
-        psi_b = psi_elements['psi_b']
+    def _solve_score(self, psi_elements, i_rep):
+        psi_a = psi_elements['psi_a'][:, i_rep]
+        psi_b = psi_elements['psi_b'][:, i_rep]
 
         theta = - np.mean(psi_b) / np.mean(psi_a)
 
