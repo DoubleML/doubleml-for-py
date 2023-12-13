@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from scipy.stats import norm
 
 
 class DoubleMLFramework():
@@ -93,3 +95,52 @@ class DoubleMLFramework():
             self._psi_deriv[:, :, i_theta] = dml_base_obj.psi_deriv
 
         return self
+
+    def confint(self, joint=False, level=0.95):
+        """
+        Confidence intervals for DoubleML models.
+
+        Parameters
+        ----------
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``False``
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
+
+        if not isinstance(joint, bool):
+            raise TypeError('joint must be True or False. '
+                            f'Got {str(joint)}.')
+
+        if not isinstance(level, float):
+            raise TypeError('The confidence level must be of float type. '
+                            f'{str(level)} of type {str(type(level))} was passed.')
+        if (level <= 0) | (level >= 1):
+            raise ValueError('The confidence level must be in (0,1). '
+                             f'{str(level)} was passed.')
+
+        alpha = 1 - level
+        ab = np.array([alpha / 2, 1. - alpha / 2])
+        if joint:
+            # TODO: add bootstraped critical values
+            pass
+        else:
+            if np.isnan(self.thetas).any():
+                raise ValueError('Apply estimate_thetas() before confint().')
+            critical_value = norm.ppf(ab)
+
+        ci = np.vstack((self.thetas + self.ses * critical_value[0],
+                        self.thetas + self.ses * critical_value[1])).T
+        # TODO: add treatment names
+        df_ci = pd.DataFrame(
+            ci,
+            columns=['{:.1f} %'.format(i * 100) for i in ab])
+        return df_ci
