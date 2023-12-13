@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from doubleml._utils_basic import _var_est, _aggregate_thetas_and_ses
+from doubleml._utils_base import _var_est, _aggregate_thetas_and_ses
 
 
 class DoubleMLBase(ABC):
@@ -53,7 +53,7 @@ class DoubleMLBase(ABC):
     @property
     def all_thetas(self):
         """
-        Estimated target parameter for each repetition.
+        Estimated target parameters for each repetition.
         """
         return self._all_thetas
 
