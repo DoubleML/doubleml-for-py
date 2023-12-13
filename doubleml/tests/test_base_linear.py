@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from doubleml.double_ml_basic_linear import DoubleMLBasicLinear
+from doubleml.double_ml_base_linear import DoubleMLBaseLinear
 
 
 @pytest.fixture(scope='module',
@@ -18,7 +18,7 @@ def dml_basic_linear_fixture(n_rep):
         'psi_b': np.random.normal(size=(n_obs, n_rep)),
     }
 
-    dml_basic_linear_obj = DoubleMLBasicLinear(psi_elements)
+    dml_basic_linear_obj = DoubleMLBaseLinear(psi_elements)
     dml_basic_linear_obj.estimate_theta()
 
     expected_thetas = -1.0 * np.mean(psi_elements['psi_b'], axis=0)

@@ -1,9 +1,9 @@
 import numpy as np
 
-from .double_ml_basic import DoubleMLBasic
+from .double_ml_base import DoubleMLBase
 
 
-class DoubleMLBasicLinear(DoubleMLBasic):
+class DoubleMLBaseLinear(DoubleMLBase):
     """Class implementing DML estimation for score functions being linear in the target parameter
 
     Notes

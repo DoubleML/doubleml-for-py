@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from doubleml._utils_basic import _var_est, _aggregate_thetas_and_ses
 
 
-class DoubleMLBasic(ABC):
-    """Basic Double Machine Learning Class for single estimate."""
+class DoubleMLBase(ABC):
+    """Base Double Machine Learning Class for single estimate."""
 
     def __init__(
         self,
