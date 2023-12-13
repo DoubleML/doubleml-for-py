@@ -35,6 +35,7 @@ def dml_framework_fixture(n_rep):
     return result_dict
 
 
+@pytest.mark.rewrite
 @pytest.mark.ci
 def test_dml_framework_theta(dml_framework_fixture):
     assert np.allclose(
@@ -47,6 +48,7 @@ def test_dml_framework_theta(dml_framework_fixture):
     )
 
 
+@pytest.mark.rewrite
 @pytest.mark.ci
 def test_dml_framework_se(dml_framework_fixture):
     assert np.allclose(

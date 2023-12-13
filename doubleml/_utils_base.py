@@ -12,11 +12,22 @@ def _var_est(psi, psi_deriv):
     return sigma2_hat, var_scaling_factor
 
 
-def _aggregate_thetas_and_ses(all_thetas, all_ses, var_scaling_factor):
-    theta_hat = np.median(all_thetas)
+def _aggregate_thetas_and_ses(
+        all_thetas,
+        all_ses,
+        var_scaling_factor,
+        aggregation_method='median'):
 
-    rescaled_variances = np.multiply(np.power(all_ses, 2), var_scaling_factor)
-    theta_deviations = np.power(all_thetas - theta_hat, 2)
-    median_var = np.median(rescaled_variances + theta_deviations)
-    se_hat = np.sqrt(np.divide(median_var, var_scaling_factor))
+    if aggregation_method == 'median':
+        aggregation_func = np.median
+    else:
+        assert aggregation_method == 'mean'
+        aggregation_func = np.mean
+
+    theta_hat = aggregation_func(all_thetas)
+    theta_deviations = np.square(all_thetas - theta_hat)
+
+    rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factor)
+    var_hat = aggregation_func(rescaled_variances + theta_deviations)
+    se_hat = np.sqrt(np.divide(var_hat, var_scaling_factor))
     return theta_hat, se_hat

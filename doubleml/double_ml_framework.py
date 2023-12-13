@@ -79,16 +79,16 @@ class DoubleMLFramework():
         """
         return self._all_ses
 
-    def estimate_thetas(self):
+    def estimate_thetas(self, aggregation_method='median'):
         for i_theta, dml_base_obj in enumerate(self._dml_base_objs):
-            dml_base_obj.estimate_theta()
+            dml_base_obj.estimate_theta(aggregation_method=aggregation_method)
 
             self._thetas[i_theta] = dml_base_obj.theta
             self._all_thetas[:, i_theta] = dml_base_obj.all_thetas
 
             self._ses[i_theta] = dml_base_obj.se
             self._all_ses[:, i_theta] = dml_base_obj.all_ses
-            
+
             self._psi[:, :, i_theta] = dml_base_obj.psi
             self._psi_deriv[:, :, i_theta] = dml_base_obj.psi_deriv
 

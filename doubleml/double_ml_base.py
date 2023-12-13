@@ -15,7 +15,7 @@ class DoubleMLBase(ABC):
         self._psi_elements = psi_elements
         self._score_type = None
         self._theta = None
-        self._all_thetas = None
+        self._se = None
         self._n_obs = psi_elements['psi_a'].shape[0]
         self._n_rep = psi_elements['psi_a'].shape[1]
 
@@ -111,7 +111,7 @@ class DoubleMLBase(ABC):
     def _compute_score_deriv(self, psi_elements, coef):
         pass
 
-    def estimate_theta(self):
+    def estimate_theta(self, aggregation_method='median'):
         for i_rep in range(self._n_rep):
             self._all_thetas[i_rep] = self._solve_score(self._psi_elements, i_rep)
 
@@ -139,7 +139,8 @@ class DoubleMLBase(ABC):
         self._theta, self._se = _aggregate_thetas_and_ses(
             all_thetas=self._all_thetas,
             all_ses=self._all_ses,
-            var_scaling_factor=self._var_scaling_factor
+            var_scaling_factor=self._var_scaling_factor,
+            aggregation_method=aggregation_method
         )
 
         return self
