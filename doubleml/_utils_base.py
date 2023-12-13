@@ -31,3 +31,18 @@ def _aggregate_thetas_and_ses(
     var_hat = aggregation_func(rescaled_variances + theta_deviations)
     se_hat = np.sqrt(np.divide(var_hat, var_scaling_factor))
     return theta_hat, se_hat
+
+
+def _draw_weights(method, n_rep_boot, n_obs):
+    if method == 'Bayes':
+        weights = np.random.exponential(scale=1.0, size=(n_rep_boot, n_obs)) - 1.
+    elif method == 'normal':
+        weights = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+    elif method == 'wild':
+        xx = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+        yy = np.random.normal(loc=0.0, scale=1.0, size=(n_rep_boot, n_obs))
+        weights = xx / np.sqrt(2) + (np.power(yy, 2) - 1) / 2
+    else:
+        raise ValueError('invalid boot method')
+
+    return weights

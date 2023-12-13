@@ -95,6 +95,7 @@ def test_dml_framework_coverage_fixture(n_rep):
         true_thetas = np.array([0.0, -1.0])
         coverage[r, :] = (true_thetas >= ci['2.5 %'].values) & (true_thetas <= ci['97.5 %'].values)
 
+    bootstrap_ci = dml_framework_obj.bootstrap(method='normal', n_rep_boot=500)
     result_dict = {
         'dml_framework_obj': dml_framework_obj,
         'coverage_rate': np.mean(coverage, axis=0),

@@ -263,3 +263,18 @@ def _check_weights(weights, score, n_obs, n_rep):
             if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
                 raise ValueError("At least one weight must be non-zero.")
     return
+
+
+def _check_bootstrap(method, n_rep_boot):
+
+    if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
+        raise ValueError('Method must be "Bayes", "normal" or "wild". '
+                         f'Got {str(method)}.')
+
+    if not isinstance(n_rep_boot, int):
+        raise TypeError('The number of bootstrap replications must be of int type. '
+                        f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+    if n_rep_boot < 1:
+        raise ValueError('The number of bootstrap replications must be positive. '
+                         f'{str(n_rep_boot)} was passed.')
+    return

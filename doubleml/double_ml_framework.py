@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+from ._utils_base import _draw_weights
+from ._utils_checks import _check_bootstrap
+
 
 class DoubleMLFramework():
     """Double Machine Learning Framework to combine DoubleMLBase classes and compute confidendence intervals."""
@@ -144,3 +147,27 @@ class DoubleMLFramework():
             ci,
             columns=['{:.1f} %'.format(i * 100) for i in ab])
         return df_ci
+
+    def bootstrap(self, method='normal', n_rep_boot=500):
+        """
+        Multiplier bootstrap for DoubleMLFrameworks.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the multiplier bootstrap method.
+            Default is ``'normal'``
+
+        n_rep_boot : int
+            The number of bootstrap replications.
+
+        Returns
+        -------
+        self : object
+        """
+
+        _check_bootstrap(method, n_rep_boot)
+
+        weights = _draw_weights(method, n_rep_boot, self._n_obs)
+
+        return self
