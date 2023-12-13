@@ -12,7 +12,8 @@ from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
 from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
+    _check_weights
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -46,6 +47,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         A str (``'ATE'`` or ``'ATTE'``) specifying the score function
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
         Default is ``'ATE'``.
+
+    weights : array, dict or None
+        An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
+        is applied (corresponds to weights equal to 1). Can only be used with ``score = 'ATE'``.
+        An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
+        A dictionary can be used to specify weights which depend on the treatment variable.
+        In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
+        have to be arrays of shape ``(n,)`` and ``(n, n_rep)``.
+        Default is ``None``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -118,6 +128,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='ATE',
+                 weights=None,
                  dml_procedure='dml2',
                  normalize_ipw=False,
                  trimming_rule='truncate',
@@ -162,6 +173,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
+        _check_weights(weights, score, obj_dml_data.n_obs, self.n_rep)
+        self._initialize_weights(weights)
+
     @property
     def normalize_ipw(self):
         """
@@ -183,10 +197,34 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         """
         return self._trimming_threshold
 
+    @property
+    def weights(self):
+        """
+        Specifies the weights for a weighted ATE.
+        """
+        return self._weights
+
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
+
+    def _initialize_weights(self, weights):
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if isinstance(weights, np.ndarray):
+            self._weights = {'weights': weights}
+        else:
+            assert isinstance(weights, dict)
+            self._weights = weights
+
+    def _get_weights(self):
+        weights = self._weights['weights']
+        if 'weights_bar' not in self._weights.keys():
+            weights_bar = self._weights['weights']
+        else:
+            weights_bar = self._weights['weights_bar'][:, self._i_rep]
+        return weights, weights_bar
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
@@ -299,9 +337,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         # fraction of treated for ATTE
         p_hat = None
         if self.score == 'ATTE':
-            p_hat = np.full_like(d, np.nan, dtype='float64')
-            for _, test_index in smpls:
-                p_hat[test_index] = np.mean(d[test_index])
+            p_hat = np.mean(d)
 
         m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
@@ -321,9 +357,11 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         if isinstance(self.score, str):
             if self.score == 'ATE':
-                psi_b = g_hat1 - g_hat0 \
-                    + np.divide(np.multiply(d, u_hat1), m_hat_adj) \
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj)
+                weights, weights_bar = self._get_weights()
+                psi_b = weights * (g_hat1 - g_hat0) \
+                    + weights_bar * (
+                        np.divide(np.multiply(d, u_hat1), m_hat_adj)
+                        - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
                 psi_a = np.full_like(m_hat_adj, -1.0)
             else:
                 assert self.score == 'ATTE'
@@ -350,8 +388,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         # use weights make this extendable
         if self.score == 'ATE':
-            weights = np.ones_like(d)
-            weights_bar = np.ones_like(d)
+            weights, weights_bar = self._get_weights()
         else:
             assert self.score == 'ATTE'
             weights = np.divide(d, np.mean(d))
@@ -419,7 +456,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis):
+    def cate(self, basis, is_gate=False):
         """
         Calculate conditional average treatment effects (CATE) for a given basis.
 
@@ -428,6 +465,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
 
         Returns
         -------
@@ -446,35 +486,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         # define the orthogonal signal
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
-        model = DoubleMLBLP(orth_signal, basis=basis).fit()
-
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit()
         return model
 
     def gate(self, groups):
         """
-        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+        Calculate group average treatment effects (GATE) for groups.
 
         Parameters
         ----------
         groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor.
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
             Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
 
         Returns
         -------
-        model : :class:`doubleML.DoubleMLBLPGATE`
+        model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
         """
-        valid_score = ['ATE']
-        if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
-
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
-
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
                             f'Groups of type {str(type(groups))} was passed.')
@@ -489,11 +520,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        # define the orthogonal signal
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
-        # fit the best linear predictor for GATE (different confint() method)
-        model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
-
+        model = self.cate(groups, is_gate=True)
         return model
 
     def policy_tree(self, features, depth=2, **tree_params):

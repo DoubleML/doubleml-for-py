@@ -1,6 +1,7 @@
 import statsmodels.api as sm
 import numpy as np
 import pandas as pd
+import warnings
 
 from scipy.stats import norm
 from scipy.linalg import sqrtm
@@ -132,12 +133,13 @@ class DoubleMLBLP:
         ----------
         basis : :class:`pandas.DataFrame`
             The basis for constructing the confidence interval. Has to have the same form as the basis from
-            the construction. If ``None`` the basis for the construction of the model is used.
-            Default is ``None``
+            the construction. If ``None`` is passed, if the basis is constructed for GATEs, the GATEs are returned.
+            Else, the confidence intervals for the basis coefficients are returned (with pointwise cofidence intervals).
+            Default is ``None``.
 
         joint : bool
             Indicates whether joint confidence intervals are computed.
-            Default is ``False``
+            Default is ``False``.
 
         level : float
             The confidence level.
@@ -182,7 +184,20 @@ class DoubleMLBLP:
                 basis = pd.DataFrame(np.diag(v=np.full((self._basis.shape[1]), True)))
                 gate_names = list(self._basis.columns.values)
             else:
-                basis = self._basis
+                if joint:
+                    warnings.warn('Returning pointwise confidence intervals for basis coefficients.', UserWarning)
+                # return the confidence intervals for the basis coefficients
+                ci = np.vstack((
+                    self.blp_model.conf_int(alpha=alpha/2)[0],
+                    self.blp_model.params,
+                    self.blp_model.conf_int(alpha=alpha/2)[1])
+                    ).T
+                df_ci = pd.DataFrame(
+                    ci,
+                    columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
+                    index=self._basis.columns)
+                return df_ci
+
         elif not (basis.shape[1] == self._basis.shape[1]):
             raise ValueError('Invalid basis: DataFrame has to have the exact same number and ordering of columns.')
         elif not list(basis.columns.values) == list(self._basis.columns.values):

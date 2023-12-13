@@ -1,7 +1,8 @@
-import numpy as np
 import pytest
 import math
 import scipy
+import numpy as np
+import pandas as pd
 
 from sklearn.base import clone
 
@@ -331,3 +332,46 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
         assert np.allclose(dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap],
                            dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_gate(score, dml_procedure):
+    n = 9
+
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = dml.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_g = LinearRegression()
+    ml_m = LinearRegression()
+
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_g, ml_m, ml_l,
+                                  n_folds=2,
+                                  score=score,
+                                  dml_procedure=dml_procedure)
+    dml_plr_obj.fit()
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+    cate = dml_plr_obj.cate(random_basis)
+    assert isinstance(cate, dml.DoubleMLBLP)
+    assert isinstance(cate.confint(), pd.DataFrame)
+
+    groups_1 = pd.DataFrame(
+        np.column_stack([obj_dml_data.data['X1'] <= 0,
+                         obj_dml_data.data['X1'] > 0.2]),
+        columns=['Group 1', 'Group 2'])
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_1 = dml_plr_obj.gate(groups_1)
+    assert isinstance(gate_1, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_1.confint(), pd.DataFrame)
+    assert all(gate_1.confint().index == groups_1.columns.tolist())
+
+    np.random.seed(42)
+    groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_2 = dml_plr_obj.gate(groups_2)
+    assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_2.confint(), pd.DataFrame)
+    assert all(gate_2.confint().index == ["Group_1", "Group_2"])
