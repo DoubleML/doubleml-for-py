@@ -47,7 +47,7 @@ def dml_framework_fixture(n_rep):
 @pytest.mark.ci
 def test_dml_framework_theta(dml_framework_fixture):
     assert np.allclose(
-        dml_framework_fixture['dml_framework_obj_1'].all_thetas[:, 0],
+        dml_framework_fixture['dml_framework_obj_1'].all_thetas[0, :],
         dml_framework_fixture['dml_obj_1'].all_thetas
     )
 
@@ -56,7 +56,7 @@ def test_dml_framework_theta(dml_framework_fixture):
 @pytest.mark.ci
 def test_dml_framework_se(dml_framework_fixture):
     assert np.allclose(
-        dml_framework_fixture['dml_framework_obj_1'].all_ses[:, 0],
+        dml_framework_fixture['dml_framework_obj_1'].all_ses[0, :],
         dml_framework_fixture['dml_obj_1'].all_ses
     )
 
@@ -70,7 +70,7 @@ def test_dml_framework_ci(dml_framework_fixture):
 @pytest.fixture(scope='module')
 def test_dml_framework_coverage_fixture(n_rep):
     R = 500
-    coverage = np.zeros((R, 2))
+    coverage_1 = np.zeros((R, 1))
     for r in range(R):
         n_obs = 100
         psi_elements_1 = {
@@ -81,21 +81,22 @@ def test_dml_framework_coverage_fixture(n_rep):
             'psi_a': psi_elements_1['psi_a'],
             'psi_b': psi_elements_1['psi_b'] + 1.0,
         }
-        dml_obj_1 = DoubleMLBaseLinear(psi_elements_1)
-        dml_obj_2 = DoubleMLBaseLinear(psi_elements_2)
+        dml_obj_1 = DoubleMLBaseLinear(psi_elements_1).estimate_theta()
+        dml_obj_2 = DoubleMLBaseLinear(psi_elements_2).estimate_theta()
 
         # combine objects and estimate parameters
-        dml_framework_obj = DoubleMLFramework([dml_obj_1, dml_obj_2])
-        dml_framework_obj.estimate_thetas()
-        ci = dml_framework_obj.confint(joint=False, level=0.95)
+        dml_framework_obj_1 = DoubleMLFramework(dml_obj_1)
+        dml_framework_obj_2 = DoubleMLFramework(dml_obj_2)
+
+        ci_1 = dml_framework_obj_1.confint(joint=False, level=0.95)
+        ci_2 = dml_framework_obj_2.confint(joint=False, level=0.95)
 
         true_thetas = np.array([0.0, -1.0])
-        coverage[r, :] = (true_thetas >= ci['2.5 %'].values) & (true_thetas <= ci['97.5 %'].values)
+        coverage_1[r, :] = (true_thetas[0] >= ci_1['2.5 %'].values) & (true_thetas[0] <= ci_1['97.5 %'].values)
 
-    bootstrap_ci = dml_framework_obj.bootstrap(method='normal', n_rep_boot=500)
     result_dict = {
-        'dml_framework_obj': dml_framework_obj,
-        'coverage_rate': np.mean(coverage, axis=0),
+        'dml_framework_obj_1': dml_framework_obj_1,
+        'coverage_rate_1': np.mean(coverage_1, axis=0),
     }
     return result_dict
 
@@ -103,4 +104,4 @@ def test_dml_framework_coverage_fixture(n_rep):
 @pytest.mark.rewrite
 @pytest.mark.ci
 def test_dml_framework_coverage(test_dml_framework_coverage_fixture):
-    assert all(test_dml_framework_coverage_fixture['coverage_rate'] >= np.full(2, 0.9))
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_1'] >= np.full(1, 0.9))

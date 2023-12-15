@@ -33,19 +33,19 @@ class DoubleMLFramework():
         # initalize arrays
         self._thetas = np.full(self._n_thetas, np.nan)
         self._ses = np.full(self._n_thetas, np.nan)
-        self._all_thetas = np.full((self._n_rep, self._n_thetas), np.nan)
-        self._all_ses = np.full((self._n_rep, self._n_thetas), np.nan)
-        self._psi = np.full((self._n_obs, self._n_rep, self._n_thetas), np.nan)
-        self._psi_deriv = np.full((self._n_obs, self._n_rep, self._n_thetas), np.nan)
+        self._all_thetas = np.full((self._n_thetas, self._n_rep), np.nan)
+        self._all_ses = np.full((self._n_thetas, self._n_rep), np.nan)
+        self._psi = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
+        self._psi_deriv = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
 
         if dml_base_obj is not None:
             # initalize arrays from double_ml_base_obj
             self._thetas[0] = np.array([dml_base_obj.theta])
             self._ses[0] = np.array([dml_base_obj.se])
-            self._all_thetas[:, 0] = dml_base_obj.all_thetas
-            self._all_ses[:, 0] = dml_base_obj.all_ses
-            self._psi[:, :, 0] = dml_base_obj.psi
-            self._psi_deriv[:, :, 0] = dml_base_obj.psi_deriv
+            self._all_thetas[0, :] = dml_base_obj.all_thetas
+            self._all_ses[0, :] = dml_base_obj.all_ses
+            self._psi[:, 0, :] = dml_base_obj.psi
+            self._psi_deriv[:, 0, :] = dml_base_obj.psi_deriv
 
     @property
     def dml_base_objs(self):
@@ -103,7 +103,7 @@ class DoubleMLFramework():
         """
         return self._all_ses
 
-    def confint(self, joint=False, level=0.95, aggregated=True):
+    def confint(self, joint=False, level=0.95):
         """
         Confidence intervals for DoubleML models.
 
@@ -142,10 +142,13 @@ class DoubleMLFramework():
         else:
             if np.isnan(self.thetas).any():
                 raise ValueError('Apply estimate_thetas() before confint().')
-            critical_value = norm.ppf(ab)
-
-            ci = np.vstack((self.all_thetas + self.all_ses * critical_value[0],
-                            self.all_thetas + self.all_ses * critical_value[1]))
+            critical_values = np.tile(norm.ppf(ab).reshape(2, 1), (1, self._n_rep))
+        # compute all cis over repetitions (shape: n_thetas x 2 x n_rep)
+        all_cis = np.stack(
+            (self.all_thetas + self.all_ses * critical_values[0, :],
+             self.all_thetas + self.all_ses * critical_values[1, :]),
+            axis=1)
+        ci = np.median(all_cis, axis=2)
         # TODO: add treatment names
         df_ci = pd.DataFrame(
             ci,
