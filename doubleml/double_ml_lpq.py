@@ -510,7 +510,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
         # the predictions of both should only be evaluated conditional on z == 0 or z == 1
         m_d_z0_hat["targets"] = _cond_targets(d, cond_sample=(z == 0))
-        m_d_z0_hat["targets"] = _cond_targets(d, cond_sample=(z == 1))
+        m_d_z1_hat["targets"] = _cond_targets(d, cond_sample=(z == 1))
 
         if return_models:
             m_z_hat["models"] = fitted_models["ml_m_z"]
