@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LogisticRegression
 from doubleml import DoubleMLLPQ, DoubleMLData
 from doubleml.datasets import make_iivm_data
-from doubleml.utils import dummy_classifier
+from doubleml.utils import DMLDummyClassifier
 from ._utils import draw_smpls
 
 
@@ -56,7 +56,7 @@ def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
     ext_predictions["d"]["ml_g_du_z0"] = dml_lpq.predictions["ml_g_du_z0"][:, :, 0]
     ext_predictions["d"]["ml_g_du_z1"] = dml_lpq.predictions["ml_g_du_z1"][:, :, 0]
 
-    dml_lpq_ext = DoubleMLLPQ(ml_g=dummy_classifier(), ml_m=dummy_classifier(), **kwargs)
+    dml_lpq_ext = DoubleMLLPQ(ml_g=DMLDummyClassifier(), ml_m=DMLDummyClassifier(), **kwargs)
     dml_lpq_ext.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)

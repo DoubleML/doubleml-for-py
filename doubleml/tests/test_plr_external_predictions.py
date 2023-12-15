@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLPLR, DoubleMLData
 from doubleml.datasets import make_plr_CCDDHNR2018
-from doubleml.utils import dummy_regressor
+from doubleml.utils import DMLDummyRegressor
 
 
 @pytest.fixture(scope="module", params=["IV-type", "partialling out"])
@@ -59,19 +59,19 @@ def doubleml_plr_fixture(plr_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_l
 
     if set_ml_m_ext:
         ext_predictions["d"]["ml_m"] = dml_plr.predictions["ml_m"][:, :, 0]
-        ml_m = dummy_regressor()
+        ml_m = DMLDummyRegressor()
     else:
         ml_m = LinearRegression()
 
     if set_ml_l_ext:
         ext_predictions["d"]["ml_l"] = dml_plr.predictions["ml_l"][:, :, 0]
-        ml_l = dummy_regressor()
+        ml_l = DMLDummyRegressor()
     else:
         ml_l = LinearRegression()
 
     if plr_score == "IV-type" and set_ml_g_ext:
         ext_predictions["d"]["ml_g"] = dml_plr.predictions["ml_g"][:, :, 0]
-        kwargs["ml_g"] = dummy_regressor()
+        kwargs["ml_g"] = DMLDummyRegressor()
     elif plr_score == "IV-type" and not set_ml_g_ext:
         kwargs["ml_g"] = LinearRegression()
     else:

@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression
 from doubleml import DoubleMLPLIV, DoubleMLData
 from doubleml.datasets import make_pliv_CHS2015
-from doubleml.utils import dummy_regressor
+from doubleml.utils import DMLDummyRegressor
 
 
 @pytest.fixture(scope="module", params=["partialling out", "IV-type"])
@@ -71,7 +71,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
         if dim_z == 1:
             ext_predictions["d"]["ml_m"] = dml_pliv.predictions["ml_m"][:, :, 0]
             if score == "IV-type":
-                kwargs["ml_g"] = dummy_regressor()
+                kwargs["ml_g"] = DMLDummyRegressor()
                 ext_predictions["d"]["ml_g"] = dml_pliv.predictions["ml_g"][:, :, 0]
         else:
             for instr in range(dim_z):
@@ -79,7 +79,7 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
                 ext_predictions["d"][ml_m_key] = dml_pliv.predictions[ml_m_key][:, :, 0]
 
         dml_pliv_ext = DoubleMLPLIV(
-            ml_m=dummy_regressor(), ml_l=dummy_regressor(), ml_r=dummy_regressor(), **kwargs
+            ml_m=DMLDummyRegressor(), ml_l=DMLDummyRegressor(), ml_r=DMLDummyRegressor(), **kwargs
         )
 
         np.random.seed(3141)

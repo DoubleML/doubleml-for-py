@@ -1,7 +1,7 @@
-from .dummy_learners import dummy_classifier
-from .dummy_learners import dummy_regressor
+from .dummy_learners import DMLDummyRegressor
+from .dummy_learners import DMLDummyClassifier
 
 __all__ = [
-    "dummy_classifier",
-    "dummy_regressor",
+    "DMLDummyRegressor",
+    "DMLDummyClassifier",
 ]

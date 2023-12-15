@@ -1,7 +1,7 @@
 from sklearn.base import BaseEstimator
 
 
-class dummy_regressor(BaseEstimator):
+class DMLDummyRegressor(BaseEstimator):
     """
     A dummy regressor that raises an AttributeError when attempting to access
     its fit, predict, or set_params methods.
@@ -22,16 +22,16 @@ class dummy_regressor(BaseEstimator):
     _estimator_type = "regressor"
 
     def fit(*args):
-        raise AttributeError("Accessed fit method of dummy_regressor!")
+        raise AttributeError("Accessed fit method of DMLDummyRegressor!")
 
     def predict(*args):
-        raise AttributeError("Accessed predict method of dummy_regressor!")
+        raise AttributeError("Accessed predict method of DMLDummyRegressor!")
 
     def set_params(*args):
-        raise AttributeError("Accessed set_params method of dummy_regressor!")
+        raise AttributeError("Accessed set_params method of DMLDummyRegressor!")
 
 
-class dummy_classifier(BaseEstimator):
+class DMLDummyClassifier(BaseEstimator):
     """
     A dummy classifier that raises an AttributeError when attempting to access
     its fit, predict, set_params, or predict_proba methods.
@@ -54,13 +54,13 @@ class dummy_classifier(BaseEstimator):
     _estimator_type = "classifier"
 
     def fit(*args):
-        raise AttributeError("Accessed fit method of dummy_classifier!")
+        raise AttributeError("Accessed fit method of DMLDummyClassifier!")
 
     def predict(*args):
-        raise AttributeError("Accessed predict method of dummy_classifier!")
+        raise AttributeError("Accessed predict method of DMLDummyClassifier!")
 
     def set_params(*args):
-        raise AttributeError("Accessed set_params method of dummy_classifier!")
+        raise AttributeError("Accessed set_params method of DMLDummyClassifier!")
 
     def predict_proba(*args, **kwargs):
-        raise AttributeError("Accessed predict_proba method of dummy_classifier!")
+        raise AttributeError("Accessed predict_proba method of DMLDummyClassifier!")
