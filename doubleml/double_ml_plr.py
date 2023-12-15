@@ -186,6 +186,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             l_hat = {'preds': external_predictions['ml_l'],
                      'targets': None,
                      'models': None}
+        elif self._score == "IV-type" and g_external:
+            l_hat = {'preds': None,
+                     'targets': None,
+                     'models': None}
         else:
             l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
@@ -217,16 +221,16 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         # an estimate of g is obtained for the IV-type score and callable scores
         g_hat = {'preds': None, 'targets': None, 'models': None}
         if 'ml_g' in self._learner:
-            # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
-            psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
-            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
             if g_external:
                 g_hat = {'preds': external_predictions['ml_g'],
                          'targets': None,
                          'models': None}
             else:
+                # get an initial estimate for theta using the partialling out score
+                psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
+                psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
+                theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
                 g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
                                         return_models=return_models)
@@ -248,8 +252,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, l_hat, m_hat, g_hat, smpls):
-        # compute residuals
-        u_hat = y - l_hat
+        # compute residual
         v_hat = d - m_hat
 
         if isinstance(self.score, str):
@@ -258,6 +261,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 psi_b = np.multiply(v_hat, y - g_hat)
             else:
                 assert self.score == 'partialling out'
+                u_hat = y - l_hat
                 psi_a = -np.multiply(v_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
         else:

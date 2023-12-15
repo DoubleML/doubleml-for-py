@@ -77,6 +77,10 @@ def doubleml_plr_fixture(plr_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_l
     else:
         pass
 
+    if plr_score == "IV-type" and set_ml_g_ext and not set_ml_l_ext:
+        ml_l = DMLDummyRegressor()
+
+    # special case if ml_l is not needed
     dml_plr_ext = DoubleMLPLR(ml_m=ml_m, ml_l=ml_l, **kwargs)
 
     np.random.seed(3141)
