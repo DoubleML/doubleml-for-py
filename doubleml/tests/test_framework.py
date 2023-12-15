@@ -71,6 +71,7 @@ def test_dml_framework_ci(dml_framework_fixture):
 def test_dml_framework_coverage_fixture(n_rep):
     R = 500
     coverage_1 = np.zeros((R, 1))
+    coverage_joint_1 = np.zeros((R, 1))
     for r in range(R):
         n_obs = 100
         psi_elements_1 = {
@@ -94,9 +95,15 @@ def test_dml_framework_coverage_fixture(n_rep):
         true_thetas = np.array([0.0, -1.0])
         coverage_1[r, :] = (true_thetas[0] >= ci_1['2.5 %'].values) & (true_thetas[0] <= ci_1['97.5 %'].values)
 
+        dml_framework_obj_1.bootstrap(method='normal')
+        ci_joint_1 = dml_framework_obj_1.confint(joint=True, level=0.95)
+        coverage_joint_1[r, :] = (true_thetas[0] >= ci_joint_1['2.5 %'].values) & \
+            (true_thetas[0] <= ci_joint_1['97.5 %'].values)
+
     result_dict = {
         'dml_framework_obj_1': dml_framework_obj_1,
         'coverage_rate_1': np.mean(coverage_1, axis=0),
+        'coverage_rate_joint_1': np.mean(coverage_joint_1, axis=0),
     }
     return result_dict
 
@@ -105,3 +112,9 @@ def test_dml_framework_coverage_fixture(n_rep):
 @pytest.mark.ci
 def test_dml_framework_coverage(test_dml_framework_coverage_fixture):
     assert all(test_dml_framework_coverage_fixture['coverage_rate_1'] >= np.full(1, 0.9))
+
+
+@pytest.mark.rewrite
+@pytest.mark.ci
+def test_dml_framework_coverage_joint(test_dml_framework_coverage_fixture):
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_joint_1'] >= np.full(1, 0.9))

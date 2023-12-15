@@ -37,6 +37,7 @@ class DoubleMLFramework():
         self._all_ses = np.full((self._n_thetas, self._n_rep), np.nan)
         self._psi = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
         self._psi_deriv = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
+        self._bootstrap_distribution = None
 
         if dml_base_obj is not None:
             # initalize arrays from double_ml_base_obj
@@ -134,25 +135,27 @@ class DoubleMLFramework():
             raise ValueError('The confidence level must be in (0,1). '
                              f'{str(level)} was passed.')
 
+        # compute critical values
         alpha = 1 - level
-        ab = np.array([alpha / 2, 1. - alpha / 2])
+        percentages = np.array([alpha / 2, 1. - alpha / 2])
         if joint:
-            # TODO: add bootstraped critical values
-            pass
+            if self._bootstrap_distribution is None:
+                raise ValueError('Apply bootstrap() before confint().')
+            critical_values = np.quantile(
+                a=self._bootstrap_distribution,
+                q=level,
+                axis=0)
         else:
-            if np.isnan(self.thetas).any():
-                raise ValueError('Apply estimate_thetas() before confint().')
-            critical_values = np.tile(norm.ppf(ab).reshape(2, 1), (1, self._n_rep))
+            critical_values = np.repeat(norm.ppf(percentages[1]), self._n_rep)
+
         # compute all cis over repetitions (shape: n_thetas x 2 x n_rep)
         all_cis = np.stack(
-            (self.all_thetas + self.all_ses * critical_values[0, :],
-             self.all_thetas + self.all_ses * critical_values[1, :]),
+            (self.all_thetas - self.all_ses * critical_values,
+             self.all_thetas + self.all_ses * critical_values),
             axis=1)
         ci = np.median(all_cis, axis=2)
         # TODO: add treatment names
-        df_ci = pd.DataFrame(
-            ci,
-            columns=['{:.1f} %'.format(i * 100) for i in ab])
+        df_ci = pd.DataFrame(ci, columns=['{:.1f} %'.format(i * 100) for i in percentages])
         return df_ci
 
     def bootstrap(self, method='normal', n_rep_boot=500):
@@ -174,15 +177,13 @@ class DoubleMLFramework():
         """
 
         _check_bootstrap(method, n_rep_boot)
-
-        J_vec = np.mean(self._psi_deriv, axis=0)
+        # initialize bootstrap distribution array
+        self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
         score_scaling = self._n_obs * np.multiply(self._all_ses, np.mean(self._psi_deriv, axis=0))
-
         for i_rep in range(self.n_rep):
-            boot = np.matmul(weights, self._psi[:, i_rep, :])
-
-        standardized_scores = np.multiply(score_scaling, self._psi)
-
-        weights = _draw_weights(method, n_rep_boot, self._n_obs)
+            weights = _draw_weights(method, n_rep_boot, self._n_obs)
+            bootstraped_scores = np.matmul(weights, self._psi[:, :, i_rep])
+            bootstraped_max_scores = np.amax(np.abs(bootstraped_scores), axis=1)
+            self._bootstrap_distribution[:, i_rep] = np.divide(bootstraped_max_scores, score_scaling[:, i_rep])
 
         return self
