@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LogisticRegression
 from doubleml import DoubleMLPQ, DoubleMLData
 from doubleml.datasets import make_irm_data
-from doubleml.utils import dummy_classifier
+from doubleml.utils import DMLDummyClassifier
 from ._utils import draw_smpls
 
 
@@ -61,13 +61,13 @@ def doubleml_pq_fixture(dml_procedure, n_rep, normalize_ipw, set_ml_m_ext, set_m
 
     if set_ml_m_ext:
         ext_predictions["d"]["ml_m"] = dml_pq.predictions["ml_m"][:, :, 0]
-        ml_m = dummy_classifier()
+        ml_m = DMLDummyClassifier()
     else:
         ml_m = LogisticRegression(random_state=42)
 
     if set_ml_g_ext:
         ext_predictions["d"]["ml_g"] = dml_pq.predictions["ml_g"][:, :, 0]
-        ml_g = dummy_classifier()
+        ml_g = DMLDummyClassifier()
     else:
         ml_g = LogisticRegression(random_state=42)
 

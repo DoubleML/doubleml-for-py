@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLIIVM, DoubleMLData
 from doubleml.datasets import make_iivm_data
-from doubleml.utils import dummy_regressor, dummy_classifier
+from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 
 
 @pytest.fixture(scope="module", params=["dml1", "dml2"])
@@ -53,7 +53,7 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
     ext_predictions["d"]["ml_r1"] = dml_iivm.predictions["ml_r1"][:, :, 0]
 
     dml_iivm_ext = DoubleMLIIVM(
-        ml_g=dummy_regressor(), ml_m=dummy_classifier(), ml_r=dummy_classifier(), **kwargs
+        ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), ml_r=DMLDummyClassifier(), **kwargs
     )
 
     np.random.seed(3141)

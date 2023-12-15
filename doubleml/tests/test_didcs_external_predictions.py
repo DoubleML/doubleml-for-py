@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLDIDCS
 from doubleml.datasets import make_did_SZ2020
-from doubleml.utils import dummy_regressor, dummy_classifier
+from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 from ._utils import draw_smpls
 
 
@@ -47,7 +47,7 @@ def doubleml_didcs_fixture(did_score, dml_procedure, n_rep):
     ext_predictions["d"]["ml_g_d1_t1"] = dml_did_cs.predictions["ml_g_d1_t1"][:, :, 0]
     ext_predictions["d"]["ml_m"] = dml_did_cs.predictions["ml_m"][:, :, 0]
 
-    dml_did_cs_ext = DoubleMLDIDCS(ml_g=dummy_regressor(), ml_m=dummy_classifier(), **kwargs)
+    dml_did_cs_ext = DoubleMLDIDCS(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
     dml_did_cs_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
     dml_did_cs_ext.fit(external_predictions=ext_predictions)

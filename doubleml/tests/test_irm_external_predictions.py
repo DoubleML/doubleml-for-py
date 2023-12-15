@@ -4,7 +4,7 @@ import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLIRM, DoubleMLData
 from doubleml.datasets import make_irm_data
-from doubleml.utils import dummy_regressor, dummy_classifier
+from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 
 
 @pytest.fixture(scope="module", params=["ATE", "ATTE"])
@@ -51,14 +51,14 @@ def doubleml_irm_fixture(irm_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_g
 
     if set_ml_m_ext:
         ext_predictions["d"]["ml_m"] = dml_irm.predictions["ml_m"][:, :, 0]
-        ml_m = dummy_classifier()
+        ml_m = DMLDummyClassifier()
     else:
         ml_m = LogisticRegression(random_state=42)
 
     if set_ml_g_ext:
         ext_predictions["d"]["ml_g0"] = dml_irm.predictions["ml_g0"][:, :, 0]
         ext_predictions["d"]["ml_g1"] = dml_irm.predictions["ml_g1"][:, :, 0]
-        ml_g = dummy_regressor()
+        ml_g = DMLDummyRegressor()
     else:
         ml_g = LinearRegression()
 
