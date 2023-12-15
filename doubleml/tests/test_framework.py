@@ -92,6 +92,7 @@ def test_dml_framework_coverage_fixture(n_rep):
         ci_1 = dml_framework_obj_1.confint(joint=False, level=0.95)
         ci_2 = dml_framework_obj_2.confint(joint=False, level=0.95)
 
+        a = dml_framework_obj_1 + dml_framework_obj_2
         true_thetas = np.array([0.0, -1.0])
         coverage_1[r, :] = (true_thetas[0] >= ci_1['2.5 %'].values) & (true_thetas[0] <= ci_1['97.5 %'].values)
 
