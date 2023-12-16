@@ -23,12 +23,14 @@ class DoubleMLFramework():
             self._n_thetas = n_thetas
             self._n_rep = n_rep
             self._n_obs = n_obs
+            self._var_scaling_factor = np.full(self._n_thetas, np.nan)
         else:
             assert isinstance(dml_base_obj, DoubleMLBase)
             # set scores and parameters according to dml_base_obj
             self._n_thetas = 1
             self._n_rep = dml_base_obj.n_rep
             self._n_obs = dml_base_obj.n_obs
+            self._var_scaling_factor = dml_base_obj.var_scaling_factor
 
         # initalize arrays
         self._thetas = np.full(self._n_thetas, np.nan)
@@ -131,12 +133,16 @@ class DoubleMLFramework():
             J_self = np.mean(self._psi_deriv, axis=0)
             J_other = np.mean(other._psi_deriv, axis=0)
             omega = self._psi / J_self - other._psi / J_other
-            sigma2_hat = np.divide(np.np.mean(np.square(omega), axis=0), new_obj._var_scaling_factor)
+            sigma2_hat = np.divide(np.mean(np.square(omega), axis=0), new_obj._var_scaling_factor)
             new_obj._all_ses = np.sqrt(sigma2_hat)
 
+            # TODO: aggragate over repetitions
+            new_obj._ses = np.median(new_obj._all_ses, axis=1)
 
         else:
-            pass
+            raise TypeError(f"Unsupported operand type: {type(other)}")
+
+        return new_obj
 
     def __radd__(self, other):
         return self.__add__(other)

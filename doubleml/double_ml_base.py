@@ -86,6 +86,13 @@ class DoubleMLBase(ABC):
         return self._n_obs
 
     @property
+    def var_scaling_factor(self):
+        """
+        Scaling factor for the asymptotic variance.
+        """
+        return self._var_scaling_factor
+
+    @property
     def psi(self):
         """
         Values of the score function.
@@ -132,6 +139,7 @@ class DoubleMLBase(ABC):
                 psi=self._psi[:, i_rep],
                 psi_deriv=self._psi_deriv[:, i_rep]
             )
+            # TODO: check if var_scaling_factor is the same for all target parameters
             self._var_scaling_factor = var_scaling_factor
             self._all_ses[i_rep] = np.sqrt(var_estimate)
 

@@ -72,6 +72,10 @@ def test_dml_framework_coverage_fixture(n_rep):
     R = 500
     coverage_1 = np.zeros((R, 1))
     coverage_joint_1 = np.zeros((R, 1))
+    coverage_added_const = np.zeros((R, 1))
+    coverage_joint_added_const = np.zeros((R, 1))
+    coverage_added_obj = np.zeros((R, 1))
+    coverage_joint_added_obj = np.zeros((R, 1))
     for r in range(R):
         n_obs = 100
         psi_elements_1 = {
@@ -92,7 +96,6 @@ def test_dml_framework_coverage_fixture(n_rep):
         ci_1 = dml_framework_obj_1.confint(joint=False, level=0.95)
         ci_2 = dml_framework_obj_2.confint(joint=False, level=0.95)
 
-        a = dml_framework_obj_1 + dml_framework_obj_2
         true_thetas = np.array([0.0, -1.0])
         coverage_1[r, :] = (true_thetas[0] >= ci_1['2.5 %'].values) & (true_thetas[0] <= ci_1['97.5 %'].values)
 
@@ -101,10 +104,35 @@ def test_dml_framework_coverage_fixture(n_rep):
         coverage_joint_1[r, :] = (true_thetas[0] >= ci_joint_1['2.5 %'].values) & \
             (true_thetas[0] <= ci_joint_1['97.5 %'].values)
 
+        # Test addition
+        dml_framework_added_const = dml_framework_obj_1 + 1.0
+        true_effect_added_const = true_thetas[0] + 1.0
+        ci_added_const = dml_framework_added_const.confint(joint=False, level=0.95)
+        dml_framework_added_const.bootstrap(method='normal')
+        ci_joint_added_const = dml_framework_added_const.confint(joint=True, level=0.95)
+        coverage_added_const[r, :] = (true_effect_added_const >= ci_added_const['2.5 %'].values) & \
+            (true_effect_added_const <= ci_added_const['97.5 %'].values)
+        coverage_joint_added_const[r, :] = (true_effect_added_const >= ci_joint_added_const['2.5 %'].values) & \
+            (true_effect_added_const <= ci_joint_added_const['97.5 %'].values)
+
+        dml_framework_added_obj = dml_framework_obj_1 + dml_framework_obj_2
+        true_effect_added_obj = true_thetas[0] + true_thetas[1]
+        ci_added_obj = dml_framework_added_obj.confint(joint=False, level=0.95)
+        dml_framework_added_obj.bootstrap(method='normal')
+        ci_joint_added_obj = dml_framework_added_obj.confint(joint=True, level=0.95)
+        coverage_added_obj[r, :] = (true_effect_added_obj >= ci_added_obj['2.5 %'].values) & \
+            (true_effect_added_obj <= ci_added_obj['97.5 %'].values)
+        coverage_joint_added_obj[r, :] = (true_effect_added_obj >= ci_joint_added_obj['2.5 %'].values) & \
+            (true_effect_added_obj <= ci_joint_added_obj['97.5 %'].values)
+
     result_dict = {
         'dml_framework_obj_1': dml_framework_obj_1,
         'coverage_rate_1': np.mean(coverage_1, axis=0),
         'coverage_rate_joint_1': np.mean(coverage_joint_1, axis=0),
+        'coverage_rate_added_const': np.mean(coverage_added_const, axis=0),
+        'coverage_rate_joint_added_const': np.mean(coverage_joint_added_const, axis=0),
+        'coverage_rate_added_obj': np.mean(coverage_added_obj, axis=0),
+        'coverage_rate_joint_added_obj': np.mean(coverage_joint_added_obj, axis=0),
     }
     return result_dict
 
@@ -113,9 +141,13 @@ def test_dml_framework_coverage_fixture(n_rep):
 @pytest.mark.ci
 def test_dml_framework_coverage(test_dml_framework_coverage_fixture):
     assert all(test_dml_framework_coverage_fixture['coverage_rate_1'] >= np.full(1, 0.9))
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_added_const'] >= np.full(1, 0.9))
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_added_obj'] >= np.full(1, 0.9))
 
 
 @pytest.mark.rewrite
 @pytest.mark.ci
 def test_dml_framework_coverage_joint(test_dml_framework_coverage_fixture):
     assert all(test_dml_framework_coverage_fixture['coverage_rate_joint_1'] >= np.full(1, 0.9))
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_joint_added_const'] >= np.full(1, 0.9))
+    assert all(test_dml_framework_coverage_fixture['coverage_rate_joint_added_obj'] >= np.full(1, 0.9))
