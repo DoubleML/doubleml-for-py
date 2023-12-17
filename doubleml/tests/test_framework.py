@@ -23,8 +23,8 @@ def dml_framework_fixture(n_rep):
         'psi_a': psi_elements_1['psi_a'],
         'psi_b': psi_elements_1['psi_b'] + 1.0,
     }
-    dml_obj_1 = DoubleMLBaseLinear(psi_elements_1).estimate_theta()
-    dml_obj_2 = DoubleMLBaseLinear(psi_elements_2).estimate_theta()
+    dml_obj_1 = DoubleMLBaseLinear(psi_elements_1).estimate_thetas()
+    dml_obj_2 = DoubleMLBaseLinear(psi_elements_2).estimate_thetas()
 
     # combine objects and estimate parameters
     dml_framework_obj_1 = DoubleMLFramework(dml_obj_1)
@@ -86,8 +86,8 @@ def test_dml_framework_coverage_fixture(n_rep):
             'psi_a': psi_elements_1['psi_a'],
             'psi_b': psi_elements_1['psi_b'] + 1.0,
         }
-        dml_obj_1 = DoubleMLBaseLinear(psi_elements_1).estimate_theta()
-        dml_obj_2 = DoubleMLBaseLinear(psi_elements_2).estimate_theta()
+        dml_obj_1 = DoubleMLBaseLinear(psi_elements_1).estimate_thetas()
+        dml_obj_2 = DoubleMLBaseLinear(psi_elements_2).estimate_thetas()
 
         # combine objects and estimate parameters
         dml_framework_obj_1 = DoubleMLFramework(dml_obj_1)
@@ -118,7 +118,7 @@ def test_dml_framework_coverage_fixture(n_rep):
         dml_framework_added_obj = dml_framework_obj_1 + dml_framework_obj_2
         true_effect_added_obj = true_thetas[0] + true_thetas[1]
         ci_added_obj = dml_framework_added_obj.confint(joint=False, level=0.95)
-        dml_framework_added_obj.bootstrap(method='normal')
+        dml_framework_added_obj.bootstrap(method='normal', n_rep_boot=2000)
         ci_joint_added_obj = dml_framework_added_obj.confint(joint=True, level=0.95)
         coverage_added_obj[r, :] = (true_effect_added_obj >= ci_added_obj['2.5 %'].values) & \
             (true_effect_added_obj <= ci_added_obj['97.5 %'].values)

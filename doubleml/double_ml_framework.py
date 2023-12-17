@@ -123,20 +123,20 @@ class DoubleMLFramework():
             new_obj._psi_deriv = self._psi_deriv
 
         elif isinstance(other, DoubleMLFramework):
-            new_obj._thetas = self._thetas + other._thetas
             new_obj._all_thetas = self._all_thetas + other._all_thetas
-
             new_obj._psi = self._psi + other._psi
             new_obj._psi_deriv = self._psi_deriv + other._psi_deriv
 
+            # TODO: check if var_scaling_factor is the same
             new_obj._var_scaling_factor = self._var_scaling_factor
             J_self = np.mean(self._psi_deriv, axis=0)
             J_other = np.mean(other._psi_deriv, axis=0)
-            omega = self._psi / J_self - other._psi / J_other
+            omega = self._psi / J_self + other._psi / J_other
             sigma2_hat = np.divide(np.mean(np.square(omega), axis=0), new_obj._var_scaling_factor)
             new_obj._all_ses = np.sqrt(sigma2_hat)
 
             # TODO: aggragate over repetitions
+            new_obj._thetas = np.median(new_obj._all_thetas, axis=1)
             new_obj._ses = np.median(new_obj._all_ses, axis=1)
 
         else:

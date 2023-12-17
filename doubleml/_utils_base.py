@@ -1,10 +1,21 @@
 import numpy as np
 
 
+def _initialize_arrays(n_thetas, n_rep, n_obs):
+    thetas = np.full(shape=(n_thetas), fill_value=np.nan)
+    ses = np.full(shape=(n_thetas), fill_value=np.nan)
+    all_thetas = np.full(shape=(n_thetas, n_rep), fill_value=np.nan)
+    all_ses = np.full(shape=(n_thetas, n_rep), fill_value=np.nan)
+    var_scaling_factor = np.full(shape=(n_thetas), fill_value=np.nan)
+    psi = np.full(shape=(n_obs, n_thetas, n_rep), fill_value=np.nan)
+    psi_deriv = np.full(shape=(n_obs, n_thetas, n_rep), fill_value=np.nan)
+    return thetas, ses, all_thetas, all_ses, var_scaling_factor, psi, psi_deriv
+
+
 def _var_est(psi, psi_deriv):
     var_scaling_factor = psi.shape[0]
-    J = np.mean(psi_deriv)
-    gamma_hat = np.mean(np.square(psi))
+    J = np.mean(psi_deriv, axis=0)
+    gamma_hat = np.mean(np.square(psi), axis=0)
 
     scaling = np.divide(1.0, np.multiply(var_scaling_factor, np.square(J)))
     sigma2_hat = np.multiply(scaling, gamma_hat)
@@ -24,13 +35,13 @@ def _aggregate_thetas_and_ses(
         assert aggregation_method == 'mean'
         aggregation_func = np.mean
 
-    theta_hat = aggregation_func(all_thetas)
-    theta_deviations = np.square(all_thetas - theta_hat)
+    thetas_hat = aggregation_func(all_thetas, axis=1)
+    thetas_deviations = np.square(all_thetas - thetas_hat)
 
     rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factor)
-    var_hat = aggregation_func(rescaled_variances + theta_deviations)
-    se_hat = np.sqrt(np.divide(var_hat, var_scaling_factor))
-    return theta_hat, se_hat
+    var_hat = aggregation_func(rescaled_variances + thetas_deviations)
+    ses_hat = np.sqrt(np.divide(var_hat, var_scaling_factor))
+    return thetas_hat, ses_hat
 
 
 def _draw_weights(method, n_rep_boot, n_obs):

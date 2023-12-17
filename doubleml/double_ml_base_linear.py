@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg import inv
 
 from .double_ml_base import DoubleMLBase
 
@@ -20,27 +21,41 @@ class DoubleMLBaseLinear(DoubleMLBase):
     `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
     `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
     """
-    def __init__(self, psi_elements):
-        super().__init__(psi_elements)
+    def __init__(
+        self,
+        psi_elements,
+        n_obs,
+        n_thetas=1,
+        n_rep=1,
+    ):
+        super().__init__(
+            psi_elements,
+            n_obs=n_obs,
+            n_thetas=n_thetas,
+            n_rep=n_rep,
+        )
         self._score_type = 'linear'
 
     @property
     def _score_element_names(self):
         return ['psi_a', 'psi_b']
 
-    def _compute_score(self, psi_elements, theta, i_rep):
-        psi_a = psi_elements['psi_a'][:, i_rep]
-        psi_b = psi_elements['psi_b'][:, i_rep]
-        psi = psi_a * theta + psi_b
+    def _compute_score(self, psi_elements, thetas, i_rep):
+        psi_a = psi_elements['psi_a'][:, :, i_rep]
+        psi_b = psi_elements['psi_b'][:, :, i_rep]
+        psi = psi_a * thetas + psi_b
         return psi
 
-    def _compute_score_deriv(self, psi_elements, theta, i_rep):
-        return psi_elements['psi_a'][:, i_rep]
+    def _compute_score_deriv(self, psi_elements, thetas, i_rep):
+        return psi_elements['psi_a'][:, :, i_rep]
 
     def _solve_score(self, psi_elements, i_rep):
-        psi_a = psi_elements['psi_a'][:, i_rep]
-        psi_b = psi_elements['psi_b'][:, i_rep]
+        psi_a = psi_elements['psi_a'][:, :, i_rep]
+        psi_b = psi_elements['psi_b'][:, :, i_rep]
 
-        theta = - np.mean(psi_b) / np.mean(psi_a)
+        if self._n_thetas == 1:
+            thetas = - np.mean(psi_b, axis=0) / np.mean(psi_a, axis=0)
+        else:
+            thetas = - np.matmul(inv(np.mean(psi_a, axis=0)), np.mean(psi_b, axis=0))
 
-        return theta
+        return thetas

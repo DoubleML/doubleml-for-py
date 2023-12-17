@@ -1,30 +1,29 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from doubleml._utils_base import _var_est, _aggregate_thetas_and_ses
+from doubleml._utils_base import _initialize_arrays, _var_est, _aggregate_thetas_and_ses
 
 
 class DoubleMLBase(ABC):
-    """Base Double Machine Learning Class for single estimate."""
+    """Base Double Machine Learning Class."""
 
     def __init__(
         self,
         psi_elements,
+        n_obs,
+        n_thetas=1,
+        n_rep=1,
     ):
         # scores and parameters
         self._psi_elements = psi_elements
         self._score_type = None
-        self._theta = None
-        self._se = None
-        self._n_obs = psi_elements['psi_a'].shape[0]
-        self._n_rep = psi_elements['psi_a'].shape[1]
+        self._n_obs = n_obs
+        self._n_rep = n_rep
+        self._n_thetas = n_thetas
 
         # initalize arrays
-        self._all_thetas = np.full(self._n_rep, np.nan)
-        self._all_ses = np.full(self._n_rep, np.nan)
-        self._var_scaling_factor = np.full(1, np.nan)
-        self._psi = np.full((self._n_obs, self._n_rep), np.nan)
-        self._psi_deriv = np.full((self._n_obs, self._n_rep), np.nan)
+        self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factor, \
+            self._psi, self._psi_deriv = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
 
     @property
     def psi_elements(self):
@@ -44,11 +43,11 @@ class DoubleMLBase(ABC):
         return self._score_type
 
     @property
-    def theta(self):
+    def thetas(self):
         """
-        Estimated target parameter.
+        Estimated target parameters.
         """
-        return self._theta
+        return self._thetas
 
     @property
     def all_thetas(self):
@@ -58,11 +57,11 @@ class DoubleMLBase(ABC):
         return self._all_thetas
 
     @property
-    def se(self):
+    def ses(self):
         """
-        Estimated standard error.
+        Estimated standard errors.
         """
-        return self._se
+        return self._ses
 
     @property
     def all_ses(self):
@@ -88,7 +87,7 @@ class DoubleMLBase(ABC):
     @property
     def var_scaling_factor(self):
         """
-        Scaling factor for the asymptotic variance.
+        Scaling factors for the asymptotic variance.
         """
         return self._var_scaling_factor
 
@@ -111,40 +110,41 @@ class DoubleMLBase(ABC):
         pass
 
     @abstractmethod
-    def _compute_score(self, psi_elements, coef):
+    def _compute_score(self, psi_elements, thetas, i_rep):
         pass
 
     @abstractmethod
-    def _compute_score_deriv(self, psi_elements, coef):
+    def _compute_score_deriv(self, psi_elements, thetas, i_rep):
         pass
 
-    def estimate_theta(self, aggregation_method='median'):
+    def estimate_thetas(self, aggregation_method='median'):
         for i_rep in range(self._n_rep):
-            self._all_thetas[i_rep] = self._solve_score(self._psi_elements, i_rep)
+            self._all_thetas[:, i_rep] = self._solve_score(self._psi_elements, i_rep)
 
             # compute score and derivative
-            self._psi[:, i_rep] = self._compute_score(
+            self._psi[:, :, i_rep] = self._compute_score(
                 psi_elements=self._psi_elements,
-                theta=self._all_thetas[i_rep],
+                thetas=self._all_thetas[:, i_rep],
                 i_rep=i_rep
             )
-            self._psi_deriv[:, i_rep] = self._compute_score_deriv(
+            self._psi_deriv[:, :, i_rep] = self._compute_score_deriv(
                 psi_elements=self._psi_elements,
-                theta=self._all_thetas[i_rep],
+                thetas=self._all_thetas[:, i_rep],
                 i_rep=i_rep
             )
 
             # variance estimation
-            var_estimate, var_scaling_factor = _var_est(
-                psi=self._psi[:, i_rep],
-                psi_deriv=self._psi_deriv[:, i_rep]
+            var_estimates, var_scaling_factor = _var_est(
+                psi=self._psi[:, :, i_rep],
+                psi_deriv=self._psi_deriv[:, :, i_rep]
             )
+
             # TODO: check if var_scaling_factor is the same for all target parameters
             self._var_scaling_factor = var_scaling_factor
-            self._all_ses[i_rep] = np.sqrt(var_estimate)
+            self._all_ses[i_rep] = np.sqrt(var_estimates)
 
         # aggregate estimates
-        self._theta, self._se = _aggregate_thetas_and_ses(
+        self._thetas, self._ses = _aggregate_thetas_and_ses(
             all_thetas=self._all_thetas,
             all_ses=self._all_ses,
             var_scaling_factor=self._var_scaling_factor,
