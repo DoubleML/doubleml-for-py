@@ -22,7 +22,7 @@ class DoubleMLBase(ABC):
         self._n_thetas = n_thetas
 
         # initalize arrays
-        self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factor, \
+        self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factors, \
             self._psi, self._psi_deriv = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
 
     @property
@@ -85,11 +85,11 @@ class DoubleMLBase(ABC):
         return self._n_obs
 
     @property
-    def var_scaling_factor(self):
+    def var_scaling_factors(self):
         """
         Scaling factors for the asymptotic variance.
         """
-        return self._var_scaling_factor
+        return self._var_scaling_factors
 
     @property
     def psi(self):
@@ -134,20 +134,20 @@ class DoubleMLBase(ABC):
             )
 
             # variance estimation
-            var_estimates, var_scaling_factor = _var_est(
+            var_estimates, var_scaling_factors = _var_est(
                 psi=self._psi[:, :, i_rep],
                 psi_deriv=self._psi_deriv[:, :, i_rep]
             )
 
             # TODO: check if var_scaling_factor is the same for all target parameters
-            self._var_scaling_factor = var_scaling_factor
-            self._all_ses[i_rep] = np.sqrt(var_estimates)
+            self._var_scaling_factors[:] = var_scaling_factors
+            self._all_ses[:, i_rep] = np.sqrt(var_estimates)
 
         # aggregate estimates
         self._thetas, self._ses = _aggregate_thetas_and_ses(
             all_thetas=self._all_thetas,
             all_ses=self._all_ses,
-            var_scaling_factor=self._var_scaling_factor,
+            var_scaling_factors=self._var_scaling_factors,
             aggregation_method=aggregation_method
         )
 

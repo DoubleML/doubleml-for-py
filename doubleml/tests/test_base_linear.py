@@ -24,7 +24,7 @@ def dml_base_linear_fixture(n_rep, aggregation_method):
         'psi_b': np.random.normal(size=(n_obs, 1, n_rep)),
     }
 
-    dml_base_linear_obj = DoubleMLBaseLinear(psi_elements, n_rep=n_rep, n_obs=n_obs)
+    dml_base_linear_obj = DoubleMLBaseLinear(psi_elements, n_rep=n_rep)
     dml_base_linear_obj.estimate_thetas(aggregation_method=aggregation_method)
 
     expected_thetas = -1.0 * np.mean(psi_elements['psi_b'], axis=0)

@@ -16,8 +16,8 @@ def n_rep(request):
 def dml_framework_fixture(n_rep):
     n_obs = 100
     psi_elements_1 = {
-        'psi_a': np.ones(shape=(n_obs, n_rep)),
-        'psi_b': np.random.normal(size=(n_obs, n_rep)),
+        'psi_a': np.ones(shape=(n_obs, 1, n_rep)),
+        'psi_b': np.random.normal(size=(n_obs, 1, n_rep)),
     }
     psi_elements_2 = {
         'psi_a': psi_elements_1['psi_a'],

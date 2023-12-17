@@ -24,13 +24,12 @@ class DoubleMLBaseLinear(DoubleMLBase):
     def __init__(
         self,
         psi_elements,
-        n_obs,
         n_thetas=1,
         n_rep=1,
     ):
         super().__init__(
             psi_elements,
-            n_obs=n_obs,
+            n_obs=psi_elements['psi_a'].shape[0],
             n_thetas=n_thetas,
             n_rep=n_rep,
         )
