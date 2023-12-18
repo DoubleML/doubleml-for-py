@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from .double_ml_base import DoubleMLBase
-from ._utils_base import _draw_weights, _initialize_arrays
+from ._utils_base import _draw_weights, _initialize_arrays, _aggregate_thetas_and_ses
 from ._utils_checks import _check_bootstrap
 
 
@@ -25,8 +25,9 @@ class DoubleMLFramework():
             self._n_obs = n_obs
             self._var_scaling_factors = np.full(self._n_thetas, np.nan)
 
+            # REMARK THIS IS NOT PSI BUT SCALED WITH J^-1
             self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factors, \
-                self._psi, self._psi_deriv = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
+                self._scaled_psi, _ = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
 
         else:
             assert isinstance(dml_base_obj, DoubleMLBase)
@@ -40,8 +41,8 @@ class DoubleMLFramework():
             self._all_thetas = dml_base_obj.all_thetas
             self._all_ses = dml_base_obj.all_ses
             self._var_scaling_factors = dml_base_obj.var_scaling_factors
-            self._psi = dml_base_obj.psi
-            self._psi_deriv = dml_base_obj.psi_deriv
+            J_obj = np.mean(dml_base_obj.psi_deriv, axis=0)
+            self._scaled_psi = np.divide(dml_base_obj.psi, J_obj)
 
         # initialize bootstrap distribution
         self._bootstrap_distribution = None
@@ -116,21 +117,18 @@ class DoubleMLFramework():
             new_obj._var_scaling_factors = self._var_scaling_factors
             new_obj._ses = self._ses
             new_obj._all_ses = self._all_ses
-            new_obj._psi = self._psi
-            new_obj._psi_deriv = self._psi_deriv
+            new_obj._scaled_psi = self._scaled_psi
 
         elif isinstance(other, DoubleMLFramework):
             new_obj._all_thetas = self._all_thetas + other._all_thetas
-            new_obj._psi = self._psi + other._psi
-            new_obj._psi_deriv = self._psi_deriv + other._psi_deriv
 
             # TODO: check if var_scaling_factors are the same
             assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
             new_obj._var_scaling_factors = self._var_scaling_factors
-            J_self = np.mean(self._psi_deriv, axis=0)
-            J_other = np.mean(other._psi_deriv, axis=0)
-            omega = self._psi / J_self + other._psi / J_other
-            sigma2_hat = np.divide(np.mean(np.square(omega), axis=0), new_obj._var_scaling_factors)
+            new_obj._scaled_psi = self._scaled_psi + other._scaled_psi
+            sigma2_hat = np.divide(
+                np.mean(np.square(new_obj._scaled_psi), axis=0),
+                new_obj._var_scaling_factors.reshape(-1, 1))
             new_obj._all_ses = np.sqrt(sigma2_hat)
 
             # TODO: aggragate over repetitions
@@ -229,10 +227,10 @@ class DoubleMLFramework():
         _check_bootstrap(method, n_rep_boot)
         # initialize bootstrap distribution array
         self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
-        score_scaling = self._var_scaling_factors.reshape(-1, 1) * np.multiply(self._all_ses, np.mean(self._psi_deriv, axis=0))
+        var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
         for i_rep in range(self.n_rep):
             weights = _draw_weights(method, n_rep_boot, self._n_obs)
-            bootstraped_scaled_scores = np.matmul(weights, np.divide(self._psi[:, :, i_rep], score_scaling[:, i_rep]))
+            bootstraped_scaled_scores = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
             self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_scores), axis=1)
 
         return self
