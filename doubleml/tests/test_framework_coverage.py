@@ -26,11 +26,6 @@ def test_dml_framework_coverage_fixture(n_rep, n_thetas):
     coverage_joint = np.zeros((R, 1))
     coverage_all_cis_joint = np.zeros((R, 1, n_rep))
 
-    coverage_add_const = np.zeros((R, n_thetas))
-    coverage_all_cis_add_const = np.zeros((R, n_thetas, n_rep))
-    coverage_joint_add_const = np.zeros((R, 1))
-    coverage_all_cis_joint_add_const = np.zeros((R, 1, n_rep))
-
     coverage_add_obj = np.zeros((R, n_thetas))
     coverage_all_cis_add_obj = np.zeros((R, n_thetas, n_rep))
     coverage_joint_add_obj = np.zeros((R, 1))
@@ -69,26 +64,6 @@ def test_dml_framework_coverage_fixture(n_rep, n_thetas):
             (true_thetas[:, 0].reshape(-1, 1) <= dml_framework_obj_1._all_cis[:, 1, :]),
             axis=0)
 
-        # add const
-        dml_framework_obj_add_const = dml_framework_obj_1 + 1.0
-        true_thetas_add_const = true_thetas[:, 0] + 1.0
-        ci_add_const = dml_framework_obj_add_const.confint(joint=False, level=0.95)
-        coverage_add_const[r, :] = (
-            (true_thetas_add_const >= ci_add_const['2.5 %'].to_numpy()) &
-            (true_thetas_add_const <= ci_add_const['97.5 %'].to_numpy()))
-        coverage_all_cis_add_const[r, :, :] = (
-            (true_thetas_add_const.reshape(-1, 1) >= dml_framework_obj_add_const._all_cis[:, 0, :]) &
-            (true_thetas_add_const.reshape(-1, 1) <= dml_framework_obj_add_const._all_cis[:, 1, :]))
-        dml_framework_obj_add_const.bootstrap(method='normal')
-        ci_joint_add_const = dml_framework_obj_add_const.confint(joint=True, level=0.95)
-        coverage_joint_add_const[r, :] = np.all(
-            (true_thetas_add_const >= ci_joint_add_const['2.5 %'].to_numpy()) &
-            (true_thetas_add_const <= ci_joint_add_const['97.5 %'].to_numpy()))
-        coverage_all_cis_joint_add_const[r, :, :] = np.all(
-            (true_thetas_add_const.reshape(-1, 1) >= dml_framework_obj_add_const._all_cis[:, 0, :]) &
-            (true_thetas_add_const.reshape(-1, 1) <= dml_framework_obj_add_const._all_cis[:, 1, :]),
-            axis=0)
-
         # add objects
         dml_framework_obj_add_obj = dml_framework_obj_1 + dml_framework_obj_2
         true_thetas_add_obj = np.sum(true_thetas, axis=1)
@@ -115,10 +90,6 @@ def test_dml_framework_coverage_fixture(n_rep, n_thetas):
         'coverage_rate_all_cis': np.mean(coverage_all_cis, axis=0),
         'coverage_rate_joint': np.mean(coverage_joint, axis=0),
         'coverage_rate_all_cis_joint': np.mean(coverage_all_cis_joint, axis=0),
-        'coverage_rate_add_const': np.mean(coverage_add_const, axis=0),
-        'coverage_rate_all_cis_add_const': np.mean(coverage_all_cis_add_const, axis=0),
-        'coverage_rate_joint_add_const': np.mean(coverage_joint_add_const, axis=0),
-        'coverage_rate_all_cis_joint_add_const': np.mean(coverage_all_cis_joint_add_const, axis=0),
         'coverage_rate_add_obj': np.mean(coverage_add_obj, axis=0),
         'coverage_rate_all_cis_add_obj': np.mean(coverage_all_cis_add_obj, axis=0),
         'coverage_rate_joint_add_obj': np.mean(coverage_joint_add_obj, axis=0),
@@ -134,10 +105,6 @@ def test_dml_framework_coverage(test_dml_framework_coverage_fixture):
                   (test_dml_framework_coverage_fixture['coverage_rate'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis'] >= 0.9) &
                   (test_dml_framework_coverage_fixture['coverage_rate_all_cis'] < 1.0))
-    assert np.all((test_dml_framework_coverage_fixture['coverage_rate_add_const'] >= 0.9) &
-                  (test_dml_framework_coverage_fixture['coverage_rate_add_const'] < 1.0))
-    assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis_add_const'] >= 0.9) &
-                  (test_dml_framework_coverage_fixture['coverage_rate_all_cis_add_const'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_add_obj'] >= 0.9) &
                   (test_dml_framework_coverage_fixture['coverage_rate_add_obj'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis_add_obj'] >= 0.9) &
@@ -151,10 +118,6 @@ def test_dml_framework_coverage_joint(test_dml_framework_coverage_fixture):
                   (test_dml_framework_coverage_fixture['coverage_rate_joint'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis_joint'] >= 0.9) &
                   (test_dml_framework_coverage_fixture['coverage_rate_all_cis_joint'] < 1.0))
-    assert np.all((test_dml_framework_coverage_fixture['coverage_rate_joint_add_const'] >= 0.9) &
-                  (test_dml_framework_coverage_fixture['coverage_rate_joint_add_const'] < 1.0))
-    assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis_joint_add_const'] >= 0.9) &
-                  (test_dml_framework_coverage_fixture['coverage_rate_all_cis_joint_add_const'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_joint_add_obj'] >= 0.9) &
                   (test_dml_framework_coverage_fixture['coverage_rate_joint_add_obj'] < 1.0))
     assert np.all((test_dml_framework_coverage_fixture['coverage_rate_all_cis_joint_add_obj'] >= 0.9) &

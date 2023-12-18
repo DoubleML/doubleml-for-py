@@ -41,8 +41,7 @@ class DoubleMLFramework():
             self._all_thetas = dml_base_obj.all_thetas
             self._all_ses = dml_base_obj.all_ses
             self._var_scaling_factors = dml_base_obj.var_scaling_factors
-            J_obj = np.mean(dml_base_obj.psi_deriv, axis=0)
-            self._scaled_psi = np.divide(dml_base_obj.psi, J_obj)
+            self._scaled_psi = np.divide(dml_base_obj.psi, np.mean(dml_base_obj.psi_deriv, axis=0))
 
         # initialize bootstrap distribution
         self._bootstrap_distribution = None
@@ -110,16 +109,7 @@ class DoubleMLFramework():
             n_rep=self._n_rep,
             n_obs=self._n_obs,
         )
-        if isinstance(other, (int, float)):
-            new_obj._thetas = self._thetas + other
-            new_obj._all_thetas = self._all_thetas + other
-
-            new_obj._var_scaling_factors = self._var_scaling_factors
-            new_obj._ses = self._ses
-            new_obj._all_ses = self._all_ses
-            new_obj._scaled_psi = self._scaled_psi
-
-        elif isinstance(other, DoubleMLFramework):
+        if isinstance(other, DoubleMLFramework):
             new_obj._all_thetas = self._all_thetas + other._all_thetas
 
             # TODO: check if var_scaling_factors are the same
@@ -131,9 +121,9 @@ class DoubleMLFramework():
                 new_obj._var_scaling_factors.reshape(-1, 1))
             new_obj._all_ses = np.sqrt(sigma2_hat)
 
-            # TODO: aggragate over repetitions
-            new_obj._thetas = np.median(new_obj._all_thetas, axis=1)
-            new_obj._ses = np.median(new_obj._all_ses, axis=1)
+            new_obj._thetas, new_obj._ses = _aggregate_thetas_and_ses(
+                new_obj._all_thetas, new_obj._all_ses, new_obj._var_scaling_factors,
+                aggregation_method='median')
 
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
@@ -143,14 +133,35 @@ class DoubleMLFramework():
     def __radd__(self, other):
         return self.__add__(other)
 
+    # TODO: Restrict to linear?
     def __mul__(self, other):
+        new_obj = DoubleMLFramework(
+            dml_base_obj=None,
+            n_thetas=self._n_thetas,
+            n_rep=self._n_rep,
+            n_obs=self._n_obs,
+        )
         if isinstance(other, (int, float)):
-            pass
+            new_obj._thetas = np.multiply(other, self._thetas)
+            new_obj._all_thetas = np.multiply(other, self._all_thetas)
+
+            new_obj._var_scaling_factors = self._var_scaling_factors
+            new_obj._ses = np.multiply(other, self._ses)
+            new_obj._all_ses = np.multiply(other, self._all_ses)
+            new_obj._scaled_psi = self._scaled_psi
         else:
-            pass
+            raise TypeError(f"Unsupported operand type: {type(other)}")
+
+        return new_obj
 
     def __rmul__(self, other):
         return self.__mul__(other)
+
+    def __sub__(self, other):
+        pass
+
+    def __rsub__(self, other):
+        pass
 
     def confint(self, joint=False, level=0.95):
         """
