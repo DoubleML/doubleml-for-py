@@ -71,6 +71,13 @@ class DoubleMLBase(ABC):
         return self._all_ses
 
     @property
+    def n_thetas(self):
+        """
+        Number of target parameters.
+        """
+        return self._n_thetas
+
+    @property
     def n_rep(self):
         """
         Number of repetitions.

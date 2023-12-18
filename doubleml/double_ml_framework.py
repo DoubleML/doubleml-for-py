@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from .double_ml_base import DoubleMLBase
-from ._utils_base import _draw_weights
+from ._utils_base import _draw_weights, _initialize_arrays
 from ._utils_checks import _check_bootstrap
 
 
@@ -23,32 +23,28 @@ class DoubleMLFramework():
             self._n_thetas = n_thetas
             self._n_rep = n_rep
             self._n_obs = n_obs
-            self._var_scaling_factor = np.full(self._n_thetas, np.nan)
+            self._var_scaling_factors = np.full(self._n_thetas, np.nan)
+
+            self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factors, \
+                self._psi, self._psi_deriv = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
+
         else:
             assert isinstance(dml_base_obj, DoubleMLBase)
             # set scores and parameters according to dml_base_obj
-            self._n_thetas = 1
+            self._n_thetas = dml_base_obj.n_thetas
             self._n_rep = dml_base_obj.n_rep
             self._n_obs = dml_base_obj.n_obs
-            self._var_scaling_factor = dml_base_obj.var_scaling_factor
 
-        # initalize arrays
-        self._thetas = np.full(self._n_thetas, np.nan)
-        self._ses = np.full(self._n_thetas, np.nan)
-        self._all_thetas = np.full((self._n_thetas, self._n_rep), np.nan)
-        self._all_ses = np.full((self._n_thetas, self._n_rep), np.nan)
-        self._psi = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
-        self._psi_deriv = np.full((self._n_obs, self._n_thetas, self._n_rep), np.nan)
+            self._thetas = dml_base_obj.thetas
+            self._ses = dml_base_obj.ses
+            self._all_thetas = dml_base_obj.all_thetas
+            self._all_ses = dml_base_obj.all_ses
+            self._var_scaling_factors = dml_base_obj.var_scaling_factors
+            self._psi = dml_base_obj.psi
+            self._psi_deriv = dml_base_obj.psi_deriv
+
+        # initialize bootstrap distribution
         self._bootstrap_distribution = None
-
-        if dml_base_obj is not None:
-            # initalize arrays from double_ml_base_obj
-            self._thetas[0] = np.array([dml_base_obj.theta])
-            self._ses[0] = np.array([dml_base_obj.se])
-            self._all_thetas[0, :] = dml_base_obj.all_thetas
-            self._all_ses[0, :] = dml_base_obj.all_ses
-            self._psi[:, 0, :] = dml_base_obj.psi
-            self._psi_deriv[:, 0, :] = dml_base_obj.psi_deriv
 
     @property
     def dml_base_objs(self):
@@ -117,6 +113,7 @@ class DoubleMLFramework():
             new_obj._thetas = self._thetas + other
             new_obj._all_thetas = self._all_thetas + other
 
+            new_obj._var_scaling_factors = self._var_scaling_factors
             new_obj._ses = self._ses
             new_obj._all_ses = self._all_ses
             new_obj._psi = self._psi
@@ -127,12 +124,13 @@ class DoubleMLFramework():
             new_obj._psi = self._psi + other._psi
             new_obj._psi_deriv = self._psi_deriv + other._psi_deriv
 
-            # TODO: check if var_scaling_factor is the same
-            new_obj._var_scaling_factor = self._var_scaling_factor
+            # TODO: check if var_scaling_factors are the same
+            assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
+            new_obj._var_scaling_factors = self._var_scaling_factors
             J_self = np.mean(self._psi_deriv, axis=0)
             J_other = np.mean(other._psi_deriv, axis=0)
             omega = self._psi / J_self + other._psi / J_other
-            sigma2_hat = np.divide(np.mean(np.square(omega), axis=0), new_obj._var_scaling_factor)
+            sigma2_hat = np.divide(np.mean(np.square(omega), axis=0), new_obj._var_scaling_factors)
             new_obj._all_ses = np.sqrt(sigma2_hat)
 
             # TODO: aggragate over repetitions
@@ -201,11 +199,11 @@ class DoubleMLFramework():
             critical_values = np.repeat(norm.ppf(percentages[1]), self._n_rep)
 
         # compute all cis over repetitions (shape: n_thetas x 2 x n_rep)
-        all_cis = np.stack(
+        self._all_cis = np.stack(
             (self.all_thetas - self.all_ses * critical_values,
              self.all_thetas + self.all_ses * critical_values),
             axis=1)
-        ci = np.median(all_cis, axis=2)
+        ci = np.median(self._all_cis, axis=2)
         # TODO: add treatment names
         df_ci = pd.DataFrame(ci, columns=['{:.1f} %'.format(i * 100) for i in percentages])
         return df_ci
@@ -231,11 +229,10 @@ class DoubleMLFramework():
         _check_bootstrap(method, n_rep_boot)
         # initialize bootstrap distribution array
         self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
-        score_scaling = self._n_obs * np.multiply(self._all_ses, np.mean(self._psi_deriv, axis=0))
+        score_scaling = self._var_scaling_factors.reshape(-1, 1) * np.multiply(self._all_ses, np.mean(self._psi_deriv, axis=0))
         for i_rep in range(self.n_rep):
             weights = _draw_weights(method, n_rep_boot, self._n_obs)
-            bootstraped_scores = np.matmul(weights, self._psi[:, :, i_rep])
-            bootstraped_max_scores = np.amax(np.abs(bootstraped_scores), axis=1)
-            self._bootstrap_distribution[:, i_rep] = np.divide(bootstraped_max_scores, score_scaling[:, i_rep])
+            bootstraped_scaled_scores = np.matmul(weights, np.divide(self._psi[:, :, i_rep], score_scaling[:, i_rep]))
+            self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_scores), axis=1)
 
         return self

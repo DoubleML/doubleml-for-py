@@ -35,10 +35,10 @@ def _aggregate_thetas_and_ses(
         assert aggregation_method == 'mean'
         aggregation_func = np.mean
 
-    thetas_hat = aggregation_func(all_thetas, axis=1)
+    thetas_hat = aggregation_func(all_thetas, axis=1).reshape(-1, 1)
     thetas_deviations = np.square(all_thetas - thetas_hat)
 
-    rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factors)
+    rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factors.reshape(-1, 1))
     var_hat = aggregation_func(rescaled_variances + thetas_deviations)
     ses_hat = np.sqrt(np.divide(var_hat, var_scaling_factors))
     return thetas_hat, ses_hat

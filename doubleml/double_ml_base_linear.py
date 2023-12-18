@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.linalg import inv
 
 from .double_ml_base import DoubleMLBase
 
@@ -24,14 +23,12 @@ class DoubleMLBaseLinear(DoubleMLBase):
     def __init__(
         self,
         psi_elements,
-        n_thetas=1,
-        n_rep=1,
     ):
         super().__init__(
             psi_elements,
             n_obs=psi_elements['psi_a'].shape[0],
-            n_thetas=n_thetas,
-            n_rep=n_rep,
+            n_thetas=psi_elements['psi_a'].shape[1],
+            n_rep=psi_elements['psi_a'].shape[2],
         )
         self._score_type = 'linear'
 
@@ -52,9 +49,6 @@ class DoubleMLBaseLinear(DoubleMLBase):
         psi_a = psi_elements['psi_a'][:, :, i_rep]
         psi_b = psi_elements['psi_b'][:, :, i_rep]
 
-        if self._n_thetas == 1:
-            thetas = - np.mean(psi_b, axis=0) / np.mean(psi_a, axis=0)
-        else:
-            thetas = - np.matmul(inv(np.mean(psi_a, axis=0)), np.mean(psi_b, axis=0))
+        thetas = - np.mean(psi_b, axis=0) / np.mean(psi_a, axis=0)
 
         return thetas

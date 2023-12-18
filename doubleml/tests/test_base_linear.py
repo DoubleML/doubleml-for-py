@@ -11,20 +11,26 @@ def n_rep(request):
 
 
 @pytest.fixture(scope='module',
+                params=[1, 5])
+def n_thetas(request):
+    return request.param
+
+
+@pytest.fixture(scope='module',
                 params=['mean', 'median'])
 def aggregation_method(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_base_linear_fixture(n_rep, aggregation_method):
+def dml_base_linear_fixture(n_rep, n_thetas, aggregation_method):
     n_obs = 100
     psi_elements = {
-        'psi_a': np.ones(shape=(n_obs, 1, n_rep)),
-        'psi_b': np.random.normal(size=(n_obs, 1, n_rep)),
+        'psi_a': np.ones(shape=(n_obs, n_thetas, n_rep)),
+        'psi_b': np.random.normal(size=(n_obs, n_thetas, n_rep)),
     }
 
-    dml_base_linear_obj = DoubleMLBaseLinear(psi_elements, n_rep=n_rep)
+    dml_base_linear_obj = DoubleMLBaseLinear(psi_elements)
     dml_base_linear_obj.estimate_thetas(aggregation_method=aggregation_method)
 
     expected_thetas = -1.0 * np.mean(psi_elements['psi_b'], axis=0)
