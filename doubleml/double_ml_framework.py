@@ -133,6 +133,37 @@ class DoubleMLFramework():
     def __radd__(self, other):
         return self.__add__(other)
 
+    def __sub__(self, other):
+        new_obj = DoubleMLFramework(
+            dml_base_obj=None,
+            n_thetas=self._n_thetas,
+            n_rep=self._n_rep,
+            n_obs=self._n_obs,
+        )
+        if isinstance(other, DoubleMLFramework):
+            new_obj._all_thetas = self._all_thetas - other._all_thetas
+
+            # TODO: check if var_scaling_factors are the same
+            assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
+            new_obj._var_scaling_factors = self._var_scaling_factors
+            new_obj._scaled_psi = self._scaled_psi - other._scaled_psi
+            sigma2_hat = np.divide(
+                np.mean(np.square(new_obj._scaled_psi), axis=0),
+                new_obj._var_scaling_factors.reshape(-1, 1))
+            new_obj._all_ses = np.sqrt(sigma2_hat)
+
+            new_obj._thetas, new_obj._ses = _aggregate_thetas_and_ses(
+                new_obj._all_thetas, new_obj._all_ses, new_obj._var_scaling_factors,
+                aggregation_method='median')
+
+        else:
+            raise TypeError(f"Unsupported operand type: {type(other)}")
+
+        return new_obj
+
+    def __rsub__(self, other):
+        return self.__sub__(other)
+
     # TODO: Restrict to linear?
     def __mul__(self, other):
         new_obj = DoubleMLFramework(
@@ -148,7 +179,7 @@ class DoubleMLFramework():
             new_obj._var_scaling_factors = self._var_scaling_factors
             new_obj._ses = np.multiply(other, self._ses)
             new_obj._all_ses = np.multiply(other, self._all_ses)
-            new_obj._scaled_psi = self._scaled_psi
+            new_obj._scaled_psi = np.multiply(other, self._scaled_psi)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -156,12 +187,6 @@ class DoubleMLFramework():
 
     def __rmul__(self, other):
         return self.__mul__(other)
-
-    def __sub__(self, other):
-        pass
-
-    def __rsub__(self, other):
-        pass
 
     def confint(self, joint=False, level=0.95):
         """
