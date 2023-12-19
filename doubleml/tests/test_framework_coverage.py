@@ -3,7 +3,7 @@ import numpy as np
 
 from doubleml.double_ml_base_linear import DoubleMLBaseLinear
 from doubleml.double_ml_framework import DoubleMLFramework
-
+from doubleml.double_ml_concat import concat
 
 @pytest.fixture(scope='module',
                 params=[1, 3])
