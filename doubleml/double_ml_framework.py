@@ -270,3 +270,35 @@ class DoubleMLFramework():
             self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_scores), axis=1)
 
         return self
+
+
+def concat(objs):
+    """
+    Concatenate DoubleMLFramework objects.
+    """
+    if len(objs) == 0:
+        raise ValueError('Need at least one object to concatenate.')
+
+    if not all(isinstance(obj, DoubleMLFramework) for obj in objs):
+        raise ValueError('All objects must be of type DoubleMLFramework.')
+
+    n_thetas = sum(obj.n_thetas for obj in objs)
+    n_rep = objs[0].n_rep  # TODO: check if all n_rep are the same
+    n_obs = objs[0].n_obs  # TODO: check if all n_obs are the same
+
+    # TODO: Add more Input checks
+    new_obj = DoubleMLFramework(
+        n_thetas=n_thetas,
+        n_rep=n_rep,
+        n_obs=n_obs,
+    )
+
+    new_obj._all_thetas = np.concatenate([obj.all_thetas for obj in objs], axis=0)
+    new_obj._all_ses = np.concatenate([obj.all_ses for obj in objs], axis=0)
+    new_obj._var_scaling_factors = np.concatenate([obj._var_scaling_factors for obj in objs], axis=0)
+    new_obj._scaled_psi = np.concatenate([obj._scaled_psi for obj in objs], axis=1)
+
+    new_obj._thetas = np.concatenate([obj.thetas for obj in objs], axis=0)
+    new_obj._ses = np.concatenate([obj.ses for obj in objs], axis=0)
+
+    return new_obj

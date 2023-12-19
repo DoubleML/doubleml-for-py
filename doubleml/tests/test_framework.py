@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from doubleml.double_ml_base_linear import DoubleMLBaseLinear
-from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_framework import DoubleMLFramework, concat
 
 
 @pytest.fixture(scope='module',
@@ -56,6 +56,12 @@ def dml_framework_fixture(n_rep, n_thetas):
     dml_framework_obj_mul_obj.bootstrap(method='normal')
     ci_joint_mul_obj = dml_framework_obj_mul_obj.confint(joint=True, level=0.95)
 
+    # concat objects
+    dml_framework_obj_concat = concat([dml_framework_obj, dml_framework_obj])
+    ci_concat = dml_framework_obj_concat.confint(joint=False, level=0.95)
+    dml_framework_obj_concat.bootstrap(method='normal')
+    ci_joint_concat = dml_framework_obj_concat.confint(joint=True, level=0.95)
+
     result_dict = {
         'dml_obj': dml_obj,
         'dml_obj_2': dml_obj_2,
@@ -63,14 +69,17 @@ def dml_framework_fixture(n_rep, n_thetas):
         'dml_framework_obj_add_obj': dml_framework_obj_add_obj,
         'dml_framework_obj_sub_obj': dml_framework_obj_sub_obj,
         'dml_framework_obj_mul_obj': dml_framework_obj_mul_obj,
+        'dml_framework_obj_concat': dml_framework_obj_concat,
         'ci': ci,
         'ci_add_obj': ci_add_obj,
         'ci_sub_obj': ci_sub_obj,
         'ci_mul_obj': ci_mul_obj,
+        'ci_concat': ci_concat,
         'ci_joint': ci_joint,
         'ci_joint_add_obj': ci_joint_add_obj,
         'ci_joint_sub_obj': ci_joint_sub_obj,
         'ci_joint_mul_obj': ci_joint_mul_obj,
+        'ci_joint_concat': ci_joint_concat,
     }
     return result_dict
 
@@ -93,6 +102,10 @@ def test_dml_framework_theta(dml_framework_fixture):
     assert np.allclose(
         dml_framework_fixture['dml_framework_obj_mul_obj'].all_thetas,
         2*dml_framework_fixture['dml_obj'].all_thetas
+    )
+    assert np.allclose(
+        dml_framework_fixture['dml_framework_obj_concat'].all_thetas,
+        np.vstack((dml_framework_fixture['dml_obj'].all_thetas, dml_framework_fixture['dml_obj'].all_thetas))
     )
 
 
@@ -119,6 +132,10 @@ def test_dml_framework_se(dml_framework_fixture):
         dml_framework_fixture['dml_framework_obj_mul_obj'].all_ses,
         2*dml_framework_fixture['dml_obj'].all_ses
     )
+    assert np.allclose(
+        dml_framework_fixture['dml_framework_obj_concat'].all_ses,
+        np.vstack((dml_framework_fixture['dml_obj'].all_ses, dml_framework_fixture['dml_obj'].all_ses))
+    )
 
 
 @pytest.mark.rewrite
@@ -132,3 +149,5 @@ def test_dml_framework_ci(dml_framework_fixture):
     assert isinstance(dml_framework_fixture['ci_joint_sub_obj'], pd.DataFrame)
     assert isinstance(dml_framework_fixture['ci_mul_obj'], pd.DataFrame)
     assert isinstance(dml_framework_fixture['ci_joint_mul_obj'], pd.DataFrame)
+    assert isinstance(dml_framework_fixture['ci_concat'], pd.DataFrame)
+    assert isinstance(dml_framework_fixture['ci_joint_concat'], pd.DataFrame)
