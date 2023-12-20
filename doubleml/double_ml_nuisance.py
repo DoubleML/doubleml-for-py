@@ -11,9 +11,6 @@ class DoubleMLNuisance(ABC):
         n_folds,
         n_rep,
         score,
-        dml_procedure,
-        draw_sample_splitting,
-        apply_cross_fitting,
     ):
         # initialize learners and parameters which are set model specific
         self._learner = None

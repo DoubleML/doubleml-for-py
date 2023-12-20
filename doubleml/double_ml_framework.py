@@ -266,8 +266,8 @@ class DoubleMLFramework():
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
         for i_rep in range(self.n_rep):
             weights = _draw_weights(method, n_rep_boot, self._n_obs)
-            bootstraped_scaled_scores = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
-            self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_scores), axis=1)
+            bootstraped_scaled_psi = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
+            self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_psi), axis=1)
 
         return self
 
