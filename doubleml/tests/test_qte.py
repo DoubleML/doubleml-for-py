@@ -13,7 +13,7 @@ from ._utils import draw_smpls
 from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
 
 from doubleml.datasets import make_irm_data
-from .._utils import _default_kde
+from ..utils._estimation import _default_kde
 
 
 quantiles = [0.25, 0.5, 0.75]

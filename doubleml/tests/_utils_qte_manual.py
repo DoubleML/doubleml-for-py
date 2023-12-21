@@ -7,7 +7,7 @@ from ..double_ml_pq import DoubleMLPQ
 from ..double_ml_data import DoubleMLData
 
 from ._utils_boot import draw_weights
-from .._utils import _default_kde
+from ..utils._estimation import _default_kde
 
 
 def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_procedure='dml2',

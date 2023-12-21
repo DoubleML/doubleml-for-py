@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 
 from scipy.optimize import fmin_l_bfgs_b, root_scalar
-from ._utils import _get_bracket_guess
+from .utils._estimation import _get_bracket_guess
 
 from abc import abstractmethod
 

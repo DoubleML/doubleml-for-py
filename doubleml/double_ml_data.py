@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
 from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
-from ._utils import _assure_2d_array
+from .utils._estimation import _assure_2d_array
 
 
 class DoubleMLBaseData(ABC):

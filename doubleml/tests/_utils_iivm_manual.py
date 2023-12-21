@@ -4,7 +4,7 @@ from sklearn.base import clone, is_classifier
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, fit_predict_proba, tune_grid_search
 
-from .._utils import _normalize_ipw
+from ..utils._estimation import _normalize_ipw
 
 
 def fit_iivm(y, x, d, z,

@@ -8,7 +8,7 @@ from .double_ml import DoubleML
 from .double_ml_score_mixins import NonLinearScoreMixin
 from .double_ml_data import DoubleMLData
 
-from ._utils import (
+from .utils._estimation import (
     _dml_cv_predict,
     _trimm,
     _predict_zero_one_propensity,
@@ -19,8 +19,8 @@ from ._utils import (
     _dml_tune,
     _solve_ipw_score,
 )
-from ._utils_resampling import DoubleMLResampling
-from ._utils_checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, _check_quantile
+from .utils.resampling import DoubleMLResampling
+from .utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, _check_quantile
 
 
 class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):

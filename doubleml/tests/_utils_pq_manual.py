@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
 from ._utils import tune_grid_search
-from .._utils import _dml_cv_predict, _default_kde, _normalize_ipw, _solve_ipw_score, _get_bracket_guess
+from ..utils._estimation import _dml_cv_predict, _default_kde, _normalize_ipw, _solve_ipw_score, _get_bracket_guess
 
 
 def fit_pq(y, x, d, quantile,

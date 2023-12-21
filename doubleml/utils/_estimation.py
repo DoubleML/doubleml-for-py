@@ -12,7 +12,7 @@ from statsmodels.nonparametric.kde import KDEUnivariate
 
 from joblib import Parallel, delayed
 
-from ._utils_checks import _check_is_partition
+from ._checks import _check_is_partition
 
 
 def _assure_2d_array(x):
