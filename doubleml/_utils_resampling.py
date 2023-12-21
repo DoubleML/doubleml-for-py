@@ -25,7 +25,6 @@ class DoubleMLResampling:
         self.n_obs = n_obs
         if not apply_cross_fitting:
             deprication_apply_cross_fitting()
-            apply_cross_fitting = True
         self.apply_cross_fitting = apply_cross_fitting
         self.stratify = stratify
         if (self.n_folds == 1) & self.apply_cross_fitting:
