@@ -4,6 +4,15 @@ import warnings
 from sklearn.model_selection import KFold, RepeatedKFold, RepeatedStratifiedKFold
 
 
+# Remove warnings in future versions
+def deprication_apply_cross_fitting():
+    warnings.warn('The apply_cross_fitting argument is deprecated and will be removed in future versions. '
+                  'In the future, crossfitting is applied by default. '
+                  'To rely on sample splitting please use external predictions.',
+                  DeprecationWarning)
+    return
+
+
 class DoubleMLResampling:
     def __init__(self,
                  n_folds,
@@ -14,6 +23,9 @@ class DoubleMLResampling:
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs
+        if not apply_cross_fitting:
+            deprication_apply_cross_fitting()
+            apply_cross_fitting = True
         self.apply_cross_fitting = apply_cross_fitting
         self.stratify = stratify
         if (self.n_folds == 1) & self.apply_cross_fitting:

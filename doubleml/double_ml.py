@@ -24,6 +24,21 @@ from ._utils_plots import _sensitivity_contour_plot
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 
 
+# Remove warnings in future versions
+def deprication_apply_cross_fitting():
+    warnings.warn('The apply_cross_fitting argument is deprecated and will be removed in future versions. '
+                  'In the future, crossfitting is applied by default. '
+                  'To rely on sample splitting please use external predictions.',
+                  DeprecationWarning)
+    return
+
+
+def deprication_dml_procedure():
+    warnings.warn('The dml_procedure argument is deprecated and will be removed in future versions. '
+                  'in the future, dml_procedure is always set to dml2.', DeprecationWarning)
+    return
+
+
 class DoubleML(ABC):
     """Double Machine Learning.
     """
@@ -89,6 +104,9 @@ class DoubleML(ABC):
             raise TypeError('draw_sample_splitting must be True or False. '
                             f'Got {str(draw_sample_splitting)}.')
 
+        if not apply_cross_fitting:
+            deprication_apply_cross_fitting()
+
         # set resampling specifications
         if self._is_cluster_data:
             if (n_folds == 1) or (not apply_cross_fitting):
@@ -103,11 +121,15 @@ class DoubleML(ABC):
         # default is no stratification
         self._strata = None
 
-        # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
             raise ValueError('dml_procedure must be "dml1" or "dml2". '
                              f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
+
+        if dml_procedure == 'dml1':
+            deprication_dml_procedure()
+        self._dml_procedure = dml_procedure
+
         self._score = score
 
         if (self.n_folds == 1) & self.apply_cross_fitting:
