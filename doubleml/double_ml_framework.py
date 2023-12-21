@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+from .double_ml import DoubleML
 from .double_ml_base import DoubleMLBase
 from ._utils_base import _draw_weights, _initialize_arrays, _aggregate_thetas_and_ses
 from ._utils_checks import _check_bootstrap
@@ -29,8 +30,7 @@ class DoubleMLFramework():
             self._thetas, self._ses, self._all_thetas, self._all_ses, self._var_scaling_factors, \
                 self._scaled_psi, _ = _initialize_arrays(self._n_thetas, self._n_rep, self._n_obs)
 
-        else:
-            assert isinstance(dml_base_obj, DoubleMLBase)
+        elif isinstance(dml_base_obj, DoubleMLBase):
             # set scores and parameters according to dml_base_obj
             self._n_thetas = dml_base_obj.n_thetas
             self._n_rep = dml_base_obj.n_rep
@@ -41,6 +41,20 @@ class DoubleMLFramework():
             self._all_thetas = dml_base_obj.all_thetas
             self._all_ses = dml_base_obj.all_ses
             self._var_scaling_factors = dml_base_obj.var_scaling_factors
+            self._scaled_psi = np.divide(dml_base_obj.psi, np.mean(dml_base_obj.psi_deriv, axis=0))
+
+        else:
+            assert isinstance(dml_base_obj, DoubleML)
+            # set scores and parameters according to dml_base_obj
+            self._n_thetas = dml_base_obj._dml_data.n_treat
+            self._n_rep = dml_base_obj.n_rep
+            self._n_obs = dml_base_obj._dml_data.n_obs
+
+            self._thetas = dml_base_obj.coef
+            self._ses = dml_base_obj.se
+            self._all_thetas = dml_base_obj.all_coef
+            self._all_ses = dml_base_obj.all_se
+            self._var_scaling_factors = np.array([dml_base_obj._var_scaling_factor])
             self._scaled_psi = np.divide(dml_base_obj.psi, np.mean(dml_base_obj.psi_deriv, axis=0))
 
         # initialize bootstrap distribution
