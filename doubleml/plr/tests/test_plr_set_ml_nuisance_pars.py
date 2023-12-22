@@ -6,7 +6,7 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ._utils import _clone
+from ...tests._utils import _clone
 
 
 @pytest.fixture(scope='module',

@@ -1,6 +1,6 @@
 from pkg_resources import get_distribution
 
-from .double_ml_plr import DoubleMLPLR
+from .plr.plr import DoubleMLPLR
 from .iv.pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
 from .iv.iivm import DoubleMLIIVM

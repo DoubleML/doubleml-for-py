@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
-from ._utils import draw_smpls, _clone
+from ...tests._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr
 
 bonus_data = fetch_bonus()

@@ -2,8 +2,8 @@ import numpy as np
 import scipy
 from sklearn.base import clone, is_classifier
 
-from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict, fit_predict_proba, tune_grid_search
+from ...tests._utils_boot import boot_manual, draw_weights
+from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, score,

@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls, _clone
+from ...tests._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr
 
 
@@ -79,19 +79,19 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     # test with external nuisance predictions
     if score == 'partialling out':
         dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
-                                      ml_l, ml_m,
-                                      n_folds,
-                                      n_rep,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                          ml_l, ml_m,
+                                          n_folds,
+                                          n_rep,
+                                          score=score,
+                                          dml_procedure=dml_procedure)
     else:
         assert score == 'IV-type'
         dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
-                                      ml_l, ml_m, ml_g,
-                                      n_folds,
-                                      n_rep,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                          ml_l, ml_m, ml_g,
+                                          n_folds,
+                                          n_rep,
+                                          score=score,
+                                          dml_procedure=dml_procedure)
 
     # synchronize the sample splitting
     dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)

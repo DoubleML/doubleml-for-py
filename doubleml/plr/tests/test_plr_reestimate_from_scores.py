@@ -6,7 +6,7 @@ from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 
-from ._utils import _clone
+from ...tests._utils import _clone
 
 
 @pytest.fixture(scope='module',
@@ -34,7 +34,7 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
+def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     n_folds = 3
 
     # collect data
@@ -57,18 +57,19 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
                                   n_rep,
                                   score,
                                   dml_procedure)
-
     dml_plr_obj.fit()
 
-    smpls = dml_plr_obj.smpls
-
+    np.random.seed(3141)
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
                                    ml_l, ml_m, ml_g,
-                                   score=score,
-                                   dml_procedure=dml_procedure,
-                                   draw_sample_splitting=False)
-    dml_plr_obj2.set_sample_splitting(smpls)
+                                   n_folds,
+                                   n_rep,
+                                   score,
+                                   dml_procedure)
     dml_plr_obj2.fit()
+    dml_plr_obj2._coef[0] = np.nan
+    dml_plr_obj2._se[0] = np.nan
+    dml_plr_obj2._est_causal_pars_and_se()
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef2': dml_plr_obj2.coef,
@@ -79,14 +80,14 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
 
 
 @pytest.mark.ci
-def test_dml_plr_coef(dml_plr_smpls_fixture):
-    assert math.isclose(dml_plr_smpls_fixture['coef'],
-                        dml_plr_smpls_fixture['coef2'],
+def test_dml_plr_coef(dml_plr_reestimate_fixture):
+    assert math.isclose(dml_plr_reestimate_fixture['coef'],
+                        dml_plr_reestimate_fixture['coef2'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
-def test_dml_plr_se(dml_plr_smpls_fixture):
-    assert math.isclose(dml_plr_smpls_fixture['se'],
-                        dml_plr_smpls_fixture['se2'],
+def test_dml_plr_se(dml_plr_reestimate_fixture):
+    assert math.isclose(dml_plr_reestimate_fixture['se'],
+                        dml_plr_reestimate_fixture['se2'],
                         rel_tol=1e-9, abs_tol=1e-4)

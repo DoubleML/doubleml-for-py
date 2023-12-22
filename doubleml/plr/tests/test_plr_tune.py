@@ -6,7 +6,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 
 import doubleml as dml
 
-from ._utils import draw_smpls, _clone
+from ...tests._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr, boot_plr, tune_nuisance_plr
 
 

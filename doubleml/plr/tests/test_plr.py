@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_plr_manual import fit_plr, plr_dml1, plr_dml2, boot_plr, fit_sensitivity_elements_plr
 
 
@@ -82,17 +82,17 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     # test with external nuisance predictions
     if score == 'partialling out':
         dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
-                                      ml_l, ml_m,
-                                      n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                          ml_l, ml_m,
+                                          n_folds,
+                                          score=score,
+                                          dml_procedure=dml_procedure)
     else:
         assert score == 'IV-type'
         dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
-                                      ml_l, ml_m, ml_g,
-                                      n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                          ml_l, ml_m, ml_g,
+                                          n_folds,
+                                          score=score,
+                                          dml_procedure=dml_procedure)
 
     # synchronize the sample splitting
     dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)
@@ -107,7 +107,6 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
                                  'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, 1)}}
 
     dml_plr_obj_ext.fit(external_predictions=prediction_dict)
-
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],

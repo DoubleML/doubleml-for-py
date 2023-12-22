@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls, _clone
+from ...tests._utils import draw_smpls, _clone
 from ._utils_plr_manual import fit_plr_multitreat, boot_plr_multitreat, fit_sensitivity_elements_plr
 
 
