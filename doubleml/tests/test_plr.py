@@ -363,7 +363,7 @@ def test_dml_plr_cate_gate(score, dml_procedure):
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
         gate_1 = dml_plr_obj.gate(groups_1)
-    assert isinstance(gate_1, dml.best_linear_predictor.DoubleMLBLP)
+    assert isinstance(gate_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
     assert all(gate_1.confint().index == groups_1.columns.tolist())
 
@@ -372,6 +372,6 @@ def test_dml_plr_cate_gate(score, dml_procedure):
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
         gate_2 = dml_plr_obj.gate(groups_2)
-    assert isinstance(gate_2, dml.best_linear_predictor.DoubleMLBLP)
+    assert isinstance(gate_2, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
