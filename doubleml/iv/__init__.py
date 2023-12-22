@@ -1,5 +1,5 @@
 """
-The :mod:`doubleml.iv` module  implements a variety of instrumental variable models.
+The :mod:`doubleml.iv` module implements double machine learning estimates based on instrumental variable models.
 """
 
 from .pliv import DoubleMLPLIV
