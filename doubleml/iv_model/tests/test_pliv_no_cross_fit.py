@@ -6,8 +6,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls, _clone
-from ..iv_model.tests._utils_pliv_manual import fit_pliv, boot_pliv
+from ...tests._utils import draw_smpls, _clone
+from ._utils_pliv_manual import fit_pliv, boot_pliv
 
 
 @pytest.fixture(scope='module',

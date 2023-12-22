@@ -3,7 +3,9 @@ The :mod:`doubleml.iv_model` module  implements a variety of instrumental variab
 """
 
 from .pliv import DoubleMLPLIV
+from .iivm import DoubleMLIIVM
 
 __all__ = [
     "DoubleMLPLIV",
+    "DoubleMLIIVM",
 ]

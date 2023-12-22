@@ -8,8 +8,8 @@ from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ._utils import draw_smpls
-from ..iv_model.tests._utils_pliv_partial_xz_manual import fit_pliv_partial_xz, boot_pliv_partial_xz
+from ...tests._utils import draw_smpls
+from ._utils_pliv_partial_xz_manual import fit_pliv_partial_xz, boot_pliv_partial_xz
 
 
 @pytest.fixture(scope='module',
