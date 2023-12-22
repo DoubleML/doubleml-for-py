@@ -4,13 +4,13 @@ from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from .double_ml import DoubleML
-from .double_ml_score_mixins import LinearScoreMixin
-from .utils._estimation import _dml_cv_predict, _trimm, _predict_zero_one_propensity, \
+from ..double_ml import DoubleML
+from ..double_ml_score_mixins import LinearScoreMixin
+from ..utils._estimation import _dml_cv_predict, _trimm, _predict_zero_one_propensity, \
     _normalize_ipw, _dml_tune, _get_bracket_guess, _solve_ipw_score, _cond_targets
-from .double_ml_data import DoubleMLData
-from .utils.resampling import DoubleMLResampling
-from .utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, \
+from ..double_ml_data import DoubleMLData
+from ..utils.resampling import DoubleMLResampling
+from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, \
     _check_contains_iv, _check_quantile
 
 

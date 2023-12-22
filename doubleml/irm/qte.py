@@ -6,14 +6,14 @@ from sklearn.base import clone
 
 from joblib import Parallel, delayed
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .double_ml_pq import DoubleMLPQ
-from .double_ml_lpq import DoubleMLLPQ
-from .double_ml_cvar import DoubleMLCVAR
+from ..double_ml_data import DoubleMLData, DoubleMLClusterData
+from .pq import DoubleMLPQ
+from .lpq import DoubleMLLPQ
+from .cvar import DoubleMLCVAR
 
-from .utils._estimation import _draw_weights, _default_kde
-from .utils.resampling import DoubleMLResampling
-from .utils._checks import _check_score, _check_trimming, _check_zero_one_treatment
+from ..utils._estimation import _draw_weights, _default_kde
+from ..utils.resampling import DoubleMLResampling
+from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment
 
 
 class DoubleMLQTE:

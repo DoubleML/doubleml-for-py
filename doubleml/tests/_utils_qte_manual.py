@@ -3,7 +3,7 @@ from sklearn.base import clone
 import pandas as pd
 from scipy.stats import norm
 
-from ..double_ml_pq import DoubleMLPQ
+from ..irm.pq import DoubleMLPQ
 from ..double_ml_data import DoubleMLData
 
 from ._utils_boot import draw_weights

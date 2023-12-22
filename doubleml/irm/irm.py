@@ -4,15 +4,15 @@ import warnings
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from .double_ml import DoubleML
+from ..double_ml import DoubleML
 
-from .utils.blp import DoubleMLBLP
-from .utils.policytree import DoubleMLPolicyTree
-from .double_ml_data import DoubleMLData
-from .double_ml_score_mixins import LinearScoreMixin
+from ..utils.blp import DoubleMLBLP
+from ..utils.policytree import DoubleMLPolicyTree
+from ..double_ml_data import DoubleMLData
+from ..double_ml_score_mixins import LinearScoreMixin
 
-from .utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
-from .utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
+from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
+from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
     _check_weights
 
 

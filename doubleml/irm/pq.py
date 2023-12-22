@@ -3,11 +3,11 @@ from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
-from .double_ml import DoubleML
-from .double_ml_score_mixins import NonLinearScoreMixin
-from .double_ml_data import DoubleMLData
+from ..double_ml import DoubleML
+from ..double_ml_score_mixins import NonLinearScoreMixin
+from ..double_ml_data import DoubleMLData
 
-from .utils._estimation import (
+from ..utils._estimation import (
     _dml_cv_predict,
     _trimm,
     _predict_zero_one_propensity,
@@ -18,8 +18,8 @@ from .utils._estimation import (
     _solve_ipw_score,
     _cond_targets,
 )
-from .utils.resampling import DoubleMLResampling
-from .utils._checks import (
+from ..utils.resampling import DoubleMLResampling
+from ..utils._checks import (
     _check_score,
     _check_trimming,
     _check_zero_one_treatment,
