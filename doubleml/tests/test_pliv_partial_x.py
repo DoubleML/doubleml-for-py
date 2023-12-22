@@ -9,7 +9,7 @@ from sklearn.linear_model import Lasso
 import doubleml as dml
 
 from ._utils import draw_smpls
-from ._utils_pliv_partial_x_manual import fit_pliv_partial_x, boot_pliv_partial_x
+from ..iv_model.tests._utils_pliv_partial_x_manual import fit_pliv_partial_x, boot_pliv_partial_x
 
 
 @pytest.fixture(scope='module',

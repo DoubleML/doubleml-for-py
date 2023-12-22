@@ -7,7 +7,7 @@ from sklearn.linear_model import Lasso, ElasticNet
 import doubleml as dml
 
 from ._utils import draw_smpls, _clone
-from ._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
+from ..iv_model.tests._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
 
 
 @pytest.fixture(scope='module',
