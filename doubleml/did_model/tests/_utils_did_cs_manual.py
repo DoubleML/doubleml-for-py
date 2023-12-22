@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.base import clone
 
-from ._utils import fit_predict, fit_predict_proba, tune_grid_search
+from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ._utils_did_manual import did_dml1, did_dml2
 
 

@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.base import clone
 
-from ._utils_boot import boot_manual, draw_weights
-from ._utils import fit_predict, fit_predict_proba, tune_grid_search
+from ...tests._utils_boot import boot_manual, draw_weights
+from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_did(y, x, d,

@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_did_manual import boot_did
 from ._utils_did_cs_manual import fit_did_cs, tune_nuisance_did_cs
 
