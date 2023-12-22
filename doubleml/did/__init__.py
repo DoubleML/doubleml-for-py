@@ -1,5 +1,5 @@
 """
-The :mod:`doubleml.did_model` module  implements a variety of difference in differences models.
+The :mod:`doubleml.did` module  implements a variety of difference in differences models.
 """
 
 from .did import DoubleMLDID

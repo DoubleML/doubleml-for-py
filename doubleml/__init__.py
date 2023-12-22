@@ -1,12 +1,12 @@
 from pkg_resources import get_distribution
 
 from .double_ml_plr import DoubleMLPLR
-from .iv_model.pliv import DoubleMLPLIV
+from .iv.pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
-from .iv_model.iivm import DoubleMLIIVM
+from .iv.iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .did_model.did import DoubleMLDID
-from .did_model.did_cs import DoubleMLDIDCS
+from .did.did import DoubleMLDID
+from .did.did_cs import DoubleMLDIDCS
 from .double_ml_qte import DoubleMLQTE
 from .double_ml_pq import DoubleMLPQ
 from .double_ml_lpq import DoubleMLLPQ
