@@ -3,7 +3,7 @@ The :mod:`doubleml.iv` module implements double machine learning estimates based
 """
 
 from ..plm.pliv import DoubleMLPLIV
-from .iivm import DoubleMLIIVM
+from ..irm.iivm import DoubleMLIIVM
 
 __all__ = [
     "DoubleMLPLIV",
