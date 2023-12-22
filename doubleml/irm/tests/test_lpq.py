@@ -8,9 +8,9 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from statsmodels.nonparametric.kde import KDEUnivariate
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_lpq_manual import fit_lpq
-from ..utils._estimation import _default_kde
+from ...utils._estimation import _default_kde
 
 
 def custom_kde(u, weights):

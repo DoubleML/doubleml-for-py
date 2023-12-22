@@ -3,8 +3,8 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
 
-from ._utils import tune_grid_search
-from ..utils._estimation import _dml_cv_predict, _trimm, _default_kde, _normalize_ipw, _get_bracket_guess, _solve_ipw_score
+from ...tests._utils import tune_grid_search
+from ...utils._estimation import _dml_cv_predict, _trimm, _default_kde, _normalize_ipw, _get_bracket_guess, _solve_ipw_score
 
 
 def fit_lpq(y, x, d, z, quantile,

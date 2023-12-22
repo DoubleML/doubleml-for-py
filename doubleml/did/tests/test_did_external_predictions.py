@@ -5,7 +5,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLDID
 from doubleml.datasets import make_did_SZ2020
 from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 
 
 @pytest.fixture(scope="module", params=["observational", "experimental"])

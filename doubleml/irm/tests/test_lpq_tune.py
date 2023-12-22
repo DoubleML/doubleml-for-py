@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_lpq_manual import fit_lpq, tune_nuisance_lpq
 
 

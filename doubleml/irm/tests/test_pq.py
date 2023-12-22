@@ -8,7 +8,7 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_pq_manual import fit_pq
 
 

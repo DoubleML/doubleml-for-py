@@ -9,11 +9,11 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
 
 from doubleml.datasets import make_irm_data
-from ..utils._estimation import _default_kde
+from ...utils._estimation import _default_kde
 
 
 quantiles = [0.25, 0.5, 0.75]

@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 from doubleml import DoubleMLPQ, DoubleMLData
 from doubleml.datasets import make_irm_data
 from doubleml.utils import DMLDummyClassifier
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 
 
 @pytest.fixture(scope="module", params=["dml1", "dml2"])

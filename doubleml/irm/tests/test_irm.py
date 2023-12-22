@@ -12,7 +12,7 @@ import doubleml as dml
 from doubleml.datasets import make_irm_data
 from doubleml.utils.resampling import DoubleMLResampling
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
 
 

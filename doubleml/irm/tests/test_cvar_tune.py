@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
-from ._utils import draw_smpls
+from ...tests._utils import draw_smpls
 from ._utils_cvar_manual import fit_cvar, tune_nuisance_cvar
 
 
