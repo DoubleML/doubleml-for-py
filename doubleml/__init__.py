@@ -5,14 +5,15 @@ from .double_ml_pliv import DoubleMLPLIV
 from .double_ml_irm import DoubleMLIRM
 from .double_ml_iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
-from .double_ml_blp import DoubleMLBLP
 from .double_ml_did import DoubleMLDID
 from .double_ml_did_cs import DoubleMLDIDCS
 from .double_ml_qte import DoubleMLQTE
 from .double_ml_pq import DoubleMLPQ
 from .double_ml_lpq import DoubleMLLPQ
 from .double_ml_cvar import DoubleMLCVAR
-from .double_ml_policytree import DoubleMLPolicyTree
+
+from .utils.blp import DoubleMLBLP
+from .utils.policytree import DoubleMLPolicyTree
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',
@@ -20,13 +21,13 @@ __all__ = ['DoubleMLPLR',
            'DoubleMLIIVM',
            'DoubleMLData',
            'DoubleMLClusterData',
-           'DoubleMLBLP',
            'DoubleMLDID',
            'DoubleMLDIDCS',
            'DoubleMLPQ',
            'DoubleMLQTE',
            'DoubleMLLPQ',
            'DoubleMLCVAR',
+           'DoubleMLBLP',
            'DoubleMLPolicyTree']
 
 __version__ = get_distribution('doubleml').version

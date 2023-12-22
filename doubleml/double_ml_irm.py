@@ -6,8 +6,8 @@ from sklearn.utils.multiclass import type_of_target
 
 from .double_ml import DoubleML
 
-from .double_ml_blp import DoubleMLBLP
-from .double_ml_policytree import DoubleMLPolicyTree
+from .utils.blp import DoubleMLBLP
+from .utils.policytree import DoubleMLPolicyTree
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 

@@ -9,7 +9,7 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
-from .double_ml_blp import DoubleMLBLP
+from .utils.blp import DoubleMLBLP
 
 from .utils._estimation import _dml_cv_predict, _dml_tune
 from .utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
