@@ -1019,7 +1019,7 @@ def test_doubleml_sensitivity_not_yet_implemented():
 
     dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r)
     dml_pliv.fit()
-    msg = ("Sensitivity analysis not yet implemented for <class 'doubleml.iv_model.DoubleMLPLIV'>.")
+    msg = "Sensitivity analysis not yet implemented for DoubleMLPLIV."
     with pytest.raises(NotImplementedError, match=msg):
         _ = dml_pliv.sensitivity_analysis()
 

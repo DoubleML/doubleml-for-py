@@ -1614,7 +1614,7 @@ class DoubleML(ABC):
         if not self.apply_cross_fitting:
             raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
         if self._sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
 
         # checks
         _check_in_zero_one(cf_y, 'cf_y', include_one=False)
@@ -1979,7 +1979,7 @@ class DoubleML(ABC):
 
         # input checks
         if self._sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {str(type(self))}.')
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
         if not isinstance(benchmarking_set, list):
             raise TypeError('benchmarking_set must be a list. '
                             f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
