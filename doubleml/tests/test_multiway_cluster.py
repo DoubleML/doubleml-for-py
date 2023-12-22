@@ -11,7 +11,7 @@ from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 from ._utils import _clone
 from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2, \
     est_two_way_cluster_dml2, var_two_way_cluster
-from ..iv.tests._utils_pliv_manual import fit_pliv, compute_pliv_residuals
+from ..plm.tests._utils_pliv_manual import fit_pliv, compute_pliv_residuals
 
 np.random.seed(1234)
 # Set the simulation parameters

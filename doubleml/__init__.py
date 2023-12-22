@@ -1,7 +1,7 @@
 from pkg_resources import get_distribution
 
-from .plr.plr import DoubleMLPLR
-from .iv.pliv import DoubleMLPLIV
+from .plm.plr import DoubleMLPLR
+from .plm.pliv import DoubleMLPLIV
 from .irm.irm import DoubleMLIRM
 from .iv.iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
