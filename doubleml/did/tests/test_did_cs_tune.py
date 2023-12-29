@@ -152,14 +152,14 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
 
 @pytest.mark.ci
 def test_dml_did_cs_coef(dml_did_cs_fixture):
-    assert math.isclose(dml_did_cs_fixture['coef'],
+    assert math.isclose(dml_did_cs_fixture['coef'][0],
                         dml_did_cs_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_did_cs_se(dml_did_cs_fixture):
-    assert math.isclose(dml_did_cs_fixture['se'],
+    assert math.isclose(dml_did_cs_fixture['se'][0],
                         dml_did_cs_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 

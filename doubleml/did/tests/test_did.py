@@ -122,14 +122,14 @@ def dml_did_fixture(generate_data_did, learner, score, in_sample_normalization,
 
 @pytest.mark.ci
 def test_dml_did_coef(dml_did_fixture):
-    assert math.isclose(dml_did_fixture['coef'],
+    assert math.isclose(dml_did_fixture['coef'][0],
                         dml_did_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_did_se(dml_did_fixture):
-    assert math.isclose(dml_did_fixture['se'],
+    assert math.isclose(dml_did_fixture['se'][0],
                         dml_did_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
@@ -189,8 +189,8 @@ def test_dml_did_experimental(generate_data_did, in_sample_normalization, learne
                                             score='experimental',
                                             in_sample_normalization=in_sample_normalization)
     dml_did_obj_with_ml_m.fit()
-    assert math.isclose(dml_did_obj_with_ml_m.coef,
-                        dml_did_obj_without_ml_m.coef,
+    assert math.isclose(dml_did_obj_with_ml_m.coef[0],
+                        dml_did_obj_without_ml_m.coef[0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
     msg = ('A learner ml_m has been provided for score = "experimental" but will be ignored. '
