@@ -42,24 +42,6 @@ def generate_data1(request):
 
 @pytest.fixture(scope='session',
                 params=[(500, 10),
-                        (1000, 20),
-                        (1000, 100)])
-def generate_data_irm(request):
-    n_p = request.param
-    np.random.seed(1111)
-    # setting parameters
-    n = n_p[0]
-    p = n_p[1]
-    theta = 0.5
-
-    # generating data
-    data = make_irm_data(n, p, theta, return_type='array')
-
-    return data
-
-
-@pytest.fixture(scope='session',
-                params=[(500, 10),
                         (1000, 20)])
 def generate_data_irm_w_missings(request):
     n_p = request.param
