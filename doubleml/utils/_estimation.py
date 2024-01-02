@@ -339,3 +339,18 @@ def _cond_targets(target, cond_sample):
     cond_target = target.astype(float)
     cond_target[np.invert(cond_sample)] = np.nan
     return cond_target
+
+
+def _set_external_predictions(external_predictions, learners, treatment, rep):
+    ext_prediction_dict = {}
+    for learner in learners:
+        if external_predictions is None:
+            ext_prediction_dict[learner] = None
+        elif learner in external_predictions[treatment].keys():
+            if isinstance(external_predictions[treatment][learner], np.ndarray):
+                ext_prediction_dict[learner] = external_predictions[treatment][learner][:, rep]
+            else:
+                ext_prediction_dict[learner] = None
+        else:
+            ext_prediction_dict[learner] = None
+    return ext_prediction_dict

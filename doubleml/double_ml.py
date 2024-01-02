@@ -15,9 +15,9 @@ from scipy.optimize import minimize_scalar
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
-from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
+from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
 from .utils._checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
-    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks
+    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks, _check_external_predictions
 from .utils._plots import _sensitivity_contour_plot
 
 
@@ -542,39 +542,8 @@ class DoubleML(ABC):
         self : object
         """
 
-        if n_jobs_cv is not None:
-            if not isinstance(n_jobs_cv, int):
-                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
-                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
-
-        if not isinstance(store_predictions, bool):
-            raise TypeError('store_predictions must be True or False. '
-                            f'Got {str(store_predictions)}.')
-
-        if not isinstance(store_models, bool):
-            raise TypeError('store_models must be True or False. '
-                            f'Got {str(store_models)}.')
-
-        # check if external predictions are implemented
-        if self._external_predictions_implemented:
-            # check prediction format
-            self._check_external_predictions(external_predictions)
-        elif not self._external_predictions_implemented and external_predictions is not None:
-            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
-
-        # initialize rmse arrays for nuisance functions evaluation
-        self._initialize_rmses()
-
-        if store_predictions:
-            self._initialize_predictions_and_targets()
-
-        if store_models:
-            self._initialize_models()
-
-        if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
-                                                                                self.n_rep,
-                                                                                self._dml_data.n_coefs))
+        self._check_fit(n_jobs_cv, store_predictions, external_predictions, store_models)
+        self._initalize_fit(store_predictions, store_models)
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -585,18 +554,10 @@ class DoubleML(ABC):
                 if self._dml_data.n_treat > 1:
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
-                # set the supplied predictions for the treatment and each learner (including None)
-                ext_prediction_dict = {}
-                for learner in self.params_names:
-                    if external_predictions is None:
-                        ext_prediction_dict[learner] = None
-                    elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
-                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray):
-                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][:, i_rep]
-                        else:
-                            ext_prediction_dict[learner] = None
-                    else:
-                        ext_prediction_dict[learner] = None
+                ext_prediction_dict = _set_external_predictions(external_predictions,
+                                                                learners=self.params_names,
+                                                                treatment=self._dml_data.d_cols[i_d],
+                                                                rep=i_rep)
 
                 # ml estimation of nuisance models and computation of score elements
                 score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
@@ -611,6 +572,18 @@ class DoubleML(ABC):
                     self._store_predictions_and_targets(preds['predictions'], preds['targets'])
                 if store_models:
                     self._store_models(preds['models'])
+
+                if self._sensitivity_implemented:
+                    # not yet implemented
+                    if self._is_cluster_data or self.apply_cross_fitting:
+                        pass
+                    # check if callable score
+                    if callable(self.score):
+                        warnings.warn('Sensitivity analysis not implemented for callable scores.')
+                    else:
+                        # compute sensitivity analysis elements
+                        element_dict = self._sensitivity_element_est(preds)
+                        self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
                 # estimate the causal parameter
                 self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
@@ -630,19 +603,6 @@ class DoubleML(ABC):
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
-
-                if self._sensitivity_implemented:
-                    # not yet implemented
-                    if self._is_cluster_data or self.apply_cross_fitting:
-                        pass
-                    # check if callable score
-                    if callable(self.score):
-                        warnings.warn('Sensitivity analysis not implemented for callable scores.')
-                    else:
-                        # compute sensitivity analysis elements
-                        element_dict = self._sensitivity_element_est(preds)
-                        self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
-
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
@@ -1092,47 +1052,44 @@ class DoubleML(ABC):
 
         return learner_is_classifier
 
-    def _check_external_predictions(self, external_predictions):
-        if external_predictions is not None:
-            if not isinstance(external_predictions, dict):
-                raise TypeError('external_predictions must be a dictionary. '
-                                f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
+    def _check_fit(self, n_jobs_cv, store_predictions, external_predictions, store_models):
+        if n_jobs_cv is not None:
+            if not isinstance(n_jobs_cv, int):
+                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
+                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
 
-            supplied_treatments = list(external_predictions.keys())
-            valid_treatments = self._dml_data.d_cols
-            if not set(supplied_treatments).issubset(valid_treatments):
-                raise ValueError('Invalid external_predictions. '
-                                 f'Invalid treatment variable in {str(supplied_treatments)}. '
-                                 'Valid treatment variables ' + ' or '.join(valid_treatments) + '.')
+        if not isinstance(store_predictions, bool):
+            raise TypeError('store_predictions must be True or False. '
+                            f'Got {str(store_predictions)}.')
 
-            for treatment in supplied_treatments:
-                if not isinstance(external_predictions[treatment], dict):
-                    raise TypeError('external_predictions must be a nested dictionary. '
-                                    f'For treatment {str(treatment)} a value of type '
-                                    f'{str(type(external_predictions[treatment]))} was passed.')
+        if not isinstance(store_models, bool):
+            raise TypeError('store_models must be True or False. '
+                            f'Got {str(store_models)}.')
 
-                supplied_learners = list(external_predictions[treatment].keys())
-                valid_learners = self.params_names
-                if not set(supplied_learners).issubset(valid_learners):
-                    raise ValueError('Invalid external_predictions. '
-                                     f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
-                                     'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
+        # check if external predictions are implemented
+        if self._external_predictions_implemented:
+            _check_external_predictions(external_predictions=external_predictions,
+                                        valid_treatments=self._dml_data.d_cols,
+                                        valid_learners=self.params_names,
+                                        n_obs=self._dml_data.n_obs,
+                                        n_rep=self.n_rep)
+        elif not self._external_predictions_implemented and external_predictions is not None:
+            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
-                for learner in supplied_learners:
-                    if not isinstance(external_predictions[treatment][learner], np.ndarray):
-                        raise TypeError('Invalid external_predictions. '
-                                        'The values of the nested list must be a numpy array. '
-                                        'Invalid predictions for treatment ' + str(treatment) +
-                                        ' and learner ' + str(learner) + '. ' +
-                                        f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
+    def _initalize_fit(self, store_predictions, store_models):
+        # initialize rmse arrays for nuisance functions evaluation
+        self._initialize_rmses()
 
-                    expected_shape = (self._dml_data.n_obs, self.n_rep)
-                    if external_predictions[treatment][learner].shape != expected_shape:
-                        raise ValueError('Invalid external_predictions. '
-                                         f'The supplied predictions have to be of shape {str(expected_shape)}. '
-                                         'Invalid predictions for treatment ' + str(treatment) +
-                                         ' and learner ' + str(learner) + '. ' +
-                                         f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
+        if store_predictions:
+            self._initialize_predictions_and_targets()
+
+        if store_models:
+            self._initialize_models()
+
+        if self._sensitivity_implemented:
+            self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
+                                                                                self.n_rep,
+                                                                                self._dml_data.n_coefs))
 
     def _initialize_arrays(self):
         # scores

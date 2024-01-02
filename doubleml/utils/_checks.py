@@ -263,3 +263,44 @@ def _check_weights(weights, score, n_obs, n_rep):
             if (weights["weights"].sum() == 0) or (weights["weights_bar"].sum() == 0):
                 raise ValueError("At least one weight must be non-zero.")
     return
+
+
+def _check_external_predictions(external_predictions, valid_treatments, valid_learners, n_obs, n_rep):
+    if external_predictions is not None:
+        if not isinstance(external_predictions, dict):
+            raise TypeError('external_predictions must be a dictionary. '
+                            f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
+
+        supplied_treatments = list(external_predictions.keys())
+        if not set(supplied_treatments).issubset(valid_treatments):
+            raise ValueError('Invalid external_predictions. '
+                             f'Invalid treatment variable in {str(supplied_treatments)}. '
+                             'Valid treatment variables ' + ' or '.join(valid_treatments) + '.')
+
+        for treatment in supplied_treatments:
+            if not isinstance(external_predictions[treatment], dict):
+                raise TypeError('external_predictions must be a nested dictionary. '
+                                f'For treatment {str(treatment)} a value of type '
+                                f'{str(type(external_predictions[treatment]))} was passed.')
+
+            supplied_learners = list(external_predictions[treatment].keys())
+            if not set(supplied_learners).issubset(valid_learners):
+                raise ValueError('Invalid external_predictions. '
+                                 f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
+                                 'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
+
+            for learner in supplied_learners:
+                if not isinstance(external_predictions[treatment][learner], np.ndarray):
+                    raise TypeError('Invalid external_predictions. '
+                                    'The values of the nested list must be a numpy array. '
+                                    'Invalid predictions for treatment ' + str(treatment) +
+                                    ' and learner ' + str(learner) + '. ' +
+                                    f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
+
+                expected_shape = (n_obs, n_rep)
+                if external_predictions[treatment][learner].shape != expected_shape:
+                    raise ValueError('Invalid external_predictions. '
+                                     f'The supplied predictions have to be of shape {str(expected_shape)}. '
+                                     'Invalid predictions for treatment ' + str(treatment) +
+                                     ' and learner ' + str(learner) + '. ' +
+                                     f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
