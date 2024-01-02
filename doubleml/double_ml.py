@@ -24,15 +24,6 @@ from .utils._plots import _sensitivity_contour_plot
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 
 
-# Remove warnings in future versions
-def deprication_apply_cross_fitting():
-    warnings.warn('The apply_cross_fitting argument is deprecated and will be removed in future versions. '
-                  'In the future, crossfitting is applied by default. '
-                  'To rely on sample splitting please use external predictions.',
-                  DeprecationWarning)
-    return
-
-
 def deprication_dml_procedure():
     warnings.warn('The dml_procedure argument is deprecated and will be removed in future versions. '
                   'in the future, dml_procedure is always set to dml2.', DeprecationWarning)
@@ -49,8 +40,7 @@ class DoubleML(ABC):
                  n_rep,
                  score,
                  dml_procedure,
-                 draw_sample_splitting,
-                 apply_cross_fitting):
+                 draw_sample_splitting):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
             raise TypeError('The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
@@ -97,27 +87,17 @@ class DoubleML(ABC):
             raise ValueError('The number of repetitions for the sample splitting must be positive. '
                              f'{str(n_rep)} was passed.')
 
-        if not isinstance(apply_cross_fitting, bool):
-            raise TypeError('apply_cross_fitting must be True or False. '
-                            f'Got {str(apply_cross_fitting)}.')
         if not isinstance(draw_sample_splitting, bool):
             raise TypeError('draw_sample_splitting must be True or False. '
                             f'Got {str(draw_sample_splitting)}.')
 
-        if not apply_cross_fitting:
-            deprication_apply_cross_fitting()
-
         # set resampling specifications
         if self._is_cluster_data:
-            if (n_folds == 1) or (not apply_cross_fitting):
-                raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
-                                          'is not yet implemented with clustering.')
             self._n_folds_per_cluster = n_folds
             self._n_folds = n_folds ** self._dml_data.n_cluster_vars
         else:
             self._n_folds = n_folds
         self._n_rep = n_rep
-        self._apply_cross_fitting = apply_cross_fitting
         # default is no stratification
         self._strata = None
 
@@ -131,16 +111,6 @@ class DoubleML(ABC):
         self._dml_procedure = dml_procedure
 
         self._score = score
-
-        if (self.n_folds == 1) & self.apply_cross_fitting:
-            warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
-            self._apply_cross_fitting = False
-
-        if not self.apply_cross_fitting:
-            assert self.n_folds <= 2, 'Estimation without cross-fitting not supported for n_folds > 2.'
-            if self.dml_procedure == 'dml2':
-                # redirect to dml1 which works out-of-the-box; dml_procedure is of no relevance without cross-fitting
-                self._dml_procedure = 'dml1'
 
         # perform sample splitting
         self._smpls = None
@@ -1240,7 +1210,7 @@ class DoubleML(ABC):
         Draw sample splitting for DoubleML models.
 
         The samples are drawn according to the attributes
-        ``n_folds``, ``n_rep`` and ``apply_cross_fitting``.
+        ``n_folds`` and ``n_rep``.
 
         Returns
         -------
@@ -1250,7 +1220,6 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
                                                            n_rep=self.n_rep,
                                                            n_obs=self._dml_data.n_obs,
-                                                           apply_cross_fitting=self.apply_cross_fitting,
                                                            n_cluster_vars=self._dml_data.n_cluster_vars,
                                                            cluster_vars=self._dml_data.cluster_vars)
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
@@ -1258,7 +1227,6 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
-                                                    apply_cross_fitting=self.apply_cross_fitting,
                                                     stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 

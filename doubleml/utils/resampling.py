@@ -1,16 +1,6 @@
 import numpy as np
-import warnings
 
 from sklearn.model_selection import KFold, RepeatedKFold, RepeatedStratifiedKFold
-
-
-# Remove warnings in future versions
-def deprication_apply_cross_fitting():
-    warnings.warn('The apply_cross_fitting argument is deprecated and will be removed in future versions. '
-                  'In the future, crossfitting is applied by default. '
-                  'To rely on sample splitting please use external predictions.',
-                  DeprecationWarning)
-    return
 
 
 class DoubleMLResampling:
@@ -18,28 +8,16 @@ class DoubleMLResampling:
                  n_folds,
                  n_rep,
                  n_obs,
-                 apply_cross_fitting,
                  stratify=None):
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs
-        if not apply_cross_fitting:
-            deprication_apply_cross_fitting()
-        self.apply_cross_fitting = apply_cross_fitting
         self.stratify = stratify
-        if (self.n_folds == 1) & self.apply_cross_fitting:
-            warnings.warn('apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.')
-            self.apply_cross_fitting = False
-        if not apply_cross_fitting:
-            assert n_folds <= 2
+
         if self.stratify is None:
             self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
         else:
             self.resampling = RepeatedStratifiedKFold(n_splits=n_folds, n_repeats=n_rep)
-
-        if n_folds == 1:
-            assert n_rep == 1
-            self.resampling = ResampleNoSplit()
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
@@ -51,34 +29,17 @@ class DoubleMLResampling:
         return smpls
 
 
-# A helper class to run double without cross-fitting
-class ResampleNoSplit():
-    def __init__(self):
-        self.n_splits = 1
-
-    def get_n_splits(self, X=None, y=None, groups=None):
-        return self.n_splits
-
-    def split(self, X, y=None, groups=None):
-        indices = np.arange(X.shape[0])
-        yield indices, indices
-
-
 class DoubleMLClusterResampling:
     def __init__(self,
                  n_folds,
                  n_rep,
                  n_obs,
-                 apply_cross_fitting,
                  n_cluster_vars,
                  cluster_vars):
-        if (n_folds == 1) | (not apply_cross_fitting):
-            raise NotImplementedError('No cross-fitting (`apply_cross_fitting = False`) '
-                                      'is not yet implemented with clustering.')
+
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs
-        self.apply_cross_fitting = apply_cross_fitting
 
         assert cluster_vars.shape[0] == n_obs
         assert cluster_vars.shape[1] == n_cluster_vars

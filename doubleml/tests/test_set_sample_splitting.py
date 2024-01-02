@@ -175,7 +175,7 @@ def test_doubleml_draw_vs_set():
     dml_plr_set = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=7, n_rep=8)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=1, n_rep=1, apply_cross_fitting=False)
+                                n_folds=1, n_rep=1)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
@@ -184,7 +184,7 @@ def test_doubleml_draw_vs_set():
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=2, n_rep=1, apply_cross_fitting=False)
+                                n_folds=2, n_rep=1)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
@@ -193,26 +193,26 @@ def test_doubleml_draw_vs_set():
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=2, n_rep=1, apply_cross_fitting=True)
+                                n_folds=2, n_rep=1)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=5, n_rep=1, apply_cross_fitting=True)
+                                n_folds=5, n_rep=1)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls[0])
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=5, n_rep=3, apply_cross_fitting=True)
+                                n_folds=5, n_rep=3)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                n_folds=2, n_rep=4, apply_cross_fitting=False)
+                                n_folds=2, n_rep=4)
     dml_plr_set.set_sample_splitting(dml_plr_drawn.smpls)
     _assert_resampling_pars(dml_plr_drawn, dml_plr_set)
 

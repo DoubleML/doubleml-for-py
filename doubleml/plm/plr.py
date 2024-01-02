@@ -62,10 +62,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    apply_cross_fitting : bool
-        Indicates whether cross-fitting should be applied.
-        Default is ``True``.
-
     Examples
     --------
     >>> import numpy as np
@@ -107,15 +103,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                 draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
                          dml_procedure,
-                         draw_sample_splitting,
-                         apply_cross_fitting)
+                         draw_sample_splitting)
 
         self._check_data(self._dml_data)
         valid_scores = ['IV-type', 'partialling out']
