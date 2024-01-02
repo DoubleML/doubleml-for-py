@@ -63,7 +63,8 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
 
     np.random.seed(3141)
     n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
+
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d+2*t)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, t=t)
 
     np.random.seed(3141)

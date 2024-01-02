@@ -62,6 +62,10 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
     data = generate_data_iivm
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
+    n_obs = len(data['y'])
+    strata = data['d'] + 2 * data['z']
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=strata)
+
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
@@ -75,8 +79,10 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
                                     subgroups=subgroups,
                                     dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
-                                    trimming_threshold=trimming_threshold)
-
+                                    trimming_threshold=trimming_threshold,
+                                    draw_sample_splitting=False)
+    # synchronize the sample splitting
+    dml_iivm_obj.set_sample_splitting(all_smpls=all_smpls)
     dml_iivm_obj.fit(store_predictions=True)
 
     np.random.seed(3141)
@@ -84,8 +90,6 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),

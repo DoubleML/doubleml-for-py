@@ -87,6 +87,10 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     data = generate_data_iivm
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
+    n_obs = len(data['y'])
+    strata = data['d'] + 2 * data['z']
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=strata)
+
     # Set machine learning methods for m, g & r
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
@@ -99,7 +103,10 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
                                     n_folds,
                                     subgroups=subgroups,
                                     dml_procedure=dml_procedure,
-                                    normalize_ipw=normalize_ipw)
+                                    normalize_ipw=normalize_ipw,
+                                    draw_sample_splitting=False)
+    # synchronize the sample splitting
+    dml_iivm_obj.set_sample_splitting(all_smpls=all_smpls)
     # tune hyperparameters
     tune_res = dml_iivm_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
                                  return_tune_res=True)
@@ -112,8 +119,6 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
     x = data.loc[:, x_cols].values
     d = data['d'].values
     z = data['z'].values
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
     smpls = all_smpls[0]
 
     if tune_on_folds:

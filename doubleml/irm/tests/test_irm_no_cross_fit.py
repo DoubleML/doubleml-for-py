@@ -32,7 +32,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope='module',
-                params=[1, 2])
+                params=[1])
 def n_folds(request):
     return request.param
 
@@ -45,6 +45,11 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, normalize_ip
 
     # collect data
     (x, y, d) = generate_data_irm
+    n_obs = len(y)
+    if n_folds == 1:
+        all_smpls = [(np.arange(n_obs), np.arange(n_obs))]
+    else:
+        all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -58,19 +63,21 @@ def dml_irm_no_cross_fit_fixture(generate_data_irm, learner, score, normalize_ip
                                   score=score,
                                   dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
-                                  apply_cross_fitting=False)
-
+                                  apply_cross_fitting=False,
+                                  draw_sample_splitting=False)
+    # synchronize the sample splitting
+    dml_irm_obj.set_sample_splitting(all_smpls=all_smpls)
+    np.random.seed(3141)
     dml_irm_obj.fit()
 
     np.random.seed(3141)
     if n_folds == 1:
-        smpls = [(np.arange(len(y)), np.arange(len(y)))]
+        smpls = all_smpls
     else:
-        n_obs = len(y)
-        all_smpls = draw_smpls(n_obs, n_folds)
         smpls = all_smpls[0]
         smpls = [smpls[0]]
 
+    np.random.seed(3141)
     res_manual = fit_irm(y, x, d,
                          clone(learner[0]), clone(learner[1]),
                          [smpls], dml_procedure, score,

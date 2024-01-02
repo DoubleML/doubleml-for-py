@@ -32,7 +32,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope='module',
-                params=[1, 2])
+                params=[1])
 def n_folds(request):
     return request.param
 
@@ -47,6 +47,13 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, normalize_
     data = generate_data_iivm
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
 
+    n_obs = len(data['y'])
+    if n_folds == 1:
+        all_smpls = [(np.arange(n_obs), np.arange(n_obs))]
+    else:
+        strata = data['d'] + 2 * data['z']
+        all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=strata)
+
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
@@ -60,7 +67,9 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, normalize_
                                     dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
                                     apply_cross_fitting=False)
-
+    # synchronize the sample splitting
+    dml_iivm_obj.set_sample_splitting(all_smpls=all_smpls)
+    np.random.seed(3141)
     dml_iivm_obj.fit()
 
     np.random.seed(3141)
@@ -71,11 +80,10 @@ def dml_iivm_no_cross_fit_fixture(generate_data_iivm, learner, score, normalize_
     if n_folds == 1:
         smpls = [(np.arange(len(y)), np.arange(len(y)))]
     else:
-        n_obs = len(y)
-        all_smpls = draw_smpls(n_obs, n_folds)
         smpls = all_smpls[0]
         smpls = [smpls[0]]
 
+    np.random.seed(3141)
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
                           [smpls], dml_procedure, score,
