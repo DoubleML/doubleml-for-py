@@ -117,6 +117,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         # set stratication for resampling
         self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
+        if draw_sample_splitting:
+            self.draw_sample_splitting()
 
         # check learners
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)

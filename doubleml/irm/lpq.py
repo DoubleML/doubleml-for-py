@@ -19,7 +19,6 @@ from ..utils._estimation import (
     _dml_tune,
     _solve_ipw_score,
 )
-from ..utils.resampling import DoubleMLResampling
 from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, _check_quantile
 
 
@@ -153,6 +152,13 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         self._coef_bounds = (self._dml_data.y.min(), self._dml_data.y.max())
         self._coef_start_val = np.quantile(self._dml_data.y[self._dml_data.d == self.treatment], self.quantile)
 
+        # set stratication for resampling
+        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
+        if draw_sample_splitting:
+            self.draw_sample_splitting()
+
+        self._external_predictions_implemented = True
+
         # initialize and check trimming
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
@@ -176,18 +182,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         }
 
         self._initialize_ml_nuisance_params()
-
-        if draw_sample_splitting:
-            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.z.reshape(-1, 1)
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds,
-                n_rep=self.n_rep,
-                n_obs=self._dml_data.n_obs,
-                apply_cross_fitting=self.apply_cross_fitting,
-                stratify=strata,
-            )
-            self._smpls = obj_dml_resampling.split_samples()
-        self._external_predictions_implemented = True
 
     @property
     def quantile(self):
