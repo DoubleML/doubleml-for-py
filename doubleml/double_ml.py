@@ -554,55 +554,18 @@ class DoubleML(ABC):
                 if self._dml_data.n_treat > 1:
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
-                ext_prediction_dict = _set_external_predictions(external_predictions,
-                                                                learners=self.params_names,
-                                                                treatment=self._dml_data.d_cols[i_d],
-                                                                rep=i_rep)
+                # predictions have to be stored in loop for sensitivity analysis
+                nuisance_predictions = self._fit_nuisance_and_score_elements(
+                    n_jobs_cv,
+                    store_predictions,
+                    external_predictions,
+                    store_models)
 
-                # ml estimation of nuisance models and computation of score elements
-                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
-                                                           external_predictions=ext_prediction_dict,
-                                                           return_models=store_models)
+                self._solve_score_and_estimate_se()
 
-                self._set_score_elements(score_elements, self._i_rep, self._i_treat)
+                # sensitivity elements can depend on the estimated parameter
+                self._fit_sensitivity_elements(nuisance_predictions)
 
-                # calculate rmses and store predictions and targets of the nuisance models
-                self._calc_rmses(preds['predictions'], preds['targets'])
-                if store_predictions:
-                    self._store_predictions_and_targets(preds['predictions'], preds['targets'])
-                if store_models:
-                    self._store_models(preds['models'])
-
-                if self._sensitivity_implemented:
-                    # not yet implemented
-                    if self._is_cluster_data or self.apply_cross_fitting:
-                        pass
-                    # check if callable score
-                    if callable(self.score):
-                        warnings.warn('Sensitivity analysis not implemented for callable scores.')
-                    else:
-                        # compute sensitivity analysis elements
-                        element_dict = self._sensitivity_element_est(preds)
-                        self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
-
-                # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
-                    self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
-                if self.dml_procedure == 'dml1':
-                    self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
-
-                # compute score (depends on the estimated causal parameter)
-                self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
-                    self._get_score_elements(self._i_rep, self._i_treat),
-                    self._all_coef[self._i_treat, self._i_rep])
-
-                # compute score (can depend on the estimated causal parameter)
-                self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
-                    self._get_score_elements(self._i_rep, self._i_treat),
-                    self._all_coef[self._i_treat, self._i_rep])
-
-                # compute standard errors for causal parameter
-                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
@@ -1090,6 +1053,57 @@ class DoubleML(ABC):
             self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
                                                                                 self.n_rep,
                                                                                 self._dml_data.n_coefs))
+
+    def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
+        ext_prediction_dict = _set_external_predictions(external_predictions,
+                                                        learners=self.params_names,
+                                                        treatment=self._dml_data.d_cols[self._i_treat],
+                                                        i_rep=self._i_rep)
+
+        # ml estimation of nuisance models and computation of score elements
+        score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
+                                                   external_predictions=ext_prediction_dict,
+                                                   return_models=store_models)
+
+        self._set_score_elements(score_elements, self._i_rep, self._i_treat)
+
+        # calculate rmses and store predictions and targets of the nuisance models
+        self._calc_rmses(preds['predictions'], preds['targets'])
+        if store_predictions:
+            self._store_predictions_and_targets(preds['predictions'], preds['targets'])
+        if store_models:
+            self._store_models(preds['models'])
+
+        return preds
+
+    def _solve_score_and_estimate_se(self):
+        # estimate the causal parameter
+        self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+            self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+        if self.dml_procedure == 'dml1':
+            self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
+
+        # compute score (depends on the estimated causal parameter)
+        self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
+            self._get_score_elements(self._i_rep, self._i_treat),
+            self._all_coef[self._i_treat, self._i_rep])
+
+        # compute score derivative (can depend on the estimated causal parameter)
+        self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
+            self._get_score_elements(self._i_rep, self._i_treat),
+            self._all_coef[self._i_treat, self._i_rep])
+
+        # compute standard errors for causal parameter
+        self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+
+    def _fit_sensitivity_elements(self, nuisance_predictions):
+        if self._sensitivity_implemented:
+            if callable(self.score):
+                warnings.warn('Sensitivity analysis not implemented for callable scores.')
+            else:
+                # compute sensitivity analysis elements
+                element_dict = self._sensitivity_element_est(nuisance_predictions)
+                self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
     def _initialize_arrays(self):
         # scores

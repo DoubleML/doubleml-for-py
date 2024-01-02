@@ -341,14 +341,14 @@ def _cond_targets(target, cond_sample):
     return cond_target
 
 
-def _set_external_predictions(external_predictions, learners, treatment, rep):
+def _set_external_predictions(external_predictions, learners, treatment, i_rep):
     ext_prediction_dict = {}
     for learner in learners:
         if external_predictions is None:
             ext_prediction_dict[learner] = None
         elif learner in external_predictions[treatment].keys():
             if isinstance(external_predictions[treatment][learner], np.ndarray):
-                ext_prediction_dict[learner] = external_predictions[treatment][learner][:, rep]
+                ext_prediction_dict[learner] = external_predictions[treatment][learner][:, i_rep]
             else:
                 ext_prediction_dict[learner] = None
         else:
