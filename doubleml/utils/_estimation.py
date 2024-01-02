@@ -139,7 +139,7 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
             res['train_targets'] = train_targets
         if return_models:
             fold_ids = [xx[1] for xx in fitted_models]
-            if not np.alltrue(fold_ids == np.arange(len(smpls))):
+            if not np.all(fold_ids == np.arange(len(smpls))):
                 raise RuntimeError('export of fitted models failed')
             res['models'] = [xx[0] for xx in fitted_models]
 

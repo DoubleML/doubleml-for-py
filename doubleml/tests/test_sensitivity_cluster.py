@@ -87,11 +87,11 @@ def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
 
 @pytest.mark.ci
 def test_dml_plr_multiway_cluster_sensitivity_coef(dml_plr_multiway_cluster_sensitivity_rho0):
-    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
-                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['lower'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'][0],
+                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['lower'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'],
-                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0['coef'][0],
+                        dml_plr_multiway_cluster_sensitivity_rho0['sensitivity_params']['theta']['upper'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -136,9 +136,9 @@ def dml_plr_multiway_cluster_sensitivity_rho0_se(dml_procedure):
 # only valid for 'partialling out '; This might have slightly less precision in the calculations
 @pytest.mark.ci
 def test_dml_pliv_multiway_cluster_sensitivity_se(dml_plr_multiway_cluster_sensitivity_rho0_se):
-    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'],
-                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['lower'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'][0],
+                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['lower'][0],
                         rel_tol=1e-9, abs_tol=1e-3)
-    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'],
-                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['upper'],
+    assert math.isclose(dml_plr_multiway_cluster_sensitivity_rho0_se['se'][0],
+                        dml_plr_multiway_cluster_sensitivity_rho0_se['sensitivity_params']['se']['upper'][0],
                         rel_tol=1e-9, abs_tol=1e-3)

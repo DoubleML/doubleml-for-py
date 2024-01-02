@@ -253,15 +253,15 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
 
 @pytest.mark.ci
 def test_dml_plr_coef(dml_plr_w_nonlinear_mixin_fixture):
-    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['coef'],
-                        dml_plr_w_nonlinear_mixin_fixture['coef2'],
+    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['coef'][0],
+                        dml_plr_w_nonlinear_mixin_fixture['coef2'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_se(dml_plr_w_nonlinear_mixin_fixture):
-    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['se'],
-                        dml_plr_w_nonlinear_mixin_fixture['se2'],
+    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['se'][0],
+                        dml_plr_w_nonlinear_mixin_fixture['se2'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
