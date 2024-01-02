@@ -72,6 +72,8 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
     # collect data
     (x, y, d) = generate_data_did
 
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     # Set machine learning methods for m & g
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
@@ -83,7 +85,10 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
                                   n_folds,
                                   score=score,
                                   in_sample_normalization=in_sample_normalization,
-                                  dml_procedure=dml_procedure)
+                                  dml_procedure=dml_procedure,
+                                  draw_sample_splitting=False)
+    # synchronize the sample splitting
+    dml_did_obj.set_sample_splitting(all_smpls=all_smpls)
 
     # tune hyperparameters
     tune_res = dml_did_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
@@ -93,8 +98,6 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
     dml_did_obj.fit()
 
     np.random.seed(3141)
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
     smpls = all_smpls[0]
 
     if tune_on_folds:

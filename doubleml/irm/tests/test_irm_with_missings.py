@@ -65,6 +65,9 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
     # collect data
     (x, y, d) = generate_data_irm_w_missings
 
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
+
     # Set machine learning methods for m & g
     ml_g = clone(learner_xgboost[0])
     ml_m = clone(learner_xgboost[1])
@@ -79,13 +82,12 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
                                   dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
                                   trimming_threshold=trimming_threshold)
-
+    # synchronize the sample splitting
+    dml_irm_obj.set_sample_splitting(all_smpls=all_smpls)
+    np.random.seed(3141)
     dml_irm_obj.fit()
 
     np.random.seed(3141)
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
-
     res_manual = fit_irm(y, x, d,
                          clone(learner_xgboost[0]), clone(learner_xgboost[1]),
                          all_smpls, dml_procedure, score,

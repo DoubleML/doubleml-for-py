@@ -55,6 +55,8 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, dml_p
     # collect data
     (x, y, d, z) = generate_data_iivm_binary
 
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d+2*z)
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
@@ -67,14 +69,14 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, dml_p
                                     n_folds,
                                     dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
-                                    trimming_threshold=trimming_threshold)
-
+                                    trimming_threshold=trimming_threshold,
+                                    draw_sample_splitting=False)
+    # synchronize the sample splitting
+    dml_iivm_obj.set_sample_splitting(all_smpls=all_smpls)
+    np.random.seed(3141)
     dml_iivm_obj.fit()
 
     np.random.seed(3141)
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
-
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
                           all_smpls, dml_procedure, score,
