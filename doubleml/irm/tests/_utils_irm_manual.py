@@ -80,7 +80,7 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
                                    trimming_threshold=trimming_threshold)
 
     p_hat_list = []
-    for (_, _) in smpls:
+    for _ in smpls:
         p_hat_list.append(np.mean(d))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
