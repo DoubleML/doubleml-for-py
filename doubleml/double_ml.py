@@ -1219,14 +1219,14 @@ class DoubleML(ABC):
                 The outer list needs to provide an entry per repeated sample splitting (length of list is set as
                 ``n_rep``).
                 The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). If tuples for more than one fold are provided, it must form a partition.
+                ``n_folds``). test_ind must form a partition for each inner list.
             If list of tuples:
                 The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). If tuples for more than one fold are provided, it must form a partition.
-                ``n_rep=1`` is always set.
+                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
             If tuple:
-                Must be a tuple with two elements train_ind and test_ind. No sample splitting is achieved if train_ind
-                and test_ind are range(n_rep). Otherwise ``n_folds=2``. ``n_rep=1`` is always set.
+                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
+                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
+                ``n_folds=1`` and ``n_rep=1`` is always set.
 
         Returns
         -------
@@ -1271,13 +1271,10 @@ class DoubleML(ABC):
                     _check_is_partition([(all_smpls[1], all_smpls[0])], self._dml_data.n_obs)):
                 self._n_rep = 1
                 self._n_folds = 1
-                self._apply_cross_fitting = False
                 self._smpls = [[all_smpls]]
             else:
-                self._n_rep = 1
-                self._n_folds = 2
-                self._apply_cross_fitting = False
-                self._smpls = _check_all_smpls([[all_smpls]], self._dml_data.n_obs, check_intersect=True)
+                raise ValueError('Invalid partition provided. '
+                                 'Tuple provided that doesn\'t form a partition.')
         else:
             if not isinstance(all_smpls, list):
                 raise TypeError('all_smpls must be of list or tuple type. '
@@ -1293,19 +1290,13 @@ class DoubleML(ABC):
                     if ((len(all_smpls) == 1) &
                             _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], self._dml_data.n_obs)):
                         self._n_folds = 1
-                        self._apply_cross_fitting = False
                         self._smpls = [all_smpls]
                     else:
                         self._n_folds = len(all_smpls)
-                        self._apply_cross_fitting = True
                         self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs, check_intersect=True)
                 else:
-                    if not len(all_smpls) == 1:
-                        raise ValueError('Invalid partition provided. '
-                                         'Tuples for more than one fold provided that don\'t form a partition.')
-                    self._n_folds = 2
-                    self._apply_cross_fitting = False
-                    self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs, check_intersect=True)
+                    raise ValueError('Invalid partition provided. '
+                                     'Tuples provided that don\'t form a partition.')
             else:
                 all_list = all([isinstance(smpl, list) for smpl in all_smpls])
                 if not all_list:
@@ -1327,26 +1318,12 @@ class DoubleML(ABC):
                 smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
 
                 if all(smpls_are_partitions):
-                    if ((len(all_smpls) == 1) & (len(all_smpls[0]) == 1) &
-                            _check_is_partition([(all_smpls[0][0][1], all_smpls[0][0][0])], self._dml_data.n_obs)):
-                        self._n_rep = 1
-                        self._n_folds = 1
-                        self._apply_cross_fitting = False
-                        self._smpls = all_smpls
-                    else:
-                        self._n_rep = len(all_smpls)
-                        self._n_folds = n_folds_each_smpl[0]
-                        self._apply_cross_fitting = True
-                        self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
-                else:
-                    if not n_folds_each_smpl[0] == 1:
-                        raise ValueError('Invalid partition provided. '
-                                         'Tuples for more than one fold provided '
-                                         'but at least one does not form a partition.')
                     self._n_rep = len(all_smpls)
-                    self._n_folds = 2
-                    self._apply_cross_fitting = False
+                    self._n_folds = n_folds_each_smpl[0]
                     self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
+                else:
+                    raise ValueError('Invalid partition provided. '
+                                     'At least one inner list does not form a partition.')
 
         self._psi, self._psi_deriv, self._psi_elements, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()

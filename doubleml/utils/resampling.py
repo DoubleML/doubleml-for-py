@@ -14,6 +14,10 @@ class DoubleMLResampling:
         self.n_obs = n_obs
         self.stratify = stratify
 
+        if n_folds < 2:
+            raise ValueError('n_folds must be greater than 1. '
+                             'You can use set_sample_splitting with a tuple to only use one fold.')
+
         if self.stratify is None:
             self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
         else:
