@@ -23,9 +23,6 @@ class DoubleMLResampling:
         all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
         smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
                  for i_repeat in range(self.n_rep)]
-        if not self.apply_cross_fitting:
-            # in the no cross-fitting case in each repetition we only use the first sample split
-            smpls = [[xx[0]] for xx in smpls]
         return smpls
 
 

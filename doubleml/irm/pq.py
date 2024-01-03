@@ -92,10 +92,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    apply_cross_fitting : bool
-        Indicates whether cross-fitting should be applied(``True`` is the only choice).
-        Default is ``True``.
-
     Examples
     --------
     >>> import numpy as np
@@ -127,15 +123,13 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
                  kde=None,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                 draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
                          dml_procedure,
-                         draw_sample_splitting,
-                         apply_cross_fitting)
+                         draw_sample_splitting)
 
         self._quantile = quantile
         self._treatment = treatment

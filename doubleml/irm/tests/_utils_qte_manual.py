@@ -39,8 +39,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
                                 normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False,
-                                apply_cross_fitting=True)
+                                draw_sample_splitting=False)
         model_PQ_1 = DoubleMLPQ(dml_data,
                                 clone(learner_g),
                                 clone(learner_m),
@@ -53,8 +52,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
                                 normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False,
-                                apply_cross_fitting=True)
+                                draw_sample_splitting=False)
 
         # synchronize the sample splitting
         model_PQ_0.set_sample_splitting(all_smpls)
@@ -92,7 +90,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
     return res
 
 
-def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot, apply_cross_fitting):
+def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot):
     n_quantiles = len(quantiles)
     boot_qte = np.zeros((n_quantiles, n_rep_boot * n_rep))
     boot_t_stat = np.zeros((n_quantiles, n_rep_boot * n_rep))

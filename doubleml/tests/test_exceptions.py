@@ -634,13 +634,6 @@ def test_doubleml_warning_crossfitting_onefold():
 
 
 @pytest.mark.ci
-def test_doubleml_exception_no_cross_fit():
-    msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
-    with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=False)
-
-
-@pytest.mark.ci
 def test_doubleml_exception_get_params():
     msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_l or ml_m.'
     with pytest.raises(ValueError, match=msg):
@@ -1279,9 +1272,6 @@ def test_doubleml_cluster_not_yet_implemented():
     with pytest.raises(NotImplementedError, match=msg):
         _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
                          n_folds=1)
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
-                         apply_cross_fitting=False, n_folds=2)
 
 
 class LassoWithNanPred(Lasso):

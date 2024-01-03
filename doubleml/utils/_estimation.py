@@ -260,19 +260,12 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
     return coefs, ses
 
 
-def _var_est(psi, psi_deriv, apply_cross_fitting, smpls, is_cluster_data,
+def _var_est(psi, psi_deriv, smpls, is_cluster_data,
              cluster_vars=None, smpls_cluster=None, n_folds_per_cluster=None):
 
     if not is_cluster_data:
         # psi and psi_deriv should be of shape (n_obs, ...)
-        if apply_cross_fitting:
-            var_scaling_factor = psi.shape[0]
-        else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            test_index = smpls[0][1]
-            psi_deriv = psi_deriv[test_index]
-            psi = psi[test_index]
-            var_scaling_factor = len(test_index)
+        var_scaling_factor = psi.shape[0]
 
         J = np.mean(psi_deriv)
         gamma_hat = np.mean(np.square(psi))

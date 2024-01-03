@@ -273,7 +273,6 @@ def dml_irm_weights_fixture(n_rep, dml_procedure):
         n_folds=5,
         n_rep=n_rep,
         n_obs=n,
-        apply_cross_fitting=True,
         stratify=obj_dml_data.d).split_samples()
 
     # First stage estimation

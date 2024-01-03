@@ -61,7 +61,6 @@ def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.n_folds == 5
     assert dml_obj.n_rep == 1
     assert dml_obj.draw_sample_splitting
-    assert dml_obj.apply_cross_fitting
 
     # fit method
     assert dml_obj.predictions is not None

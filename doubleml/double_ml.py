@@ -147,12 +147,10 @@ class DoubleML(ABC):
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
                               f'No. folds: {self.n_folds}\n' \
-                              f'No. repeated sample splits: {self.n_rep}\n' \
-                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+                              f'No. repeated sample splits: {self.n_rep}\n'
         else:
             resampling_info = f'No. folds: {self.n_folds}\n' \
-                              f'No. repeated sample splits: {self.n_rep}\n' \
-                              f'Apply cross-fitting: {self.apply_cross_fitting}\n'
+                              f'No. repeated sample splits: {self.n_rep}\n'
         fit_summary = str(self.summary)
         res = header + \
             '\n------------------ Data summary      ------------------\n' + data_summary + \
@@ -175,13 +173,6 @@ class DoubleML(ABC):
         Number of repetitions for the sample splitting.
         """
         return self._n_rep
-
-    @property
-    def apply_cross_fitting(self):
-        """
-        Indicates whether cross-fitting should be applied.
-        """
-        return self._apply_cross_fitting
 
     @property
     def dml_procedure(self):
@@ -578,16 +569,7 @@ class DoubleML(ABC):
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-
-            # draw weights for the bootstrap
-            if self.apply_cross_fitting:
-                n_obs = self._dml_data.n_obs
-            else:
-                # be prepared for the case of test sets of different size in repeated no-cross-fitting
-                smpls = self.__smpls
-                test_index = smpls[0][1]
-                n_obs = len(test_index)
-            weights = _draw_weights(method, n_rep_boot, n_obs)
+            weights = _draw_weights(method, n_rep_boot, n_obs=self._dml_data.n_obs)
 
             for i_d in range(self._dml_data.n_treat):
                 self._i_treat = i_d
@@ -911,17 +893,12 @@ class DoubleML(ABC):
         if params is None:
             all_params = [None] * self.n_rep
         elif isinstance(params, dict):
-            if self.apply_cross_fitting:
-                all_params = [[params] * self.n_folds] * self.n_rep
-            else:
-                all_params = [[params] * 1] * self.n_rep
+            all_params = [[params] * self.n_folds] * self.n_rep
+
         else:
             # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
-            if self.apply_cross_fitting:
-                assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            else:
-                assert np.all(np.array([len(x) for x in params]) == 1)
+            assert np.all(np.array([len(x) for x in params]) == self.n_folds)
             all_params = params
 
         self._params[learner][treat_var] = all_params
@@ -1089,10 +1066,7 @@ class DoubleML(ABC):
         all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
-            if self.apply_cross_fitting:
-                all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, self.n_folds), np.nan)
-            else:
-                all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, 1), np.nan)
+            all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, self.n_folds), np.nan)
         else:
             all_dml1_coef = None
 
@@ -1245,19 +1219,14 @@ class DoubleML(ABC):
                 The outer list needs to provide an entry per repeated sample splitting (length of list is set as
                 ``n_rep``).
                 The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). If tuples for more than one fold are provided, it must form a partition and
-                ``apply_cross_fitting`` is set to True. Otherwise ``apply_cross_fitting`` is set to False and
-                ``n_folds=2``.
+                ``n_folds``). If tuples for more than one fold are provided, it must form a partition.
             If list of tuples:
                 The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). If tuples for more than one fold are provided, it must form a partition and
-                ``apply_cross_fitting`` is set to True. Otherwise ``apply_cross_fitting`` is set to False and
-                ``n_folds=2``.
+                ``n_folds``). If tuples for more than one fold are provided, it must form a partition.
                 ``n_rep=1`` is always set.
             If tuple:
                 Must be a tuple with two elements train_ind and test_ind. No sample splitting is achieved if train_ind
-                and test_ind are range(n_rep). Otherwise ``n_folds=2``.
-                ``apply_cross_fitting=False`` and ``n_rep=1`` is always set.
+                and test_ind are range(n_rep). Otherwise ``n_folds=2``. ``n_rep=1`` is always set.
 
         Returns
         -------
@@ -1390,7 +1359,6 @@ class DoubleML(ABC):
         smpls = self.__smpls
 
         if dml_procedure == 'dml1':
-            # Note that len(smpls) is only not equal to self.n_folds if self.apply_cross_fitting = False
             dml1_coefs = np.zeros(len(smpls))
             for idx, (_, test_index) in enumerate(smpls):
                 dml1_coefs[idx] = self._est_coef(psi_elements, inds=test_index)
@@ -1422,7 +1390,6 @@ class DoubleML(ABC):
 
         sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
                                                   psi_deriv=self.__psi_deriv,
-                                                  apply_cross_fitting=self.apply_cross_fitting,
                                                   smpls=self.__smpls,
                                                   is_cluster_data=self._is_cluster_data,
                                                   cluster_vars=cluster_vars,
@@ -1463,18 +1430,9 @@ class DoubleML(ABC):
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
 
     def _compute_bootstrap(self, weights):
-        if self.apply_cross_fitting:
-            J = np.mean(self.__psi_deriv)
-            boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
-            boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
-
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            J = np.mean(self.__psi_deriv[test_index])
-            boot_coef = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * J)
-            boot_t_stat = np.matmul(weights, self.__psi[test_index]) / (len(test_index) * self.__all_se * J)
+        J = np.mean(self.__psi_deriv)
+        boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
+        boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
         return boot_coef, boot_t_stat
 
@@ -1550,8 +1508,6 @@ class DoubleML(ABC):
         return
 
     def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
-        if not self.apply_cross_fitting:
-            raise NotImplementedError('Sensitivity analysis not yet implemented without cross-fitting.')
         if self._sensitivity_elements is None:
             raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
 
@@ -1608,7 +1564,6 @@ class DoubleML(ABC):
 
                 sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
                                                psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
-                                               apply_cross_fitting=self.apply_cross_fitting,
                                                smpls=self.__smpls,
                                                is_cluster_data=self._is_cluster_data,
                                                cluster_vars=cluster_vars,
@@ -1616,7 +1571,6 @@ class DoubleML(ABC):
                                                n_folds_per_cluster=n_folds_per_cluster)
                 sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_rep, i_d],
                                                psi_deriv=np.ones_like(psi_upper[:, i_rep, i_d]),
-                                               apply_cross_fitting=self.apply_cross_fitting,
                                                smpls=self.__smpls,
                                                is_cluster_data=self._is_cluster_data,
                                                cluster_vars=cluster_vars,

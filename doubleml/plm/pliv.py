@@ -64,10 +64,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    apply_cross_fitting : bool
-        Indicates whether cross-fitting should be applied.
-        Default is ``True``.
-
     Examples
     --------
     >>> import numpy as np
@@ -113,15 +109,13 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='partialling out',
                  dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                 draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
                          dml_procedure,
-                         draw_sample_splitting,
-                         apply_cross_fitting)
+                         draw_sample_splitting)
 
         self._check_data(self._dml_data)
         self.partialX = True
@@ -158,8 +152,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_rep=1,
                   score='partialling out',
                   dml_procedure='dml2',
-                  draw_sample_splitting=True,
-                  apply_cross_fitting=True):
+                  draw_sample_splitting=True):
         obj = cls(obj_dml_data,
                   ml_l,
                   ml_m,
@@ -169,8 +162,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_rep,
                   score,
                   dml_procedure,
-                  draw_sample_splitting,
-                  apply_cross_fitting)
+                  draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = True
         obj.partialZ = False
@@ -191,8 +183,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_rep=1,
                   score='partialling out',
                   dml_procedure='dml2',
-                  draw_sample_splitting=True,
-                  apply_cross_fitting=True):
+                  draw_sample_splitting=True):
         # to pass the checks for the learners, we temporarily set ml_l and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
                   DummyRegressor(),
@@ -203,8 +194,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_rep,
                   score,
                   dml_procedure,
-                  draw_sample_splitting,
-                  apply_cross_fitting)
+                  draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = False
         obj.partialZ = True
@@ -225,8 +215,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                    n_rep=1,
                    score='partialling out',
                    dml_procedure='dml2',
-                   draw_sample_splitting=True,
-                   apply_cross_fitting=True):
+                   draw_sample_splitting=True):
         obj = cls(obj_dml_data,
                   ml_l,
                   ml_m,
@@ -236,8 +225,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_rep,
                   score,
                   dml_procedure,
-                  draw_sample_splitting,
-                  apply_cross_fitting)
+                  draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = True
         obj.partialZ = True
@@ -429,8 +417,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
         r_hat_tilde = None
         if self._dml_data.n_instr > 1:
-            assert self.apply_cross_fitting
-            # TODO check whether the no cross-fitting case can be supported here
             # projection of w_hat on v_hat
             reg = LinearRegression(fit_intercept=True).fit(v_hat, w_hat)
             r_hat_tilde = reg.predict(v_hat)

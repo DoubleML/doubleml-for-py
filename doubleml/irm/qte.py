@@ -146,9 +146,6 @@ class DoubleMLQTE:
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
 
-        # todo add crossfitting = False
-        self._apply_cross_fitting = True
-
         # perform sample splitting
         self._smpls = None
         if draw_sample_splitting:
@@ -300,13 +297,6 @@ class DoubleMLQTE:
         """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
-
-    @property
-    def apply_cross_fitting(self):
-        """
-        Indicates whether cross-fitting should be applied.
-        """
-        return self._apply_cross_fitting
 
     @property
     def n_rep_boot(self):
@@ -488,15 +478,7 @@ class DoubleMLQTE:
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
-            # draw weights for the bootstrap
-            if self.apply_cross_fitting:
-                n_obs = self._dml_data.n_obs
-            else:
-                # be prepared for the case of test sets of different size in repeated no-cross-fitting
-                smpls = self.__smpls
-                test_index = smpls[0][1]
-                n_obs = len(test_index)
-
+            n_obs = self._dml_data.n_obs
             weights = _draw_weights(method, n_rep_boot, n_obs)
             for i_quant in range(self.n_quantiles):
                 self._i_quant = i_quant
@@ -511,7 +493,7 @@ class DoubleMLQTE:
         Draw sample splitting for DoubleML models.
 
         The samples are drawn according to the attributes
-        ``n_folds``, ``n_rep`` and ``apply_cross_fitting``.
+        ``n_folds`` and ``n_rep``.
 
         Returns
         -------
@@ -520,30 +502,18 @@ class DoubleMLQTE:
         obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                 n_rep=self.n_rep,
                                                 n_obs=self._dml_data.n_obs,
-                                                apply_cross_fitting=self.apply_cross_fitting,
                                                 stratify=self._dml_data.d)
         self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
     def _compute_bootstrap(self, weights):
-        if self.apply_cross_fitting:
-            J0 = np.mean(self.__psi0_deriv)
-            J1 = np.mean(self.__psi1_deriv)
-            scaled_score = self.__psi1 / J1 - self.__psi0 / J0
+        J0 = np.mean(self.__psi0_deriv)
+        J1 = np.mean(self.__psi1_deriv)
+        scaled_score = self.__psi1 / J1 - self.__psi0 / J0
 
-            boot_coef = np.matmul(weights, scaled_score) / self._dml_data.n_obs
-            boot_t_stat = np.matmul(weights, scaled_score) / (self._dml_data.n_obs * self.__all_se)
-        else:
-            # be prepared for the case of test sets of different size in repeated no-cross-fitting
-            smpls = self.__smpls
-            test_index = smpls[0][1]
-            J0 = np.mean(self.__psi0_deriv[test_index])
-            J1 = np.mean(self.__psi1_deriv[test_index])
-            scaled_score = self.__psi1[test_index] / J1 - self.__psi0[test_index] / J0
-
-            boot_coef = np.matmul(weights, scaled_score) / len(test_index)
-            boot_t_stat = np.matmul(weights, scaled_score) / (len(test_index) * self.__all_se)
+        boot_coef = np.matmul(weights, scaled_score) / self._dml_data.n_obs
+        boot_t_stat = np.matmul(weights, scaled_score) / (self._dml_data.n_obs * self.__all_se)
         return boot_coef, boot_t_stat
 
     def confint(self, joint=False, level=0.95):
@@ -629,9 +599,7 @@ class DoubleMLQTE:
         score1 = self._psi1[:, self._i_rep, self._i_quant]
         omega = score1 / J1 - score0 / J0
 
-        if self.apply_cross_fitting:
-            self._var_scaling_factor = self._dml_data.n_obs
-
+        self._var_scaling_factor = self._dml_data.n_obs
         sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(omega, 2))
 
         return sigma2_hat
@@ -654,10 +622,7 @@ class DoubleMLQTE:
         all_se = np.full((self.n_quantiles, self.n_rep), np.nan)
 
         if self.dml_procedure == 'dml1':
-            if self.apply_cross_fitting:
-                all_dml1_coef = np.full((self.n_quantiles, self.n_rep, self.n_folds), np.nan)
-            else:
-                all_dml1_coef = np.full((self.n_quantiles, self.n_rep, 1), np.nan)
+            all_dml1_coef = np.full((self.n_quantiles, self.n_rep, self.n_folds), np.nan)
         else:
             all_dml1_coef = None
 
@@ -699,8 +664,7 @@ class DoubleMLQTE:
                                      trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
                                      normalize_ipw=self.normalize_ipw,
-                                     draw_sample_splitting=False,
-                                     apply_cross_fitting=self._apply_cross_fitting)
+                                     draw_sample_splitting=False)
                 model_1 = DoubleMLPQ(self._dml_data,
                                      self._learner['ml_g'],
                                      self._learner['ml_m'],
@@ -713,8 +677,7 @@ class DoubleMLQTE:
                                      trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
                                      normalize_ipw=self.normalize_ipw,
-                                     draw_sample_splitting=False,
-                                     apply_cross_fitting=self._apply_cross_fitting)
+                                     draw_sample_splitting=False)
             elif self.score == 'LPQ':
                 model_0 = DoubleMLLPQ(self._dml_data,
                                       self._learner['ml_g'],
@@ -728,8 +691,7 @@ class DoubleMLQTE:
                                       trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
                                       normalize_ipw=self.normalize_ipw,
-                                      draw_sample_splitting=False,
-                                      apply_cross_fitting=self._apply_cross_fitting)
+                                      draw_sample_splitting=False)
                 model_1 = DoubleMLLPQ(self._dml_data,
                                       self._learner['ml_g'],
                                       self._learner['ml_m'],
@@ -742,8 +704,7 @@ class DoubleMLQTE:
                                       trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
                                       normalize_ipw=self.normalize_ipw,
-                                      draw_sample_splitting=False,
-                                      apply_cross_fitting=self._apply_cross_fitting)
+                                      draw_sample_splitting=False)
 
             elif self.score == 'CVaR':
                 model_0 = DoubleMLCVAR(self._dml_data,
@@ -757,8 +718,7 @@ class DoubleMLQTE:
                                        trimming_rule=self.trimming_rule,
                                        trimming_threshold=self.trimming_threshold,
                                        normalize_ipw=self.normalize_ipw,
-                                       draw_sample_splitting=False,
-                                       apply_cross_fitting=self._apply_cross_fitting)
+                                       draw_sample_splitting=False)
                 model_1 = DoubleMLCVAR(self._dml_data,
                                        self._learner['ml_g'],
                                        self._learner['ml_m'],
@@ -770,8 +730,7 @@ class DoubleMLQTE:
                                        trimming_rule=self.trimming_rule,
                                        trimming_threshold=self.trimming_threshold,
                                        normalize_ipw=self.normalize_ipw,
-                                       draw_sample_splitting=False,
-                                       apply_cross_fitting=self._apply_cross_fitting)
+                                       draw_sample_splitting=False)
 
             # synchronize the sample splitting
             model_0.set_sample_splitting(all_smpls=self.smpls)

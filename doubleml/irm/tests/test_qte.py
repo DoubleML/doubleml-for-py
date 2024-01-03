@@ -98,7 +98,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
     for bootstrap in boot_methods:
         np.random.seed(42)
         boot_qte_coef, boot_t_stat = boot_qte(res_manual['scaled_scores'], res_manual['ses'], quantiles,
-                                              all_smpls, n_rep, bootstrap, n_rep_boot, apply_cross_fitting=True)
+                                              all_smpls, n_rep, bootstrap, n_rep_boot)
 
         np.random.seed(42)
         dml_qte_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
