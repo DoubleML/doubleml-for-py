@@ -320,6 +320,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                                     return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         # nuisance r
         r0 = external_predictions['ml_r0'] is not None
@@ -389,27 +390,28 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         w_hat0 = d - r_hat0
         w_hat1 = d - r_hat1
 
-        m_hat = _trimm(m_hat, self.trimming_rule, self.trimming_threshold)
-
+        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                    m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
             else:
-                m_hat = _normalize_ipw(m_hat, d)
+                m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
 
         if isinstance(self.score, str):
             assert self.score == 'LATE'
             psi_b = g_hat1 - g_hat0 \
-                + np.divide(np.multiply(z, u_hat1), m_hat) \
-                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat)
+                + np.divide(np.multiply(z, u_hat1), m_hat_adj) \
+                - np.divide(np.multiply(1.0-z, u_hat0), 1.0 - m_hat_adj)
             psi_a = -1*(r_hat1 - r_hat0
-                        + np.divide(np.multiply(z, w_hat1), m_hat)
-                        - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat))
+                        + np.divide(np.multiply(z, w_hat1), m_hat_adj)
+                        - np.divide(np.multiply(1.0-z, w_hat0), 1.0 - m_hat_adj))
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y=y, z=z, d=d,
-                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat, r_hat0=r_hat0, r_hat1=r_hat1,
+                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj, r_hat0=r_hat0, r_hat1=r_hat1,
                                       smpls=smpls)
 
         return psi_a, psi_b
