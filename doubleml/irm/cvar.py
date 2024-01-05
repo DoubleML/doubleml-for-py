@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -214,7 +213,10 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-        m_hat = copy.deepcopy(g_hat)
+        m_hat = {'models': None,
+                 'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                 'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                 }
 
         # initialize models
         fitted_models = {}
