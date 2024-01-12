@@ -166,13 +166,16 @@ def iivm_dml1(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
     u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
         y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         for _, test_index in smpls:
-            m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+    else:
+        m_hat_adj = m_hat
 
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = iivm_orth(g_hat0[test_index], g_hat1[test_index],
-                                m_hat[test_index],
+                                m_hat_adj[test_index],
                                 r_hat0[test_index], r_hat1[test_index],
                                 u_hat0[test_index], u_hat1[test_index],
                                 w_hat0[test_index], w_hat1[test_index],
@@ -181,7 +184,7 @@ def iivm_dml1(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
 
     if len(smpls) > 1:
         se = np.sqrt(var_iivm(theta_hat, g_hat0, g_hat1,
-                              m_hat, r_hat0, r_hat1,
+                              m_hat_adj, r_hat0, r_hat1,
                               u_hat0, u_hat1, w_hat0, w_hat1,
                               z, score, n_obs))
     else:
@@ -189,7 +192,7 @@ def iivm_dml1(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
         test_index = smpls[0][1]
         n_obs = len(test_index)
         se = np.sqrt(var_iivm(theta_hat, g_hat0[test_index], g_hat1[test_index],
-                              m_hat[test_index], r_hat0[test_index], r_hat1[test_index],
+                              m_hat_adj[test_index], r_hat0[test_index], r_hat1[test_index],
                               u_hat0[test_index], u_hat1[test_index], w_hat0[test_index], w_hat1[test_index],
                               z[test_index], score, n_obs))
 
@@ -201,13 +204,16 @@ def iivm_dml2(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
     u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
         y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
-        m_hat = _normalize_ipw(m_hat, d)
+        m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
-    theta_hat = iivm_orth(g_hat0, g_hat1, m_hat, r_hat0, r_hat1,
+    theta_hat = iivm_orth(g_hat0, g_hat1, m_hat_adj, r_hat0, r_hat1,
                           u_hat0, u_hat1, w_hat0, w_hat1, z, score)
     se = np.sqrt(var_iivm(theta_hat, g_hat0, g_hat1,
-                          m_hat, r_hat0, r_hat1,
+                          m_hat_adj, r_hat0, r_hat1,
                           u_hat0, u_hat1, w_hat0, w_hat1,
                           z, score, n_obs))
 
@@ -273,30 +279,33 @@ def boot_iivm_single_split(theta, y, d, z, g_hat0_list, g_hat1_list, m_hat_list,
     u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
         y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         if dml_procedure == 'dml1':
             for _, test_index in smpls:
-                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
         else:
-            m_hat = _normalize_ipw(m_hat, d)
+            m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
     if apply_cross_fitting:
         J = np.mean(-(r_hat1 - r_hat0
-                      + np.divide(np.multiply(z, w_hat1), m_hat)
-                      - np.divide(np.multiply(1. - z, w_hat0), 1. - m_hat)))
+                      + np.divide(np.multiply(z, w_hat1), m_hat_adj)
+                      - np.divide(np.multiply(1. - z, w_hat0), 1. - m_hat_adj)))
     else:
         test_index = smpls[0][1]
         J = np.mean(-(r_hat1[test_index] - r_hat0[test_index]
-                      + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat[test_index])
+                      + np.divide(np.multiply(z[test_index], w_hat1[test_index]), m_hat_adj[test_index])
                       - np.divide(np.multiply(1. - z[test_index], w_hat0[test_index]),
-                                  1. - m_hat[test_index])))
+                                  1. - m_hat_adj[test_index])))
 
     psi = g_hat1 - g_hat0 \
-        + np.divide(np.multiply(z, u_hat1), m_hat) \
-        - np.divide(np.multiply(1.-z, u_hat0), 1.-m_hat) \
+        + np.divide(np.multiply(z, u_hat1), m_hat_adj) \
+        - np.divide(np.multiply(1.-z, u_hat0), 1.-m_hat_adj) \
         - theta*(r_hat1 - r_hat0
-                 + np.divide(np.multiply(z, w_hat1), m_hat)
-                 - np.divide(np.multiply(1.-z, w_hat0), 1.-m_hat))
+                 + np.divide(np.multiply(z, w_hat1), m_hat_adj)
+                 - np.divide(np.multiply(1.-z, w_hat0), 1.-m_hat_adj))
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep, apply_cross_fitting)
 
