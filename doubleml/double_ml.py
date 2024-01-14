@@ -24,12 +24,6 @@ from .utils._plots import _sensitivity_contour_plot
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 
 
-def deprication_dml_procedure():
-    warnings.warn('The dml_procedure argument is deprecated and will be removed in future versions. '
-                  'in the future, dml_procedure is always set to dml2.', DeprecationWarning)
-    return
-
-
 class DoubleML(ABC):
     """Double Machine Learning.
     """
@@ -39,7 +33,6 @@ class DoubleML(ABC):
                  n_folds,
                  n_rep,
                  score,
-                 dml_procedure,
                  draw_sample_splitting):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
@@ -98,19 +91,9 @@ class DoubleML(ABC):
         else:
             self._n_folds = n_folds
         self._n_rep = n_rep
+        self._score = score
         # default is no stratification
         self._strata = None
-
-        if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
-            raise ValueError('dml_procedure must be "dml1" or "dml2". '
-                             f'Got {str(dml_procedure)}.')
-        self._dml_procedure = dml_procedure
-
-        if dml_procedure == 'dml1':
-            deprication_dml_procedure()
-        self._dml_procedure = dml_procedure
-
-        self._score = score
 
         # perform sample splitting
         self._smpls = None
@@ -120,7 +103,7 @@ class DoubleML(ABC):
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi, self._psi_deriv, self._psi_elements, \
-            self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
+            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
@@ -134,8 +117,7 @@ class DoubleML(ABC):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
         data_summary = self._dml_data._data_summary_str()
-        score_info = f'Score function: {str(self.score)}\n' \
-                     f'DML algorithm: {self.dml_procedure}\n'
+        score_info = f'Score function: {str(self.score)}\n'
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
@@ -173,13 +155,6 @@ class DoubleML(ABC):
         Number of repetitions for the sample splitting.
         """
         return self._n_rep
-
-    @property
-    def dml_procedure(self):
-        """
-        The double machine learning algorithm.
-        """
-        return self._dml_procedure
 
     @property
     def n_rep_boot(self):
@@ -420,14 +395,6 @@ class DoubleML(ABC):
         Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
         """
         return self._all_se
-
-    @property
-    def all_dml1_coef(self):
-        """
-        Estimates of the causal parameter(s) for the ``n_rep`` x ``n_folds`` different folds after calling :meth:`fit`
-        with ``dml_procedure='dml1'``.
-        """
-        return self._all_dml1_coef
 
     @property
     def summary(self):
@@ -1025,10 +992,8 @@ class DoubleML(ABC):
 
     def _solve_score_and_estimate_se(self):
         # estimate the causal parameter
-        self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+        self._all_coef[self._i_treat, self._i_rep] = \
             self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
-        if self.dml_procedure == 'dml1':
-            self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
 
         # compute score (depends on the estimated causal parameter)
         self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
@@ -1065,12 +1030,7 @@ class DoubleML(ABC):
         all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
         all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
 
-        if self.dml_procedure == 'dml1':
-            all_dml1_coef = np.full((self._dml_data.n_coefs, self.n_rep, self.n_folds), np.nan)
-        else:
-            all_dml1_coef = None
-
-        return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se, all_dml1_coef
+        return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se
 
     def _initialize_boot_arrays(self, n_rep_boot):
         boot_coef = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
@@ -1326,33 +1286,24 @@ class DoubleML(ABC):
                                      'At least one inner list does not form a partition.')
 
         self._psi, self._psi_deriv, self._psi_elements, \
-            self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
+            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self
 
     def _est_causal_pars(self, psi_elements):
-        dml_procedure = self.dml_procedure
         smpls = self.__smpls
 
-        if dml_procedure == 'dml1':
-            dml1_coefs = np.zeros(len(smpls))
-            for idx, (_, test_index) in enumerate(smpls):
-                dml1_coefs[idx] = self._est_coef(psi_elements, inds=test_index)
-            coef = np.mean(dml1_coefs)
+        if not self._is_cluster_data:
+            coef = self._est_coef(psi_elements)
         else:
-            assert dml_procedure == 'dml2'
-            dml1_coefs = None
-            if not self._is_cluster_data:
-                coef = self._est_coef(psi_elements)
-            else:
-                scaling_factor = [1.] * len(smpls)
-                for i_fold, (_, test_index) in enumerate(smpls):
-                    test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                    scaling_factor[i_fold] = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
-                coef = self._est_coef(psi_elements, smpls=smpls, scaling_factor=scaling_factor)
+            scaling_factor = [1.] * len(smpls)
+            for i_fold, (_, test_index) in enumerate(smpls):
+                test_cluster_inds = self.__smpls_cluster[i_fold][1]
+                scaling_factor[i_fold] = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+            coef = self._est_coef(psi_elements, smpls=smpls, scaling_factor=scaling_factor)
 
-        return coef, dml1_coefs
+        return coef
 
     def _se_causal_pars(self):
         if not self._is_cluster_data:
@@ -1385,10 +1336,8 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep], dml1_coefs = \
+                self._all_coef[self._i_treat, self._i_rep] = \
                     self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
-                if self.dml_procedure == 'dml1':
-                    self._all_dml1_coef[self._i_treat, self._i_rep, :] = dml1_coefs
 
                 # compute score (depends on the estimated causal parameter)
                 self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
