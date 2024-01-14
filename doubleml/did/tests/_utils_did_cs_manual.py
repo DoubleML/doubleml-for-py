@@ -2,11 +2,11 @@ import numpy as np
 from sklearn.base import clone
 
 from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
-from ._utils_did_manual import did_dml1, did_dml2
+from ._utils_did_manual import did_dml2
 
 
 def fit_did_cs(y, x, d, t,
-               learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
+               learner_g, learner_m, all_smpls, score, in_sample_normalization,
                n_rep=1, g_d0_t0_params=None, g_d0_t1_params=None,
                g_d1_t0_params=None, g_d1_t1_params=None, m_params=None,
                trimming_threshold=1e-2):
@@ -57,11 +57,7 @@ def fit_did_cs(y, x, d, t,
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = did_dml1(psi_a, psi_b, smpls)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
+        thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)

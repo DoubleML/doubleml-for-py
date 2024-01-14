@@ -36,20 +36,13 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[0.1])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization,
-                       dml_procedure, trimming_threshold):
+def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -73,7 +66,6 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
                                        n_folds,
                                        score=score,
                                        in_sample_normalization=in_sample_normalization,
-                                       dml_procedure=dml_procedure,
                                        draw_sample_splitting=False,
                                        trimming_threshold=trimming_threshold)
 
@@ -84,7 +76,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
     np.random.seed(3141)
     res_manual = fit_did_cs(y, x, d, t,
                             clone(learner[0]), clone(learner[1]),
-                            all_smpls, dml_procedure, score, in_sample_normalization,
+                            all_smpls, score, in_sample_normalization,
                             trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_did_cs_obj.coef,
