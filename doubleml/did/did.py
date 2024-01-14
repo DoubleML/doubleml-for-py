@@ -49,10 +49,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
         Default is ``'truncate'``.
@@ -89,7 +85,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='observational',
                  in_sample_normalization=True,
-                 dml_procedure='dml2',
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True):
@@ -97,7 +92,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
                          draw_sample_splitting)
 
         self._check_data(self._dml_data)
