@@ -5,7 +5,7 @@ import copy
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_data import DoubleMLData
 # from .double_ml import DoubleML -- not working
-from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls, _get_cond_smpls_2d
 from doubleml._utils_checks  import _check_finite_predictions
 #from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions -- also not working
 from doubleml.double_ml_score_mixins import LinearScoreMixin
@@ -114,8 +114,8 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
         self._check_score(self.score)
         _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)  # learner must be a regression method
-        _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)  # learner must be a regression method, pi is probability
-        _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)  # learner must be a regression method, p is probability
+        _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)  # pi is probability
+        _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)  # p is probability
         self._learner = {'ml_mu': ml_mu, 'ml_pi': ml_pi, 'ml_p': ml_p}
         self._predict_method = {'ml_mu': 'predict', 
                                 'ml_pi': 'predict_proba', 
@@ -123,7 +123,9 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         self._initialize_ml_nuisance_params()
     
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_mu', 'ml_pi', 'ml_p']
+        valid_learner = ['ml_mu_d0', 'ml_mu_d1', 
+                         'ml_pi_d0', 'ml_pi_d1', 
+                         'ml_p_d0', 'ml_p_d1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
                         valid_learner}
 
@@ -160,74 +162,108 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         
         dx = np.column_stack((x, d))  # use d among control variables for pi estimation
         dsx = np.column_stack((dx, s))
+        sx = np.column_stack((x, s)) # s and x as controls for mu estimation
         
         # initialize nuisance predictions, targets and models
-        mu_hat = {'models': None,
+        mu_hat_treat = {'models': None,
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-        pi_hat = copy.deepcopy(mu_hat)
-        p_hat = copy.deepcopy(mu_hat)
+        mu_hat_control = copy.deepcopy(mu_hat_treat)
+        pi_hat_treat = copy.deepcopy(mu_hat_treat)
+        pi_hat_control = copy.deepcopy(mu_hat_treat)
+        p_hat_treat = copy.deepcopy(mu_hat_treat)
 
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        #smpls_s0, smpls_s1 = _get_cond_smpls(smpls, s)
+        #smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        smpls_d0_s0, smpls_d0_s1, smpls_d1_s0, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
 
         # nuisance mu
-        mu_hat = _dml_cv_predict(self._learner['ml_mu'], dsx, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_mu'), method=self._predict_method['ml_mu'],
+        mu_hat_treat = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
                                 return_models=return_models)
-        mu_hat['targets'] = mu_hat['targets'].astype(float)
-        mu_hat['targets'][d != self._treatment] = np.nan
+        mu_hat_treat['targets'] = mu_hat_treat['targets'].astype(float)
+        mu_hat_treat['targets'][d != self._treatment] = np.nan
         # is this necessary?
         # _check_finite_predictions(mu_hat, self._learner['ml_mu'], 'ml_mu', smpls)
 
-        # propensity score pi
-        pi_hat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_pi'), method=self._predict_method['ml_pi'],
+        mu_hat_control = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
                                 return_models=return_models)
-        # TODO: control print
-        print("Pi hat:", pi_hat)
-        pi_hat['targets'] = pi_hat['targets'].astype(float)
-        pi_hat['targets'][d != self._treatment] = np.nan
+        mu_hat_control['targets'] = mu_hat_control['targets'].astype(float)
+        mu_hat_control['targets'][d != self._control] = np.nan
+
+        # propensity score pi
+        pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
+                                return_models=return_models)
+        pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
+        pi_hat_treat['targets'][d != self._treatment] = np.nan
+
+        pi_hat_control = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi'],
+                                return_models=return_models)
+        pi_hat_control['targets'] = pi_hat_control['targets'].astype(float)
+        pi_hat_control['targets'][d != self._control] = np.nan
 
         # propensity score p
-        p_hat = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_p'), method=self._predict_method['ml_p'],
+        p_hat_treat = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
                                 return_models=return_models)
-        p_hat['targets'] = p_hat['targets'].astype(float)
-        p_hat['targets'][np.invert(d == 0)] = np.nan
+        p_hat_treat['targets'] = p_hat_treat['targets'].astype(float)
+        p_hat_treat['targets'][d != self._treatment] = np.nan
 
-        # TODO: control print
-        print("p hat:", p_hat)
+        p_hat_control = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
+                                return_models=return_models)
+        p_hat_control['preds'] = 1 - p_hat_control['preds']
+        p_hat_control['targets'][d != self._control] = np.nan
         
-        ind_d = d == self._treatment
+        dtreat = d == self._treatment
+        print("DTREAT:", dtreat)
+        dcontrol = d == self._control
         
-        psi_a, psi_b = self._score_elements(ind_d, 
-                                            mu_hat['preds'], pi_hat['preds'],
-                                            p_hat['preds'], s, y) 
+        psi_a, psi_b = self._score_elements(dtreat, dcontrol, mu_hat_treat['preds'],
+                                            mu_hat_control['preds'], pi_hat_treat['preds'],
+                                            pi_hat_control['preds'],
+                                            p_hat_treat['preds'], p_hat_control['preds'], s, y) 
         
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         
-        preds = {'predictions': {'ml_mu': mu_hat['preds'], 
-                                 'ml_pi': pi_hat['preds'],
-                                 'ml_p': p_hat['preds']},
-                'targets': {'ml_mu': mu_hat['targets'],
-                            'ml_pi': pi_hat['targets'],
-                            'ml_p': p_hat['targets']},
-                'models': {'ml_mu': mu_hat['models'],
-                            'ml_pi': pi_hat['models'],
-                            'ml_p': p_hat['models']}
+        preds = {'predictions': {'ml_mu_d0': mu_hat_control['preds'],
+                                 'ml_mu_d1': mu_hat_treat['preds'], 
+                                 'ml_pi_d0': pi_hat_control['preds'],
+                                 'ml_pi_d1': pi_hat_treat['preds'],
+                                 'ml_p_d0': p_hat_control['preds'],
+                                 'ml_p_d1': p_hat_treat['preds']},
+                'targets': {'ml_mu_d0': mu_hat_control['targets'],
+                            'ml_mu_d1': mu_hat_treat['targets'],
+                            'ml_pi_d0': pi_hat_control['targets'],
+                            'ml_pi_d1': pi_hat_treat['targets'],
+                            'ml_p_d0': p_hat_control['targets'],
+                            'ml_p_d1': p_hat_treat['targets']},
+                'models': {'ml_mu_d0': mu_hat_control['models'],
+                            'ml_mu_d1': mu_hat_treat['models'],
+                            'ml_pi_d0': pi_hat_control['models'],
+                            'ml_pi_d1': pi_hat_treat['models'],
+                            'ml_p_d0': p_hat_control['models'],
+                            'ml_p_d0': p_hat_treat['models']}
                 }
 
         return psi_elements, preds
     
 
-    def _score_elements(self, ind_d, mu, pi, p, s, y):
+    def _score_elements(self, dtreat, dcontrol, mu_treat, mu_control, 
+                        pi_treat, pi_control, p_treat, p_control, s, y):
         # psi_a
         psi_a = -1
 
         # psi_b
-        psi_b = (ind_d * s * (y - mu)) / (p * pi) + mu
+        psi_b1 = (dtreat * s * (y - mu_treat)) / (p_treat * pi_treat) + mu_treat
+        psi_b0 = (dcontrol * s * (y - mu_control)) / (p_control * pi_control) + mu_control
+
+        psi_b = psi_b1 - psi_b0
 
         return psi_a, psi_b
 
@@ -246,31 +282,52 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                                'ml_pi': None,
                                'ml_p': None}
 
-        # TODO: This will need adaptation
+        # nuisance training sets conditional on d
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
         train_inds = [train_index for (train_index, _) in smpls]
+        train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
+        train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
         
         # hyperparameter tuning for ML 
-        mu_tune_res = _dml_tune(y, x, train_inds,
+        mu_d0_tune_res = _dml_tune(y, x, train_inds_d0,
                                self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_tune_res = _dml_tune(y, x, train_inds,
+        mu_d1_tune_res = _dml_tune(y, x, train_inds_d1,
+                               self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        pi_d0_tune_res = _dml_tune(y, x, train_inds_d0,
                                self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        p_tune_res = _dml_tune(y, x, train_inds,
+        pi_d1_tune_res = _dml_tune(y, x, train_inds_d1,
+                               self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        p_d0_tune_res = _dml_tune(y, x, train_inds_d0,
+                               self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        p_d1_tune_res = _dml_tune(y, x, train_inds_d1,
                                self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        mu_best_params = [xx.best_params_ for xx in mu_tune_res]
-        pi_best_params = [xx.best_params_ for xx in pi_tune_res]
-        p_best_params = [xx.best_params_ for xx in p_tune_res]
+        mu_d0_best_params = [xx.best_params_ for xx in mu_d0_tune_res]
+        mu_d1_best_params = [xx.best_params_ for xx in mu_d1_tune_res]
+        pi_d0_best_params = [xx.best_params_ for xx in pi_d0_tune_res]
+        pi_d1_best_params = [xx.best_params_ for xx in pi_d1_tune_res]
+        p_d0_best_params = [xx.best_params_ for xx in pi_d0_tune_res]
+        p_d1_best_params = [xx.best_params_ for xx in pi_d1_tune_res]
 
-        params = {'ml_mu': mu_best_params,
-                  'ml_pi': pi_best_params,
-                  'ml_p': p_best_params}
+        params = {'ml_mu_d0': mu_d0_best_params,
+                  'ml_mu_d1': mu_d1_best_params,
+                  'ml_pi_d0': pi_d0_best_params,
+                  'ml_pi_d1': pi_d1_best_params,
+                  'ml_p_d0': p_d0_best_params,
+                  'ml_p_d1': p_d1_best_params}
 
-        tune_res = {'mu_tune': mu_tune_res,
-                    'pi_tune': pi_tune_res,
-                    'p_tune': p_tune_res}
+        tune_res = {'mu_d0_tune': mu_d0_tune_res,
+                    'mu_d1_tune': mu_d1_tune_res,
+                    'pi_d0_tune': pi_d0_tune_res,
+                    'pi_d1_tune': pi_d1_tune_res,
+                    'p_d0_tune': p_d0_tune_res,
+                    'p_d1_tune': p_d1_tune_res}
 
         res = {'params': params,
                'tune_res': tune_res}
