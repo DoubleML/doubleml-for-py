@@ -24,14 +24,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope='module')
-def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_procedure):
+def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -48,8 +42,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, z_cols)
     dml_pliv_obj = dml.DoubleMLPLIV._partialZ(obj_dml_data,
                                               ml_r,
-                                              n_folds=n_folds,
-                                              dml_procedure=dml_procedure)
+                                              n_folds=n_folds)
 
     dml_pliv_obj.fit()
 
@@ -63,7 +56,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score, dml_
 
     res_manual = fit_pliv_partial_z(y, x, d, z,
                                     clone(learner),
-                                    all_smpls, dml_procedure, score)
+                                    all_smpls, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],

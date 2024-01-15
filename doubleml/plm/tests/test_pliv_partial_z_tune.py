@@ -25,12 +25,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def tune_on_folds(request):
     return request.param
@@ -43,7 +37,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dml_procedure, tune_on_folds):
+def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, tune_on_folds):
     par_grid = {'ml_r': get_par_grid(learner_r)}
     n_folds_tune = 4
 
@@ -63,8 +57,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dm
     obj_dml_data = dml.DoubleMLData(data, 'y', ['d'], x_cols, z_cols)
     dml_pliv_obj = dml.DoubleMLPLIV._partialZ(obj_dml_data,
                                               ml_r,
-                                              n_folds=n_folds,
-                                              dml_procedure=dml_procedure)
+                                              n_folds=n_folds)
 
     # tune hyperparameters
     _ = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune)
@@ -95,7 +88,7 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner_r, score, dm
 
     res_manual = fit_pliv_partial_z(y, x, d, z,
                                     clone(learner_r),
-                                    all_smpls, dml_procedure, score,
+                                    all_smpls, score,
                                     r_params=r_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,

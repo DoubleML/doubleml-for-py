@@ -5,7 +5,7 @@ from ...tests._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv_partial_z(y, x, d, z,
-                       learner_r, all_smpls, dml_procedure, score,
+                       learner_r, all_smpls, score,
                        n_rep=1, r_params=None):
     n_obs = len(y)
 
@@ -22,17 +22,9 @@ def fit_pliv_partial_z(y, x, d, z,
 
         all_r_hat.append(r_hat)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = pliv_partial_z_dml1(y, x, d,
-                                                            z,
-                                                            r_hat,
-                                                            smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = pliv_partial_z_dml2(y, x, d,
-                                                            z,
-                                                            r_hat,
-                                                            smpls, score)
+        thetas[i_rep], ses[i_rep] = pliv_partial_z_dml2(y, x, d, z,
+                                                        r_hat,
+                                                        smpls, score)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -65,20 +57,6 @@ def compute_pliv_partial_z_residuals(y, r_hat, smpls):
     for idx, (_, test_index) in enumerate(smpls):
         r_hat_array[test_index] = r_hat[idx]
     return r_hat_array
-
-
-def pliv_partial_z_dml1(y, x, d, z, r_hat, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    r_hat_array = compute_pliv_partial_z_residuals(y, r_hat, smpls)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = pliv_partial_z_orth(r_hat_array[test_index], y[test_index], d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    se = np.sqrt(var_pliv_partial_z(theta_hat, r_hat_array, y, d, score, n_obs))
-
-    return theta_hat, se
 
 
 def pliv_partial_z_dml2(y, x, d, z, r_hat, smpls, score):

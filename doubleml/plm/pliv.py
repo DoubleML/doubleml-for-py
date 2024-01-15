@@ -56,10 +56,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         ``psi_a, psi_b = score(y, z, d, l_hat, m_hat, r_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
@@ -108,13 +104,11 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='partialling out',
-                 dml_procedure='dml2',
                  draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
                          draw_sample_splitting)
 
         self._check_data(self._dml_data)
@@ -151,7 +145,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_folds=5,
                   n_rep=1,
                   score='partialling out',
-                  dml_procedure='dml2',
                   draw_sample_splitting=True):
         obj = cls(obj_dml_data,
                   ml_l,
@@ -161,7 +154,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_folds,
                   n_rep,
                   score,
-                  dml_procedure,
                   draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = True
@@ -182,7 +174,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_folds=5,
                   n_rep=1,
                   score='partialling out',
-                  dml_procedure='dml2',
                   draw_sample_splitting=True):
         # to pass the checks for the learners, we temporarily set ml_l and ml_m to DummyRegressor()
         obj = cls(obj_dml_data,
@@ -193,7 +184,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_folds,
                   n_rep,
                   score,
-                  dml_procedure,
                   draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = False
@@ -214,7 +204,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                    n_folds=5,
                    n_rep=1,
                    score='partialling out',
-                   dml_procedure='dml2',
                    draw_sample_splitting=True):
         obj = cls(obj_dml_data,
                   ml_l,
@@ -224,7 +213,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                   n_folds,
                   n_rep,
                   score,
-                  dml_procedure,
                   draw_sample_splitting)
         obj._check_data(obj._dml_data)
         obj.partialX = True

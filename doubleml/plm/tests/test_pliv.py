@@ -27,14 +27,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
+def dml_pliv_fixture(generate_data_iv, learner, score):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -55,15 +49,13 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
         dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                         ml_l, ml_m, ml_r,
                                         n_folds=n_folds,
-                                        score=score,
-                                        dml_procedure=dml_procedure)
+                                        score=score)
     else:
         assert score == 'IV-type'
         dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                         ml_l, ml_m, ml_r, ml_g,
                                         n_folds=n_folds,
-                                        score=score,
-                                        dml_procedure=dml_procedure)
+                                        score=score)
 
     dml_pliv_obj.fit()
 
@@ -77,7 +69,7 @@ def dml_pliv_fixture(generate_data_iv, learner, score, dml_procedure):
 
     res_manual = fit_pliv(y, x, d, z,
                           clone(learner), clone(learner), clone(learner), clone(learner),
-                          all_smpls, dml_procedure, score)
+                          all_smpls, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],

@@ -6,7 +6,7 @@ from ...tests._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv_partial_x(y, x, d, z,
-                       learner_l, learner_m, learner_r, all_smpls, dml_procedure, score,
+                       learner_l, learner_m, learner_r, all_smpls, score,
                        n_rep=1, l_params=None, m_params=None, r_params=None):
     n_obs = len(y)
 
@@ -27,17 +27,9 @@ def fit_pliv_partial_x(y, x, d, z,
         all_m_hat.append(m_hat)
         all_r_hat.append(r_hat)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = pliv_partial_x_dml1(y, x, d,
-                                                            z,
-                                                            l_hat, m_hat, r_hat,
-                                                            smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = pliv_partial_x_dml2(y, x, d,
-                                                            z,
-                                                            l_hat, m_hat, r_hat,
-                                                            smpls, score)
+        thetas[i_rep], ses[i_rep] = pliv_partial_x_dml2(y, x, d, z,
+                                                        l_hat, m_hat, r_hat,
+                                                        smpls, score)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -99,21 +91,6 @@ def compute_pliv_partial_x_residuals(y, d, l_hat, r_hat, smpls):
         w_hat[test_index] = d[test_index] - r_hat[idx]
 
     return u_hat, w_hat
-
-
-def pliv_partial_x_dml1(y, x, d, z, l_hat, r_hat, r_hat_tilde, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    u_hat, w_hat = compute_pliv_partial_x_residuals(y, d, l_hat, r_hat, smpls)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = pliv_partial_x_orth(u_hat[test_index], w_hat[test_index], r_hat_tilde[test_index],
-                                          d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    se = np.sqrt(var_pliv_partial_x(theta_hat, d, u_hat, w_hat, r_hat_tilde, score, n_obs))
-
-    return theta_hat, se
 
 
 def pliv_partial_x_dml2(y, x, d, z, l_hat, r_hat, r_hat_tilde, smpls, score):

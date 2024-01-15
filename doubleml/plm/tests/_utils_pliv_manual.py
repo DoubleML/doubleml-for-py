@@ -6,7 +6,7 @@ from ...tests._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv(y, x, d, z,
-             learner_l, learner_m, learner_r, learner_g, all_smpls, dml_procedure, score,
+             learner_l, learner_m, learner_r, learner_g, all_smpls, score,
              n_rep=1, l_params=None, m_params=None, r_params=None, g_params=None):
     n_obs = len(y)
 
@@ -30,17 +30,9 @@ def fit_pliv(y, x, d, z,
         all_r_hat.append(r_hat)
         all_g_hat.append(g_hat)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = pliv_dml1(y, x, d,
-                                                  z,
-                                                  l_hat, m_hat, r_hat, g_hat,
-                                                  smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = pliv_dml2(y, x, d,
-                                                  z,
-                                                  l_hat, m_hat, r_hat, g_hat,
-                                                  smpls, score)
+        thetas[i_rep], ses[i_rep] = pliv_dml2(y, x, d, z,
+                                              l_hat, m_hat, r_hat, g_hat,
+                                              smpls, score)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -120,32 +112,6 @@ def compute_pliv_residuals(y, d, z, l_hat, m_hat, r_hat, g_hat, smpls):
             y_minus_g_hat[test_index] = y[test_index] - g_hat[idx]
 
     return y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat
-
-
-def pliv_dml1(y, x, d, z, l_hat, m_hat, r_hat, g_hat, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat = compute_pliv_residuals(
-        y, d, z, l_hat, m_hat, r_hat, g_hat, smpls)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = pliv_orth(y_minus_l_hat[test_index], z_minus_m_hat[test_index],
-                                d_minus_r_hat[test_index], y_minus_g_hat[test_index],
-                                d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    if len(smpls) > 1:
-        se = np.sqrt(var_pliv(theta_hat, d, y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat, score, n_obs))
-    else:
-        assert len(smpls) == 1
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-        se = np.sqrt(var_pliv(theta_hat, d[test_index],
-                              y_minus_l_hat[test_index], z_minus_m_hat[test_index],
-                              d_minus_r_hat[test_index], y_minus_g_hat[test_index],
-                              score, n_obs))
-
-    return theta_hat, se
 
 
 def pliv_dml2(y, x, d, z, l_hat, m_hat, r_hat, g_hat, smpls, score):
