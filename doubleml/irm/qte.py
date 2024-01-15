@@ -48,10 +48,6 @@ class DoubleMLQTE:
         A str (``'PQ'``, ``'LPQ'`` or ``'CVaR'``) specifying the score function.
         Default is ``'PQ'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     normalize_ipw : bool
         Indicates whether the inverse probability weights are normalized.
         Default is ``True``.
@@ -100,7 +96,6 @@ class DoubleMLQTE:
                  n_folds=5,
                  n_rep=1,
                  score='PQ',
-                 dml_procedure='dml2',
                  normalize_ipw=True,
                  kde=None,
                  trimming_rule='truncate',
@@ -123,7 +118,6 @@ class DoubleMLQTE:
         self._normalize_ipw = normalize_ipw
         self._n_folds = n_folds
         self._n_rep = n_rep
-        self._dml_procedure = dml_procedure
 
         # check score
         self._score = score
@@ -159,7 +153,7 @@ class DoubleMLQTE:
 
         # initialize arrays according to obj_dml_data and the resampling settings
         self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv, \
-            self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
+            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
         self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
@@ -217,13 +211,6 @@ class DoubleMLQTE:
         Number of Quantiles.
         """
         return self._score
-
-    @property
-    def dml_procedure(self):
-        """
-        The double machine learning algorithm.
-        """
-        return self._dml_procedure
 
     @property
     def kde(self):
@@ -621,12 +608,7 @@ class DoubleMLQTE:
         all_coef = np.full((self.n_quantiles, self.n_rep), np.nan)
         all_se = np.full((self.n_quantiles, self.n_rep), np.nan)
 
-        if self.dml_procedure == 'dml1':
-            all_dml1_coef = np.full((self.n_quantiles, self.n_rep, self.n_folds), np.nan)
-        else:
-            all_dml1_coef = None
-
-        return psi0, psi1, psi0_deriv, psi1_deriv, coef, se, all_coef, all_se, all_dml1_coef
+        return psi0, psi1, psi0_deriv, psi1_deriv, coef, se, all_coef, all_se
 
     def _initialize_boot_arrays(self, n_rep_boot):
         boot_coef = np.full((self.n_quantiles, n_rep_boot * self.n_rep), np.nan)
@@ -659,7 +641,6 @@ class DoubleMLQTE:
                                      treatment=0,
                                      n_folds=self.n_folds,
                                      n_rep=self.n_rep,
-                                     dml_procedure=self.dml_procedure,
                                      trimming_rule=self.trimming_rule,
                                      trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
@@ -672,7 +653,6 @@ class DoubleMLQTE:
                                      treatment=1,
                                      n_folds=self.n_folds,
                                      n_rep=self.n_rep,
-                                     dml_procedure=self.dml_procedure,
                                      trimming_rule=self.trimming_rule,
                                      trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
@@ -686,7 +666,6 @@ class DoubleMLQTE:
                                       treatment=0,
                                       n_folds=self.n_folds,
                                       n_rep=self.n_rep,
-                                      dml_procedure=self.dml_procedure,
                                       trimming_rule=self.trimming_rule,
                                       trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
@@ -699,7 +678,6 @@ class DoubleMLQTE:
                                       treatment=1,
                                       n_folds=self.n_folds,
                                       n_rep=self.n_rep,
-                                      dml_procedure=self.dml_procedure,
                                       trimming_rule=self.trimming_rule,
                                       trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
@@ -714,7 +692,6 @@ class DoubleMLQTE:
                                        treatment=0,
                                        n_folds=self.n_folds,
                                        n_rep=self.n_rep,
-                                       dml_procedure=self.dml_procedure,
                                        trimming_rule=self.trimming_rule,
                                        trimming_threshold=self.trimming_threshold,
                                        normalize_ipw=self.normalize_ipw,
@@ -726,7 +703,6 @@ class DoubleMLQTE:
                                        treatment=1,
                                        n_folds=self.n_folds,
                                        n_rep=self.n_rep,
-                                       dml_procedure=self.dml_procedure,
                                        trimming_rule=self.trimming_rule,
                                        trimming_threshold=self.trimming_threshold,
                                        normalize_ipw=self.normalize_ipw,

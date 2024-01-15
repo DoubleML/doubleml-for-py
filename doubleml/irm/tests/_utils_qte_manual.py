@@ -10,7 +10,7 @@ from ...tests._utils_boot import draw_weights
 from ...utils._estimation import _default_kde
 
 
-def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_procedure='dml2',
+def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
             trimming_rule='truncate', trimming_threshold=1e-2, kde=_default_kde,
             normalize_ipw=True, draw_sample_splitting=True):
 
@@ -34,7 +34,6 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 treatment=0,
                                 n_folds=n_folds,
                                 n_rep=n_rep,
-                                dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
@@ -47,7 +46,6 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 treatment=1,
                                 n_folds=n_folds,
                                 n_rep=n_rep,
-                                dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,

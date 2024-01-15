@@ -29,12 +29,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -47,7 +41,7 @@ def kde(request):
 
 
 @pytest.fixture(scope="module")
-def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_ipw, kde):
+def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
     n_folds = 3
     boot_methods = ['normal']
     n_rep_boot = 2
@@ -66,7 +60,6 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
                                   quantiles=quantiles,
                                   n_folds=n_folds,
                                   n_rep=n_rep,
-                                  dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
                                   trimming_threshold=1e-12,
                                   kde=kde)
@@ -77,7 +70,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     res_manual = fit_qte(y, x, d, quantiles, ml_g, ml_g, all_smpls,
-                         n_rep=n_rep, dml_procedure=dml_procedure,
+                         n_rep=n_rep,
                          normalize_ipw=normalize_ipw,
                          trimming_rule='truncate', trimming_threshold=1e-12, kde=kde,
                          draw_sample_splitting=True)
