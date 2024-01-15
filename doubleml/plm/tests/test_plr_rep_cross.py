@@ -25,19 +25,13 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
+def dml_plr_fixture(generate_data1, learner, score, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 498
@@ -60,8 +54,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
                                   ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
-                                  score,
-                                  dml_procedure)
+                                  score)
 
     dml_plr_obj.fit()
 
@@ -73,7 +66,7 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     all_smpls = draw_smpls(n_obs, n_folds, n_rep)
 
     res_manual = fit_plr(y, x, d, _clone(learner), _clone(learner), _clone(learner),
-                         all_smpls, dml_procedure, score, n_rep)
+                         all_smpls, score, n_rep)
 
     np.random.seed(3141)
     # test with external nuisance predictions
@@ -82,16 +75,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure, n_rep):
                                           ml_l, ml_m,
                                           n_folds,
                                           n_rep,
-                                          score=score,
-                                          dml_procedure=dml_procedure)
+                                          score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
                                           ml_l, ml_m, ml_g,
                                           n_folds,
                                           n_rep,
-                                          score=score,
-                                          dml_procedure=dml_procedure)
+                                          score=score)
 
     # synchronize the sample splitting
     dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)

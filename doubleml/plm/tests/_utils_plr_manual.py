@@ -6,7 +6,7 @@ from ...tests._utils_boot import boot_manual, draw_weights
 from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
-def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, score,
+def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, score,
                        n_rep=1, l_params=None, m_params=None, g_params=None,
                        use_other_treat_as_covariate=True):
     n_obs = len(y)
@@ -34,7 +34,7 @@ def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_
             l_hat, m_hat, g_hat, thetas_this_rep[i_d], ses_this_rep[i_d] = fit_plr_single_split(
                 y, xd, d[:, i_d],
                 learner_l, learner_m, learner_g,
-                smpls, dml_procedure, score,
+                smpls, score,
                 l_params, m_params, g_params)
             all_l_hat_this_rep.append(l_hat)
             all_m_hat_this_rep.append(m_hat)
@@ -61,7 +61,7 @@ def fit_plr_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_
     return res
 
 
-def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, score,
+def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, score,
             n_rep=1, l_params=None, m_params=None, g_params=None):
     n_obs = len(y)
 
@@ -75,7 +75,7 @@ def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, 
         l_hat, m_hat, g_hat, thetas[i_rep], ses[i_rep] = fit_plr_single_split(
             y, x, d,
             learner_l, learner_m, learner_g,
-            smpls, dml_procedure, score,
+            smpls, score,
             l_params, m_params, g_params)
         all_l_hat.append(l_hat)
         all_m_hat.append(m_hat)
@@ -91,7 +91,7 @@ def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, dml_procedure, 
     return res
 
 
-def fit_plr_single_split(y, x, d, learner_l, learner_m, learner_g, smpls, dml_procedure, score,
+def fit_plr_single_split(y, x, d, learner_l, learner_m, learner_g, smpls, score,
                          l_params=None, m_params=None, g_params=None):
     fit_g = (score == 'IV-type') | callable(score)
     if is_classifier(learner_m):
@@ -105,15 +105,8 @@ def fit_plr_single_split(y, x, d, learner_l, learner_m, learner_g, smpls, dml_pr
                                                smpls, fit_g,
                                                l_params, m_params, g_params)
 
-    if dml_procedure == 'dml1':
-        theta, se = plr_dml1(y, x, d,
-                             l_hat, m_hat, g_hat,
-                             smpls, score)
-    else:
-        assert dml_procedure == 'dml2'
-        theta, se = plr_dml2(y, x, d,
-                             l_hat, m_hat, g_hat,
-                             smpls, score)
+    theta, se = plr_dml2(y, x, d, l_hat, m_hat, g_hat,
+                         smpls, score)
 
     return l_hat, m_hat, g_hat, theta, se
 
@@ -198,29 +191,6 @@ def compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls):
             y_minus_g_hat[test_index] = y[test_index] - g_hat[idx]
         d_minus_m_hat[test_index] = d[test_index] - m_hat[idx]
     return y_minus_l_hat, d_minus_m_hat, y_minus_g_hat
-
-
-def plr_dml1(y, x, d, l_hat, m_hat, g_hat, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    y_minus_l_hat, d_minus_m_hat, y_minus_g_hat = compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = plr_orth(y_minus_l_hat[test_index], d_minus_m_hat[test_index], y_minus_g_hat[test_index],
-                               d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    if len(smpls) > 1:
-        se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs))
-    else:
-        assert len(smpls) == 1
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-        se = np.sqrt(var_plr(theta_hat, d[test_index],
-                             y_minus_l_hat[test_index], d_minus_m_hat[test_index], y_minus_g_hat[test_index],
-                             score, n_obs))
-
-    return theta_hat, se
 
 
 def plr_dml2(y, x, d, l_hat, m_hat, g_hat, smpls, score):

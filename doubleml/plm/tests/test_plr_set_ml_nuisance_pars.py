@@ -15,14 +15,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, score, dml_procedure):
+def dml_plr_fixture(generate_data1, score):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
@@ -45,8 +39,7 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_l, ml_m, ml_g,
                                   n_folds,
-                                  score=score,
-                                  dml_procedure=dml_procedure)
+                                  score=score)
 
     dml_plr_obj.fit()
 
@@ -63,8 +56,7 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
                                               ml_l, ml_m, ml_g,
                                               n_folds,
-                                              score=score,
-                                              dml_procedure=dml_procedure)
+                                              score=score)
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_l', 'd', {'alpha': alpha})
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_m', 'd', {'alpha': alpha})
     if score == 'IV-type':

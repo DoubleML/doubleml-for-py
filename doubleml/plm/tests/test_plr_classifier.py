@@ -28,14 +28,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module")
-def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
+def dml_plr_binary_classifier_fixture(learner, score):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
@@ -52,8 +46,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(bonus_data,
                                   ml_l, ml_m, ml_g,
                                   n_folds,
-                                  score=score,
-                                  dml_procedure=dml_procedure)
+                                  score=score)
 
     dml_plr_obj.fit()
 
@@ -65,7 +58,7 @@ def dml_plr_binary_classifier_fixture(learner, score, dml_procedure):
     all_smpls = draw_smpls(n_obs, n_folds)
 
     res_manual = fit_plr(y, x, d, _clone(ml_l), _clone(ml_m), _clone(ml_g),
-                         all_smpls, dml_procedure, score)
+                         all_smpls, score)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
