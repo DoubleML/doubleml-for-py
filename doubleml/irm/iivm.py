@@ -53,10 +53,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         ``never_takers`` speficies whether there are never takers in the sample.
         Default is ``{'always_takers': True, 'never_takers': True}``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     normalize_ipw : bool
         Indicates whether the inverse probability weights are normalized.
         Default is ``False``.
@@ -129,7 +125,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='LATE',
                  subgroups=None,
-                 dml_procedure='dml2',
                  normalize_ipw=False,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
@@ -138,7 +133,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
                          draw_sample_splitting)
 
         self._check_data(self._dml_data)
@@ -387,11 +381,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
         m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
-            if self.dml_procedure == 'dml1':
-                for _, test_index in smpls:
-                    m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
-            else:
-                m_hat_adj = _normalize_ipw(m_hat, d)
+            m_hat_adj = _normalize_ipw(m_hat, d)
         else:
             m_hat_adj = m_hat
 

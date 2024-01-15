@@ -29,12 +29,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -47,7 +41,7 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, normalize_ipw, trimming_threshold):
+def dml_iivm_fixture(generate_data_iivm, learner, score, normalize_ipw, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 491
@@ -75,7 +69,6 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, normaliz
     dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
-                                    dml_procedure=dml_procedure,
                                     draw_sample_splitting=False,
                                     normalize_ipw=normalize_ipw,
                                     trimming_threshold=trimming_threshold)
@@ -87,7 +80,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, normaliz
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                          all_smpls, dml_procedure, score,
+                          all_smpls, score,
                           normalize_ipw=normalize_ipw,
                           trimming_threshold=trimming_threshold)
 
@@ -102,7 +95,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, dml_procedure, normaliz
         boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
                                             res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                             res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
+                                            all_smpls, score, bootstrap, n_rep_boot,
                                             normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
