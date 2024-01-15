@@ -614,16 +614,6 @@ def test_doubleml_exception_resampling():
 
 
 @pytest.mark.ci
-def test_doubleml_exception_dml_procedure():
-    msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='1')
-    msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='dml')
-
-
-@pytest.mark.ci
 def test_doubleml_exception_onefold():
     msg = 'n_folds must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold.'
     with pytest.raises(ValueError, match=msg):

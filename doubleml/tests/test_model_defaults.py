@@ -81,14 +81,12 @@ def _assert_resampling_default_settings(dml_obj):
 def test_plr_defaults():
     _assert_resampling_default_settings(dml_plr)
     assert dml_plr.score == 'partialling out'
-    assert dml_plr.dml_procedure == 'dml2'
 
 
 @pytest.mark.ci
 def test_pliv_defaults():
     _assert_resampling_default_settings(dml_pliv)
     assert dml_pliv.score == 'partialling out'
-    assert dml_pliv.dml_procedure == 'dml2'
     assert dml_pliv.partialX
     assert not dml_pliv.partialZ
 
@@ -97,7 +95,6 @@ def test_pliv_defaults():
 def test_irm_defaults():
     _assert_resampling_default_settings(dml_irm)
     assert dml_irm.score == 'ATE'
-    assert dml_irm.dml_procedure == 'dml2'
     assert dml_irm.trimming_rule == 'truncate'
     assert dml_irm.trimming_threshold == 1e-2
     assert not dml_irm.normalize_ipw
@@ -110,7 +107,6 @@ def test_iivm_defaults():
     _assert_resampling_default_settings(dml_iivm)
     assert dml_iivm.score == 'LATE'
     assert dml_iivm.subgroups == {'always_takers': True, 'never_takers': True}
-    assert dml_iivm.dml_procedure == 'dml2'
     assert dml_iivm.trimming_rule == 'truncate'
     assert dml_iivm.trimming_threshold == 1e-2
     assert not dml_iivm.normalize_ipw
@@ -122,7 +118,6 @@ def test_cvar_defaults():
     assert dml_cvar.quantile == 0.5
     assert dml_cvar.treatment == 1
     assert dml_cvar.score == 'CVaR'
-    assert dml_cvar.dml_procedure == 'dml2'
     assert dml_cvar.trimming_rule == 'truncate'
     assert dml_cvar.trimming_threshold == 1e-2
 
@@ -133,7 +128,6 @@ def test_pq_defaults():
     assert dml_pq.quantile == 0.5
     assert dml_pq.treatment == 1
     assert dml_pq.score == 'PQ'
-    assert dml_pq.dml_procedure == 'dml2'
     assert dml_pq.trimming_rule == 'truncate'
     assert dml_pq.trimming_threshold == 1e-2
     assert dml_pq.normalize_ipw
@@ -145,7 +139,6 @@ def test_lpq_defaults():
     assert dml_lpq.quantile == 0.5
     assert dml_lpq.treatment == 1
     assert dml_lpq.score == 'LPQ'
-    assert dml_lpq.dml_procedure == 'dml2'
     assert dml_lpq.trimming_rule == 'truncate'
     assert dml_lpq.trimming_threshold == 1e-2
     assert dml_lpq.normalize_ipw
@@ -156,7 +149,6 @@ def test_qte_defaults():
     # not fix since its a differen object added in future versions _assert_resampling_default_settings(dml_qte)
     assert dml_qte.quantiles == 0.5
     assert dml_qte.score == 'PQ'
-    assert dml_qte.dml_procedure == 'dml2'
     assert dml_qte.trimming_rule == 'truncate'
     assert dml_qte.trimming_threshold == 1e-2
     assert dml_qte.normalize_ipw
@@ -176,7 +168,6 @@ def test_did_cs_defaults():
     _assert_resampling_default_settings(dml_did_cs)
     assert dml_did.score == 'observational'
     assert dml_did_cs.in_sample_normalization
-    assert dml_did_cs.dml_procedure == 'dml2'
     assert dml_did_cs.trimming_rule == 'truncate'
     assert dml_did_cs.trimming_threshold == 1e-2
 

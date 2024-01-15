@@ -30,19 +30,13 @@ obj_dml_oneway_cluster_data.cluster_cols = 'cluster_var1'
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=['IV-type', 'partialling out'])
 def score(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
+def dml_plr_multiway_cluster_sensitivity_rho0(score):
     n_folds = 3
     cf_y = 0.03
     cf_d = 0.04
@@ -58,15 +52,13 @@ def dml_plr_multiway_cluster_sensitivity_rho0(dml_procedure, score):
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_cluster_data,
                                       ml_l, ml_m,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_cluster_data,
                                       ml_l, ml_m, ml_g,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
 
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
@@ -105,7 +97,7 @@ def test_dml_sensitivity_benchmark(dml_plr_multiway_cluster_sensitivity_rho0):
 
 
 @pytest.fixture(scope='module')
-def dml_plr_multiway_cluster_sensitivity_rho0_se(dml_procedure):
+def dml_plr_multiway_cluster_sensitivity_rho0_se():
     n_folds = 3
     cf_y = 0.03
     cf_d = 0.04
@@ -119,8 +111,7 @@ def dml_plr_multiway_cluster_sensitivity_rho0_se(dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_cluster_data,
                                   ml_l, ml_m,
                                   n_folds=n_folds,
-                                  score='partialling out',
-                                  dml_procedure=dml_procedure)
+                                  score='partialling out')
 
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d,
