@@ -32,12 +32,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[False, True])
 def normalize_ipw(request):
     return request.param
@@ -50,7 +44,7 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_ipw, trimming_threshold):
+def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -72,7 +66,6 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                                   ml_g, ml_m,
                                   n_folds,
                                   score=score,
-                                  dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
                                   draw_sample_splitting=False,
                                   trimming_threshold=trimming_threshold)
@@ -84,7 +77,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
     np.random.seed(3141)
     res_manual = fit_irm(y, x, d,
                          clone(learner[0]), clone(learner[1]),
-                         all_smpls, dml_procedure, score,
+                         all_smpls, score,
                          normalize_ipw=normalize_ipw,
                          trimming_threshold=trimming_threshold)
 
@@ -94,7 +87,6 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                                       ml_g, ml_m,
                                       n_folds,
                                       score=score,
-                                      dml_procedure=dml_procedure,
                                       normalize_ipw=normalize_ipw,
                                       draw_sample_splitting=False,
                                       trimming_threshold=trimming_threshold)
@@ -121,7 +113,6 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
                                            res_manual['all_m_hat'], res_manual['all_p_hat'],
                                            all_smpls, score, bootstrap, n_rep_boot,
-                                           dml_procedure=dml_procedure,
                                            normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
@@ -256,7 +247,7 @@ def n_rep(request):
 
 
 @pytest.fixture(scope='module')
-def dml_irm_weights_fixture(n_rep, dml_procedure):
+def dml_irm_weights_fixture(n_rep):
     n = 10000
     # collect data
     np.random.seed(42)
@@ -265,7 +256,6 @@ def dml_irm_weights_fixture(n_rep, dml_procedure):
         "trimming_threshold": 0.05,
         "n_folds": 5,
         "n_rep": n_rep,
-        "dml_procedure": dml_procedure,
         "draw_sample_splitting": False
     }
 
