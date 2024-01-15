@@ -103,25 +103,6 @@ def compute_did_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, s
     return resid_d0, g_hat0, g_hat1, m_hat, p_hat
 
 
-def did_dml1(psi_a, psi_b, smpls):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(psi_a)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = - np.mean(psi_b[test_index]) / np.mean(psi_a[test_index])
-    theta_hat = np.mean(thetas)
-
-    if len(smpls) > 1:
-        se = np.sqrt(var_did(theta_hat, psi_a, psi_b, n_obs))
-    else:
-        assert len(smpls) == 1
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-        se = np.sqrt(var_did(theta_hat, psi_a[test_index], psi_b[test_index], n_obs))
-
-    return theta_hat, se
-
-
 def did_dml2(psi_a, psi_b):
     n_obs = len(psi_a)
     theta_hat = - np.mean(psi_b) / np.mean(psi_a)
