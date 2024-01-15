@@ -6,7 +6,7 @@ from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_did(y, x, d,
-            learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
+            learner_g, learner_m, all_smpls, score, in_sample_normalization,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
             trimming_threshold=1e-2):
     n_obs = len(y)
@@ -43,11 +43,7 @@ def fit_did(y, x, d,
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = did_dml1(psi_a, psi_b, smpls)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
+        thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
