@@ -49,10 +49,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         for conditional value at risk for potential outcomes.
         Default is ``'CVaR'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     normalize_ipw : bool
         Indicates whether the inverse probability weights are normalized.
         Default is ``True``.
@@ -95,7 +91,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='CVaR',
-                 dml_procedure='dml2',
                  normalize_ipw=True,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
@@ -104,7 +99,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
                          draw_sample_splitting)
 
         self._quantile = quantile
@@ -300,11 +294,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         # this is not done in the score to be equivalent to PQ models
         m_hat_adj = np.full_like(m_hat['preds'], np.nan, dtype='float64')
         if self._normalize_ipw:
-            if self.dml_procedure == 'dml1':
-                for _, test_index in smpls:
-                    m_hat_adj[test_index] = _normalize_ipw(m_hat['preds'][test_index], d[test_index])
-            else:
-                m_hat_adj = _normalize_ipw(m_hat['preds'], d)
+            m_hat_adj = _normalize_ipw(m_hat['preds'], d)
         else:
             m_hat_adj = m_hat['preds']
 
