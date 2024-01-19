@@ -23,7 +23,7 @@ class DoubleMLFramework():
             self,
             doubleml_obj=None,
     ):
-
+        self._is_cluster_data = False
         if isinstance(doubleml_obj, dict):
             expected_keys = ['thetas', 'ses', 'all_thetas', 'all_ses', 'var_scaling_factors', 'scaled_psi']
             if not all(key in doubleml_obj.keys() for key in expected_keys):
@@ -41,6 +41,8 @@ class DoubleMLFramework():
             self._var_scaling_factors = doubleml_obj['var_scaling_factors']
             self._scaled_psi = doubleml_obj['scaled_psi']
 
+            if "is_cluster_data" in doubleml_obj.keys():
+                self._is_cluster_data = True
         else:
             assert isinstance(doubleml_obj, DoubleML)
             if doubleml_obj._is_cluster_data:
@@ -54,8 +56,10 @@ class DoubleMLFramework():
             self._ses = doubleml_obj.se
             self._all_thetas = doubleml_obj.all_coef
             self._all_ses = doubleml_obj.all_se
-            self._var_scaling_factors = np.array([doubleml_obj._var_scaling_factor])
+            self._var_scaling_factors = np.array([doubleml_obj._var_scaling_factors])
             self._scaled_psi = np.divide(doubleml_obj.psi, np.mean(doubleml_obj.psi_deriv, axis=0))
+
+            self._is_cluster_data = doubleml_obj._is_cluster_data
 
         # check if all sizes match
         _check_framework_shapes(self)
@@ -120,16 +124,16 @@ class DoubleMLFramework():
 
             # check if var_scaling_factors are the same
             assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
-            assert np.allclose(self._var_scaling_factors, self._var_scaling_factors[0])
             var_scaling_factors = self._var_scaling_factors
 
             # compute standard errors
             sigma2_hat = np.divide(
                 np.mean(np.square(scaled_psi), axis=0),
-                var_scaling_factors[0])
+                var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors[0])
+            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
 
+            is_cluster_data = self._is_cluster_data or other._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -137,6 +141,7 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
+                'is_cluster_data': is_cluster_data,
             }
             new_obj = DoubleMLFramework(doubleml_dict)
 
@@ -156,7 +161,6 @@ class DoubleMLFramework():
 
             # check if var_scaling_factors are the same
             assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
-            assert np.allclose(self._var_scaling_factors, self._var_scaling_factors[0])
             var_scaling_factors = self._var_scaling_factors
 
             # compute standard errors
@@ -164,8 +168,9 @@ class DoubleMLFramework():
                 np.mean(np.square(scaled_psi), axis=0),
                 var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors[0])
+            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
 
+            is_cluster_data = self._is_cluster_data or other._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -173,6 +178,7 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
+                'is_cluster_data': is_cluster_data,
             }
             new_obj = DoubleMLFramework(doubleml_dict)
 
@@ -195,6 +201,7 @@ class DoubleMLFramework():
             all_ses = np.multiply(other, self._all_ses)
             scaled_psi = np.multiply(other, self._scaled_psi)
 
+            is_cluster_data = self._is_cluster_data or other._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -202,6 +209,7 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
+                'is_cluster_data': is_cluster_data,
             }
             new_obj = DoubleMLFramework(doubleml_dict)
         else:
@@ -285,6 +293,9 @@ class DoubleMLFramework():
         """
 
         _check_bootstrap(method, n_rep_boot)
+
+        if self._is_cluster_data:
+            raise NotImplementedError('bootstrap not yet implemented with clustering.')
         # initialize bootstrap distribution array
         self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
@@ -315,6 +326,7 @@ def concat(objs):
     thetas = np.concatenate([obj.thetas for obj in objs], axis=0)
     ses = np.concatenate([obj.ses for obj in objs], axis=0)
 
+    is_cluster_data = any(obj._is_cluster_data for obj in objs)
     doubleml_dict = {
         'thetas': thetas,
         'ses': ses,
@@ -322,6 +334,7 @@ def concat(objs):
         'all_ses': all_ses,
         'var_scaling_factors': var_scaling_factors,
         'scaled_psi': scaled_psi,
+        'is_cluster_data': is_cluster_data,
     }
     new_obj = DoubleMLFramework(doubleml_dict)
 

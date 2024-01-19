@@ -248,14 +248,15 @@ def _solve_ipw_score(ipw_score, bracket_guess):
     return ipw_est
 
 
-def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
+def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
-    n_rep = all_coefs.shape[1]
     coefs = np.median(all_coefs, 1)
+    coefs_deviations = np.square(all_coefs - coefs.reshape(-1, 1))
 
-    xx = np.tile(coefs.reshape(-1, 1), n_rep)
-    ses = np.sqrt(np.divide(np.median(np.multiply(np.power(all_ses, 2), var_scaling_factor) +
-                                      np.power(all_coefs - xx, 2), 1), var_scaling_factor))
+    rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factors.reshape(-1, 1))
+
+    var = np.median(rescaled_variances + coefs_deviations, 1)
+    ses = np.sqrt(np.divide(var, var_scaling_factors))
 
     return coefs, ses
 

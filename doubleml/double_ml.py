@@ -102,7 +102,7 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_deriv, self._psi_elements, \
+        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
@@ -495,7 +495,7 @@ class DoubleML(ABC):
                 self._fit_sensitivity_elements(nuisance_predictions)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
         return self
 
@@ -1006,7 +1006,7 @@ class DoubleML(ABC):
             self._all_coef[self._i_treat, self._i_rep])
 
         # compute standard errors for causal parameter
-        self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+        self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
 
     def _fit_sensitivity_elements(self, nuisance_predictions):
         if self._sensitivity_implemented:
@@ -1023,6 +1023,8 @@ class DoubleML(ABC):
         psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
 
+        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+
         # coefficients and ses
         coef = np.full(self._dml_data.n_coefs, np.nan)
         se = np.full(self._dml_data.n_coefs, np.nan)
@@ -1030,7 +1032,7 @@ class DoubleML(ABC):
         all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
         all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
 
-        return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se
+        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
 
     def _initialize_boot_arrays(self, n_rep_boot):
         boot_coef = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
@@ -1285,7 +1287,7 @@ class DoubleML(ABC):
                     raise ValueError('Invalid partition provided. '
                                      'At least one inner list does not form a partition.')
 
-        self._psi, self._psi_deriv, self._psi_elements, \
+        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
@@ -1324,9 +1326,8 @@ class DoubleML(ABC):
                                                   smpls_cluster=smpls_cluster,
                                                   n_folds_per_cluster=n_folds_per_cluster)
 
-        self._var_scaling_factor = var_scaling_factor
         se = np.sqrt(sigma2_hat)
-        return se
+        return se, var_scaling_factor
 
     # to estimate causal parameters without predictions
     def _est_causal_pars_and_se(self):
@@ -1350,10 +1351,10 @@ class DoubleML(ABC):
                     self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
-                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
     def _compute_bootstrap(self, weights):
         J = np.mean(self.__psi_deriv)
@@ -1507,8 +1508,8 @@ class DoubleML(ABC):
                 all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
 
         # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
-        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
 
         quant = norm.ppf(level)
         ci_lower = theta_lower - np.multiply(quant, sigma_lower)
