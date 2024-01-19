@@ -304,3 +304,18 @@ def _check_external_predictions(external_predictions, valid_treatments, valid_le
                                      'Invalid predictions for treatment ' + str(treatment) +
                                      ' and learner ' + str(learner) + '. ' +
                                      f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
+
+
+def _check_bootstrap(method, n_rep_boot):
+
+    if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
+        raise ValueError('Method must be "Bayes", "normal" or "wild". '
+                         f'Got {str(method)}.')
+
+    if not isinstance(n_rep_boot, int):
+        raise TypeError('The number of bootstrap replications must be of int type. '
+                        f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+    if n_rep_boot < 1:
+        raise ValueError('The number of bootstrap replications must be positive. '
+                         f'{str(n_rep_boot)} was passed.')
+    return
