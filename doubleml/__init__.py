@@ -1,5 +1,6 @@
 from pkg_resources import get_distribution
 
+from .double_ml_framework import concat
 from .double_ml_framework import DoubleMLFramework
 from .plm.plr import DoubleMLPLR
 from .plm.pliv import DoubleMLPLIV
@@ -16,7 +17,8 @@ from .irm.cvar import DoubleMLCVAR
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
 
-__all__ = ['DoubleMLFramework',
+__all__ = ['concat',
+           'DoubleMLFramework',
            'DoubleMLPLR',
            'DoubleMLPLIV',
            'DoubleMLIRM',
