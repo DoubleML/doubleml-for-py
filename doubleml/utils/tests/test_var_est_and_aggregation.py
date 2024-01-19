@@ -10,12 +10,6 @@ def n_rep(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['mean', 'median'])
-def aggregation_method(request):
-    return request.param
-
-
 @pytest.fixture(scope='module')
 def test_var_est_and_aggr_fixture(n_rep):
     n_obs = 100
@@ -39,7 +33,7 @@ def test_var_est_and_aggr_fixture(n_rep):
     theta, se = _aggregate_coefs_and_ses(
         all_coefs=all_thetas,
         all_ses=all_ses,
-        var_scaling_factor=n_obs,
+        var_scaling_factors=np.full(1, n_obs),
     )
 
     expected_theta = np.median(all_thetas)

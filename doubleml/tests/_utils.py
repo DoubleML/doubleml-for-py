@@ -93,12 +93,12 @@ def generate_dml_dict(psi_a, psi_b):
             )
             all_ses[i_theta, i_rep] = np.sqrt(var_estimate)
 
+    var_scaling_factors = np.full(n_thetas, n_obs)
     thetas, ses = _aggregate_coefs_and_ses(
         all_coefs=all_thetas,
         all_ses=all_ses,
-        var_scaling_factor=n_obs,
+        var_scaling_factors=var_scaling_factors,
     )
-    var_scaling_factors = np.full(n_thetas, n_obs)
     scaled_psi = psi_b / np.mean(psi_a, axis=0)
 
     doubleml_dict = {

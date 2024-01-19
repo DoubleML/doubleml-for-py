@@ -257,7 +257,7 @@ def test_dml_framework_from_doubleml_se(dml_framework_from_doubleml_fixture):
         dml_framework_from_doubleml_fixture['dml_framework_obj_add_obj'].all_ses,
         2*dml_framework_from_doubleml_fixture['dml_obj'].all_se
     )
-    scaling = np.array([dml_framework_from_doubleml_fixture['dml_obj']._var_scaling_factor]).reshape(-1, 1)
+    scaling = np.array([dml_framework_from_doubleml_fixture['dml_obj']._var_scaling_factors]).reshape(-1, 1)
     sub_var = np.mean(
         np.square(dml_framework_from_doubleml_fixture['dml_obj'].psi - dml_framework_from_doubleml_fixture['dml_obj_2'].psi),
         axis=0)
