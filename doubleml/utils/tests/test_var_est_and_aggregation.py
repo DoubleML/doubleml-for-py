@@ -57,7 +57,6 @@ def test_var_est_and_aggr_fixture(n_rep):
     return result_dict
 
 
-@pytest.mark.rewrite
 @pytest.mark.ci
 def test_aggregate_theta(test_var_est_and_aggr_fixture):
     assert np.allclose(
@@ -66,7 +65,6 @@ def test_aggregate_theta(test_var_est_and_aggr_fixture):
     )
 
 
-@pytest.mark.rewrite
 @pytest.mark.ci
 def test_aggregate_se(test_var_est_and_aggr_fixture):
     assert np.allclose(
