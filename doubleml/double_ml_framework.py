@@ -42,7 +42,7 @@ class DoubleMLFramework():
             self._scaled_psi = doubleml_obj['scaled_psi']
 
             if "is_cluster_data" in doubleml_obj.keys():
-                self._is_cluster_data = True
+                self._is_cluster_data = doubleml_obj['is_cluster_data']
         else:
             assert isinstance(doubleml_obj, DoubleML)
             if doubleml_obj._is_cluster_data:
@@ -56,7 +56,7 @@ class DoubleMLFramework():
             self._ses = doubleml_obj.se
             self._all_thetas = doubleml_obj.all_coef
             self._all_ses = doubleml_obj.all_se
-            self._var_scaling_factors = np.array([doubleml_obj._var_scaling_factors])
+            self._var_scaling_factors = doubleml_obj._var_scaling_factors
             self._scaled_psi = np.divide(doubleml_obj.psi, np.mean(doubleml_obj.psi_deriv, axis=0))
 
             self._is_cluster_data = doubleml_obj._is_cluster_data
@@ -201,7 +201,7 @@ class DoubleMLFramework():
             all_ses = np.multiply(other, self._all_ses)
             scaled_psi = np.multiply(other, self._scaled_psi)
 
-            is_cluster_data = self._is_cluster_data or other._is_cluster_data
+            is_cluster_data = self._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -293,9 +293,9 @@ class DoubleMLFramework():
         """
 
         _check_bootstrap(method, n_rep_boot)
-
         if self._is_cluster_data:
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
+
         # initialize bootstrap distribution array
         self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
