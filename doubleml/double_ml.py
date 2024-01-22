@@ -1298,7 +1298,7 @@ class DoubleML(ABC):
             coef = self._est_coef(psi_elements)
         else:
             scaling_factor = [1.] * len(smpls)
-            for i_fold, (_, test_index) in enumerate(smpls):
+            for i_fold, (_, _) in enumerate(smpls):
                 test_cluster_inds = self.__smpls_cluster[i_fold][1]
                 scaling_factor[i_fold] = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
             coef = self._est_coef(psi_elements, smpls=smpls, scaling_factor=scaling_factor)
