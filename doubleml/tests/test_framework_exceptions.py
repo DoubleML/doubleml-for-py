@@ -28,6 +28,43 @@ def test_framework_input_exceptions():
         test_dict = {}
         DoubleMLFramework(test_dict)
 
+    msg = r"The shape of thetas does not match the expected shape \(2,\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['thetas'] = np.ones(shape=(1,))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of ses does not match the expected shape \(2,\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['ses'] = np.ones(shape=(1,))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of all_thetas does not match the expected shape \(2, 5\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['all_thetas'] = np.ones(shape=(1, 5))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of all_ses does not match the expected shape \(2, 5\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['all_ses'] = np.ones(shape=(1, 5))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of var_scaling_factors does not match the expected shape \(2,\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['var_scaling_factors'] = np.ones(shape=(1, 5))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of scaled_psi does not match the expected shape \(10, 2, 5\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['scaled_psi'] = np.ones(shape=(10, 2, 5, 3))
+        DoubleMLFramework(test_dict)
+
     msg = "doubleml_obj must be of type DoubleML or dictionary."
     with pytest.raises(AssertionError, match=msg):
         DoubleMLFramework(1.0)
+

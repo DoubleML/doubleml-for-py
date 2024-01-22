@@ -351,6 +351,7 @@ def _check_framework_shapes(self):
         raise ValueError(f'The shape of all_ses does not match the expected shape ({self._n_thetas}, {self._n_rep}).')
     if self._var_scaling_factors.shape != (self._n_thetas,):
         raise ValueError(f'The shape of var_scaling_factors does not match the expected shape ({self._n_thetas},).')
+    # dimension of scaled_psi is n_obs x n_thetas x n_rep (per default)
     if self._scaled_psi.shape != (self._n_obs, self._n_thetas, self._n_rep):
         raise ValueError(('The shape of scaled_psi does not match the expected '
                           f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
