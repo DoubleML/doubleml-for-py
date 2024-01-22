@@ -44,9 +44,7 @@ class DoubleMLFramework():
             if "is_cluster_data" in doubleml_obj.keys():
                 self._is_cluster_data = doubleml_obj['is_cluster_data']
         else:
-            assert isinstance(doubleml_obj, DoubleML)
-            if doubleml_obj._is_cluster_data:
-                raise NotImplementedError('DoubleMLFramework does not support cluster data yet.')
+            assert isinstance(doubleml_obj, DoubleML), "doubleml_obj must be of type DoubleML or dictionary."
             # set scores and parameters according to doubleml_obj
             self._n_thetas = doubleml_obj._dml_data.n_treat
             self._n_rep = doubleml_obj.n_rep
