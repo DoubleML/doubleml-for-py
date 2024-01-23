@@ -4,7 +4,7 @@ from scipy.stats import norm
 
 from .double_ml import DoubleML
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses
-from .utils._checks import _check_bootstrap
+from .utils._checks import _check_bootstrap, _check_framework_compatibility
 
 
 class DoubleMLFramework():
@@ -116,6 +116,10 @@ class DoubleMLFramework():
     def __add__(self, other):
 
         if isinstance(other, DoubleMLFramework):
+            # internal consistency check
+            _check_framework_shapes(self)
+            _check_framework_shapes(other)
+            _check_framework_compatibility(self, other, check_treatments=True)
 
             all_thetas = self._all_thetas + other._all_thetas
             scaled_psi = self._scaled_psi + other._scaled_psi
@@ -154,6 +158,11 @@ class DoubleMLFramework():
     def __sub__(self, other):
 
         if isinstance(other, DoubleMLFramework):
+            # internal consistency check
+            _check_framework_shapes(self)
+            _check_framework_shapes(other)
+            _check_framework_compatibility(self, other, check_treatments=True)
+
             all_thetas = self._all_thetas - other._all_thetas
             scaled_psi = self._scaled_psi - other._scaled_psi
 
@@ -310,12 +319,16 @@ def concat(objs):
     Concatenate DoubleMLFramework objects.
     """
     if len(objs) == 0:
-        raise ValueError('Need at least one object to concatenate.')
+        raise TypeError('Need at least one object to concatenate.')
 
     if not all(isinstance(obj, DoubleMLFramework) for obj in objs):
-        raise ValueError('All objects must be of type DoubleMLFramework.')
+        raise TypeError('All objects must be of type DoubleMLFramework.')
 
-    # TODO: Add more Input checks
+    # check on internal consitency of objects
+    _ = [_check_framework_shapes(obj) for obj in objs]
+    # check if all objects are compatible in n_obs and n_rep
+    _ = [_check_framework_compatibility(objs[0], obj, check_treatments=False) for obj in objs[1:]]
+
     all_thetas = np.concatenate([obj.all_thetas for obj in objs], axis=0)
     all_ses = np.concatenate([obj.all_ses for obj in objs], axis=0)
     var_scaling_factors = np.concatenate([obj._var_scaling_factors for obj in objs], axis=0)
@@ -335,6 +348,9 @@ def concat(objs):
         'is_cluster_data': is_cluster_data,
     }
     new_obj = DoubleMLFramework(doubleml_dict)
+
+    # check internal consistency of new object
+    _check_framework_shapes(new_obj)
 
     return new_obj
 
