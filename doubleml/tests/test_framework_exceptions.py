@@ -12,17 +12,13 @@ n_rep = 5
 psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
 psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
 doubleml_dict = generate_dml_dict(psi_a, psi_b)
-psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep))
-psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep)) + 1.0
-doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
 
 # combine objects and estimate parameters
 dml_framework_obj_1 = DoubleMLFramework(doubleml_dict)
-dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
 
 
 @pytest.mark.ci
-def test_framework_input_exceptions():
+def test_input_exceptions():
     msg = r"The dict must contain the following keys: thetas, ses, all_thetas, all_ses, var_scaling_factors, scaled_psi"
     with pytest.raises(ValueError, match=msg):
         test_dict = {}
@@ -68,3 +64,90 @@ def test_framework_input_exceptions():
     with pytest.raises(AssertionError, match=msg):
         DoubleMLFramework(1.0)
 
+
+def test_operation_exceptions():
+    # addition
+    msg = "Unsupported operand type: <class 'float'>"
+    with pytest.raises(TypeError, match=msg):
+        dml_framework_obj_1 + 1.0
+    with pytest.raises(TypeError, match=msg):
+        1.0 + dml_framework_obj_1
+    msg = 'The number of observations in DoubleMLFrameworks must be the same. Got 10 and 11.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs + 1, n_thetas, n_rep))
+        psi_b_2 = np.random.normal(size=(n_obs + 1, n_thetas, n_rep))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 + dml_framework_obj_2
+    msg = 'The number of parameters theta in DoubleMLFrameworks must be the same. Got 2 and 3.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs, n_thetas + 1, n_rep))
+        psi_b_2 = np.random.normal(size=(n_obs, n_thetas + 1, n_rep))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 + dml_framework_obj_2
+    msg = 'The number of replications in DoubleMLFrameworks must be the same. Got 5 and 6.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep + 1))
+        psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep + 1))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 + dml_framework_obj_2
+
+    # subtraction
+    msg = "Unsupported operand type: <class 'float'>"
+    with pytest.raises(TypeError, match=msg):
+        dml_framework_obj_1 - 1.0
+    with pytest.raises(TypeError, match=msg):
+        1.0 - dml_framework_obj_1
+    msg = 'The number of observations in DoubleMLFrameworks must be the same. Got 10 and 11.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs + 1, n_thetas, n_rep))
+        psi_b_2 = np.random.normal(size=(n_obs + 1, n_thetas, n_rep))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 - dml_framework_obj_2
+    msg = 'The number of parameters theta in DoubleMLFrameworks must be the same. Got 2 and 3.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs, n_thetas + 1, n_rep))
+        psi_b_2 = np.random.normal(size=(n_obs, n_thetas + 1, n_rep))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 - dml_framework_obj_2
+    msg = 'The number of replications in DoubleMLFrameworks must be the same. Got 5 and 6.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep + 1))
+        psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep + 1))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        _ = dml_framework_obj_1 - dml_framework_obj_2
+
+    # multiplication
+    msg = "Unsupported operand type: <class 'dict'>"
+    with pytest.raises(TypeError, match=msg):
+        dml_framework_obj_1 * {}
+    with pytest.raises(TypeError, match=msg):
+        {} * dml_framework_obj_1
+        concat([dml_framework_obj_1, 1.0])
+
+    # concatenation
+    msg = 'Need at least one object to concatenate.'
+    with pytest.raises(TypeError, match=msg):
+        concat([])
+    msg = 'All objects must be of type DoubleMLFramework.'
+    with pytest.raises(TypeError, match=msg):
+        concat([dml_framework_obj_1, 1.0])
+    msg = 'The number of observations in DoubleMLFrameworks must be the same. Got 10 and 11.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs + 1, n_thetas, n_rep))
+        psi_b_2 = np.random.normal(size=(n_obs + 1, n_thetas, n_rep))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        concat([dml_framework_obj_1, dml_framework_obj_2])
+    msg = 'The number of replications in DoubleMLFrameworks must be the same. Got 5 and 6.'
+    with pytest.raises(ValueError, match=msg):
+        psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep + 1))
+        psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep + 1))
+        doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
+        dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
+        concat([dml_framework_obj_1, dml_framework_obj_2])
