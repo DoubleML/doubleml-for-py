@@ -69,9 +69,9 @@ def test_operation_exceptions():
     # addition
     msg = "Unsupported operand type: <class 'float'>"
     with pytest.raises(TypeError, match=msg):
-        dml_framework_obj_1 + 1.0
+        _ = dml_framework_obj_1 + 1.0
     with pytest.raises(TypeError, match=msg):
-        1.0 + dml_framework_obj_1
+        _ = 1.0 + dml_framework_obj_1
     msg = 'The number of observations in DoubleMLFrameworks must be the same. Got 10 and 11.'
     with pytest.raises(ValueError, match=msg):
         psi_a_2 = np.ones(shape=(n_obs + 1, n_thetas, n_rep))
@@ -97,9 +97,9 @@ def test_operation_exceptions():
     # subtraction
     msg = "Unsupported operand type: <class 'float'>"
     with pytest.raises(TypeError, match=msg):
-        dml_framework_obj_1 - 1.0
+        _ = dml_framework_obj_1 - 1.0
     with pytest.raises(TypeError, match=msg):
-        1.0 - dml_framework_obj_1
+        _ = 1.0 - dml_framework_obj_1
     msg = 'The number of observations in DoubleMLFrameworks must be the same. Got 10 and 11.'
     with pytest.raises(ValueError, match=msg):
         psi_a_2 = np.ones(shape=(n_obs + 1, n_thetas, n_rep))
@@ -125,10 +125,9 @@ def test_operation_exceptions():
     # multiplication
     msg = "Unsupported operand type: <class 'dict'>"
     with pytest.raises(TypeError, match=msg):
-        dml_framework_obj_1 * {}
+        _ = dml_framework_obj_1 * {}
     with pytest.raises(TypeError, match=msg):
-        {} * dml_framework_obj_1
-        concat([dml_framework_obj_1, 1.0])
+        _ = {} * dml_framework_obj_1
 
     # concatenation
     msg = 'Need at least one object to concatenate.'
@@ -143,11 +142,11 @@ def test_operation_exceptions():
         psi_b_2 = np.random.normal(size=(n_obs + 1, n_thetas, n_rep))
         doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
         dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
-        concat([dml_framework_obj_1, dml_framework_obj_2])
+        _ = concat([dml_framework_obj_1, dml_framework_obj_2])
     msg = 'The number of replications in DoubleMLFrameworks must be the same. Got 5 and 6.'
     with pytest.raises(ValueError, match=msg):
         psi_a_2 = np.ones(shape=(n_obs, n_thetas, n_rep + 1))
         psi_b_2 = np.random.normal(size=(n_obs, n_thetas, n_rep + 1))
         doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
         dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
-        concat([dml_framework_obj_1, dml_framework_obj_2])
+        _ = concat([dml_framework_obj_1, dml_framework_obj_2])
