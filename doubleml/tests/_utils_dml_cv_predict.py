@@ -29,11 +29,11 @@ def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
             predictions = np.full(len(y), np.nan)
         if est_params is None:
             xx = _fit_and_predict(clone(estimator),
-                                  x, y, train_index, test_index, verbose, fit_params, method)
+                                  x, y, train_index, test_index, fit_params, method)
         else:
             assert isinstance(est_params, dict)
             xx = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                  x, y, train_index, test_index, verbose, fit_params, method)
+                                  x, y, train_index, test_index, fit_params, method)
 
         # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
         # inv_test_indices = np.argsort(test_indices)
