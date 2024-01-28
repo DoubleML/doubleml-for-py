@@ -6,7 +6,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_data import DoubleMLData
 # from .double_ml import DoubleML -- not working
 from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls, _get_cond_smpls_2d
-from doubleml._utils_checks  import _check_finite_predictions
+from doubleml._utils_checks  import _check_finite_predictions, _check_trimming, _check_is_propensity
 #from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions -- also not working
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 
@@ -88,7 +88,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                  ml_pi,  # propensity score
                  ml_p,   # propensity score
                  selection=0,  # if 0, ATE is estimated, if 1, ATE for selection is estimated
-                 trimming_threshold = 0.01, 
+                 trimming_threshold=0.01,
                  treatment = 1,
                  control = 0,
                  n_folds=3,
@@ -106,6 +106,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
         
+        self._trimming_threshold = trimming_threshold
         self._normalize_ipw = normalize_ipw  ## TODO
         self._selection = selection  ## TODO
         self._treatment = treatment
@@ -121,6 +122,13 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                                 'ml_pi': 'predict_proba', 
                                 'ml_p': 'predict_proba'}
         self._initialize_ml_nuisance_params()
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
     
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_mu_d0', 'ml_mu_d1', 
@@ -175,7 +183,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         p_hat_treat = copy.deepcopy(mu_hat_treat)
 
         #smpls_s0, smpls_s1 = _get_cond_smpls(smpls, s)
-        #smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
         smpls_d0_s0, smpls_d0_s1, smpls_d1_s0, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
 
         # nuisance mu
@@ -184,27 +192,31 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                                 return_models=return_models)
         mu_hat_treat['targets'] = mu_hat_treat['targets'].astype(float)
         mu_hat_treat['targets'][d != self._treatment] = np.nan
-        # is this necessary?
-        # _check_finite_predictions(mu_hat, self._learner['ml_mu'], 'ml_mu', smpls)
+        _check_finite_predictions(mu_hat_treat['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
 
         mu_hat_control = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
                                 return_models=return_models)
         mu_hat_control['targets'] = mu_hat_control['targets'].astype(float)
         mu_hat_control['targets'][d != self._control] = np.nan
+        _check_finite_predictions(mu_hat_control['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
 
         # propensity score pi
-        pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
+        pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
                                 return_models=return_models)
         pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
         pi_hat_treat['targets'][d != self._treatment] = np.nan
+        _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
-        pi_hat_control = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
+
+        pi_hat_control = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi'],
                                 return_models=return_models)
         pi_hat_control['targets'] = pi_hat_control['targets'].astype(float)
         pi_hat_control['targets'][d != self._control] = np.nan
+        _check_finite_predictions(pi_hat_control['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+
 
         # propensity score p
         p_hat_treat = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
@@ -212,15 +224,41 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                                 return_models=return_models)
         p_hat_treat['targets'] = p_hat_treat['targets'].astype(float)
         p_hat_treat['targets'][d != self._treatment] = np.nan
+        _check_finite_predictions(p_hat_treat['preds'], self._learner['ml_p'], 'ml_p', smpls)
+        _check_is_propensity(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls_d1, eps=1e-12)
+        _check_is_propensity(pi_hat_control['preds'], self._learner['ml_pi'], 'ml_pi', smpls_d0, eps=1e-12)
 
         p_hat_control = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
                                 return_models=return_models)
         p_hat_control['preds'] = 1 - p_hat_control['preds']
         p_hat_control['targets'][d != self._control] = np.nan
-        
+        _check_finite_predictions(p_hat_control['preds'], self._learner['ml_p'], 'ml_p', smpls)
+        _check_is_propensity(p_hat_treat['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
+        _check_is_propensity(p_hat_control['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
+
+    
+        ## Trimming - done differently in Bia, Huber and Laffers than in DoubleML - dropping observations
+        if not self._selection:
+            mask_treat = np.multiply(pi_hat_treat['preds'], p_hat_treat['preds']) >= self._trimming_threshold
+            mask_control = np.multiply(pi_hat_control['preds'], p_hat_control['preds']) >= self._trimming_threshold
+            
+            mu_hat_treat['preds'] = mu_hat_treat['preds'][mask_treat]
+            mu_hat_treat['targets'] = mu_hat_treat['targets'][mask_treat]
+            mu_hat_control['preds'] = mu_hat_control['preds'][mask_control]
+            mu_hat_control['targets'] = mu_hat_control['targets'][mask_control]
+
+            pi_hat_treat['preds'] = pi_hat_treat['preds'][mask_treat]
+            pi_hat_treat['targets'] = pi_hat_treat['targets'][mask_treat]
+            pi_hat_control['preds'] = pi_hat_control['preds'][mask_control]
+            pi_hat_control['targets'] = pi_hat_control['targets'][mask_control]
+
+            p_hat_treat['preds'] = p_hat_treat['preds'][mask_treat]
+            p_hat_treat['targets'] = p_hat_treat['targets'][mask_treat]
+            p_hat_control['preds'] = p_hat_control['preds'][mask_control]
+            p_hat_control['targets'] = p_hat_control['targets'][mask_control]
+
         dtreat = d == self._treatment
-        print("DTREAT:", dtreat)
         dcontrol = d == self._control
         
         psi_a, psi_b = self._score_elements(dtreat, dcontrol, mu_hat_treat['preds'],
