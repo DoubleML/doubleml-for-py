@@ -85,7 +85,7 @@ def generate_dml_dict(psi_a, psi_b):
     for i_rep in range(n_rep):
         for i_theta in range(n_thetas):
             psi = psi_a[:, i_theta, i_rep]*all_thetas[i_theta, i_rep] + psi_b[:, i_theta, i_rep]
-            var_estimate, var_scaling_factor = _var_est(
+            var_estimate, _ = _var_est(
                 psi=psi,
                 psi_deriv=psi_a[:, i_theta, i_rep],
                 smpls=None,
