@@ -272,7 +272,7 @@ class DoubleML(ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models.
+        The predictions of the nuisance models with shape ``(n_obs, n_rep, n_coefs)``.
         """
         return self._predictions
 
@@ -354,6 +354,7 @@ class DoubleML(ABC):
         Values of the score function after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi
 
@@ -364,6 +365,7 @@ class DoubleML(ABC):
         after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi_a(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi_deriv
 
