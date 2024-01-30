@@ -17,10 +17,16 @@ def gain_statistics(dml_long, dml_short):
     Benchmarking dictionary (dict) with values for cf_d, cf_y, rho, and delta_theta.
 
     """
+    if not isinstance(dml_long.sensitivity_elements, dict):
+        raise TypeError("dml_long does not contain the necessary sensitivity elements. "
+                        "Expected dict for dml_long.sensitivity_elements.")
     expected_keys = ['sigma2', 'nu2']
     if not all(key in dml_long.sensitivity_elements.keys() for key in expected_keys):
         raise ValueError("dml_long does not contain the necessary sensitivity elements. "
                          "Required keys are: " + str(expected_keys))
+    if not isinstance(dml_short.sensitivity_elements, dict):
+        raise TypeError("dml_short does not contain the necessary sensitivity elements. "
+                        "Expected dict for dml_short.sensitivity_elements.")
     if not all(key in dml_short.sensitivity_elements.keys() for key in expected_keys):
         raise ValueError("dml_short does not contain the necessary sensitivity elements. "
                          "Required keys are: " + str(expected_keys))
@@ -32,6 +38,12 @@ def gain_statistics(dml_long, dml_short):
         if not isinstance(dml_short.sensitivity_elements[key], np.ndarray):
             raise TypeError("dml_short does not contain the necessary sensitivity elements. "
                             f"Expected numpy.ndarray for key {key}.")
+        if len(dml_long.sensitivity_elements[key].shape) != 3 or dml_long.sensitivity_elements[key].shape[0] != 1:
+            raise ValueError("dml_long does not contain the necessary sensitivity elements. "
+                             f"Expected 3 dimensions of shape (1, n_coef, n_rep) for key {key}.")
+        if len(dml_short.sensitivity_elements[key].shape) != 3 or dml_short.sensitivity_elements[key].shape[0] != 1:
+            raise ValueError("dml_short does not contain the necessary sensitivity elements. "
+                             f"Expected 3 dimensions of shape (1, n_coef, n_rep) for key {key}.")
         if not np.array_equal(dml_long.sensitivity_elements[key].shape, dml_short.sensitivity_elements[key].shape):
             raise ValueError("dml_long and dml_short do not contain the same shape of sensitivity elements. "
                              "Shapes of " + key + " are: " + str(dml_long.sensitivity_elements[key].shape) +
@@ -41,6 +53,14 @@ def gain_statistics(dml_long, dml_short):
         raise TypeError("dml_long.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
     if not isinstance(dml_short.all_coef, np.ndarray):
         raise TypeError("dml_short.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
+
+    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[1], dml_long.sensitivity_elements['sigma2'].shape[2])
+    if dml_long.all_coef.shape != expected_shape:
+        raise ValueError("dml_long.all_coef does not contain the necessary coefficients. Expected shape: " +
+                         str(expected_shape))
+    if dml_short.all_coef.shape != expected_shape:
+        raise ValueError("dml_short.all_coef does not contain the necessary coefficients. Expected shape: " +
+                         str(expected_shape))
 
     # save elements for readability
     var_y = np.var(dml_long._dml_data.y)
