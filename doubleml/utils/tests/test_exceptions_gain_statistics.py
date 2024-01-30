@@ -33,7 +33,8 @@ def test_doubleml_exception_data():
     msg = r"dml_long does not contain the necessary sensitivity elements\. Expected dict for dml_long\.sensitivity_elements\."
     with pytest.raises(TypeError, match=msg):
         _ = gain_statistics(dml_incorrect, dml_correct)
-    msg = r"dml_short does not contain the necessary sensitivity elements\. Expected dict for dml_short\.sensitivity_elements\."
+    msg = r"dml_short does not contain the necessary sensitivity elements\. "
+    msg += r"Expected dict for dml_short\.sensitivity_elements\."
     with pytest.raises(TypeError, match=msg):
         _ = gain_statistics(dml_correct, dml_incorrect)
 
