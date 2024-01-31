@@ -218,7 +218,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             assert isinstance(weights, dict)
             self._weights = weights
 
-    def _get_weights(self):
+    def _get_weights(self, m_hat=None):
         # standard case for ATE
         if self.score == 'ATE':
             weights = self._weights['weights']
@@ -229,14 +229,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         else:
             # special case for ATTE
             assert self.score == 'ATTE'
+            assert m_hat is not None
             subgroup = self._weights['weights'] * self._dml_data.d
             subgroup_probability = np.mean(subgroup)
             weights = np.divide(subgroup, subgroup_probability)
 
-            treatment_name = self._dml_data.d_cols[0]  # only one treatment variable
-            m_hat = self.predictions[treatment_name]['ml_m']
             weights_bar = np.divide(
-                np.multiply(m_hat, subgroup.reshape(-1, 1)),
+                np.multiply(m_hat, self._weights['weights']),
                 subgroup_probability)
 
         return weights, weights_bar
@@ -372,7 +371,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         if isinstance(self.score, str):
             if self.score == 'ATE':
-                weights, weights_bar = self._get_weights()
+                weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
                 psi_b = weights * (g_hat1 - g_hat0) \
                     + weights_bar * (
                         np.divide(np.multiply(d, u_hat1), m_hat_adj)
@@ -403,7 +402,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         # use weights make this extendable
         if self.score == 'ATE':
-            weights, weights_bar = self._get_weights()
+            weights, weights_bar = self._get_weights(m_hat=m_hat)
         else:
             assert self.score == 'ATTE'
             weights = np.divide(d, np.mean(d))
