@@ -11,23 +11,23 @@ class test_dml_class():
 
 
 n_obs = 1
-n_rep = 5
-n_coef = 3
+n_rep = 3
+n_coef = 5
 
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
     dml_correct = test_dml_class(
         sensitivity_elements={
-            'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
-            'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+            'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
+            'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
         },
         all_coef=np.random.normal(size=(n_coef, n_rep))
     )
 
     # incorrect types
     dml_incorrect = test_dml_class(
-            sensitivity_elements=np.random.normal(size=(n_obs, n_coef, n_rep)),
+            sensitivity_elements=np.random.normal(size=(n_obs, n_rep, n_coef)),
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
     msg = r"dml_long does not contain the necessary sensitivity elements\. Expected dict for dml_long\.sensitivity_elements\."
@@ -41,7 +41,7 @@ def test_doubleml_exception_data():
     # incorrect keys
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
+                'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -56,7 +56,7 @@ def test_doubleml_exception_data():
     dml_incorrect = test_dml_class(
             sensitivity_elements={
                 'sigma2': {},
-                'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+                'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -69,7 +69,7 @@ def test_doubleml_exception_data():
 
     dml_incorrect = test_dml_class(
         sensitivity_elements={
-            'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
+            'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
             'nu2': {}
         },
         all_coef=np.random.normal(size=(n_coef, n_rep))
@@ -84,8 +84,8 @@ def test_doubleml_exception_data():
     # incorrect shape for keys
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs + 1, n_coef, n_rep)),
-                'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+                'sigma2': np.random.normal(size=(n_obs + 1, n_rep, n_coef)),
+                'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -100,8 +100,8 @@ def test_doubleml_exception_data():
 
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
-                'nu2': np.random.normal(size=(n_obs + 1, n_coef, n_rep))
+                'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
+                'nu2': np.random.normal(size=(n_obs + 1, n_rep, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -117,8 +117,8 @@ def test_doubleml_exception_data():
     # conflicting shape for keys
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef + 1, n_rep)),
-                'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+                'sigma2': np.random.normal(size=(n_obs, n_rep + 1, n_coef)),
+                'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -133,8 +133,8 @@ def test_doubleml_exception_data():
 
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
-                'nu2': np.random.normal(size=(n_obs, n_coef + 1, n_rep))
+                'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
+                'nu2': np.random.normal(size=(n_obs, n_rep + 1, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef, n_rep))
         )
@@ -150,8 +150,8 @@ def test_doubleml_exception_data():
     # incorrect type for all_coef
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
-                'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+                'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
+                'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
             },
             all_coef={}
         )
@@ -165,14 +165,14 @@ def test_doubleml_exception_data():
     # incorrect shape for all_coef
     dml_incorrect = test_dml_class(
             sensitivity_elements={
-                'sigma2': np.random.normal(size=(n_obs, n_coef, n_rep)),
-                'nu2': np.random.normal(size=(n_obs, n_coef, n_rep))
+                'sigma2': np.random.normal(size=(n_obs, n_rep, n_coef)),
+                'nu2': np.random.normal(size=(n_obs, n_rep, n_coef))
             },
             all_coef=np.random.normal(size=(n_coef + 1, n_rep))
         )
-    msg = r"dml_long\.all_coef does not contain the necessary coefficients\. Expected shape: \(3, 5\)"
+    msg = r"dml_long\.all_coef does not contain the necessary coefficients\. Expected shape: \(5, 3\)"
     with pytest.raises(ValueError, match=msg):
         _ = gain_statistics(dml_incorrect, dml_correct)
-    msg = r"dml_short\.all_coef does not contain the necessary coefficients\. Expected shape: \(3, 5\)"
+    msg = r"dml_short\.all_coef does not contain the necessary coefficients\. Expected shape: \(5, 3\)"
     with pytest.raises(ValueError, match=msg):
         _ = gain_statistics(dml_correct, dml_incorrect)

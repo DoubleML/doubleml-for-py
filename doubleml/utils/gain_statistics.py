@@ -54,7 +54,7 @@ def gain_statistics(dml_long, dml_short):
     if not isinstance(dml_short.all_coef, np.ndarray):
         raise TypeError("dml_short.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
 
-    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[1], dml_long.sensitivity_elements['sigma2'].shape[2])
+    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[2], dml_long.sensitivity_elements['sigma2'].shape[1])
     if dml_long.all_coef.shape != expected_shape:
         raise ValueError("dml_long.all_coef does not contain the necessary coefficients. Expected shape: " +
                          str(expected_shape))
