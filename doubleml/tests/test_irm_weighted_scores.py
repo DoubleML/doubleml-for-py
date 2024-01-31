@@ -25,6 +25,8 @@ def old_score_elements(y, d, g_hat0, g_hat1, m_hat, score, normalize_ipw):
     if score == 'ATE':
         u_hat1 = y - g_hat1
 
+    psi_a = np.full_like(y, np.nan)
+    psi_b = np.full_like(y, np.nan)
     if score == 'ATE':
         psi_b = g_hat1 - g_hat0 \
             + np.divide(np.multiply(d, u_hat1), m_hat) \
