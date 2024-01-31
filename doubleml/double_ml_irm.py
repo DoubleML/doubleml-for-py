@@ -291,8 +291,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
                                      'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                      'probabilities and not labels are predicted.')
+        if self.score == 'ATTE':
+            # skip g_hat1 estimation
+            g_hat1 = {'preds': None,
+                      'targets': None,
+                      'models': None}
 
-        if g1_external:
+        elif g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
                       'targets': None,
