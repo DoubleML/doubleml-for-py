@@ -25,18 +25,17 @@ def old_score_elements(y, d, g_hat0, g_hat1, m_hat, score, normalize_ipw):
     if score == 'ATE':
         u_hat1 = y - g_hat1
 
-    if isinstance(score, str):
-        if score == 'ATE':
-            psi_b = g_hat1 - g_hat0 \
-                + np.divide(np.multiply(d, u_hat1), m_hat) \
-                - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
-            psi_a = np.full_like(m_hat, -1.0)
-        else:
-            assert score == 'ATTE'
-            psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                            np.multiply(p_hat, (1.0 - m_hat)))
-            psi_a = - np.divide(d, p_hat)
+    if score == 'ATE':
+        psi_b = g_hat1 - g_hat0 \
+            + np.divide(np.multiply(d, u_hat1), m_hat) \
+            - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
+        psi_a = np.full_like(m_hat, -1.0)
+    else:
+        assert score == 'ATTE'
+        psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
+            - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
+                        np.multiply(p_hat, (1.0 - m_hat)))
+        psi_a = - np.divide(d, p_hat)
 
     return psi_a, psi_b
 
