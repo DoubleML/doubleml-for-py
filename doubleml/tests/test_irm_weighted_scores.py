@@ -100,18 +100,32 @@ def old_vs_weighted_score_fixture(generate_data_irm, learner, score, normalize_i
         normalize_ipw=normalize_ipw
     )
 
+    old_coef = -np.mean(psi_b_old) / np.mean(psi_a_old)
+
     result_dict = {
         'psi_a': np.squeeze(dml_irm_obj.psi_elements['psi_a']),
         'psi_b': np.squeeze(dml_irm_obj.psi_elements['psi_b']),
         'psi_a_old': psi_a_old,
         'psi_b_old': psi_b_old,
+        'coef': np.squeeze(dml_irm_obj.coef),
+        'old_coef': old_coef,
     }
     return result_dict
 
 
 @pytest.mark.ci
-def test_irm_old_vs_weighted_score(old_vs_weighted_score_fixture):
-    assert np.allclose(old_vs_weighted_score_fixture['psi_a'],
-                       old_vs_weighted_score_fixture['psi_a_old'])
+def test_irm_old_vs_weighted_score_psi_b(old_vs_weighted_score_fixture):
     assert np.allclose(old_vs_weighted_score_fixture['psi_b'],
                        old_vs_weighted_score_fixture['psi_b_old'])
+
+
+@pytest.mark.ci
+def test_irm_old_vs_weighted_score_psi_a(old_vs_weighted_score_fixture):
+    assert np.allclose(old_vs_weighted_score_fixture['psi_a'],
+                       old_vs_weighted_score_fixture['psi_a_old'])
+
+
+@pytest.mark.ci
+def test_irm_old_vs_weighted_coef(old_vs_weighted_score_fixture):
+    assert np.allclose(old_vs_weighted_score_fixture['coef'],
+                       old_vs_weighted_score_fixture['old_coef'])
