@@ -310,7 +310,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
-        if self._dml_data.binary_outcome:
+        if self._dml_data.binary_outcome & (self.score != 'ATTE'):
             binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
             zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
             if binary_preds & zero_one_preds:
