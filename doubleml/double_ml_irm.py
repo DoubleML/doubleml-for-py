@@ -219,11 +219,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             self._weights = weights
 
     def _get_weights(self):
-        weights = self._weights['weights']
-        if 'weights_bar' not in self._weights.keys():
-            weights_bar = self._weights['weights']
+        # standard case for ATE
+        if self.score == 'ATE':
+            weights = self._weights['weights']
+            if 'weights_bar' not in self._weights.keys():
+                weights_bar = self._weights['weights']
+            else:
+                weights_bar = self._weights['weights_bar'][:, self._i_rep]
         else:
-            weights_bar = self._weights['weights_bar'][:, self._i_rep]
+            # special case for ATTE
+            assert self.score == 'ATTE'
+            subgroup = self._weights['weights'] * self._dml_data.d
+            subgroup_probability = np.mean(subgroup)
+            weights = np.divide(subgroup, subgroup_probability)
+
+            treatment_name = self._dml_data.d_cols[0]  # only one treatment variable
+            m_hat = self.predictions[treatment_name]['ml_m']
+            weights_bar = np.divide(
+                np.multiply(m_hat, subgroup.reshape(-1, 1)),
+                subgroup_probability)
+
         return weights, weights_bar
 
     def _check_data(self, obj_dml_data):
