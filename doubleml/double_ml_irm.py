@@ -218,12 +218,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             assert isinstance(weights, dict)
             self._weights = weights
 
-    def _get_weights(self):
-        weights = self._weights['weights']
-        if 'weights_bar' not in self._weights.keys():
-            weights_bar = self._weights['weights']
+    def _get_weights(self, m_hat=None):
+        # standard case for ATE
+        if self.score == 'ATE':
+            weights = self._weights['weights']
+            if 'weights_bar' not in self._weights.keys():
+                weights_bar = self._weights['weights']
+            else:
+                weights_bar = self._weights['weights_bar'][:, self._i_rep]
         else:
-            weights_bar = self._weights['weights_bar'][:, self._i_rep]
+            # special case for ATTE
+            assert self.score == 'ATTE'
+            assert m_hat is not None
+            subgroup = self._weights['weights'] * self._dml_data.d
+            subgroup_probability = np.mean(subgroup)
+            weights = np.divide(subgroup, subgroup_probability)
+
+            weights_bar = np.divide(
+                np.multiply(m_hat, self._weights['weights']),
+                subgroup_probability)
+
         return weights, weights_bar
 
     def _check_data(self, obj_dml_data):
@@ -277,8 +291,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
                                      'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                      'probabilities and not labels are predicted.')
+        if self.score == 'ATTE':
+            # skip g_hat1 estimation
+            g_hat1 = {'preds': None,
+                      'targets': None,
+                      'models': None}
 
-        if g1_external:
+        elif g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
                       'targets': None,
@@ -291,7 +310,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             # adjust target values to consider only compatible subsamples
             g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
-        if self._dml_data.binary_outcome:
+        if self._dml_data.binary_outcome & (self.score != 'ATTE'):
             binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
             zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
             if binary_preds & zero_one_preds:
@@ -334,11 +353,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
 
-        # fraction of treated for ATTE
-        p_hat = None
-        if self.score == 'ATTE':
-            p_hat = np.mean(d)
-
         m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
@@ -351,24 +365,21 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         # compute residuals
         u_hat0 = y - g_hat0
-        u_hat1 = None
-        if self.score == 'ATE':
-            u_hat1 = y - g_hat1
+        if self.score == 'ATTE':
+            g_hat1 = y
+        u_hat1 = y - g_hat1
 
-        if isinstance(self.score, str):
+        if (self.score == 'ATE') or (self.score == 'ATTE'):
+            weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
+            psi_b = weights * (g_hat1 - g_hat0) \
+                + weights_bar * (
+                    np.divide(np.multiply(d, u_hat1), m_hat_adj)
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
             if self.score == 'ATE':
-                weights, weights_bar = self._get_weights()
-                psi_b = weights * (g_hat1 - g_hat0) \
-                    + weights_bar * (
-                        np.divide(np.multiply(d, u_hat1), m_hat_adj)
-                        - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
                 psi_a = np.full_like(m_hat_adj, -1.0)
             else:
                 assert self.score == 'ATTE'
-                psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                    - np.divide(np.multiply(m_hat_adj, np.multiply(1.0-d, u_hat0)),
-                                np.multiply(p_hat, (1.0 - m_hat_adj)))
-                psi_a = - np.divide(d, p_hat)
+                psi_a = -1.0 * weights
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y=y, d=d,
@@ -384,15 +395,14 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
-        g_hat1 = preds['predictions']['ml_g1']
-
-        # use weights make this extendable
         if self.score == 'ATE':
-            weights, weights_bar = self._get_weights()
+            g_hat1 = preds['predictions']['ml_g1']
         else:
             assert self.score == 'ATTE'
-            weights = np.divide(d, np.mean(d))
-            weights_bar = np.divide(m_hat, np.mean(d))
+            g_hat1 = y
+
+        # use weights make this extendable
+        weights, weights_bar = self._get_weights(m_hat=m_hat)
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
