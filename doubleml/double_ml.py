@@ -272,7 +272,8 @@ class DoubleML(ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models with shape ``(n_obs, n_rep, n_coefs)``.
+        The predictions of the nuisance models in form of a dictinary.
+        Each key refers to a nuisance element with a array of values of shape ``(n_obs, n_rep, n_coefs)``.
         """
         return self._predictions
 
