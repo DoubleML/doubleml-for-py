@@ -379,7 +379,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                 psi_a = np.full_like(m_hat_adj, -1.0)
             else:
                 assert self.score == 'ATTE'
-                psi_a = -1.0 * np.divide(d, np.mean(d))
+                psi_a = -1.0 * weights
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y=y, d=d,
