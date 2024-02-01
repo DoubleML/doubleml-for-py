@@ -5,10 +5,12 @@ class DMLDummyRegressor(BaseEstimator):
     """
     A dummy regressor that raises an AttributeError when attempting to access
     its fit, predict, or set_params methods.
+
     Attributes
     ----------
     _estimator_type : str
         Type of the estimator, set to "regressor".
+
     Methods
     -------
     fit(*args)
@@ -35,10 +37,12 @@ class DMLDummyClassifier(BaseEstimator):
     """
     A dummy classifier that raises an AttributeError when attempting to access
     its fit, predict, set_params, or predict_proba methods.
+
     Attributes
     ----------
     _estimator_type : str
         Type of the estimator, set to "classifier".
+
     Methods
     -------
     fit(*args)
