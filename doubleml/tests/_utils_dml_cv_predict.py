@@ -37,7 +37,6 @@ def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
         train_index, test_index = smpls[0]
         # set some defaults aligned with cross_val_predict
         fit_params = None
-        verbose = 0
         if method == 'predict_proba':
             predictions = np.full((len(y), 2), np.nan)
         else:

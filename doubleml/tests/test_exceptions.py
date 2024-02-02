@@ -428,16 +428,17 @@ def test_doubleml_exception_trimming_rule():
 
 @pytest.mark.ci
 def test_doubleml_exception_weights():
-    msg = "weights can only be set for score type 'ATE'. ATTE was passed."
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                        score='ATTE', weights=np.ones_like(dml_data_irm.d))
+
     msg = "weights must be a numpy array or dictionary. weights of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=1)
     msg = r"weights must have keys \['weights', 'weights_bar'\]. keys dict_keys\(\['d'\]\) were passed."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights={'d': [1, 2, 3]})
+    msg = "weights must be a numpy array for ATTE score. weights of type <class 'dict'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        score='ATTE', weights={'weights': np.ones_like(dml_data_irm.d)})
 
     # shape checks
     msg = rf"weights must have shape \({n},\). weights of shape \(1,\) was passed."
@@ -484,6 +485,11 @@ def test_doubleml_exception_weights():
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
                         weights={'weights': np.ones((dml_data_irm.d.shape[0], )),
                                  'weights_bar': np.zeros((dml_data_irm.d.shape[0], 1))})
+
+    msg = "weights must be binary for ATTE score."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        score='ATTE', weights=np.random.choice([0, 0.2], dml_data_irm.d.shape[0]))
 
 
 @pytest.mark.ci
