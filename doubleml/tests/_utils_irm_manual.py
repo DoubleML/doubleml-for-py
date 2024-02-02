@@ -81,7 +81,7 @@ def fit_nuisance_irm(y, x, d, learner_g, learner_m, smpls, score,
 
     p_hat_list = []
     for (_, test_index) in smpls:
-        p_hat_list.append(np.mean(d[test_index]))
+        p_hat_list.append(np.mean(d))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 
@@ -130,20 +130,23 @@ def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         for _, test_index in smpls:
-            m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+            m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+    else:
+        m_hat_adj = m_hat
 
     for idx, (_, test_index) in enumerate(smpls):
         thetas[idx] = irm_orth(g_hat0[test_index], g_hat1[test_index],
-                               m_hat[test_index], p_hat[test_index],
+                               m_hat_adj[test_index], p_hat[test_index],
                                u_hat0[test_index], u_hat1[test_index],
                                d[test_index], score)
     theta_hat = np.mean(thetas)
 
     if len(smpls) > 1:
         se = np.sqrt(var_irm(theta_hat, g_hat0, g_hat1,
-                             m_hat, p_hat,
+                             m_hat_adj, p_hat,
                              u_hat0, u_hat1,
                              d, score, n_obs))
     else:
@@ -151,7 +154,7 @@ def irm_dml1(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
         test_index = smpls[0][1]
         n_obs = len(test_index)
         se = np.sqrt(var_irm(theta_hat, g_hat0[test_index], g_hat1[test_index],
-                             m_hat[test_index], p_hat[test_index],
+                             m_hat_adj[test_index], p_hat[test_index],
                              u_hat0[test_index], u_hat1[test_index],
                              d[test_index], score, n_obs))
 
@@ -164,12 +167,14 @@ def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
     if normalize_ipw:
-        m_hat = _normalize_ipw(m_hat, d)
+        m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
-    theta_hat = irm_orth(g_hat0, g_hat1, m_hat, p_hat,
+    theta_hat = irm_orth(g_hat0, g_hat1, m_hat_adj, p_hat,
                          u_hat0, u_hat1, d, score)
     se = np.sqrt(var_irm(theta_hat, g_hat0, g_hat1,
-                         m_hat, p_hat,
+                         m_hat_adj, p_hat,
                          u_hat0, u_hat1,
                          d, score, n_obs))
 
@@ -240,12 +245,15 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
     u_hat0, u_hat1, g_hat0, g_hat1, m_hat, p_hat = compute_iivm_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls)
 
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         if dml_procedure == 'dml1':
             for _, test_index in smpls:
-                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
         else:
-            m_hat = _normalize_ipw(m_hat, d)
+            m_hat_adj = _normalize_ipw(m_hat, d)
+    else:
+        m_hat_adj = m_hat
 
     if apply_cross_fitting:
         if score == 'ATE':
@@ -263,13 +271,13 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
 
     if score == 'ATE':
         psi = g_hat1 - g_hat0 \
-                + np.divide(np.multiply(d, u_hat1), m_hat) \
-                - np.divide(np.multiply(1.-d, u_hat0), 1.-m_hat) - theta
+                + np.divide(np.multiply(d, u_hat1), m_hat_adj) \
+                - np.divide(np.multiply(1.-d, u_hat0), 1.-m_hat_adj) - theta
     else:
         assert score == 'ATTE'
         psi = np.divide(np.multiply(d, u_hat0), p_hat) \
-            - np.divide(np.multiply(m_hat, np.multiply(1.-d, u_hat0)),
-                        np.multiply(p_hat, (1.-m_hat))) \
+            - np.divide(np.multiply(m_hat_adj, np.multiply(1.-d, u_hat0)),
+                        np.multiply(p_hat, (1.-m_hat_adj))) \
             - theta * np.divide(d, p_hat)
 
     boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
@@ -290,7 +298,11 @@ def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
 
         m_hat = predictions['ml_m'][:, i_rep, 0]
         g_hat0 = predictions['ml_g0'][:, i_rep, 0]
-        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+        if score == 'ATE':
+            g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+        else:
+            assert score == 'ATTE'
+            g_hat1 = y
 
         if score == 'ATE':
             weights = np.ones_like(d)

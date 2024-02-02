@@ -2,8 +2,9 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData,\
-    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
+from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
+    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, \
+    DoubleMLDIDCS, DoubleMLBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 from doubleml.double_ml_data import DoubleMLBaseData
@@ -423,6 +424,72 @@ def test_doubleml_exception_trimming_rule():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
                           trimming_rule='truncate', trimming_threshold=0.6)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_weights():
+
+    msg = "weights must be a numpy array or dictionary. weights of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=1)
+    msg = r"weights must have keys \['weights', 'weights_bar'\]. keys dict_keys\(\['d'\]\) were passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights={'d': [1, 2, 3]})
+    msg = "weights must be a numpy array for ATTE score. weights of type <class 'dict'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        score='ATTE', weights={'weights': np.ones_like(dml_data_irm.d)})
+
+    # shape checks
+    msg = rf"weights must have shape \({n},\). weights of shape \(1,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones(1))
+    msg = rf"weights must have shape \({n},\). weights of shape \({n}, 2\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=np.ones((n, 2)))
+
+    msg = rf"weights must have shape \({n},\). weights of shape \(1,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.ones(1), 'weights_bar': np.ones(1)})
+    msg = rf"weights must have shape \({n},\). weights of shape \({n}, 2\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.ones((n, 2)), 'weights_bar': np.ones((n, 2))})
+    msg = rf"weights_bar must have shape \({n}, 1\). weights_bar of shape \({n}, 2\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.ones(n), 'weights_bar': np.ones((n, 2))})
+
+    # value checks
+    msg = "All weights values must be greater or equal 0."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights=-1*np.ones(n,))
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': -1*np.ones(n,), 'weights_bar': np.ones((n, 1))})
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.ones(n,), 'weights_bar': -1*np.ones((n, 1))})
+
+    msg = "At least one weight must be non-zero."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights=np.zeros((dml_data_irm.d.shape[0], )))
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.zeros((dml_data_irm.d.shape[0], )),
+                                 'weights_bar': np.ones((dml_data_irm.d.shape[0], 1))})
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        weights={'weights': np.ones((dml_data_irm.d.shape[0], )),
+                                 'weights_bar': np.zeros((dml_data_irm.d.shape[0], 1))})
+
+    msg = "weights must be binary for ATTE score."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
+                        score='ATTE', weights=np.random.choice([0, 0.2], dml_data_irm.d.shape[0]))
 
 
 @pytest.mark.ci
@@ -1257,6 +1324,20 @@ def test_doubleml_nan_prediction():
 
 
 @pytest.mark.ci
+def test_doubleml_warning_blp():
+    n = 5
+    np.random.seed(42)
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
+    random_signal = np.random.normal(0, 1, size=(n, ))
+    blp = DoubleMLBLP(random_signal, random_basis)
+    blp.fit()
+
+    msg = 'Returning pointwise confidence intervals for basis coefficients.'
+    with pytest.warns(UserWarning, match=msg):
+        _ = blp.confint(joint=True)
+
+
+@pytest.mark.ci
 def test_doubleml_exception_gate():
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
@@ -1268,10 +1349,11 @@ def test_doubleml_exception_gate():
     msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.gate(groups=2)
+    groups = pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3)))
     msg = (r'Columns of groups must be of bool type or int type \(dummy coded\). '
            'Alternatively, groups should only contain one column.')
     with pytest.raises(TypeError, match=msg):
-        dml_irm_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))))
+        dml_irm_obj.gate(groups=groups)
 
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
@@ -1280,10 +1362,10 @@ def test_doubleml_exception_gate():
                               n_folds=5,
                               score='ATTE')
     dml_irm_obj.fit()
-
+    groups = pd.DataFrame(np.random.choice([True, False], size=dml_data_irm.n_obs))
     msg = 'Invalid score ATTE. Valid score ATE.'
     with pytest.raises(ValueError, match=msg):
-        dml_irm_obj.gate(groups=2)
+        dml_irm_obj.gate(groups=groups)
 
     dml_irm_obj = DoubleMLIRM(dml_data_irm,
                               ml_g=Lasso(),
@@ -1296,7 +1378,7 @@ def test_doubleml_exception_gate():
 
     msg = 'Only implemented for one repetition. Number of repetitions is 2.'
     with pytest.raises(NotImplementedError, match=msg):
-        dml_irm_obj.gate(groups=2)
+        dml_irm_obj.gate(groups=groups)
 
 
 @pytest.mark.ci
@@ -1324,6 +1406,55 @@ def test_doubleml_exception_cate():
     msg = 'Only implemented for one repetition. Number of repetitions is 2.'
     with pytest.raises(NotImplementedError, match=msg):
         dml_irm_obj.cate(basis=2)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_plr_cate():
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=2)
+    dml_plr_obj.fit()
+    msg = 'Only implemented for one repetition. Number of repetitions is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj.cate(basis=2)
+
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2)
+    dml_plr_obj.fit(store_predictions=False)
+    msg = r'predictions are None. Call .fit\(store_predictions=True\) to store the predictions.'
+    with pytest.raises(ValueError, match=msg):
+        dml_plr_obj.cate(basis=2)
+
+    dml_data_multiple_treat = DoubleMLData(dml_data.data, y_col="y", d_cols=['d', 'X1'])
+    dml_plr_obj_multiple = DoubleMLPLR(dml_data_multiple_treat,
+                                       ml_l=Lasso(),
+                                       ml_m=Lasso(),
+                                       n_folds=2)
+    dml_plr_obj_multiple.fit()
+    msg = 'Only implemented for single treatment. Number of treatments is 2.'
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_plr_obj_multiple.cate(basis=2)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_plr_gate():
+    dml_plr_obj = DoubleMLPLR(dml_data,
+                              ml_l=Lasso(),
+                              ml_m=Lasso(),
+                              n_folds=2,
+                              n_rep=1)
+    dml_plr_obj.fit()
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_obj.gate(groups=2)
+    msg = (r'Columns of groups must be of bool type or int type \(dummy coded\). '
+           'Alternatively, groups should only contain one column.')
+    with pytest.raises(TypeError, match=msg):
+        dml_plr_obj.gate(groups=pd.DataFrame(np.random.normal(0, 1, size=(dml_data.n_obs, 3))))
 
 
 @pytest.mark.ci
@@ -1402,3 +1533,84 @@ def test_doubleml_exception_policytree():
     msg = 'Only implemented for one repetition. Number of repetitions is 2.'
     with pytest.raises(NotImplementedError, match=msg):
         dml_irm_obj.policy_tree(features=2, depth=1)
+
+
+@pytest.mark.ci
+def test_double_ml_external_predictions():
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=2)
+
+    msg = "external_predictions must be a dictionary. ml_m of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions="ml_m")
+
+    dml_irm_obj = DoubleMLIRM(dml_data_irm,
+                              ml_g=Lasso(),
+                              ml_m=LogisticRegression(),
+                              trimming_threshold=0.05,
+                              n_folds=5,
+                              score='ATE',
+                              n_rep=1)
+
+    predictions = {'d': 'test', 'd_f': 'test'}
+    msg = (r"Invalid external_predictions. Invalid treatment variable in \['d', 'd_f'\]. "
+           "Valid treatment variables d.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': 'test'}
+    msg = ("external_predictions must be a nested dictionary. "
+           "For treatment d a value of type <class 'str'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_f': 'test'}}
+    msg = ("Invalid external_predictions. "
+           r"Invalid nuisance learner for treatment d in \['ml_f'\]. "
+           "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': 'test', 'ml_f': 'test'}}
+    msg = ("Invalid external_predictions. "
+           r"Invalid nuisance learner for treatment d in \['ml_m', 'ml_f'\]. "
+           "Valid nuisance learners ml_g0 or ml_g1 or ml_m.")
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': 'test'}}
+    msg = ("Invalid external_predictions. "
+           "The values of the nested list must be a numpy array. "
+           "Invalid predictions for treatment d and learner ml_m. "
+           "Object of type <class 'str'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.array([0])}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(1,\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.zeros(100)}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(100,\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)
+
+    predictions = {'d': {'ml_m': np.ones(shape=(5, 3))}}
+    msg = ('Invalid external_predictions. '
+           r'The supplied predictions have to be of shape \(100, 1\). '
+           'Invalid predictions for treatment d and learner ml_m. '
+           r'Predictions of shape \(5, 3\) passed.')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm_obj.fit(external_predictions=predictions)

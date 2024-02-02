@@ -5,7 +5,7 @@ import numpy as np
 from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
     make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, \
-    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data
+    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data, make_heterogeneous_data
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -227,3 +227,36 @@ def test_make_confounded_plr_data_return_types():
     assert isinstance(res['oracle_values']['beta_a'], float)
     assert isinstance(res['oracle_values']['a'], np.ndarray)
     assert isinstance(res['oracle_values']['z'], np.ndarray)
+
+
+@pytest.fixture(scope='function',
+                params=[False, True])
+def binary_treatment(request):
+    return request.param
+
+
+@pytest.fixture(scope='function',
+                params=[1, 2])
+def n_x(request):
+    return request.param
+
+
+@pytest.mark.ci
+def test_make_heterogeneous_data_return_types(binary_treatment, n_x):
+    np.random.seed(3141)
+    res = make_heterogeneous_data(n_obs=100, n_x=n_x, binary_treatment=binary_treatment)
+    assert isinstance(res, dict)
+    assert isinstance(res['data'], pd.DataFrame)
+    assert isinstance(res['effects'], np.ndarray)
+    assert callable(res['treatment_effect'])
+
+    # test input checks
+    msg = 'n_x must be either 1 or 2.'
+    with pytest.raises(AssertionError, match=msg):
+        _ = make_heterogeneous_data(n_obs=100, n_x=0, binary_treatment=binary_treatment)
+    msg = 'support_size must be smaller than p.'
+    with pytest.raises(AssertionError, match=msg):
+        _ = make_heterogeneous_data(n_obs=100, n_x=n_x, support_size=31, binary_treatment=binary_treatment)
+    msg = 'binary_treatment must be a boolean.'
+    with pytest.raises(AssertionError, match=msg):
+        _ = make_heterogeneous_data(n_obs=100, n_x=n_x, binary_treatment=2)

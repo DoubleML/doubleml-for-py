@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data
+from doubleml._utils_resampling import DoubleMLResampling
 
 from ._utils import draw_smpls
 from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
@@ -87,10 +88,31 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
                          normalize_ipw=normalize_ipw,
                          trimming_threshold=trimming_threshold)
 
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    dml_irm_obj_ext = dml.DoubleMLIRM(obj_dml_data,
+                                      ml_g, ml_m,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure,
+                                      normalize_ipw=normalize_ipw,
+                                      draw_sample_splitting=False,
+                                      trimming_threshold=trimming_threshold)
+
+    # synchronize the sample splitting
+    dml_irm_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+
+    prediction_dict = {'d': {'ml_g0': dml_irm_obj.predictions['ml_g0'].reshape(-1, 1),
+                             'ml_g1': dml_irm_obj.predictions['ml_g1'].reshape(-1, 1),
+                             'ml_m': dml_irm_obj.predictions['ml_m'].reshape(-1, 1)}}
+    dml_irm_obj_ext.fit(external_predictions=prediction_dict)
+
     res_dict = {'coef': dml_irm_obj.coef,
                 'coef_manual': res_manual['theta'],
+                'coef_ext': dml_irm_obj_ext.coef,
                 'se': dml_irm_obj.se,
                 'se_manual': res_manual['se'],
+                'se_ext': dml_irm_obj_ext.se,
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
@@ -104,10 +126,14 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+        np.random.seed(3141)
+        dml_irm_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_coef' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_coef
+        res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_t_stat
 
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_irm_obj.sensitivity_elements
@@ -125,15 +151,21 @@ def dml_irm_fixture(generate_data_irm, learner, score, dml_procedure, normalize_
 
 @pytest.mark.ci
 def test_dml_irm_coef(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['coef'],
+    assert math.isclose(dml_irm_fixture['coef'][0],
                         dml_irm_fixture['coef_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_fixture['coef'][0],
+                        dml_irm_fixture['coef_ext'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_irm_se(dml_irm_fixture):
-    assert math.isclose(dml_irm_fixture['se'],
+    assert math.isclose(dml_irm_fixture['se'][0],
                         dml_irm_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_fixture['se'][0],
+                        dml_irm_fixture['se_ext'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -143,8 +175,14 @@ def test_dml_irm_boot(dml_irm_fixture):
         assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
                            dml_irm_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_irm_fixture['boot_coef' + bootstrap],
+                           dml_irm_fixture['boot_coef' + bootstrap + '_ext'],
+                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
                            dml_irm_fixture['boot_t_stat' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_irm_fixture['boot_t_stat' + bootstrap],
+                           dml_irm_fixture['boot_t_stat' + bootstrap + '_ext'],
                            rtol=1e-9, atol=1e-4)
 
 
@@ -199,7 +237,7 @@ def test_dml_irm_cate_gate():
         gate_1 = dml_irm_obj.gate(groups_1)
     assert isinstance(gate_1, dml.double_ml_blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
-    assert all(gate_1.confint().index == groups_1.columns)
+    assert all(gate_1.confint().index == groups_1.columns.to_list())
 
     np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
@@ -209,3 +247,115 @@ def test_dml_irm_cate_gate():
     assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
+
+
+@pytest.fixture(scope='module',
+                params=[1, 3])
+def n_rep(request):
+    return request.param
+
+
+@pytest.fixture(scope='module')
+def dml_irm_weights_fixture(n_rep, dml_procedure):
+    n = 10000
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+    kwargs = {
+        "trimming_threshold": 0.05,
+        "n_folds": 5,
+        "n_rep": n_rep,
+        "dml_procedure": dml_procedure,
+        "draw_sample_splitting": False
+    }
+
+    smpls = DoubleMLResampling(
+        n_folds=5,
+        n_rep=n_rep,
+        n_obs=n,
+        apply_cross_fitting=True,
+        stratify=obj_dml_data.d).split_samples()
+
+    # First stage estimation
+    ml_g = LinearRegression()
+    ml_m = LogisticRegression(penalty='l2', random_state=42)
+
+    # ATE with and without weights
+    dml_irm_obj_ate_no_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATE',
+        **kwargs)
+    dml_irm_obj_ate_no_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_ate_no_weights.fit()
+
+    dml_irm_obj_ate_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATE',
+        weights=np.ones_like(obj_dml_data.y), **kwargs)
+    dml_irm_obj_ate_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_ate_weights.fit()
+
+    # ATTE with and without weights
+    dml_irm_obj_atte_no_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATTE',
+        **kwargs)
+    dml_irm_obj_atte_no_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_atte_no_weights.fit()
+
+    m_hat = dml_irm_obj_atte_no_weights.predictions["ml_m"][:, :, 0]
+    p_hat = obj_dml_data.d.mean()
+    weights = obj_dml_data.d / p_hat
+    weights_bar = m_hat / p_hat
+    weight_dict = {'weights': weights, 'weights_bar': weights_bar}
+    dml_irm_obj_atte_weights = dml.DoubleMLIRM(
+        obj_dml_data,
+        ml_g=clone(ml_g),
+        ml_m=clone(ml_m),
+        score='ATE',
+        weights=weight_dict, **kwargs)
+    dml_irm_obj_atte_weights.set_sample_splitting(smpls)
+    np.random.seed(42)
+    dml_irm_obj_atte_weights.fit()
+
+    res_dict = {
+        'coef_ate': dml_irm_obj_ate_no_weights.coef,
+        'coef_ate_weights': dml_irm_obj_ate_weights.coef,
+        'coef_atte': dml_irm_obj_atte_no_weights.coef,
+        'coef_atte_weights': dml_irm_obj_atte_weights.coef,
+        'se_ate': dml_irm_obj_ate_no_weights.se,
+        'se_ate_weights': dml_irm_obj_ate_weights.se,
+        'se_atte': dml_irm_obj_atte_no_weights.se,
+        'se_atte_weights': dml_irm_obj_atte_weights.se,
+    }
+    return res_dict
+
+
+@pytest.mark.ci
+def test_dml_irm_ate_weights(dml_irm_weights_fixture):
+    assert math.isclose(dml_irm_weights_fixture['coef_ate'],
+                        dml_irm_weights_fixture['coef_ate_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_irm_weights_fixture['se_ate'],
+                        dml_irm_weights_fixture['se_ate_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_irm_atte_weights(dml_irm_weights_fixture):
+    assert math.isclose(dml_irm_weights_fixture['coef_atte'],
+                        dml_irm_weights_fixture['coef_atte_weights'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    # Remark that the scores are slightly different (Y instead of g(1,X) and coefficient of theta)
+    assert math.isclose(dml_irm_weights_fixture['se_atte'],
+                        dml_irm_weights_fixture['se_atte_weights'],
+                        rel_tol=1e-5, abs_tol=1e-3)

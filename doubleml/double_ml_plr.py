@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
@@ -8,6 +9,7 @@ import warnings
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
+from .double_ml_blp import DoubleMLBLP
 
 from ._utils import _dml_cv_predict, _dml_tune
 from ._utils_checks import _check_score, _check_finite_predictions, _check_is_propensity
@@ -150,6 +152,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         self._initialize_ml_nuisance_params()
         self._sensitivity_implemented = True
+        self._external_predictions_implemented = True
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
@@ -166,23 +169,43 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                              'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
+        m_external = external_predictions['ml_m'] is not None
+        l_external = external_predictions['ml_l'] is not None
+        if 'ml_g' in self._learner:
+            g_external = external_predictions['ml_g'] is not None
+        else:
+            g_external = False
 
         # nuisance l
-        l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
-                                return_models=return_models)
-        _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
+        if l_external:
+            l_hat = {'preds': external_predictions['ml_l'],
+                     'targets': None,
+                     'models': None}
+        elif self._score == "IV-type" and g_external:
+            l_hat = {'preds': None,
+                     'targets': None,
+                     'models': None}
+        else:
+            l_hat = _dml_cv_predict(self._learner['ml_l'], x, y, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_l'), method=self._predict_method['ml_l'],
+                                    return_models=return_models)
+            _check_finite_predictions(l_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
 
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                return_models=return_models)
-        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+        if m_external:
+            m_hat = {'preds': external_predictions['ml_m'],
+                     'targets': None,
+                     'models': None}
+        else:
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
+            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
         if self._check_learner(self._learner['ml_m'], 'ml_m', regressor=True, classifier=True):
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
@@ -198,15 +221,20 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         # an estimate of g is obtained for the IV-type score and callable scores
         g_hat = {'preds': None, 'targets': None, 'models': None}
         if 'ml_g' in self._learner:
-            # get an initial estimate for theta using the partialling out score
-            psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
-            psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
-            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
             # nuisance g
-            g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
-                                    return_models=return_models)
-            _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            if g_external:
+                g_hat = {'preds': external_predictions['ml_g'],
+                         'targets': None,
+                         'models': None}
+            else:
+                # get an initial estimate for theta using the partialling out score
+                psi_a = -np.multiply(d - m_hat['preds'], d - m_hat['preds'])
+                psi_b = np.multiply(d - m_hat['preds'], y - l_hat['preds'])
+                theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+                g_hat = _dml_cv_predict(self._learner['ml_g'], x, y - theta_initial*d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g'), method=self._predict_method['ml_g'],
+                                        return_models=return_models)
+                _check_finite_predictions(g_hat['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
         psi_a, psi_b = self._score_elements(y, d, l_hat['preds'], m_hat['preds'], g_hat['preds'], smpls)
         psi_elements = {'psi_a': psi_a,
@@ -224,8 +252,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, l_hat, m_hat, g_hat, smpls):
-        # compute residuals
-        u_hat = y - l_hat
+        # compute residual
         v_hat = d - m_hat
 
         if isinstance(self.score, str):
@@ -234,6 +261,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 psi_b = np.multiply(v_hat, y - g_hat)
             else:
                 assert self.score == 'partialling out'
+                u_hat = y - l_hat
                 psi_a = -np.multiply(v_hat, v_hat)
                 psi_b = np.multiply(v_hat, u_hat)
         else:
@@ -327,3 +355,103 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
+
+    def cate(self, basis, is_gate=False):
+        """
+        Calculate conditional average treatment effects (CATE) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model.
+        """
+        if self._dml_data.n_treat > 1:
+            raise NotImplementedError('Only implemented for single treatment. ' +
+                                      f'Number of treatments is {str(self._dml_data.n_treat)}.')
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        Y_tilde, D_tilde = self._partial_out()
+
+        D_basis = basis * D_tilde
+        model = DoubleMLBLP(
+            orth_signal=Y_tilde.reshape(-1),
+            basis=D_basis,
+            is_gate=is_gate,
+        )
+        model.fit()
+        return model
+
+    def gate(self, groups):
+        """
+        Calculate group average treatment effects (GATE) for groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model for Group Effects.
+        """
+
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError('Groups must be of DataFrame type. '
+                            f'Groups of type {str(type(groups))} was passed.')
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
+            else:
+                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
+                                'Alternatively, groups should only contain one column.')
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn('At least one group effect is estimated with less than 6 observations.')
+
+        model = self.cate(groups, is_gate=True)
+        return model
+
+    def _partial_out(self):
+        """
+        Helper function. Returns the partialled out quantities of Y and D.
+        Works with multiple repetitions.
+
+        Returns
+        -------
+        Y_tilde : :class:`numpy.ndarray`
+            The residual of the regression of Y on X.
+        D_tilde : :class:`numpy.ndarray`
+            The residual of the regression of D on X.
+        """
+        if self.predictions is None:
+            raise ValueError('predictions are None. Call .fit(store_predictions=True) to store the predictions.')
+
+        y = self._dml_data.y.reshape(-1, 1)
+        d = self._dml_data.d.reshape(-1, 1)
+        ml_m = self.predictions["ml_m"].squeeze(axis=2)
+
+        if self.score == "partialling out":
+            ml_l = self.predictions["ml_l"].squeeze(axis=2)
+            Y_tilde = y - ml_l
+            D_tilde = d - ml_m
+        else:
+            assert self.score == "IV-type"
+            ml_g = self.predictions["ml_g"].squeeze(axis=2)
+            Y_tilde = y - (self.coef * ml_m) - ml_g
+            D_tilde = d - ml_m
+
+        return Y_tilde, D_tilde

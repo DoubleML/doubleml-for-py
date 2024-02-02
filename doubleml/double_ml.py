@@ -19,9 +19,24 @@ from ._utils import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est
 from ._utils_checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
     _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks
 from ._utils_plots import _sensitivity_contour_plot
-
+from .utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
+
+
+# Remove warnings in future versions
+def deprication_apply_cross_fitting():
+    warnings.warn('The apply_cross_fitting argument is deprecated and will be removed in future versions. '
+                  'In the future, crossfitting is applied by default. '
+                  'To rely on sample splitting please use external predictions.',
+                  DeprecationWarning)
+    return
+
+
+def deprication_dml_procedure():
+    warnings.warn('The dml_procedure argument is deprecated and will be removed in future versions. '
+                  'in the future, dml_procedure is always set to dml2.', DeprecationWarning)
+    return
 
 
 class DoubleML(ABC):
@@ -64,6 +79,9 @@ class DoubleML(ABC):
         self._sensitivity_elements = None
         self._sensitivity_params = None
 
+        # initialize external predictions
+        self._external_predictions_implemented = False
+
         # check resampling specifications
         if not isinstance(n_folds, int):
             raise TypeError('The number of folds must be of int type. '
@@ -86,6 +104,9 @@ class DoubleML(ABC):
             raise TypeError('draw_sample_splitting must be True or False. '
                             f'Got {str(draw_sample_splitting)}.')
 
+        if not apply_cross_fitting:
+            deprication_apply_cross_fitting()
+
         # set resampling specifications
         if self._is_cluster_data:
             if (n_folds == 1) or (not apply_cross_fitting):
@@ -100,11 +121,15 @@ class DoubleML(ABC):
         # default is no stratification
         self._strata = None
 
-        # check and set dml_procedure and score
         if (not isinstance(dml_procedure, str)) | (dml_procedure not in ['dml1', 'dml2']):
             raise ValueError('dml_procedure must be "dml1" or "dml2". '
                              f'Got {str(dml_procedure)}.')
         self._dml_procedure = dml_procedure
+
+        if dml_procedure == 'dml1':
+            deprication_dml_procedure()
+        self._dml_procedure = dml_procedure
+
         self._score = score
 
         if (self.n_folds == 1) & self.apply_cross_fitting:
@@ -124,7 +149,7 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_deriv, self._psi_elements,\
+        self._psi, self._psi_deriv, self._psi_elements, \
             self._coef, self._se, self._all_coef, self._all_se, self._all_dml1_coef = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
@@ -247,7 +272,8 @@ class DoubleML(ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models.
+        The predictions of the nuisance models in form of a dictinary.
+        Each key refers to a nuisance element with a array of values of shape ``(n_obs, n_rep, n_coefs)``.
         """
         return self._predictions
 
@@ -329,6 +355,7 @@ class DoubleML(ABC):
         Values of the score function after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi
 
@@ -339,6 +366,7 @@ class DoubleML(ABC):
         after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi_a(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi_deriv
 
@@ -486,7 +514,7 @@ class DoubleML(ABC):
     def __all_se(self):
         return self._all_se[self._i_treat, self._i_rep]
 
-    def fit(self, n_jobs_cv=None, store_predictions=True, store_models=False):
+    def fit(self, n_jobs_cv=None, store_predictions=True, external_predictions=None, store_models=False):
         """
         Estimate DoubleML models.
 
@@ -498,12 +526,19 @@ class DoubleML(ABC):
 
         store_predictions : bool
             Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
-            Default is ``False``.
+            Default is ``True``.
 
         store_models : bool
             Indicates whether the fitted models for the nuisance functions should be stored in ``models``. This allows
             to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
+
+        external_predictions : None or dict
+            If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
+            for a specific learner is supplied, the model will use the supplied nuisance predictions instead. Has to
+            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the
+            corresponding learners.
+            Default is `None`.
 
         Returns
         -------
@@ -522,6 +557,13 @@ class DoubleML(ABC):
         if not isinstance(store_models, bool):
             raise TypeError('store_models must be True or False. '
                             f'Got {str(store_models)}.')
+
+        # check if external predictions are implemented
+        if self._external_predictions_implemented:
+            # check prediction format
+            self._check_external_predictions(external_predictions)
+        elif not self._external_predictions_implemented and external_predictions is not None:
+            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
         # initialize rmse arrays for nuisance functions evaluation
         self._initialize_rmses()
@@ -546,8 +588,24 @@ class DoubleML(ABC):
                 if self._dml_data.n_treat > 1:
                     self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
 
+                # set the supplied predictions for the treatment and each learner (including None)
+                ext_prediction_dict = {}
+                for learner in self.params_names:
+                    if external_predictions is None:
+                        ext_prediction_dict[learner] = None
+                    elif learner in external_predictions[self._dml_data.d_cols[i_d]].keys():
+                        if isinstance(external_predictions[self._dml_data.d_cols[i_d]][learner], np.ndarray):
+                            ext_prediction_dict[learner] = external_predictions[self._dml_data.d_cols[i_d]][learner][:, i_rep]
+                        else:
+                            ext_prediction_dict[learner] = None
+                    else:
+                        ext_prediction_dict[learner] = None
+
                 # ml estimation of nuisance models and computation of score elements
-                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv, return_models=store_models)
+                score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
+                                                           external_predictions=ext_prediction_dict,
+                                                           return_models=store_models)
+
                 self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
                 # calculate rmses and store predictions and targets of the nuisance models
@@ -985,7 +1043,7 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models):
+    def _nuisance_est(self, smpls, n_jobs_cv, return_models, external_predictions):
         pass
 
     @abstractmethod
@@ -1036,6 +1094,48 @@ class DoubleML(ABC):
                 raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
 
         return learner_is_classifier
+
+    def _check_external_predictions(self, external_predictions):
+        if external_predictions is not None:
+            if not isinstance(external_predictions, dict):
+                raise TypeError('external_predictions must be a dictionary. '
+                                f'{str(external_predictions)} of type {str(type(external_predictions))} was passed.')
+
+            supplied_treatments = list(external_predictions.keys())
+            valid_treatments = self._dml_data.d_cols
+            if not set(supplied_treatments).issubset(valid_treatments):
+                raise ValueError('Invalid external_predictions. '
+                                 f'Invalid treatment variable in {str(supplied_treatments)}. '
+                                 'Valid treatment variables ' + ' or '.join(valid_treatments) + '.')
+
+            for treatment in supplied_treatments:
+                if not isinstance(external_predictions[treatment], dict):
+                    raise TypeError('external_predictions must be a nested dictionary. '
+                                    f'For treatment {str(treatment)} a value of type '
+                                    f'{str(type(external_predictions[treatment]))} was passed.')
+
+                supplied_learners = list(external_predictions[treatment].keys())
+                valid_learners = self.params_names
+                if not set(supplied_learners).issubset(valid_learners):
+                    raise ValueError('Invalid external_predictions. '
+                                     f'Invalid nuisance learner for treatment {str(treatment)} in {str(supplied_learners)}. '
+                                     'Valid nuisance learners ' + ' or '.join(valid_learners) + '.')
+
+                for learner in supplied_learners:
+                    if not isinstance(external_predictions[treatment][learner], np.ndarray):
+                        raise TypeError('Invalid external_predictions. '
+                                        'The values of the nested list must be a numpy array. '
+                                        'Invalid predictions for treatment ' + str(treatment) +
+                                        ' and learner ' + str(learner) + '. ' +
+                                        f'Object of type {str(type(external_predictions[treatment][learner]))} was passed.')
+
+                    expected_shape = (self._dml_data.n_obs, self.n_rep)
+                    if external_predictions[treatment][learner].shape != expected_shape:
+                        raise ValueError('Invalid external_predictions. '
+                                         f'The supplied predictions have to be of shape {str(expected_shape)}. '
+                                         'Invalid predictions for treatment ' + str(treatment) +
+                                         ' and learner ' + str(learner) + '. ' +
+                                         f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
 
     def _initialize_arrays(self):
         # scores
@@ -1898,45 +1998,6 @@ class DoubleML(ABC):
         dml_short._dml_data.x_cols = x_list_short
         dml_short.fit()
 
-        # save elements for readability
-        var_y = np.var(self._dml_data.y)
-        var_y_residuals_long = np.squeeze(self.sensitivity_elements['sigma2'], axis=0)
-        nu2_long = np.squeeze(self.sensitivity_elements['nu2'], axis=0)
-        var_y_residuals_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
-        nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
-
-        # compute nonparametric R2
-        R2_y_long = 1.0 - np.divide(var_y_residuals_long, var_y)
-        R2_y_short = 1.0 - np.divide(var_y_residuals_short, var_y)
-        R2_riesz = np.divide(nu2_short, nu2_long)
-
-        # Gain statistics
-        all_cf_y_benchmark = np.clip(np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long)), 0, 1)
-        all_cf_d_benchmark = np.clip(np.divide((1.0 - R2_riesz), R2_riesz), 0, 1)
-        cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
-        cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
-
-        # change in estimates (slightly different to paper)
-        all_delta_theta = np.transpose(dml_short.all_coef - self.all_coef)
-        delta_theta = np.median(all_delta_theta, axis=0)
-
-        # degree of adversity
-        var_g = var_y_residuals_short - var_y_residuals_long
-        var_riesz = nu2_long - nu2_short
-        denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-        rho_sign = np.sign(all_delta_theta)
-        rho_values = np.clip(np.divide(np.absolute(all_delta_theta),
-                                       denom,
-                                       out=np.ones_like(all_delta_theta),
-                                       where=denom != 0),
-                             0.0, 1.0)
-        all_rho_benchmark = np.multiply(rho_values, rho_sign)
-        rho_benchmark = np.median(all_rho_benchmark, axis=0)
-        benchmark_dict = {
-            "cf_y": cf_y_benchmark,
-            "cf_d": cf_d_benchmark,
-            "rho": rho_benchmark,
-            "delta_theta": delta_theta,
-        }
+        benchmark_dict = gain_statistics(dml_long=self, dml_short=dml_short)
         df_benchmark = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
         return df_benchmark

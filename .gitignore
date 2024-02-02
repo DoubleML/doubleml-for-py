@@ -29,3 +29,4 @@ share/python-wheels/
 MANIFEST
 *.idea
 *.vscode
+.flake8

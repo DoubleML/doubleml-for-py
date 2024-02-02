@@ -1,7 +1,8 @@
-import numpy as np
 import pytest
 import math
 import scipy
+import numpy as np
+import pandas as pd
 
 from sklearn.base import clone
 
@@ -77,10 +78,43 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
     res_manual = fit_plr(y, x, d, clone(learner), clone(learner), clone(learner),
                          all_smpls, dml_procedure, score)
 
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    if score == 'partialling out':
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+    else:
+        assert score == 'IV-type'
+        dml_plr_obj_ext = dml.DoubleMLPLR(obj_dml_data,
+                                      ml_l, ml_m, ml_g,
+                                      n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
+
+    # synchronize the sample splitting
+    dml_plr_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+
+    if score == 'partialling out':
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1)}}
+    else:
+        assert score == 'IV-type'
+        prediction_dict = {'d': {'ml_l': dml_plr_obj.predictions['ml_l'].reshape(-1, 1),
+                                 'ml_m': dml_plr_obj.predictions['ml_m'].reshape(-1, 1),
+                                 'ml_g': dml_plr_obj.predictions['ml_g'].reshape(-1, 1)}}
+
+    dml_plr_obj_ext.fit(external_predictions=prediction_dict)
+
+
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
+                'coef_ext': dml_plr_obj_ext.coef,
                 'se': dml_plr_obj.se,
                 'se_manual': res_manual['se'],
+                'se_ext': dml_plr_obj_ext.se,
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
@@ -91,10 +125,14 @@ def dml_plr_fixture(generate_data1, learner, score, dml_procedure):
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+        np.random.seed(3141)
+        dml_plr_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
         res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_coef' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_coef
+        res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_t_stat
 
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
@@ -114,12 +152,18 @@ def test_dml_plr_coef(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['coef'],
                         dml_plr_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_fixture['coef'],
+                        dml_plr_fixture['coef_ext'],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_se(dml_plr_fixture):
     assert math.isclose(dml_plr_fixture['se'],
                         dml_plr_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_fixture['se'],
+                        dml_plr_fixture['se_ext'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -129,8 +173,14 @@ def test_dml_plr_boot(dml_plr_fixture):
         assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
                            dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
+                           dml_plr_fixture['boot_coef' + bootstrap + '_ext'],
+                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
                            dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
+                           dml_plr_fixture['boot_t_stat' + bootstrap + '_ext'],
                            rtol=1e-9, atol=1e-4)
 
 
@@ -282,3 +332,46 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
         assert np.allclose(dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap],
                            dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_plr_cate_gate(score, dml_procedure):
+    n = 9
+
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = dml.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    ml_l = LinearRegression()
+    ml_g = LinearRegression()
+    ml_m = LinearRegression()
+
+    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
+                                  ml_g, ml_m, ml_l,
+                                  n_folds=2,
+                                  score=score,
+                                  dml_procedure=dml_procedure)
+    dml_plr_obj.fit()
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+    cate = dml_plr_obj.cate(random_basis)
+    assert isinstance(cate, dml.DoubleMLBLP)
+    assert isinstance(cate.confint(), pd.DataFrame)
+
+    groups_1 = pd.DataFrame(
+        np.column_stack([obj_dml_data.data['X1'] <= 0,
+                         obj_dml_data.data['X1'] > 0.2]),
+        columns=['Group 1', 'Group 2'])
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_1 = dml_plr_obj.gate(groups_1)
+    assert isinstance(gate_1, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_1.confint(), pd.DataFrame)
+    assert all(gate_1.confint().index == groups_1.columns.tolist())
+
+    np.random.seed(42)
+    groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gate_2 = dml_plr_obj.gate(groups_2)
+    assert isinstance(gate_2, dml.double_ml_blp.DoubleMLBLP)
+    assert isinstance(gate_2.confint(), pd.DataFrame)
+    assert all(gate_2.confint().index == ["Group_1", "Group_2"])

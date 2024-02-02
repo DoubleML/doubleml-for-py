@@ -102,6 +102,8 @@ def test_irm_defaults():
     assert dml_irm.trimming_rule == 'truncate'
     assert dml_irm.trimming_threshold == 1e-2
     assert not dml_irm.normalize_ipw
+    assert set(dml_irm.weights.keys()) == set(['weights'])
+    assert np.array_equal(dml_irm.weights['weights'], np.ones((dml_irm._dml_data.n_obs,)))
 
 
 @pytest.mark.ci

@@ -11,8 +11,9 @@ from .double_ml_policytree import DoubleMLPolicyTree
 from .double_ml_data import DoubleMLData
 from .double_ml_score_mixins import LinearScoreMixin
 
-from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer
+from ._utils import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
+from ._utils_checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
+    _check_weights
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -46,6 +47,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         A str (``'ATE'`` or ``'ATTE'``) specifying the score function
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
         Default is ``'ATE'``.
+
+    weights : array, dict or None
+        An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
+        is applied (corresponds to weights equal to 1). Can only be used with ``score = 'ATE'``.
+        An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
+        A dictionary can be used to specify weights which depend on the treatment variable.
+        In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
+        have to be arrays of shape ``(n,)`` and ``(n, n_rep)``.
+        Default is ``None``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -118,6 +128,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='ATE',
+                 weights=None,
                  dml_procedure='dml2',
                  normalize_ipw=False,
                  trimming_rule='truncate',
@@ -160,6 +171,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._sensitivity_implemented = True
+        self._external_predictions_implemented = True
+
+        _check_weights(weights, score, obj_dml_data.n_obs, self.n_rep)
+        self._initialize_weights(weights)
 
     @property
     def normalize_ipw(self):
@@ -182,10 +197,48 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         """
         return self._trimming_threshold
 
+    @property
+    def weights(self):
+        """
+        Specifies the weights for a weighted ATE.
+        """
+        return self._weights
+
     def _initialize_ml_nuisance_params(self):
         valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
+
+    def _initialize_weights(self, weights):
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if isinstance(weights, np.ndarray):
+            self._weights = {'weights': weights}
+        else:
+            assert isinstance(weights, dict)
+            self._weights = weights
+
+    def _get_weights(self, m_hat=None):
+        # standard case for ATE
+        if self.score == 'ATE':
+            weights = self._weights['weights']
+            if 'weights_bar' not in self._weights.keys():
+                weights_bar = self._weights['weights']
+            else:
+                weights_bar = self._weights['weights_bar'][:, self._i_rep]
+        else:
+            # special case for ATTE
+            assert self.score == 'ATTE'
+            assert m_hat is not None
+            subgroup = self._weights['weights'] * self._dml_data.d
+            subgroup_probability = np.mean(subgroup)
+            weights = np.divide(subgroup, subgroup_probability)
+
+            weights_bar = np.divide(
+                np.multiply(m_hat, self._weights['weights']),
+                subgroup_probability)
+
+        return weights, weights_bar
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
@@ -206,41 +259,58 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                              'needs to be specified as treatment variable.')
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        g0_external = external_predictions['ml_g0'] is not None
+        g1_external = external_predictions['ml_g1'] is not None
+        m_external = external_predictions['ml_m'] is not None
 
         # nuisance g
-        g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
-        _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-        # adjust target values to consider only compatible subsamples
-        g_hat0['targets'] = g_hat0['targets'].astype(float)
-        g_hat0['targets'][d == 1] = np.nan
+        if g0_external:
+            # use external predictions
+            g_hat0 = {'preds': external_predictions['ml_g0'],
+                      'targets': None,
+                      'models': None}
+        else:
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
 
-        if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
+            if self._dml_data.binary_outcome:
+                binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
+                zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
+                if binary_preds & zero_one_preds:
+                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                     'probabilities and not labels are predicted.')
+        if self.score == 'ATTE':
+            # skip g_hat1 estimation
+            g_hat1 = {'preds': None,
+                      'targets': None,
+                      'models': None}
 
-        g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                 est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                 return_models=return_models)
-        _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
-        # adjust target values to consider only compatible subsamples
-        g_hat1['targets'] = g_hat1['targets'].astype(float)
-        g_hat1['targets'][d == 0] = np.nan
+        elif g1_external:
+            # use external predictions
+            g_hat1 = {'preds': external_predictions['ml_g1'],
+                      'targets': None,
+                      'models': None}
+        else:
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
-        if self._dml_data.binary_outcome:
+        if self._dml_data.binary_outcome & (self.score != 'ATTE'):
             binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
             zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
             if binary_preds & zero_one_preds:
@@ -250,12 +320,18 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
         # nuisance m
-        m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                return_models=return_models)
-        _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-        _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
-        m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+        if m_external:
+            # use external predictions
+            m_hat = {'preds': external_predictions['ml_m'],
+                     'targets': None,
+                     'models': None}
+        else:
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
+            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         psi_a, psi_b = self._score_elements(y, d,
                                             g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
@@ -277,42 +353,37 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
 
-        # fraction of treated for ATTE
-        p_hat = None
-        if self.score == 'ATTE':
-            p_hat = np.full_like(d, np.nan, dtype='float64')
-            for _, test_index in smpls:
-                p_hat[test_index] = np.mean(d[test_index])
-
+        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             if self.dml_procedure == 'dml1':
                 for _, test_index in smpls:
-                    m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
+                    m_hat_adj[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
             else:
-                m_hat = _normalize_ipw(m_hat, d)
+                m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
 
         # compute residuals
         u_hat0 = y - g_hat0
-        u_hat1 = None
-        if self.score == 'ATE':
-            u_hat1 = y - g_hat1
+        if self.score == 'ATTE':
+            g_hat1 = y
+        u_hat1 = y - g_hat1
 
-        if isinstance(self.score, str):
+        if (self.score == 'ATE') or (self.score == 'ATTE'):
+            weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
+            psi_b = weights * (g_hat1 - g_hat0) \
+                + weights_bar * (
+                    np.divide(np.multiply(d, u_hat1), m_hat_adj)
+                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
             if self.score == 'ATE':
-                psi_b = g_hat1 - g_hat0 \
-                    + np.divide(np.multiply(d, u_hat1), m_hat) \
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat)
-                psi_a = np.full_like(m_hat, -1.0)
+                psi_a = np.full_like(m_hat_adj, -1.0)
             else:
                 assert self.score == 'ATTE'
-                psi_b = np.divide(np.multiply(d, u_hat0), p_hat) \
-                    - np.divide(np.multiply(m_hat, np.multiply(1.0-d, u_hat0)),
-                                np.multiply(p_hat, (1.0 - m_hat)))
-                psi_a = - np.divide(d, p_hat)
+                psi_a = -1.0 * weights
         else:
             assert callable(self.score)
             psi_a, psi_b = self.score(y=y, d=d,
-                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat,
+                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj,
                                       smpls=smpls)
 
         return psi_a, psi_b
@@ -324,16 +395,14 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
-        g_hat1 = preds['predictions']['ml_g1']
-
-        # use weights make this extendable
         if self.score == 'ATE':
-            weights = np.ones_like(d)
-            weights_bar = np.ones_like(d)
+            g_hat1 = preds['predictions']['ml_g1']
         else:
             assert self.score == 'ATTE'
-            weights = np.divide(d, np.mean(d))
-            weights_bar = np.divide(m_hat, np.mean(d))
+            g_hat1 = y
+
+        # use weights make this extendable
+        weights, weights_bar = self._get_weights(m_hat=m_hat)
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
@@ -397,7 +466,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis):
+    def cate(self, basis, is_gate=False):
         """
         Calculate conditional average treatment effects (CATE) for a given basis.
 
@@ -406,6 +475,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Default is ``False``.
 
         Returns
         -------
@@ -424,35 +496,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         # define the orthogonal signal
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
-        model = DoubleMLBLP(orth_signal, basis=basis).fit()
-
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit()
         return model
 
     def gate(self, groups):
         """
-        Calculate group average treatment effects (GATE) for mutually exclusive groups.
+        Calculate group average treatment effects (GATE) for groups.
 
         Parameters
         ----------
         groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor.
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
             Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
 
         Returns
         -------
-        model : :class:`doubleML.DoubleMLBLPGATE`
+        model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model for Group Effects.
         """
-        valid_score = ['ATE']
-        if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
-
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
-
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
                             f'Groups of type {str(type(groups))} was passed.')
@@ -467,11 +530,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        # define the orthogonal signal
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
-        # fit the best linear predictor for GATE (different confint() method)
-        model = DoubleMLBLP(orth_signal, basis=groups, is_gate=True).fit()
-
+        model = self.cate(groups, is_gate=True)
         return model
 
     def policy_tree(self, features, depth=2, **tree_params):
