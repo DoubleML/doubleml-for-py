@@ -3,19 +3,21 @@ import numpy as np
 
 def gain_statistics(dml_long, dml_short):
     """
-    Compute gain statistics as benchmark values for sensitivity parameters cf_d and cf_y.
+    Compute gain statistics as benchmark values for sensitivity parameters ``cf_d`` and ``cf_y``.
 
-    Parameters:
+    Parameters
     ----------
 
-    dml_long : :class:`doubleml.DoubleML` model including all observed confounders
-    dml_short : :class:`doubleml.DoubleML` model that excludes one or several benchmark confounders
+    dml_long :
+        :class:`doubleml.DoubleML` model including all observed confounders
 
+    dml_short :
+        :class:`doubleml.DoubleML` model that excludes one or several benchmark confounders
 
-    Returns:
+    Returns
     --------
-    Benchmarking dictionary (dict) with values for cf_d, cf_y, rho, and delta_theta.
-
+    benchmark_dict : dict
+        Benchmarking dictionary (dict) with values for ``cf_d``, ``cf_y``, ``rho``, and ``delta_theta``.
     """
     if not isinstance(dml_long.sensitivity_elements, dict):
         raise TypeError("dml_long does not contain the necessary sensitivity elements. "
