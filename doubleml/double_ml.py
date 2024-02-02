@@ -19,7 +19,7 @@ from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _
 from .utils._checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
     _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks, _check_external_predictions
 from .utils._plots import _sensitivity_contour_plot
-
+from .utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 
@@ -208,7 +208,8 @@ class DoubleML(ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models.
+        The predictions of the nuisance models in form of a dictinary.
+        Each key refers to a nuisance element with a array of values of shape ``(n_obs, n_rep, n_coefs)``.
         """
         return self._predictions
 
@@ -290,6 +291,7 @@ class DoubleML(ABC):
         Values of the score function after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi(W; \\theta, \\eta) = \\psi_a(W; \\eta) \\theta + \\psi_b(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi
 
@@ -300,6 +302,7 @@ class DoubleML(ABC):
         after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter)
         :math:`\\psi_a(W; \\eta)`.
+        The shape is ``(n_obs, n_rep, n_coefs)``.
         """
         return self._psi_deriv
 
@@ -1814,45 +1817,6 @@ class DoubleML(ABC):
         dml_short._dml_data.x_cols = x_list_short
         dml_short.fit()
 
-        # save elements for readability
-        var_y = np.var(self._dml_data.y)
-        var_y_residuals_long = np.squeeze(self.sensitivity_elements['sigma2'], axis=0)
-        nu2_long = np.squeeze(self.sensitivity_elements['nu2'], axis=0)
-        var_y_residuals_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
-        nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
-
-        # compute nonparametric R2
-        R2_y_long = 1.0 - np.divide(var_y_residuals_long, var_y)
-        R2_y_short = 1.0 - np.divide(var_y_residuals_short, var_y)
-        R2_riesz = np.divide(nu2_short, nu2_long)
-
-        # Gain statistics
-        all_cf_y_benchmark = np.clip(np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long)), 0, 1)
-        all_cf_d_benchmark = np.clip(np.divide((1.0 - R2_riesz), R2_riesz), 0, 1)
-        cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
-        cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
-
-        # change in estimates (slightly different to paper)
-        all_delta_theta = np.transpose(dml_short.all_coef - self.all_coef)
-        delta_theta = np.median(all_delta_theta, axis=0)
-
-        # degree of adversity
-        var_g = var_y_residuals_short - var_y_residuals_long
-        var_riesz = nu2_long - nu2_short
-        denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-        rho_sign = np.sign(all_delta_theta)
-        rho_values = np.clip(np.divide(np.absolute(all_delta_theta),
-                                       denom,
-                                       out=np.ones_like(all_delta_theta),
-                                       where=denom != 0),
-                             0.0, 1.0)
-        all_rho_benchmark = np.multiply(rho_values, rho_sign)
-        rho_benchmark = np.median(all_rho_benchmark, axis=0)
-        benchmark_dict = {
-            "cf_y": cf_y_benchmark,
-            "cf_d": cf_d_benchmark,
-            "rho": rho_benchmark,
-            "delta_theta": delta_theta,
-        }
+        benchmark_dict = gain_statistics(dml_long=self, dml_short=dml_short)
         df_benchmark = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
         return df_benchmark
