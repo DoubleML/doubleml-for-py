@@ -6,8 +6,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-
-from .._utils import _normalize_ipw
+from doubleml.utils._estimation import _normalize_ipw
 
 
 def old_score_elements(y, d, g_hat0, g_hat1, m_hat, score, normalize_ipw):
