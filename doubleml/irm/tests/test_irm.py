@@ -278,7 +278,7 @@ def dml_irm_weights_fixture(n_rep, dml_procedure):
 
     # First stage estimation
     ml_g = LinearRegression()
-    ml_m = LogisticRegression(penalty='none', random_state=42)
+    ml_m = LogisticRegression(penalty='l2', random_state=42)
 
     # ATE with and without weights
     dml_irm_obj_ate_no_weights = dml.DoubleMLIRM(

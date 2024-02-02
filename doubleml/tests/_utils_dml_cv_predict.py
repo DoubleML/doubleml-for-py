@@ -8,6 +8,21 @@ from sklearn.utils.validation import _num_samples
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection._validation import _fit_and_predict, _check_is_permutation
 
+# Adapt _fit_and_predict for earlier sklearn versions
+from distutils.version import LooseVersion
+from sklearn import __version__ as sklearn_version
+
+if LooseVersion(sklearn_version) < LooseVersion("1.4.0"):
+    def _fit_and_predict_adapted(estimator, x, y, train, test, fit_params, method):
+        res = _fit_and_predict(estimator, x, y, train, test,
+                               verbose=0,
+                               fit_params=fit_params,
+                               method=method)
+        return res
+else:
+    def _fit_and_predict_adapted(estimator, x, y, train, test, fit_params, method):
+        return _fit_and_predict(estimator, x, y, train, test, fit_params, method)
+
 
 def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
                                n_jobs=None, est_params=None, method='predict'):
@@ -22,18 +37,19 @@ def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
         train_index, test_index = smpls[0]
         # set some defaults aligned with cross_val_predict
         fit_params = None
-        verbose = 0
         if method == 'predict_proba':
             predictions = np.full((len(y), 2), np.nan)
         else:
             predictions = np.full(len(y), np.nan)
         if est_params is None:
-            xx = _fit_and_predict(clone(estimator),
-                                  x, y, train_index, test_index, verbose, fit_params, method)
+            xx = _fit_and_predict_adapted(
+                clone(estimator),
+                x, y, train_index, test_index, fit_params, method)
         else:
             assert isinstance(est_params, dict)
-            xx = _fit_and_predict(clone(estimator).set_params(**est_params),
-                                  x, y, train_index, test_index, verbose, fit_params, method)
+            xx = _fit_and_predict_adapted(
+                clone(estimator).set_params(**est_params),
+                x, y, train_index, test_index, fit_params, method)
 
         # implementation is (also at other parts) restricted to a sorted set of test_indices, but this could be fixed
         # inv_test_indices = np.argsort(test_indices)
@@ -61,22 +77,22 @@ def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,
                         pre_dispatch=pre_dispatch)
     # FixMe: Find a better way to handle the different combinations of paramters and smpls_is_partition
     if est_params is None:
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
+        prediction_blocks = parallel(delayed(_fit_and_predict_adapted)(
             estimator,
-            x, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, fit_params, method)
                                      for idx, (train_index, test_index) in enumerate(smpls))
     elif isinstance(est_params, dict):
         # if no fold-specific parameters we redirect to the standard method
         # warnings.warn("Using the same (hyper-)parameters for all folds")
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
+        prediction_blocks = parallel(delayed(_fit_and_predict_adapted)(
             clone(estimator).set_params(**est_params),
-            x, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, fit_params, method)
                                      for idx, (train_index, test_index) in enumerate(smpls))
     else:
         assert len(est_params) == len(smpls), 'provide one parameter setting per fold'
-        prediction_blocks = parallel(delayed(_fit_and_predict)(
+        prediction_blocks = parallel(delayed(_fit_and_predict_adapted)(
             clone(estimator).set_params(**est_params[idx]),
-            x, y, train_index, test_index, verbose, fit_params, method)
+            x, y, train_index, test_index, fit_params, method)
             for idx, (train_index, test_index) in enumerate(smpls))
 
     # Concatenate the predictions

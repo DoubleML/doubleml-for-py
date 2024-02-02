@@ -230,12 +230,13 @@ def _check_benchmarks(benchmarks):
 
 def _check_weights(weights, score, n_obs, n_rep):
     if weights is not None:
-        if score != "ATE":
-            raise NotImplementedError("weights can only be set for score type 'ATE'. "
-                                      f"{score} was passed.")
+
+        # check general type
         if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
             raise TypeError("weights must be a numpy array or dictionary. "
                             f"weights of type {str(type(weights))} was passed.")
+
+        # check shape
         if isinstance(weights, np.ndarray):
             if (weights.ndim != 1) or weights.shape[0] != n_obs:
                 raise ValueError(f"weights must have shape ({n_obs},). "
@@ -245,7 +246,19 @@ def _check_weights(weights, score, n_obs, n_rep):
             if weights.sum() == 0:
                 raise ValueError("At least one weight must be non-zero.")
 
+        # check special form for ATTE score
+        if score == "ATTE":
+            if not isinstance(weights, np.ndarray):
+                raise TypeError("weights must be a numpy array for ATTE score. "
+                                f"weights of type {str(type(weights))} was passed.")
+
+            is_binary = np.all((np.power(weights, 2) - weights) == 0)
+            if not is_binary:
+                raise ValueError("weights must be binary for ATTE score.")
+
+        # check general form for ATE score
         if isinstance(weights, dict):
+            assert score == "ATE"
             expected_keys = ["weights", "weights_bar"]
             if not set(weights.keys()) == set(expected_keys):
                 raise ValueError(f"weights must have keys {expected_keys}. "
