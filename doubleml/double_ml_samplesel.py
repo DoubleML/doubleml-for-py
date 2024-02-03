@@ -6,7 +6,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_data import DoubleMLData
 # from .double_ml import DoubleML -- not working
 from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls, _get_cond_smpls_2d
-from doubleml._utils_checks  import _check_finite_predictions, _check_trimming, _check_is_propensity
+from doubleml._utils_checks  import _check_finite_predictions, _check_is_propensity, _check_zero_one_treatment
 #from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions -- also not working
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 
@@ -55,8 +55,8 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'mar_score'``) specifying the score function.
-        Default is ``'mar_score'``.
+        A str (``'mar'`` or ``'nonignorable_nonresponse'``) specifying the score function.
+        Default is ``'mar'`` (missing at random).
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -84,7 +84,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
     """
     def __init__(self,
                  obj_dml_data,
-                 ml_mu,  # default should be lasso
+                 ml_mu,
                  ml_pi,  # propensity score
                  ml_p,   # propensity score
                  selection=0,  # if 0, ATE is estimated, if 1, ATE for selection is estimated
@@ -93,7 +93,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                  control = 0,
                  n_folds=3,
                  n_rep=1,
-                 score='mar_score',  # TODO implement other scores apart from MAR, this will determine the estimator type
+                 score='mar',  # TODO implement other scores apart from MAR, this will determine the estimator type
                  dml_procedure='dml2',
                  normalize_ipw=True,
                  draw_sample_splitting=True,
@@ -139,7 +139,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['mar_score']
+            valid_score = ['mar', 'nonignorable_nonresponse']
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
@@ -149,28 +149,37 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
                                 '%r was passed.' % score)
         return
 
-    def _check_data(self, obj_dml_data):  ## TODO add checks for missingness, treatment etc.
+    def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
+        if obj_dml_data.z_cols is not None and self._score == 'mar':  #TODO: raise warning instead
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). '
-                             'To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLSS.')
+                             'You are estimating the effect under the assumption of data missing at random. \
+                             Instrumental variables will not be used in estimation.')
+        if obj_dml_data.z_cols is None and self._score == 'nonignorable_nonresponse':
+            raise ValueError('Sample selection by nonignorable nonresponse was set but instrumental variable \
+                             is None. To estimate treatment effect under nonignorable nonresponse, \
+                             specify an instrument for the selection variable.')
+        _check_zero_one_treatment(self)
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
-        x, d = check_X_y(self._dml_data.x, self._dml_data.d,
+        x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        x, s = check_X_y(self._dml_data.x, self._dml_data.t,
+        x, s = check_X_y(x, self._dml_data.t,
                           force_all_finite=False)
+        if self._dml_data.z is not None:
+            x, z = check_X_y(x, np.ravel(self._dml_data.z),
+                               force_all_finite=False)
         
         dx = np.column_stack((x, d))  # use d among control variables for pi estimation
-        dsx = np.column_stack((dx, s))
         sx = np.column_stack((x, s)) # s and x as controls for mu estimation
+
         
         # initialize nuisance predictions, targets and models
         mu_hat_treat = {'models': None,
@@ -181,33 +190,28 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         pi_hat_treat = copy.deepcopy(mu_hat_treat)
         pi_hat_control = copy.deepcopy(mu_hat_treat)
         p_hat_treat = copy.deepcopy(mu_hat_treat)
+        p_hat_control = copy.deepcopy(mu_hat_treat)
 
-        #smpls_s0, smpls_s1 = _get_cond_smpls(smpls, s)
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-        smpls_d0_s0, smpls_d0_s1, smpls_d1_s0, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
-
-        # nuisance mu
-        mu_hat_treat = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
-                                return_models=return_models)
-        mu_hat_treat['targets'] = mu_hat_treat['targets'].astype(float)
-        mu_hat_treat['targets'][d != self._treatment] = np.nan
-        _check_finite_predictions(mu_hat_treat['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
-
-        mu_hat_control = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
-                                return_models=return_models)
-        mu_hat_control['targets'] = mu_hat_control['targets'].astype(float)
-        mu_hat_control['targets'][d != self._control] = np.nan
-        _check_finite_predictions(mu_hat_control['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
+        _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)  # we only need S = 1
 
         # propensity score pi
-        pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
+        if self._score == 'nonignorable_nonresponse':
+            dxz = np.column_stack((dx, z))
+
+            pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dxz, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
                                 return_models=return_models)
-        pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
-        pi_hat_treat['targets'][d != self._treatment] = np.nan
-        _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+            pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
+            pi_hat_treat['targets'][d != self._treatment] = np.nan
+            _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+        else:  # mar
+            pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
+                                return_models=return_models)
+            pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
+            pi_hat_treat['targets'][d != self._treatment] = np.nan
+            _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
 
         pi_hat_control = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d0, n_jobs=n_jobs_cv,
@@ -237,6 +241,20 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         _check_is_propensity(p_hat_treat['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
         _check_is_propensity(p_hat_control['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
 
+        # nuisance mu
+        mu_hat_treat = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
+                                return_models=return_models)
+        mu_hat_treat['targets'] = mu_hat_treat['targets'].astype(float)
+        mu_hat_treat['targets'][d != self._treatment] = np.nan
+        _check_finite_predictions(mu_hat_treat['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
+
+        mu_hat_control = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
+                                return_models=return_models)
+        mu_hat_control['targets'] = mu_hat_control['targets'].astype(float)
+        mu_hat_control['targets'][d != self._control] = np.nan
+        _check_finite_predictions(mu_hat_control['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
     
         ## Trimming - done differently in Bia, Huber and Laffers than in DoubleML - dropping observations
         if not self._selection:
@@ -374,4 +392,13 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
     
 
     def _sensitivity_element_est(self, preds):
-        pass
+        y = self._dml_data.y
+        d = self._dml_data.d
+        s = self._dml_data.t  ## again, DoubleML does not have a specified column for selection, using t instead
+
+        mu_hat_treat = preds['predictions']['ml_mu_d1']
+        mu_hat_control = preds['predictions']['ml_mu_d0']
+        pi_hat_treat = preds['predictions']['ml_pi_d1']
+        pi_hat_control = preds['predictions']['ml_pi_d0']
+        p_hat_treat = preds['predictions']['ml_p_d1']
+        p_hat_control = preds['predictions']['ml_p_d0']
