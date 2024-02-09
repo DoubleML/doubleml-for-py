@@ -364,6 +364,8 @@ class DoubleMLFramework():
         -------
         df_p_vals : pd.DataFrame
             A data frame with adjusted p-values.
+        all_p_vals_corrected : np.ndarray
+            A numpy array with all corrected p-values for each repetition.
         """
         if not isinstance(method, str):
             raise TypeError('The p_adjust method must be of str type. '
@@ -399,7 +401,9 @@ class DoubleMLFramework():
                     if i_theta == 0:
                         p_vals_corrected_tmp_sorted[i_theta] = p_init[i_theta]
                     else:
-                        p_vals_corrected_tmp_sorted[i_theta] = np.maximum(p_init[i_theta], p_vals_corrected_tmp_sorted[i_theta - 1])
+                        p_vals_corrected_tmp_sorted[i_theta] = np.maximum(
+                            p_init[i_theta],
+                            p_vals_corrected_tmp_sorted[i_theta - 1])
 
                 # reorder p-values
                 p_vals_corrected_tmp = p_vals_corrected_tmp_sorted[ro]
@@ -413,7 +417,7 @@ class DoubleMLFramework():
             np.vstack((self.thetas, p_vals_corrected)).T,
             columns=['thetas', 'pval'])
 
-        return df_p_vals
+        return df_p_vals, all_p_vals_corrected
 
 
 def concat(objs):
