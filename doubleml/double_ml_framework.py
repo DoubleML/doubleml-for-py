@@ -154,7 +154,7 @@ class DoubleMLFramework():
         return self._scaled_psi
 
     @property
-    def _var_scaling_factors(self):
+    def var_scaling_factors(self):
         """
         Variance scaling factors (shape (``n_thetas``,)).
         """

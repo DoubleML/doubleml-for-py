@@ -71,7 +71,7 @@ def test_dml_framework_pval_shape(dml_framework_tstat_pval_fixture):
 def dml_framework_pval_cov_fixture(n_rep, sig_level):
     np.random.seed(42)
     n_thetas = 10
-    n_obs = 100
+    n_obs = 200
     repetitions = 500
 
     avg_type1_error_single_estimate = np.full(repetitions, np.nan)
