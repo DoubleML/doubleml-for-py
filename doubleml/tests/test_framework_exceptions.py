@@ -156,4 +156,8 @@ def test_operation_exceptions():
 def test_p_adjust_exceptions():
     msg = "The p_adjust method must be of str type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        dml_framework_obj_1.p_adjust(method=1)
+        _ = dml_framework_obj_1.p_adjust(method=1)
+
+    msg = r'Apply bootstrap\(\) before p_adjust\("rw"\)\.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_1.p_adjust(method='rw')
