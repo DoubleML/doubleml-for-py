@@ -205,7 +205,7 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
             pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
             pi_hat_treat['targets'][d != self._treatment] = np.nan
             _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
-        else:  # mar
+        else:  # missing at random (MAR)
             pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
                                 est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
                                 return_models=return_models)
