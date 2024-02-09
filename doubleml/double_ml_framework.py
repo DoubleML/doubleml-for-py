@@ -90,49 +90,49 @@ class DoubleMLFramework():
     @property
     def thetas(self):
         """
-        Estimated target parameters.
+        Estimated target parameters (shape (``n_thetas``,)).
         """
         return self._thetas
 
     @property
     def all_thetas(self):
         """
-        Estimated target parameters for each repetition.
+        Estimated target parameters for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
         return self._all_thetas
 
     @property
     def ses(self):
         """
-        Estimated standard errors.
+        Estimated standard errors (shape (``n_thetas``,)).
         """
         return self._ses
 
     @property
     def all_ses(self):
         """
-        Estimated standard errors for each repetition.
+        Estimated standard errors for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
         return self._all_ses
 
     @property
     def t_stats(self):
         """
-        t-statistics for the causal parameter(s).
+        t-statistics for the causal parameter(s) (shape (``n_thetas``, )).
         """
         return self._thetas / self._ses
 
     @property
     def all_t_stats(self):
         """
-        t-statistics for the causal parameter(s) for each repetition.
+        t-statistics for the causal parameter(s) for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
         return self._all_thetas / self._all_ses
 
     @property
     def pvals(self):
         """
-        p-values for the causal parameter(s).
+        p-values for the causal parameter(s) (shape (``n_thetas``, )).
         """
         # aggregate p-values according to Definition 4.2 https://arxiv.org/abs/1712.04802
         pvals = np.median(self.all_pvals, axis=1)
@@ -141,10 +141,24 @@ class DoubleMLFramework():
     @property
     def all_pvals(self):
         """
-        p-values for the causal parameter(s) for each repetition.
+        p-values for the causal parameter(s) for each repetition (shape (``n_thetas``, ``n_rep``)).
         """
         all_pvals = 2 * (1 - norm.cdf(np.abs(self.all_t_stats)))
         return all_pvals
+
+    @property
+    def scaled_psi(self):
+        """
+        Normalized scores (shape (``n_obs``, ``n_thetas``, ``n_rep``)).
+        """
+        return self._scaled_psi
+
+    @property
+    def _var_scaling_factors(self):
+        """
+        Variance scaling factors (shape (``n_thetas``,)).
+        """
+        return self._var_scaling_factors
 
     def __add__(self, other):
 
