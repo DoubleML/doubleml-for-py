@@ -134,7 +134,8 @@ class DoubleMLFramework():
         """
         p-values for the causal parameter(s).
         """
-        pvals = 2 * (1 - norm.cdf(np.abs(self.t_stats)))
+        # aggregate p-values according to Definition 4.2 https://arxiv.org/abs/1712.04802
+        pvals = np.median(self.all_pvals, axis=1)
         return pvals
 
     @property
@@ -296,8 +297,10 @@ class DoubleMLFramework():
         if joint:
             if self._bootstrap_distribution is None:
                 raise ValueError('Apply bootstrap() before confint().')
+
+            max_abs_t_value_distribution = np.amax(np.abs(self._bootstrap_distribution), axis=1)
             critical_values = np.quantile(
-                a=self._bootstrap_distribution,
+                a=max_abs_t_value_distribution,
                 q=level,
                 axis=0)
         else:
@@ -336,12 +339,12 @@ class DoubleMLFramework():
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
         # initialize bootstrap distribution array
-        self._bootstrap_distribution = np.full((n_rep_boot, self._n_rep), np.nan)
+        self._bootstrap_distribution = np.full((n_rep_boot, self.n_thetas, self._n_rep), np.nan)
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
         for i_rep in range(self.n_rep):
             weights = _draw_weights(method, n_rep_boot, self._n_obs)
             bootstraped_scaled_psi = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
-            self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_psi), axis=1)
+            self._bootstrap_distribution[:, :, i_rep] = bootstraped_scaled_psi
 
         return self
 
@@ -365,6 +368,25 @@ class DoubleMLFramework():
         if not isinstance(method, str):
             raise TypeError('The p_adjust method must be of str type. '
                             f'{str(method)} of type {str(type(method))} was passed.')
+
+        if method.lower() in ['rw', 'romano-wolf']:
+            if self._bootstrap_distribution is None:
+                raise ValueError(f'Apply bootstrap() before p_adjust("{method}").')
+
+            pinit = np.full_like(self.pvals, np.nan)
+            p_val_corrected = np.full_like(self.pvals, np.nan)
+            abs_all_t_stats = abs(self.all_t_stats)
+
+            # sort in reverse order
+            stepdown_ind = np.argsort(abs_all_t_stats)[::-1]
+            # reversing the order of the sorted indices
+            ro = np.argsort(stepdown_ind)
+
+            for i_theta in range(self.n_thetas):
+                if i_theta == 0:
+                    pass
+
+
 
         _, p_vals, _, _ = multipletests(self.pvals, method=method)
 
