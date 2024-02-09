@@ -113,6 +113,36 @@ class DoubleMLFramework():
         """
         return self._all_ses
 
+    @property
+    def t_stats(self):
+        """
+        t-statistics for the causal parameter(s).
+        """
+        return self._thetas / self._ses
+
+    @property
+    def all_t_stats(self):
+        """
+        t-statistics for the causal parameter(s) for each repetition.
+        """
+        return self._all_thetas / self._all_ses
+
+    @property
+    def pvals(self):
+        """
+        p-values for the causal parameter(s).
+        """
+        pvals = 2 * (1 - norm.cdf(np.abs(self.t_stats)))
+        return pvals
+
+    @property
+    def all_pvals(self):
+        """
+        p-values for the causal parameter(s) for each repetition.
+        """
+        all_pvals = 2 * (1 - norm.cdf(np.abs(self.all_t_stats)))
+        return all_pvals
+
     def __add__(self, other):
 
         if isinstance(other, DoubleMLFramework):
