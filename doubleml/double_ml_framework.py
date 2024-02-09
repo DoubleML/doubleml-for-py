@@ -369,29 +369,48 @@ class DoubleMLFramework():
             raise TypeError('The p_adjust method must be of str type. '
                             f'{str(method)} of type {str(type(method))} was passed.')
 
-        if method.lower() in ['rw', 'romano-wolf']:
-            if self._bootstrap_distribution is None:
-                raise ValueError(f'Apply bootstrap() before p_adjust("{method}").')
+        all_p_vals_corrected = np.full_like(self.all_pvals, np.nan)
 
-            pinit = np.full_like(self.pvals, np.nan)
-            p_val_corrected = np.full_like(self.pvals, np.nan)
-            abs_all_t_stats = abs(self.all_t_stats)
+        for i_rep in range(self.n_rep):
+            p_vals_tmp = self.all_pvals[:, i_rep]
 
-            # sort in reverse order
-            stepdown_ind = np.argsort(abs_all_t_stats)[::-1]
-            # reversing the order of the sorted indices
-            ro = np.argsort(stepdown_ind)
+            if method.lower() in ['rw', 'romano-wolf']:
+                if self._bootstrap_distribution is None:
+                    raise ValueError(f'Apply bootstrap() before p_adjust("{method}").')
 
-            for i_theta in range(self.n_thetas):
-                if i_theta == 0:
-                    pass
+                bootstrap_t_stats = self._bootstrap_distribution[:, :, i_rep]
 
+                p_init = np.full_like(p_vals_tmp, np.nan)
+                p_vals_corrected_tmp_sorted = np.full_like(p_vals_tmp, np.nan)
 
+                abs_t_stats_tmp = abs(self.all_t_stats[:, i_rep])
+                # sort in reverse order
+                stepdown_ind = np.argsort(abs_t_stats_tmp)[::-1]
+                # reversing the order of the sorted indices
+                ro = np.argsort(stepdown_ind)
 
-        _, p_vals, _, _ = multipletests(self.pvals, method=method)
+                for i_theta in range(self.n_thetas):
+                    bootstrap_citical_value = np.max(
+                        abs(np.delete(bootstrap_t_stats, stepdown_ind[:i_theta], axis=1)),
+                        axis=1)
+                    p_init[i_theta] = np.minimum(1, np.mean(bootstrap_citical_value >= abs_t_stats_tmp[stepdown_ind][i_theta]))
 
+                for i_theta in range(self.n_thetas):
+                    if i_theta == 0:
+                        p_vals_corrected_tmp_sorted[i_theta] = p_init[i_theta]
+                    else:
+                        p_vals_corrected_tmp_sorted[i_theta] = np.maximum(p_init[i_theta], p_vals_corrected_tmp_sorted[i_theta - 1])
+
+                # reorder p-values
+                p_vals_corrected_tmp = p_vals_corrected_tmp_sorted[ro]
+            else:
+                _, p_vals_corrected_tmp, _, _ = multipletests(p_vals_tmp, method=method)
+
+            all_p_vals_corrected[:, i_rep] = p_vals_corrected_tmp
+
+        p_vals_corrected = np.median(all_p_vals_corrected, axis=1)
         df_p_vals = pd.DataFrame(
-            np.vstack((self.thetas, p_vals)).T,
+            np.vstack((self.thetas, p_vals_corrected)).T,
             columns=['thetas', 'pval'])
 
         return df_p_vals
