@@ -150,3 +150,10 @@ def test_operation_exceptions():
         doubleml_dict_2 = generate_dml_dict(psi_a_2, psi_b_2)
         dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
         _ = concat([dml_framework_obj_1, dml_framework_obj_2])
+
+
+@pytest.mark.ci
+def test_p_adjust_exceptions():
+    msg = "The p_adjust method must be of str type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_framework_obj_1.p_adjust(method=1)

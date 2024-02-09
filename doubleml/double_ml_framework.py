@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+
 from scipy.stats import norm
+from statsmodels.stats.multitest import multipletests
 
 from .double_ml import DoubleML
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses
@@ -342,6 +344,35 @@ class DoubleMLFramework():
             self._bootstrap_distribution[:, i_rep] = np.amax(np.abs(bootstraped_scaled_psi), axis=1)
 
         return self
+
+    def p_adjust(self, method='romano-wolf'):
+        """
+        Multiple testing adjustment for DoubleML Frameworks.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'romano-wolf''``, ``'bonferroni'``, ``'holm'``, etc) specifying the adjustment method.
+            In addition to ``'romano-wolf''``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
+
+        Returns
+        -------
+        df_p_vals : pd.DataFrame
+            A data frame with adjusted p-values.
+        """
+        if not isinstance(method, str):
+            raise TypeError('The p_adjust method must be of str type. '
+                            f'{str(method)} of type {str(type(method))} was passed.')
+
+        _, p_vals, _, _ = multipletests(self.pvals, method=method)
+
+        df_p_vals = pd.DataFrame(
+            np.vstack((self.thetas, p_vals)).T,
+            columns=['thetas', 'pval'])
+
+        return df_p_vals
 
 
 def concat(objs):
