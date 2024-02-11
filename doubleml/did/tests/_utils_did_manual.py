@@ -153,7 +153,6 @@ def var_did(theta, psi_a, psi_b, n_obs):
 
 def boot_did(y, thetas, ses, all_psi_a, all_psi_b,
              all_smpls, bootstrap, n_rep_boot, n_rep=1, apply_cross_fitting=True):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
@@ -163,16 +162,14 @@ def boot_did(y, thetas, ses, all_psi_a, all_psi_b,
             test_index = smpls[0][1]
             n_obs = len(test_index)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_did_single_split(
+        boot_t_stat = boot_did_single_split(
             thetas[i_rep], all_psi_a[i_rep], all_psi_b[i_rep], smpls,
             ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_did_single_split(theta, psi_a, psi_b,
@@ -185,9 +182,9 @@ def boot_did_single_split(theta, psi_a, psi_b,
         J = np.mean(psi_a[test_index])
 
     psi = np.multiply(psi_a, theta) + psi_b
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,
