@@ -106,7 +106,7 @@ class DoubleML(ABC):
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
 
         # also initialize bootstrap arrays with the default number of bootstrap replications
-        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
+        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
         self._boot_method = None
 
         # initialize instance attributes which are later used for iterating
@@ -372,13 +372,6 @@ class DoubleML(ABC):
         return pval
 
     @property
-    def boot_coef(self):
-        """
-        Bootstrapped coefficients for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
-        """
-        return self._boot_coef
-
-    @property
     def boot_t_stat(self):
         """
         Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
@@ -535,7 +528,7 @@ class DoubleML(ABC):
         if self._is_cluster_data:
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
-        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
+        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -545,7 +538,7 @@ class DoubleML(ABC):
                 self._i_treat = i_d
                 i_start = self._i_rep * self.n_rep_boot
                 i_end = (self._i_rep + 1) * self.n_rep_boot
-                self._boot_coef[self._i_treat, i_start:i_end], self._boot_t_stat[self._i_treat, i_start:i_end] =\
+                self._boot_t_stat[self._i_treat, i_start:i_end] =\
                     self._compute_bootstrap(weights)
 
         self._boot_method = method
@@ -585,7 +578,7 @@ class DoubleML(ABC):
         a = (1 - level)
         ab = np.array([a / 2, 1. - a / 2])
         if joint:
-            if np.isnan(self.boot_coef).all():
+            if np.isnan(self.boot_t_stat).all():
                 raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
             sim = np.amax(np.abs(self.boot_t_stat), 0)
             hatc = np.quantile(sim, 1 - a)
@@ -626,7 +619,7 @@ class DoubleML(ABC):
                             f'{str(method)} of type {str(type(method))} was passed.')
 
         if method.lower() in ['rw', 'romano-wolf']:
-            if np.isnan(self.boot_coef).all():
+            if np.isnan(self.boot_t_stat).all():
                 raise ValueError(f'Apply fit() & bootstrap() before p_adjust("{method}").')
 
             pinit = np.full_like(self.pval, np.nan)
@@ -1036,9 +1029,8 @@ class DoubleML(ABC):
         return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se
 
     def _initialize_boot_arrays(self, n_rep_boot):
-        boot_coef = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
         boot_t_stat = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
-        return n_rep_boot, boot_coef, boot_t_stat
+        return n_rep_boot, boot_t_stat
 
     def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
@@ -1360,10 +1352,9 @@ class DoubleML(ABC):
 
     def _compute_bootstrap(self, weights):
         J = np.mean(self.__psi_deriv)
-        boot_coef = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * J)
         boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
 
-        return boot_coef, boot_t_stat
+        return boot_t_stat
 
     # Score estimation and elements
     @abstractmethod
