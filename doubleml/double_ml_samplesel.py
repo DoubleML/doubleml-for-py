@@ -1,11 +1,19 @@
 from sklearn.utils import check_X_y
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.base import clone
 import numpy as np
 import copy
 
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_data import DoubleMLData
 # from .double_ml import DoubleML -- not working
-from doubleml._utils import _dml_cv_predict, _dml_tune, _get_cond_smpls, _get_cond_smpls_2d
+from doubleml._utils import (
+    _dml_cv_predict, 
+    _dml_tune, 
+    _get_cond_smpls, 
+    _get_cond_smpls_2d,
+    _predict_zero_one_propensity,
+    _normalize_ipw)
 from doubleml._utils_checks  import _check_finite_predictions, _check_is_propensity, _check_zero_one_treatment
 #from ._utils import _dml_cv_predict, _dml_tune, _check_finite_predictions -- also not working
 from doubleml.double_ml_score_mixins import LinearScoreMixin
@@ -111,16 +119,29 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         self._selection = selection  ## TODO
         self._treatment = treatment
         self._control = control
+        self._external_predictions_implemented = True
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
+        
         _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)  # learner must be a regression method
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)  # pi is probability
         _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)  # p is probability
-        self._learner = {'ml_mu': ml_mu, 'ml_pi': ml_pi, 'ml_p': ml_p}
-        self._predict_method = {'ml_mu': 'predict', 
-                                'ml_pi': 'predict_proba', 
-                                'ml_p': 'predict_proba'}
+        self._learner = {'ml_mu_d0': clone(ml_mu), 
+                         'ml_mu_d1': clone(ml_mu),
+                         'ml_pi_d0': clone(ml_pi),
+                         'ml_pi_d1': clone(ml_pi),
+                         'ml_p_d0': clone(ml_p),
+                         'ml_p_d1': clone(ml_p)
+        }
+        self._predict_method = {'ml_mu_d0': 'predict', 
+                                'ml_mu_d1': 'predict',
+                                'ml_pi_d0': 'predict_proba', 
+                                'ml_pi_d1': 'predict_proba',
+                                'ml_p_d0': 'predict_proba',
+                                'ml_p_d1': 'predict_proba'
+        }
+
         self._initialize_ml_nuisance_params()
 
     @property
@@ -163,161 +184,353 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
             raise ValueError('Sample selection by nonignorable nonresponse was set but instrumental variable \
                              is None. To estimate treatment effect under nonignorable nonresponse, \
                              specify an instrument for the selection variable.')
-        _check_zero_one_treatment(self)
         return
 
-    def _nuisance_est(self, smpls, n_jobs_cv, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                         force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
-        x, s = check_X_y(x, self._dml_data.t,
-                          force_all_finite=False)
-        if self._dml_data.z is not None:
-            x, z = check_X_y(x, np.ravel(self._dml_data.z),
-                               force_all_finite=False)
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
         
-        dx = np.column_stack((x, d))  # use d among control variables for pi estimation
+        if self._dml_data.z is not None:
+            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            dx = np.column_stack((x, d, z))
+        else:
+            dx = np.column_stack((x, d))
+        
         sx = np.column_stack((x, s)) # s and x as controls for mu estimation
-
         
         # initialize nuisance predictions, targets and models
-        mu_hat_treat = {'models': None,
+        mu_hat_d1 = {'models': None,
                  'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                  'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                  }
-        mu_hat_control = copy.deepcopy(mu_hat_treat)
-        pi_hat_treat = copy.deepcopy(mu_hat_treat)
-        pi_hat_control = copy.deepcopy(mu_hat_treat)
-        p_hat_treat = copy.deepcopy(mu_hat_treat)
-        p_hat_control = copy.deepcopy(mu_hat_treat)
+        mu_hat_d0 = copy.deepcopy(mu_hat_d1)
+        pi_hat = copy.deepcopy(mu_hat_d1)
+        pi_hat_d1 = copy.deepcopy(mu_hat_d1)
+        pi_hat_d0 = copy.deepcopy(mu_hat_d1)
+        p_hat_d1 = copy.deepcopy(mu_hat_d1)
+        p_hat_d0 = copy.deepcopy(mu_hat_d1)
 
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)  # we only need S = 1
+        smpls_s0, smpls_s1 = _get_cond_smpls(smpls, s)
 
-        # propensity score pi
+        # initialize models
+        fitted_models = {}
+        for learner in self.params_names:
+            # set nuisance model parameters
+            est_params = self._get_params(learner)
+            if est_params is not None:
+                fitted_models[learner] = [
+                    clone(self._learner[learner]).set_params(**est_params[i_fold]) for i_fold in range(self.n_folds)
+                ]
+            else:
+                fitted_models[learner] = [clone(self._learner[learner]) for i_fold in range(self.n_folds)]
+
+        # caculate nuisance functions over different folds
         if self._score == 'nonignorable_nonresponse':
-            dxz = np.column_stack((dx, z))
 
-            pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dxz, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
-                                return_models=return_models)
-            pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
-            pi_hat_treat['targets'][d != self._treatment] = np.nan
-            _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
-        else:  # missing at random (MAR)
-            pi_hat_treat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
-                                return_models=return_models)
-            pi_hat_treat['targets'] = pi_hat_treat['targets'].astype(float)
-            pi_hat_treat['targets'][d != self._treatment] = np.nan
-            _check_finite_predictions(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+            # create strata for splitting
+            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
 
+            # TREATMENT
+            mu_d1 = {'models': None,
+                 'targets': [],
+                 'preds': []
+                 }
+            mu_d0 = copy.deepcopy(mu_d1)
+            pi_d1 = copy.deepcopy(mu_d1)
+            pi_d0 = copy.deepcopy(mu_d1)
+            p_d1 = copy.deepcopy(mu_d1)
+            p_d0 = copy.deepcopy(mu_d1)
+            s_1 = []
+            s_0 = []
+            y_1 = []
+            y_0 = []
+            dtreat = []
+            dcontrol = []
 
-        pi_hat_control = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi'],
-                                return_models=return_models)
-        pi_hat_control['targets'] = pi_hat_control['targets'].astype(float)
-        pi_hat_control['targets'][d != self._control] = np.nan
-        _check_finite_predictions(pi_hat_control['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+            for i_fold in range(self.n_folds):
+                # smpls will be based on whether it is treatment or control
+                train_inds = smpls[i_fold][0]
+                test_inds = smpls[i_fold][1]
 
+                # start nested crossfitting - split training data into two equal parts
+                train_inds_1, train_inds_2 = train_test_split(
+                    train_inds, test_size=0.5, random_state=42, stratify=s[train_inds]
+                )
 
-        # propensity score p
-        p_hat_treat = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
-                                return_models=return_models)
-        p_hat_treat['targets'] = p_hat_treat['targets'].astype(float)
-        p_hat_treat['targets'][d != self._treatment] = np.nan
-        _check_finite_predictions(p_hat_treat['preds'], self._learner['ml_p'], 'ml_p', smpls)
-        _check_is_propensity(pi_hat_treat['preds'], self._learner['ml_pi'], 'ml_pi', smpls_d1, eps=1e-12)
-        _check_is_propensity(pi_hat_control['preds'], self._learner['ml_pi'], 'ml_pi', smpls_d0, eps=1e-12)
+                s_train_1 = s[train_inds_1]
+                dx_train_1 = dx[train_inds_1]
 
-        p_hat_control = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
-                                return_models=return_models)
-        p_hat_control['preds'] = 1 - p_hat_control['preds']
-        p_hat_control['targets'][d != self._control] = np.nan
-        _check_finite_predictions(p_hat_control['preds'], self._learner['ml_p'], 'ml_p', smpls)
-        _check_is_propensity(p_hat_treat['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
-        _check_is_propensity(p_hat_control['preds'], self._learner['ml_p'], 'ml_p', smpls, eps=1e-12)
+                # preliminary propensity score for selection
+                ml_pi_prelim = clone(self._learner['ml_pi_d1'])
+                # fit on first part of training set
+                ml_pi_prelim.fit(dx_train_1, s_train_1)
+                pi_hat['preds'] = _predict_zero_one_propensity(ml_pi_prelim, dx)
+                pi_hat['targets'] = s
 
-        # nuisance mu
-        mu_hat_treat = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
-                                return_models=return_models)
-        mu_hat_treat['targets'] = mu_hat_treat['targets'].astype(float)
-        mu_hat_treat['targets'][d != self._treatment] = np.nan
-        _check_finite_predictions(mu_hat_treat['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
+                pi_hat_d1['preds'] = pi_hat['preds'][test_inds]
+                pi_hat_d1['targets'] = s[test_inds]
 
-        mu_hat_control = _dml_cv_predict(self._learner['ml_mu'], sx, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
-                                return_models=return_models)
-        mu_hat_control['targets'] = mu_hat_control['targets'].astype(float)
-        mu_hat_control['targets'][d != self._control] = np.nan
-        _check_finite_predictions(mu_hat_control['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
-    
-        ## Trimming - done differently in Bia, Huber and Laffers than in DoubleML - dropping observations
-        if not self._selection:
-            mask_treat = np.multiply(pi_hat_treat['preds'], p_hat_treat['preds']) >= self._trimming_threshold
-            mask_control = np.multiply(pi_hat_control['preds'], p_hat_control['preds']) >= self._trimming_threshold
+                # add selection indicator to covariates
+                xpi = np.column_stack((x, pi_hat['preds']))
+                
+                # estimate propensity score p using the second training sample
+                xpi_train_2 = xpi[train_inds_2, :]
+                d_train_2 = d[train_inds_2]
+                xpi_test = xpi[test_inds, :]
+
+                ml_p_d1_prelim = clone(self._learner['ml_p_d1'])
+                ml_p_d1_prelim.fit(xpi_train_2, d_train_2)
+                
+                p_hat_d1['preds'] = _predict_zero_one_propensity(ml_p_d1_prelim, xpi_test)
+                p_hat_d1['targets'] = d[test_inds]
+
+                # nuisance mu
+                dxpi = np.column_stack((dx, pi_hat['preds']))
+                dxpi_s1_train_2 = dxpi[np.intersect1d(np.where(s == 1)[0], train_inds_2), :]
+                d_s1_train_2 = d[np.intersect1d(np.where(s == 1)[0], train_inds_2)]
+                dxpi_test = dxpi[test_inds, :]
+
+                xpi_s1_train_2 = xpi[np.intersect1d(np.where(s == 1)[0], train_inds_2), :]
+
+                ml_mu_d1_prelim = clone(self._learner['ml_mu_d1'])
+                ml_mu_d1_prelim.fit(xpi_s1_train_2, d_s1_train_2)
+
+                mu_hat_d1['preds'] = ml_mu_d1_prelim.predict(xpi_test)
+                mu_hat_d1['targets'] = y[test_inds]
+
+                dtreat.append((d == self._treatment)[test_inds])
+                s_1.append(s[test_inds])
+                y_1.append(y[test_inds])
+
+                mu_d1['preds'].append(mu_hat_d1['preds'])
+                pi_d1['preds'].append(pi_hat_d1['preds'])
+                p_d1['preds'].append(p_hat_d1['preds'])
+                mu_d1['targets'].append(mu_hat_d1['targets'])
+                pi_d1['targets'].append(pi_hat_d1['targets'])
+                p_d1['targets'].append(p_hat_d1['targets'])
             
-            mu_hat_treat['preds'] = mu_hat_treat['preds'][mask_treat]
-            mu_hat_treat['targets'] = mu_hat_treat['targets'][mask_treat]
-            mu_hat_control['preds'] = mu_hat_control['preds'][mask_control]
-            mu_hat_control['targets'] = mu_hat_control['targets'][mask_control]
+            mu_hat_d1['preds'] = np.hstack(mu_d1['preds'])
+            pi_hat_d1['preds'] = np.hstack(pi_d1['preds'])
+            p_hat_d1['preds'] = np.hstack(p_d1['preds'])
+            mu_hat_d1['targets'] = np.hstack(mu_d1['targets'])
+            pi_hat_d1['targets'] = np.hstack(pi_d1['targets'])
+            p_hat_d1['targets'] = np.hstack(p_d1['targets'])
+            s_1 = np.hstack(s_1)
+            y_1 = np.hstack(y_1)
+            dtreat = np.hstack(dtreat)             
+            
+            #### CONTROL
+            for i_fold in range(self.n_folds):
+                train_inds = smpls[i_fold][0]
+                test_inds = smpls[i_fold][1]
 
-            pi_hat_treat['preds'] = pi_hat_treat['preds'][mask_treat]
-            pi_hat_treat['targets'] = pi_hat_treat['targets'][mask_treat]
-            pi_hat_control['preds'] = pi_hat_control['preds'][mask_control]
-            pi_hat_control['targets'] = pi_hat_control['targets'][mask_control]
+                train_inds_1, train_inds_2 = train_test_split(
+                    train_inds, test_size=0.5, random_state=42, stratify=s[train_inds]
+                )
 
-            p_hat_treat['preds'] = p_hat_treat['preds'][mask_treat]
-            p_hat_treat['targets'] = p_hat_treat['targets'][mask_treat]
-            p_hat_control['preds'] = p_hat_control['preds'][mask_control]
-            p_hat_control['targets'] = p_hat_control['targets'][mask_control]
+                s_train_1 = s[train_inds_1]
+                dx_train_1 = dx[train_inds_1]
 
-        dtreat = d == self._treatment
-        dcontrol = d == self._control
+                ml_pi_prelim = clone(self._learner['ml_pi_d0'])
+                ml_pi_prelim.fit(dx_train_1, s_train_1)
+                pi_hat['preds'] = _predict_zero_one_propensity(ml_pi_prelim, dx)
+                pi_hat['targets'] = s
+
+                pi_hat_d0['preds'] = pi_hat['preds'][test_inds]
+                pi_hat_d0['targets'] = s[test_inds]
+
+                xpi = np.column_stack((x, pi_hat['preds']))
+                xpi_train_2 = xpi[train_inds_2, :]
+                d_train_2 = d[train_inds_2]
+                xpi_test = xpi[test_inds, :]
+
+                ml_p_d0_prelim = clone(self._learner['ml_p_d0'])
+                ml_p_d0_prelim.fit(xpi_train_2, d_train_2)
+                
+                p_hat_d0['preds'] = _predict_zero_one_propensity(ml_p_d0_prelim, xpi_test)
+                p_hat_d0['preds'] = 1 - p_hat_d0['preds'] #TODO: should this be here?
+                p_hat_d0['targets'] = d[test_inds]
+
+                dxpi = np.column_stack((dx, pi_hat['preds']))
+                dxpi_s1_train_2 = dxpi[np.intersect1d(np.where(s == 1)[0], train_inds_2), :]
+                d_s1_train_2 = d[np.intersect1d(np.where(s == 1)[0], train_inds_2)]
+                dxpi_test = dxpi[test_inds, :]
+
+                xpi_s1_train_2 = xpi[np.intersect1d(np.where(s == 1)[0], train_inds_2), :]
+
+                ml_mu_d0_prelim = clone(self._learner['ml_mu_d0'])
+                ml_mu_d0_prelim.fit(xpi_s1_train_2, d_s1_train_2)
+
+                mu_hat_d0['preds'] = ml_mu_d0_prelim.predict(xpi_test)
+                mu_hat_d0['targets'] = y[test_inds]
+                
+            
+                dcontrol.append((d == self._control)[test_inds])
+                s_0.append(s[test_inds])
+                y_0.append(y[test_inds])
+
+                mu_d0['preds'].append(mu_hat_d0['preds'])
+                pi_d0['preds'].append(pi_hat_d0['preds'])
+                p_d0['preds'].append(p_hat_d0['preds'])
+                mu_d0['targets'].append(mu_hat_d0['targets'])
+                pi_d0['targets'].append(pi_hat_d0['targets'])
+                p_d0['targets'].append(p_hat_d0['targets'])
+            
+            mu_hat_d0['preds'] = np.hstack(mu_d0['preds'])
+            pi_hat_d0['preds'] = np.hstack(pi_d0['preds'])
+            p_hat_d0['preds'] = np.hstack(p_d0['preds'])
+            mu_hat_d0['targets'] = np.hstack(mu_d0['targets'])
+            pi_hat_d0['targets'] = np.hstack(pi_d0['targets'])
+            p_hat_d0['targets'] = np.hstack(p_d0['targets'])
+
+            pi_hat_d1['targets'] = pi_hat_d1['targets'].astype(float)
+            pi_hat_d1['targets'][d != self._treatment] = np.nan
+            mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
+            mu_hat_d1['targets'][d != self._treatment] = np.nan
+            p_hat_d1['targets'] = p_hat_d1['targets'].astype(float)
+            p_hat_d1['targets'][d != self._treatment] = np.nan
+
+            pi_hat_d0['targets'] = pi_hat_d0['targets'].astype(float)
+            pi_hat_d0['targets'][d != self._control] = np.nan
+            mu_hat_d0['targets'] = mu_hat_d0['targets'].astype(float)
+            mu_hat_d0['targets'][d != self._control] = np.nan
+            p_hat_d0['targets'] = p_hat_d0['targets'].astype(float)
+            p_hat_d0['targets'][d != self._control] = np.nan
+
+            s_0 = np.hstack(s_0)
+            y_0 = np.hstack(y_0)
+            dcontrol = np.hstack(dcontrol)
         
-        psi_a, psi_b = self._score_elements(dtreat, dcontrol, mu_hat_treat['preds'],
-                                            mu_hat_control['preds'], pi_hat_treat['preds'],
-                                            pi_hat_control['preds'],
-                                            p_hat_treat['preds'], p_hat_control['preds'], s, y) 
+        else:  # missing at random (MAR)
+            pi_hat_d1 = _dml_cv_predict(self._learner['ml_pi_d1'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
+                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi_d1'],
+                                return_models=return_models)
+            pi_hat_d1['targets'] = pi_hat_d1['targets'].astype(float)
+            pi_hat_d1['targets'][d != self._treatment] = np.nan
+            _check_finite_predictions(pi_hat_d1['preds'], self._learner['ml_pi_d1'], 'ml_pi_d1', smpls)
+
+
+            pi_hat_d0 = _dml_cv_predict(self._learner['ml_pi_d0'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi_d0'],
+                                    return_models=return_models)
+            pi_hat_d0['targets'] = pi_hat_d0['targets'].astype(float)
+            pi_hat_d0['targets'][d != self._control] = np.nan
+            _check_finite_predictions(pi_hat_d0['preds'], self._learner['ml_pi_d0'], 'ml_pi_d0', smpls)
+            _check_is_propensity(pi_hat_d1['preds'], self._learner['ml_pi_d1'], 'ml_pi_d1', smpls, eps=1e-12)
+            _check_is_propensity(pi_hat_d0['preds'], self._learner['ml_pi_d0'], 'ml_pi_d0', smpls, eps=1e-12)
+
+            # propensity score p
+            p_hat_d1 = _dml_cv_predict(self._learner['ml_p_d1'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p_d1'],
+                                    return_models=return_models)
+            p_hat_d1['targets'] = p_hat_d1['targets'].astype(float)
+            p_hat_d1['targets'][d != self._treatment] = np.nan
+            _check_finite_predictions(p_hat_d1['preds'], self._learner['ml_p_d1'], 'ml_p_d1', smpls)
+            
+
+            p_hat_d0 = _dml_cv_predict(self._learner['ml_p_d0'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p_d0'],
+                                    return_models=return_models)
+            p_hat_d0['preds'] = 1 - p_hat_d0['preds']
+            p_hat_d0['targets'][d != self._control] = np.nan
+            _check_finite_predictions(p_hat_d0['preds'], self._learner['ml_p_d0'], 'ml_p_d0', smpls)
+            _check_is_propensity(p_hat_d1['preds'], self._learner['ml_p_d1'], 'ml_p_d1', smpls, eps=1e-12)
+            _check_is_propensity(p_hat_d0['preds'], self._learner['ml_p_d0'], 'ml_p_d0', smpls, eps=1e-12)
+
+            # nuisance mu
+            mu_hat_d1 = _dml_cv_predict(self._learner['ml_mu_d1'], x, y, smpls=smpls_s1, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu_d1'],
+                                    return_models=return_models)
+            mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
+            mu_hat_d1['targets'][d != self._treatment] = np.nan
+            _check_finite_predictions(mu_hat_d1['preds'], self._learner['ml_mu_d1'], 'ml_mu_d1', smpls)
+
+            mu_hat_d0 = _dml_cv_predict(self._learner['ml_mu_d0'], x, y, smpls=smpls_s1, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu_d0'],
+                                    return_models=return_models)
+            mu_hat_d0['targets'] = mu_hat_d0['targets'].astype(float)
+            mu_hat_d0['targets'][d != self._control] = np.nan
+            _check_finite_predictions(mu_hat_d0['preds'], self._learner['ml_mu_d0'], 'ml_mu_d0', smpls)
+
+            # treatment indicator
+            dtreat = d == self._treatment
+            dcontrol = d == self._control
+
+            s_0 = s
+            s_1 = s
+            y_0 = y
+            y_1 = y
+    
+            ## Trimming - done differently in Bia, Huber and Laffers than in DoubleML - dropping observations
+            if not self._selection: #TODO: move outside the MAR assumption AND CHECK IF IT IS REALLY CORRECT, DIMENSIONS SHOULD NOT ADD UP!
+                mask_d1 = np.multiply(pi_hat_d1['preds'], p_hat_d1['preds']) >= self._trimming_threshold
+                mask_d0 = np.multiply(pi_hat_d0['preds'], p_hat_d0['preds']) >= self._trimming_threshold
+                
+                mu_hat_d1['preds'] = mu_hat_d1['preds'][mask_d1]
+                mu_hat_d1['targets'] = mu_hat_d1['targets'][mask_d1]
+                mu_hat_d0['preds'] = mu_hat_d0['preds'][mask_d0]
+                mu_hat_d0['targets'] = mu_hat_d0['targets'][mask_d0]
+
+                pi_hat_d1['preds'] = pi_hat_d1['preds'][mask_d1]
+                pi_hat_d1['targets'] = pi_hat_d1['targets'][mask_d1]
+                pi_hat_d0['preds'] = pi_hat_d0['preds'][mask_d0]
+                pi_hat_d0['targets'] = pi_hat_d0['targets'][mask_d0]
+
+                p_hat_d1['preds'] = p_hat_d1['preds'][mask_d1]
+                p_hat_d1['targets'] = p_hat_d1['targets'][mask_d1]
+                p_hat_d0['preds'] = p_hat_d0['preds'][mask_d0]
+                p_hat_d0['targets'] = p_hat_d0['targets'][mask_d0]
+
+                s_0 = s_0[mask_d0]
+                s_1 = s_1[mask_d1]
+
+                y_0 = y_0[mask_d0]
+                y_1 = y_1[mask_d1] ##TODO: have to change, if some observations are dropped, it will not work
+        
+        psi_a, psi_b = self._score_elements(dtreat, dcontrol, mu_hat_d1['preds'],
+                                            mu_hat_d0['preds'], pi_hat_d1['preds'],
+                                            pi_hat_d0['preds'],
+                                            p_hat_d1['preds'], p_hat_d0['preds'], 
+                                            s_0, s_1, y_0, y_1) 
         
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
         
-        preds = {'predictions': {'ml_mu_d0': mu_hat_control['preds'],
-                                 'ml_mu_d1': mu_hat_treat['preds'], 
-                                 'ml_pi_d0': pi_hat_control['preds'],
-                                 'ml_pi_d1': pi_hat_treat['preds'],
-                                 'ml_p_d0': p_hat_control['preds'],
-                                 'ml_p_d1': p_hat_treat['preds']},
-                'targets': {'ml_mu_d0': mu_hat_control['targets'],
-                            'ml_mu_d1': mu_hat_treat['targets'],
-                            'ml_pi_d0': pi_hat_control['targets'],
-                            'ml_pi_d1': pi_hat_treat['targets'],
-                            'ml_p_d0': p_hat_control['targets'],
-                            'ml_p_d1': p_hat_treat['targets']},
-                'models': {'ml_mu_d0': mu_hat_control['models'],
-                            'ml_mu_d1': mu_hat_treat['models'],
-                            'ml_pi_d0': pi_hat_control['models'],
-                            'ml_pi_d1': pi_hat_treat['models'],
-                            'ml_p_d0': p_hat_control['models'],
-                            'ml_p_d0': p_hat_treat['models']}
+        preds = {'predictions': {'ml_mu_d0': mu_hat_d0['preds'],
+                                 'ml_mu_d1': mu_hat_d1['preds'], 
+                                 'ml_pi_d0': pi_hat_d0['preds'],
+                                 'ml_pi_d1': pi_hat_d1['preds'],
+                                 'ml_p_d0': p_hat_d0['preds'],
+                                 'ml_p_d1': p_hat_d1['preds']},
+                'targets': {'ml_mu_d0': mu_hat_d0['targets'],
+                            'ml_mu_d1': mu_hat_d1['targets'],
+                            'ml_pi_d0': pi_hat_d0['targets'],
+                            'ml_pi_d1': pi_hat_d1['targets'],
+                            'ml_p_d0': p_hat_d0['targets'],
+                            'ml_p_d1': p_hat_d1['targets']},
+                'models': {'ml_mu_d0': mu_hat_d0['models'],
+                            'ml_mu_d1': mu_hat_d1['models'],
+                            'ml_pi_d0': pi_hat_d0['models'],
+                            'ml_pi_d1': pi_hat_d1['models'],
+                            'ml_p_d0': p_hat_d0['models'],
+                            'ml_p_d0': p_hat_d1['models']}
                 }
 
         return psi_elements, preds
     
 
-    def _score_elements(self, dtreat, dcontrol, mu_treat, mu_control, 
-                        pi_treat, pi_control, p_treat, p_control, s, y):
+    ## TODO : DIMENSTIONS DO NOT ADD UP FOR SUBSAMPLES
+    def _score_elements(self, dtreat, dcontrol, mu_d1, mu_d0, 
+                        pi_d1, pi_d0, p_d1, p_d0, s_0, s_1, y_0, y_1):
         # psi_a
         psi_a = -1
 
         # psi_b
-        psi_b1 = (dtreat * s * (y - mu_treat)) / (p_treat * pi_treat) + mu_treat
-        psi_b0 = (dcontrol * s * (y - mu_control)) / (p_control * pi_control) + mu_control
+        psi_b1 = (dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1) + mu_d1
+        psi_b0 = (dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0) + mu_d0
 
         psi_b = psi_b1 - psi_b0
 
@@ -396,9 +609,9 @@ class DoubleMLSS(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
         s = self._dml_data.t  ## again, DoubleML does not have a specified column for selection, using t instead
 
-        mu_hat_treat = preds['predictions']['ml_mu_d1']
-        mu_hat_control = preds['predictions']['ml_mu_d0']
-        pi_hat_treat = preds['predictions']['ml_pi_d1']
-        pi_hat_control = preds['predictions']['ml_pi_d0']
-        p_hat_treat = preds['predictions']['ml_p_d1']
-        p_hat_control = preds['predictions']['ml_p_d0']
+        mu_hat_d1 = preds['predictions']['ml_mu_d1']
+        mu_hat_d0 = preds['predictions']['ml_mu_d0']
+        pi_hat_d1 = preds['predictions']['ml_pi_d1']
+        pi_hat_d0 = preds['predictions']['ml_pi_d0']
+        p_hat_d1 = preds['predictions']['ml_p_d1']
+        p_hat_d0 = preds['predictions']['ml_p_d0']
