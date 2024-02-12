@@ -700,6 +700,8 @@ def test_doubleml_exception_bootstrap():
 def test_doubleml_exception_confint():
     dml_plr_confint = DoubleMLPLR(dml_data, ml_l, ml_m)
     dml_qte_confint = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
+    dml_plr_confint.fit()
+    dml_qte_confint.fit()
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
@@ -718,18 +720,14 @@ def test_doubleml_exception_confint():
     with pytest.raises(ValueError, match=msg):
         dml_qte_confint.confint(level=0.)
 
+    dml_plr_confint_not_fitted = DoubleMLPLR(dml_data, ml_l, ml_m)
+    dml_qte_confint_not_fitted = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
     msg = r'Apply fit\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint()
+        dml_plr_confint_not_fitted.confint()
     with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint()
-    msg = r'Apply fit\(\) & bootstrap\(\) before confint\(joint=True\).'
-    with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint(joint=True)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(joint=True)
-    dml_plr_confint.fit()  # error message should still appear till bootstrap was applied as well
-    dml_qte_confint.fit()
+        dml_qte_confint_not_fitted.confint()
+    msg = r'Apply bootstrap\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(joint=True)
     with pytest.raises(ValueError, match=msg):

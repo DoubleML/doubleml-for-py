@@ -588,34 +588,12 @@ class DoubleML(ABC):
             A data frame with the confidence interval(s).
         """
 
-        if not isinstance(joint, bool):
-            raise TypeError('joint must be True or False. '
-                            f'Got {str(joint)}.')
+        if self.framework is None:
+            raise ValueError('Apply fit() before confint().')
 
-        if not isinstance(level, float):
-            raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
-        if (level <= 0) | (level >= 1):
-            raise ValueError('The confidence level must be in (0,1). '
-                             f'{str(level)} was passed.')
+        df_ci = self.framework.confint(joint=joint, level=level)
+        df_ci.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
-        a = (1 - level)
-        ab = np.array([a / 2, 1. - a / 2])
-        if joint:
-            if np.isnan(self.boot_t_stat).all():
-                raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
-            sim = np.amax(np.abs(self.boot_t_stat), 0)
-            hatc = np.quantile(sim, 1 - a)
-            ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
-        else:
-            if np.isnan(self.coef).all():
-                raise ValueError('Apply fit() before confint().')
-            fac = norm.ppf(ab)
-            ci = np.vstack((self.coef + self.se * fac[0], self.coef + self.se * fac[1])).T
-
-        df_ci = pd.DataFrame(ci,
-                             columns=['{:.1f} %'.format(i * 100) for i in ab],
-                             index=self._dml_data.d_cols)
         return df_ci
 
     def p_adjust(self, method='romano-wolf'):
