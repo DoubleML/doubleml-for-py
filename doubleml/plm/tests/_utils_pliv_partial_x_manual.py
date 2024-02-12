@@ -120,21 +120,18 @@ def pliv_partial_x_orth(u_hat, w_hat, r_hat_tilde, d, score):
 def boot_pliv_partial_x(y, d, z, thetas, ses, all_l_hat, all_m_hat, all_r_hat,
                         all_smpls, score, bootstrap, n_rep_boot,
                         n_rep=1):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         n_obs = len(y)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_pliv_partial_x_single_split(
+        boot_t_stat = boot_pliv_partial_x_single_split(
             thetas[i_rep], y, d, z, all_l_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_smpls[i_rep],
             score, ses[i_rep], weights, n_rep_boot)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_pliv_partial_x_single_split(theta, y, d, z, l_hat, r_hat, r_hat_tilde,
@@ -146,6 +143,6 @@ def boot_pliv_partial_x_single_split(theta, y, d, z, l_hat, r_hat, r_hat_tilde,
 
     psi = np.multiply(u_hat - w_hat*theta, r_hat_tilde)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat

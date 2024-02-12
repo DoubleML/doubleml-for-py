@@ -108,19 +108,16 @@ def dml_plr_fixture(generate_data1, learner, score):
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
-                                           all_smpls, score, bootstrap, n_rep_boot)
+        boot_t_stat = boot_plr(y, d, res_manual['thetas'], res_manual['ses'],
+                               res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
+                               all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         np.random.seed(3141)
         dml_plr_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_coef
         res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_t_stat
 
     # sensitivity tests
@@ -159,12 +156,6 @@ def test_dml_plr_se(dml_plr_fixture):
 @pytest.mark.ci
 def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
-        assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
-                           dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
-        assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
-                           dml_plr_fixture['boot_coef' + bootstrap + '_ext'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
                            dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
@@ -276,15 +267,13 @@ def dml_plr_ols_manual_fixture(generate_data1, score):
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr(y, d, [res_manual], [se_manual],
-                                           [l_hat], [m_hat], [g_hat],
-                                           [smpls], score, bootstrap, n_rep_boot)
+        boot_t_stat = boot_plr(y, d, [res_manual], [se_manual],
+                               [l_hat], [m_hat], [g_hat],
+                               [smpls], score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -307,9 +296,6 @@ def test_dml_plr_ols_manual_se(dml_plr_ols_manual_fixture):
 @pytest.mark.ci
 def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
     for bootstrap in dml_plr_ols_manual_fixture['boot_methods']:
-        assert np.allclose(dml_plr_ols_manual_fixture['boot_coef' + bootstrap],
-                           dml_plr_ols_manual_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap],
                            dml_plr_ols_manual_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

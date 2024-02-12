@@ -149,7 +149,6 @@ def pliv_orth(y_minus_l_hat, z_minus_m_hat, d_minus_r_hat, y_minus_g_hat, d, sco
 def boot_pliv(y, d, z, thetas, ses, all_l_hat, all_m_hat, all_r_hat, all_g_hat,
               all_smpls, score, bootstrap, n_rep_boot,
               n_rep=1, apply_cross_fitting=True):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
@@ -159,16 +158,14 @@ def boot_pliv(y, d, z, thetas, ses, all_l_hat, all_m_hat, all_r_hat, all_g_hat,
             test_index = smpls[0][1]
             n_obs = len(test_index)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_pliv_single_split(
+        boot_t_stat = boot_pliv_single_split(
             thetas[i_rep], y, d, z, all_l_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_g_hat[i_rep], smpls,
             score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_pliv_single_split(theta, y, d, z, l_hat, m_hat, r_hat, g_hat,
@@ -196,6 +193,6 @@ def boot_pliv_single_split(theta, y, d, z, l_hat, m_hat, r_hat, g_hat,
         assert score == 'IV-type'
         psi = np.multiply(y_minus_g_hat - d*theta, z_minus_m_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
