@@ -50,7 +50,9 @@ class DoubleMLFramework():
         # check if all sizes match
         _check_framework_shapes(self)
         # initialize bootstrap distribution
-        self._bootstrap_distribution = None
+        self._boot_t_stat = None
+        self._boot_method = None
+        self._n_rep_boot = None
 
     @property
     def n_thetas(self):
@@ -145,6 +147,27 @@ class DoubleMLFramework():
         Variance scaling factors (shape (``n_thetas``,)).
         """
         return self._var_scaling_factors
+
+    @property
+    def n_rep_boot(self):
+        """
+        The number of bootstrap replications.
+        """
+        return self._n_rep_boot
+
+    @property
+    def boot_method(self):
+        """
+        The method to construct the bootstrap replications.
+        """
+        return self._boot_method
+
+    @property
+    def boot_t_stat(self):
+        """
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`bootstrap`.
+        """
+        return self._boot_t_stat
 
     def __add__(self, other):
 
@@ -295,10 +318,10 @@ class DoubleMLFramework():
         alpha = 1 - level
         percentages = np.array([alpha / 2, 1. - alpha / 2])
         if joint:
-            if self._bootstrap_distribution is None:
+            if self._boot_t_stat is None:
                 raise ValueError('Apply bootstrap() before confint().')
 
-            max_abs_t_value_distribution = np.amax(np.abs(self._bootstrap_distribution), axis=1)
+            max_abs_t_value_distribution = np.amax(np.abs(self._boot_t_stat), axis=1)
             critical_values = np.quantile(
                 a=max_abs_t_value_distribution,
                 q=level,
@@ -338,13 +361,14 @@ class DoubleMLFramework():
         if self._is_cluster_data:
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
+        self._n_rep_boot = n_rep_boot
         # initialize bootstrap distribution array
-        self._bootstrap_distribution = np.full((n_rep_boot, self.n_thetas, self._n_rep), np.nan)
+        self._boot_t_stat = np.full((n_rep_boot, self.n_thetas, self._n_rep), np.nan)
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses
         for i_rep in range(self.n_rep):
             weights = _draw_weights(method, n_rep_boot, self._n_obs)
             bootstraped_scaled_psi = np.matmul(weights, np.divide(self._scaled_psi[:, :, i_rep], var_scaling[:, i_rep]))
-            self._bootstrap_distribution[:, :, i_rep] = bootstraped_scaled_psi
+            self._boot_t_stat[:, :, i_rep] = bootstraped_scaled_psi
 
         return self
 
@@ -377,10 +401,10 @@ class DoubleMLFramework():
             p_vals_tmp = self.all_pvals[:, i_rep]
 
             if method.lower() in ['rw', 'romano-wolf']:
-                if self._bootstrap_distribution is None:
+                if self._boot_t_stat is None:
                     raise ValueError(f'Apply bootstrap() before p_adjust("{method}").')
 
-                bootstrap_t_stats = self._bootstrap_distribution[:, :, i_rep]
+                bootstrap_t_stats = self._boot_t_stat[:, :, i_rep]
 
                 p_init = np.full_like(p_vals_tmp, np.nan)
                 p_vals_corrected_tmp_sorted = np.full_like(p_vals_tmp, np.nan)
