@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
+from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
 from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
@@ -494,6 +495,30 @@ class DoubleML(ABC):
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
         return self
+
+    def construct_framework(self):
+        """
+        Construct a :class:`doubleml.DoubleMLFramework` object. Can be used to construct e.g. confidence intervals.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        doubleml_framework : doubleml.DoubleMLFramework
+        """
+        doubleml_dict = {
+            "thetas": self.coef,
+            "all_thetas": self.all_coef,
+            "ses": self.se,
+            "all_ses": self.all_se,
+            "var_scaling_factors": self._var_scaling_factors,
+            "scaled_psi": np.divide(self.psi, np.mean(self.psi_deriv, axis=0)),
+            "is_cluster_data": self._is_cluster_data
+        }
+
+        doubleml_framework = DoubleMLFramework(doubleml_dict)
+        return doubleml_framework
 
     def bootstrap(self, method='normal', n_rep_boot=500):
         """

@@ -165,7 +165,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
 
     dml_irm_obj = DoubleMLIRM(dml_data, ml_g, ml_m)
     dml_irm_obj.fit()
-    dml_framework_obj = DoubleMLFramework(dml_irm_obj)
+    dml_framework_obj = dml_irm_obj.construct_framework()
 
     ci = dml_framework_obj.confint(joint=False, level=0.95)
     dml_framework_obj.bootstrap(method='normal')
@@ -181,7 +181,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
     dml_data_2 = make_irm_data()
     dml_irm_obj_2 = DoubleMLIRM(dml_data_2, ml_g, ml_m)
     dml_irm_obj_2.fit()
-    dml_framework_obj_2 = DoubleMLFramework(dml_irm_obj_2)
+    dml_framework_obj_2 = dml_irm_obj_2.construct_framework()
 
     dml_framework_obj_sub_obj = dml_framework_obj - dml_framework_obj_2
     ci_sub_obj = dml_framework_obj_sub_obj.confint(joint=False, level=0.95)

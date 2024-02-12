@@ -4,7 +4,6 @@ import pandas as pd
 from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
-from .double_ml import DoubleML
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses
 from .utils._checks import _check_bootstrap, _check_framework_compatibility
 
@@ -14,52 +13,39 @@ class DoubleMLFramework():
 
     Parameters
     ----------
-   doubleml_obj : :class:`DoubleML` object or dict
-        The :class:`DoubleML` object providing the estimated parameters and normalized scores or a dict containing
-        the corresponding keys and values. Keys have to be 'thetas', 'ses', 'all_thetas', 'all_ses', 'var_scaling_factors' and
-         'scaled_psi'. Values have to be numpy arrays with the corresponding shapes.
+   doubleml_dict : :dict
+        A dictionary providing the estimated parameters and normalized scores. Keys have to be 'thetas', 'ses',
+         'all_thetas', 'all_ses', 'var_scaling_factors' and 'scaled_psi'.
+          Values have to be numpy arrays with the corresponding shapes.
 
     """
 
     def __init__(
             self,
-            doubleml_obj=None,
+            doubleml_dict=None,
     ):
         self._is_cluster_data = False
-        if isinstance(doubleml_obj, dict):
-            expected_keys = ['thetas', 'ses', 'all_thetas', 'all_ses', 'var_scaling_factors', 'scaled_psi']
-            if not all(key in doubleml_obj.keys() for key in expected_keys):
-                raise ValueError('The dict must contain the following keys: ' + ', '.join(expected_keys))
 
-            # set scores and parameters
-            self._n_thetas = doubleml_obj['scaled_psi'].shape[1]
-            self._n_rep = doubleml_obj['scaled_psi'].shape[2]
-            self._n_obs = doubleml_obj['scaled_psi'].shape[0]
+        # check input
+        assert isinstance(doubleml_dict, dict), "doubleml_dict must be a dictionary."
+        expected_keys = ['thetas', 'ses', 'all_thetas', 'all_ses', 'var_scaling_factors', 'scaled_psi']
+        if not all(key in doubleml_dict.keys() for key in expected_keys):
+            raise ValueError('The dict must contain the following keys: ' + ', '.join(expected_keys))
 
-            self._thetas = doubleml_obj['thetas']
-            self._ses = doubleml_obj['ses']
-            self._all_thetas = doubleml_obj['all_thetas']
-            self._all_ses = doubleml_obj['all_ses']
-            self._var_scaling_factors = doubleml_obj['var_scaling_factors']
-            self._scaled_psi = doubleml_obj['scaled_psi']
+        # set scores and parameters
+        self._n_thetas = doubleml_dict['scaled_psi'].shape[1]
+        self._n_rep = doubleml_dict['scaled_psi'].shape[2]
+        self._n_obs = doubleml_dict['scaled_psi'].shape[0]
 
-            if "is_cluster_data" in doubleml_obj.keys():
-                self._is_cluster_data = doubleml_obj['is_cluster_data']
-        else:
-            assert isinstance(doubleml_obj, DoubleML), "doubleml_obj must be of type DoubleML or dictionary."
-            # set scores and parameters according to doubleml_obj
-            self._n_thetas = doubleml_obj._dml_data.n_treat
-            self._n_rep = doubleml_obj.n_rep
-            self._n_obs = doubleml_obj._dml_data.n_obs
+        self._thetas = doubleml_dict['thetas']
+        self._ses = doubleml_dict['ses']
+        self._all_thetas = doubleml_dict['all_thetas']
+        self._all_ses = doubleml_dict['all_ses']
+        self._var_scaling_factors = doubleml_dict['var_scaling_factors']
+        self._scaled_psi = doubleml_dict['scaled_psi']
 
-            self._thetas = doubleml_obj.coef
-            self._ses = doubleml_obj.se
-            self._all_thetas = doubleml_obj.all_coef
-            self._all_ses = doubleml_obj.all_se
-            self._var_scaling_factors = doubleml_obj._var_scaling_factors
-            self._scaled_psi = np.divide(doubleml_obj.psi, np.mean(doubleml_obj.psi_deriv, axis=0))
-
-            self._is_cluster_data = doubleml_obj._is_cluster_data
+        if "is_cluster_data" in doubleml_dict.keys():
+            self._is_cluster_data = doubleml_dict['is_cluster_data']
 
         # check if all sizes match
         _check_framework_shapes(self)

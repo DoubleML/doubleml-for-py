@@ -60,7 +60,7 @@ def test_input_exceptions():
         test_dict['scaled_psi'] = np.ones(shape=(10, 2, 5, 3))
         DoubleMLFramework(test_dict)
 
-    msg = "doubleml_obj must be of type DoubleML or dictionary."
+    msg = "doubleml_dict must be a dictionary."
     with pytest.raises(AssertionError, match=msg):
         DoubleMLFramework(1.0)
 
