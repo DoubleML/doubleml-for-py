@@ -165,14 +165,22 @@ class DoubleML(ABC):
         """
         The number of bootstrap replications.
         """
-        return self._n_rep_boot
+        if self._framework is None:
+            n_rep_boot = None
+        else:
+            n_rep_boot = self._framework.n_rep_boot
+        return n_rep_boot
 
     @property
     def boot_method(self):
         """
         The method to construct the bootstrap replications.
         """
-        return self._boot_method
+        if self._framework is None:
+            method = None
+        else:
+            method = self._framework.method
+        return method
 
     @property
     def score(self):
@@ -387,7 +395,11 @@ class DoubleML(ABC):
         """
         Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
         """
-        return self._boot_t_stat
+        if self._framework is None:
+            boot_t_stat = None
+        else:
+            boot_t_stat = self._framework.boot_t_stat
+        return boot_t_stat
 
     @property
     def all_coef(self):
@@ -554,36 +566,10 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        if np.isnan(self.coef).all():
+        if self._framework is None:
             raise ValueError('Apply fit() before bootstrap().')
+        self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
-        if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
-            raise ValueError('Method must be "Bayes", "normal" or "wild". '
-                             f'Got {str(method)}.')
-
-        if not isinstance(n_rep_boot, int):
-            raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
-        if n_rep_boot < 1:
-            raise ValueError('The number of bootstrap replications must be positive. '
-                             f'{str(n_rep_boot)} was passed.')
-        if self._is_cluster_data:
-            raise NotImplementedError('bootstrap not yet implemented with clustering.')
-
-        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
-
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-            weights = _draw_weights(method, n_rep_boot, n_obs=self._dml_data.n_obs)
-
-            for i_d in range(self._dml_data.n_treat):
-                self._i_treat = i_d
-                i_start = self._i_rep * self.n_rep_boot
-                i_end = (self._i_rep + 1) * self.n_rep_boot
-                self._boot_t_stat[self._i_treat, i_start:i_end] =\
-                    self._compute_bootstrap(weights)
-
-        self._boot_method = method
         return self
 
     def confint(self, joint=False, level=0.95):
