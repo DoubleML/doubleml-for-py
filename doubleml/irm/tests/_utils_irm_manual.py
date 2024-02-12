@@ -174,7 +174,6 @@ def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
 def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
              all_smpls, score, bootstrap, n_rep_boot,
              n_rep=1, apply_cross_fitting=True, normalize_ipw=True):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
@@ -184,17 +183,15 @@ def boot_irm(y, d, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat, all_p_hat,
             test_index = smpls[0][1]
             n_obs = len(test_index)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_irm_single_split(
+        boot_t_stat = boot_irm_single_split(
             thetas[i_rep], y, d,
             all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], all_p_hat[i_rep], smpls,
             score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting, normalize_ipw)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list,
@@ -233,9 +230,9 @@ def boot_irm_single_split(theta, y, d, g_hat0_list, g_hat1_list, m_hat_list, p_h
                         np.multiply(p_hat, (1.-m_hat_adj))) \
             - theta * np.divide(d, p_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):

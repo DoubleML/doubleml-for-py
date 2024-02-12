@@ -66,15 +66,13 @@ def dml_pliv_partial_z_fixture(generate_data_pliv_partialZ, learner, score):
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv_partial_z(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                                      res_manual['all_r_hat'],
-                                                      all_smpls, score, bootstrap, n_rep_boot)
+        boot_t_stat = boot_pliv_partial_z(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                          res_manual['all_r_hat'],
+                                          all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_pliv_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -94,9 +92,6 @@ def test_dml_pliv_se(dml_pliv_partial_z_fixture):
 
 def test_dml_pliv_boot(dml_pliv_partial_z_fixture):
     for bootstrap in dml_pliv_partial_z_fixture['boot_methods']:
-        assert np.allclose(dml_pliv_partial_z_fixture['boot_coef' + bootstrap],
-                           dml_pliv_partial_z_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_pliv_partial_z_fixture['boot_t_stat' + bootstrap],
                            dml_pliv_partial_z_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

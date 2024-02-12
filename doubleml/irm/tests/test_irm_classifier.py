@@ -83,17 +83,15 @@ def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, normali
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_g_hat0'], res_manual['all_g_hat1'],
-                                           res_manual['all_m_hat'], res_manual['all_p_hat'],
-                                           all_smpls, score, bootstrap, n_rep_boot,
-                                           normalize_ipw=normalize_ipw)
+        boot_t_stat = boot_irm(y, d, res_manual['thetas'], res_manual['ses'],
+                               res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                               res_manual['all_m_hat'], res_manual['all_p_hat'],
+                               all_smpls, score, bootstrap, n_rep_boot,
+                               normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_irm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -116,9 +114,6 @@ def test_dml_irm_se(dml_irm_classifier_fixture):
 @pytest.mark.ci
 def test_dml_irm_boot(dml_irm_classifier_fixture):
     for bootstrap in dml_irm_classifier_fixture['boot_methods']:
-        assert np.allclose(dml_irm_classifier_fixture['boot_coef' + bootstrap],
-                           dml_irm_classifier_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_irm_classifier_fixture['boot_t_stat' + bootstrap],
                            dml_irm_classifier_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
