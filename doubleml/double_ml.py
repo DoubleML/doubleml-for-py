@@ -16,7 +16,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
-from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
+from .utils._estimation import _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
 from .utils._checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
     _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks, _check_external_predictions
 from .utils._plots import _sensitivity_contour_plot

@@ -92,7 +92,7 @@ def dml_did_fixture(generate_data_did, learner, score, in_sample_normalization, 
         np.random.seed(3141)
         dml_did_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_did_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
 
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_did_obj.sensitivity_elements
