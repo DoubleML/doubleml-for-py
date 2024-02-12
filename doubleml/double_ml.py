@@ -109,10 +109,6 @@ class DoubleML(ABC):
         self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
 
-        # also initialize bootstrap arrays with the default number of bootstrap replications
-        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
-        self._boot_method = None
-
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
         self._i_treat = None
@@ -1058,10 +1054,6 @@ class DoubleML(ABC):
 
         return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
 
-    def _initialize_boot_arrays(self, n_rep_boot):
-        boot_t_stat = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
-        return n_rep_boot, boot_t_stat
-
     def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                              for learner in self.params_names}
@@ -1378,12 +1370,6 @@ class DoubleML(ABC):
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
-
-    def _compute_bootstrap(self, weights):
-        J = np.mean(self.__psi_deriv)
-        boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
-
-        return boot_t_stat
 
     # Score estimation and elements
     @abstractmethod
