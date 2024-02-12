@@ -4,7 +4,7 @@ import numpy as np
 import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
-    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree
+    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree, DoubleMLFramework
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 
@@ -167,6 +167,8 @@ def test_property_types_and_shapes(dml_obj):
 
     assert isinstance(dml_obj.psi, np.ndarray)
     assert dml_obj.psi.shape == (n_obs, n_rep, n_treat, )
+
+    assert isinstance(dml_obj.framework, DoubleMLFramework)
 
     is_nonlinear = isinstance(dml_obj, (DoubleMLPQ, DoubleMLLPQ))
     if is_nonlinear:

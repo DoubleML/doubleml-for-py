@@ -46,6 +46,9 @@ class DoubleML(ABC):
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
+        # initialize framework which is set after the fit method is called
+        self._framework = None
+
         # initialize learners and parameters which are set model specific
         self._learner = None
         self._params = None
@@ -177,6 +180,13 @@ class DoubleML(ABC):
         The score function.
         """
         return self._score
+
+    @property
+    def framework(self):
+        """
+        The corresponding :class:`doubleml.DoubleMLFramework` object.
+        """
+        return self._framework
 
     @property
     def learner(self):
@@ -494,6 +504,9 @@ class DoubleML(ABC):
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
+        # construct framework for inference
+        self._framework = self.construct_framework()
+
         return self
 
     def construct_framework(self):
@@ -507,13 +520,17 @@ class DoubleML(ABC):
         -------
         doubleml_framework : doubleml.DoubleMLFramework
         """
+        # standardize the score function and reshape to (n_obs, n_coefs, n_rep)
+        scaled_psi = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
+        scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
+
         doubleml_dict = {
             "thetas": self.coef,
             "all_thetas": self.all_coef,
             "ses": self.se,
             "all_ses": self.all_se,
             "var_scaling_factors": self._var_scaling_factors,
-            "scaled_psi": np.divide(self.psi, np.mean(self.psi_deriv, axis=0)),
+            "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data
         }
 
