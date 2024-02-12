@@ -179,7 +179,7 @@ class DoubleML(ABC):
         if self._framework is None:
             method = None
         else:
-            method = self._framework.method
+            method = self._framework.boot_method
         return method
 
     @property

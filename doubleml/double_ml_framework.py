@@ -362,6 +362,7 @@ class DoubleMLFramework():
             raise NotImplementedError('bootstrap not yet implemented with clustering.')
 
         self._n_rep_boot = n_rep_boot
+        self._boot_method = method
         # initialize bootstrap distribution array
         self._boot_t_stat = np.full((n_rep_boot, self.n_thetas, self._n_rep), np.nan)
         var_scaling = self._var_scaling_factors.reshape(-1, 1) * self._all_ses

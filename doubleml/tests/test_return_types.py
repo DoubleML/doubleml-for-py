@@ -160,7 +160,7 @@ def test_property_types_and_shapes(dml_obj):
     assert dml_obj.all_se.shape == (n_treat, n_rep)
 
     assert isinstance(dml_obj.boot_t_stat, np.ndarray)
-    assert dml_obj.boot_t_stat.shape == (n_treat, (n_rep_boot * n_rep))
+    assert dml_obj.boot_t_stat.shape == (n_rep_boot, n_treat, n_rep)
 
     assert isinstance(dml_obj.coef, np.ndarray)
     assert dml_obj.coef.shape == (n_treat, )
