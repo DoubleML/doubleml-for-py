@@ -115,7 +115,7 @@ def dml_plr_fixture(generate_data1, learner, score, n_rep):
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, n_rep)
 
     return res_dict
 

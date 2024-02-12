@@ -50,6 +50,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         data = generate_data_toeplitz
     x_cols = data.columns[data.columns.str.startswith('X')].tolist()
     d_cols = data.columns[data.columns.str.startswith('d')].tolist()
+    n_coefs = len(d_cols)
 
     # Set machine learning methods for l, m & g
     ml_l = _clone(learner)
@@ -97,7 +98,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, n_coefs, n_rep)
 
     # sensitivity tests
     res_dict['sensitivity_elements'] = dml_plr_obj.sensitivity_elements
