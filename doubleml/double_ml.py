@@ -7,8 +7,6 @@ from sklearn.base import is_regressor, is_classifier
 
 from scipy.stats import norm
 
-from statsmodels.stats.multitest import multipletests
-
 from abc import ABC, abstractmethod
 from scipy.optimize import minimize_scalar
 
@@ -613,47 +611,12 @@ class DoubleML(ABC):
         p_val : pd.DataFrame
             A data frame with adjusted p-values.
         """
-        if np.isnan(self.coef).all():
+
+        if self.framework is None:
             raise ValueError('Apply fit() before p_adjust().')
 
-        if not isinstance(method, str):
-            raise TypeError('The p_adjust method must be of str type. '
-                            f'{str(method)} of type {str(type(method))} was passed.')
-
-        if method.lower() in ['rw', 'romano-wolf']:
-            if np.isnan(self.boot_t_stat).all():
-                raise ValueError(f'Apply fit() & bootstrap() before p_adjust("{method}").')
-
-            pinit = np.full_like(self.pval, np.nan)
-            p_val_corrected = np.full_like(self.pval, np.nan)
-
-            boot_t_stats = self.boot_t_stat
-            t_stat = self.t_stat
-            stepdown_ind = np.argsort(t_stat)[::-1]
-            ro = np.argsort(stepdown_ind)
-
-            for i_d in range(self._dml_data.n_treat):
-                if i_d == 0:
-                    sim = np.max(boot_t_stats, axis=0)
-                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
-                else:
-                    sim = np.max(np.delete(boot_t_stats, stepdown_ind[:i_d], axis=0),
-                                 axis=0)
-                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
-
-            for i_d in range(self._dml_data.n_treat):
-                if i_d == 0:
-                    p_val_corrected[i_d] = pinit[i_d]
-                else:
-                    p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d - 1])
-
-            p_val = p_val_corrected[ro]
-        else:
-            _, p_val, _, _ = multipletests(self.pval, method=method)
-
-        p_val = pd.DataFrame(np.vstack((self.coef, p_val)).T,
-                             columns=['coef', 'pval'],
-                             index=self._dml_data.d_cols)
+        p_val, _ = self.framework.p_adjust(method=method)
+        p_val.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
         return p_val
 

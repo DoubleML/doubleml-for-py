@@ -10,7 +10,6 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
@@ -721,7 +720,7 @@ def test_doubleml_exception_p_adjust():
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust()
     dml_plr_p_adjust.fit()
-    msg = r'Apply fit\(\) & bootstrap\(\) before p_adjust'
+    msg = r'Apply bootstrap\(\) before p_adjust\("romano-wolf"\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust(method='romano-wolf')
     dml_plr_p_adjust.bootstrap()
