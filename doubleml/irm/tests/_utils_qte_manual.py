@@ -90,7 +90,6 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
 
 def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot):
     n_quantiles = len(quantiles)
-    boot_qte = np.zeros((n_quantiles, n_rep_boot * n_rep))
     boot_t_stat = np.zeros((n_quantiles, n_rep_boot * n_rep))
     for i_rep in range(n_rep):
         n_obs = scaled_scores.shape[0]
@@ -99,11 +98,10 @@ def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_b
             i_start = i_rep * n_rep_boot
             i_end = (i_rep + 1) * n_rep_boot
 
-            boot_qte[i_quant, i_start:i_end] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / n_obs
             boot_t_stat[i_quant, i_start:i_end] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / \
                 (n_obs * ses[i_quant, i_rep])
 
-    return boot_qte, boot_t_stat
+    return boot_t_stat
 
 
 def confint_qte(coef, se, quantiles, boot_t_stat=None, joint=True, level=0.95):
