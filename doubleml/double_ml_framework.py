@@ -106,7 +106,7 @@ class DoubleMLFramework():
     @property
     def t_stats(self):
         """
-        t-statistics for the causal parameter(s) (shape (``n_thetas``, )).
+        t-statistics for the causal parameter(s) (shape (``n_thetas``,)).
         """
         return self._thetas / self._ses
 
@@ -120,7 +120,7 @@ class DoubleMLFramework():
     @property
     def pvals(self):
         """
-        p-values for the causal parameter(s) (shape (``n_thetas``, )).
+        p-values for the causal parameter(s) (shape (``n_thetas``,)).
         """
         # aggregate p-values according to Definition 4.2 https://arxiv.org/abs/1712.04802
         pvals = np.median(self.all_pvals, axis=1)
@@ -165,7 +165,8 @@ class DoubleMLFramework():
     @property
     def boot_t_stat(self):
         """
-        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`bootstrap`.
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`bootstrap`
+         (shape (``n_rep_boot``, ``n_thetas``, ``n_rep``)).
         """
         return self._boot_t_stat
 
