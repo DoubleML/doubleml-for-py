@@ -254,20 +254,12 @@ class DoubleMLQTE:
         """
         return self._all_coef
 
-    @coef.setter
-    def coef(self, value):
-        self._coef = value
-
     @property
     def se(self):
         """
         Standard errors for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._se
-
-    @se.setter
-    def se(self, value):
-        self._se = value
 
     @property
     def t_stat(self):
@@ -630,83 +622,47 @@ class DoubleMLQTE:
     def _initialize_models(self):
         modellist_0 = [None] * self.n_quantiles
         modellist_1 = [None] * self.n_quantiles
+        kwargs = {
+            'obj_dml_data': self._dml_data,
+            'ml_g': self._learner['ml_g'],
+            'ml_m': self._learner['ml_m'],
+            'n_folds': self.n_folds,
+            'n_rep': self.n_rep,
+            'trimming_rule': self.trimming_rule,
+            'trimming_threshold': self.trimming_threshold,
+            'normalize_ipw': self.normalize_ipw,
+            'draw_sample_splitting': False
+        }
         for i_quant in range(self.n_quantiles):
             self._i_quant = i_quant
+
             # initialize models for both potential quantiles
             if self.score == 'PQ':
-                model_0 = DoubleMLPQ(self._dml_data,
-                                     self._learner['ml_g'],
-                                     self._learner['ml_m'],
-                                     quantile=self._quantiles[i_quant],
+                model_0 = DoubleMLPQ(quantile=self._quantiles[i_quant],
                                      treatment=0,
-                                     n_folds=self.n_folds,
-                                     n_rep=self.n_rep,
-                                     trimming_rule=self.trimming_rule,
-                                     trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
-                                     normalize_ipw=self.normalize_ipw,
-                                     draw_sample_splitting=False)
-                model_1 = DoubleMLPQ(self._dml_data,
-                                     self._learner['ml_g'],
-                                     self._learner['ml_m'],
-                                     quantile=self._quantiles[i_quant],
+                                     **kwargs)
+                model_1 = DoubleMLPQ(quantile=self._quantiles[i_quant],
                                      treatment=1,
-                                     n_folds=self.n_folds,
-                                     n_rep=self.n_rep,
-                                     trimming_rule=self.trimming_rule,
-                                     trimming_threshold=self.trimming_threshold,
                                      kde=self.kde,
-                                     normalize_ipw=self.normalize_ipw,
-                                     draw_sample_splitting=False)
+                                     **kwargs)
             elif self.score == 'LPQ':
-                model_0 = DoubleMLLPQ(self._dml_data,
-                                      self._learner['ml_g'],
-                                      self._learner['ml_m'],
-                                      quantile=self._quantiles[i_quant],
+                model_0 = DoubleMLLPQ(quantile=self._quantiles[i_quant],
                                       treatment=0,
-                                      n_folds=self.n_folds,
-                                      n_rep=self.n_rep,
-                                      trimming_rule=self.trimming_rule,
-                                      trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
-                                      normalize_ipw=self.normalize_ipw,
-                                      draw_sample_splitting=False)
-                model_1 = DoubleMLLPQ(self._dml_data,
-                                      self._learner['ml_g'],
-                                      self._learner['ml_m'],
-                                      quantile=self._quantiles[i_quant],
+                                      **kwargs)
+                model_1 = DoubleMLLPQ(quantile=self._quantiles[i_quant],
                                       treatment=1,
-                                      n_folds=self.n_folds,
-                                      n_rep=self.n_rep,
-                                      trimming_rule=self.trimming_rule,
-                                      trimming_threshold=self.trimming_threshold,
                                       kde=self.kde,
-                                      normalize_ipw=self.normalize_ipw,
-                                      draw_sample_splitting=False)
+                                      **kwargs)
 
             elif self.score == 'CVaR':
-                model_0 = DoubleMLCVAR(self._dml_data,
-                                       self._learner['ml_g'],
-                                       self._learner['ml_m'],
-                                       quantile=self._quantiles[i_quant],
+                model_0 = DoubleMLCVAR(quantile=self._quantiles[i_quant],
                                        treatment=0,
-                                       n_folds=self.n_folds,
-                                       n_rep=self.n_rep,
-                                       trimming_rule=self.trimming_rule,
-                                       trimming_threshold=self.trimming_threshold,
-                                       normalize_ipw=self.normalize_ipw,
-                                       draw_sample_splitting=False)
-                model_1 = DoubleMLCVAR(self._dml_data,
-                                       self._learner['ml_g'],
-                                       self._learner['ml_m'],
-                                       quantile=self._quantiles[i_quant],
+                                       **kwargs)
+                model_1 = DoubleMLCVAR(quantile=self._quantiles[i_quant],
                                        treatment=1,
-                                       n_folds=self.n_folds,
-                                       n_rep=self.n_rep,
-                                       trimming_rule=self.trimming_rule,
-                                       trimming_threshold=self.trimming_threshold,
-                                       normalize_ipw=self.normalize_ipw,
-                                       draw_sample_splitting=False)
+                                       **kwargs)
 
             # synchronize the sample splitting
             model_0.set_sample_splitting(all_smpls=self.smpls)
