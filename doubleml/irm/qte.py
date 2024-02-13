@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 
 from sklearn.base import clone
 
@@ -12,7 +11,7 @@ from .lpq import DoubleMLLPQ
 from .cvar import DoubleMLCVAR
 from ..double_ml_framework import concat
 
-from ..utils._estimation import _draw_weights, _default_kde
+from ..utils._estimation import _default_kde
 from ..utils.resampling import DoubleMLResampling
 from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment
 
@@ -155,13 +154,6 @@ class DoubleMLQTE:
         # initialize all models
         self._modellist_0, self._modellist_1 = self._initialize_models()
 
-        # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi0, self._psi1, self._psi0_deriv, self._psi1_deriv, \
-            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
-
-        # also initialize bootstrap arrays with the default number of bootstrap replications
-        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
-
     def __str__(self):
         class_name = self.__class__.__name__
         header = f'================== {class_name} Object ==================\n'
@@ -276,36 +268,53 @@ class DoubleMLQTE:
     @property
     def coef(self):
         """
-        Estimates for the causal parameter(s) after calling :meth:`fit`.
+        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
         """
-        return self._coef
-
-    @coef.setter
-    def coef(self, value):
-        self._coef = value
+        if self._framework is None:
+            coef = None
+        else:
+            coef = self.framework.thetas
+        return coef
 
     @property
     def all_coef(self):
         """
-        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_quantiles``, ``n_rep``)).
         """
-        return self._all_coef
+        if self._framework is None:
+            all_coef = None
+        else:
+            all_coef = self.framework.all_thetas
+        return all_coef
 
     @property
     def se(self):
         """
-        Standard errors for the causal parameter(s) after calling :meth:`fit`.
+        Standard errors for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
         """
-        return self._se
+        if self._framework is None:
+            se = None
+        else:
+            se = self.framework.ses
+        return se
 
-    @se.setter
-    def se(self, value):
-        self._se = value
+    @property
+    def all_se(self):
+        """
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_quantiles``, ``n_rep``)).
+        """
+        if self._framework is None:
+            all_se = None
+        else:
+            all_se = self.framework.all_ses
+        return all_se
 
     @property
     def t_stat(self):
         """
-        t-statistics for the causal parameter(s) after calling :meth:`fit`.
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
         """
         t_stat = self.coef / self.se
         return t_stat
@@ -313,15 +322,15 @@ class DoubleMLQTE:
     @property
     def pval(self):
         """
-        p-values for the causal parameter(s) after calling :meth:`fit`.
+        p-values for the causal parameter(s) (shape (``n_quantiles``,)).
         """
-        pval = 2 * norm.cdf(-np.abs(self.t_stat))
-        return pval
+        return self.framework.pvals
 
     @property
     def boot_t_stat(self):
         """
-        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
+         (shape (``n_rep_boot``, ``n_quantiles``, ``n_rep``)).
         """
         if self._framework is None:
             boot_t_stat = None
@@ -361,30 +370,6 @@ class DoubleMLQTE:
             ci = self.confint()
             df_summary = df_summary.join(ci)
         return df_summary
-
-    # The private properties with __ always deliver the single treatment, single (cross-fitting) sample subselection.
-    # The slicing is based on the two properties self._i_quant, the index of the quantile, and
-    # self._i_rep, the index of the cross-fitting sample.
-
-    @property
-    def __psi0(self):
-        return self._psi0[:, self._i_rep, self._i_quant]
-
-    @property
-    def __psi0_deriv(self):
-        return self._psi0_deriv[:, self._i_rep, self._i_quant]
-
-    @property
-    def __psi1(self):
-        return self._psi1[:, self._i_rep, self._i_quant]
-
-    @property
-    def __psi1_deriv(self):
-        return self._psi1_deriv[:, self._i_rep, self._i_quant]
-
-    @property
-    def __all_se(self):
-        return self._all_se[self._i_quant, self._i_rep]
 
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
         """
@@ -436,26 +421,6 @@ class DoubleMLQTE:
             framework_list[self._i_quant] = self._modellist_1[self._i_quant].framework - \
                 self._modellist_0[self._i_quant].framework
 
-            # treatment Effects
-            self._all_coef[self._i_quant, :] = self.modellist_1[self._i_quant].all_coef - \
-                self.modellist_0[self._i_quant].all_coef
-
-            # save scores and derivatives
-            self._psi0[:, :, self._i_quant] = np.squeeze(self.modellist_0[i_quant].psi, 2)
-            self._psi1[:, :, self._i_quant] = np.squeeze(self.modellist_1[i_quant].psi, 2)
-
-            self._psi0_deriv[:, :, self._i_quant] = np.squeeze(self.modellist_0[i_quant].psi_deriv, 2)
-            self._psi1_deriv[:, :, self._i_quant] = np.squeeze(self.modellist_1[i_quant].psi_deriv, 2)
-
-            # Estimate the variance
-            for i_rep in range(self.n_rep):
-                self._i_rep = i_rep
-
-                self._all_se[self._i_quant, self._i_rep] = self._se_causal_pars()
-
-        # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self._agg_cross_fit()
-
         # aggregate all frameworks
         self._framework = concat(framework_list)
 
@@ -478,33 +443,10 @@ class DoubleMLQTE:
         -------
         self : object
         """
-        if np.isnan(self.coef).all():
+        if self._framework is None:
             raise ValueError('Apply fit() before bootstrap().')
+        self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
-        if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
-            raise ValueError('Method must be "Bayes", "normal" or "wild". '
-                             f'Got {str(method)}.')
-
-        if not isinstance(n_rep_boot, int):
-            raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
-        if n_rep_boot < 1:
-            raise ValueError('The number of bootstrap replications must be positive. '
-                             f'{str(n_rep_boot)} was passed.')
-
-        self._n_rep_boot, self._boot_coef, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
-
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-
-            n_obs = self._dml_data.n_obs
-            weights = _draw_weights(method, n_rep_boot, n_obs)
-            for i_quant in range(self.n_quantiles):
-                self._i_quant = i_quant
-                i_start = self._i_rep * self.n_rep_boot
-                i_end = (self._i_rep + 1) * self.n_rep_boot
-                self._boot_coef[self._i_quant, i_start:i_end], self._boot_t_stat[self._i_quant, i_start:i_end] =\
-                    self._compute_bootstrap(weights)
         return self
 
     def draw_sample_splitting(self):
@@ -526,15 +468,6 @@ class DoubleMLQTE:
 
         return self
 
-    def _compute_bootstrap(self, weights):
-        J0 = np.mean(self.__psi0_deriv)
-        J1 = np.mean(self.__psi1_deriv)
-        scaled_score = self.__psi1 / J1 - self.__psi0 / J0
-
-        boot_coef = np.matmul(weights, scaled_score) / self._dml_data.n_obs
-        boot_t_stat = np.matmul(weights, scaled_score) / (self._dml_data.n_obs * self.__all_se)
-        return boot_coef, boot_t_stat
-
     def confint(self, joint=False, level=0.95):
         """
         Confidence intervals for DoubleML models.
@@ -555,35 +488,39 @@ class DoubleMLQTE:
             A data frame with the confidence interval(s).
         """
 
-        if not isinstance(joint, bool):
-            raise TypeError('joint must be True or False. '
-                            f'Got {str(joint)}.')
+        if self.framework is None:
+            raise ValueError('Apply fit() before confint().')
 
-        if not isinstance(level, float):
-            raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
-        if (level <= 0) | (level >= 1):
-            raise ValueError('The confidence level must be in (0,1). '
-                             f'{str(level)} was passed.')
+        df_ci = self.framework.confint(joint=joint, level=level)
+        df_ci.set_index(pd.Index(self._quantiles), inplace=True)
 
-        a = (1 - level)
-        ab = np.array([a / 2, 1. - a / 2])
-        if joint:
-            if np.isnan(self.boot_coef).all():
-                raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
-            sim = np.amax(np.abs(self.boot_t_stat), 0)
-            hatc = np.quantile(sim, 1 - a)
-            ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
-        else:
-            if np.isnan(self.coef).all():
-                raise ValueError('Apply fit() before confint().')
-            fac = norm.ppf(ab)
-            ci = np.vstack((self.coef + self.se * fac[0], self.coef + self.se * fac[1])).T
-
-        df_ci = pd.DataFrame(ci,
-                             columns=['{:.1f} %'.format(i * 100) for i in ab],
-                             index=self._quantiles)
         return df_ci
+
+    def p_adjust(self, method='romano-wolf'):
+        """
+        Multiple testing adjustment for DoubleML models.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'romano-wolf''``, ``'bonferroni'``, ``'holm'``, etc) specifying the adjustment method.
+            In addition to ``'romano-wolf''``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
+
+        Returns
+        -------
+        p_val : pd.DataFrame
+            A data frame with adjusted p-values.
+        """
+
+        if self.framework is None:
+            raise ValueError('Apply fit() before p_adjust().')
+
+        p_val, _ = self.framework.p_adjust(method=method)
+        p_val.set_index(pd.Index(self._quantiles), inplace=True)
+
+        return p_val
 
     def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
 
@@ -594,58 +531,6 @@ class DoubleMLQTE:
         model_1.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
 
         return model_0, model_1
-
-    def _agg_cross_fit(self):
-        # aggregate parameters from the repeated cross-fitting
-        # don't use the getter (always for one treatment variable and one sample), but the private variable
-        self.coef = np.median(self._all_coef, 1)
-
-        # TODO: In the documentation of standard errors we need to cleary state what we return here, i.e.,
-        #  the asymptotic variance sigma_hat/N and not sigma_hat (which sometimes is also called the asympt var)!
-        # TODO: In the edge case of repeated no-cross-fitting, the test sets might have different size and therefore
-        #  it would note be valid to always use the same self._var_scaling_factor
-        xx = np.tile(self.coef.reshape(-1, 1), self.n_rep)
-        self.se = np.sqrt(np.divide(np.median(np.multiply(np.power(self._all_se, 2), self._var_scaling_factor) +
-                                              np.power(self._all_coef - xx, 2), 1), self._var_scaling_factor))
-
-    def _var_est(self):
-        """
-        Estimate the standard errors of the structural parameter
-        """
-        J0 = self._psi0_deriv[:, self._i_rep, self._i_quant].mean()
-        J1 = self._psi1_deriv[:, self._i_rep, self._i_quant].mean()
-        score0 = self._psi0[:, self._i_rep, self._i_quant]
-        score1 = self._psi1[:, self._i_rep, self._i_quant]
-        omega = score1 / J1 - score0 / J0
-
-        self._var_scaling_factor = self._dml_data.n_obs
-        sigma2_hat = 1 / self._var_scaling_factor * np.mean(np.power(omega, 2))
-
-        return sigma2_hat
-
-    def _se_causal_pars(self):
-        se = np.sqrt(self._var_est())
-        return se
-
-    def _initialize_arrays(self):
-        psi0 = np.full((self._dml_data.n_obs, self.n_rep, self.n_quantiles), np.nan)
-        psi0_deriv = np.full((self._dml_data.n_obs, self.n_rep, self.n_quantiles), np.nan)
-
-        psi1 = np.full((self._dml_data.n_obs, self.n_rep, self.n_quantiles), np.nan)
-        psi1_deriv = np.full((self._dml_data.n_obs, self.n_rep, self.n_quantiles), np.nan)
-
-        coef = np.full(self.n_quantiles, np.nan)
-        se = np.full(self.n_quantiles, np.nan)
-
-        all_coef = np.full((self.n_quantiles, self.n_rep), np.nan)
-        all_se = np.full((self.n_quantiles, self.n_rep), np.nan)
-
-        return psi0, psi1, psi0_deriv, psi1_deriv, coef, se, all_coef, all_se
-
-    def _initialize_boot_arrays(self, n_rep_boot):
-        boot_coef = np.full((self.n_quantiles, n_rep_boot * self.n_rep), np.nan)
-        boot_t_stat = np.full((self.n_quantiles, n_rep_boot * self.n_rep), np.nan)
-        return n_rep_boot, boot_coef, boot_t_stat
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
