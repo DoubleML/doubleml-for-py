@@ -208,7 +208,7 @@ class DoubleMLQTE:
     @property
     def score(self):
         """
-        Number of Quantiles.
+        The score function.
         """
         return self._score
 
