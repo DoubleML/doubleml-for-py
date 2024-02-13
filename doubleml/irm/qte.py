@@ -358,7 +358,7 @@ class DoubleMLQTE:
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         col_names = ['coef', 'std err', 't', 'P>|t|']
-        if np.isnan(self.coef).all():
+        if self.framework is None:
             df_summary = pd.DataFrame(columns=col_names)
         else:
             summary_stats = np.transpose(np.vstack(
