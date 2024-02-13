@@ -44,7 +44,7 @@ class DoubleML(ABC):
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
-        # initialize framework which is set after the fit method is called
+        # initialize framework which is constructed after the fit method is called
         self._framework = None
 
         # initialize learners and parameters which are set model specific

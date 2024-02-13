@@ -10,6 +10,7 @@ from ..double_ml_data import DoubleMLData, DoubleMLClusterData
 from .pq import DoubleMLPQ
 from .lpq import DoubleMLLPQ
 from .cvar import DoubleMLCVAR
+from ..double_ml_framework import concat
 
 from ..utils._estimation import _draw_weights, _default_kde
 from ..utils.resampling import DoubleMLResampling
@@ -130,6 +131,9 @@ class DoubleMLQTE:
             self._is_cluster_data = True
         self._check_data(self._dml_data)
 
+        # initialize framework which is constructed after the fit method is called
+        self._framework = None
+
         # initialize and check trimming
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
@@ -181,6 +185,28 @@ class DoubleMLQTE:
         return self._n_rep
 
     @property
+    def n_rep_boot(self):
+        """
+        The number of bootstrap replications.
+        """
+        if self._framework is None:
+            n_rep_boot = None
+        else:
+            n_rep_boot = self._framework.n_rep_boot
+        return n_rep_boot
+
+    @property
+    def boot_method(self):
+        """
+        The method to construct the bootstrap replications.
+        """
+        if self._framework is None:
+            method = None
+        else:
+            method = self._framework.boot_method
+        return method
+
+    @property
     def smpls(self):
         """
         The partition used for cross-fitting.
@@ -190,6 +216,13 @@ class DoubleMLQTE:
                        'External samples not implemented yet.')
             raise ValueError(err_msg)
         return self._smpls
+
+    @property
+    def framework(self):
+        """
+        The corresponding :class:`doubleml.DoubleMLFramework` object.
+        """
+        return self._framework
 
     @property
     def quantiles(self):
@@ -247,6 +280,10 @@ class DoubleMLQTE:
         """
         return self._coef
 
+    @coef.setter
+    def coef(self, value):
+        self._coef = value
+
     @property
     def all_coef(self):
         """
@@ -260,6 +297,10 @@ class DoubleMLQTE:
         Standard errors for the causal parameter(s) after calling :meth:`fit`.
         """
         return self._se
+
+    @se.setter
+    def se(self, value):
+        self._se = value
 
     @property
     def t_stat(self):
@@ -278,25 +319,15 @@ class DoubleMLQTE:
         return pval
 
     @property
-    def n_rep_boot(self):
-        """
-        The number of bootstrap replications.
-        """
-        return self._n_rep_boot
-
-    @property
-    def boot_coef(self):
-        """
-        Bootstrapped coefficients for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
-        """
-        return self._boot_coef
-
-    @property
     def boot_t_stat(self):
         """
         Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
         """
-        return self._boot_t_stat
+        if self._framework is None:
+            boot_t_stat = None
+        else:
+            boot_t_stat = self._framework.boot_t_stat
+        return boot_t_stat
 
     @property
     def modellist_0(self):
@@ -393,11 +424,17 @@ class DoubleMLQTE:
                                  for i_quant in range(self.n_quantiles))
 
         # combine the estimates and scores
+        framework_list = [None] * self.n_quantiles
+
         for i_quant in range(self.n_quantiles):
             self._i_quant = i_quant
             # save the parallel fitted models in the right list
             self._modellist_0[self._i_quant] = fitted_models[self._i_quant][0]
             self._modellist_1[self._i_quant] = fitted_models[self._i_quant][1]
+
+            # set up the framework
+            framework_list[self._i_quant] = self._modellist_1[self._i_quant].framework - \
+                self._modellist_0[self._i_quant].framework
 
             # treatment Effects
             self._all_coef[self._i_quant, :] = self.modellist_1[self._i_quant].all_coef - \
@@ -418,6 +455,9 @@ class DoubleMLQTE:
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self._agg_cross_fit()
+
+        # aggregate all frameworks
+        self._framework = concat(framework_list)
 
         return self
 
