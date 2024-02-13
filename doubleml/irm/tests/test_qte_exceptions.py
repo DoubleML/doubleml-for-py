@@ -133,3 +133,23 @@ def test_doubleml_exception_confint():
     dml_qte_confint.bootstrap()
     df_qte_ci = dml_qte_confint.confint(joint=True)
     assert isinstance(df_qte_ci, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_doubleml_exception_p_adjust():
+    dml_qte_p_adjust = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
+
+    msg = r'Apply fit\(\) before p_adjust\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_qte_p_adjust.p_adjust()
+    dml_qte_p_adjust.fit()
+    msg = r'Apply bootstrap\(\) before p_adjust\("romano-wolf"\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_qte_p_adjust.p_adjust(method='romano-wolf')
+    dml_qte_p_adjust.bootstrap()
+    p_val = dml_qte_p_adjust.p_adjust(method='romano-wolf')
+    assert isinstance(p_val, pd.DataFrame)
+
+    msg = "The p_adjust method must be of str type. 0.05 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_qte_p_adjust.p_adjust(method=0.05)
