@@ -319,7 +319,7 @@ class DoubleMLFramework():
         percentages = np.array([alpha / 2, 1. - alpha / 2])
         if joint:
             if self._boot_t_stat is None:
-                raise ValueError('Apply bootstrap() before confint().')
+                raise ValueError('Apply bootstrap() before confint(joint=True).')
 
             max_abs_t_value_distribution = np.amax(np.abs(self._boot_t_stat), axis=1)
             critical_values = np.quantile(

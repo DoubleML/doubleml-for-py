@@ -705,7 +705,7 @@ def test_doubleml_exception_confint():
     msg = r'Apply fit\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint_not_fitted.confint()
-    msg = r'Apply bootstrap\(\) before confint\(\).'
+    msg = r'Apply bootstrap\(\) before confint\(joint=True\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(joint=True)
     dml_plr_confint.bootstrap()
