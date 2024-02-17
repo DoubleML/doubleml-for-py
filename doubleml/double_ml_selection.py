@@ -59,6 +59,10 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
+    
+    normalize_ipw : bool
+    Indicates whether the inverse probability weights are normalized.
+    Default is ``True``.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -123,6 +127,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                  dcontrol = 0,
                  score='mar',
                  dml_procedure='dml2',
+                 normalize_ipw=True,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
@@ -139,6 +144,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         self._dcontrol = dcontrol
         self._external_predictions_implemented = False
         self._sensitivity_implemented = True
+        self._normalize_ipw = normalize_ipw
 
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
@@ -146,7 +152,6 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        
         
         _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
@@ -163,7 +168,13 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         }
 
         self._initialize_ml_nuisance_params()
-
+    
+    @property
+    def normalize_ipw(self):
+        """
+        Indicates whether the inverse probability weights are normalized.
+        """
+        return self._normalize_ipw
     
     @property
     def trimming_rule(self):
@@ -379,6 +390,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 pi_d1['targets'].append(pi_hat_d1['targets'])
                 p_d1['targets'].append(p_hat_d1['targets'])
             
+            # stack all predictions and targets
             mu_hat_d1['preds'] = np.hstack(mu_d1['preds'])
             pi_hat_d1['preds'] = np.hstack(pi_d1['preds'])
             p_hat_d1['preds'] = np.hstack(p_d1['preds'])
@@ -496,8 +508,16 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         psi_a = -1
 
         # psi_b
-        psi_b1 = (dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1) + mu_d1
-        psi_b0 = (dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0) + mu_d0
+        if self._normalize_ipw:
+            weight_treat = sum(dtreat) / sum((dtreat * s_1) / (pi_d1 * p_d1))
+            weight_control = sum(dcontrol) / sum((dcontrol * s_0) / (pi_d0 * p_d0))
+            
+            psi_b1 = weight_treat * ((dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1)) + mu_d1
+            psi_b0 = weight_control * ((dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0)) + mu_d0
+        
+        else:
+            psi_b1 = (dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1) + mu_d1
+            psi_b0 = (dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0) + mu_d0
 
         psi_b = psi_b1 - psi_b0
 
