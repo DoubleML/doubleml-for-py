@@ -1,16 +1,12 @@
 import pytest
 import math
-import scipy
 import numpy as np
-import pandas as pd
 
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso, LassoCV, LogisticRegressionCV
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.linear_model import LassoCV, LogisticRegressionCV
 
 import doubleml as dml
-from doubleml.double_ml_selection import DoubleMLS  ## should not be necessary
 
 from ._utils import draw_smpls
 from ._utils_selection_manual import fit_selection
@@ -57,7 +53,6 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     # collect data
     (x, y, d, z, s) = generate_data_selection
 
-    # Set machine learning methods for m & g
     ml_mu = clone(learner[0])
     ml_pi = clone(learner[1])
     ml_p = clone(learner[1])
@@ -66,7 +61,7 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     
     if score == 'mar':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
-        dml_sel_obj = DoubleMLS(obj_dml_data,
+        dml_sel_obj = dml.DoubleMLS(obj_dml_data,
                                         ml_mu, ml_pi, ml_p,
                                         n_folds=n_folds,
                                         score=score,
@@ -74,7 +69,7 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     else:
         assert score == 'nonignorable'
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
-        dml_sel_obj = DoubleMLS(obj_dml_data,
+        dml_sel_obj = dml.DoubleMLS(obj_dml_data,
                                         ml_mu, ml_pi, ml_p,
                                         n_folds=n_folds,
                                         score=score,

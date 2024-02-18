@@ -4,18 +4,18 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import copy
 
-from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
-from doubleml._utils import (
+from .double_ml import DoubleML
+from .double_ml_data import DoubleMLData
+from ._utils import (
     _trimm,
     _dml_cv_predict, 
     _dml_tune, 
     _get_cond_smpls_2d,
     _predict_zero_one_propensity)
-from doubleml._utils_checks  import (
+from ._utils_checks  import (
     _check_finite_predictions, 
     _check_trimming)
-from doubleml.double_ml_score_mixins import LinearScoreMixin
+from .double_ml_score_mixins import LinearScoreMixin
 
 
 class DoubleMLS(LinearScoreMixin, DoubleML):
