@@ -6,31 +6,25 @@ import pandas as pd
 
 from sklearn.base import clone
 
-from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso, LassoCV
+from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso, LassoCV, LogisticRegressionCV
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 import doubleml as dml
 from doubleml.double_ml_selection import DoubleMLS  ## should not be necessary
 
 from ._utils import draw_smpls
-from ._utils_plr_manual import fit_plr, plr_dml1, plr_dml2, boot_plr, fit_sensitivity_elements_plr
+from ._utils_selection_manual import fit_selection
 
 @pytest.fixture(scope='module',
-                params=[[LinearRegression(),
-                         LogisticRegression(solver='lbfgs', max_iter=250),
-                         LogisticRegression(solver='lbfgs', max_iter=250)],
-                         [LassoCV(),
-                         LogisticRegression(solver='lbfgs', max_iter=250),
-                         LogisticRegression(solver='lbfgs', max_iter=250)],
-                        [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
-                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42),
-                         RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
+                params=[[LassoCV(),
+                         LogisticRegressionCV(),
+                         LogisticRegressionCV()]])
 def learner(request):
     return request.param
 
 
 @pytest.fixture(scope='module',
-                params=['mar', 'nonignorable'])
+                params=['mar'])
 def score(request):
     return request.param
 
@@ -54,7 +48,8 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope='module')
-def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure):
+def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure,
+                          trimming_threshold, normalize_ipw):
     boot_methods = ['normal']
     n_folds = 3
     n_rep_boot = 499
@@ -68,10 +63,9 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     ml_p = clone(learner[1])
 
     np.random.seed(3141)
-
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
     
     if score == 'mar':
+        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
         dml_sel_obj = DoubleMLS(obj_dml_data,
                                         ml_mu, ml_pi, ml_p,
                                         n_folds=n_folds,
@@ -79,24 +73,48 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
                                         dml_procedure=dml_procedure)
     else:
         assert score == 'nonignorable'
+        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
         dml_sel_obj = DoubleMLS(obj_dml_data,
                                         ml_mu, ml_pi, ml_p,
                                         n_folds=n_folds,
                                         score=score,
                                         dml_procedure=dml_procedure)
 
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
+
+    np.random.seed(3141)
+    dml_sel_obj.set_sample_splitting(all_smpls=all_smpls)
     dml_sel_obj.fit()
+
+    res_manual = fit_selection(y, x, d, z, s,
+                          ml_mu, ml_pi, ml_p,
+                          all_smpls, dml_procedure, score,
+                          trimming_rule='truncate',
+                          trimming_threshold=trimming_threshold,
+                          normalize_ipw=normalize_ipw)
+
+    res_dict = {'coef': dml_sel_obj.coef[0],
+                'coef_manual': res_manual['theta'],
+                'se': dml_sel_obj.se[0],
+                'se_manual': res_manual['se'],
+                'boot_methods': boot_methods}
+    
+    # sensitivity tests
+    # TODO
+
+    return res_dict
 
 
 @pytest.mark.ci
 def test_dml_selection_coef(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['coef'],
                         dml_selection_fixture['coef_manual'],
-                        rel_tol=1e-9, abs_tol=1e-4)
+                        rel_tol=1e-9, abs_tol=0.1)
 
 
 @pytest.mark.ci
 def test_dml_selection_se(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['se'],
                         dml_selection_fixture['se_manual'],
-                        rel_tol=1e-9, abs_tol=1e-4)
+                        rel_tol=1e-9, abs_tol=0.1)

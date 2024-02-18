@@ -45,12 +45,6 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     n_rep : int
         Number of repetitons for the sample splitting.
         Default is ``1``.
-    
-    dtreatment : Value of the treatment in the treatment group.
-        Default is ``1``.
-
-    dcontrol : Value of the treatment in the control group.
-        Default is ``0``.
 
     score : str or callable
         A str (``'mar'`` or ``'nonignorable'``) specifying the score function.
@@ -123,8 +117,6 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                  ml_p,
                  n_folds=3,
                  n_rep=1,
-                 dtreatment = 1,
-                 dcontrol = 0,
                  score='mar',
                  dml_procedure='dml2',
                  normalize_ipw=True,
@@ -140,8 +132,6 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                          draw_sample_splitting,
                          apply_cross_fitting)
         
-        self._dtreatment = dtreatment
-        self._dcontrol = dcontrol
         self._external_predictions_implemented = False
         self._sensitivity_implemented = True
         self._normalize_ipw = normalize_ipw
@@ -284,8 +274,8 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             _check_finite_predictions(mu_hat_d0['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
 
             # treatment indicator
-            dtreat = d == self._dtreatment
-            dcontrol = d == self._dcontrol
+            dtreat = (d == 1)
+            dcontrol = (d == 0)
 
             s_0 = s
             s_1 = s
@@ -366,7 +356,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 p_hat_d1['targets'] = d[test_inds]
 
                 # estimate nuisance mu on second training sample
-                s1_d1_train_2_indices = np.intersect1d(np.where(d == self._dtreatment)[0], 
+                s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0], 
                                                        np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
                 y_s1_d1_train_2 = y[s1_d1_train_2_indices]
@@ -379,7 +369,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 mu_hat_d1['targets'] = y[test_inds]
 
                 # append predictions on test sample to final list of predictions
-                dtreat.append((d == self._dtreatment)[test_inds])
+                dtreat.append((d == 1)[test_inds])
                 s_1.append(s[test_inds])
                 y_1.append(y[test_inds])
 
@@ -434,7 +424,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 p_hat_d0['preds'] = 1 - p_hat_d0['preds']
                 p_hat_d0['targets'] = d[test_inds]
 
-                s1_d0_train_2_indices = np.intersect1d(np.where(d == self._dcontrol)[0], 
+                s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0], 
                                                        np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
                 y_s1_d0_train_2 = y[s1_d0_train_2_indices]
@@ -445,7 +435,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 mu_hat_d0['preds'] = ml_mu_d0_prelim.predict(xpi_test)
                 mu_hat_d0['targets'] = y[test_inds]
 
-                dcontrol.append((d == self._dcontrol)[test_inds])
+                dcontrol.append((d == 0)[test_inds])
                 s_0.append(s[test_inds])
                 y_0.append(y[test_inds])
 

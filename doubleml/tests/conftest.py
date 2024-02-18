@@ -448,3 +448,29 @@ def generate_data_did_cs(request):
     data = make_did_SZ2020(n, dgp_type=dpg, cross_sectional_data=True, return_type='array')
 
     return data
+
+
+@pytest.fixture(scope='session',
+                params=[(2000, 100),
+                        (8000, 100)])
+def generate_data_selection(request):
+    params = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n = params[0]
+    p = params[1]
+
+    s = 2
+    sigma = np.array([[1, 0.5], [0.5, 1]])
+    e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n).T
+    x = np.random.randn(n, p)
+    beta = np.hstack((np.repeat(0.25, s), np.repeat(0, p - s)))
+    d = np.where(np.dot(x, beta) + np.random.randn(n) > 0, 1, 0)
+    z = np.random.randn(n)
+    s = np.where(np.dot(x, beta) + 0.25 * d + z + e[0] > 0, 1, 0)
+    y = np.dot(x, beta) + 0.5 * d + e[1]
+    y[s == 0] = 0
+
+    data = (x, y, d, z, s)
+
+    return data
