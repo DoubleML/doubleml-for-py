@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 from ._utils_boot import boot_manual, draw_weights
 from ._utils import fit_predict, tune_grid_search, fit_predict_proba
-from .._utils import _trimm
+from .._utils import _trimm, _predict_zero_one_propensity
 
 
 def fit_selection(y, x, d, z, s,
@@ -105,55 +105,145 @@ def fit_nuisance_selection(y, x, d, z, s,
         dx = np.column_stack((d, x, z))
 
     if score == 'mar':
-        pi_hat_d1 = fit_predict_proba(s, dx, ml_pi_d1, pi_d1_params, smpls, trimming_threshold=trimming_threshold)
-        pi_hat_d0 = fit_predict_proba(s, dx, ml_pi_d0, pi_d0_params, smpls, trimming_threshold=trimming_threshold)
+        pi_hat_d1_list = fit_predict_proba(s, dx, ml_pi_d1, pi_d1_params, smpls, trimming_threshold=trimming_threshold)
+        pi_hat_d0_list = fit_predict_proba(s, dx, ml_pi_d0, pi_d0_params, smpls, trimming_threshold=trimming_threshold)
 
-        p_hat_d1 = fit_predict_proba(d, x, ml_p_d1, p_d1_params, smpls)
+        p_hat_d1_list = fit_predict_proba(d, x, ml_p_d1, p_d1_params, smpls)
         p_hat_d0_prelim = fit_predict_proba(d, x, ml_p_d0, p_d0_params, smpls)
-        p_hat_d0 = [1 - p for p in p_hat_d0_prelim]
+        p_hat_d0_list = [1 - p for p in p_hat_d0_prelim]
 
         train_cond_d1_s1 = np.intersect1d(np.where(d == 1)[0], np.where(s == 1)[0])
-        mu_hat_d1 = fit_predict(y, x, ml_mu_d1, mu_d1_params, smpls, train_cond=train_cond_d1_s1)
+        mu_hat_d1_list = fit_predict(y, x, ml_mu_d1, mu_d1_params, smpls, train_cond=train_cond_d1_s1)
 
         train_cond_d0_s1 = np.intersect1d(np.where(d == 0)[0], np.where(s == 1)[0])
-        mu_hat_d0 = fit_predict(y, x, ml_mu_d0, mu_d0_params, smpls, train_cond=train_cond_d0_s1)
+        mu_hat_d0_list = fit_predict(y, x, ml_mu_d0, mu_d0_params, smpls, train_cond=train_cond_d0_s1)
     else:
+        # initialize empty lists
+        mu_hat_d1_list = []
+        mu_hat_d0_list = []
+        pi_hat_d1_list = []
+        pi_hat_d0_list = []
+        p_hat_d1_list = []
+        p_hat_d0_list = []
+        dtreat = []
+        dcontrol = []
+        y_1 = []
+        y_0 = []
+        s_1 = []
+        s_0 = []
+        
         # create strata for splitting
         strata = d.reshape(-1, 1) + 2 * s.reshape(-1, 1)
 
+        # POTENTIAL OUTCOME Y(1)
         for i_fold, _ in enumerate(smpls):
             ml_mu_d1 = clone(learner_mu)
-            ml_mu_d0 = clone(learner_mu)
             ml_pi_d1 = clone(learner_pi)
-            ml_pi_d0 = clone(learner_pi)
             ml_p_d1 = clone(learner_p)
-            ml_p_d0 = clone(learner_p)
 
             # set the params for the nuisance learners
             if mu_d1_params is not None:
                 ml_mu_d1.set_params(**mu_d1_params[i_fold])
-            if mu_d0_params is not None:
-                ml_mu_d0.set_params(**mu_d0_params[i_fold])
             if pi_d1_params is not None:
                 ml_pi_d1.set_params(**pi_d1_params[i_fold])
-            if pi_d0_params is not None:
-                ml_pi_d0.set_params(**pi_d0_params[i_fold])
             if p_d1_params is not None:
                 ml_p_d1.set_params(**p_d1_params[i_fold])
-            if p_d0_params is not None:
-                ml_p_d0.set_params(**p_d0_params[i_fold])
 
             train_inds = smpls[i_fold][0]
             test_inds = smpls[i_fold][1]
 
             # start nested crossfitting
             train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                      random_state=42, stratify=d[train_inds])
+                                                      random_state=42, stratify=strata[train_inds])
+            
+            s_train_1 = s[train_inds_1]
+            dx_train_1 = dx[train_inds_1, :]
 
-    #p_hat_d0 = _trimm(np.array(p_hat_d0), trimming_rule, trimming_threshold)[0]
-    #p_hat_d1 = _trimm(np.array(p_hat_d1), trimming_rule, trimming_threshold)[0]
+            # preliminary propensity score for selection
+            ml_pi_prelim = clone(ml_pi_d1)
+            # fit on first part of training set
+            ml_pi_prelim.fit(dx_train_1, s_train_1)
+            pi_hat = _predict_zero_one_propensity(ml_pi_prelim, dx)
 
-    return mu_hat_d1, mu_hat_d0, pi_hat_d1, pi_hat_d0, p_hat_d1, p_hat_d0  # lists of 3 numpy arrays
+            # predictions for small pi in denominator
+            pi_hat_d1 = pi_hat[test_inds]
+
+            # add selection indicator to covariates
+            xpi = np.column_stack((x, pi_hat))
+            
+            # estimate propensity score p using the second training sample
+            xpi_train_2 = xpi[train_inds_2, :]
+            d_train_2 = d[train_inds_2]
+            xpi_test = xpi[test_inds, :]
+
+            ml_p_d1.fit(xpi_train_2, d_train_2)
+            
+            p_hat_d1 = _predict_zero_one_propensity(ml_p_d1, xpi_test)
+
+            # estimate nuisance mu on second training sample
+            s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0], 
+                                                    np.intersect1d(np.where(s == 1)[0], train_inds_2))
+            xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
+            y_s1_d1_train_2 = y[s1_d1_train_2_indices]
+
+            ml_mu_d1.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
+
+            # predict nuisance mu
+            mu_hat_d1 = ml_mu_d1.predict(xpi_test)
+
+            # append predictions on test sample to final list of predictions
+            mu_hat_d1_list.append(mu_hat_d1)
+            pi_hat_d1_list.append(pi_hat_d1)
+            p_hat_d1_list.append(p_hat_d1)
+        
+        # POTENTIAL OUTCOME Y(0)
+        for i_fold, _ in enumerate(smpls):
+            ml_mu_d0 = clone(learner_mu)
+            ml_pi_d0 = clone(learner_pi)
+            ml_p_d0 = clone(learner_p)
+
+            if mu_d0_params is not None:
+                ml_mu_d0.set_params(**mu_d0_params[i_fold])
+            if pi_d1_params is not None:
+                ml_pi_d0.set_params(**pi_d0_params[i_fold])
+            if p_d1_params is not None:
+                ml_p_d0.set_params(**p_d0_params[i_fold])
+
+            train_inds = smpls[i_fold][0]
+            test_inds = smpls[i_fold][1]
+
+            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
+                                                      random_state=42, stratify=strata[train_inds])
+            
+            s_train_1 = s[train_inds_1]
+            dx_train_1 = dx[train_inds_1, :]
+
+            ml_pi_prelim = clone(ml_pi_d0)
+            ml_pi_prelim.fit(dx_train_1, s_train_1)
+            pi_hat = _predict_zero_one_propensity(ml_pi_prelim, dx)
+            pi_hat_d0 = pi_hat[test_inds]
+            xpi = np.column_stack((x, pi_hat))
+            
+            xpi_train_2 = xpi[train_inds_2, :]
+            d_train_2 = d[train_inds_2]
+            xpi_test = xpi[test_inds, :]
+
+            ml_p_d0.fit(xpi_train_2, d_train_2)
+            p_hat_d0 = _predict_zero_one_propensity(ml_p_d0, xpi_test)
+
+            s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0], 
+                                                    np.intersect1d(np.where(s == 1)[0], train_inds_2))
+            xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
+            y_s1_d0_train_2 = y[s1_d0_train_2_indices]
+
+            ml_mu_d0.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
+            mu_hat_d0 = ml_mu_d0.predict(xpi_test)
+
+            mu_hat_d0_list.append(mu_hat_d0)
+            pi_hat_d0_list.append(pi_hat_d0)
+            p_hat_d0_list.append(p_hat_d0)
+
+    return mu_hat_d1_list, mu_hat_d0_list, pi_hat_d1_list, pi_hat_d0_list, p_hat_d1_list, p_hat_d0_list
 
 
 def compute_selection(y, mu_hat_d1_list, mu_hat_d0_list, pi_hat_d1_list, pi_hat_d0_list, \
@@ -223,7 +313,6 @@ def selection_dml2(psi_a, psi_b):
     se = np.sqrt(var_selection(theta_hat, psi_a, psi_b, n_obs))
 
     return theta_hat, se
-
 
 
 def var_selection(theta, psi_a, psi_b, n_obs):

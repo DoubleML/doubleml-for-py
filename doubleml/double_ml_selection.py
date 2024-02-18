@@ -397,7 +397,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 test_inds = smpls[i_fold][1]
 
                 train_inds_1, train_inds_2 = train_test_split(
-                    train_inds, test_size=0.5, random_state=42, stratify=strata[train_inds]
+                    train_inds, test_size=0.5, random_state=43, stratify=strata[train_inds]
                 )
 
                 s_train_1 = s[train_inds_1]

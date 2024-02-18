@@ -24,7 +24,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['mar'])
+                params=['mar', 'nonignorable'])
 def score(request):
     return request.param
 
