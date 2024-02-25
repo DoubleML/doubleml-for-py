@@ -8,12 +8,12 @@ from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
 from ._utils import (
     _trimm,
-    _dml_cv_predict, 
-    _dml_tune, 
+    _dml_cv_predict,
+    _dml_tune,
     _get_cond_smpls_2d,
     _predict_zero_one_propensity)
-from ._utils_checks  import (
-    _check_finite_predictions, 
+from ._utils_checks import (
+    _check_finite_predictions,
     _check_trimming)
 from .double_ml_score_mixins import LinearScoreMixin
 
@@ -28,12 +28,12 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
     ml_mu : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`\mu(S,D,X) = E[Y|S,D,X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`mu(S,D,X) = E[Y|S,D,X]`.
 
     ml_pi : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `\pi(D,X) = Pr[S=1|D,X]`.
-    
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `pi(D,X) = Pr[S=1|D,X]`.
+
     ml_p : classifier implementing ``fit()`` and ``predict_proba()``
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`p(X) = Pr[D=1|X]`.
@@ -53,7 +53,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
         Default is ``'dml2'``.
-    
+
     normalize_ipw : bool
     Indicates whether the inverse probability weights are normalized.
     Default is ``True``.
@@ -82,7 +82,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV()
     >>> from sklearn.base import clone
     >>> np.random.seed(3146)
-    >>> n = 2000 
+    >>> n = 2000
     >>> p = 100
     >>> s = 2
     >>> sigma = np.array([[1, 0.5], [0.5, 1]])
@@ -110,6 +110,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     Binary or multiple treatment effect evaluation with double machine learning under sample selection/outcome attrition.
     Potential outcomes Y(0) and Y(1) are estimated and ATE is returned as E[Y(1) - Y(0)].
     """
+
     def __init__(self,
                  obj_dml_data,
                  ml_mu,
@@ -131,7 +132,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                          dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
-        
+
         self._external_predictions_implemented = False
         self._sensitivity_implemented = True
         self._normalize_ipw = normalize_ipw
@@ -142,30 +143,29 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
-        
+
         _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
         _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)
-        
-        
+
         self._learner = {'ml_mu': clone(ml_mu),
                          'ml_pi': clone(ml_pi),
                          'ml_p': clone(ml_p),
-        }
+                         }
         self._predict_method = {'ml_mu': 'predict',
                                 'ml_pi': 'predict_proba',
                                 'ml_p': 'predict_proba'
-        }
+                                }
 
         self._initialize_ml_nuisance_params()
-    
+
     @property
     def normalize_ipw(self):
         """
         Indicates whether the inverse probability weights are normalized.
         """
         return self._normalize_ipw
-    
+
     @property
     def trimming_rule(self):
         """
@@ -179,15 +179,14 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         Specifies the used trimming threshold.
         """
         return self._trimming_threshold
-    
-    
+
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_mu_d0', 'ml_mu_d1', 
-                         'ml_pi_d0', 'ml_pi_d1', 
+        valid_learner = ['ml_mu_d0', 'ml_mu_d1',
+                         'ml_pi_d0', 'ml_pi_d1',
                          'ml_p_d0', 'ml_p_d1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
                         valid_learner}
-    
+
     def _check_score(self, score):
         if isinstance(score, str):
             valid_score = ['mar', 'nonignorable']
@@ -199,12 +198,12 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 raise TypeError('score should be either a string or a callable. '
                                 '%r was passed.' % score)
         return
-    
+
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None and self._score == 'mar':  #TODO: raise warning instead
+        if obj_dml_data.z_cols is not None and self._score == 'mar':  # TODO: raise warning instead
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). '
@@ -216,7 +215,6 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                              specify an instrument for the selection variable.')
         return
 
-    
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -227,33 +225,31 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             dx = np.column_stack((x, d, z))
         else:
             dx = np.column_stack((x, d))
-        
 
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
-
 
         if self._score == 'mar':
             # POTENTIAL OUTCOME Y(1)
             pi_hat_d1 = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
-                                est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
-                                return_models=return_models)
+                                        est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],
+                                        return_models=return_models)
             pi_hat_d1['targets'] = pi_hat_d1['targets'].astype(float)
             _check_finite_predictions(pi_hat_d1['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
             # propensity score p
             p_hat_d1 = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
-                                    return_models=return_models)
+                                       est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
+                                       return_models=return_models)
             p_hat_d1['targets'] = p_hat_d1['targets'].astype(float)
             _check_finite_predictions(p_hat_d1['preds'], self._learner['ml_p'], 'ml_p', smpls)
 
             # nuisance mu
             mu_hat_d1 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
-                                    return_models=return_models)
+                                        est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
+                                        return_models=return_models)
             mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
             _check_finite_predictions(mu_hat_d1['preds'], self._learner['ml_mu'], 'ml_mu1', smpls)
-            
+
             # POTENTIAL OUTCOME Y(0)
             pi_hat_d0 = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_pi_d0'), method=self._predict_method['ml_pi'],
@@ -262,8 +258,8 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             _check_finite_predictions(pi_hat_d0['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
             p_hat_d0 = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
-                                        return_models=return_models)
+                                       est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
+                                       return_models=return_models)
             p_hat_d0['preds'] = 1 - p_hat_d0['preds']
             _check_finite_predictions(p_hat_d0['preds'], self._learner['ml_p'], 'ml_p', smpls)
 
@@ -281,13 +277,13 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             s_1 = s
             y_0 = y
             y_1 = y
-        
+
         else:
             # initialize nuisance predictions, targets and models
             mu_hat_d1 = {'models': None,
-                    'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                    'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                    }
+                         'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                         'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
+                         }
             mu_hat_d0 = copy.deepcopy(mu_hat_d1)
             pi_hat = copy.deepcopy(mu_hat_d1)
             pi_hat_d1 = copy.deepcopy(mu_hat_d1)
@@ -300,9 +296,9 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
             # initialize nuisance predictions, targets and models
             pi_hat = {'models': None,
-                 'targets': [],
-                 'preds': []
-                 }
+                      'targets': [],
+                      'preds': []
+                      }
             mu_d1 = copy.deepcopy(pi_hat)
             mu_d0 = copy.deepcopy(pi_hat)
             pi_d1 = copy.deepcopy(pi_hat)
@@ -343,7 +339,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
                 # add selection indicator to covariates
                 xpi = np.column_stack((x, pi_hat['preds']))
-                
+
                 # estimate propensity score p using the second training sample
                 xpi_train_2 = xpi[train_inds_2, :]
                 d_train_2 = d[train_inds_2]
@@ -351,12 +347,12 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
 
                 ml_p_d1 = clone(self._learner['ml_p'])
                 ml_p_d1.fit(xpi_train_2, d_train_2)
-                
+
                 p_hat_d1['preds'] = _predict_zero_one_propensity(ml_p_d1, xpi_test)
                 p_hat_d1['targets'] = d[test_inds]
 
                 # estimate nuisance mu on second training sample
-                s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0], 
+                s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0],
                                                        np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
                 y_s1_d1_train_2 = y[s1_d1_train_2_indices]
@@ -379,7 +375,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 mu_d1['targets'].append(mu_hat_d1['targets'])
                 pi_d1['targets'].append(pi_hat_d1['targets'])
                 p_d1['targets'].append(p_hat_d1['targets'])
-            
+
             # stack all predictions and targets
             mu_hat_d1['preds'] = np.hstack(mu_d1['preds'])
             pi_hat_d1['preds'] = np.hstack(pi_d1['preds'])
@@ -412,19 +408,19 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 pi_hat_d0['targets'] = s[test_inds]
 
                 xpi = np.column_stack((x, pi_hat['preds']))
-                
+
                 xpi_train_2 = xpi[train_inds_2, :]
                 d_train_2 = d[train_inds_2]
                 xpi_test = xpi[test_inds, :]
 
                 ml_p_d0 = clone(self._learner['ml_p'])
                 ml_p_d0.fit(xpi_train_2, d_train_2)
-                
+
                 p_hat_d0['preds'] = _predict_zero_one_propensity(ml_p_d0, xpi_test)
                 p_hat_d0['preds'] = 1 - p_hat_d0['preds']
                 p_hat_d0['targets'] = d[test_inds]
 
-                s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0], 
+                s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0],
                                                        np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
                 y_s1_d0_train_2 = y[s1_d0_train_2_indices]
@@ -445,7 +441,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                 mu_d0['targets'].append(mu_hat_d0['targets'])
                 pi_d0['targets'].append(pi_hat_d0['targets'])
                 p_d0['targets'].append(p_hat_d0['targets'])
-            
+
             mu_hat_d0['preds'] = np.hstack(mu_d0['preds'])
             pi_hat_d0['preds'] = np.hstack(pi_d0['preds'])
             p_hat_d0['preds'] = np.hstack(p_d0['preds'])
@@ -459,40 +455,38 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         p_hat_d0['preds'] = _trimm(p_hat_d0['preds'], self._trimming_rule, self._trimming_threshold)
         p_hat_d1['preds'] = _trimm(p_hat_d1['preds'], self._trimming_rule, self._trimming_threshold)
 
-
         psi_a, psi_b = self._score_elements(dtreat, dcontrol, mu_hat_d1['preds'],
                                             mu_hat_d0['preds'], pi_hat_d1['preds'],
                                             pi_hat_d0['preds'],
-                                            p_hat_d1['preds'], p_hat_d0['preds'], 
-                                            s_0, s_1, y_0, y_1) 
-        
+                                            p_hat_d1['preds'], p_hat_d0['preds'],
+                                            s_0, s_1, y_0, y_1)
+
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
-        
+
         preds = {'predictions': {'ml_mu_d0': mu_hat_d0['preds'],
-                                 'ml_mu_d1': mu_hat_d1['preds'], 
+                                 'ml_mu_d1': mu_hat_d1['preds'],
                                  'ml_pi_d0': pi_hat_d0['preds'],
                                  'ml_pi_d1': pi_hat_d1['preds'],
                                  'ml_p_d0': p_hat_d0['preds'],
                                  'ml_p_d1': p_hat_d1['preds']},
-                'targets': {'ml_mu_d0': mu_hat_d0['targets'],
-                            'ml_mu_d1': mu_hat_d1['targets'],
-                            'ml_pi_d0': pi_hat_d0['targets'],
-                            'ml_pi_d1': pi_hat_d1['targets'],
-                            'ml_p_d0': p_hat_d0['targets'],
-                            'ml_p_d1': p_hat_d1['targets']},
-                'models': {'ml_mu_d0': mu_hat_d0['models'],
+                 'targets': {'ml_mu_d0': mu_hat_d0['targets'],
+                             'ml_mu_d1': mu_hat_d1['targets'],
+                             'ml_pi_d0': pi_hat_d0['targets'],
+                             'ml_pi_d1': pi_hat_d1['targets'],
+                             'ml_p_d0': p_hat_d0['targets'],
+                             'ml_p_d1': p_hat_d1['targets']},
+                 'models': {'ml_mu_d0': mu_hat_d0['models'],
                             'ml_mu_d1': mu_hat_d1['models'],
                             'ml_pi_d0': pi_hat_d0['models'],
                             'ml_pi_d1': pi_hat_d1['models'],
                             'ml_p_d0': p_hat_d0['models'],
-                            'ml_p_d0': p_hat_d1['models']}
-                }
+                            'ml_p_d1': p_hat_d1['models']}
+                 }
 
         return psi_elements, preds
 
-    
-    def _score_elements(self, dtreat, dcontrol, mu_d1, mu_d0, 
+    def _score_elements(self, dtreat, dcontrol, mu_d1, mu_d0,
                         pi_d1, pi_d0, p_d1, p_d0, s_0, s_1, y_0, y_1):
         # psi_a
         psi_a = -1
@@ -501,10 +495,10 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         if self._normalize_ipw:
             weight_treat = sum(dtreat) / sum((dtreat * s_1) / (pi_d1 * p_d1))
             weight_control = sum(dcontrol) / sum((dcontrol * s_0) / (pi_d0 * p_d0))
-            
+
             psi_b1 = weight_treat * ((dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1)) + mu_d1
             psi_b0 = weight_control * ((dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0)) + mu_d0
-        
+
         else:
             psi_b1 = (dtreat * s_1 * (y_1 - mu_d1)) / (p_d1 * pi_d1) + mu_d1
             psi_b0 = (dcontrol * s_0 * (y_0 - mu_d0)) / (p_d0 * pi_d0) + mu_d0
@@ -512,8 +506,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         psi_b = psi_b1 - psi_b0
 
         return psi_a, psi_b
-    
-    
+
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
                          search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
@@ -521,9 +514,8 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
         # time indicator is used for selection (selection not available in DoubleMLData yet)
-        x, s = check_X_y(x, self._dml_data.t,
-                          force_all_finite=False)
-        
+        x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
+
         dx = np.column_stack((d, x))
 
         if scoring_methods is None:
@@ -536,26 +528,26 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
         train_inds = [train_index for (train_index, _) in smpls]
         train_inds_d0_s1 = [train_index for (train_index, _) in smpls_d0_s1]
         train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
-        
-        # hyperparameter tuning for ML 
+
+        # hyperparameter tuning for ML
         mu_d0_tune_res = _dml_tune(y, x, train_inds_d0_s1,
-                               self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         mu_d1_tune_res = _dml_tune(y, x, train_inds_d1_s1,
-                               self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         pi_d0_tune_res = _dml_tune(s, dx, train_inds,
-                               self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         pi_d1_tune_res = _dml_tune(s, dx, train_inds,
-                               self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                   self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         p_d0_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                  self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
+                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         p_d1_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+                                  self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
+                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         mu_d0_best_params = [xx.best_params_ for xx in mu_d0_tune_res]
         mu_d1_best_params = [xx.best_params_ for xx in mu_d1_tune_res]
@@ -582,13 +574,11 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
-    
 
     def _sensitivity_element_est(self, preds):
         # TODO: RR calculation needs to be finished
         y = self._dml_data.y
         d = self._dml_data.d
-        s = self._dml_data.t
 
         mu_hat_d1 = preds['predictions']['ml_mu_d1']
         mu_hat_d0 = preds['predictions']['ml_mu_d0']

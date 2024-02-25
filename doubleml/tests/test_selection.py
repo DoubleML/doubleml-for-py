@@ -11,6 +11,7 @@ import doubleml as dml
 from ._utils import draw_smpls
 from ._utils_selection_manual import fit_selection
 
+
 @pytest.fixture(scope='module',
                 params=[[LassoCV(),
                          LogisticRegressionCV(),
@@ -57,22 +58,22 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     ml_p = clone(learner[1])
 
     np.random.seed(3141)
-    
+
     if score == 'mar':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
         dml_sel_obj = dml.DoubleMLS(obj_dml_data,
-                                        ml_mu, ml_pi, ml_p,
-                                        n_folds=n_folds,
-                                        score=score,
-                                        dml_procedure=dml_procedure)
+                                    ml_mu, ml_pi, ml_p,
+                                    n_folds=n_folds,
+                                    score=score,
+                                    dml_procedure=dml_procedure)
     else:
         assert score == 'nonignorable'
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
         dml_sel_obj = dml.DoubleMLS(obj_dml_data,
-                                        ml_mu, ml_pi, ml_p,
-                                        n_folds=n_folds,
-                                        score=score,
-                                        dml_procedure=dml_procedure)
+                                    ml_mu, ml_pi, ml_p,
+                                    n_folds=n_folds,
+                                    score=score,
+                                    dml_procedure=dml_procedure)
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)
@@ -82,18 +83,18 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     dml_sel_obj.fit()
 
     res_manual = fit_selection(y, x, d, z, s,
-                          ml_mu, ml_pi, ml_p,
-                          all_smpls, dml_procedure, score,
-                          trimming_rule='truncate',
-                          trimming_threshold=trimming_threshold,
-                          normalize_ipw=normalize_ipw)
+                               ml_mu, ml_pi, ml_p,
+                               all_smpls, dml_procedure, score,
+                               trimming_rule='truncate',
+                               trimming_threshold=trimming_threshold,
+                               normalize_ipw=normalize_ipw)
 
     res_dict = {'coef': dml_sel_obj.coef[0],
                 'coef_manual': res_manual['theta'],
                 'se': dml_sel_obj.se[0],
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
-    
+
     # sensitivity tests
     # TODO
 
