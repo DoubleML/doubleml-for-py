@@ -520,6 +520,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
+        # time indicator is used for selection (selection not available in DoubleMLData yet)
         x, s = check_X_y(x, self._dml_data.t,
                           force_all_finite=False)
         
@@ -584,6 +585,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
     
 
     def _sensitivity_element_est(self, preds):
+        # TODO: RR calculation needs to be finished
         y = self._dml_data.y
         d = self._dml_data.d
         s = self._dml_data.t

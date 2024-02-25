@@ -48,7 +48,6 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
                           trimming_threshold, normalize_ipw):
     boot_methods = ['normal']
     n_folds = 3
-    n_rep_boot = 499
 
     # collect data
     (x, y, d, z, s) = generate_data_selection
@@ -105,11 +104,11 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
 def test_dml_selection_coef(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['coef'],
                         dml_selection_fixture['coef_manual'],
-                        rel_tol=1e-9, abs_tol=0.1)
+                        rel_tol=1e-9, abs_tol=0.05)
 
 
 @pytest.mark.ci
 def test_dml_selection_se(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['se'],
                         dml_selection_fixture['se_manual'],
-                        rel_tol=1e-9, abs_tol=0.1)
+                        rel_tol=1e-9, abs_tol=0.05)

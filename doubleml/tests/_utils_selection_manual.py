@@ -124,12 +124,6 @@ def fit_nuisance_selection(y, x, d, z, s,
         pi_hat_d0_list = []
         p_hat_d1_list = []
         p_hat_d0_list = []
-        dtreat = []
-        dcontrol = []
-        y_1 = []
-        y_0 = []
-        s_1 = []
-        s_0 = []
         
         # create strata for splitting
         strata = d.reshape(-1, 1) + 2 * s.reshape(-1, 1)

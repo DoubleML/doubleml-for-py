@@ -451,8 +451,8 @@ def generate_data_did_cs(request):
 
 
 @pytest.fixture(scope='session',
-                params=[(2000, 100),
-                        (8000, 100)])
+                params=[(8000, 100),
+                        (20000, 100)])
 def generate_data_selection(request):
     params = request.param
     np.random.seed(1111)
