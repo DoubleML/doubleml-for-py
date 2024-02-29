@@ -108,15 +108,15 @@ def dml_plr_oneway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_proce
 
 @pytest.mark.ci
 def test_dml_plr_oneway_cluster_linear_vs_nonlinear_coef(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture):
-    assert math.isclose(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['coef_linear'],
-                        dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['coef_nonlinear'],
+    assert math.isclose(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['coef_linear'][0],
+                        dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['coef_nonlinear'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_oneway_cluster_linear_vs_nonlinear_se(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture):
-    assert math.isclose(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['se_linear'],
-                        dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['se_nonlinear'],
+    assert math.isclose(dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['se_linear'][0],
+                        dml_plr_oneway_cluster_linear_vs_nonlinear_fixture['se_nonlinear'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -180,15 +180,15 @@ def dml_plr_multiway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_pro
 
 @pytest.mark.ci
 def test_dml_plr_multiway_cluster_linear_vs_nonlinear_coef(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture):
-    assert math.isclose(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['coef_linear'],
-                        dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['coef_nonlinear'],
+    assert math.isclose(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['coef_linear'][0],
+                        dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['coef_nonlinear'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_multiway_cluster_linear_vs_nonlinear_se(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture):
-    assert math.isclose(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['se_linear'],
-                        dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['se_nonlinear'],
+    assert math.isclose(dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['se_linear'][0],
+                        dml_plr_multiway_cluster_linear_vs_nonlinear_fixture['se_nonlinear'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -236,13 +236,13 @@ def dml_plr_cluster_nonlinear_with_index(generate_data1, learner, dml_procedure)
 
 @pytest.mark.ci
 def test_dml_plr_cluster_nonlinear_with_index_coef(dml_plr_cluster_nonlinear_with_index):
-    assert math.isclose(dml_plr_cluster_nonlinear_with_index['coef'],
-                        dml_plr_cluster_nonlinear_with_index['coef_cluster'],
+    assert math.isclose(dml_plr_cluster_nonlinear_with_index['coef'][0],
+                        dml_plr_cluster_nonlinear_with_index['coef_cluster'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_cluster_nonlinear_with_index_se(dml_plr_cluster_nonlinear_with_index):
-    assert math.isclose(dml_plr_cluster_nonlinear_with_index['se'],
-                        dml_plr_cluster_nonlinear_with_index['se_cluster'],
+    assert math.isclose(dml_plr_cluster_nonlinear_with_index['se'][0],
+                        dml_plr_cluster_nonlinear_with_index['se_cluster'][0],
                         rel_tol=1e-9, abs_tol=1e-4)

@@ -9,9 +9,9 @@ import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from ._utils import _clone
-from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2,\
+from ._utils_cluster import DoubleMLMultiwayResampling, var_one_way_cluster, est_one_way_cluster_dml2, \
     est_two_way_cluster_dml2, var_two_way_cluster
-from ._utils_pliv_manual import fit_pliv, compute_pliv_residuals
+from ..plm.tests._utils_pliv_manual import fit_pliv, compute_pliv_residuals
 
 np.random.seed(1234)
 # Set the simulation parameters
@@ -96,8 +96,8 @@ def dml_pliv_multiway_cluster_old_vs_new_fixture(generate_data_iv, learner):
 
 @pytest.mark.ci
 def test_dml_pliv_multiway_cluster_old_vs_new_coef(dml_pliv_multiway_cluster_old_vs_new_fixture):
-    assert math.isclose(dml_pliv_multiway_cluster_old_vs_new_fixture['coef'],
-                        dml_pliv_multiway_cluster_old_vs_new_fixture['coef_manual'],
+    assert math.isclose(dml_pliv_multiway_cluster_old_vs_new_fixture['coef'][0],
+                        dml_pliv_multiway_cluster_old_vs_new_fixture['coef_manual'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -177,7 +177,7 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
                                   smpls_one_split)
         se = np.sqrt(var)
         thetas[i_rep] = theta
-        ses[i_rep] = se
+        ses[i_rep] = se[0]
 
     theta = np.median(thetas)
     n_clusters1 = len(np.unique(obj_dml_cluster_data.cluster_vars[:, 0]))
@@ -195,14 +195,14 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score, dml_proc
 
 @pytest.mark.ci
 def test_dml_pliv_multiway_cluster_coef(dml_pliv_multiway_cluster_fixture):
-    assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'],
+    assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'][0],
                         dml_pliv_multiway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_pliv_multiway_cluster_se(dml_pliv_multiway_cluster_fixture):
-    assert math.isclose(dml_pliv_multiway_cluster_fixture['se'],
+    assert math.isclose(dml_pliv_multiway_cluster_fixture['se'][0],
                         dml_pliv_multiway_cluster_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
@@ -284,14 +284,14 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score, dml_proced
 
 @pytest.mark.ci
 def test_dml_pliv_oneway_cluster_coef(dml_pliv_oneway_cluster_fixture):
-    assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'],
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'][0],
                         dml_pliv_oneway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_pliv_oneway_cluster_se(dml_pliv_oneway_cluster_fixture):
-    assert math.isclose(dml_pliv_oneway_cluster_fixture['se'],
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['se'][0],
                         dml_pliv_oneway_cluster_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
@@ -340,13 +340,13 @@ def dml_plr_cluster_with_index(generate_data1, learner, dml_procedure):
 
 @pytest.mark.ci
 def test_dml_plr_cluster_with_index_coef(dml_plr_cluster_with_index):
-    assert math.isclose(dml_plr_cluster_with_index['coef'],
-                        dml_plr_cluster_with_index['coef_manual'],
+    assert math.isclose(dml_plr_cluster_with_index['coef'][0],
+                        dml_plr_cluster_with_index['coef_manual'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_cluster_with_index_se(dml_plr_cluster_with_index):
-    assert math.isclose(dml_plr_cluster_with_index['se'],
-                        dml_plr_cluster_with_index['se_manual'],
+    assert math.isclose(dml_plr_cluster_with_index['se'][0],
+                        dml_plr_cluster_with_index['se_manual'][0],
                         rel_tol=1e-9, abs_tol=1e-4)

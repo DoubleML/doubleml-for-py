@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 import copy
 
-from .._utils import _aggregate_coefs_and_ses
+from ..utils._estimation import _aggregate_coefs_and_ses
 
 
 def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv, cf_y, cf_d, rho, level):
