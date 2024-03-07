@@ -18,7 +18,7 @@ from ._utils_checks import (
 from .double_ml_score_mixins import LinearScoreMixin
 
 
-class DoubleMLS(LinearScoreMixin, DoubleML):
+class DoubleMLSSM(LinearScoreMixin, DoubleML):
     """Double machine learning for sample selection models
 
     Parameters
@@ -279,13 +279,12 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             y_1 = y
 
         else:
-            # initialize nuisance predictions, targets and models
+            # initialize nuisance predictions, targets and models -- will be overwritten in each iteration
             mu_hat_d1 = {'models': None,
                          'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
                          'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
                          }
             mu_hat_d0 = copy.deepcopy(mu_hat_d1)
-            pi_hat = copy.deepcopy(mu_hat_d1)
             pi_hat_d1 = copy.deepcopy(mu_hat_d1)
             pi_hat_d0 = copy.deepcopy(mu_hat_d1)
             p_hat_d1 = copy.deepcopy(mu_hat_d1)
@@ -295,6 +294,7 @@ class DoubleMLS(LinearScoreMixin, DoubleML):
             strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
 
             # initialize nuisance predictions, targets and models
+            # pi_hat - used for preliminary estimation of propensity score pi, overwritten in each iteration
             pi_hat = {'models': None,
                       'targets': [],
                       'preds': []

@@ -61,19 +61,19 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
 
     if score == 'mar':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
-        dml_sel_obj = dml.DoubleMLS(obj_dml_data,
-                                    ml_mu, ml_pi, ml_p,
-                                    n_folds=n_folds,
-                                    score=score,
-                                    dml_procedure=dml_procedure)
+        dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
+                                      ml_mu, ml_pi, ml_p,
+                                      n_folds=n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
     else:
         assert score == 'nonignorable'
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
-        dml_sel_obj = dml.DoubleMLS(obj_dml_data,
-                                    ml_mu, ml_pi, ml_p,
-                                    n_folds=n_folds,
-                                    score=score,
-                                    dml_procedure=dml_procedure)
+        dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
+                                      ml_mu, ml_pi, ml_p,
+                                      n_folds=n_folds,
+                                      score=score,
+                                      dml_procedure=dml_procedure)
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds)
