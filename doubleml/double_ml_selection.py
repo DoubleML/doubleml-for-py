@@ -3,6 +3,7 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 import numpy as np
 import copy
+import warnings
 
 from .double_ml import DoubleML
 from .double_ml_data import DoubleMLData
@@ -203,11 +204,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None and self._score == 'mar':  # TODO: raise warning instead
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). '
-                             'You are estimating the effect under the assumption of data missing at random. \
+        if obj_dml_data.z_cols is not None and self._score == 'mar':
+            warnings.warn('Incompatible data. ' +
+                          ' and '.join(obj_dml_data.z_cols) +
+                          ' have been set as instrumental variable(s). '
+                          'You are estimating the effect under the assumption of data missing at random. \
                              Instrumental variables will not be used in estimation.')
         if obj_dml_data.z_cols is None and self._score == 'nonignorable_nonresponse':
             raise ValueError('Sample selection by nonignorable nonresponse was set but instrumental variable \
