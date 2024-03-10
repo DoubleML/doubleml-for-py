@@ -1369,7 +1369,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
     :math:`w_i \\sim \\mathcal{N}(0, 1)`
 
 
-    The data generating process is inspired by a process used in the simulation study (see Appendix E) of Bia, 
+    The data generating process is inspired by a process used in the simulation study (see Appendix E) of Bia,
     Huber and Lafférs (2023).
 
     Parameters
@@ -1391,7 +1391,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
 
     References
     ----------
-    Michela Bia, Martin Huber & Lukáš Lafférs (2023) Double Machine Learning for Sample Selection Models, 
+    Michela Bia, Martin Huber & Lukáš Lafférs (2023) Double Machine Learning for Sample Selection Models,
     Journal of Business & Economic Statistics, DOI: 10.1080/07350015.2023.2271071
     """
     if mar:
@@ -1419,11 +1419,17 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
         return x, y, d, z, s
     elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d, z, s)),
-                            columns=x_cols + ['y', 'd', 'z', 's'])
+        if mar:
+            data = pd.DataFrame(np.column_stack((x, y, d, s)),
+                                columns=x_cols + ['y', 'd', 's'])
+        else:
+            data = pd.DataFrame(np.column_stack((x, y, d, z, s)),
+                                columns=x_cols + ['y', 'd', 'z', 's'])
         if return_type in _data_frame_alias:
             return data
         else:
+            if mar:
+                return DoubleMLData(data, 'y', 'd', x_cols, None, 's')
             return DoubleMLData(data, 'y', 'd', x_cols, 'z', 's')
     else:
         raise ValueError('Invalid return_type.')
