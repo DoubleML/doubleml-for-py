@@ -3,7 +3,7 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 
 from ._utils import fit_predict, fit_predict_proba
-from .._utils import _predict_zero_one_propensity
+from .._utils import _predict_zero_one_propensity, _trimm
 
 
 def fit_selection(y, x, d, z, s,
@@ -50,15 +50,14 @@ def fit_selection(y, x, d, z, s,
         all_p_d1_hat.append(p_hat_d1_list)
         all_p_d0_hat.append(p_hat_d0_list)
 
-        dtreat = (d == 1)
-        dcontrol = (d == 0)
-
         mu_hat_d1, mu_hat_d0, pi_hat_d1, pi_hat_d0, \
             p_hat_d1, p_hat_d0 = compute_selection(y, mu_hat_d1_list, mu_hat_d0_list, pi_hat_d1_list, pi_hat_d0_list,
                                                    p_hat_d1_list, p_hat_d0_list, smpls)
 
+        dtreat = (d == 1)
+        dcontrol = (d == 0)
         psi_a, psi_b = selection_score_elements(dtreat, dcontrol, mu_hat_d1, mu_hat_d0, pi_hat_d1, pi_hat_d0,
-                                                p_hat_d1, p_hat_d0, s, y, normalize_ipw, smpls)
+                                                p_hat_d1, p_hat_d0, s, y, normalize_ipw)
 
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
@@ -184,6 +183,8 @@ def fit_nuisance_selection(y, x, d, z, s,
             # predict nuisance mu
             mu_hat_d1 = ml_mu_d1.predict(xpi_test)
 
+            p_hat_d1 = _trimm(p_hat_d1, trimming_rule, trimming_threshold)
+
             # append predictions on test sample to final list of predictions
             mu_hat_d1_list.append(mu_hat_d1)
             pi_hat_d1_list.append(pi_hat_d1)
@@ -206,7 +207,7 @@ def fit_nuisance_selection(y, x, d, z, s,
             test_inds = smpls[i_fold][1]
 
             train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                          random_state=42, stratify=strata[train_inds])
+                                                          random_state=43, stratify=strata[train_inds])
 
             s_train_1 = s[train_inds_1]
             dx_train_1 = dx[train_inds_1, :]
@@ -231,6 +232,8 @@ def fit_nuisance_selection(y, x, d, z, s,
 
             ml_mu_d0.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
             mu_hat_d0 = ml_mu_d0.predict(xpi_test)
+
+            p_hat_d0 = _trimm(p_hat_d0, trimming_rule, trimming_threshold)
 
             mu_hat_d0_list.append(mu_hat_d0)
             pi_hat_d0_list.append(pi_hat_d0)
@@ -260,7 +263,7 @@ def compute_selection(y, mu_hat_d1_list, mu_hat_d0_list, pi_hat_d1_list, pi_hat_
 
 
 def selection_score_elements(dtreat, dcontrol, mu_d1, mu_d0,
-                             pi_d1, pi_d0, p_d1, p_d0, s, y, normalize_ipw, smpls):
+                             pi_d1, pi_d0, p_d1, p_d0, s, y, normalize_ipw):
     # psi_a
     psi_a = -1 * np.ones_like(y)
 

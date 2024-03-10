@@ -145,7 +145,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
         self._check_score(self.score)
 
-        _ = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=False)
+        ml_mu_is_classifier = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=True)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
         _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)
 
@@ -157,8 +157,18 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                                 'ml_pi': 'predict_proba',
                                 'ml_p': 'predict_proba'
                                 }
+        if ml_mu_is_classifier:
+            if self._dml_data._check_binary_outcome():
+                self._predict_method['ml_mu'] = 'predict_proba'
+            else:
+                raise ValueError(f'The ml_mu learner {str(ml_mu)} was identified as classifier '
+                                 'but the outcome is not binary with values 0 and 1.')
 
         self._initialize_ml_nuisance_params()
+
+        if not isinstance(self.normalize_ipw, bool):
+            raise TypeError('Normalization indicator has to be boolean. ' +
+                            f'Object of type {str(type(self.normalize_ipw))} passed.')
 
     @property
     def normalize_ipw(self):
