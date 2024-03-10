@@ -451,24 +451,60 @@ def generate_data_did_cs(request):
 
 
 @pytest.fixture(scope='session',
-                params=[(8000, 100),
+                params=[(10000, 100),
                         (20000, 100)])
-def generate_data_selection(request):
+def generate_data_selection_mar(request):
     params = request.param
     np.random.seed(1111)
     # setting parameters
-    n = params[0]
-    p = params[1]
+    n_obs = params[0]
+    dim_x = params[1]
 
-    s = 2
+    s = 2  # number of covariates that are confounders
+    sigma = np.array([[1, 0], [0, 1]])
+    e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n_obs).T
+
+    cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
+
+    d = np.where(np.dot(x, beta) + np.random.randn(n_obs) > 0, 1, 0)
+    z = None
+    s = np.where(np.dot(x, beta) + e[0] > 0, 1, 0)
+
+    y = np.dot(x, beta) + 1 * d + e[1]
+    y[s == 0] = 0
+
+    data = (x, y, d, z, s)
+
+    return data
+
+
+@pytest.fixture(scope='session',
+                params=[(32000, 100),
+                        (50000, 100)])
+def generate_data_selection_nonignorable(request):
+    params = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n_obs = params[0]
+    dim_x = params[1]
+
     sigma = np.array([[1, 0.5], [0.5, 1]])
-    e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n).T
-    x = np.random.randn(n, p)
-    beta = np.hstack((np.repeat(0.25, s), np.repeat(0, p - s)))
-    d = np.where(np.dot(x, beta) + np.random.randn(n) > 0, 1, 0)
-    z = np.random.randn(n)
-    s = np.where(np.dot(x, beta) + 0.25 * d + z + e[0] > 0, 1, 0)
-    y = np.dot(x, beta) + 0.5 * d + e[1]
+    gamma = 1
+    e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n_obs).T
+
+    cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
+
+    d = np.where(np.dot(x, beta) + np.random.randn(n_obs) > 0, 1, 0)
+    z = np.random.randn(n_obs)
+    s = np.where(np.dot(x, beta) + 0.25 * d + gamma * z + e[0] > 0, 1, 0)
+
+    y = np.dot(x, beta) + 1 * d + e[1]
     y[s == 0] = 0
 
     data = (x, y, d, z, s)

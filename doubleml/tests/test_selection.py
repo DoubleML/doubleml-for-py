@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.base import clone
 
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
@@ -14,8 +15,7 @@ from ._utils_selection_manual import fit_selection
 
 @pytest.fixture(scope='module',
                 params=[[LassoCV(),
-                         LogisticRegressionCV(),
-                         LogisticRegressionCV()]])
+                         LogisticRegressionCV(penalty='l1', solver='liblinear')]])
 def learner(request):
     return request.param
 
@@ -39,26 +39,33 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope='module',
-                params=[0.1])
+                params=[0.01])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure,
+def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_nonignorable,
+                          learner, score, dml_procedure,
                           trimming_threshold, normalize_ipw):
-    boot_methods = ['normal']
     n_folds = 3
 
     # collect data
-    (x, y, d, z, s) = generate_data_selection
+    np.random.seed(42)
+    if score == 'mar':
+        (x, y, d, z, s) = generate_data_selection_mar
+    else:
+        (x, y, d, z, s) = generate_data_selection_nonignorable
 
     ml_mu = clone(learner[0])
     ml_pi = clone(learner[1])
     ml_p = clone(learner[1])
 
-    np.random.seed(3141)
+    np.random.seed(42)
+    n_obs = len(y)
+    all_smpls = draw_smpls(n_obs, n_folds)
 
+    np.random.seed(42)
     if score == 'mar':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
@@ -75,15 +82,13 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
                                       score=score,
                                       dml_procedure=dml_procedure)
 
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds)
-
-    np.random.seed(3141)
+    np.random.seed(42)
     dml_sel_obj.set_sample_splitting(all_smpls=all_smpls)
     dml_sel_obj.fit()
 
+    np.random.seed(42)
     res_manual = fit_selection(y, x, d, z, s,
-                               ml_mu, ml_pi, ml_p,
+                               clone(learner[0]), clone(learner[1]), clone(learner[1]),
                                all_smpls, dml_procedure, score,
                                trimming_rule='truncate',
                                trimming_threshold=trimming_threshold,
@@ -92,8 +97,7 @@ def dml_selection_fixture(generate_data_selection, learner, score, dml_procedure
     res_dict = {'coef': dml_sel_obj.coef[0],
                 'coef_manual': res_manual['theta'],
                 'se': dml_sel_obj.se[0],
-                'se_manual': res_manual['se'],
-                'boot_methods': boot_methods}
+                'se_manual': res_manual['se']}
 
     # sensitivity tests
     # TODO
