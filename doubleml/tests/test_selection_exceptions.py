@@ -2,12 +2,11 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from doubleml import DoubleMLSSM, DoubleMLData
+from doubleml import DoubleMLSSM
 from doubleml.datasets import make_ssm_data
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
@@ -251,7 +250,6 @@ class LogisticRegressionManipulatedPredict(LogisticRegression):
 @pytest.mark.ci
 def test_ssm_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_mu: '
-    warn_msg_prefix = 'Learner provided for ml_mu is probably invalid: '
 
     msg = err_msg_prefix + 'provide an instance of a learner instead of a class.'
     with pytest.raises(TypeError, match=msg):
@@ -278,7 +276,7 @@ def test_ssm_exception_learner():
     log_reg._estimator_type = None
     msg = (r'Learner provided for ml_p is probably invalid: LogisticRegression\(\) is \(probably\) no classifier.')
     with pytest.warns(UserWarning, match=msg):
-        dml_ssm_hidden_classifier = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, log_reg)
+        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, log_reg)
 
 
 @pytest.mark.ci

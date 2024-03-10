@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.base import clone
 
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 
