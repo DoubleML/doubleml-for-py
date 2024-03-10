@@ -4,9 +4,9 @@ import numpy as np
 import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
-    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
-    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
+    DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree, DoubleMLSSM
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
+    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020, make_ssm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -25,6 +25,7 @@ dml_data_did_cs = make_did_SZ2020(n_obs=n_obs, cross_sectional_data=True)
 binary_outcome = np.random.binomial(n=1, p=0.5, size=n_obs)
 dml_data_did_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d)
 dml_data_did_cs_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d, t=t)
+dml_data_ssm = make_ssm_data(n_obs=n_obs)
 
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
 dml_pliv = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso())
@@ -38,6 +39,7 @@ dml_did = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
 dml_did_binary_outcome = DoubleMLDID(dml_data_did_binary_outcome, LogisticRegression(), LogisticRegression())
 dml_did_cs = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
 dml_did_cs_binary_outcome = DoubleMLDIDCS(dml_data_did_cs_binary_outcome, LogisticRegression(), LogisticRegression())
+dml_ssm = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
 
 
 @pytest.mark.ci
@@ -53,7 +55,8 @@ dml_did_cs_binary_outcome = DoubleMLDIDCS(dml_data_did_cs_binary_outcome, Logist
                           (dml_did, DoubleMLDID),
                           (dml_did_binary_outcome, DoubleMLDID),
                           (dml_did_cs, DoubleMLDIDCS),
-                          (dml_did_cs_binary_outcome, DoubleMLDIDCS)])
+                          (dml_did_cs_binary_outcome, DoubleMLDIDCS),
+                          (dml_ssm, DoubleMLSSM)])
 def test_return_types(dml_obj, cls):
     # ToDo: A second test case with multiple treatment variables would be helpful
     assert isinstance(dml_obj.__str__(), str)
@@ -77,6 +80,8 @@ def test_return_types(dml_obj, cls):
         isinstance(dml_obj.p_adjust('bonferroni'), pd.DataFrame)
     if isinstance(dml_obj, DoubleMLLPQ):
         assert isinstance(dml_obj.get_params('ml_m_z'), dict)
+    elif isinstance(dml_obj, DoubleMLSSM):
+        assert isinstance(dml_obj.get_params('ml_mu_d0'), dict)
     else:
         assert isinstance(dml_obj.get_params('ml_m'), dict)
     assert isinstance(dml_obj._dml_data.__str__(), str)
@@ -136,6 +141,11 @@ did_cs_dml1 = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
                             dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
 did_cs_dml1.fit()
 did_cs_dml1.bootstrap(n_rep_boot=n_rep_boot)
+
+ssm_dml1 = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression(),
+                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+ssm_dml1.fit()
+ssm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 
 @pytest.mark.ci
@@ -268,6 +278,13 @@ def test_stored_predictions():
     assert did_cs_dml1.predictions['ml_g_d1_t1'].shape == (n_obs, n_rep, n_treat)
     assert did_cs_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
 
+    assert ssm_dml1.predictions['ml_mu_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_mu_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_pi_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_pi_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_p_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_p_d1'].shape == (n_obs, n_rep, n_treat)
+
 
 @pytest.mark.ci
 def test_stored_nuisance_targets():
@@ -310,6 +327,13 @@ def test_stored_nuisance_targets():
     assert did_cs_dml1.nuisance_targets['ml_g_d1_t1'].shape == (n_obs, n_rep, n_treat)
     assert did_cs_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
 
+    assert ssm_dml1.nuisance_targets['ml_mu_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_mu_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_pi_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_pi_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_p_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_p_d1'].shape == (n_obs, n_rep, n_treat)
+
 
 @pytest.mark.ci
 def test_rmses():
@@ -351,6 +375,13 @@ def test_rmses():
     assert did_cs_dml1.rmses['ml_g_d1_t0'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_g_d1_t1'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
+
+    assert ssm_dml1.rmses['ml_mu_d0'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_mu_d1'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_pi_d0'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_pi_d1'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_p_d0'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_p_d1'].shape == (n_rep, n_treat)
 
 
 @pytest.mark.ci
