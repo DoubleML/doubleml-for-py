@@ -191,6 +191,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     def _check_score(self, score):
         if isinstance(score, str):
             valid_score = ['mar', 'nonignorable']
+            if score == 'sequential':
+                raise NotImplementedError('Sequential conditional independence not yet implemented.')
             if score not in valid_score:
                 raise ValueError('Invalid score ' + score + '. ' +
                                  'Valid score ' + ' or '.join(valid_score) + '.')
