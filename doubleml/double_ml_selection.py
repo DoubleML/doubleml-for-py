@@ -41,7 +41,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     n_folds : int
         Number of folds.
-        Default is ``3``.
+        Default is ``5``.
 
     n_rep : int
         Number of repetitons for the sample splitting.
@@ -117,7 +117,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                  ml_mu,
                  ml_pi,
                  ml_p,
-                 n_folds=3,
+                 n_folds=5,
                  n_rep=1,
                  score='mar',
                  dml_procedure='dml2',
@@ -205,12 +205,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None and self._score == 'mar':
-            warnings.warn('Incompatible data. ' +
-                          ' and '.join(obj_dml_data.z_cols) +
+            warnings.warn(' and '.join(obj_dml_data.z_cols) +
                           ' have been set as instrumental variable(s). '
                           'You are estimating the effect under the assumption of data missing at random. \
                              Instrumental variables will not be used in estimation.')
-        if obj_dml_data.z_cols is None and self._score == 'nonignorable_nonresponse':
+        if obj_dml_data.z_cols is None and self._score == 'nonignorable':
             raise ValueError('Sample selection by nonignorable nonresponse was set but instrumental variable \
                              is None. To estimate treatment effect under nonignorable nonresponse, \
                              specify an instrument for the selection variable.')
@@ -221,7 +220,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
 
-        if self._dml_data.z is not None:
+        if self._score == 'nonignorable':
             x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
             dx = np.column_stack((x, d, z))
         else:
