@@ -102,7 +102,7 @@ def fit_nuisance_selection(y, x, d, z, s,
     else:
         dx = np.column_stack((d, x, z))
 
-    if score == 'mar':
+    if score == 'missing-at-random':
         pi_hat_d1_list = fit_predict_proba(s, dx, ml_pi_d1, pi_d1_params, smpls, trimming_threshold=trimming_threshold)
         pi_hat_d0_list = fit_predict_proba(s, dx, ml_pi_d0, pi_d0_params, smpls, trimming_threshold=trimming_threshold)
 

@@ -48,8 +48,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'mar'`` or ``'nonignorable'``) specifying the score function.
-        Default is ``'mar'`` (missing at random).
+        A str (``'missing-at-random'`` or ``'nonignorable'``) specifying the score function.
+        Default is ``'missing-at-random'``.
 
     dml_procedure : str
         A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
@@ -119,9 +119,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                  ml_m,
                  n_folds=5,
                  n_rep=1,
-                 score='mar',
+                 score='missing-at-random',
                  dml_procedure='dml2',
-                 normalize_ipw=True,
+                 normalize_ipw=False,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
                  draw_sample_splitting=True,
@@ -200,7 +200,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     def _check_score(self, score):
         if isinstance(score, str):
-            valid_score = ['mar', 'nonignorable']
+            valid_score = ['missing-at-random', 'nonignorable']
             if score == 'sequential':
                 raise NotImplementedError('Sequential conditional independence not yet implemented.')
             if score not in valid_score:
@@ -216,7 +216,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None and self._score == 'mar':
+        if obj_dml_data.z_cols is not None and self._score == 'missing-at-random':
             warnings.warn(' and '.join(obj_dml_data.z_cols) +
                           ' have been set as instrumental variable(s). '
                           'You are estimating the effect under the assumption of data missing at random. \
@@ -240,7 +240,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
 
-        if self._score == 'mar':
+        if self._score == 'missing-at-random':
             # POTENTIAL OUTCOME Y(1)
             pi_hat_d1 = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_pi_d1'), method=self._predict_method['ml_pi'],

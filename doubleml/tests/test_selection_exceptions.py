@@ -51,7 +51,7 @@ def test_ssm_exception_data():
 @pytest.mark.ci
 def test_ssm_exception_scores():
     # MAR
-    msg = 'Invalid score MAR. Valid score mar or nonignorable.'
+    msg = 'Invalid score MAR. Valid score missing-at-random or nonignorable.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score='MAR')
     msg = 'score should be either a string or a callable. 0 was passed.'
@@ -326,7 +326,7 @@ def test_double_ml_exception_evaluate_learner():
                               ml_m=LogisticRegression(),
                               trimming_threshold=0.05,
                               n_folds=5,
-                              score='mar')
+                              score='missing-at-random')
 
     msg = r'Apply fit\(\) before evaluate_learners\(\).'
     with pytest.raises(ValueError, match=msg):

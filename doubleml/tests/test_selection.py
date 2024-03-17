@@ -20,7 +20,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['mar', 'nonignorable'])
+                params=['missing-at-random', 'nonignorable'])
 def score(request):
     return request.param
 
@@ -51,7 +51,7 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
 
     # collect data
     np.random.seed(42)
-    if score == 'mar':
+    if score == 'missing-at-random':
         (x, y, d, z, s) = generate_data_selection_mar
     else:
         (x, y, d, z, s) = generate_data_selection_nonignorable
@@ -65,7 +65,7 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
     all_smpls = draw_smpls(n_obs, n_folds)
 
     np.random.seed(42)
-    if score == 'mar':
+    if score == 'missing-at-random':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
                                       ml_g, ml_pi, ml_m,
