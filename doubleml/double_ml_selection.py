@@ -15,7 +15,8 @@ from ._utils import (
     _predict_zero_one_propensity)
 from ._utils_checks import (
     _check_finite_predictions,
-    _check_trimming)
+    _check_trimming,
+    _check_score)
 from .double_ml_score_mixins import LinearScoreMixin
 
 
@@ -143,7 +144,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._check_data(self._dml_data)
-        self._check_score(self.score)
+        _check_score(self.score, ['missing-at-random', 'nonignorable'])
 
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
@@ -198,20 +199,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
                         valid_learner}
 
-    def _check_score(self, score):
-        if isinstance(score, str):
-            valid_score = ['missing-at-random', 'nonignorable']
-            if score == 'sequential':
-                raise NotImplementedError('Sequential conditional independence not yet implemented.')
-            if score not in valid_score:
-                raise ValueError('Invalid score ' + score + '. ' +
-                                 'Valid score ' + ' or '.join(valid_score) + '.')
-        else:
-            if not callable(score):
-                raise TypeError('score should be either a string or a callable. '
-                                '%r was passed.' % score)
-        return
-
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
@@ -233,7 +220,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
 
         if self._score == 'nonignorable':
-            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
             dx = np.column_stack((x, d, z))
         else:
             dx = np.column_stack((x, d))
@@ -291,6 +278,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             y_1 = y
 
         else:
+            assert self._score == 'nonignorable'
             # initialize nuisance predictions, targets and models -- will be overwritten in each iteration
             mu_hat_d1 = {'models': None,
                          'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),

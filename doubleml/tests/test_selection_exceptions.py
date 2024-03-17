@@ -57,9 +57,6 @@ def test_ssm_exception_scores():
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score=0)
-    msg = 'Sequential conditional independence not yet implemented.'
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score='sequential')
 
 
 @pytest.mark.ci
