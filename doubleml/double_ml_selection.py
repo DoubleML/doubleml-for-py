@@ -27,17 +27,17 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     obj_dml_data : :class:`DoubleMLData` object
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
-    ml_mu : estimator implementing ``fit()`` and ``predict()``
+    ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`mu(S,D,X) = E[Y|S,D,X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g(S,D,X) = E[Y|S,D,X]`.
+
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m(X) = Pr[D=1|X]`.
 
     ml_pi : classifier implementing ``fit()`` and ``predict_proba()``
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `pi(D,X) = Pr[S=1|D,X]`.
-
-    ml_p : classifier implementing ``fit()`` and ``predict_proba()``
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`p(X) = Pr[D=1|X]`.
+    A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+    :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `\pi(D,X) = Pr[S=1|D,X]`.
 
     n_folds : int
         Number of folds.
@@ -98,10 +98,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> simul_data = DoubleMLData.from_arrays(X, y, d, z=None, t=s)
     >>> learner = LassoCV()
     >>> learner_class = LogisticRegressionCV()
-    >>> ml_mu_sim = clone(learner)
+    >>> ml_g_sim = clone(learner)
     >>> ml_pi_sim = clone(learner_class)
-    >>> ml_p_sim = clone(learner_class)
-    >>> obj_dml_sim = DoubleMLS(simul_data, ml_mu_sim, ml_pi_sim, ml_p_sim)
+    >>> ml_m_sim = clone(learner_class)
+    >>> obj_dml_sim = DoubleMLS(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
     >>> obj_dml_sim.fit().summary
           coef   std err         t         P>|t|     2.5 %    97.5 %
     d  0.49135  0.070534  6.966097  3.258541e-12  0.353105  0.629595
@@ -114,9 +114,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     def __init__(self,
                  obj_dml_data,
-                 ml_mu,
+                 ml_g,
                  ml_pi,
-                 ml_p,
+                 ml_m,
                  n_folds=5,
                  n_rep=1,
                  score='mar',
@@ -145,23 +145,23 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
         self._check_score(self.score)
 
-        ml_mu_is_classifier = self._check_learner(ml_mu, 'ml_mu', regressor=True, classifier=True)
+        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
-        _ = self._check_learner(ml_p, 'ml_p', regressor=False, classifier=True)
+        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
 
-        self._learner = {'ml_mu': clone(ml_mu),
+        self._learner = {'ml_g': clone(ml_g),
                          'ml_pi': clone(ml_pi),
-                         'ml_p': clone(ml_p),
+                         'ml_m': clone(ml_m),
                          }
-        self._predict_method = {'ml_mu': 'predict',
+        self._predict_method = {'ml_g': 'predict',
                                 'ml_pi': 'predict_proba',
-                                'ml_p': 'predict_proba'
+                                'ml_m': 'predict_proba'
                                 }
-        if ml_mu_is_classifier:
+        if ml_g_is_classifier:
             if self._dml_data._check_binary_outcome():
-                self._predict_method['ml_mu'] = 'predict_proba'
+                self._predict_method['ml_g'] = 'predict_proba'
             else:
-                raise ValueError(f'The ml_mu learner {str(ml_mu)} was identified as classifier '
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
                                  'but the outcome is not binary with values 0 and 1.')
 
         self._initialize_ml_nuisance_params()
@@ -192,9 +192,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_mu_d0', 'ml_mu_d1',
+        valid_learner = ['ml_g_d0', 'ml_g_d1',
                          'ml_pi_d0', 'ml_pi_d1',
-                         'ml_p_d0', 'ml_p_d1']
+                         'ml_m_d0', 'ml_m_d1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
                         valid_learner}
 
@@ -249,18 +249,18 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             _check_finite_predictions(pi_hat_d1['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
             # propensity score p
-            p_hat_d1 = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self._get_params('ml_p_d1'), method=self._predict_method['ml_p'],
+            p_hat_d1 = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self._get_params('ml_m_d1'), method=self._predict_method['ml_m'],
                                        return_models=return_models)
             p_hat_d1['targets'] = p_hat_d1['targets'].astype(float)
-            _check_finite_predictions(p_hat_d1['preds'], self._learner['ml_p'], 'ml_p', smpls)
+            _check_finite_predictions(p_hat_d1['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
             # nuisance mu
-            mu_hat_d1 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_mu_d1'), method=self._predict_method['ml_mu'],
+            mu_hat_d1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g_d1'), method=self._predict_method['ml_g'],
                                         return_models=return_models)
             mu_hat_d1['targets'] = mu_hat_d1['targets'].astype(float)
-            _check_finite_predictions(mu_hat_d1['preds'], self._learner['ml_mu'], 'ml_mu1', smpls)
+            _check_finite_predictions(mu_hat_d1['preds'], self._learner['ml_g'], 'ml_g1', smpls)
 
             # POTENTIAL OUTCOME Y(0)
             pi_hat_d0 = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
@@ -269,17 +269,17 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             pi_hat_d0['targets'] = pi_hat_d0['targets'].astype(float)
             _check_finite_predictions(pi_hat_d0['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
-            p_hat_d0 = _dml_cv_predict(self._learner['ml_p'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                       est_params=self._get_params('ml_p_d0'), method=self._predict_method['ml_p'],
+            p_hat_d0 = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                       est_params=self._get_params('ml_m_d0'), method=self._predict_method['ml_m'],
                                        return_models=return_models)
             p_hat_d0['preds'] = 1 - p_hat_d0['preds']
-            _check_finite_predictions(p_hat_d0['preds'], self._learner['ml_p'], 'ml_p', smpls)
+            _check_finite_predictions(p_hat_d0['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
-            mu_hat_d0 = _dml_cv_predict(self._learner['ml_mu'], x, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_mu_d0'), method=self._predict_method['ml_mu'],
+            mu_hat_d0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_g_d0'), method=self._predict_method['ml_g'],
                                         return_models=return_models)
             mu_hat_d0['targets'] = mu_hat_d0['targets'].astype(float)
-            _check_finite_predictions(mu_hat_d0['preds'], self._learner['ml_mu'], 'ml_mu', smpls)
+            _check_finite_predictions(mu_hat_d0['preds'], self._learner['ml_g'], 'ml_g', smpls)
 
             # treatment indicator
             dtreat = (d == 1)
@@ -357,10 +357,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 d_train_2 = d[train_inds_2]
                 xpi_test = xpi[test_inds, :]
 
-                ml_p_d1 = clone(self._learner['ml_p'])
-                ml_p_d1.fit(xpi_train_2, d_train_2)
+                ml_m_d1 = clone(self._learner['ml_m'])
+                ml_m_d1.fit(xpi_train_2, d_train_2)
 
-                p_hat_d1['preds'] = _predict_zero_one_propensity(ml_p_d1, xpi_test)
+                p_hat_d1['preds'] = _predict_zero_one_propensity(ml_m_d1, xpi_test)
                 p_hat_d1['targets'] = d[test_inds]
 
                 # estimate nuisance mu on second training sample
@@ -369,11 +369,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
                 y_s1_d1_train_2 = y[s1_d1_train_2_indices]
 
-                ml_mu_d1_prelim = clone(self._learner['ml_mu'])
-                ml_mu_d1_prelim.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
+                ml_g_d1_prelim = clone(self._learner['ml_g'])
+                ml_g_d1_prelim.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
 
                 # predict nuisance mu
-                mu_hat_d1['preds'] = ml_mu_d1_prelim.predict(xpi_test)
+                mu_hat_d1['preds'] = ml_g_d1_prelim.predict(xpi_test)
                 mu_hat_d1['targets'] = y[test_inds]
 
                 # append predictions on test sample to final list of predictions
@@ -425,10 +425,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 d_train_2 = d[train_inds_2]
                 xpi_test = xpi[test_inds, :]
 
-                ml_p_d0 = clone(self._learner['ml_p'])
-                ml_p_d0.fit(xpi_train_2, d_train_2)
+                ml_m_d0 = clone(self._learner['ml_m'])
+                ml_m_d0.fit(xpi_train_2, d_train_2)
 
-                p_hat_d0['preds'] = _predict_zero_one_propensity(ml_p_d0, xpi_test)
+                p_hat_d0['preds'] = _predict_zero_one_propensity(ml_m_d0, xpi_test)
                 p_hat_d0['preds'] = 1 - p_hat_d0['preds']
                 p_hat_d0['targets'] = d[test_inds]
 
@@ -437,10 +437,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
                 y_s1_d0_train_2 = y[s1_d0_train_2_indices]
 
-                ml_mu_d0_prelim = clone(self._learner['ml_mu'])
-                ml_mu_d0_prelim.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
+                ml_g_d0_prelim = clone(self._learner['ml_g'])
+                ml_g_d0_prelim.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
 
-                mu_hat_d0['preds'] = ml_mu_d0_prelim.predict(xpi_test)
+                mu_hat_d0['preds'] = ml_g_d0_prelim.predict(xpi_test)
                 mu_hat_d0['targets'] = y[test_inds]
 
                 dcontrol.append((d == 0)[test_inds])
@@ -476,24 +476,24 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
 
-        preds = {'predictions': {'ml_mu_d0': mu_hat_d0['preds'],
-                                 'ml_mu_d1': mu_hat_d1['preds'],
+        preds = {'predictions': {'ml_g_d0': mu_hat_d0['preds'],
+                                 'ml_g_d1': mu_hat_d1['preds'],
                                  'ml_pi_d0': pi_hat_d0['preds'],
                                  'ml_pi_d1': pi_hat_d1['preds'],
-                                 'ml_p_d0': p_hat_d0['preds'],
-                                 'ml_p_d1': p_hat_d1['preds']},
-                 'targets': {'ml_mu_d0': mu_hat_d0['targets'],
-                             'ml_mu_d1': mu_hat_d1['targets'],
+                                 'ml_m_d0': p_hat_d0['preds'],
+                                 'ml_m_d1': p_hat_d1['preds']},
+                 'targets': {'ml_g_d0': mu_hat_d0['targets'],
+                             'ml_g_d1': mu_hat_d1['targets'],
                              'ml_pi_d0': pi_hat_d0['targets'],
                              'ml_pi_d1': pi_hat_d1['targets'],
-                             'ml_p_d0': p_hat_d0['targets'],
-                             'ml_p_d1': p_hat_d1['targets']},
-                 'models': {'ml_mu_d0': mu_hat_d0['models'],
-                            'ml_mu_d1': mu_hat_d1['models'],
+                             'ml_m_d0': p_hat_d0['targets'],
+                             'ml_m_d1': p_hat_d1['targets']},
+                 'models': {'ml_g_d0': mu_hat_d0['models'],
+                            'ml_g_d1': mu_hat_d1['models'],
                             'ml_pi_d0': pi_hat_d0['models'],
                             'ml_pi_d1': pi_hat_d1['models'],
-                            'ml_p_d0': p_hat_d0['models'],
-                            'ml_p_d1': p_hat_d1['models']}
+                            'ml_m_d0': p_hat_d0['models'],
+                            'ml_m_d1': p_hat_d1['models']}
                  }
 
         return psi_elements, preds
@@ -531,9 +531,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         dx = np.column_stack((d, x))
 
         if scoring_methods is None:
-            scoring_methods = {'ml_mu': None,
+            scoring_methods = {'ml_g': None,
                                'ml_pi': None,
-                               'ml_p': None}
+                               'ml_m': None}
 
         # nuisance training sets conditional on d
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
@@ -543,10 +543,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
         # hyperparameter tuning for ML
         mu_d0_tune_res = _dml_tune(y, x, train_inds_d0_s1,
-                                   self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
+                                   self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         mu_d1_tune_res = _dml_tune(y, x, train_inds_d1_s1,
-                                   self._learner['ml_mu'], param_grids['ml_mu'], scoring_methods['ml_mu'],
+                                   self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         pi_d0_tune_res = _dml_tune(s, dx, train_inds,
                                    self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
@@ -555,10 +555,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                                    self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
                                    n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         p_d0_tune_res = _dml_tune(d, x, train_inds,
-                                  self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
+                                  self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
         p_d1_tune_res = _dml_tune(d, x, train_inds,
-                                  self._learner['ml_p'], param_grids['ml_p'], scoring_methods['ml_p'],
+                                  self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
         mu_d0_best_params = [xx.best_params_ for xx in mu_d0_tune_res]
@@ -568,12 +568,12 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         p_d0_best_params = [xx.best_params_ for xx in pi_d0_tune_res]
         p_d1_best_params = [xx.best_params_ for xx in pi_d1_tune_res]
 
-        params = {'ml_mu_d0': mu_d0_best_params,
-                  'ml_mu_d1': mu_d1_best_params,
+        params = {'ml_g_d0': mu_d0_best_params,
+                  'ml_g_d1': mu_d1_best_params,
                   'ml_pi_d0': pi_d0_best_params,
                   'ml_pi_d1': pi_d1_best_params,
-                  'ml_p_d0': p_d0_best_params,
-                  'ml_p_d1': p_d1_best_params}
+                  'ml_m_d0': p_d0_best_params,
+                  'ml_m_d1': p_d1_best_params}
 
         tune_res = {'mu_d0_tune': mu_d0_tune_res,
                     'mu_d1_tune': mu_d1_tune_res,
@@ -592,12 +592,12 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         y = self._dml_data.y
         d = self._dml_data.d
 
-        mu_hat_d1 = preds['predictions']['ml_mu_d1']
-        mu_hat_d0 = preds['predictions']['ml_mu_d0']
+        mu_hat_d1 = preds['predictions']['ml_g_d1']
+        mu_hat_d0 = preds['predictions']['ml_g_d0']
         pi_hat_d1 = preds['predictions']['ml_pi_d1']
         pi_hat_d0 = preds['predictions']['ml_pi_d0']
-        p_hat_d1 = preds['predictions']['ml_p_d1']
-        p_hat_d0 = preds['predictions']['ml_p_d0']
+        p_hat_d1 = preds['predictions']['ml_m_d1']
+        p_hat_d0 = preds['predictions']['ml_m_d0']
 
         mu_hat = np.multiply(d, mu_hat_d1) + np.multiply(1.0-d, mu_hat_d0)
         sigma2_score_element = np.square(y - mu_hat)

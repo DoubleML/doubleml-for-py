@@ -56,9 +56,9 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
     else:
         (x, y, d, z, s) = generate_data_selection_nonignorable
 
-    ml_mu = clone(learner[0])
+    ml_g = clone(learner[0])
     ml_pi = clone(learner[1])
-    ml_p = clone(learner[1])
+    ml_m = clone(learner[1])
 
     np.random.seed(42)
     n_obs = len(y)
@@ -68,7 +68,7 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
     if score == 'mar':
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, t=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
-                                      ml_mu, ml_pi, ml_p,
+                                      ml_g, ml_pi, ml_m,
                                       n_folds=n_folds,
                                       score=score,
                                       dml_procedure=dml_procedure)
@@ -76,7 +76,7 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
         assert score == 'nonignorable'
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
-                                      ml_mu, ml_pi, ml_p,
+                                      ml_g, ml_pi, ml_m,
                                       n_folds=n_folds,
                                       score=score,
                                       dml_procedure=dml_procedure)

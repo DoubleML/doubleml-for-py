@@ -13,11 +13,11 @@ np.random.seed(3141)
 n = 100
 dml_data_mar = make_ssm_data(n_obs=n, mar=True)
 dml_data_nonignorable = make_ssm_data(n_obs=n, mar=False)
-ml_mu = Lasso()
+ml_g = Lasso()
 ml_pi = LogisticRegression()
-ml_p = LogisticRegression()
-dml_ssm_mar = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p)
-dml_ssm_nonignorable = DoubleMLSSM(dml_data_nonignorable, ml_mu, ml_pi, ml_p)
+ml_m = LogisticRegression()
+dml_ssm_mar = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m)
+dml_ssm_nonignorable = DoubleMLSSM(dml_data_nonignorable, ml_g, ml_pi, ml_m)
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -34,11 +34,11 @@ class DummyDataClass(DoubleMLBaseData):
 def test_ssm_exception_data():
     msg = 'The data must be of DoubleMLData or DoubleMLClusterData type.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(pd.DataFrame(), ml_mu, ml_pi, ml_p)
+        _ = DoubleMLSSM(pd.DataFrame(), ml_g, ml_pi, ml_m)
 
     msg = 'The data must be of DoubleMLData type.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_mu, ml_pi, ml_p)
+        _ = DoubleMLSSM(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_pi, ml_m)
 
     # Nonignorable nonresponse without instrument
     msg = ('Sample selection by nonignorable nonresponse was set but instrumental variable \
@@ -53,30 +53,30 @@ def test_ssm_exception_scores():
     # MAR
     msg = 'Invalid score MAR. Valid score mar or nonignorable.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, score='MAR')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score='MAR')
     msg = 'score should be either a string or a callable. 0 was passed.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, score=0)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score=0)
     msg = 'Sequential conditional independence not yet implemented.'
     with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, score='sequential')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, score='sequential')
 
 
 @pytest.mark.ci
 def test_ssm_exception_trimming_rule():
     msg = 'Invalid trimming_rule discard. Valid trimming_rule truncate.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, trimming_rule='discard')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, trimming_rule='discard')
 
     # check the trimming_threshold exceptions
     msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p,
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m,
                         trimming_rule='truncate', trimming_threshold="0.1")
 
     msg = 'Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p,
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m,
                         trimming_rule='truncate', trimming_threshold=0.6)
 
 
@@ -84,59 +84,59 @@ def test_ssm_exception_trimming_rule():
 def test_ssm_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, normalize_ipw=1)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, normalize_ipw=1)
 
 
 @pytest.mark.ci
 def test_ssm_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, n_folds=1.5)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_folds=1.5)
     msg = ('The number of repetitions for the sample splitting must be of int type. '
            "1.5 of type <class 'float'> was passed.")
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, n_rep=1.5)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_rep=1.5)
     msg = 'The number of folds must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, n_folds=0)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_folds=0)
     msg = 'The number of repetitions for the sample splitting must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, n_rep=0)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_rep=0)
     msg = 'apply_cross_fitting must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, apply_cross_fitting=1)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=1)
     msg = 'draw_sample_splitting must be True or False. Got true.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, draw_sample_splitting='true')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, draw_sample_splitting='true')
 
 
 @pytest.mark.ci
 def test_ssm_exception_dml_procedure():
     msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, dml_procedure='1')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, dml_procedure='1')
     msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, dml_procedure='dml')
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, dml_procedure='dml')
 
 
 @pytest.mark.ci
 def test_ssm_warning_crossfitting_onefold():
     msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, apply_cross_fitting=True, n_folds=1)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=True, n_folds=1)
 
 
 @pytest.mark.ci
 def test_ssm_exception_no_cross_fit():
     msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
     with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, apply_cross_fitting=False)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=False)
 
 
 @pytest.mark.ci
 def test_ssm_exception_get_params():
-    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_mu_d0 or ml_mu_d1 or ml_pi_d0 or ml_pi_d1 or ml_p_d0 or ml_p_d1.'
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi_d0 or ml_pi_d1 or ml_m_d0 or ml_m_d1.'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_mar.get_params('ml_r')
 
@@ -145,7 +145,7 @@ def test_ssm_exception_get_params():
 def test_ssm_exception_smpls():
     msg = ('Sample splitting not specified. '
            r'Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\).')
-    dml_plr_no_smpls = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p, draw_sample_splitting=False)
+    dml_plr_no_smpls = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
 
@@ -165,7 +165,7 @@ def test_ssm_exception_fit():
 
 @pytest.mark.ci
 def test_ssm_exception_bootstrap():
-    dml_ssm_boot = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p)
+    dml_ssm_boot = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m)
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_boot.bootstrap()
@@ -184,7 +184,7 @@ def test_ssm_exception_bootstrap():
 
 @pytest.mark.ci
 def test_ssm_exception_confint():
-    dml_ssm_confint = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, ml_p)
+    dml_ssm_confint = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m)
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
@@ -212,12 +212,12 @@ def test_ssm_exception_confint():
 
 @pytest.mark.ci
 def test_ssm_exception_set_ml_nuisance_params():
-    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_mu_d0 or ml_mu_d1 or ml_pi_d0 or ml_pi_d1 or ml_p_d0 or ml_p_d1.'
+    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi_d0 or ml_pi_d1 or ml_m_d0 or ml_m_d1.'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_mar.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
     msg = 'Invalid treatment variable y. Valid treatment variable d.'
     with pytest.raises(ValueError, match=msg):
-        dml_ssm_mar.set_ml_nuisance_params('ml_mu_d0', 'y', {'alpha': 0.1})
+        dml_ssm_mar.set_ml_nuisance_params('ml_g_d0', 'y', {'alpha': 0.1})
 
 
 class _DummyNoSetParams:
@@ -249,45 +249,45 @@ class LogisticRegressionManipulatedPredict(LogisticRegression):
 
 @pytest.mark.ci
 def test_ssm_exception_learner():
-    err_msg_prefix = 'Invalid learner provided for ml_mu: '
+    err_msg_prefix = 'Invalid learner provided for ml_g: '
 
     msg = err_msg_prefix + 'provide an instance of a learner instead of a class.'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, Lasso, ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, Lasso, ml_pi, ml_m)
     msg = err_msg_prefix + r'BaseEstimator\(\) has no method .fit\(\).'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, BaseEstimator(), ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, BaseEstimator(), ml_pi, ml_m)
     msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .set_params\(\).'
     with pytest.raises(TypeError):
-        _ = DoubleMLSSM(dml_data_mar, _DummyNoSetParams(), ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, _DummyNoSetParams(), ml_pi, ml_m)
     msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .get_params\(\).'
     with pytest.raises(TypeError):
-        _ = DoubleMLSSM(dml_data_mar, _DummyNoGetParams(), ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, _DummyNoGetParams(), ml_pi, ml_m)
 
-    # allow classifiers for ml_mu, but only for binary outcome
-    msg = (r'The ml_mu learner LogisticRegression\(\) was identified as classifier '
+    # allow classifiers for ml_g, but only for binary outcome
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier '
            'but the outcome is not binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, LogisticRegression(), ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, LogisticRegression(), ml_pi, ml_m)
 
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegression()
     log_reg._estimator_type = None
-    msg = (r'Learner provided for ml_p is probably invalid: LogisticRegression\(\) is \(probably\) no classifier.')
+    msg = (r'Learner provided for ml_m is probably invalid: LogisticRegression\(\) is \(probably\) no classifier.')
     with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_mu, ml_pi, log_reg)
+        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, log_reg)
 
 
 @pytest.mark.ci
 def test_ssm_exception_and_warning_learner():
     # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
     with pytest.raises(TypeError):
-        _ = DoubleMLSSM(dml_data_mar, _DummyNoClassifier(), ml_pi, ml_p)
+        _ = DoubleMLSSM(dml_data_mar, _DummyNoClassifier(), ml_pi, ml_m)
     msg = 'Invalid learner provided for ml_pi: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, Lasso(), Lasso(), ml_p)
-    msg = 'Invalid learner provided for ml_p: ' + r'Lasso\(\) has no method .predict_proba\(\).'
+        _ = DoubleMLSSM(dml_data_mar, Lasso(), Lasso(), ml_m)
+    msg = 'Invalid learner provided for ml_m: ' + r'Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, Lasso(), ml_pi, Lasso())
 
@@ -310,20 +310,20 @@ class LassoWithInfPred(Lasso):
 
 @pytest.mark.ci
 def test_ssm_nan_prediction():
-    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_mu1 are not finite.'
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g1 are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, LassoWithNanPred(), ml_pi, ml_p).fit()
-    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_mu1 are not finite.'
+        _ = DoubleMLSSM(dml_data_mar, LassoWithNanPred(), ml_pi, ml_m).fit()
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g1 are not finite.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, LassoWithInfPred(), ml_pi, ml_p).fit()
+        _ = DoubleMLSSM(dml_data_mar, LassoWithInfPred(), ml_pi, ml_m).fit()
 
 
 @pytest.mark.ci
 def test_double_ml_exception_evaluate_learner():
     dml_ssm_obj = DoubleMLSSM(dml_data_mar,
-                              ml_mu=Lasso(),
+                              ml_g=Lasso(),
                               ml_pi=LogisticRegression(),
-                              ml_p=LogisticRegression(),
+                              ml_m=LogisticRegression(),
                               trimming_threshold=0.05,
                               n_folds=5,
                               score='mar')
@@ -338,12 +338,12 @@ def test_double_ml_exception_evaluate_learner():
     with pytest.raises(TypeError, match=msg):
         dml_ssm_obj.evaluate_learners(metric="mse")
 
-    msg = (r"The learners have to be a subset of \['ml_mu_d0', 'ml_mu_d1', 'ml_pi_d0', 'ml_pi_d1', 'ml_p_d0', 'ml_p_d1'\]. "
+    msg = (r"The learners have to be a subset of \['ml_g_d0', 'ml_g_d1', 'ml_pi_d0', 'ml_pi_d1', 'ml_m_d0', 'ml_m_d1'\]. "
            r"Learners \['ml_g', 'ml_m'\] provided.")
     with pytest.raises(ValueError, match=msg):
         dml_ssm_obj.evaluate_learners(learners=['ml_g', 'ml_m'])
 
-    msg = 'Evaluation from learner ml_mu_d0 is not finite.'
+    msg = 'Evaluation from learner ml_g_d0 is not finite.'
 
     def eval_fct(y_pred, y_true):
         return np.nan

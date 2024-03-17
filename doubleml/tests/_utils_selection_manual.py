@@ -90,12 +90,12 @@ def fit_nuisance_selection(y, x, d, z, s,
                            pi_d0_params=None, pi_d1_params=None,
                            p_d0_params=None, p_d1_params=None):
 
-    ml_mu_d1 = clone(learner_mu)
-    ml_mu_d0 = clone(learner_mu)
+    ml_g_d1 = clone(learner_mu)
+    ml_g_d0 = clone(learner_mu)
     ml_pi_d1 = clone(learner_pi)
     ml_pi_d0 = clone(learner_pi)
-    ml_p_d1 = clone(learner_p)
-    ml_p_d0 = clone(learner_p)
+    ml_m_d1 = clone(learner_p)
+    ml_m_d0 = clone(learner_p)
 
     if z is None:
         dx = np.column_stack((d, x))
@@ -106,15 +106,15 @@ def fit_nuisance_selection(y, x, d, z, s,
         pi_hat_d1_list = fit_predict_proba(s, dx, ml_pi_d1, pi_d1_params, smpls, trimming_threshold=trimming_threshold)
         pi_hat_d0_list = fit_predict_proba(s, dx, ml_pi_d0, pi_d0_params, smpls, trimming_threshold=trimming_threshold)
 
-        p_hat_d1_list = fit_predict_proba(d, x, ml_p_d1, p_d1_params, smpls)
-        p_hat_d0_prelim = fit_predict_proba(d, x, ml_p_d0, p_d0_params, smpls)
+        p_hat_d1_list = fit_predict_proba(d, x, ml_m_d1, p_d1_params, smpls)
+        p_hat_d0_prelim = fit_predict_proba(d, x, ml_m_d0, p_d0_params, smpls)
         p_hat_d0_list = [1 - p for p in p_hat_d0_prelim]
 
         train_cond_d1_s1 = np.intersect1d(np.where(d == 1)[0], np.where(s == 1)[0])
-        mu_hat_d1_list = fit_predict(y, x, ml_mu_d1, mu_d1_params, smpls, train_cond=train_cond_d1_s1)
+        mu_hat_d1_list = fit_predict(y, x, ml_g_d1, mu_d1_params, smpls, train_cond=train_cond_d1_s1)
 
         train_cond_d0_s1 = np.intersect1d(np.where(d == 0)[0], np.where(s == 1)[0])
-        mu_hat_d0_list = fit_predict(y, x, ml_mu_d0, mu_d0_params, smpls, train_cond=train_cond_d0_s1)
+        mu_hat_d0_list = fit_predict(y, x, ml_g_d0, mu_d0_params, smpls, train_cond=train_cond_d0_s1)
     else:
         # initialize empty lists
         mu_hat_d1_list = []
@@ -129,17 +129,17 @@ def fit_nuisance_selection(y, x, d, z, s,
 
         # POTENTIAL OUTCOME Y(1)
         for i_fold, _ in enumerate(smpls):
-            ml_mu_d1 = clone(learner_mu)
+            ml_g_d1 = clone(learner_mu)
             ml_pi_d1 = clone(learner_pi)
-            ml_p_d1 = clone(learner_p)
+            ml_m_d1 = clone(learner_p)
 
             # set the params for the nuisance learners
             if mu_d1_params is not None:
-                ml_mu_d1.set_params(**mu_d1_params[i_fold])
+                ml_g_d1.set_params(**mu_d1_params[i_fold])
             if pi_d1_params is not None:
                 ml_pi_d1.set_params(**pi_d1_params[i_fold])
             if p_d1_params is not None:
-                ml_p_d1.set_params(**p_d1_params[i_fold])
+                ml_m_d1.set_params(**p_d1_params[i_fold])
 
             train_inds = smpls[i_fold][0]
             test_inds = smpls[i_fold][1]
@@ -168,9 +168,9 @@ def fit_nuisance_selection(y, x, d, z, s,
             d_train_2 = d[train_inds_2]
             xpi_test = xpi[test_inds, :]
 
-            ml_p_d1.fit(xpi_train_2, d_train_2)
+            ml_m_d1.fit(xpi_train_2, d_train_2)
 
-            p_hat_d1 = _predict_zero_one_propensity(ml_p_d1, xpi_test)
+            p_hat_d1 = _predict_zero_one_propensity(ml_m_d1, xpi_test)
 
             # estimate nuisance mu on second training sample
             s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0],
@@ -178,10 +178,10 @@ def fit_nuisance_selection(y, x, d, z, s,
             xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
             y_s1_d1_train_2 = y[s1_d1_train_2_indices]
 
-            ml_mu_d1.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
+            ml_g_d1.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
 
             # predict nuisance mu
-            mu_hat_d1 = ml_mu_d1.predict(xpi_test)
+            mu_hat_d1 = ml_g_d1.predict(xpi_test)
 
             p_hat_d1 = _trimm(p_hat_d1, trimming_rule, trimming_threshold)
 
@@ -192,16 +192,16 @@ def fit_nuisance_selection(y, x, d, z, s,
 
         # POTENTIAL OUTCOME Y(0)
         for i_fold, _ in enumerate(smpls):
-            ml_mu_d0 = clone(learner_mu)
+            ml_g_d0 = clone(learner_mu)
             ml_pi_d0 = clone(learner_pi)
-            ml_p_d0 = clone(learner_p)
+            ml_m_d0 = clone(learner_p)
 
             if mu_d0_params is not None:
-                ml_mu_d0.set_params(**mu_d0_params[i_fold])
+                ml_g_d0.set_params(**mu_d0_params[i_fold])
             if pi_d1_params is not None:
                 ml_pi_d0.set_params(**pi_d0_params[i_fold])
             if p_d1_params is not None:
-                ml_p_d0.set_params(**p_d0_params[i_fold])
+                ml_m_d0.set_params(**p_d0_params[i_fold])
 
             train_inds = smpls[i_fold][0]
             test_inds = smpls[i_fold][1]
@@ -222,16 +222,16 @@ def fit_nuisance_selection(y, x, d, z, s,
             d_train_2 = d[train_inds_2]
             xpi_test = xpi[test_inds, :]
 
-            ml_p_d0.fit(xpi_train_2, d_train_2)
-            p_hat_d0 = _predict_zero_one_propensity(ml_p_d0, xpi_test)
+            ml_m_d0.fit(xpi_train_2, d_train_2)
+            p_hat_d0 = _predict_zero_one_propensity(ml_m_d0, xpi_test)
 
             s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0],
                                                    np.intersect1d(np.where(s == 1)[0], train_inds_2))
             xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
             y_s1_d0_train_2 = y[s1_d0_train_2_indices]
 
-            ml_mu_d0.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
-            mu_hat_d0 = ml_mu_d0.predict(xpi_test)
+            ml_g_d0.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
+            mu_hat_d0 = ml_g_d0.predict(xpi_test)
 
             p_hat_d0 = _trimm(p_hat_d0, trimming_rule, trimming_threshold)
 

@@ -81,7 +81,7 @@ def test_return_types(dml_obj, cls):
     if isinstance(dml_obj, DoubleMLLPQ):
         assert isinstance(dml_obj.get_params('ml_m_z'), dict)
     elif isinstance(dml_obj, DoubleMLSSM):
-        assert isinstance(dml_obj.get_params('ml_mu_d0'), dict)
+        assert isinstance(dml_obj.get_params('ml_g_d0'), dict)
     else:
         assert isinstance(dml_obj.get_params('ml_m'), dict)
     assert isinstance(dml_obj._dml_data.__str__(), str)
