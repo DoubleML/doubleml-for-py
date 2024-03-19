@@ -1226,7 +1226,7 @@ def make_confounded_irm_SZ2020(n_obs=500, theta=0.0, gamma_a=0.2, beta_a=0.2, dg
                      'rho_treated': rho_treated}
 
     res_dict = {'x': z,
-                'outcome': y,
+                'y': y,
                 'd': d,
                 'oracle_values': oracle_values}
 
