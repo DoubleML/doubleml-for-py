@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import warnings
 
 from scipy.linalg import toeplitz
 from scipy.optimize import minimize_scalar
@@ -1061,6 +1062,171 @@ def make_confounded_irm_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04):
 
     res_dict = {'x': x,
                 'y': y,
+                'd': d,
+                'oracle_values': oracle_values}
+
+    return res_dict
+
+
+def make_confounded_irm_SZ2020(n_obs=500, theta=0.0, gamma_a=0.2, beta_a=0.2, dgp_type=1,
+                               var_epsilon_y=1.0, **kwargs):
+    xi = kwargs.get('xi', 0.75)
+    c = kwargs.get('c', 0.0)  # only valid oracles values for c=0
+    dim_x = kwargs.get('dim_x', 5)  # only first 5 covariates are used in the outcome model
+    trimming_threshold = kwargs.get('trimming_threshold', 0.01)
+
+    def f_reg(w):
+        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        return res
+
+    def f_ps(w, xi):
+        res = xi*(-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        return res
+
+    cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+
+    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
+    z_tilde_3 = (0.6 + x[:, 0]*x[:, 2]/25)**3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_5 = x[:, 4]
+
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, z_tilde_5))
+    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
+
+    # error terms
+    epsilon = np.random.normal(loc=0, scale=np.sqrt(var_epsilon_y), size=[n_obs, 2])
+
+    if dgp_type == 1:
+        features_ps = z
+        features_reg = z
+    elif dgp_type == 2:
+        features_ps = x
+        features_reg = z
+    elif dgp_type == 3:
+        features_ps = z
+        features_reg = x
+    elif dgp_type == 4:
+        features_ps = x
+        features_reg = x
+    elif dgp_type == 5:
+        features_ps = None
+        features_reg = z
+    elif dgp_type == 6:
+        features_ps = None
+        features_reg = x
+    else:
+        raise ValueError('The dgp_type is not valid.')
+
+    # unobserved confounder
+    a_bounds = (-1, 1)
+    a = np.random.uniform(low=a_bounds[0], high=a_bounds[1], size=n_obs)
+    var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
+
+    # treatment and propensities
+    is_experimental = (dgp_type == 5) or (dgp_type == 6)
+    if is_experimental:
+        # Set D to be experimental
+        p = 0.5 * np.ones(n_obs)
+    else:
+        p = np.exp(f_ps(features_ps, xi)) / (1 + np.exp(f_ps(features_ps, xi)))
+
+    # compute short and long form of propensity score
+    m_long = p + gamma_a*a
+    m_short = p
+    # check propensity score bounds
+    if np.any(m_long < trimming_threshold) or np.any(m_long > 1.0 - trimming_threshold):
+        m_long = np.clip(m_long, trimming_threshold, 1.0 - trimming_threshold)
+        m_short = np.clip(m_short, trimming_threshold, 1.0 - trimming_threshold)
+        warnings.warn(f'Propensity score is close to 0 or 1. '
+                      f'Trimming is at {trimming_threshold} and {1.0-trimming_threshold} is applied.')
+
+    # generate treatment based on long form
+    u = np.random.uniform(low=0, high=1, size=n_obs)
+    d = 1.0 * (m_long >= u)
+
+    # add treatment heterogeneity
+    d1x = z[:, 4] + 1
+    var_dx = np.var(d*(d1x))
+    cov_adx = gamma_a * var_a
+
+    g_partial_reg = f_reg(features_reg)
+
+    g_short_d0 = g_partial_reg
+    g_short_d1 = (theta + beta_a * cov_adx / var_dx) * d1x + g_partial_reg
+    g_short = d * g_short_d1 + (1.0-d) * g_short_d0
+
+    g_long_d0 = g_partial_reg + beta_a * a
+    g_long_d1 = theta * d1x + g_partial_reg + beta_a * a
+    g_long = d * g_long_d1 + (1.0-d) * g_long_d0
+
+    y0 = g_long_d0 + epsilon[:, 0]
+    y1 = g_long_d1 + epsilon[:, 1]
+    y = d * y1 + (1.0-d) * y0
+
+    # compute the in-sample values for confounding strength
+    explained_residual_variance = np.square(g_long - g_short)
+    residual_variance = np.square(y - g_short)
+    cf_y = np.mean(explained_residual_variance) / np.mean(residual_variance)
+
+    # compute the Riesz representation
+    avg_precision_long = np.mean(1 / (m_long * (1 - m_long)))
+    avg_precision_short = np.mean(1 / (m_short * (1 - m_short)))
+    cf_d = (avg_precision_long - avg_precision_short) / avg_precision_long
+
+    rr_short = np.divide(d, m_short) - np.divide(1.0-d, 1.0-m_short)
+    rr_long = np.divide(d, m_long) - np.divide(1.0-d, 1.0-m_long)
+    if (beta_a == 0) | (gamma_a == 0):
+        rho = 0.0
+    else:
+        rho = np.corrcoef((g_long - g_short), (rr_long - rr_short))[0, 1]
+
+    # seperate values for only treated units
+    treated = d == 1
+    explained_residual_variance_treated = np.square(g_long[treated] - g_short[treated])
+    residual_variance_treated = np.square(y[treated] - g_short[treated])
+    cf_y_treated = np.mean(explained_residual_variance_treated) / np.mean(residual_variance_treated)
+
+    # compute the Riesz representation for treated
+    treated_weight = d / np.mean(d)
+    untreated_weight = (1.0 - d) / np.mean(d)
+
+    propensity_ratio_long = m_long / (1.0 - m_long)
+    rr_long_treated = treated_weight - np.multiply(untreated_weight, propensity_ratio_long)
+    propensity_ratio_short = m_short / (1.0 - m_short)
+    rr_short_treated = treated_weight - np.multiply(untreated_weight, propensity_ratio_short)
+
+    cf_d_treated = (np.mean(propensity_ratio_long) - np.mean(propensity_ratio_short)) / np.mean(propensity_ratio_long)
+    if (beta_a == 0) | (gamma_a == 0):
+        rho_treated = 0.0
+    else:
+        g_long_treated = g_long
+        g_long_treated[~treated] = y[~treated]
+        g_short_treated = g_short
+        g_short_treated[~treated] = y[~treated]
+        rho_treated = np.corrcoef((g_long_treated - g_short_treated),
+                                  (rr_long_treated - rr_short_treated))[0, 1]
+
+    oracle_values = {'g_long': g_long,
+                     'g_short': g_short,
+                     'm_long': m_long,
+                     'm_short': m_short,
+                     'gamma_a': gamma_a,
+                     'beta_a': beta_a,
+                     'a': a,
+                     'y0': y0,
+                     'y1': y1,
+                     'z': z,
+                     'cf_y': cf_y,
+                     'cf_d': cf_d,
+                     'rho': rho,
+                     'cf_y_treated': cf_y_treated,
+                     'cf_d_treated': cf_d_treated,
+                     'rho_treated': rho_treated}
+
+    res_dict = {'x': z,
+                'outcome': y,
                 'd': d,
                 'oracle_values': oracle_values}
 
