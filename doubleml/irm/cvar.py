@@ -292,7 +292,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
         # this is not done in the score to be equivalent to PQ models
-        m_hat_adj = np.full_like(m_hat['preds'], np.nan, dtype='float64')
         if self._normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat['preds'], d)
         else:

@@ -159,7 +159,6 @@ def iivm_dml2(y, x, d, z, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_h
     u_hat0, u_hat1, w_hat0, w_hat1, g_hat0, g_hat1, m_hat, r_hat0, r_hat1 = compute_iivm_residuals(
         y, d, g_hat0_list, g_hat1_list, m_hat_list, r_hat0_list, r_hat1_list, smpls)
 
-    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         m_hat_adj = _normalize_ipw(m_hat, d)
     else:

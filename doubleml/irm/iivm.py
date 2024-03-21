@@ -379,7 +379,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         w_hat0 = d - r_hat0
         w_hat1 = d - r_hat1
 
-        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat, d)
         else:

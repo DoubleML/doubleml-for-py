@@ -379,7 +379,6 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         # this is not done in the score to save computation due to multiple score evaluations
         # to be able to evaluate the raw models the m_hat['preds'] are not changed
-        m_hat_adj = np.full_like(m_hat['preds'], np.nan, dtype='float64')
         if self._normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat['preds'], d)
         else:
