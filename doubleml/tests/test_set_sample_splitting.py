@@ -160,8 +160,8 @@ def test_doubleml_draw_vs_set():
 
     msg = 'n_folds must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold.'
     with pytest.raises(ValueError, match=msg):
-        dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
-                                    n_folds=1, n_rep=1)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m,
+                        n_folds=1, n_rep=1)
 
     dml_plr_drawn = DoubleMLPLR(dml_data, ml_l, ml_m,
                                 n_folds=2, n_rep=1)
