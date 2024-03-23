@@ -108,11 +108,11 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
 def test_dml_selection_coef(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['coef'],
                         dml_selection_fixture['coef_manual'],
-                        rel_tol=1e-9, abs_tol=0.05)
+                        rel_tol=1e-9, abs_tol=1e-2)
 
 
 @pytest.mark.ci
 def test_dml_selection_se(dml_selection_fixture):
     assert math.isclose(dml_selection_fixture['se'],
                         dml_selection_fixture['se_manual'],
-                        rel_tol=1e-9, abs_tol=0.05)
+                        rel_tol=1e-9, abs_tol=5e-2)

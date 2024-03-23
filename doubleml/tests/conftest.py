@@ -451,8 +451,8 @@ def generate_data_did_cs(request):
 
 
 @pytest.fixture(scope='session',
-                params=[(10000, 100),
-                        (20000, 100)])
+                params=[(8000, 2),
+                        (16000, 5)])
 def generate_data_selection_mar(request):
     params = request.param
     np.random.seed(1111)
@@ -482,8 +482,8 @@ def generate_data_selection_mar(request):
 
 
 @pytest.fixture(scope='session',
-                params=[(32000, 100),
-                        (50000, 100)])
+                params=[(8000, 2),
+                        (16000, 5)])
 def generate_data_selection_nonignorable(request):
     params = request.param
     np.random.seed(1111)

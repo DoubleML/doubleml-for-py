@@ -133,7 +133,7 @@ def test_ssm_exception_no_cross_fit():
 
 @pytest.mark.ci
 def test_ssm_exception_get_params():
-    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi_d0 or ml_pi_d1 or ml_m_d0 or ml_m_d1.'
+    msg = 'Invalid nuisance learner ml_r. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_mar.get_params('ml_r')
 
@@ -209,7 +209,7 @@ def test_ssm_exception_confint():
 
 @pytest.mark.ci
 def test_ssm_exception_set_ml_nuisance_params():
-    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi_d0 or ml_pi_d1 or ml_m_d0 or ml_m_d1.'
+    msg = 'Invalid nuisance learner g. Valid nuisance learner ml_g_d0 or ml_g_d1 or ml_pi or ml_m.'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_mar.set_ml_nuisance_params('g', 'd', {'alpha': 0.1})
     msg = 'Invalid treatment variable y. Valid treatment variable d.'
@@ -307,10 +307,10 @@ class LassoWithInfPred(Lasso):
 
 @pytest.mark.ci
 def test_ssm_nan_prediction():
-    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g1 are not finite.'
+    msg = r'Predictions from learner LassoWithNanPred\(\) for ml_g_d1 are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, LassoWithNanPred(), ml_pi, ml_m).fit()
-    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g1 are not finite.'
+    msg = r'Predictions from learner LassoWithInfPred\(\) for ml_g_d1 are not finite.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, LassoWithInfPred(), ml_pi, ml_m).fit()
 
@@ -335,10 +335,10 @@ def test_double_ml_exception_evaluate_learner():
     with pytest.raises(TypeError, match=msg):
         dml_ssm_obj.evaluate_learners(metric="mse")
 
-    msg = (r"The learners have to be a subset of \['ml_g_d0', 'ml_g_d1', 'ml_pi_d0', 'ml_pi_d1', 'ml_m_d0', 'ml_m_d1'\]. "
-           r"Learners \['ml_g', 'ml_m'\] provided.")
+    msg = (r"The learners have to be a subset of \['ml_g_d0', 'ml_g_d1', 'ml_pi', 'ml_m'\]. "
+           r"Learners \['ml_mu', 'ml_p'\] provided.")
     with pytest.raises(ValueError, match=msg):
-        dml_ssm_obj.evaluate_learners(learners=['ml_g', 'ml_m'])
+        dml_ssm_obj.evaluate_learners(learners=['ml_mu', 'ml_p'])
 
     msg = 'Evaluation from learner ml_g_d0 is not finite.'
 
