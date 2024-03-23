@@ -13,7 +13,7 @@ from .double_ml_pq import DoubleMLPQ
 from .double_ml_lpq import DoubleMLLPQ
 from .double_ml_cvar import DoubleMLCVAR
 from .double_ml_policytree import DoubleMLPolicyTree
-from .double_ml_selection import DoubleMLSSM
+from .double_ml_ssm import DoubleMLSSM
 
 __all__ = ['DoubleMLPLR',
            'DoubleMLPLIV',

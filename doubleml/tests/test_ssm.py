@@ -9,7 +9,7 @@ from sklearn.linear_model import LassoCV, LogisticRegressionCV
 import doubleml as dml
 
 from ._utils import draw_smpls
-from ._utils_selection_manual import fit_selection
+from ._utils_ssm_manual import fit_selection
 
 
 @pytest.fixture(scope='module',
