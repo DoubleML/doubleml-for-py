@@ -278,12 +278,10 @@ def test_stored_predictions():
     assert did_cs_dml1.predictions['ml_g_d1_t1'].shape == (n_obs, n_rep, n_treat)
     assert did_cs_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
 
-    assert ssm_dml1.predictions['ml_mu_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.predictions['ml_mu_d1'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.predictions['ml_pi_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.predictions['ml_pi_d1'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.predictions['ml_p_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.predictions['ml_p_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_g_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_g_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_pi'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
 
 
 @pytest.mark.ci
@@ -327,12 +325,10 @@ def test_stored_nuisance_targets():
     assert did_cs_dml1.nuisance_targets['ml_g_d1_t1'].shape == (n_obs, n_rep, n_treat)
     assert did_cs_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
 
-    assert ssm_dml1.nuisance_targets['ml_mu_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.nuisance_targets['ml_mu_d1'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.nuisance_targets['ml_pi_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.nuisance_targets['ml_pi_d1'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.nuisance_targets['ml_p_d0'].shape == (n_obs, n_rep, n_treat)
-    assert ssm_dml1.nuisance_targets['ml_p_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_g_d0'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_g_d1'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_pi'].shape == (n_obs, n_rep, n_treat)
+    assert ssm_dml1.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
 
 
 @pytest.mark.ci
@@ -376,12 +372,10 @@ def test_rmses():
     assert did_cs_dml1.rmses['ml_g_d1_t1'].shape == (n_rep, n_treat)
     assert did_cs_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
 
-    assert ssm_dml1.rmses['ml_mu_d0'].shape == (n_rep, n_treat)
-    assert ssm_dml1.rmses['ml_mu_d1'].shape == (n_rep, n_treat)
-    assert ssm_dml1.rmses['ml_pi_d0'].shape == (n_rep, n_treat)
-    assert ssm_dml1.rmses['ml_pi_d1'].shape == (n_rep, n_treat)
-    assert ssm_dml1.rmses['ml_p_d0'].shape == (n_rep, n_treat)
-    assert ssm_dml1.rmses['ml_p_d1'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_g_d0'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_g_d1'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_pi'].shape == (n_rep, n_treat)
+    assert ssm_dml1.rmses['ml_m'].shape == (n_rep, n_treat)
 
 
 @pytest.mark.ci

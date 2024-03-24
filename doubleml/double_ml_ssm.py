@@ -233,14 +233,14 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             pi_hat['targets'] = pi_hat['targets'].astype(float)
             _check_finite_predictions(pi_hat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
 
-            # propensity score p
+            # propensity score m
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                     return_models=return_models)
             m_hat['targets'] = m_hat['targets'].astype(float)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
-            # nuisance g
+            # conditional outcome
             g_hat_d1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
                                        est_params=self._get_params('ml_g_d1'), method=self._predict_method['ml_g'],
                                        return_models=return_models)
