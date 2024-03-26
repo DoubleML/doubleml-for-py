@@ -7,18 +7,13 @@ from doubleml.datasets import make_iivm_data
 from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 
 
-@pytest.fixture(scope="module", params=["dml1", "dml2"])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def adapted_doubleml_fixture(dml_procedure, n_rep):
+def adapted_doubleml_fixture(n_rep):
     ext_predictions = {"d": {}}
 
     data = make_iivm_data(
@@ -33,7 +28,6 @@ def adapted_doubleml_fixture(dml_procedure, n_rep):
         "obj_dml_data": dml_data,
         "score": "LATE",
         "n_rep": n_rep,
-        "dml_procedure": dml_procedure,
     }
 
     dml_iivm = DoubleMLIIVM(

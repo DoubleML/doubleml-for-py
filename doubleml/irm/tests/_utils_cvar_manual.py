@@ -7,7 +7,7 @@ from ...utils._estimation import _dml_cv_predict, _normalize_ipw, _get_bracket_g
 
 
 def fit_cvar(y, x, d, quantile,
-             learner_g, learner_m, all_smpls, treatment, dml_procedure, normalize_ipw=True, n_rep=1,
+             learner_g, learner_m, all_smpls, treatment, normalize_ipw=True, n_rep=1,
              trimming_threshold=1e-2, g_params=None, m_params=None):
     n_obs = len(y)
 
@@ -19,15 +19,11 @@ def fit_cvar(y, x, d, quantile,
 
         g_hat, m_hat, ipw_est = fit_nuisance_cvar(y, x, d, quantile,
                                                   learner_g, learner_m, smpls, treatment,
-                                                  dml_procedure=dml_procedure,
                                                   normalize_ipw=normalize_ipw,
                                                   trimming_threshold=trimming_threshold,
                                                   g_params=g_params, m_params=m_params)
 
-        if dml_procedure == 'dml1':
-            cvars[i_rep], ses[i_rep] = cvar_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est)
-        else:
-            cvars[i_rep], ses[i_rep] = cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
+        cvars[i_rep], ses[i_rep] = cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
 
     cvar = np.median(cvars)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(cvars - cvar, 2)) / n_obs)
@@ -38,7 +34,7 @@ def fit_cvar(y, x, d, quantile,
     return res
 
 
-def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment, dml_procedure,
+def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
                       normalize_ipw, trimming_threshold, g_params, m_params):
     n_folds = len(smpls)
     n_obs = len(y)
@@ -129,30 +125,13 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
     m_hat[m_hat > 1 - trimming_threshold] = 1 - trimming_threshold
 
     if normalize_ipw:
-        if dml_procedure == 'dml1':
-            for _, test_index in smpls:
-                m_hat[test_index] = _normalize_ipw(m_hat[test_index], d[test_index])
-        else:
-            m_hat = _normalize_ipw(m_hat, d)
+        m_hat = _normalize_ipw(m_hat, d)
 
     if treatment == 0:
         m_hat = 1 - m_hat
 
     ipw_est = np.mean(ipw_vec)
     return g_hat, m_hat, ipw_est
-
-
-def cvar_dml1(y, d, g_hat, m_hat, treatment, quantile, smpls, ipw_est):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = cvar_est(g_hat[test_index], m_hat[test_index],
-                               d[test_index], y[test_index], treatment, quantile, ipw_est)
-    theta_hat = np.mean(thetas)
-
-    se = np.sqrt(cvar_var_est(theta_hat, g_hat, m_hat, d, y, treatment, quantile, ipw_est, n_obs))
-
-    return theta_hat, se
 
 
 def cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est):

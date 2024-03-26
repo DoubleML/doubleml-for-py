@@ -54,16 +54,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
-        Default is ``True``.
-
-    apply_cross_fitting : bool
-        Indicates whether cross-fitting should be applied.
         Default is ``True``.
 
     Examples
@@ -106,16 +98,12 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                 draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
-                         draw_sample_splitting,
-                         apply_cross_fitting)
+                         draw_sample_splitting)
 
         self._check_data(self._dml_data)
         valid_scores = ['IV-type', 'partialling out']

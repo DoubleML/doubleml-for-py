@@ -47,14 +47,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope='module')
-def dml_plr_oneway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_procedure):
+def dml_plr_oneway_cluster_linear_vs_nonlinear_fixture(learner, score):
     n_folds = 3
 
     # Set machine learning methods for l, m & g
@@ -67,15 +61,13 @@ def dml_plr_oneway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_proce
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_oneway_cluster_data,
                                       ml_l, ml_m,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_oneway_cluster_data,
                                       ml_l, ml_m, ml_g,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
 
     np.random.seed(3141)
     dml_plr_obj.fit()
@@ -85,15 +77,13 @@ def dml_plr_oneway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_proce
         dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_oneway_cluster_data,
                                                           ml_l, ml_m,
                                                           n_folds=n_folds,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_oneway_cluster_data,
                                                           ml_l, ml_m, ml_g,
                                                           n_folds=n_folds,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
 
     np.random.seed(3141)
     dml_plr_obj2.fit()
@@ -121,7 +111,7 @@ def test_dml_plr_oneway_cluster_linear_vs_nonlinear_se(dml_plr_oneway_cluster_li
 
 
 @pytest.fixture(scope='module')
-def dml_plr_multiway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_procedure):
+def dml_plr_multiway_cluster_linear_vs_nonlinear_fixture(learner, score):
     n_folds = 2
     n_rep = 2
 
@@ -136,16 +126,14 @@ def dml_plr_multiway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_pro
                                       ml_l, ml_m,
                                       n_folds=n_folds,
                                       n_rep=n_rep,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_oneway_cluster_data,
                                       ml_l, ml_m, ml_g,
                                       n_folds=n_folds,
                                       n_rep=n_rep,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
 
     np.random.seed(3141)
     dml_plr_obj.fit()
@@ -156,16 +144,14 @@ def dml_plr_multiway_cluster_linear_vs_nonlinear_fixture(learner, score, dml_pro
                                                           ml_l, ml_m,
                                                           n_folds=n_folds,
                                                           n_rep=n_rep,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_oneway_cluster_data,
                                                           ml_l, ml_m, ml_g,
                                                           n_folds=n_folds,
                                                           n_rep=n_rep,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
 
     np.random.seed(3141)
     dml_plr_obj2.fit()
@@ -193,7 +179,7 @@ def test_dml_plr_multiway_cluster_linear_vs_nonlinear_se(dml_plr_multiway_cluste
 
 
 @pytest.fixture(scope="module")
-def dml_plr_cluster_nonlinear_with_index(generate_data1, learner, dml_procedure):
+def dml_plr_cluster_nonlinear_with_index(generate_data1, learner):
     # in the one-way cluster case with exactly one observation per cluster, we get the same result w & w/o clustering
     n_folds = 2
 
@@ -209,8 +195,7 @@ def dml_plr_cluster_nonlinear_with_index(generate_data1, learner, dml_procedure)
     np.random.seed(3141)
     dml_plr_obj = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data,
                                                      ml_l, ml_m,
-                                                     n_folds=n_folds,
-                                                     dml_procedure=dml_procedure)
+                                                     n_folds=n_folds)
     dml_plr_obj.fit()
 
     df = data.reset_index()
@@ -222,8 +207,7 @@ def dml_plr_cluster_nonlinear_with_index(generate_data1, learner, dml_procedure)
     np.random.seed(3141)
     dml_plr_cluster_obj = DoubleMLPLRWithNonLinearScoreMixin(dml_cluster_data,
                                                              ml_l, ml_m,
-                                                             n_folds=n_folds,
-                                                             dml_procedure=dml_procedure)
+                                                             n_folds=n_folds)
     dml_plr_cluster_obj.fit()
 
     res_dict = {'coef': dml_plr_obj.coef,

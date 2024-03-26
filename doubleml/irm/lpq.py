@@ -59,10 +59,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         for potential quantiles.
         Default is ``'PQ'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     normalize_ipw : bool
         Indicates whether the inverse probability weights are normalized.
         Default is ``True``.
@@ -83,10 +79,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
-        Default is ``True``.
-
-    apply_cross_fitting : bool
-        Indicates whether cross-fitting should be applied(``True`` is the only choice).
         Default is ``True``.
 
     Examples
@@ -116,15 +108,16 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         n_folds=5,
         n_rep=1,
         score="LPQ",
-        dml_procedure="dml2",
         normalize_ipw=True,
         kde=None,
         trimming_rule="truncate",
         trimming_threshold=1e-2,
         draw_sample_splitting=True,
-        apply_cross_fitting=True,
     ):
-        super().__init__(obj_dml_data, n_folds, n_rep, score, dml_procedure, draw_sample_splitting, apply_cross_fitting)
+        super().__init__(obj_dml_data,
+                         n_folds,
+                         n_rep, score,
+                         draw_sample_splitting)
 
         self._quantile = quantile
         self._treatment = treatment
@@ -517,17 +510,12 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         m_z_hat_adj = _trimm(m_z_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         if self._normalize_ipw:
-            if self.dml_procedure == "dml1":
-                for _, test_index in smpls:
-                    m_z_hat_adj[test_index] = _normalize_ipw(m_z_hat_adj[test_index], z[test_index])
-            else:
-                m_z_hat_adj = _normalize_ipw(m_z_hat_adj, z)
+            m_z_hat_adj = _normalize_ipw(m_z_hat_adj, z)
 
         # this could be adjusted to be compatible with dml1
         # estimate final nuisance parameter
         comp_prob_hat = np.mean(
-            m_d_z1_hat["preds"]
-            - m_d_z0_hat["preds"]
+            m_d_z1_hat["preds"] - m_d_z0_hat["preds"]
             + z / m_z_hat_adj * (d - m_d_z1_hat["preds"])
             - (1 - z) / (1 - m_z_hat_adj) * (d - m_d_z0_hat["preds"])
         )

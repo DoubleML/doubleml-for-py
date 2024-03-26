@@ -13,18 +13,13 @@ def did_score(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=["dml1", "dml2"])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def doubleml_did_fixture(did_score, dml_procedure, n_rep):
+def doubleml_did_fixture(did_score, n_rep):
     ext_predictions = {"d": {}}
     dml_data = make_did_SZ2020(n_obs=500, return_type="DoubleMLData")
     all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.d)
@@ -32,7 +27,6 @@ def doubleml_did_fixture(did_score, dml_procedure, n_rep):
         "obj_dml_data": dml_data,
         "score": did_score,
         "n_rep": n_rep,
-        "dml_procedure": dml_procedure,
         "draw_sample_splitting": False
     }
     dml_did = DoubleMLDID(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)

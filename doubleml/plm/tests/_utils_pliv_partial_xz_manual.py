@@ -6,7 +6,7 @@ from ...tests._utils import fit_predict, tune_grid_search
 
 
 def fit_pliv_partial_xz(y, x, d, z,
-                        learner_l, learner_m, learner_r, all_smpls, dml_procedure, score,
+                        learner_l, learner_m, learner_r, all_smpls, score,
                         n_rep=1, l_params=None, m_params=None, r_params=None):
     n_obs = len(y)
 
@@ -27,17 +27,9 @@ def fit_pliv_partial_xz(y, x, d, z,
         all_m_hat.append(m_hat)
         all_r_hat.append(r_hat)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = pliv_partial_xz_dml1(y, x, d,
-                                                             z,
-                                                             l_hat, m_hat, r_hat,
-                                                             smpls, score)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = pliv_partial_xz_dml2(y, x, d,
-                                                             z,
-                                                             l_hat, m_hat, r_hat,
-                                                             smpls, score)
+        thetas[i_rep], ses[i_rep] = pliv_partial_xz_dml2(y, x, d, z,
+                                                         l_hat, m_hat, r_hat,
+                                                         smpls, score)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -105,21 +97,6 @@ def compute_pliv_partial_xz_residuals(y, d, l_hat, m_hat, m_hat_tilde, smpls):
     return u_hat, v_hat, w_hat
 
 
-def pliv_partial_xz_dml1(y, x, d, z, l_hat, m_hat, m_hat_tilde, smpls, score):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    u_hat, v_hat, w_hat = compute_pliv_partial_xz_residuals(y, d, l_hat, m_hat, m_hat_tilde, smpls)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = pliv_partial_xz_orth(u_hat[test_index], v_hat[test_index], w_hat[test_index],
-                                           d[test_index], score)
-    theta_hat = np.mean(thetas)
-
-    se = np.sqrt(var_pliv_partial_xz(theta_hat, d, u_hat, v_hat, w_hat, score, n_obs))
-
-    return theta_hat, se
-
-
 def pliv_partial_xz_dml2(y, x, d, z, l_hat, m_hat, m_hat_tilde, smpls, score):
     n_obs = len(y)
     u_hat, v_hat, w_hat = compute_pliv_partial_xz_residuals(y, d, l_hat, m_hat, m_hat_tilde, smpls)
@@ -147,21 +124,18 @@ def pliv_partial_xz_orth(u_hat, v_hat, w_hat, d, score):
 def boot_pliv_partial_xz(y, d, z, thetas, ses, all_l_hat, all_m_hat, all_r_hat,
                          all_smpls, score, bootstrap, n_rep_boot,
                          n_rep=1):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         n_obs = len(y)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_pliv_partial_xz_single_split(
+        boot_t_stat = boot_pliv_partial_xz_single_split(
             thetas[i_rep], y, d, z, all_l_hat[i_rep], all_m_hat[i_rep], all_r_hat[i_rep], all_smpls[i_rep],
             score, ses[i_rep], weights, n_rep_boot)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_pliv_partial_xz_single_split(theta, y, d, z, l_hat, m_hat, m_hat_tilde,
@@ -173,6 +147,6 @@ def boot_pliv_partial_xz_single_split(theta, y, d, z, l_hat, m_hat, m_hat_tilde,
 
     psi = np.multiply(u_hat - w_hat*theta, v_hat)
 
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat

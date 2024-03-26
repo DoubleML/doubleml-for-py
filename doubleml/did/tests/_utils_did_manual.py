@@ -6,7 +6,7 @@ from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_did(y, x, d,
-            learner_g, learner_m, all_smpls, dml_procedure, score, in_sample_normalization,
+            learner_g, learner_m, all_smpls, score, in_sample_normalization,
             n_rep=1, g0_params=None, g1_params=None, m_params=None,
             trimming_threshold=1e-2):
     n_obs = len(y)
@@ -43,11 +43,7 @@ def fit_did(y, x, d,
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = did_dml1(psi_a, psi_b, smpls)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
+        thetas[i_rep], ses[i_rep] = did_dml2(psi_a, psi_b)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -107,25 +103,6 @@ def compute_did_residuals(y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, s
     return resid_d0, g_hat0, g_hat1, m_hat, p_hat
 
 
-def did_dml1(psi_a, psi_b, smpls):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(psi_a)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = - np.mean(psi_b[test_index]) / np.mean(psi_a[test_index])
-    theta_hat = np.mean(thetas)
-
-    if len(smpls) > 1:
-        se = np.sqrt(var_did(theta_hat, psi_a, psi_b, n_obs))
-    else:
-        assert len(smpls) == 1
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-        se = np.sqrt(var_did(theta_hat, psi_a[test_index], psi_b[test_index], n_obs))
-
-    return theta_hat, se
-
-
 def did_dml2(psi_a, psi_b):
     n_obs = len(psi_a)
     theta_hat = - np.mean(psi_b) / np.mean(psi_a)
@@ -176,7 +153,6 @@ def var_did(theta, psi_a, psi_b, n_obs):
 
 def boot_did(y, thetas, ses, all_psi_a, all_psi_b,
              all_smpls, bootstrap, n_rep_boot, n_rep=1, apply_cross_fitting=True):
-    all_boot_theta = list()
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
@@ -186,16 +162,14 @@ def boot_did(y, thetas, ses, all_psi_a, all_psi_b,
             test_index = smpls[0][1]
             n_obs = len(test_index)
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
-        boot_theta, boot_t_stat = boot_did_single_split(
+        boot_t_stat = boot_did_single_split(
             thetas[i_rep], all_psi_a[i_rep], all_psi_b[i_rep], smpls,
             ses[i_rep], weights, n_rep_boot, apply_cross_fitting)
-        all_boot_theta.append(boot_theta)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_theta = np.hstack(all_boot_theta)
     boot_t_stat = np.hstack(all_boot_t_stat)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def boot_did_single_split(theta, psi_a, psi_b,
@@ -208,9 +182,9 @@ def boot_did_single_split(theta, psi_a, psi_b,
         J = np.mean(psi_a[test_index])
 
     psi = np.multiply(psi_a, theta) + psi_b
-    boot_theta, boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
 
-    return boot_theta, boot_t_stat
+    return boot_t_stat
 
 
 def tune_nuisance_did(y, x, d, ml_g, ml_m, smpls, score, n_folds_tune,

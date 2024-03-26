@@ -34,12 +34,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -53,7 +47,7 @@ def trimming_threshold(request):
 
 @pytest.fixture(scope="module")
 def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
-                     dml_procedure, normalize_ipw, trimming_threshold):
+                     normalize_ipw, trimming_threshold):
     n_folds = 3
 
     # Set machine learning methods for m & g
@@ -74,7 +68,6 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
                                     quantile=quantile,
                                     n_folds=n_folds,
                                     n_rep=1,
-                                    dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
                                     trimming_threshold=trimming_threshold,
                                     draw_sample_splitting=False)
@@ -86,7 +79,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner,
     np.random.seed(42)
     res_manual = fit_cvar(y, x, d, quantile,
                           clone(ml_g), clone(ml_m),
-                          all_smpls, treatment, dml_procedure,
+                          all_smpls, treatment,
                           normalize_ipw=normalize_ipw,
                           n_rep=1, trimming_threshold=trimming_threshold)
 

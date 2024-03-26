@@ -22,19 +22,13 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[1, 3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_rep):
+def dml_plr_reestimate_fixture(generate_data1, learner, score, n_rep):
     n_folds = 3
 
     # collect data
@@ -55,8 +49,7 @@ def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_
                                   ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
-                                  score,
-                                  dml_procedure)
+                                  score)
     dml_plr_obj.fit()
 
     np.random.seed(3141)
@@ -64,8 +57,7 @@ def dml_plr_reestimate_fixture(generate_data1, learner, score, dml_procedure, n_
                                    ml_l, ml_m, ml_g,
                                    n_folds,
                                    n_rep,
-                                   score,
-                                   dml_procedure)
+                                   score)
     dml_plr_obj2.fit()
     dml_plr_obj2._coef[0] = np.nan
     dml_plr_obj2._se[0] = np.nan

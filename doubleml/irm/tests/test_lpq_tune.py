@@ -30,12 +30,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True])
 def normalize_ipw(request):
     return request.param
@@ -54,7 +48,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner, dml_procedure, normalize_ipw,
+def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner, normalize_ipw,
                     tune_on_folds):
     par_grid = {'ml_m_z': get_par_grid(learner),
                 'ml_m_d_z0': get_par_grid(learner),
@@ -80,7 +74,6 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                                   quantile=quantile,
                                   n_folds=n_folds,
                                   n_rep=1,
-                                  dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
                                   trimming_threshold=0.01,
                                   draw_sample_splitting=False)
@@ -131,7 +124,6 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                          learner_m=clone(learner),
                          all_smpls=all_smpls,
                          treatment=treatment,
-                         dml_procedure=dml_procedure,
                          n_rep=1, trimming_threshold=0.01,
                          normalize_ipw=normalize_ipw,
                          m_z_params=m_z_params,

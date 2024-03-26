@@ -39,12 +39,6 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def tune_on_folds(request):
     return request.param
@@ -60,8 +54,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sample_normalization,
-                       dml_procedure, tune_on_folds):
+def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sample_normalization, tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m)}
     n_folds_tune = 4
@@ -87,7 +80,6 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
                                        n_folds,
                                        score=score,
                                        in_sample_normalization=in_sample_normalization,
-                                       dml_procedure=dml_procedure,
                                        draw_sample_splitting=False)
     # synchronize the sample splitting
     dml_did_cs_obj.set_sample_splitting(all_smpls=all_smpls)
@@ -128,7 +120,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
             m_params = None
 
     res_manual = fit_did_cs(y, x, d, t, clone(learner_g), clone(learner_m),
-                            all_smpls, dml_procedure, score, in_sample_normalization,
+                            all_smpls, score, in_sample_normalization,
                             g_d0_t0_params=g_d0_t0_params, g_d0_t1_params=g_d0_t1_params,
                             g_d1_t0_params=g_d1_t0_params, g_d1_t1_params=g_d1_t1_params,
                             m_params=m_params)
@@ -141,15 +133,13 @@ def dml_did_cs_fixture(generate_data_did_cs, learner_g, learner_m, score, in_sam
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_did(y, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_psi_a'], res_manual['all_psi_b'],
-                                           all_smpls, bootstrap, n_rep_boot)
+        boot_t_stat = boot_did(y, res_manual['thetas'], res_manual['ses'],
+                               res_manual['all_psi_a'], res_manual['all_psi_b'],
+                               all_smpls, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_did_cs_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_did_cs_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_did_cs_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -172,9 +162,6 @@ def test_dml_did_cs_se(dml_did_cs_fixture):
 @pytest.mark.ci
 def test_dml_did_cs_boot(dml_did_cs_fixture):
     for bootstrap in dml_did_cs_fixture['boot_methods']:
-        assert np.allclose(dml_did_cs_fixture['boot_coef' + bootstrap],
-                           dml_did_cs_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_did_cs_fixture['boot_t_stat' + bootstrap],
                            dml_did_cs_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

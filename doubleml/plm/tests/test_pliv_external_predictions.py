@@ -12,11 +12,6 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=["dml1", "dml2"])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
@@ -28,7 +23,7 @@ def dim_z(request):
 
 
 @pytest.fixture(scope="module")
-def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
+def adapted_doubleml_fixture(score, n_rep, dim_z):
     # IV-type score only allows dim_z = 1, so skip testcases with dim_z > 1 for IV-type score
     if dim_z > 1 and score == "IV-type":
         pytest.skip("IV-type score only allows dim_z = 1")
@@ -49,7 +44,6 @@ def adapted_doubleml_fixture(score, dml_procedure, n_rep, dim_z):
             "obj_dml_data": dml_data,
             "score": score,
             "n_rep": n_rep,
-            "dml_procedure": dml_procedure,
         }
 
         if score == "IV-type":

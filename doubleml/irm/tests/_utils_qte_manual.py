@@ -10,7 +10,7 @@ from ...tests._utils_boot import draw_weights
 from ...utils._estimation import _default_kde
 
 
-def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_procedure='dml2',
+def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
             trimming_rule='truncate', trimming_threshold=1e-2, kde=_default_kde,
             normalize_ipw=True, draw_sample_splitting=True):
 
@@ -34,13 +34,11 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 treatment=0,
                                 n_folds=n_folds,
                                 n_rep=n_rep,
-                                dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
                                 normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False,
-                                apply_cross_fitting=True)
+                                draw_sample_splitting=False)
         model_PQ_1 = DoubleMLPQ(dml_data,
                                 clone(learner_g),
                                 clone(learner_m),
@@ -48,13 +46,11 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
                                 treatment=1,
                                 n_folds=n_folds,
                                 n_rep=n_rep,
-                                dml_procedure=dml_procedure,
                                 trimming_rule=trimming_rule,
                                 trimming_threshold=trimming_threshold,
                                 kde=kde,
                                 normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False,
-                                apply_cross_fitting=True)
+                                draw_sample_splitting=False)
 
         # synchronize the sample splitting
         model_PQ_0.set_sample_splitting(all_smpls)
@@ -92,7 +88,7 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1, dml_pr
     return res
 
 
-def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot, apply_cross_fitting):
+def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot):
     n_quantiles = len(quantiles)
     boot_qte = np.zeros((n_quantiles, n_rep_boot * n_rep))
     boot_t_stat = np.zeros((n_quantiles, n_rep_boot * n_rep))

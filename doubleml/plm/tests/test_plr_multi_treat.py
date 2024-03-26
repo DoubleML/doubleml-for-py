@@ -30,12 +30,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[1, 3])
 def n_rep(request):
     return request.param
@@ -43,7 +37,7 @@ def n_rep(request):
 
 @pytest.fixture(scope='module')
 def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, idx, learner,
-                               score, dml_procedure, n_rep):
+                               score, n_rep):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 483
@@ -70,8 +64,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_l, ml_m, ml_g,
                                   n_folds, n_rep,
-                                  score=score,
-                                  dml_procedure=dml_procedure)
+                                  score=score)
 
     dml_plr_obj.fit()
 
@@ -84,8 +77,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
     res_manual = fit_plr_multitreat(y, x, d,
                                     _clone(learner), _clone(learner), _clone(learner),
-                                    all_smpls, dml_procedure, score,
-                                    n_rep=n_rep)
+                                    all_smpls, score, n_rep=n_rep)
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -95,7 +87,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_plr_multitreat(
+        boot_t_stat = boot_plr_multitreat(
             y, d,
             res_manual['thetas'], res_manual['ses'],
             res_manual['all_l_hat'], res_manual['all_m_hat'], res_manual['all_g_hat'],
@@ -104,9 +96,7 @@ def dml_plr_multitreat_fixture(generate_data_bivariate, generate_data_toeplitz, 
 
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     # sensitivity tests
@@ -139,9 +129,6 @@ def test_dml_plr_multitreat_se(dml_plr_multitreat_fixture):
 @pytest.mark.ci
 def test_dml_plr_multitreat_boot(dml_plr_multitreat_fixture):
     for bootstrap in dml_plr_multitreat_fixture['boot_methods']:
-        assert np.allclose(dml_plr_multitreat_fixture['boot_coef' + bootstrap],
-                           dml_plr_multitreat_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_multitreat_fixture['boot_t_stat' + bootstrap],
                            dml_plr_multitreat_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

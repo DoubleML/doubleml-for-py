@@ -42,12 +42,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def tune_on_folds(request):
     return request.param
@@ -63,7 +57,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope='module')
-def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_g, score, dml_procedure, tune_on_folds):
+def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_g, score, tune_on_folds):
     par_grid = {'ml_l': get_par_grid(learner_l),
                 'ml_m': get_par_grid(learner_m),
                 'ml_r': get_par_grid(learner_r),
@@ -92,8 +86,7 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
     dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data,
                                     ml_l, ml_m, ml_r, ml_g,
                                     n_folds=n_folds,
-                                    score=score,
-                                    dml_procedure=dml_procedure)
+                                    score=score)
 
     # tune hyperparameters
     tune_res = dml_pliv_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune,
@@ -134,7 +127,7 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
         g_params = g_params * n_folds
 
     res_manual = fit_pliv(y, x, d, z, _clone(learner_l), _clone(learner_m), _clone(learner_r), _clone(learner_g),
-                          all_smpls, dml_procedure, score,
+                          all_smpls, score,
                           l_params=l_params, m_params=m_params, r_params=r_params, g_params=g_params)
 
     res_dict = {'coef': dml_pliv_obj.coef,
@@ -145,16 +138,14 @@ def dml_pliv_fixture(generate_data_iv, learner_l, learner_m, learner_r, learner_
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_l_hat'], res_manual['all_m_hat'],
-                                            res_manual['all_r_hat'], res_manual['all_g_hat'],
-                                            all_smpls, score, bootstrap, n_rep_boot)
+        boot_t_stat = boot_pliv(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                res_manual['all_r_hat'], res_manual['all_g_hat'],
+                                all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_pliv_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -177,9 +168,6 @@ def test_dml_pliv_se(dml_pliv_fixture):
 @pytest.mark.ci
 def test_dml_pliv_boot(dml_pliv_fixture):
     for bootstrap in dml_pliv_fixture['boot_methods']:
-        assert np.allclose(dml_pliv_fixture['boot_coef' + bootstrap],
-                           dml_pliv_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_pliv_fixture['boot_t_stat' + bootstrap],
                            dml_pliv_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

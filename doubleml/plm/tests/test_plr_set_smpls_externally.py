@@ -22,19 +22,13 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[1, 3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
+def dml_plr_smpls_fixture(generate_data1, learner, score, n_rep):
     n_folds = 3
 
     # collect data
@@ -55,8 +49,7 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
                                   ml_l, ml_m, ml_g,
                                   n_folds,
                                   n_rep,
-                                  score,
-                                  dml_procedure)
+                                  score)
 
     dml_plr_obj.fit()
 
@@ -65,7 +58,6 @@ def dml_plr_smpls_fixture(generate_data1, learner, score, dml_procedure, n_rep):
     dml_plr_obj2 = dml.DoubleMLPLR(obj_dml_data,
                                    ml_l, ml_m, ml_g,
                                    score=score,
-                                   dml_procedure=dml_procedure,
                                    draw_sample_splitting=False)
     dml_plr_obj2.set_sample_splitting(smpls)
     dml_plr_obj2.fit()

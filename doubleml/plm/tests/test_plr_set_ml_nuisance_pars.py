@@ -15,14 +15,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module")
-def dml_plr_fixture(generate_data1, score, dml_procedure):
+def dml_plr_fixture(generate_data1, score):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 502
@@ -45,8 +39,7 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_l, ml_m, ml_g,
                                   n_folds,
-                                  score=score,
-                                  dml_procedure=dml_procedure)
+                                  score=score)
 
     dml_plr_obj.fit()
 
@@ -63,8 +56,7 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     dml_plr_obj_ext_set_par = dml.DoubleMLPLR(obj_dml_data,
                                               ml_l, ml_m, ml_g,
                                               n_folds,
-                                              score=score,
-                                              dml_procedure=dml_procedure)
+                                              score=score)
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_l', 'd', {'alpha': alpha})
     dml_plr_obj_ext_set_par.set_ml_nuisance_params('ml_m', 'd', {'alpha': alpha})
     if score == 'IV-type':
@@ -81,12 +73,10 @@ def dml_plr_fixture(generate_data1, score, dml_procedure):
     for bootstrap in boot_methods:
         np.random.seed(314122)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_plr_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
 
         np.random.seed(314122)
         dml_plr_obj_ext_set_par.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_coef
         res_dict['boot_t_stat' + bootstrap + '_manual'] = dml_plr_obj_ext_set_par.boot_t_stat
 
     return res_dict
@@ -112,9 +102,6 @@ def test_dml_plr_se(dml_plr_fixture):
 @pytest.mark.filterwarnings("ignore:Using the same")
 def test_dml_plr_boot(dml_plr_fixture):
     for bootstrap in dml_plr_fixture['boot_methods']:
-        assert np.allclose(dml_plr_fixture['boot_coef' + bootstrap],
-                           dml_plr_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_plr_fixture['boot_t_stat' + bootstrap],
                            dml_plr_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

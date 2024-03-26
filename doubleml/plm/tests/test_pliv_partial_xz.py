@@ -24,14 +24,8 @@ def score(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope='module')
-def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dml_procedure):
+def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score):
     boot_methods = ['Bayes', 'normal', 'wild']
     n_folds = 2
     n_rep_boot = 503
@@ -47,8 +41,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dm
     np.random.seed(3141)
     dml_pliv_obj = dml.DoubleMLPLIV._partialXZ(obj_dml_data,
                                                ml_l, ml_m, ml_r,
-                                               n_folds=n_folds,
-                                               dml_procedure=dml_procedure)
+                                               n_folds=n_folds)
 
     dml_pliv_obj.fit()
 
@@ -62,7 +55,7 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dm
 
     res_manual = fit_pliv_partial_xz(y, x, d, z,
                                      clone(learner), clone(learner), clone(learner),
-                                     all_smpls, dml_procedure, score)
+                                     all_smpls, score)
 
     res_dict = {'coef': dml_pliv_obj.coef,
                 'coef_manual': res_manual['theta'],
@@ -72,16 +65,14 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner, score, dm
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_pliv_partial_xz(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                                       res_manual['all_l_hat'], res_manual['all_m_hat'],
-                                                       res_manual['all_r_hat'],
-                                                       all_smpls, score, bootstrap, n_rep_boot)
+        boot_t_stat = boot_pliv_partial_xz(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                           res_manual['all_l_hat'], res_manual['all_m_hat'],
+                                           res_manual['all_r_hat'],
+                                           all_smpls, score, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_pliv_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_pliv_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_pliv_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     return res_dict
@@ -101,9 +92,6 @@ def test_dml_pliv_se(dml_pliv_partial_xz_fixture):
 
 def test_dml_pliv_boot(dml_pliv_partial_xz_fixture):
     for bootstrap in dml_pliv_partial_xz_fixture['boot_methods']:
-        assert np.allclose(dml_pliv_partial_xz_fixture['boot_coef' + bootstrap],
-                           dml_pliv_partial_xz_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_pliv_partial_xz_fixture['boot_t_stat' + bootstrap],
                            dml_pliv_partial_xz_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

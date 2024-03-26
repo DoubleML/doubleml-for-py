@@ -36,20 +36,13 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[0.1])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization,
-                       dml_procedure, trimming_threshold):
+def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization, trimming_threshold):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
@@ -73,7 +66,6 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
                                        n_folds,
                                        score=score,
                                        in_sample_normalization=in_sample_normalization,
-                                       dml_procedure=dml_procedure,
                                        draw_sample_splitting=False,
                                        trimming_threshold=trimming_threshold)
 
@@ -84,7 +76,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
     np.random.seed(3141)
     res_manual = fit_did_cs(y, x, d, t,
                             clone(learner[0]), clone(learner[1]),
-                            all_smpls, dml_procedure, score, in_sample_normalization,
+                            all_smpls, score, in_sample_normalization,
                             trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_did_cs_obj.coef,
@@ -95,15 +87,13 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_did(y, res_manual['thetas'], res_manual['ses'],
-                                           res_manual['all_psi_a'], res_manual['all_psi_b'],
-                                           all_smpls, bootstrap, n_rep_boot)
+        boot_t_stat = boot_did(y, res_manual['thetas'], res_manual['ses'],
+                               res_manual['all_psi_a'], res_manual['all_psi_b'],
+                               all_smpls, bootstrap, n_rep_boot)
 
         np.random.seed(3141)
         dml_did_cs_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_did_cs_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_did_cs_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
         res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
 
     # sensitivity tests
@@ -138,9 +128,6 @@ def test_dml_did_cs_se(dml_did_cs_fixture):
 @pytest.mark.ci
 def test_dml_did_cs_boot(dml_did_cs_fixture):
     for bootstrap in dml_did_cs_fixture['boot_methods']:
-        assert np.allclose(dml_did_cs_fixture['boot_coef' + bootstrap],
-                           dml_did_cs_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_did_cs_fixture['boot_t_stat' + bootstrap],
                            dml_did_cs_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

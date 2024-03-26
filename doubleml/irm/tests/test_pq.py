@@ -32,12 +32,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -51,7 +45,7 @@ def trimming_threshold(request):
 
 @pytest.fixture(scope="module")
 def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
-                   dml_procedure, normalize_ipw, trimming_threshold):
+                   normalize_ipw, trimming_threshold):
     n_folds = 3
 
     # collect data
@@ -68,7 +62,6 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
                                 quantile=quantile,
                                 n_folds=n_folds,
                                 n_rep=1,
-                                dml_procedure=dml_procedure,
                                 trimming_threshold=trimming_threshold,
                                 normalize_ipw=normalize_ipw,
                                 draw_sample_splitting=False)
@@ -81,8 +74,10 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
     np.random.seed(42)
     res_manual = fit_pq(y, x, d, quantile,
                         clone(learner), clone(learner),
-                        all_smpls, treatment, dml_procedure,
-                        n_rep=1, trimming_threshold=trimming_threshold, normalize_ipw=normalize_ipw)
+                        all_smpls, treatment,
+                        n_rep=1,
+                        trimming_threshold=trimming_threshold,
+                        normalize_ipw=normalize_ipw)
 
     res_dict = {'coef': dml_pq_obj.coef,
                 'coef_manual': res_manual['pq'],

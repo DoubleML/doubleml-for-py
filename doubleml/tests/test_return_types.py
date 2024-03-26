@@ -5,7 +5,7 @@ import plotly
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, DoubleMLClusterData, \
     DoubleMLCVAR, DoubleMLPQ, DoubleMLLPQ, DoubleMLDID, DoubleMLDIDCS, DoubleMLPolicyTree
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data,\
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -93,47 +93,47 @@ n_obs = 200
 n_rep_boot = 314
 
 plr_dml1 = DoubleMLPLR(dml_data_plr, Lasso(), LinearSVR(),
-                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                       n_rep=n_rep, n_folds=n_folds)
 plr_dml1.fit(store_models=True)
 plr_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 pliv_dml1 = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(),
-                         dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                         n_rep=n_rep, n_folds=n_folds)
 pliv_dml1.fit()
 pliv_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 irm_dml1 = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
+                       n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
 irm_dml1.fit()
 irm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 iivm_dml1 = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
-                         dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                         n_rep=n_rep, n_folds=n_folds)
 iivm_dml1.fit()
 iivm_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 cvar_dml1 = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier(),
-                         dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                         n_rep=n_rep, n_folds=n_folds)
 cvar_dml1.fit()
 cvar_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 pq_dml1 = DoubleMLPQ(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(),
-                     dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                     n_rep=n_rep, n_folds=n_folds)
 pq_dml1.fit()
 pq_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 lpq_dml1 = DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(),
-                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                       n_rep=n_rep, n_folds=n_folds)
 lpq_dml1.fit()
 lpq_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 did_dml1 = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
-                       dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                       n_rep=n_rep, n_folds=n_folds)
 did_dml1.fit()
 did_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
 did_cs_dml1 = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
-                            dml_procedure='dml1', n_rep=n_rep, n_folds=n_folds)
+                            n_rep=n_rep, n_folds=n_folds)
 did_cs_dml1.fit()
 did_cs_dml1.bootstrap(n_rep_boot=n_rep_boot)
 
@@ -143,7 +143,7 @@ did_cs_dml1.bootstrap(n_rep_boot=n_rep_boot)
                          [plr_dml1, pliv_dml1,  irm_dml1,  iivm_dml1, cvar_dml1, pq_dml1, lpq_dml1,
                           did_dml1, did_cs_dml1])
 def test_property_types_and_shapes(dml_obj):
-    # not checked: apply_cross_fitting, dml_procedure, learner, learner_names, params, params_names, score
+    # not checked: learner, learner_names, params, params_names, score
     # already checked: summary
 
     # check that the setting is still in line with the hard-coded values
@@ -156,14 +156,8 @@ def test_property_types_and_shapes(dml_obj):
     assert isinstance(dml_obj.all_coef, np.ndarray)
     assert dml_obj.all_coef.shape == (n_treat, n_rep)
 
-    assert isinstance(dml_obj.all_dml1_coef, np.ndarray)
-    assert dml_obj.all_dml1_coef.shape == (n_treat, n_rep, n_folds)
-
     assert isinstance(dml_obj.all_se, np.ndarray)
     assert dml_obj.all_se.shape == (n_treat, n_rep)
-
-    assert isinstance(dml_obj.boot_coef, np.ndarray)
-    assert dml_obj.boot_coef.shape == (n_treat, (n_rep_boot * n_rep))
 
     assert isinstance(dml_obj.boot_t_stat, np.ndarray)
     assert dml_obj.boot_t_stat.shape == (n_treat, (n_rep_boot * n_rep))
