@@ -243,7 +243,8 @@ def boot_plr(y, d, thetas, ses, all_l_hat, all_m_hat, all_g_hat,
             weights, n_rep_boot, apply_cross_fitting)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_t_stat = np.hstack(all_boot_t_stat)
+    # differently for plr because of n_rep_boot and multiple treatmentsa
+    boot_t_stat = np.transpose(np.vstack(all_boot_t_stat))
 
     return boot_t_stat
 
@@ -269,9 +270,13 @@ def boot_plr_multitreat(y, d, thetas, ses, all_l_hat, all_m_hat, all_g_hat,
                 all_l_hat[i_rep][i_d], all_m_hat[i_rep][i_d], all_g_hat[i_rep][i_d],
                 smpls, score, ses[i_rep][i_d],
                 weights, n_rep_boot, apply_cross_fitting)
+
+        # transpose for shape (n_rep_boot, n_d)
+        boot_t_stat = np.transpose(boot_t_stat)
         all_boot_t_stat.append(boot_t_stat)
 
-    boot_t_stat = np.hstack(all_boot_t_stat)
+    # stack repetitions along the last axis
+    boot_t_stat = np.stack(all_boot_t_stat, axis=2)
 
     return boot_t_stat
 

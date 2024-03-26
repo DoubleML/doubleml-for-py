@@ -92,7 +92,7 @@ def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, normali
         np.random.seed(3141)
         dml_irm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
 
     return res_dict
 

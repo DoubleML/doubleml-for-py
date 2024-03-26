@@ -7,15 +7,14 @@ from sklearn.base import is_regressor, is_classifier
 
 from scipy.stats import norm
 
-from statsmodels.stats.multitest import multipletests
-
 from abc import ABC, abstractmethod
 from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
+from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
-from .utils._estimation import _draw_weights, _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
+from .utils._estimation import _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
 from .utils._checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, _check_is_partition, \
     _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks, _check_external_predictions
 from .utils._plots import _sensitivity_contour_plot
@@ -44,6 +43,9 @@ class DoubleML(ABC):
                 raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented.')
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
+
+        # initialize framework which is constructed after the fit method is called
+        self._framework = None
 
         # initialize learners and parameters which are set model specific
         self._learner = None
@@ -102,12 +104,8 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_deriv, self._psi_elements, \
+        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
-
-        # also initialize bootstrap arrays with the default number of bootstrap replications
-        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot=500)
-        self._boot_method = None
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -161,14 +159,22 @@ class DoubleML(ABC):
         """
         The number of bootstrap replications.
         """
-        return self._n_rep_boot
+        if self._framework is None:
+            n_rep_boot = None
+        else:
+            n_rep_boot = self._framework.n_rep_boot
+        return n_rep_boot
 
     @property
     def boot_method(self):
         """
         The method to construct the bootstrap replications.
         """
-        return self._boot_method
+        if self._framework is None:
+            method = None
+        else:
+            method = self._framework.boot_method
+        return method
 
     @property
     def score(self):
@@ -176,6 +182,13 @@ class DoubleML(ABC):
         The score function.
         """
         return self._score
+
+    @property
+    def framework(self):
+        """
+        The corresponding :class:`doubleml.DoubleMLFramework` object.
+        """
+        return self._framework
 
     @property
     def learner(self):
@@ -376,7 +389,11 @@ class DoubleML(ABC):
         """
         Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
         """
-        return self._boot_t_stat
+        if self._framework is None:
+            boot_t_stat = None
+        else:
+            boot_t_stat = self._framework.boot_t_stat
+        return boot_t_stat
 
     @property
     def all_coef(self):
@@ -491,9 +508,40 @@ class DoubleML(ABC):
                 self._fit_sensitivity_elements(nuisance_predictions)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
+
+        # construct framework for inference
+        self._framework = self.construct_framework()
 
         return self
+
+    def construct_framework(self):
+        """
+        Construct a :class:`doubleml.DoubleMLFramework` object. Can be used to construct e.g. confidence intervals.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        doubleml_framework : doubleml.DoubleMLFramework
+        """
+        # standardize the score function and reshape to (n_obs, n_coefs, n_rep)
+        scaled_psi = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
+        scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
+
+        doubleml_dict = {
+            "thetas": self.coef,
+            "all_thetas": self.all_coef,
+            "ses": self.se,
+            "all_ses": self.all_se,
+            "var_scaling_factors": self._var_scaling_factors,
+            "scaled_psi": scaled_psi_reshape,
+            "is_cluster_data": self._is_cluster_data
+        }
+
+        doubleml_framework = DoubleMLFramework(doubleml_dict)
+        return doubleml_framework
 
     def bootstrap(self, method='normal', n_rep_boot=500):
         """
@@ -512,36 +560,10 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        if np.isnan(self.coef).all():
+        if self._framework is None:
             raise ValueError('Apply fit() before bootstrap().')
+        self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
-        if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
-            raise ValueError('Method must be "Bayes", "normal" or "wild". '
-                             f'Got {str(method)}.')
-
-        if not isinstance(n_rep_boot, int):
-            raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
-        if n_rep_boot < 1:
-            raise ValueError('The number of bootstrap replications must be positive. '
-                             f'{str(n_rep_boot)} was passed.')
-        if self._is_cluster_data:
-            raise NotImplementedError('bootstrap not yet implemented with clustering.')
-
-        self._n_rep_boot, self._boot_t_stat = self._initialize_boot_arrays(n_rep_boot)
-
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-            weights = _draw_weights(method, n_rep_boot, n_obs=self._dml_data.n_obs)
-
-            for i_d in range(self._dml_data.n_treat):
-                self._i_treat = i_d
-                i_start = self._i_rep * self.n_rep_boot
-                i_end = (self._i_rep + 1) * self.n_rep_boot
-                self._boot_t_stat[self._i_treat, i_start:i_end] =\
-                    self._compute_bootstrap(weights)
-
-        self._boot_method = method
         return self
 
     def confint(self, joint=False, level=0.95):
@@ -564,34 +586,12 @@ class DoubleML(ABC):
             A data frame with the confidence interval(s).
         """
 
-        if not isinstance(joint, bool):
-            raise TypeError('joint must be True or False. '
-                            f'Got {str(joint)}.')
+        if self.framework is None:
+            raise ValueError('Apply fit() before confint().')
 
-        if not isinstance(level, float):
-            raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
-        if (level <= 0) | (level >= 1):
-            raise ValueError('The confidence level must be in (0,1). '
-                             f'{str(level)} was passed.')
+        df_ci = self.framework.confint(joint=joint, level=level)
+        df_ci.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
-        a = (1 - level)
-        ab = np.array([a / 2, 1. - a / 2])
-        if joint:
-            if np.isnan(self.boot_t_stat).all():
-                raise ValueError('Apply fit() & bootstrap() before confint(joint=True).')
-            sim = np.amax(np.abs(self.boot_t_stat), 0)
-            hatc = np.quantile(sim, 1 - a)
-            ci = np.vstack((self.coef - self.se * hatc, self.coef + self.se * hatc)).T
-        else:
-            if np.isnan(self.coef).all():
-                raise ValueError('Apply fit() before confint().')
-            fac = norm.ppf(ab)
-            ci = np.vstack((self.coef + self.se * fac[0], self.coef + self.se * fac[1])).T
-
-        df_ci = pd.DataFrame(ci,
-                             columns=['{:.1f} %'.format(i * 100) for i in ab],
-                             index=self._dml_data.d_cols)
         return df_ci
 
     def p_adjust(self, method='romano-wolf'):
@@ -611,47 +611,12 @@ class DoubleML(ABC):
         p_val : pd.DataFrame
             A data frame with adjusted p-values.
         """
-        if np.isnan(self.coef).all():
+
+        if self.framework is None:
             raise ValueError('Apply fit() before p_adjust().')
 
-        if not isinstance(method, str):
-            raise TypeError('The p_adjust method must be of str type. '
-                            f'{str(method)} of type {str(type(method))} was passed.')
-
-        if method.lower() in ['rw', 'romano-wolf']:
-            if np.isnan(self.boot_t_stat).all():
-                raise ValueError(f'Apply fit() & bootstrap() before p_adjust("{method}").')
-
-            pinit = np.full_like(self.pval, np.nan)
-            p_val_corrected = np.full_like(self.pval, np.nan)
-
-            boot_t_stats = self.boot_t_stat
-            t_stat = self.t_stat
-            stepdown_ind = np.argsort(t_stat)[::-1]
-            ro = np.argsort(stepdown_ind)
-
-            for i_d in range(self._dml_data.n_treat):
-                if i_d == 0:
-                    sim = np.max(boot_t_stats, axis=0)
-                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
-                else:
-                    sim = np.max(np.delete(boot_t_stats, stepdown_ind[:i_d], axis=0),
-                                 axis=0)
-                    pinit[i_d] = np.minimum(1, np.mean(sim >= np.abs(t_stat[stepdown_ind][i_d])))
-
-            for i_d in range(self._dml_data.n_treat):
-                if i_d == 0:
-                    p_val_corrected[i_d] = pinit[i_d]
-                else:
-                    p_val_corrected[i_d] = np.maximum(pinit[i_d], p_val_corrected[i_d - 1])
-
-            p_val = p_val_corrected[ro]
-        else:
-            _, p_val, _, _ = multipletests(self.pval, method=method)
-
-        p_val = pd.DataFrame(np.vstack((self.coef, p_val)).T,
-                             columns=['coef', 'pval'],
-                             index=self._dml_data.d_cols)
+        p_val, _ = self.framework.p_adjust(method=method)
+        p_val.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
         return p_val
 
@@ -1002,7 +967,7 @@ class DoubleML(ABC):
             self._all_coef[self._i_treat, self._i_rep])
 
         # compute standard errors for causal parameter
-        self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+        self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
 
     def _fit_sensitivity_elements(self, nuisance_predictions):
         if self._sensitivity_implemented:
@@ -1019,6 +984,8 @@ class DoubleML(ABC):
         psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
         psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
 
+        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+
         # coefficients and ses
         coef = np.full(self._dml_data.n_coefs, np.nan)
         se = np.full(self._dml_data.n_coefs, np.nan)
@@ -1026,11 +993,7 @@ class DoubleML(ABC):
         all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
         all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
 
-        return psi, psi_deriv, psi_elements, coef, se, all_coef, all_se
-
-    def _initialize_boot_arrays(self, n_rep_boot):
-        boot_t_stat = np.full((self._dml_data.n_coefs, n_rep_boot * self.n_rep), np.nan)
-        return n_rep_boot, boot_t_stat
+        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
 
     def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
@@ -1280,7 +1243,7 @@ class DoubleML(ABC):
                     raise ValueError('Invalid partition provided. '
                                      'At least one inner list does not form a partition.')
 
-        self._psi, self._psi_deriv, self._psi_elements, \
+        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
@@ -1319,9 +1282,8 @@ class DoubleML(ABC):
                                                   smpls_cluster=smpls_cluster,
                                                   n_folds_per_cluster=n_folds_per_cluster)
 
-        self._var_scaling_factor = var_scaling_factor
         se = np.sqrt(sigma2_hat)
-        return se
+        return se, var_scaling_factor
 
     # to estimate causal parameters without predictions
     def _est_causal_pars_and_se(self):
@@ -1345,16 +1307,10 @@ class DoubleML(ABC):
                     self._all_coef[self._i_treat, self._i_rep])
 
                 # compute standard errors for causal parameter
-                self._all_se[self._i_treat, self._i_rep] = self._se_causal_pars()
+                self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factor)
-
-    def _compute_bootstrap(self, weights):
-        J = np.mean(self.__psi_deriv)
-        boot_t_stat = np.matmul(weights, self.__psi) / (self._dml_data.n_obs * self.__all_se * J)
-
-        return boot_t_stat
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
     # Score estimation and elements
     @abstractmethod
@@ -1501,8 +1457,8 @@ class DoubleML(ABC):
                 all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
 
         # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factor)
-        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factor)
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
 
         quant = norm.ppf(level)
         ci_lower = theta_lower - np.multiply(quant, sigma_lower)

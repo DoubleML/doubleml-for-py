@@ -120,7 +120,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
         np.random.seed(3141)
         dml_irm_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_irm_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
         res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_irm_obj_ext.boot_t_stat
 
     # sensitivity tests

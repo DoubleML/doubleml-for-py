@@ -117,7 +117,7 @@ def dml_plr_fixture(generate_data1, learner, score):
         np.random.seed(3141)
         dml_plr_obj_ext.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
         res_dict['boot_t_stat' + bootstrap + '_ext'] = dml_plr_obj_ext.boot_t_stat
 
     # sensitivity tests
@@ -274,7 +274,7 @@ def dml_plr_ols_manual_fixture(generate_data1, score):
         np.random.seed(3141)
         dml_plr_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
         res_dict['boot_t_stat' + bootstrap] = dml_plr_obj.boot_t_stat
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
 
     return res_dict
 
