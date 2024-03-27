@@ -58,7 +58,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     normalize_ipw : bool
     Indicates whether the inverse probability weights are normalized.
-    Default is ``True``.
+    Default is ``False``.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -136,7 +136,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                          apply_cross_fitting)
 
         self._external_predictions_implemented = False
-        self._sensitivity_implemented = True
+        self._sensitivity_implemented = False
         self._normalize_ipw = normalize_ipw
 
         self._trimming_rule = trimming_rule
@@ -264,14 +264,32 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             pi_hat = copy.deepcopy(g_hat_d1)
             m_hat = copy.deepcopy(g_hat_d1)
 
-            # create strata for splitting
-            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
-
             # pi_hat - used for preliminary estimation of propensity score pi, overwritten in each iteration
             pi_hat_prelim = {'models': None,
                              'targets': [],
                              'preds': []
                              }
+
+            # initialize models
+            fitted_models = {}
+            for learner in self.params_names:
+                # set nuisance model parameters
+                est_params = self._get_params(learner)
+
+                if learner == 'ml_g_d1' or learner == 'ml_g_d0':
+                    nuisance = 'ml_g'
+                else:
+                    nuisance = learner
+
+                if est_params is not None:
+                    fitted_models[learner] = [
+                        clone(self._learner[nuisance]).set_params(**est_params[i_fold]) for i_fold in range(self.n_folds)
+                    ]
+                else:
+                    fitted_models[learner] = [clone(self._learner[nuisance]) for i_fold in range(self.n_folds)]
+
+            # create strata for splitting
+            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
 
             # calculate nuisance functions over different folds - nested cross-fitting
             for i_fold in range(self.n_folds):
@@ -286,12 +304,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 s_train_1 = s[train_inds_1]
                 dx_train_1 = dx[train_inds_1, :]
 
-                # preliminary propensity score for selection
-                ml_pi_prelim = clone(self._learner['ml_pi'])
-
-                # fit on first part of training set
-                ml_pi_prelim.fit(dx_train_1, s_train_1)
-                pi_hat_prelim['preds'] = _predict_zero_one_propensity(ml_pi_prelim, dx)
+                # fit propensity score for selection on first part of training set
+                fitted_models['ml_pi'][i_fold].fit(dx_train_1, s_train_1)
+                pi_hat_prelim['preds'] = _predict_zero_one_propensity(fitted_models['ml_pi'][i_fold], dx)
                 pi_hat_prelim['targets'] = s
 
                 # predictions for small pi in denominator
@@ -306,10 +321,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 d_train_2 = d[train_inds_2]
                 xpi_test = xpi[test_inds, :]
 
-                ml_m = clone(self._learner['ml_m'])
-                ml_m.fit(xpi_train_2, d_train_2)
+                fitted_models['ml_m'][i_fold].fit(xpi_train_2, d_train_2)
 
-                m_hat['preds'][test_inds] = _predict_zero_one_propensity(ml_m, xpi_test)
+                m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], xpi_test)
                 m_hat['targets'][test_inds] = d[test_inds]
 
                 # estimate conditional outcome g on second training sample - treatment
@@ -318,11 +332,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
                 y_s1_d1_train_2 = y[s1_d1_train_2_indices]
 
-                ml_g_d1_prelim = clone(self._learner['ml_g'])
-                ml_g_d1_prelim.fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
+                fitted_models['ml_g_d1'][i_fold].fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
 
                 # predict conditional outcome
-                g_hat_d1['preds'][test_inds] = ml_g_d1_prelim.predict(xpi_test)
+                g_hat_d1['preds'][test_inds] = fitted_models['ml_g_d1'][i_fold].predict(xpi_test)
                 g_hat_d1['targets'][test_inds] = y[test_inds]
 
                 # estimate conditional outcome on second training sample - control
@@ -331,12 +344,17 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
                 y_s1_d0_train_2 = y[s1_d0_train_2_indices]
 
-                ml_g_d0_prelim = clone(self._learner['ml_g'])
-                ml_g_d0_prelim.fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
+                fitted_models['ml_g_d0'][i_fold].fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
 
                 # predict conditional outcome
-                g_hat_d0['preds'][test_inds] = ml_g_d0_prelim.predict(xpi_test)
+                g_hat_d0['preds'][test_inds] = fitted_models['ml_g_d0'][i_fold].predict(xpi_test)
                 g_hat_d0['targets'][test_inds] = y[test_inds]
+
+                if return_models:
+                    g_hat_d1['models'] = fitted_models['ml_g_d1']
+                    g_hat_d0['models'] = fitted_models['ml_g_d0']
+                    pi_hat['models'] = fitted_models['ml_pi']
+                    m_hat['models'] = fitted_models['ml_m']
 
         m_hat['preds'] = _trimm(m_hat['preds'], self._trimming_rule, self._trimming_threshold)
 
