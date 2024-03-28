@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLCVAR, DoubleMLPQ, \
-    DoubleMLLPQ, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, make_did_SZ2020
+    DoubleMLLPQ, DoubleMLQTE, DoubleMLDID, DoubleMLDIDCS, DoubleMLSSM
+from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, make_did_SZ2020, \
+    make_ssm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
@@ -15,6 +16,7 @@ dml_data_irm = make_irm_data(n_obs=500)
 dml_data_iivm = make_iivm_data(n_obs=1000)
 dml_data_did = make_did_SZ2020(n_obs=100)
 dml_data_did_cs = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
+dml_data_ssm = make_ssm_data(n_obs=2000, mar=True)
 
 # linear models
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
@@ -24,6 +26,7 @@ dml_iivm = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRe
 dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier())
 dml_did = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression())
 dml_did_cs = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
+dml_ssm = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
 
 dml_plr.fit()
 dml_pliv.fit()
@@ -32,6 +35,7 @@ dml_iivm.fit()
 dml_cvar.fit()
 dml_did.fit()
 dml_did_cs.fit()
+dml_ssm.fit()
 
 dml_plr.bootstrap()
 dml_pliv.bootstrap()
@@ -40,6 +44,7 @@ dml_iivm.bootstrap()
 dml_cvar.bootstrap()
 dml_did.bootstrap()
 dml_did_cs.bootstrap()
+dml_ssm.bootstrap()
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=LogisticRegression(), ml_m=LogisticRegression())
@@ -180,6 +185,16 @@ def test_did_cs_defaults():
     assert dml_did_cs.dml_procedure == 'dml2'
     assert dml_did_cs.trimming_rule == 'truncate'
     assert dml_did_cs.trimming_threshold == 1e-2
+
+
+@pytest.mark.ci
+def test_ssm_defaults():
+    _assert_resampling_default_settings(dml_ssm)
+    assert dml_ssm.score == 'missing-at-random'
+    assert dml_ssm.dml_procedure == 'dml2'
+    assert dml_ssm.trimming_rule == 'truncate'
+    assert dml_ssm.trimming_threshold == 1e-2
+    assert not dml_ssm.normalize_ipw
 
 
 @pytest.mark.ci
