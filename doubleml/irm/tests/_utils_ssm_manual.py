@@ -2,8 +2,8 @@ import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 
-from ._utils import fit_predict, fit_predict_proba
-from .._utils import _predict_zero_one_propensity, _trimm
+from ...tests._utils import fit_predict, fit_predict_proba
+from ...utils._estimation import _predict_zero_one_propensity, _trimm
 
 
 def fit_selection(y, x, d, z, s,
