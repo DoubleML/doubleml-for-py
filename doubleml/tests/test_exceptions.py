@@ -10,7 +10,6 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
@@ -670,76 +669,47 @@ def test_doubleml_exception_fit():
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
     dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
-    dml_qte_boot = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap()
 
     dml_plr_boot.fit()
-    dml_qte_boot.fit()
     msg = 'Method must be "Bayes", "normal" or "wild". Got Gaussian.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(method='Gaussian')
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap(method='Gaussian')
     msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot='500')
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_boot.bootstrap(n_rep_boot='500')
     msg = 'The number of bootstrap replications must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot=0)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap(n_rep_boot=0)
 
 
 @pytest.mark.ci
 def test_doubleml_exception_confint():
     dml_plr_confint = DoubleMLPLR(dml_data, ml_l, ml_m)
-    dml_qte_confint = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
+    dml_plr_confint.fit()
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_plr_confint.confint(joint=1)
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_confint.confint(joint=1)
     msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_confint.confint(level='5%')
-    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_confint.confint(level='5%')
     msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(level=0.)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(level=0.)
 
+    dml_plr_confint_not_fitted = DoubleMLPLR(dml_data, ml_l, ml_m)
     msg = r'Apply fit\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint()
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint()
-    msg = r'Apply fit\(\) & bootstrap\(\) before confint\(joint=True\).'
+        dml_plr_confint_not_fitted.confint()
+    msg = r'Apply bootstrap\(\) before confint\(joint=True\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(joint=True)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(joint=True)
-    dml_plr_confint.fit()  # error message should still appear till bootstrap was applied as well
-    dml_qte_confint.fit()
-    with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint(joint=True)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(joint=True)
     dml_plr_confint.bootstrap()
-    dml_qte_confint.bootstrap()
     df_plr_ci = dml_plr_confint.confint(joint=True)
-    df_qte_ci = dml_qte_confint.confint(joint=True)
     assert isinstance(df_plr_ci, pd.DataFrame)
-    assert isinstance(df_qte_ci, pd.DataFrame)
 
 
 @pytest.mark.ci
@@ -750,7 +720,7 @@ def test_doubleml_exception_p_adjust():
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust()
     dml_plr_p_adjust.fit()
-    msg = r'Apply fit\(\) & bootstrap\(\) before p_adjust'
+    msg = r'Apply bootstrap\(\) before p_adjust\("romano-wolf"\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust(method='romano-wolf')
     dml_plr_p_adjust.bootstrap()

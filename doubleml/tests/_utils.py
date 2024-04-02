@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV, StratifiedKFold
 from sklearn.base import clone
 
+from ..utils._estimation import _var_est, _aggregate_coefs_and_ses
+
 
 def draw_smpls(n_obs, n_folds, n_rep=1, groups=None):
     all_smpls = []
@@ -71,3 +73,41 @@ def _clone(learner):
     else:
         res = clone(learner)
     return res
+
+
+def generate_dml_dict(psi_a, psi_b):
+    n_obs = psi_a.shape[0]
+    n_thetas = psi_a.shape[1]
+    n_rep = psi_a.shape[2]
+
+    all_thetas = -1.0*np.mean(psi_b, axis=0)
+    all_ses = np.zeros(shape=(n_thetas, n_rep))
+    for i_rep in range(n_rep):
+        for i_theta in range(n_thetas):
+            psi = psi_a[:, i_theta, i_rep]*all_thetas[i_theta, i_rep] + psi_b[:, i_theta, i_rep]
+            var_estimate, _ = _var_est(
+                psi=psi,
+                psi_deriv=psi_a[:, i_theta, i_rep],
+                smpls=None,
+                is_cluster_data=False
+            )
+            all_ses[i_theta, i_rep] = np.sqrt(var_estimate)
+
+    var_scaling_factors = np.full(n_thetas, n_obs)
+    thetas, ses = _aggregate_coefs_and_ses(
+        all_coefs=all_thetas,
+        all_ses=all_ses,
+        var_scaling_factors=var_scaling_factors,
+    )
+    scaled_psi = psi_b / np.mean(psi_a, axis=0)
+
+    doubleml_dict = {
+        'thetas': thetas,
+        'ses': ses,
+        'all_thetas': all_thetas,
+        'all_ses': all_ses,
+        'var_scaling_factors': var_scaling_factors,
+        'scaled_psi': scaled_psi,
+    }
+
+    return doubleml_dict

@@ -90,27 +90,23 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
 
 def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_boot):
     n_quantiles = len(quantiles)
-    boot_qte = np.zeros((n_quantiles, n_rep_boot * n_rep))
-    boot_t_stat = np.zeros((n_quantiles, n_rep_boot * n_rep))
+    boot_t_stat = np.zeros((n_rep_boot, n_quantiles, n_rep))
     for i_rep in range(n_rep):
         n_obs = scaled_scores.shape[0]
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         for i_quant in range(n_quantiles):
-            i_start = i_rep * n_rep_boot
-            i_end = (i_rep + 1) * n_rep_boot
-
-            boot_qte[i_quant, i_start:i_end] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / n_obs
-            boot_t_stat[i_quant, i_start:i_end] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / \
+            boot_t_stat[:, i_quant, i_rep] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / \
                 (n_obs * ses[i_quant, i_rep])
 
-    return boot_qte, boot_t_stat
+    return boot_t_stat
 
 
 def confint_qte(coef, se, quantiles, boot_t_stat=None, joint=True, level=0.95):
     a = (1 - level)
     ab = np.array([a / 2, 1. - a / 2])
     if joint:
-        sim = np.amax(np.abs(boot_t_stat), 0)
+        assert boot_t_stat.shape[2] == 1
+        sim = np.amax(np.abs(boot_t_stat[:, :, 0]), 1)
         hatc = np.quantile(sim, 1 - a)
         ci = np.vstack((coef - se * hatc, coef + se * hatc)).T
     else:
