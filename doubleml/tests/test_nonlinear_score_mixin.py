@@ -8,8 +8,8 @@ from sklearn.utils import check_X_y
 
 import doubleml as dml
 from doubleml.double_ml import DoubleML
-from doubleml._utils import _dml_cv_predict
-from doubleml._utils_checks import _check_finite_predictions
+from doubleml.utils._estimation import _dml_cv_predict
+from doubleml.utils._checks import _check_finite_predictions
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
 
@@ -25,16 +25,12 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='partialling out',
-                 dml_procedure='dml2',
-                 draw_sample_splitting=True,
-                 apply_cross_fitting=True):
+                 draw_sample_splitting=True):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
-                         draw_sample_splitting,
-                         apply_cross_fitting)
+                         draw_sample_splitting)
 
         self._check_data(self._dml_data)
         self._check_score(self.score)
@@ -182,12 +178,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[(-np.inf, np.inf),
                         (0, 5)])
 def coef_bounds(request):
@@ -195,7 +185,7 @@ def coef_bounds(request):
 
 
 @pytest.fixture(scope="module")
-def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_procedure, coef_bounds):
+def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, coef_bounds):
     n_folds = 3
 
     # collect data
@@ -213,15 +203,13 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                       ml_l, ml_m,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                       ml_l, ml_m, ml_g,
                                       n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
 
     dml_plr_obj.fit()
 
@@ -230,15 +218,13 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
         dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data,
                                                           ml_l, ml_m,
                                                           n_folds=n_folds,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
     else:
         assert score == 'IV-type'
         dml_plr_obj2 = DoubleMLPLRWithNonLinearScoreMixin(obj_dml_data,
                                                           ml_l, ml_m, ml_g,
                                                           n_folds,
-                                                          score=score,
-                                                          dml_procedure=dml_procedure)
+                                                          score=score)
 
     dml_plr_obj2._coef_bounds = coef_bounds  # use different settings to also unit test the solver for bounded problems
     dml_plr_obj2.fit()
@@ -253,15 +239,15 @@ def dml_plr_w_nonlinear_mixin_fixture(generate_data1, learner, score, dml_proced
 
 @pytest.mark.ci
 def test_dml_plr_coef(dml_plr_w_nonlinear_mixin_fixture):
-    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['coef'],
-                        dml_plr_w_nonlinear_mixin_fixture['coef2'],
+    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['coef'][0],
+                        dml_plr_w_nonlinear_mixin_fixture['coef2'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_se(dml_plr_w_nonlinear_mixin_fixture):
-    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['se'],
-                        dml_plr_w_nonlinear_mixin_fixture['se2'],
+    assert math.isclose(dml_plr_w_nonlinear_mixin_fixture['se'][0],
+                        dml_plr_w_nonlinear_mixin_fixture['se2'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 

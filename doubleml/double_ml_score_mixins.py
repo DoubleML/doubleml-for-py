@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 
 from scipy.optimize import fmin_l_bfgs_b, root_scalar
-from ._utils import _get_bracket_guess
+from .utils._estimation import _get_bracket_guess
 
 from abc import abstractmethod
 
@@ -47,11 +47,9 @@ class LinearScoreMixin:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
 
-        # check whether we have cluster data and dml2
-        is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
-        if not is_dml2_and_cluster:
+        if not self._is_cluster_data:
             coef = - np.mean(psi_b) / np.mean(psi_a)
-        # for cluster and dml2 we need the smpls and the scaling factors
+        # for cluster we need the smpls and the scaling factors
         else:
             assert smpls is not None
             assert scaling_factor is not None
@@ -109,10 +107,8 @@ class NonLinearScoreMixin:
             for key, value in psi_elements.items():
                 psi_elements[key] = value[inds]
 
-        # check whether we have cluster data and dml2
-        is_dml2_and_cluster = self._is_cluster_data and (self.dml_procedure == 'dml2')
-        # for cluster and dml2 we need the smpls and the scaling factors (only check once)
-        if is_dml2_and_cluster:
+        # for cluster we need the smpls and the scaling factors (only check once)
+        if self._is_cluster_data:
             assert smpls is not None
             assert scaling_factor is not None
             assert inds is None
@@ -120,10 +116,10 @@ class NonLinearScoreMixin:
         # how to agregate the score and score derivative
         def _aggregate_obs(psi):
             # usually the solution is found as the root of the average score
-            if not is_dml2_and_cluster:
+            if not self._is_cluster_data:
                 psi_mean = np.mean(psi)
 
-            # if we have clustered data and dml2 the solution is the root of a weighted sum
+            # if we have clustered data the solution is the root of a weighted sum
             else:
                 psi_mean = 0.
                 for i_fold, (_, test_index) in enumerate(smpls):

@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 import copy
 
-from .._utils import _aggregate_coefs_and_ses
+from ..utils._estimation import _aggregate_coefs_and_ses
 
 
 def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv, cf_y, cf_d, rho, level):
@@ -26,7 +26,7 @@ def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv,
     psi_lower = psi_scaled - psi_bias
     psi_upper = psi_scaled + psi_bias
 
-    var_scaling_factor = psi_scaled.shape[0]
+    var_scaling_factor = np.full(all_coefs.shape[0], psi_scaled.shape[0])
     # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
     all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), var_scaling_factor)))
     all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), var_scaling_factor)))
