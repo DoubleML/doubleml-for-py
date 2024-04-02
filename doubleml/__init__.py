@@ -13,10 +13,10 @@ from .irm.qte import DoubleMLQTE
 from .irm.pq import DoubleMLPQ
 from .irm.lpq import DoubleMLLPQ
 from .irm.cvar import DoubleMLCVAR
+from .irm.ssm import DoubleMLSSM
 
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
-from .double_ml_ssm import DoubleMLSSM
 
 __all__ = ['concat',
            'DoubleMLFramework',
