@@ -29,12 +29,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -47,7 +41,7 @@ def kde(request):
 
 
 @pytest.fixture(scope="module")
-def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_ipw, kde):
+def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
     n_folds = 3
     boot_methods = ['normal']
     n_rep_boot = 2
@@ -66,7 +60,6 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
                                   quantiles=quantiles,
                                   n_folds=n_folds,
                                   n_rep=n_rep,
-                                  dml_procedure=dml_procedure,
                                   normalize_ipw=normalize_ipw,
                                   trimming_threshold=1e-12,
                                   kde=kde)
@@ -77,7 +70,7 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     res_manual = fit_qte(y, x, d, quantiles, ml_g, ml_g, all_smpls,
-                         n_rep=n_rep, dml_procedure=dml_procedure,
+                         n_rep=n_rep,
                          normalize_ipw=normalize_ipw,
                          trimming_rule='truncate', trimming_threshold=1e-12, kde=kde,
                          draw_sample_splitting=True)
@@ -97,15 +90,13 @@ def dml_qte_fixture(generate_data_quantiles, learner, dml_procedure, normalize_i
 
     for bootstrap in boot_methods:
         np.random.seed(42)
-        boot_qte_coef, boot_t_stat = boot_qte(res_manual['scaled_scores'], res_manual['ses'], quantiles,
-                                              all_smpls, n_rep, bootstrap, n_rep_boot, apply_cross_fitting=True)
+        boot_t_stat = boot_qte(res_manual['scaled_scores'], res_manual['ses'], quantiles,
+                               all_smpls, n_rep, bootstrap, n_rep_boot)
 
         np.random.seed(42)
         dml_qte_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
 
-        res_dict['boot_qte_' + bootstrap] = dml_qte_obj.boot_coef
         res_dict['boot_t_stat_' + bootstrap] = dml_qte_obj.boot_t_stat
-        res_dict['boot_qte_' + bootstrap + '_manual'] = boot_qte_coef
         res_dict['boot_t_stat_' + bootstrap + '_manual'] = boot_t_stat
 
         ci = dml_qte_obj.confint(joint=True, level=0.95)
@@ -133,9 +124,6 @@ def test_dml_qte_se(dml_qte_fixture):
 @pytest.mark.ci
 def test_dml_qte_boot(dml_qte_fixture):
     for bootstrap in dml_qte_fixture['boot_methods']:
-        assert np.allclose(dml_qte_fixture['boot_qte_' + bootstrap],
-                           dml_qte_fixture['boot_qte_' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_qte_fixture['boot_t_stat_' + bootstrap],
                            dml_qte_fixture['boot_t_stat_' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

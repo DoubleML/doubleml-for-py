@@ -248,31 +248,25 @@ def _solve_ipw_score(ipw_score, bracket_guess):
     return ipw_est
 
 
-def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factor):
+def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
-    n_rep = all_coefs.shape[1]
     coefs = np.median(all_coefs, 1)
+    coefs_deviations = np.square(all_coefs - coefs.reshape(-1, 1))
 
-    xx = np.tile(coefs.reshape(-1, 1), n_rep)
-    ses = np.sqrt(np.divide(np.median(np.multiply(np.power(all_ses, 2), var_scaling_factor) +
-                                      np.power(all_coefs - xx, 2), 1), var_scaling_factor))
+    rescaled_variances = np.multiply(np.square(all_ses), var_scaling_factors.reshape(-1, 1))
+
+    var = np.median(rescaled_variances + coefs_deviations, 1)
+    ses = np.sqrt(np.divide(var, var_scaling_factors))
 
     return coefs, ses
 
 
-def _var_est(psi, psi_deriv, apply_cross_fitting, smpls, is_cluster_data,
+def _var_est(psi, psi_deriv, smpls, is_cluster_data,
              cluster_vars=None, smpls_cluster=None, n_folds_per_cluster=None):
 
     if not is_cluster_data:
         # psi and psi_deriv should be of shape (n_obs, ...)
-        if apply_cross_fitting:
-            var_scaling_factor = psi.shape[0]
-        else:
-            # In case of no-cross-fitting, the score function was only evaluated on the test data set
-            test_index = smpls[0][1]
-            psi_deriv = psi_deriv[test_index]
-            psi = psi[test_index]
-            var_scaling_factor = len(test_index)
+        var_scaling_factor = psi.shape[0]
 
         J = np.mean(psi_deriv)
         gamma_hat = np.mean(np.square(psi))

@@ -29,19 +29,13 @@ def n_rep(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[0.01, 0.05])
 def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope='module')
-def dml_irm_eval_learner_fixture(learner, dml_procedure, trimming_threshold, n_rep):
+def dml_irm_eval_learner_fixture(learner, trimming_threshold, n_rep):
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
@@ -51,7 +45,6 @@ def dml_irm_eval_learner_fixture(learner, dml_procedure, trimming_threshold, n_r
                                   ml_g, ml_m,
                                   n_folds=2,
                                   n_rep=n_rep,
-                                  dml_procedure=dml_procedure,
                                   trimming_threshold=trimming_threshold)
     dml_irm_obj.fit()
     res_manual = dml_irm_obj.evaluate_learners()

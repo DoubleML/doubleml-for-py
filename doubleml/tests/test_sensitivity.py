@@ -9,12 +9,6 @@ from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_manual, \
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[1, 3])
 def n_rep(request):
     return request.param
@@ -45,7 +39,7 @@ def level(request):
 
 
 @pytest.fixture(scope="module")
-def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n_rep, cf_y, cf_d, rho, level):
+def dml_sensitivity_multitreat_fixture(generate_data_bivariate, n_rep, cf_y, cf_d, rho, level):
 
     # collect data
     data = generate_data_bivariate
@@ -63,8 +57,7 @@ def dml_sensitivity_multitreat_fixture(generate_data_bivariate, dml_procedure, n
                                   ml_m,
                                   n_folds=5,
                                   n_rep=n_rep,
-                                  score='partialling out',
-                                  dml_procedure=dml_procedure)
+                                  score='partialling out')
 
     dml_plr_obj.fit()
     dml_plr_obj.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level, null_hypothesis=0.0)

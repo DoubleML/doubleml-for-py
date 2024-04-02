@@ -8,11 +8,6 @@ from doubleml.utils import DMLDummyClassifier
 from ...tests._utils import draw_smpls
 
 
-@pytest.fixture(scope="module", params=["dml1", "dml2"])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
@@ -24,7 +19,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module")
-def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
+def doubleml_lpq_fixture(n_rep, normalize_ipw):
     ext_predictions = {"d": {}}
     np.random.seed(3141)
     data = make_iivm_data(theta=0.5, n_obs=2000, dim_x=10, alpha_x=1.0, return_type="DataFrame")
@@ -36,7 +31,6 @@ def doubleml_lpq_fixture(dml_procedure, n_rep, normalize_ipw):
         "obj_dml_data": dml_data,
         "score": "LPQ",
         "n_rep": n_rep,
-        "dml_procedure": dml_procedure,
         "normalize_ipw": normalize_ipw,
         "draw_sample_splitting": False,
     }

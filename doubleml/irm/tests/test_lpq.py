@@ -39,12 +39,6 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -64,7 +58,7 @@ def kde(request):
 
 @pytest.fixture(scope="module")
 def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
-                    dml_procedure, normalize_ipw, trimming_threshold, kde):
+                    normalize_ipw, trimming_threshold, kde):
     n_folds = 3
 
     # collect data
@@ -83,7 +77,6 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                                       quantile=quantile,
                                       n_folds=n_folds,
                                       n_rep=1,
-                                      dml_procedure=dml_procedure,
                                       normalize_ipw=normalize_ipw,
                                       trimming_threshold=trimming_threshold,
                                       draw_sample_splitting=False)
@@ -93,7 +86,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
 
         np.random.seed(42)
         res_manual = fit_lpq(y, x, d, z, quantile, clone(learner), clone(learner),
-                             all_smpls, treatment, dml_procedure,
+                             all_smpls, treatment,
                              normalize_ipw=normalize_ipw, kde=_default_kde,
                              n_rep=1, trimming_threshold=trimming_threshold)
     else:
@@ -103,7 +96,6 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                                       quantile=quantile,
                                       n_folds=n_folds,
                                       n_rep=1,
-                                      dml_procedure=dml_procedure,
                                       normalize_ipw=normalize_ipw,
                                       kde=kde,
                                       trimming_threshold=trimming_threshold,
@@ -115,7 +107,7 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
 
         np.random.seed(42)
         res_manual = fit_lpq(y, x, d, z, quantile, clone(learner), clone(learner),
-                             all_smpls, treatment, dml_procedure,
+                             all_smpls, treatment,
                              normalize_ipw=normalize_ipw, kde=kde,
                              n_rep=1, trimming_threshold=trimming_threshold)
 

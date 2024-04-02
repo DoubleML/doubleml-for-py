@@ -8,7 +8,7 @@ from ...utils._estimation import _dml_cv_predict, _trimm, _default_kde, _normali
 
 
 def fit_lpq(y, x, d, z, quantile,
-            learner_g, learner_m, all_smpls, treatment, dml_procedure, n_rep=1,
+            learner_g, learner_m, all_smpls, treatment, n_rep=1,
             trimming_rule='truncate',
             trimming_threshold=1e-2,
             kde=_default_kde,
@@ -27,7 +27,6 @@ def fit_lpq(y, x, d, z, quantile,
             comp_prob_hat, ipw_vec, coef_bounds = fit_nuisance_lpq(y, x, d, z, quantile,
                                                                    learner_g, learner_m, smpls,
                                                                    treatment,
-                                                                   dml_procedure=dml_procedure,
                                                                    trimming_rule=trimming_rule,
                                                                    trimming_threshold=trimming_threshold,
                                                                    normalize_ipw=normalize_ipw,
@@ -36,12 +35,9 @@ def fit_lpq(y, x, d, z, quantile,
                                                                    m_d_z1_params=m_d_z1_params,
                                                                    g_du_z0_params=g_du_z0_params,
                                                                    g_du_z1_params=g_du_z1_params)
-        if dml_procedure == 'dml1':
-            lpqs[i_rep], ses[i_rep] = lpq_dml1(y, d, z, m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec, coef_bounds, smpls, kde)
-        else:
-            lpqs[i_rep], ses[i_rep] = lpq_dml2(y, d, z, m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat,
-                                               treatment, quantile, ipw_vec, coef_bounds, kde)
+
+        lpqs[i_rep], ses[i_rep] = lpq_dml2(y, d, z, m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat,
+                                           treatment, quantile, ipw_vec, coef_bounds, kde)
 
     lpq = np.median(lpqs)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(lpqs - lpq, 2)) / n_obs)
@@ -53,7 +49,7 @@ def fit_lpq(y, x, d, z, quantile,
 
 
 def fit_nuisance_lpq(y, x, d, z, quantile, learner_g, learner_m, smpls, treatment,
-                     dml_procedure, trimming_rule, trimming_threshold, normalize_ipw, m_z_params,
+                     trimming_rule, trimming_threshold, normalize_ipw, m_z_params,
                      m_d_z0_params, m_d_z1_params, g_du_z0_params, g_du_z1_params):
     n_folds = len(smpls)
     n_obs = len(y)
@@ -188,33 +184,13 @@ def fit_nuisance_lpq(y, x, d, z, quantile, learner_g, learner_m, smpls, treatmen
     m_z_hat = _trimm(m_z_hat, trimming_rule, trimming_threshold)
 
     if normalize_ipw:
-        if dml_procedure == 'dml1':
-            for _, test_index in smpls:
-                m_z_hat[test_index] = _normalize_ipw(m_z_hat[test_index], z[test_index])
-        else:
-            m_z_hat = _normalize_ipw(m_z_hat, z)
+        m_z_hat = _normalize_ipw(m_z_hat, z)
 
     # estimate final nuisance parameter
     comp_prob_hat = np.mean(m_d_z1_hat - m_d_z0_hat
                             + z / m_z_hat * (d - m_d_z1_hat)
                             - (1 - z) / (1 - m_z_hat) * (d - m_d_z0_hat))
     return m_z_hat, g_du_z0_hat, g_du_z1_hat, comp_prob_hat, ipw_vec, coef_bounds
-
-
-def lpq_dml1(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, smpls, kde):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(y)
-    ipw_est = ipw_vec.mean()
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = lpq_est(m_z[test_index], g_du_z0[test_index], g_du_z1[test_index],
-                              comp_prob, d[test_index], y[test_index], z[test_index], treatment, quantile,
-                              ipw_est, coef_bounds)
-
-    theta_hat = np.mean(thetas)
-
-    se = np.sqrt(lpq_var_est(theta_hat, m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, n_obs, kde))
-
-    return theta_hat, se
 
 
 def lpq_dml2(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw_vec, coef_bounds, kde):

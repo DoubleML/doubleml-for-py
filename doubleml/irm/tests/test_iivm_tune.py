@@ -38,12 +38,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -72,7 +66,7 @@ def get_par_grid(learner):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, dml_procedure, normalize_ipw, subgroups,
+def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score, normalize_ipw, subgroups,
                      tune_on_folds):
     par_grid = {'ml_g': get_par_grid(learner_g),
                 'ml_m': get_par_grid(learner_m),
@@ -102,7 +96,6 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
                                     ml_g, ml_m, ml_r,
                                     n_folds,
                                     subgroups=subgroups,
-                                    dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
                                     draw_sample_splitting=False)
     # synchronize the sample splitting
@@ -150,7 +143,7 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner_g), clone(learner_m), clone(learner_r),
-                          all_smpls, dml_procedure, score,
+                          all_smpls, score,
                           g0_params=g0_params, g1_params=g1_params,
                           m_params=m_params, r0_params=r0_params, r1_params=r1_params,
                           normalize_ipw=normalize_ipw,
@@ -164,18 +157,16 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
-                                            res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
-                                            normalize_ipw=normalize_ipw)
+        boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
+                                all_smpls, score, bootstrap, n_rep_boot,
+                                normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
 
     return res_dict
 
@@ -197,9 +188,6 @@ def test_dml_iivm_se(dml_iivm_fixture):
 @pytest.mark.ci
 def test_dml_iivm_boot(dml_iivm_fixture):
     for bootstrap in dml_iivm_fixture['boot_methods']:
-        assert np.allclose(dml_iivm_fixture['boot_coef' + bootstrap],
-                           dml_iivm_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_iivm_fixture['boot_t_stat' + bootstrap],
                            dml_iivm_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

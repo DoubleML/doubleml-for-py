@@ -5,7 +5,7 @@ import copy
 
 import doubleml as dml
 
-from ...irm.tests._utils_pt_manual import fit_policytree
+from ._utils_pt_manual import fit_policytree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.exceptions import NotFittedError
 

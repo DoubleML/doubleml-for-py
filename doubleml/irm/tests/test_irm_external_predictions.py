@@ -12,11 +12,6 @@ def irm_score(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=["dml1", "dml2"])
-def dml_procedure(request):
-    return request.param
-
-
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
@@ -33,7 +28,7 @@ def set_ml_g_ext(request):
 
 
 @pytest.fixture(scope="module")
-def doubleml_irm_fixture(irm_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_g_ext):
+def doubleml_irm_fixture(irm_score, n_rep, set_ml_m_ext, set_ml_g_ext):
     ext_predictions = {"d": {}}
 
     x, y, d = make_irm_data(n_obs=500, dim_x=20, theta=0.5, return_type="np.array")
@@ -42,7 +37,7 @@ def doubleml_irm_fixture(irm_score, dml_procedure, n_rep, set_ml_m_ext, set_ml_g
 
     dml_data = DoubleMLData.from_arrays(x=x, y=y, d=d)
 
-    kwargs = {"obj_dml_data": dml_data, "score": irm_score, "n_rep": n_rep, "dml_procedure": dml_procedure}
+    kwargs = {"obj_dml_data": dml_data, "score": irm_score, "n_rep": n_rep}
 
     dml_irm = DoubleMLIRM(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
     np.random.seed(3141)

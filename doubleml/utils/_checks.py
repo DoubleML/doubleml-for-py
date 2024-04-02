@@ -317,3 +317,33 @@ def _check_external_predictions(external_predictions, valid_treatments, valid_le
                                      'Invalid predictions for treatment ' + str(treatment) +
                                      ' and learner ' + str(learner) + '. ' +
                                      f'Predictions of shape {str(external_predictions[treatment][learner].shape)} passed.')
+
+
+def _check_bootstrap(method, n_rep_boot):
+
+    if (not isinstance(method, str)) | (method not in ['Bayes', 'normal', 'wild']):
+        raise ValueError('Method must be "Bayes", "normal" or "wild". '
+                         f'Got {str(method)}.')
+
+    if not isinstance(n_rep_boot, int):
+        raise TypeError('The number of bootstrap replications must be of int type. '
+                        f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+    if n_rep_boot < 1:
+        raise ValueError('The number of bootstrap replications must be positive. '
+                         f'{str(n_rep_boot)} was passed.')
+    return
+
+
+def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treatments=True):
+    if not dml_framework_1.n_obs == dml_framework_2.n_obs:
+        raise ValueError('The number of observations in DoubleMLFrameworks must be the same. '
+                         f'Got {str(dml_framework_1.n_obs)} and {str(dml_framework_2.n_obs)}.')
+
+    if not dml_framework_1.n_rep == dml_framework_2.n_rep:
+        raise ValueError('The number of replications in DoubleMLFrameworks must be the same. '
+                         f'Got {str(dml_framework_1.n_rep)} and {str(dml_framework_2.n_rep)}.')
+
+    if check_treatments:
+        if not dml_framework_1.n_thetas == dml_framework_2.n_thetas:
+            raise ValueError('The number of parameters theta in DoubleMLFrameworks must be the same. '
+                             f'Got {str(dml_framework_1.n_thetas)} and {str(dml_framework_2.n_thetas)}.')

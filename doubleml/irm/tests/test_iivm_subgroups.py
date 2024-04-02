@@ -26,12 +26,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -52,7 +46,7 @@ def subgroups(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure, normalize_ipw,
+def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw,
                                trimming_threshold, subgroups):
     boot_methods = ['normal']
     n_folds = 2
@@ -77,7 +71,6 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
                                     ml_g, ml_m, ml_r,
                                     n_folds,
                                     subgroups=subgroups,
-                                    dml_procedure=dml_procedure,
                                     normalize_ipw=normalize_ipw,
                                     trimming_threshold=trimming_threshold,
                                     draw_sample_splitting=False)
@@ -93,7 +86,7 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
 
     res_manual = fit_iivm(y, x, d, z,
                           clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                          all_smpls, dml_procedure, score,
+                          all_smpls, score,
                           normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold,
                           always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
@@ -111,18 +104,16 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, dml_procedure
 
     for bootstrap in boot_methods:
         np.random.seed(3141)
-        boot_theta, boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
-                                            res_manual['all_g_hat0'], res_manual['all_g_hat1'],
-                                            res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
-                                            all_smpls, score, bootstrap, n_rep_boot, dml_procedure,
-                                            normalize_ipw=normalize_ipw)
+        boot_t_stat = boot_iivm(y, d, z, res_manual['thetas'], res_manual['ses'],
+                                res_manual['all_g_hat0'], res_manual['all_g_hat1'],
+                                res_manual['all_m_hat'], res_manual['all_r_hat0'], res_manual['all_r_hat1'],
+                                all_smpls, score, bootstrap, n_rep_boot,
+                                normalize_ipw=normalize_ipw)
 
         np.random.seed(3141)
         dml_iivm_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        res_dict['boot_coef' + bootstrap] = dml_iivm_obj.boot_coef
         res_dict['boot_t_stat' + bootstrap] = dml_iivm_obj.boot_t_stat
-        res_dict['boot_coef' + bootstrap + '_manual'] = boot_theta
-        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat
+        res_dict['boot_t_stat' + bootstrap + '_manual'] = boot_t_stat.reshape(-1, 1, 1)
 
     return res_dict
 
@@ -144,9 +135,6 @@ def test_dml_iivm_subgroups_se(dml_iivm_subgroups_fixture):
 @pytest.mark.ci
 def test_dml_iivm_subgroups_boot(dml_iivm_subgroups_fixture):
     for bootstrap in dml_iivm_subgroups_fixture['boot_methods']:
-        assert np.allclose(dml_iivm_subgroups_fixture['boot_coef' + bootstrap],
-                           dml_iivm_subgroups_fixture['boot_coef' + bootstrap + '_manual'],
-                           rtol=1e-9, atol=1e-4)
         assert np.allclose(dml_iivm_subgroups_fixture['boot_t_stat' + bootstrap],
                            dml_iivm_subgroups_fixture['boot_t_stat' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)

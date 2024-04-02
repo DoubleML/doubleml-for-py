@@ -10,7 +10,6 @@ from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
@@ -614,36 +613,16 @@ def test_doubleml_exception_resampling():
     msg = 'The number of repetitions for the sample splitting must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=0)
-    msg = 'apply_cross_fitting must be True or False. Got 1.'
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=1)
     msg = 'draw_sample_splitting must be True or False. Got true.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting='true')
 
 
 @pytest.mark.ci
-def test_doubleml_exception_dml_procedure():
-    msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
+def test_doubleml_exception_onefold():
+    msg = 'n_folds must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold.'
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='1')
-    msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, dml_procedure='dml')
-
-
-@pytest.mark.ci
-def test_doubleml_warning_crossfitting_onefold():
-    msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
-    with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=True, n_folds=1)
-
-
-@pytest.mark.ci
-def test_doubleml_exception_no_cross_fit():
-    msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
-    with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLPLR(dml_data, ml_l, ml_m, apply_cross_fitting=False)
+        _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=1)
 
 
 @pytest.mark.ci
@@ -690,76 +669,47 @@ def test_doubleml_exception_fit():
 @pytest.mark.ci
 def test_doubleml_exception_bootstrap():
     dml_plr_boot = DoubleMLPLR(dml_data, ml_l, ml_m)
-    dml_qte_boot = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap()
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap()
 
     dml_plr_boot.fit()
-    dml_qte_boot.fit()
     msg = 'Method must be "Bayes", "normal" or "wild". Got Gaussian.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(method='Gaussian')
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap(method='Gaussian')
     msg = "The number of bootstrap replications must be of int type. 500 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot='500')
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_boot.bootstrap(n_rep_boot='500')
     msg = 'The number of bootstrap replications must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_boot.bootstrap(n_rep_boot=0)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_boot.bootstrap(n_rep_boot=0)
 
 
 @pytest.mark.ci
 def test_doubleml_exception_confint():
     dml_plr_confint = DoubleMLPLR(dml_data, ml_l, ml_m)
-    dml_qte_confint = DoubleMLQTE(dml_data_irm, RandomForestClassifier(), RandomForestClassifier())
+    dml_plr_confint.fit()
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
         dml_plr_confint.confint(joint=1)
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_confint.confint(joint=1)
     msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_plr_confint.confint(level='5%')
-    msg = "The confidence level must be of float type. 5% of type <class 'str'> was passed."
-    with pytest.raises(TypeError, match=msg):
-        dml_qte_confint.confint(level='5%')
     msg = r'The confidence level must be in \(0,1\). 0.0 was passed.'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(level=0.)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(level=0.)
 
+    dml_plr_confint_not_fitted = DoubleMLPLR(dml_data, ml_l, ml_m)
     msg = r'Apply fit\(\) before confint\(\).'
     with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint()
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint()
-    msg = r'Apply fit\(\) & bootstrap\(\) before confint\(joint=True\).'
+        dml_plr_confint_not_fitted.confint()
+    msg = r'Apply bootstrap\(\) before confint\(joint=True\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_confint.confint(joint=True)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(joint=True)
-    dml_plr_confint.fit()  # error message should still appear till bootstrap was applied as well
-    dml_qte_confint.fit()
-    with pytest.raises(ValueError, match=msg):
-        dml_plr_confint.confint(joint=True)
-    with pytest.raises(ValueError, match=msg):
-        dml_qte_confint.confint(joint=True)
     dml_plr_confint.bootstrap()
-    dml_qte_confint.bootstrap()
     df_plr_ci = dml_plr_confint.confint(joint=True)
-    df_qte_ci = dml_qte_confint.confint(joint=True)
     assert isinstance(df_plr_ci, pd.DataFrame)
-    assert isinstance(df_qte_ci, pd.DataFrame)
 
 
 @pytest.mark.ci
@@ -770,7 +720,7 @@ def test_doubleml_exception_p_adjust():
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust()
     dml_plr_p_adjust.fit()
-    msg = r'Apply fit\(\) & bootstrap\(\) before p_adjust'
+    msg = r'Apply bootstrap\(\) before p_adjust\("romano-wolf"\).'
     with pytest.raises(ValueError, match=msg):
         dml_plr_p_adjust.p_adjust(method='romano-wolf')
     dml_plr_p_adjust.bootstrap()
@@ -1017,11 +967,8 @@ def test_doubleml_exception_and_warning_learner():
 
 @pytest.mark.ci
 def test_doubleml_sensitivity_not_yet_implemented():
-    dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r, n_folds=1, apply_cross_fitting=False)
+    dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r, n_folds=2)
     dml_pliv.fit()
-    msg = ("Sensitivity analysis not yet implemented without cross-fitting.")
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml_pliv.sensitivity_analysis()
 
     dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_g, ml_m, ml_r)
     dml_pliv.fit()
@@ -1279,15 +1226,6 @@ def test_doubleml_cluster_not_yet_implemented():
     msg = r'Multi-way \(n_ways > 2\) clustering not yet implemented.'
     with pytest.raises(NotImplementedError, match=msg):
         _ = DoubleMLPLIV(dml_cluster_data_multiway, ml_g, ml_m, ml_r)
-
-    msg = (r'No cross-fitting \(`apply_cross_fitting = False`\) '
-           'is not yet implemented with clustering.')
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
-                         n_folds=1)
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r,
-                         apply_cross_fitting=False, n_folds=2)
 
 
 class LassoWithNanPred(Lasso):
