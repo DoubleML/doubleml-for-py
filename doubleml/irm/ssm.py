@@ -37,8 +37,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m(X) = Pr[D=1|X]`.
 
     ml_pi : classifier implementing ``fit()`` and ``predict_proba()``
-    A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-    :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `\\pi(D,X) = Pr[S=1|D,X]`.
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math: `\\pi(D,X) = Pr[S=1|D,X]`.
 
     n_folds : int
         Number of folds.
@@ -52,13 +52,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         A str (``'missing-at-random'`` or ``'nonignorable'``) specifying the score function.
         Default is ``'missing-at-random'``.
 
-    dml_procedure : str
-        A str (``'dml1'`` or ``'dml2'``) specifying the double machine learning algorithm.
-        Default is ``'dml2'``.
-
     normalize_ipw : bool
-    Indicates whether the inverse probability weights are normalized.
-    Default is ``False``.
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
 
     trimming_rule : str
         A str (``'truncate'`` is the only choice) specifying the trimming approach.
@@ -121,7 +117,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='missing-at-random',
-                 dml_procedure='dml2',
                  normalize_ipw=False,
                  trimming_rule='truncate',
                  trimming_threshold=1e-2,
@@ -131,7 +126,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                          n_folds,
                          n_rep,
                          score,
-                         dml_procedure,
                          draw_sample_splitting,
                          apply_cross_fitting)
 
