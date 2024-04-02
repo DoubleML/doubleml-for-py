@@ -99,36 +99,9 @@ def test_ssm_exception_resampling():
     msg = 'The number of repetitions for the sample splitting must be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_rep=0)
-    msg = 'apply_cross_fitting must be True or False. Got 1.'
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=1)
     msg = 'draw_sample_splitting must be True or False. Got true.'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, draw_sample_splitting='true')
-
-
-@pytest.mark.ci
-def test_ssm_exception_dml_procedure():
-    msg = 'dml_procedure must be "dml1" or "dml2". Got 1.'
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, dml_procedure='1')
-    msg = 'dml_procedure must be "dml1" or "dml2". Got dml.'
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, dml_procedure='dml')
-
-
-@pytest.mark.ci
-def test_ssm_warning_crossfitting_onefold():
-    msg = 'apply_cross_fitting is set to False. Cross-fitting is not supported for n_folds = 1.'
-    with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=True, n_folds=1)
-
-
-@pytest.mark.ci
-def test_ssm_exception_no_cross_fit():
-    msg = 'Estimation without cross-fitting not supported for n_folds > 2.'
-    with pytest.raises(AssertionError, match=msg):
-        _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, apply_cross_fitting=False)
 
 
 @pytest.mark.ci

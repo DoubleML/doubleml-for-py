@@ -181,7 +181,6 @@ def test_did_cs_defaults():
 def test_ssm_defaults():
     _assert_resampling_default_settings(dml_ssm)
     assert dml_ssm.score == 'missing-at-random'
-    assert dml_ssm.dml_procedure == 'dml2'
     assert dml_ssm.trimming_rule == 'truncate'
     assert dml_ssm.trimming_threshold == 1e-2
     assert not dml_ssm.normalize_ipw
