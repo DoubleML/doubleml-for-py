@@ -8,7 +8,7 @@ from ...utils._estimation import _predict_zero_one_propensity, _trimm
 
 def fit_selection(y, x, d, z, s,
                   learner_g, learner_pi, learner_m,
-                  all_smpls, dml_procedure, score,
+                  all_smpls, score,
                   trimming_rule='truncate',
                   trimming_threshold=1e-2,
                   normalize_ipw=True,
@@ -54,11 +54,7 @@ def fit_selection(y, x, d, z, s,
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
 
-        if dml_procedure == 'dml1':
-            thetas[i_rep], ses[i_rep] = selection_dml1(psi_a, psi_b, smpls)
-        else:
-            assert dml_procedure == 'dml2'
-            thetas[i_rep], ses[i_rep] = selection_dml2(psi_a, psi_b)
+        thetas[i_rep], ses[i_rep] = selection_dml2(psi_a, psi_b)
 
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
@@ -225,25 +221,6 @@ def selection_score_elements(dtreat, dcontrol, g_d1, g_d0,
     psi_b = psi_b1 - psi_b0
 
     return psi_a, psi_b
-
-
-def selection_dml1(psi_a, psi_b, smpls):
-    thetas = np.zeros(len(smpls))
-    n_obs = len(psi_a)
-
-    for idx, (_, test_index) in enumerate(smpls):
-        thetas[idx] = - np.mean(psi_b[test_index]) / np.mean(psi_a[test_index])
-    theta_hat = np.mean(thetas)
-
-    if len(smpls) > 1:
-        se = np.sqrt(var_selection(theta_hat, psi_a, psi_b, n_obs))
-    else:
-        assert len(smpls) == 1
-        test_index = smpls[0][1]
-        n_obs = len(test_index)
-        se = np.sqrt(var_selection(theta_hat, psi_a[test_index], psi_b[test_index], n_obs))
-
-    return theta_hat, se
 
 
 def selection_dml2(psi_a, psi_b):

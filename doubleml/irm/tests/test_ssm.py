@@ -26,12 +26,6 @@ def score(request):
 
 
 @pytest.fixture(scope='module',
-                params=['dml1', 'dml2'])
-def dml_procedure(request):
-    return request.param
-
-
-@pytest.fixture(scope='module',
                 params=[True, False])
 def normalize_ipw(request):
     return request.param
@@ -45,7 +39,7 @@ def trimming_threshold(request):
 
 @pytest.fixture(scope='module')
 def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_nonignorable,
-                          learner, score, dml_procedure,
+                          learner, score,
                           trimming_threshold, normalize_ipw):
     n_folds = 3
 
@@ -70,16 +64,14 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
                                       ml_g, ml_pi, ml_m,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
     else:
         assert score == 'nonignorable'
         obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, t=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data,
                                       ml_g, ml_pi, ml_m,
                                       n_folds=n_folds,
-                                      score=score,
-                                      dml_procedure=dml_procedure)
+                                      score=score)
 
     np.random.seed(42)
     dml_sel_obj.set_sample_splitting(all_smpls=all_smpls)
@@ -88,7 +80,7 @@ def dml_selection_fixture(generate_data_selection_mar, generate_data_selection_n
     np.random.seed(42)
     res_manual = fit_selection(y, x, d, z, s,
                                clone(learner[0]), clone(learner[1]), clone(learner[1]),
-                               all_smpls, dml_procedure, score,
+                               all_smpls, score,
                                trimming_rule='truncate',
                                trimming_threshold=trimming_threshold,
                                normalize_ipw=normalize_ipw)
