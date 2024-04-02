@@ -119,52 +119,52 @@ n_obs = 200
 n_rep_boot = 314
 
 plr_obj = DoubleMLPLR(dml_data_plr, Lasso(), LinearSVR(),
-                       n_rep=n_rep, n_folds=n_folds)
+                      n_rep=n_rep, n_folds=n_folds)
 plr_obj.fit(store_models=True)
 plr_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 pliv_obj = DoubleMLPLIV(dml_data_pliv, Lasso(), Lasso(), Lasso(),
-                         n_rep=n_rep, n_folds=n_folds)
+                        n_rep=n_rep, n_folds=n_folds)
 pliv_obj.fit()
 pliv_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 irm_obj = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(),
-                       n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
+                      n_rep=n_rep, n_folds=n_folds, trimming_threshold=0.1)
 irm_obj.fit()
 irm_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 iivm_obj = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(),
-                         n_rep=n_rep, n_folds=n_folds)
+                        n_rep=n_rep, n_folds=n_folds)
 iivm_obj.fit()
 iivm_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 cvar_obj = DoubleMLCVAR(dml_data_irm, ml_g=RandomForestRegressor(), ml_m=RandomForestClassifier(),
-                         n_rep=n_rep, n_folds=n_folds)
+                        n_rep=n_rep, n_folds=n_folds)
 cvar_obj.fit()
 cvar_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 pq_obj = DoubleMLPQ(dml_data_irm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(),
-                     n_rep=n_rep, n_folds=n_folds)
+                    n_rep=n_rep, n_folds=n_folds)
 pq_obj.fit()
 pq_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 lpq_obj = DoubleMLLPQ(dml_data_iivm, ml_g=RandomForestClassifier(), ml_m=RandomForestClassifier(),
-                       n_rep=n_rep, n_folds=n_folds)
+                      n_rep=n_rep, n_folds=n_folds)
 lpq_obj.fit()
 lpq_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 did_obj = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(),
-                       n_rep=n_rep, n_folds=n_folds)
+                      n_rep=n_rep, n_folds=n_folds)
 did_obj.fit()
 did_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 did_cs_obj = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(),
-                            n_rep=n_rep, n_folds=n_folds)
+                           n_rep=n_rep, n_folds=n_folds)
 did_cs_obj.fit()
 did_cs_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 ssm_obj = DoubleMLSSM(dml_data_ssm, ml_g=Lasso(), ml_m=LogisticRegression(), ml_pi=LogisticRegression(),
-                       n_rep=n_rep, n_folds=n_folds)
+                      n_rep=n_rep, n_folds=n_folds)
 ssm_obj.fit()
 ssm_obj.bootstrap(n_rep_boot=n_rep_boot)
 
