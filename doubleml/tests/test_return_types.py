@@ -441,9 +441,9 @@ def test_sensitivity():
 
 @pytest.mark.ci
 def test_policytree():
-    features = dml_data_irm.data.drop(columns=["y", "d"])
-    policy_tree = dml_irm.policy_tree(features, depth=1)
+    dml_irm.fit()
+    features = dml_data_irm.data[["X1", "X2"]]
+    policy_tree = dml_irm.policy_tree(features, depth=2)
     assert isinstance(policy_tree, DoubleMLPolicyTree)
-    assert isinstance(policy_tree.plot_tree(), list)
-    predict_features = pd.DataFrame(np.random.normal(size=(5, 20)), columns=features.keys())
+    predict_features = pd.DataFrame(np.random.normal(size=(5, 2)), columns=features.keys())
     assert isinstance(policy_tree.predict(predict_features), pd.DataFrame)

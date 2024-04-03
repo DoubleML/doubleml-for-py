@@ -155,6 +155,10 @@ def test_ssm_exception_bootstrap():
 @pytest.mark.ci
 def test_ssm_exception_confint():
     dml_ssm_confint = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m)
+    msg = r'Apply fit\(\) before confint\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_ssm_confint.confint()
+    dml_ssm_confint.fit()
 
     msg = 'joint must be True or False. Got 1.'
     with pytest.raises(TypeError, match=msg):
@@ -166,13 +170,7 @@ def test_ssm_exception_confint():
     with pytest.raises(ValueError, match=msg):
         dml_ssm_confint.confint(level=0.)
 
-    msg = r'Apply fit\(\) before confint\(\).'
-    with pytest.raises(ValueError, match=msg):
-        dml_ssm_confint.confint()
-    msg = r'Apply fit\(\) & bootstrap\(\) before confint\(joint=True\).'
-    with pytest.raises(ValueError, match=msg):
-        dml_ssm_confint.confint(joint=True)
-    dml_ssm_confint.fit()  # error message should still appear till bootstrap was applied as well
+    msg = r'Apply bootstrap\(\) before confint\(joint=True\).'
     with pytest.raises(ValueError, match=msg):
         dml_ssm_confint.confint(joint=True)
     dml_ssm_confint.bootstrap()
