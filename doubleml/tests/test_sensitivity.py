@@ -1,11 +1,20 @@
 import pytest
+import math
 import numpy as np
+import copy
 
 import doubleml as dml
+from doubleml import DoubleMLIRM, DoubleMLData
+from doubleml.datasets import make_irm_data
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_manual, \
     doubleml_sensitivity_benchmark_manual
+
+@pytest.fixture(scope="module", params=[["X1"],["X2"],["X3"]])
+def benchmarking_set(request):
+    return request.param
 
 
 @pytest.fixture(scope='module',
@@ -99,3 +108,43 @@ def test_dml_sensitivity_benchmark(dml_sensitivity_multitreat_fixture):
     assert all(dml_sensitivity_multitreat_fixture['benchmark'].index ==
                dml_sensitivity_multitreat_fixture['d_cols'])
     assert dml_sensitivity_multitreat_fixture['benchmark'].equals(dml_sensitivity_multitreat_fixture['benchmark_manual'])
+
+@pytest.fixture(scope="module")
+def test_dml_benchmark_fixture(benchmarking_set,n_rep):
+    
+    random_state = 42
+    
+    x, y, d = make_irm_data(n_obs=10, dim_x=5, theta=0.5, return_type="np.array")
+
+    classifier_class = RandomForestClassifier
+    regressor_class = RandomForestRegressor
+    
+    np.random.seed(3141)
+    dml_data = DoubleMLData.from_arrays(x=x, y=y, d=d)
+    x_list_long = copy.deepcopy(dml_data.x_cols)
+    dml_int = DoubleMLIRM(dml_data, ml_m=classifier_class(random_state=random_state), ml_g=regressor_class(random_state=random_state), n_folds=2)
+    dml_int.fit(store_predictions=True)
+    dml_int.sensitivity_analysis()
+    dml_ext = copy.deepcopy(dml_int)
+    df_bm = dml_int.sensitivity_benchmark(benchmarking_set=benchmarking_set)
+    
+    np.random.seed(3141)
+    dml_short = copy.deepcopy(dml_ext)
+    dml_data_short = DoubleMLData.from_arrays(x=x, y=y, d=d)
+    dml_data_short.x_cols = [x for x in x_list_long if x not in benchmarking_set]
+    dml_short = DoubleMLIRM(dml_data_short, ml_m=classifier_class(random_state=random_state), ml_g=regressor_class(random_state=random_state), n_folds=2)
+    dml_short.fit(store_predictions=True)
+    fit_args = {"external_predictions": {"d": {"ml_m": dml_short.predictions["ml_m"][:, :, 0],
+                                               "ml_g0": dml_short.predictions["ml_g0"][:, :, 0],
+                                               "ml_g1": dml_short.predictions["ml_g1"][:, :, 0],}},}
+    dml_ext.sensitivity_analysis()
+    df_bm_ext = dml_ext.sensitivity_benchmark(benchmarking_set=benchmarking_set,fit_args=fit_args)
+
+    res_dict = {"default_benchmark": df_bm.loc["d","delta_theta"],
+                "external_benchmark": df_bm_ext.loc["d","delta_theta"]}
+
+    return res_dict
+
+@pytest.mark.ci
+def test_dml_sensitivity_external_predictions(test_dml_benchmark_fixture):
+    assert math.isclose(test_dml_benchmark_fixture["default_benchmark"], test_dml_benchmark_fixture["external_benchmark"], rel_tol=1e-9, abs_tol=1e-4)
