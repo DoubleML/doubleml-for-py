@@ -132,7 +132,6 @@ def test_dml_benchmark_fixture(benchmarking_set, n_rep):
     df_bm = dml_int.sensitivity_benchmark(benchmarking_set=benchmarking_set)
 
     np.random.seed(3141)
-    dml_short = copy.deepcopy(dml_ext)
     dml_data_short = DoubleMLData.from_arrays(x=x, y=y, d=d)
     dml_data_short.x_cols = [x for x in x_list_long if x not in benchmarking_set]
     dml_short = DoubleMLIRM(dml_data_short,
