@@ -110,9 +110,8 @@ def test_dml_sensitivity_benchmark(dml_sensitivity_multitreat_fixture):
     assert dml_sensitivity_multitreat_fixture['benchmark'].equals(dml_sensitivity_multitreat_fixture['benchmark_manual'])
 
 @pytest.fixture(scope="module")
-def test_dml_benchmark_fixture(benchmarking_set,n_rep): 
+def test_dml_benchmark_fixture(benchmarking_set,n_rep):
     random_state = 42
-    
     x, y, d = make_irm_data(n_obs=10, dim_x=5, theta=0.5, return_type="np.array")
 
     classifier_class = RandomForestClassifier
