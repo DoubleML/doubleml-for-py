@@ -24,6 +24,7 @@ def test_qte_external_prediction_exception():
         qte = DoubleMLQTE(DoubleMLData(df_irm, "y", "d"), DMLDummyClassifier(), DMLDummyClassifier())
         qte.fit(external_predictions=ext_predictions)
 
+
 @pytest.mark.ci
 def test_sensitivity_benchmark_external_prediction_exception():
     msg = "fit_args must be a dict. "
