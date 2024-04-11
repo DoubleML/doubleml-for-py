@@ -1735,7 +1735,7 @@ class DoubleML(ABC):
                                         fill=fill)
         return fig
 
-    def sensitivity_benchmark(self, benchmarking_set):
+    def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
         """
         Computes a benchmark for a given set of features.
         Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
@@ -1757,12 +1757,18 @@ class DoubleML(ABC):
         if not set(benchmarking_set) <= set(x_list_long):
             raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
                              f'{str(benchmarking_set)} was passed.')
+        if fit_args is not None and not isinstance(fit_args, dict):
+            raise TypeError('fit_args must be a dict. '
+                            f'{str(fit_args)} of type {type(fit_args)} was passed.')
 
         # refit short form of the model
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
         dml_short = copy.deepcopy(self)
         dml_short._dml_data.x_cols = x_list_short
-        dml_short.fit()
+        if fit_args is not None:
+            dml_short.fit(**fit_args)
+        else:
+            dml_short.fit()
 
         benchmark_dict = gain_statistics(dml_long=self, dml_short=dml_short)
         df_benchmark = pd.DataFrame(benchmark_dict, index=self._dml_data.d_cols)
