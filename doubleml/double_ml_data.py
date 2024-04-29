@@ -8,6 +8,7 @@ from sklearn.utils.validation import check_array, column_or_1d,  check_consisten
 from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from .utils._estimation import _assure_2d_array
+from .utils._checks import _check_set
 
 
 class DoubleMLBaseData(ABC):
@@ -434,20 +435,13 @@ class DoubleMLData(DoubleMLBaseData):
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
         else:
-            # x_cols defaults to all columns but y_col, d_cols and z_cols (and t_col)
-            if (self.z_cols is not None) & (self.t_col is not None):
-                y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col})
-                x_cols = [col for col in self.data.columns if col not in y_d_z_t]
-            elif self.z_cols is not None:
-                y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols))
-                x_cols = [col for col in self.data.columns if col not in y_d_z]
-            elif self.t_col is not None:
-                y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col})
-                x_cols = [col for col in self.data.columns if col not in y_d_t]
-            else:
-                y_d = set.union({self.y_col}, set(self.d_cols))
-                x_cols = [col for col in self.data.columns if col not in y_d]
-            self._x_cols = x_cols
+            excluded_cols = set.union({self.y_col}, set(self.d_cols))
+            if (self.z_cols is not None):
+                excluded_cols = set.union(excluded_cols, set(self.z_cols))
+            for col in [self.t_col, self.s_col]:
+                col = _check_set(col)
+                excluded_cols = set.union(excluded_cols, col)
+            self._x_cols = [col for col in self.data.columns if col not in excluded_cols]
         if reset_value:
             self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
@@ -716,6 +710,7 @@ class DoubleMLData(DoubleMLBaseData):
             if not x_cols_set.isdisjoint(z_cols_set):
                 raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
                                  'variable in ``z_cols``.')
+
         if self.t_col is not None:
             t_col_set = {self.t_col}
             if not t_col_set.isdisjoint(x_cols_set):

@@ -2,9 +2,10 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS, \
+    DoubleMLSSM
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015, \
-    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
+    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020, make_ssm_data
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -161,7 +162,7 @@ def test_add_vars_in_df():
 
 
 @pytest.mark.ci
-def test_dml_data_no_instr_no_time():
+def test_dml_data_no_instr_no_time_no_selection():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
@@ -173,6 +174,7 @@ def test_dml_data_no_instr_no_time():
     assert dml_data.z is None
     assert dml_data.n_instr == 0
     assert dml_data.t is None
+    assert dml_data.s is None
 
 
 @pytest.mark.ci
@@ -182,15 +184,13 @@ def test_dml_summary_with_time():
     assert isinstance(dml_did_cs.__str__(), str)
     assert isinstance(dml_did_cs.summary, pd.DataFrame)
 
-    dml_data = make_plr_CCDDHNR2018(n_obs=100)
-    df = dml_data.data.copy().iloc[:, :11]
-    df.columns = [f'X{i + 1}' for i in np.arange(8)] + ['y', 'd1', 'd2']
-    print(df)
-    dml_data = DoubleMLClusterData(df, 'y', ['d1', 'd2'],
-                                   cluster_cols=[f'X{i + 1}' for i in [5, 6]],
-                                   x_cols=[f'X{i + 1}' for i in np.arange(5)],
-                                   t_col='X8')
-    assert isinstance(dml_data._data_summary_str(), str)
+
+@pytest.mark.ci
+def test_dml_summary_with_selection():
+    dml_data_ssm = make_ssm_data(n_obs=200)
+    dml_ssm = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
+    assert isinstance(dml_ssm.__str__(), str)
+    assert isinstance(dml_ssm.summary, pd.DataFrame)
 
 
 @pytest.mark.ci
@@ -216,6 +216,17 @@ def test_x_cols_setter_defaults():
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt'])
     dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt')
+
+    # without instrument with selection
+    df = pd.DataFrame(np.tile(np.arange(5), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument with selection
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='ss')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
@@ -247,6 +258,33 @@ def test_x_cols_setter_defaults_w_cluster():
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'cluster1'])
     dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
                                    z_cols='zz', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument and with selection
+    df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument and with selection
+    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
+                                   z_cols='zz', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument with time with selection
+    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', t_col='tt',
+                                   s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument with time with selection
+    df = pd.DataFrame(np.tile(np.arange(8), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
+                                   z_cols='zz', t_col='tt', s_col='ss')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
