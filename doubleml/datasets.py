@@ -1429,7 +1429,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
             return data
         else:
             if mar:
-                return DoubleMLData(data, 'y', 'd', x_cols, None, 's')
-            return DoubleMLData(data, 'y', 'd', x_cols, 'z', 's')
+                return DoubleMLData(data, 'y', 'd', x_cols, None, None, 's')
+            return DoubleMLData(data, 'y', 'd', x_cols, 'z', None, 's')
     else:
         raise ValueError('Invalid return_type.')
