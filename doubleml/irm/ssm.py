@@ -204,7 +204,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
 
         if self._score == 'nonignorable':
             z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
@@ -277,7 +277,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     fitted_models[learner] = [clone(self._learner[nuisance]) for i_fold in range(self.n_folds)]
 
             # create strata for splitting
-            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.t.reshape(-1, 1)
+            strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.s.reshape(-1, 1)
 
             # calculate nuisance functions over different folds - nested cross-fitting
             for i_fold in range(self.n_folds):
@@ -403,7 +403,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
         # time indicator is used for selection (selection not available in DoubleMLData yet)
-        x, s = check_X_y(x, self._dml_data.t, force_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
 
         dx = np.column_stack((d, x))
 
