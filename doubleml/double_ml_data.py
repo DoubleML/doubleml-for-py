@@ -553,14 +553,14 @@ class DoubleMLData(DoubleMLBaseData):
         if reset_value:
             self._check_disjoint_sets()
             self._set_y_z_t_s()
-    
+
     @property
     def s_col(self):
         """
         The selection variable.
         """
         return self._s_col
-    
+
     @s_col.setter
     def s_col(self, value):
         reset_value = hasattr(self, '_s_col')
@@ -983,8 +983,6 @@ class DoubleMLClusterData(DoubleMLData):
                 else:
                     y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
                     x_cols = [col for col in self.data.columns if col not in y_d]
-                # this call might become much easier with https://github.com/python/cpython/pull/26194
-                super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
             else:
                 if (self.z_cols is not None) & (self.t_col is not None):
                     y_d_z_t_s = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, {self.s_col},
@@ -999,7 +997,8 @@ class DoubleMLClusterData(DoubleMLData):
                 else:
                     y_d_s = set.union({self.y_col}, set(self.d_cols), {self.s_col}, set(self.cluster_cols))
                     x_cols = [col for col in self.data.columns if col not in y_d_s]
-                # this call might become much easier with
+            # this call might become much easier with https://github.com/python/cpython/pull/26194
+            super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
 
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class
