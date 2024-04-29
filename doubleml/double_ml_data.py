@@ -739,9 +739,6 @@ class DoubleMLData(DoubleMLBaseData):
             if not s_col_set.isdisjoint(y_col_set):
                 raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and outcome variable '
                                  '``y_col``.')
-            if not s_col_set.isdisjoint(t_col_set):
-                raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and time variable '
-                                 '``t_col``.')
 
 
 class DoubleMLClusterData(DoubleMLData):
