@@ -451,32 +451,3 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                'tune_res': tune_res}
 
         return res
-
-    def _sensitivity_element_est(self, preds):
-        # TODO: RR calculation needs to be finished
-        y = self._dml_data.y
-        d = self._dml_data.d
-
-        g_hat_d1 = preds['predictions']['ml_g_d1']
-        g_hat_d0 = preds['predictions']['ml_g_d0']
-        pi_hat = preds['predictions']['ml_pi']
-        m_hat = preds['predictions']['ml_m']
-
-        g_hat = np.multiply(d, g_hat_d1) + np.multiply(1.0-d, g_hat_d0)
-        sigma2_score_element = np.square(y - g_hat)
-        sigma2 = np.mean(sigma2_score_element)
-        psi_sigma2 = sigma2_score_element - sigma2
-
-        # calc m(W,alpha) and Riesz representer
-        m_alpha = np.divide(1.0, pi_hat) + np.divide(1.0, pi_hat)
-        rr = np.divide(d, m_hat) - np.divide(1.0-d, m_hat)
-        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
-
-        nu2 = np.mean(nu2_score_element)
-        psi_nu2 = nu2_score_element - nu2
-
-        element_dict = {'sigma2': sigma2,
-                        'nu2': nu2,
-                        'psi_sigma2': psi_sigma2,
-                        'psi_nu2': psi_nu2}
-        return element_dict
