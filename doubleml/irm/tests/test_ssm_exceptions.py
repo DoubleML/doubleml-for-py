@@ -206,15 +206,6 @@ class _DummyNoClassifier(_DummyNoGetParams):
         pass
 
 
-class LogisticRegressionManipulatedPredict(LogisticRegression):
-    def predict(self, X):
-        if self.max_iter == 314:
-            preds = super().predict_proba(X)[:, 1]
-        else:
-            preds = super().predict(X)
-        return preds
-
-
 @pytest.mark.ci
 def test_ssm_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
