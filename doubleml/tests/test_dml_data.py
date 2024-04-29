@@ -416,6 +416,34 @@ def test_t_col_setter():
 
 
 @pytest.mark.ci
+def test_s_col_setter():
+    np.random.seed(3141)
+    df = make_ssm_data(n_obs=100, return_type=pd.DataFrame)
+    df['s_new'] = np.ones(shape=(100,))
+    dml_data = DoubleMLData(df, 'y', 'd',
+                            [f'X{i + 1}' for i in np.arange(4)],
+                            s_col='s')
+
+    # check that after changing s_col, the s array gets updated
+    s_comp = dml_data.data['s_new'].values
+    dml_data.s_col = 's_new'
+    assert np.array_equal(dml_data.s, s_comp)
+
+    msg = r'Invalid selection variable s_col. a13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.s_col = 'a13'
+
+    msg = (r'The selection variable s_col must be of str type \(or None\). '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.s_col = 5
+
+    # check None
+    dml_data.s_col = None
+    assert dml_data.s is None
+
+
+@pytest.mark.ci
 def test_cluster_cols_setter():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
@@ -544,6 +572,7 @@ def test_disjoint_sets():
            '``z_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
+
     msg = 'xx2 cannot be set as time variable ``t_col`` and covariate in ``x_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='xx2')
@@ -553,6 +582,16 @@ def test_disjoint_sets():
     msg = 'yy cannot be set as time variable ``t_col`` and outcome variable ``y_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='yy')
+
+    msg = 'xx2 cannot be set as selection variable ``s_col`` and covariate in ``x_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='xx2')
+    msg = 'dd1 cannot be set as selection variable ``s_col`` and treatment variable in ``d_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='dd1')
+    msg = 'yy cannot be set as selection variable ``s_col`` and outcome variable ``y_col``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='yy')
 
     # cluster data
     msg = 'yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``'
@@ -573,6 +612,9 @@ def test_disjoint_sets():
     msg = 'xx2 cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], t_col='xx2', cluster_cols='xx2')
+    msg = 'xx2 cannot be set as selection variable ``s_col`` and cluster variable in ``cluster_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], s_col='xx2', cluster_cols='xx2')
 
 
 @pytest.mark.ci
