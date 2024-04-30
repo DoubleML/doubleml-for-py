@@ -216,6 +216,7 @@ def test_x_cols_setter_defaults():
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt'])
     dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
 
     # without instrument with selection
     df = pd.DataFrame(np.tile(np.arange(5), (4, 1)),
@@ -226,7 +227,19 @@ def test_x_cols_setter_defaults():
     # with instrument with selection
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'ss'])
-    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='ss')
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with selection and time
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', t_col='tt', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument, selection and time
+    df = pd.DataFrame(np.tile(np.arange(7), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt', s_col='ss')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
