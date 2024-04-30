@@ -5,7 +5,7 @@ import numpy as np
 from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
     make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, \
-    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data, make_heterogeneous_data
+    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data, make_heterogeneous_data, make_ssm_data
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -260,3 +260,20 @@ def test_make_heterogeneous_data_return_types(binary_treatment, n_x):
     msg = 'binary_treatment must be a boolean.'
     with pytest.raises(AssertionError, match=msg):
         _ = make_heterogeneous_data(n_obs=100, n_x=n_x, binary_treatment=2)
+
+
+@pytest.mark.ci
+def test_make_ssm_data_return_types():
+    np.random.seed(3141)
+    res = make_ssm_data(n_obs=100)
+    assert isinstance(res, DoubleMLData)
+    res = make_ssm_data(n_obs=100, return_type='DataFrame')
+    assert isinstance(res, pd.DataFrame)
+    x, y, d, z, s = make_ssm_data(n_obs=100, return_type='array')
+    assert isinstance(x, np.ndarray)
+    assert isinstance(y, np.ndarray)
+    assert isinstance(d, np.ndarray)
+    assert isinstance(z, np.ndarray)
+    assert isinstance(s, np.ndarray)
+    with pytest.raises(ValueError, match=msg_inv_return_type):
+        _ = make_ssm_data(n_obs=100, return_type='matrix')
