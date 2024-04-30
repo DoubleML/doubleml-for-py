@@ -561,8 +561,8 @@ def test_use_other_treat_as_covariate():
 @pytest.mark.ci
 def test_disjoint_sets():
     np.random.seed(3141)
-    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
-                      columns=['yy', 'dd1', 'xx1', 'xx2'])
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd1', 'xx1', 'xx2', 'zz', 'tt'])
 
     msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and as covariate\(``x_cols``\). '
            'Consider using parameter ``use_other_treat_as_covariate``.')
@@ -595,6 +595,9 @@ def test_disjoint_sets():
     msg = 'yy cannot be set as time variable ``t_col`` and outcome variable ``y_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='yy')
+    msg = 'zz cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', t_col='zz')
 
     msg = 'xx2 cannot be set as selection variable ``s_col`` and covariate in ``x_cols``.'
     with pytest.raises(ValueError, match=msg):
@@ -605,6 +608,12 @@ def test_disjoint_sets():
     msg = 'yy cannot be set as selection variable ``s_col`` and outcome variable ``y_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='yy')
+    msg = 'zz cannot be set as selection variable ``s_col`` and instrumental variable in ``z_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', s_col='zz')
+    msg = 'tt cannot be set as selection variable ``s_col`` and time variable ``t_col``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='tt', s_col='tt')
 
     # cluster data
     msg = 'yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``'
