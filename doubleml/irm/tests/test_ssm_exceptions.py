@@ -216,11 +216,11 @@ def test_ssm_exception_learner():
     msg = err_msg_prefix + r'BaseEstimator\(\) has no method .fit\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, BaseEstimator(), ml_pi, ml_m)
-    msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .set_params\(\).'
-    with pytest.raises(TypeError):
+    msg = r'has no method .set_params\(\).'
+    with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, _DummyNoSetParams(), ml_pi, ml_m)
-    msg = err_msg_prefix + r'_DummyNoSetParams\(\) has no method .get_params\(\).'
-    with pytest.raises(TypeError):
+    msg = r'has no method .get_params\(\).'
+    with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, _DummyNoGetParams(), ml_pi, ml_m)
 
     # allow classifiers for ml_g, but only for binary outcome
