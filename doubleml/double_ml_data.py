@@ -711,6 +711,13 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError('At least one variable/column is set as covariate (``x_cols``) and instrumental '
                                  'variable in ``z_cols``.')
 
+        self._check_disjoint_sets_t_s()
+
+    def _check_disjoint_sets_t_s(self):
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
         if self.t_col is not None:
             t_col_set = {self.t_col}
             if not t_col_set.isdisjoint(x_cols_set):
@@ -722,6 +729,11 @@ class DoubleMLData(DoubleMLBaseData):
             if not t_col_set.isdisjoint(y_col_set):
                 raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable '
                                  '``y_col``.')
+            if self.z_cols is not None:
+                z_cols_set = set(self.z_cols)
+                if not t_col_set.isdisjoint(z_cols_set):
+                    raise ValueError(f'{str(self.t_col)} cannot be set as time variable ``t_col`` and instrumental '
+                                     'variable in ``z_cols``.')
 
         if self.s_col is not None:
             s_col_set = {self.s_col}
@@ -734,6 +746,16 @@ class DoubleMLData(DoubleMLBaseData):
             if not s_col_set.isdisjoint(y_col_set):
                 raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and outcome variable '
                                  '``y_col``.')
+            if self.z_cols is not None:
+                z_cols_set = set(self.z_cols)
+                if not s_col_set.isdisjoint(z_cols_set):
+                    raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and instrumental '
+                                     'variable in ``z_cols``.')
+            if self.t_col is not None:
+                t_col_set = {self.t_col}
+                if not s_col_set.isdisjoint(t_col_set):
+                    raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and time variable '
+                                     '``t_col``.')
 
 
 class DoubleMLClusterData(DoubleMLData):
