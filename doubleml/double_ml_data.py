@@ -285,32 +285,19 @@ class DoubleMLData(DoubleMLBaseData):
 
         x_cols = [f'X{i+1}' for i in np.arange(x.shape[1])]
 
-        if s is None:
-            if (z is None) and (t is None):
-                data = pd.DataFrame(np.column_stack((x, y, d)),
-                                    columns=x_cols + [y_col] + d_cols)
-            elif (z is not None) and (t is None):
-                data = pd.DataFrame(np.column_stack((x, y, d, z)),
-                                    columns=x_cols + [y_col] + d_cols + z_cols)
-            elif (z is None) and (t is not None):
-                data = pd.DataFrame(np.column_stack((x, y, d, t)),
-                                    columns=x_cols + [y_col] + d_cols + [t_col])
-            elif (z is not None) and (t is not None):
-                data = pd.DataFrame(np.column_stack((x, y, d, z, t)),
-                                    columns=x_cols + [y_col] + d_cols + z_cols + [t_col])
-        else:
-            if (z is None) and (t is None):
-                data = pd.DataFrame(np.column_stack((x, y, d, s)),
-                                    columns=x_cols + [y_col] + d_cols + [s_col])
-            elif (z is not None) and (t is None):
-                data = pd.DataFrame(np.column_stack((x, y, d, z, s)),
-                                    columns=x_cols + [y_col] + d_cols + z_cols + [s_col])
-            elif (z is None) and (t is not None):
-                data = pd.DataFrame(np.column_stack((x, y, d, t, s)),
-                                    columns=x_cols + [y_col] + d_cols + [t_col] + [s_col])
-            elif (z is not None) and (t is not None):
-                data = pd.DataFrame(np.column_stack((x, y, d, z, t, s)),
-                                    columns=x_cols + [y_col] + d_cols + z_cols + [t_col] + [s_col])
+        # basline version with features, outcome and treatments
+        data = pd.DataFrame(np.column_stack((x, y, d)),
+                            columns=x_cols + [y_col] + d_cols)
+
+        if z is not None:
+            df_z = pd.DataFrame(z, columns=z_cols)
+            data = pd.concat([data, df_z], axis=1)
+
+        if t is not None:
+            data[t_col] = t
+
+        if s is not None:
+            data[s_col] = s
 
         return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite)
 
