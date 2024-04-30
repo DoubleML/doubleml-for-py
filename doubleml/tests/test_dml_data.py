@@ -184,11 +184,19 @@ def test_dml_summary_with_time():
     assert isinstance(dml_did_cs.__str__(), str)
     assert isinstance(dml_did_cs.summary, pd.DataFrame)
 
+    dml_did_cs.fit()
+    assert isinstance(dml_did_cs.__str__(), str)
+    assert isinstance(dml_did_cs.summary, pd.DataFrame)
+
 
 @pytest.mark.ci
 def test_dml_summary_with_selection():
     dml_data_ssm = make_ssm_data(n_obs=200)
     dml_ssm = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
+    assert isinstance(dml_ssm.__str__(), str)
+    assert isinstance(dml_ssm.summary, pd.DataFrame)
+
+    dml_ssm.fit()
     assert isinstance(dml_ssm.__str__(), str)
     assert isinstance(dml_ssm.summary, pd.DataFrame)
 
