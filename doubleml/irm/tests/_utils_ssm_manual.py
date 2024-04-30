@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 
-from ...tests._utils import fit_predict, fit_predict_proba
+from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ...utils._estimation import _predict_zero_one_propensity, _trimm
 
 
@@ -235,3 +235,30 @@ def var_selection(theta, psi_a, psi_b, n_obs):
     J = np.mean(psi_a)
     var = 1/n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2)) / np.power(J, 2)
     return var
+
+
+def tune_nuisance_ssm(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, score, n_folds_tune,
+                      param_grid_g, param_grid_pi, param_grid_m):
+    d0_s1 = np.intersect1d(np.where(d == 0)[0], np.where(s == 1)[0])
+    d1_s1 = np.intersect1d(np.where(d == 1)[0], np.where(s == 1)[0])
+
+    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=d0_s1)
+    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=d1_s1)
+
+    if score == 'nonignorable':
+        dx = np.column_stack((x, d, z))
+    else:
+        dx = np.column_stack((x, d))
+
+    pi_tune_res = tune_grid_search(s, dx, ml_pi, smpls, param_grid_pi, n_folds_tune)
+
+    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    pi_best_params = [xx.best_params_ for xx in pi_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g0_best_params, g1_best_params, pi_best_params, m_best_params

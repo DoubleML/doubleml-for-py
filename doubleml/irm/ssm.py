@@ -134,6 +134,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._check_data(self._dml_data)
         _check_score(self.score, ['missing-at-random', 'nonignorable'])
 
+        # for both score function stratification by d and s is viable
+        self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.s.reshape(-1, 1)
+        if draw_sample_splitting:
+            self.draw_sample_splitting()
+
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
@@ -405,7 +410,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         # time indicator is used for selection (selection not available in DoubleMLData yet)
         x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
 
-        dx = np.column_stack((d, x))
+        if self._score == 'nonignorable':
+            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
+            dx = np.column_stack((x, d, z))
+        else:
+            dx = np.column_stack((x, d))
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
