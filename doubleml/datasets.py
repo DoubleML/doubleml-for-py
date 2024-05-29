@@ -1354,19 +1354,19 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
 
     .. math::
 
-        y_i &= \\theta d_i + x_i' \\beta d_i + u_i, & with Y being observed if s = 1,
+        y_i &= \\theta d_i + x_i' \\beta d_i + u_i,
 
-        s_i &= 1\\left\\lbrace d_i + \\gamma z_i + x_i' \\beta + v_i > 0 \\right\\rbrace, & &d_i
-        = 1\\left\\lbrace x_i' \\beta + w_i > 0 \\right\\rbrace,
+        s_i &= 1\\left\\lbrace d_i + \\gamma z_i + x_i' \\beta + v_i > 0 \\right\\rbrace,
 
+        d_i &= 1\\left\\lbrace x_i' \\beta + w_i > 0 \\right\\rbrace,
 
-    with covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma^2_x)`, where
+    with Y being observed if :math:`s_i = 1` and covariates :math:`x_i \\sim \\mathcal{N}(0, \\Sigma^2_x)`, where
     :math:`\\Sigma^2_x` is a matrix with entries
     :math:`\\Sigma_{kj} = 0.5^{|j-k|}`.
     :math:`\\beta` is a `dim_x`-vector with entries :math:`\\beta_j=\\frac{0.4}{j^2}`
     :math:`z_i \\sim \\mathcal{N}(0, 1)`,
     :math:`(u_i,v_i) \\sim \\mathcal{N}(0, \\Sigma^2_{u,v})`,
-    :math:`w_i \\sim \\mathcal{N}(0, 1)`
+    :math:`w_i \\sim \\mathcal{N}(0, 1)`.
 
 
     The data generating process is inspired by a process used in the simulation study (see Appendix E) of Bia,
