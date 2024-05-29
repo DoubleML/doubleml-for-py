@@ -347,3 +347,7 @@ def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treat
         if not dml_framework_1.n_thetas == dml_framework_2.n_thetas:
             raise ValueError('The number of parameters theta in DoubleMLFrameworks must be the same. '
                              f'Got {str(dml_framework_1.n_thetas)} and {str(dml_framework_2.n_thetas)}.')
+
+
+def _check_set(x):
+    return {x} if x is not None else {}

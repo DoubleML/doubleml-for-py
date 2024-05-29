@@ -2,9 +2,10 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS
+from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS, \
+    DoubleMLSSM
 from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015, \
-    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
+    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020, make_ssm_data
 from doubleml.double_ml_data import DoubleMLBaseData
 
 from sklearn.linear_model import Lasso, LogisticRegression
@@ -161,7 +162,7 @@ def test_add_vars_in_df():
 
 
 @pytest.mark.ci
-def test_dml_data_no_instr_no_time():
+def test_dml_data_no_instr_no_time_no_selection():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
@@ -173,6 +174,7 @@ def test_dml_data_no_instr_no_time():
     assert dml_data.z is None
     assert dml_data.n_instr == 0
     assert dml_data.t is None
+    assert dml_data.s is None
 
 
 @pytest.mark.ci
@@ -182,15 +184,21 @@ def test_dml_summary_with_time():
     assert isinstance(dml_did_cs.__str__(), str)
     assert isinstance(dml_did_cs.summary, pd.DataFrame)
 
-    dml_data = make_plr_CCDDHNR2018(n_obs=100)
-    df = dml_data.data.copy().iloc[:, :11]
-    df.columns = [f'X{i + 1}' for i in np.arange(8)] + ['y', 'd1', 'd2']
-    print(df)
-    dml_data = DoubleMLClusterData(df, 'y', ['d1', 'd2'],
-                                   cluster_cols=[f'X{i + 1}' for i in [5, 6]],
-                                   x_cols=[f'X{i + 1}' for i in np.arange(5)],
-                                   t_col='X8')
-    assert isinstance(dml_data._data_summary_str(), str)
+    dml_did_cs.fit()
+    assert isinstance(dml_did_cs.__str__(), str)
+    assert isinstance(dml_did_cs.summary, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_dml_summary_with_selection():
+    dml_data_ssm = make_ssm_data(n_obs=200)
+    dml_ssm = DoubleMLSSM(dml_data_ssm, Lasso(), LogisticRegression(), LogisticRegression())
+    assert isinstance(dml_ssm.__str__(), str)
+    assert isinstance(dml_ssm.summary, pd.DataFrame)
+
+    dml_ssm.fit()
+    assert isinstance(dml_ssm.__str__(), str)
+    assert isinstance(dml_ssm.summary, pd.DataFrame)
 
 
 @pytest.mark.ci
@@ -216,6 +224,30 @@ def test_x_cols_setter_defaults():
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt'])
     dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument with selection
+    df = pd.DataFrame(np.tile(np.arange(5), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument with selection
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with selection and time
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', t_col='tt', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument, selection and time
+    df = pd.DataFrame(np.tile(np.arange(7), (4, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'ss'])
+    dml_data = DoubleMLData(df, y_col='yy', d_cols='dd', z_cols='zz', t_col='tt', s_col='ss')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
@@ -247,6 +279,33 @@ def test_x_cols_setter_defaults_w_cluster():
                       columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'cluster1'])
     dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
                                    z_cols='zz', t_col='tt')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument and with selection
+    df = pd.DataFrame(np.tile(np.arange(6), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument and with selection
+    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
+                                   z_cols='zz', s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # without instrument with time with selection
+    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'tt', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1', t_col='tt',
+                                   s_col='ss')
+    assert dml_data.x_cols == ['xx1', 'xx2']
+
+    # with instrument with time with selection
+    df = pd.DataFrame(np.tile(np.arange(8), (6, 1)),
+                      columns=['yy', 'dd', 'xx1', 'xx2', 'zz', 'tt', 'ss', 'cluster1'])
+    dml_data = DoubleMLClusterData(df, y_col='yy', d_cols='dd', cluster_cols='cluster1',
+                                   z_cols='zz', t_col='tt', s_col='ss')
     assert dml_data.x_cols == ['xx1', 'xx2']
 
 
@@ -378,6 +437,34 @@ def test_t_col_setter():
 
 
 @pytest.mark.ci
+def test_s_col_setter():
+    np.random.seed(3141)
+    df = make_ssm_data(n_obs=100, return_type=pd.DataFrame)
+    df['s_new'] = np.ones(shape=(100,))
+    dml_data = DoubleMLData(df, 'y', 'd',
+                            [f'X{i + 1}' for i in np.arange(4)],
+                            s_col='s')
+
+    # check that after changing s_col, the s array gets updated
+    s_comp = dml_data.data['s_new'].values
+    dml_data.s_col = 's_new'
+    assert np.array_equal(dml_data.s, s_comp)
+
+    msg = r'Invalid selection variable s_col. a13 is no data column.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data.s_col = 'a13'
+
+    msg = (r'The selection variable s_col must be of str type \(or None\). '
+           "5 of type <class 'int'> was passed.")
+    with pytest.raises(TypeError, match=msg):
+        dml_data.s_col = 5
+
+    # check None
+    dml_data.s_col = None
+    assert dml_data.s is None
+
+
+@pytest.mark.ci
 def test_cluster_cols_setter():
     np.random.seed(3141)
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
@@ -482,8 +569,8 @@ def test_use_other_treat_as_covariate():
 @pytest.mark.ci
 def test_disjoint_sets():
     np.random.seed(3141)
-    df = pd.DataFrame(np.tile(np.arange(4), (4, 1)),
-                      columns=['yy', 'dd1', 'xx1', 'xx2'])
+    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)),
+                      columns=['yy', 'dd1', 'xx1', 'xx2', 'zz', 'tt'])
 
     msg = (r'At least one variable/column is set as treatment variable \(``d_cols``\) and as covariate\(``x_cols``\). '
            'Consider using parameter ``use_other_treat_as_covariate``.')
@@ -506,6 +593,7 @@ def test_disjoint_sets():
            '``z_cols``.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='xx2')
+
     msg = 'xx2 cannot be set as time variable ``t_col`` and covariate in ``x_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='xx2')
@@ -515,6 +603,25 @@ def test_disjoint_sets():
     msg = 'yy cannot be set as time variable ``t_col`` and outcome variable ``y_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='yy')
+    msg = 'zz cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', t_col='zz')
+
+    msg = 'xx2 cannot be set as selection variable ``s_col`` and covariate in ``x_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='xx2')
+    msg = 'dd1 cannot be set as selection variable ``s_col`` and treatment variable in ``d_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='dd1')
+    msg = 'yy cannot be set as selection variable ``s_col`` and outcome variable ``y_col``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='yy')
+    msg = 'zz cannot be set as selection variable ``s_col`` and instrumental variable in ``z_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', s_col='zz')
+    msg = 'tt cannot be set as selection variable ``s_col`` and time variable ``t_col``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='tt', s_col='tt')
 
     # cluster data
     msg = 'yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``'
@@ -535,6 +642,9 @@ def test_disjoint_sets():
     msg = 'xx2 cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], t_col='xx2', cluster_cols='xx2')
+    msg = 'xx2 cannot be set as selection variable ``s_col`` and cluster variable in ``cluster_cols``.'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], s_col='xx2', cluster_cols='xx2')
 
 
 @pytest.mark.ci

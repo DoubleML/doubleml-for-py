@@ -13,6 +13,7 @@ from .irm.qte import DoubleMLQTE
 from .irm.pq import DoubleMLPQ
 from .irm.lpq import DoubleMLLPQ
 from .irm.cvar import DoubleMLCVAR
+from .irm.ssm import DoubleMLSSM
 
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
@@ -32,6 +33,7 @@ __all__ = ['concat',
            'DoubleMLLPQ',
            'DoubleMLCVAR',
            'DoubleMLBLP',
-           'DoubleMLPolicyTree']
+           'DoubleMLPolicyTree',
+           'DoubleMLSSM']
 
 __version__ = get_distribution('doubleml').version
