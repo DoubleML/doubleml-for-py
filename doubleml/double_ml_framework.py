@@ -47,6 +47,12 @@ class DoubleMLFramework():
         if "is_cluster_data" in doubleml_dict.keys():
             self._is_cluster_data = doubleml_dict['is_cluster_data']
 
+        self._sensitivity_implemented = False
+        self._sensitivity_elements = None
+        if "sensitivity_elements" in doubleml_dict.keys():
+            self._sensitivity_elements = doubleml_dict['sensitivity_elements']
+            self._sensitivity_implemented = True
+
         # check if all sizes match
         _check_framework_shapes(self)
         # initialize bootstrap distribution
@@ -169,6 +175,24 @@ class DoubleMLFramework():
          (shape (``n_rep_boot``, ``n_thetas``, ``n_rep``)).
         """
         return self._boot_t_stat
+
+    @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity components.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
+        and ``psi_nu2``.
+        """
+        return self._sensitivity_elements
+
+    @property
+    def sensitivity_params(self):
+        """
+        Values of the sensitivity parameters after calling :meth:`sesitivity_analysis`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
+        and ``rva``.
+        """
+        return self._sensitivity_params
 
     def __add__(self, other):
 
@@ -503,5 +527,15 @@ def _check_framework_shapes(self):
     if self._scaled_psi.shape != (self._n_obs, self._n_thetas, self._n_rep):
         raise ValueError(('The shape of scaled_psi does not match the expected '
                           f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+
+    if self._sensitivity_implemented:
+        if self._sensitivity_elements['sigma2'].shape != (self._n_thetas,):
+            raise ValueError(f'The shape of sigma2 does not match the expected shape ({self._n_thetas},).')
+        if self._sensitivity_elements['nu2'].shape != (self._n_thetas,):
+            raise ValueError(f'The shape of nu2 does not match the expected shape ({self._n_thetas},).')
+        if self._sensitivity_elements['psi_sigma2'].shape != (self._n_obs, self._n_thetas):
+            raise ValueError(f'The shape of psi_sigma2 does not match the expected shape ({self._n_obs}, {self._n_thetas}).')
+        if self._sensitivity_elements['psi_nu2'].shape != (self._n_obs, self._n_thetas):
+            raise ValueError(f'The shape of psi_nu2 does not match the expected shape ({self._n_obs}, {self._n_thetas}).')
 
     return None
