@@ -81,12 +81,12 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
-    raw_data = pd.read_csv(url, delim_whitespace=True)
+    raw_data = pd.read_csv(url, sep='\s+')
 
     ind = (raw_data['tg'] == 0) | (raw_data['tg'] == 4)
     data = raw_data.copy()[ind]
     data.reset_index(inplace=True)
-    data['tg'].replace(4, 1, inplace=True)
+    data['tg'] = data['tg'].replace(4, 1)
     data['inuidur1'] = np.log(data['inuidur1'])
 
     # variable dep as factor (dummy encoding)

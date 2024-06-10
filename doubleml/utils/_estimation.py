@@ -6,7 +6,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import root_mean_squared_error
 
 from statsmodels.nonparametric.kde import KDEUnivariate
 
@@ -200,7 +200,7 @@ def _normalize_ipw(propensity, treatment):
 
 def _rmse(y_true, y_pred):
     subset = np.logical_not(np.isnan(y_true))
-    rmse = mean_squared_error(y_true[subset], y_pred[subset], squared=False)
+    rmse = root_mean_squared_error(y_true[subset], y_pred[subset])
     return rmse
 
 
