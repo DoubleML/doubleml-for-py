@@ -1,4 +1,4 @@
-from pkg_resources import get_distribution
+import importlib.metadata
 
 from .double_ml_framework import concat
 from .double_ml_framework import DoubleMLFramework
@@ -36,4 +36,4 @@ __all__ = ['concat',
            'DoubleMLPolicyTree',
            'DoubleMLSSM']
 
-__version__ = get_distribution('doubleml').version
+__version__ = importlib.metadata.version('doubleml')
