@@ -61,8 +61,27 @@ def test_input_exceptions():
         DoubleMLFramework(test_dict)
 
     msg = "doubleml_dict must be a dictionary."
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         DoubleMLFramework(1.0)
+
+    msg = "sensitivity_elements must be a dictionary."
+    with pytest.raises(TypeError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['sensitivity_elements'] = 1
+        DoubleMLFramework(test_dict)
+
+    msg = 'The sensitivity_elements dict must contain the following keys: sigma2, nu2, psi_sigma2, psi_nu2'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['sensitivity_elements'] = {'sensitivities': np.ones(shape=(n_obs, n_thetas, n_rep))}
+        DoubleMLFramework(test_dict)
+
+    msg = 'The shape of sigma2 does not match the expected shape \(10, 5\)\.'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = doubleml_dict.copy()
+        test_dict['sensitivity_elements'] = {
+            'sigma2': np.ones(shape=(n_obs, n_rep))}
+        DoubleMLFramework(test_dict)
 
 
 def test_operation_exceptions():

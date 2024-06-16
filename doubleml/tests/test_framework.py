@@ -163,7 +163,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
     ml_g = LinearRegression()
     ml_m = LogisticRegression()
 
-    dml_irm_obj = DoubleMLIRM(dml_data, ml_g, ml_m)
+    dml_irm_obj = DoubleMLIRM(dml_data, ml_g, ml_m, n_rep=n_rep)
     dml_irm_obj.fit()
     dml_framework_obj = dml_irm_obj.construct_framework()
 
@@ -179,7 +179,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
 
     # substract objects
     dml_data_2 = make_irm_data()
-    dml_irm_obj_2 = DoubleMLIRM(dml_data_2, ml_g, ml_m)
+    dml_irm_obj_2 = DoubleMLIRM(dml_data_2, ml_g, ml_m, n_rep=n_rep)
     dml_irm_obj_2.fit()
     dml_framework_obj_2 = dml_irm_obj_2.construct_framework()
 
@@ -218,6 +218,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
         'ci_joint_sub_obj': ci_joint_sub_obj,
         'ci_joint_mul_obj': ci_joint_mul_obj,
         'ci_joint_concat': ci_joint_concat,
+        'n_rep': n_rep,
     }
     return result_dict
 
@@ -257,14 +258,19 @@ def test_dml_framework_from_doubleml_se(dml_framework_from_doubleml_fixture):
         dml_framework_from_doubleml_fixture['dml_framework_obj_add_obj'].all_ses,
         2*dml_framework_from_doubleml_fixture['dml_obj'].all_se
     )
-    scaling = np.array([dml_framework_from_doubleml_fixture['dml_obj']._var_scaling_factors]).reshape(-1, 1)
-    sub_var = np.mean(
-        np.square(dml_framework_from_doubleml_fixture['dml_obj'].psi - dml_framework_from_doubleml_fixture['dml_obj_2'].psi),
-        axis=0)
-    assert np.allclose(
-        dml_framework_from_doubleml_fixture['dml_framework_obj_sub_obj'].all_ses,
-        np.sqrt(sub_var / scaling)
-    )
+
+    if dml_framework_from_doubleml_fixture['n_rep'] == 1:
+        # formula only valid for n_rep = 1
+        scaling = np.array([dml_framework_from_doubleml_fixture['dml_obj']._var_scaling_factors]).reshape(-1, 1)
+        sub_var = np.mean(
+            np.square(dml_framework_from_doubleml_fixture['dml_obj'].psi
+                      - dml_framework_from_doubleml_fixture['dml_obj_2'].psi),
+            axis=0)
+        assert np.allclose(
+            dml_framework_from_doubleml_fixture['dml_framework_obj_sub_obj'].all_ses,
+            np.sqrt(sub_var / scaling)
+        )
+
     assert np.allclose(
         dml_framework_from_doubleml_fixture['dml_framework_obj_mul_obj'].all_ses,
         2*dml_framework_from_doubleml_fixture['dml_obj'].all_se
@@ -288,3 +294,21 @@ def test_dml_framework_from_doubleml_ci(dml_framework_from_doubleml_fixture):
     assert isinstance(dml_framework_from_doubleml_fixture['ci_joint_mul_obj'], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture['ci_concat'], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture['ci_joint_concat'], pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity(dml_framework_from_doubleml_fixture):
+    n_rep = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_rep
+    n_thetas = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_thetas
+    n_obs = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_obs
+
+    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_implemented
+
+    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['sigma2'].shape == \
+        (1, n_thetas, n_rep)
+    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['nu2'].shape == \
+        (1, n_thetas, n_rep)
+    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['psi_sigma2'].shape == \
+        (n_obs, n_thetas, n_rep)
+    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['psi_nu2'].shape == \
+        (n_obs, n_thetas, n_rep)
