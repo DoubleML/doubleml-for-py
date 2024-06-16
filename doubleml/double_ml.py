@@ -531,14 +531,25 @@ class DoubleML(ABC):
         scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
 
         doubleml_dict = {
-            "thetas": self.coef,
-            "all_thetas": self.all_coef,
-            "ses": self.se,
-            "all_ses": self.all_se,
-            "var_scaling_factors": self._var_scaling_factors,
-            "scaled_psi": scaled_psi_reshape,
-            "is_cluster_data": self._is_cluster_data
+            'thetas': self.coef,
+            'all_thetas': self.all_coef,
+            'ses': self.se,
+            'all_ses': self.all_se,
+            'var_scaling_factors': self._var_scaling_factors,
+            'scaled_psi': scaled_psi_reshape,
+            'is_cluster_data': self._is_cluster_data
         }
+
+        if self._sensitivity_implemented:
+            # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
+            doubleml_dict.update({
+                'sensitivity_elements': {
+                    'sigma2': np.transpose(self.sensitivity_elements['sigma2'], (0, 2, 1)),
+                    'nu2': np.transpose(self.sensitivity_elements['nu2'], (0, 2, 1)),
+                    'psi_sigma2': np.transpose(self.sensitivity_elements['psi_sigma2'], (0, 2, 1)),
+                    'psi_nu2': np.transpose(self.sensitivity_elements['psi_nu2'], (0, 2, 1))
+                }
+            })
 
         doubleml_framework = DoubleMLFramework(doubleml_dict)
         return doubleml_framework

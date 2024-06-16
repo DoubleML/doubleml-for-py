@@ -27,7 +27,8 @@ class DoubleMLFramework():
         self._is_cluster_data = False
 
         # check input
-        assert isinstance(doubleml_dict, dict), "doubleml_dict must be a dictionary."
+        if not isinstance(doubleml_dict, dict):
+            raise TypeError('doubleml_dict must be a dictionary.')
         expected_keys = ['thetas', 'ses', 'all_thetas', 'all_ses', 'var_scaling_factors', 'scaled_psi']
         if not all(key in doubleml_dict.keys() for key in expected_keys):
             raise ValueError('The dict must contain the following keys: ' + ', '.join(expected_keys))
@@ -50,6 +51,14 @@ class DoubleMLFramework():
         self._sensitivity_implemented = False
         self._sensitivity_elements = None
         if "sensitivity_elements" in doubleml_dict.keys():
+            # check input
+            if not isinstance(doubleml_dict['sensitivity_elements'], dict):
+                raise TypeError('sensitivity_elements must be a dictionary.')
+            expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+            if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
+                raise ValueError('The sensitivity_elements dict must contain the following '
+                                 'keys: ' + ', '.join(expected_keys_sensitivity))
+
             self._sensitivity_elements = doubleml_dict['sensitivity_elements']
             self._sensitivity_implemented = True
 
@@ -512,6 +521,7 @@ def concat(objs):
 
 
 def _check_framework_shapes(self):
+    score_dim = (self._n_obs, self._n_thetas, self.n_rep)
     # check if all sizes match
     if self._thetas.shape != (self._n_thetas,):
         raise ValueError(f'The shape of thetas does not match the expected shape ({self._n_thetas},).')
@@ -524,18 +534,20 @@ def _check_framework_shapes(self):
     if self._var_scaling_factors.shape != (self._n_thetas,):
         raise ValueError(f'The shape of var_scaling_factors does not match the expected shape ({self._n_thetas},).')
     # dimension of scaled_psi is n_obs x n_thetas x n_rep (per default)
-    if self._scaled_psi.shape != (self._n_obs, self._n_thetas, self._n_rep):
+    if self._scaled_psi.shape != score_dim:
         raise ValueError(('The shape of scaled_psi does not match the expected '
                           f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
 
     if self._sensitivity_implemented:
-        if self._sensitivity_elements['sigma2'].shape != (self._n_thetas,):
-            raise ValueError(f'The shape of sigma2 does not match the expected shape ({self._n_thetas},).')
-        if self._sensitivity_elements['nu2'].shape != (self._n_thetas,):
-            raise ValueError(f'The shape of nu2 does not match the expected shape ({self._n_thetas},).')
-        if self._sensitivity_elements['psi_sigma2'].shape != (self._n_obs, self._n_thetas):
-            raise ValueError(f'The shape of psi_sigma2 does not match the expected shape ({self._n_obs}, {self._n_thetas}).')
-        if self._sensitivity_elements['psi_nu2'].shape != (self._n_obs, self._n_thetas):
-            raise ValueError(f'The shape of psi_nu2 does not match the expected shape ({self._n_obs}, {self._n_thetas}).')
+        if self._sensitivity_elements['sigma2'].shape != (1, self._n_thetas, self.n_rep):
+            raise ValueError(f'The shape of sigma2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).')
+        if self._sensitivity_elements['nu2'].shape != (1, self._n_thetas, self.n_rep):
+            raise ValueError(f'The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).')
+        if self._sensitivity_elements['psi_sigma2'].shape != score_dim:
+            raise ValueError(('The shape of psi_sigma2 does not match the expected '
+                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+        if self._sensitivity_elements['psi_nu2'].shape != score_dim:
+            raise ValueError(('The shape of psi_nu2 does not match the expected '
+                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
 
     return None
