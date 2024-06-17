@@ -53,7 +53,7 @@ class DoubleMLFramework():
         self._sensitivity_implemented, self._sensitivity_elements = self._check_and_set_sensitivity_elements(doubleml_dict)
 
         # check if all sizes match
-        _check_framework_shapes(self)
+        self._check_framework_shapes()
         # initialize bootstrap distribution
         self._boot_t_stat = None
         self._boot_method = None
@@ -197,8 +197,8 @@ class DoubleMLFramework():
 
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
-            _check_framework_shapes(self)
-            _check_framework_shapes(other)
+            self._check_framework_shapes()
+            other._check_framework_shapes()
             _check_framework_compatibility(self, other, check_treatments=True)
 
             all_thetas = self._all_thetas + other._all_thetas
@@ -257,8 +257,8 @@ class DoubleMLFramework():
 
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
-            _check_framework_shapes(self)
-            _check_framework_shapes(other)
+            self._check_framework_shapes()
+            other._check_framework_shapes()
             _check_framework_compatibility(self, other, check_treatments=True)
 
             all_thetas = self._all_thetas - other._all_thetas
@@ -383,7 +383,6 @@ class DoubleMLFramework():
                              f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
                              'Most likely this is due to low quality learners (especially propensity scores).')
 
-
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._n_thetas-1)
@@ -430,6 +429,7 @@ class DoubleMLFramework():
         """
         # compute sensitivity analysis
         sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
+        _ = self._calc_robustness_value(null_hypothesis=null_hypothesis, level=level, rho=rho, idx_treatment=0)
 
     def confint(self, joint=False, level=0.95):
         """
@@ -592,6 +592,71 @@ class DoubleMLFramework():
 
         return df_p_vals, all_p_vals_corrected
 
+    def _check_and_set_sensitivity_elements(self, doubleml_dict):
+        if not ("sensitivity_elements" in doubleml_dict.keys()):
+            sensitivity_implemented = False
+            sensitivity_elements = None
+
+        else:
+            if not isinstance(doubleml_dict['sensitivity_elements'], dict):
+                raise TypeError('sensitivity_elements must be a dictionary.')
+            expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
+            if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
+                raise ValueError('The sensitivity_elements dict must contain the following '
+                                 'keys: ' + ', '.join(expected_keys_sensitivity))
+
+            for key in expected_keys_sensitivity:
+                if not isinstance(doubleml_dict['sensitivity_elements'][key], np.ndarray):
+                    raise TypeError(f'The sensitivity element {key} must be a numpy array.')
+
+            # set sensitivity elements
+            sensitivity_implemented = True
+            sensitivity_elements = {
+                'sigma2': doubleml_dict['sensitivity_elements']['sigma2'],
+                'nu2': doubleml_dict['sensitivity_elements']['nu2'],
+                'psi_sigma2': doubleml_dict['sensitivity_elements']['psi_sigma2'],
+                'psi_nu2': doubleml_dict['sensitivity_elements']['psi_nu2'],
+                'riesz_rep': doubleml_dict['sensitivity_elements']['riesz_rep'],
+            }
+
+        return sensitivity_implemented, sensitivity_elements
+
+    def _check_framework_shapes(self):
+        score_dim = (self._n_obs, self._n_thetas, self.n_rep)
+        # check if all sizes match
+        if self._thetas.shape != (self._n_thetas,):
+            raise ValueError(f'The shape of thetas does not match the expected shape ({self._n_thetas},).')
+        if self._ses.shape != (self._n_thetas,):
+            raise ValueError(f'The shape of ses does not match the expected shape ({self._n_thetas},).')
+        if self._all_thetas.shape != (self._n_thetas, self._n_rep):
+            raise ValueError(f'The shape of all_thetas does not match the expected shape ({self._n_thetas}, {self._n_rep}).')
+        if self._all_ses.shape != (self._n_thetas, self._n_rep):
+            raise ValueError(f'The shape of all_ses does not match the expected shape ({self._n_thetas}, {self._n_rep}).')
+        if self._var_scaling_factors.shape != (self._n_thetas,):
+            raise ValueError(f'The shape of var_scaling_factors does not match the expected shape ({self._n_thetas},).')
+        # dimension of scaled_psi is n_obs x n_thetas x n_rep (per default)
+        if self._scaled_psi.shape != score_dim:
+            raise ValueError(('The shape of scaled_psi does not match the expected '
+                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+
+        if self._sensitivity_implemented:
+            if self._sensitivity_elements['sigma2'].shape != (1, self._n_thetas, self.n_rep):
+                raise ValueError('The shape of sigma2 does not match the expected shape '
+                                 f'(1, {self._n_thetas}, {self._n_rep}).')
+            if self._sensitivity_elements['nu2'].shape != (1, self._n_thetas, self.n_rep):
+                raise ValueError(f'The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).')
+            if self._sensitivity_elements['psi_sigma2'].shape != score_dim:
+                raise ValueError(('The shape of psi_sigma2 does not match the expected '
+                                 f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+            if self._sensitivity_elements['psi_nu2'].shape != score_dim:
+                raise ValueError(('The shape of psi_nu2 does not match the expected '
+                                 f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+            if self._sensitivity_elements['riesz_rep'].shape != score_dim:
+                raise ValueError(('The shape of riesz_rep does not match the expected '
+                                 f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+
+        return None
+
 
 def concat(objs):
     """
@@ -604,7 +669,7 @@ def concat(objs):
         raise TypeError('All objects must be of type DoubleMLFramework.')
 
     # check on internal consitency of objects
-    _ = [_check_framework_shapes(obj) for obj in objs]
+    _ = [obj._check_framework_shapes() for obj in objs]
     # check if all objects are compatible in n_obs and n_rep
     _ = [_check_framework_compatibility(objs[0], obj, check_treatments=False) for obj in objs[1:]]
 
@@ -638,72 +703,6 @@ def concat(objs):
     new_obj = DoubleMLFramework(doubleml_dict)
 
     # check internal consistency of new object
-    _check_framework_shapes(new_obj)
+    new_obj._check_framework_shapes()
 
     return new_obj
-
-
-def _check_and_set_sensitivity_elements(self, doubleml_dict):
-    if not ("senstivity_elements" in doubleml_dict.keys()):
-        sensitivity_implemented = False
-        sensitivity_elements = None
-
-    else:
-        if not isinstance(doubleml_dict['sensitivity_elements'], dict):
-            raise TypeError('sensitivity_elements must be a dictionary.')
-        expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
-        if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
-            raise ValueError('The sensitivity_elements dict must contain the following '
-                             'keys: ' + ', '.join(expected_keys_sensitivity))
-
-        for key in expected_keys_sensitivity:
-            if not isinstance(doubleml_dict['sensitivity_elements'][key], np.ndarray):
-                raise TypeError(f'The sensitivity element {key} must be a numpy array.')
-
-        # set sensitivity elements
-        sensitivity_implemented = True
-        sensitivity_elements = {
-            'sigma2': doubleml_dict['sensitivity_elements']['sigma2'],
-            'nu2': doubleml_dict['sensitivity_elements']['nu2'],
-            'psi_sigma2': doubleml_dict['sensitivity_elements']['psi_sigma2'],
-            'psi_nu2': doubleml_dict['sensitivity_elements']['psi_nu2'],
-            'riesz_rep': doubleml_dict['sensitivity_elements']['riesz_rep'],
-        }
-
-    return sensitivity_implemented, sensitivity_elements
-
-
-def _check_framework_shapes(self):
-    score_dim = (self._n_obs, self._n_thetas, self.n_rep)
-    # check if all sizes match
-    if self._thetas.shape != (self._n_thetas,):
-        raise ValueError(f'The shape of thetas does not match the expected shape ({self._n_thetas},).')
-    if self._ses.shape != (self._n_thetas,):
-        raise ValueError(f'The shape of ses does not match the expected shape ({self._n_thetas},).')
-    if self._all_thetas.shape != (self._n_thetas, self._n_rep):
-        raise ValueError(f'The shape of all_thetas does not match the expected shape ({self._n_thetas}, {self._n_rep}).')
-    if self._all_ses.shape != (self._n_thetas, self._n_rep):
-        raise ValueError(f'The shape of all_ses does not match the expected shape ({self._n_thetas}, {self._n_rep}).')
-    if self._var_scaling_factors.shape != (self._n_thetas,):
-        raise ValueError(f'The shape of var_scaling_factors does not match the expected shape ({self._n_thetas},).')
-    # dimension of scaled_psi is n_obs x n_thetas x n_rep (per default)
-    if self._scaled_psi.shape != score_dim:
-        raise ValueError(('The shape of scaled_psi does not match the expected '
-                          f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
-
-    if self._sensitivity_implemented:
-        if self._sensitivity_elements['sigma2'].shape != (1, self._n_thetas, self.n_rep):
-            raise ValueError(f'The shape of sigma2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).')
-        if self._sensitivity_elements['nu2'].shape != (1, self._n_thetas, self.n_rep):
-            raise ValueError(f'The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).')
-        if self._sensitivity_elements['psi_sigma2'].shape != score_dim:
-            raise ValueError(('The shape of psi_sigma2 does not match the expected '
-                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
-        if self._sensitivity_elements['psi_nu2'].shape != score_dim:
-            raise ValueError(('The shape of psi_nu2 does not match the expected '
-                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
-        if self._sensitivity_elements['riesz_rep'].shape != score_dim:
-            raise ValueError(('The shape of riesz_rep does not match the expected '
-                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
-
-    return None
