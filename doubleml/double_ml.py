@@ -332,8 +332,8 @@ class DoubleML(ABC):
     def sensitivity_elements(self):
         """
         Values of the sensitivity components after calling :meth:`fit`;
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
-        and ``psi_nu2``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
+        and ``riesz_rep``.
         """
         return self._sensitivity_elements
 
@@ -1368,14 +1368,15 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
         sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'psi_sigma2': np.full(score_dim, np.nan),
-                                'psi_nu2': np.full(score_dim, np.nan)}
+                                'psi_nu2': np.full(score_dim, np.nan),
+                                'riesz_rep': np.full(score_dim, np.nan)}
         return sensitivity_elements
 
     def _get_sensitivity_elements(self, i_rep, i_treat):

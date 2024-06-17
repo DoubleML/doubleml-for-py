@@ -189,8 +189,8 @@ class DoubleMLFramework():
     def sensitivity_elements(self):
         """
         Values of the sensitivity components.
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
-        and ``psi_nu2``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
+        and ``riesz_rep``.
         """
         return self._sensitivity_elements
 
@@ -226,6 +226,7 @@ class DoubleMLFramework():
             thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
 
             is_cluster_data = self._is_cluster_data or other._is_cluster_data
+
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
