@@ -547,7 +547,8 @@ class DoubleML(ABC):
                     'sigma2': np.transpose(self.sensitivity_elements['sigma2'], (0, 2, 1)),
                     'nu2': np.transpose(self.sensitivity_elements['nu2'], (0, 2, 1)),
                     'psi_sigma2': np.transpose(self.sensitivity_elements['psi_sigma2'], (0, 2, 1)),
-                    'psi_nu2': np.transpose(self.sensitivity_elements['psi_nu2'], (0, 2, 1))
+                    'psi_nu2': np.transpose(self.sensitivity_elements['psi_nu2'], (0, 2, 1)),
+                    'riesz_rep': np.transpose(self.sensitivity_elements['riesz_rep'], (0, 2, 1))
                 }
             })
 

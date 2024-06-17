@@ -54,7 +54,7 @@ class DoubleMLFramework():
             # check input
             if not isinstance(doubleml_dict['sensitivity_elements'], dict):
                 raise TypeError('sensitivity_elements must be a dictionary.')
-            expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+            expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
             if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
                 raise ValueError('The sensitivity_elements dict must contain the following '
                                  'keys: ' + ', '.join(expected_keys_sensitivity))
@@ -599,6 +599,9 @@ def _check_framework_shapes(self):
                               f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
         if self._sensitivity_elements['psi_nu2'].shape != score_dim:
             raise ValueError(('The shape of psi_nu2 does not match the expected '
+                              f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
+        if self._sensitivity_elements['riesz_rep'].shape != score_dim:
+            raise ValueError(('The shape of riesz_rep does not match the expected '
                               f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
 
     return None
