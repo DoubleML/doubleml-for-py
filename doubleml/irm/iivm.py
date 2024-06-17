@@ -38,7 +38,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -50,7 +50,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     subgroups: dict or None
         Dictionary with options to adapt to cases with and without the subgroups of always-takers and never-takes. The
         logical item ``always_takers`` speficies whether there are always takers in the sample. The logical item
-        ``never_takers`` speficies whether there are never takers in the sample.
+        ``never_takers`` specifies whether there are never takers in the sample.
         Default is ``{'always_takers': True, 'never_takers': True}``.
 
     normalize_ipw : bool
