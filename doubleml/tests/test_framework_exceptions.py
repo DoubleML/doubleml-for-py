@@ -311,3 +311,12 @@ def test_sensitivity_exceptions():
     msg = r"null_hypothesis must be of float type. \[1\] of type <class 'numpy.ndarray'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_framework_obj_1._calc_robustness_value(null_hypothesis=np.array([1]), level=0.95, rho=1.0, idx_treatment=0)
+
+    # test variances
+    sensitivity_elements = dict({'sigma2': 1.0, 'nu2': -2.4, 'psi_sigma2': 1.0, 'psi_nu2': 1.0, 'riesz_rep': 1.0})
+    _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
+    msg = ('sensitivity_elements sigma2 and nu2 have to be positive. '
+           r'Got sigma2 \[\[\[1.\]\]\] and nu2 \[\[\[-2.4\]\]\]. '
+           r'Most likely this is due to low quality learners \(especially propensity scores\).')
+    with pytest.raises(ValueError, match=msg):
+        dml_irm.sensitivity_analysis()

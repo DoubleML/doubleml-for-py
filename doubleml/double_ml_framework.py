@@ -49,19 +49,8 @@ class DoubleMLFramework():
         if "is_cluster_data" in doubleml_dict.keys():
             self._is_cluster_data = doubleml_dict['is_cluster_data']
 
-        self._sensitivity_implemented = False
-        self._sensitivity_elements = None
-        if "sensitivity_elements" in doubleml_dict.keys():
-            # check input
-            if not isinstance(doubleml_dict['sensitivity_elements'], dict):
-                raise TypeError('sensitivity_elements must be a dictionary.')
-            expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
-            if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
-                raise ValueError('The sensitivity_elements dict must contain the following '
-                                 'keys: ' + ', '.join(expected_keys_sensitivity))
-
-            self._sensitivity_elements = doubleml_dict['sensitivity_elements']
-            self._sensitivity_implemented = True
+        # initialize sensitivity analysis
+        self._sensitivity_implemented, self._sensitivity_elements = self._check_and_set_sensitivity_elements(doubleml_dict)
 
         # check if all sizes match
         _check_framework_shapes(self)
@@ -382,6 +371,19 @@ class DoubleMLFramework():
         _check_in_zero_one(abs(rho), 'The absolute value of rho')
         _check_in_zero_one(level, 'The confidence level', include_zero=False, include_one=False)
 
+        # set elements for readability
+        sigma2 = self.sensitivity_elements['sigma2']
+        nu2 = self.sensitivity_elements['nu2']
+        psi_sigma = self.sensitivity_elements['psi_sigma2']
+        psi_nu = self.sensitivity_elements['psi_nu2']
+        psi_scaled = self._scaled_psi
+
+        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
+            raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
+                             f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
+                             'Most likely this is due to low quality learners (especially propensity scores).')
+
+
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._n_thetas-1)
@@ -639,6 +641,36 @@ def concat(objs):
     _check_framework_shapes(new_obj)
 
     return new_obj
+
+
+def _check_and_set_sensitivity_elements(self, doubleml_dict):
+    if not ("senstivity_elements" in doubleml_dict.keys()):
+        sensitivity_implemented = False
+        sensitivity_elements = None
+
+    else:
+        if not isinstance(doubleml_dict['sensitivity_elements'], dict):
+            raise TypeError('sensitivity_elements must be a dictionary.')
+        expected_keys_sensitivity = ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
+        if not all(key in doubleml_dict['sensitivity_elements'].keys() for key in expected_keys_sensitivity):
+            raise ValueError('The sensitivity_elements dict must contain the following '
+                             'keys: ' + ', '.join(expected_keys_sensitivity))
+
+        for key in expected_keys_sensitivity:
+            if not isinstance(doubleml_dict['sensitivity_elements'][key], np.ndarray):
+                raise TypeError(f'The sensitivity element {key} must be a numpy array.')
+
+        # set sensitivity elements
+        sensitivity_implemented = True
+        sensitivity_elements = {
+            'sigma2': doubleml_dict['sensitivity_elements']['sigma2'],
+            'nu2': doubleml_dict['sensitivity_elements']['nu2'],
+            'psi_sigma2': doubleml_dict['sensitivity_elements']['psi_sigma2'],
+            'psi_nu2': doubleml_dict['sensitivity_elements']['psi_nu2'],
+            'riesz_rep': doubleml_dict['sensitivity_elements']['riesz_rep'],
+        }
+
+    return sensitivity_implemented, sensitivity_elements
 
 
 def _check_framework_shapes(self):
