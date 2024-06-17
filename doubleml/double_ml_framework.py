@@ -368,6 +368,10 @@ class DoubleMLFramework():
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
+        if not self._sensitivity_implemented:
+            raise NotImplementedError('Sensitivity analysis is not implemented for this model.')
+
     def confint(self, joint=False, level=0.95):
         """
         Confidence intervals for DoubleML models.

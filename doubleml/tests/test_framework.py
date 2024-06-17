@@ -170,6 +170,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
     ci = dml_framework_obj.confint(joint=False, level=0.95)
     dml_framework_obj.bootstrap(method='normal')
     ci_joint = dml_framework_obj.confint(joint=True, level=0.95)
+    dml_framework_obj._calc_sensitivity_analysis()
 
     # add objects
     dml_framework_obj_add_obj = dml_framework_obj + dml_framework_obj

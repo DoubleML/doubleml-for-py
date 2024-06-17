@@ -213,3 +213,11 @@ def test_p_adjust_exceptions():
     msg = r'Apply bootstrap\(\) before p_adjust\("rw"\)\.'
     with pytest.raises(ValueError, match=msg):
         _ = dml_framework_obj_1.p_adjust(method='rw')
+
+
+@pytest.mark.ci
+def test_sensitivity_exceptions():
+    dml_framework_no_sensitivity = DoubleMLFramework(generate_dml_dict(psi_a, psi_b))
+    msg = 'Sensitivity analysis is not implemented for this model.'
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml_framework_no_sensitivity._calc_sensitivity_analysis(cf_y=0.1, cf_d=0.1, rho=1.0, level=0.95)
