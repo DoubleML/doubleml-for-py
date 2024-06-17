@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import copy
 
 from doubleml.double_ml_framework import DoubleMLFramework, concat
 from ._utils import generate_dml_dict
@@ -12,6 +13,14 @@ n_rep = 5
 psi_a = np.ones(shape=(n_obs, n_thetas, n_rep))
 psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
 doubleml_dict = generate_dml_dict(psi_a, psi_b)
+# add sensitivity elements
+doubleml_dict['sensitivity_elements'] = {
+    'sigma2': np.ones(shape=(1, n_thetas, n_rep)),
+    'nu2': np.ones(shape=(1, n_thetas, n_rep)),
+    'psi_sigma2': np.ones(shape=(n_obs, n_thetas, n_rep)),
+    'psi_nu2': np.ones(shape=(n_obs, n_thetas, n_rep)),
+}
+
 
 # combine objects and estimate parameters
 dml_framework_obj_1 = DoubleMLFramework(doubleml_dict)
@@ -76,11 +85,28 @@ def test_input_exceptions():
         test_dict['sensitivity_elements'] = {'sensitivities': np.ones(shape=(n_obs, n_thetas, n_rep))}
         DoubleMLFramework(test_dict)
 
-    msg = 'The shape of sigma2 does not match the expected shape \(10, 5\)\.'
+    msg = r'The shape of sigma2 does not match the expected shape \(1, 2, 5\)\.'
     with pytest.raises(ValueError, match=msg):
-        test_dict = doubleml_dict.copy()
-        test_dict['sensitivity_elements'] = {
-            'sigma2': np.ones(shape=(n_obs, n_rep))}
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['sensitivity_elements']['sigma2'] = np.ones(shape=(n_obs, n_rep))
+        DoubleMLFramework(test_dict)
+
+    msg = r'The shape of nu2 does not match the expected shape \(1, 2, 5\)\.'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['sensitivity_elements']['nu2'] = np.ones(shape=(n_obs, n_rep))
+        DoubleMLFramework(test_dict)
+
+    msg = r'The shape of psi_sigma2 does not match the expected shape \(10, 2, 5\)\.'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['sensitivity_elements']['psi_sigma2'] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
+        DoubleMLFramework(test_dict)
+
+    msg = r'The shape of psi_nu2 does not match the expected shape \(10, 2, 5\)\.'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['sensitivity_elements']['psi_nu2'] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
         DoubleMLFramework(test_dict)
 
 
