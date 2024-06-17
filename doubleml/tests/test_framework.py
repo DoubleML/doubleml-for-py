@@ -302,13 +302,26 @@ def test_dml_framework_sensitivity(dml_framework_from_doubleml_fixture):
     n_thetas = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_thetas
     n_obs = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_obs
 
-    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_implemented
+    object_list = ['dml_framework_obj',
+                   'dml_framework_obj_add_obj',
+                   'dml_framework_obj_sub_obj',
+                   'dml_framework_obj_mul_obj']
+    var_keys = ['sigma2', 'nu2']
+    score_keys = ['psi_sigma2', 'psi_nu2', 'riesz_rep']
 
-    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['sigma2'].shape == \
-        (1, n_thetas, n_rep)
-    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['nu2'].shape == \
-        (1, n_thetas, n_rep)
-    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['psi_sigma2'].shape == \
-        (n_obs, n_thetas, n_rep)
-    assert dml_framework_from_doubleml_fixture['dml_framework_obj']._sensitivity_elements['psi_nu2'].shape == \
-        (n_obs, n_thetas, n_rep)
+    for obj in object_list:
+        assert dml_framework_from_doubleml_fixture[obj]._sensitivity_implemented
+        for key in var_keys:
+            assert dml_framework_from_doubleml_fixture[obj]._sensitivity_elements[key].shape == \
+                (1, n_thetas, n_rep)
+        for key in score_keys:
+            assert dml_framework_from_doubleml_fixture[obj]._sensitivity_elements[key].shape == \
+                (n_obs, n_thetas, n_rep)
+
+    # separate test for concat
+    for key in var_keys:
+        assert dml_framework_from_doubleml_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
+            (1, 2, n_rep)
+    for key in score_keys:
+        assert dml_framework_from_doubleml_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
+            (n_obs, 2, n_rep)
