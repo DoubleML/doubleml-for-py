@@ -19,6 +19,7 @@ doubleml_dict['sensitivity_elements'] = {
     'nu2': np.ones(shape=(1, n_thetas, n_rep)),
     'psi_sigma2': np.ones(shape=(n_obs, n_thetas, n_rep)),
     'psi_nu2': np.ones(shape=(n_obs, n_thetas, n_rep)),
+    'riesz_rep': np.ones(shape=(n_obs, n_thetas, n_rep))
 }
 
 
@@ -107,6 +108,12 @@ def test_input_exceptions():
     with pytest.raises(ValueError, match=msg):
         test_dict = copy.deepcopy(doubleml_dict)
         test_dict['sensitivity_elements']['psi_nu2'] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
+        DoubleMLFramework(test_dict)
+
+    msg = r'The shape of riesz_rep does not match the expected shape \(10, 2, 5\)\.'
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['sensitivity_elements']['riesz_rep'] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
         DoubleMLFramework(test_dict)
 
 
