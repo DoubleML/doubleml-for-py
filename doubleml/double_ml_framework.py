@@ -563,6 +563,15 @@ def concat(objs):
         'scaled_psi': scaled_psi,
         'is_cluster_data': is_cluster_data,
     }
+
+    if all(obj._sensitivity_implemented for obj in objs):
+        sensitivity_elements = {}
+        for key in ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']:
+            assert all(key in obj._sensitivity_elements.keys() for obj in objs)
+            sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
+
+        doubleml_dict['sensitivity_elements'] = sensitivity_elements
+
     new_obj = DoubleMLFramework(doubleml_dict)
 
     # check internal consistency of new object
