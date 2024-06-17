@@ -236,8 +236,25 @@ class DoubleMLFramework():
                 'scaled_psi': scaled_psi,
                 'is_cluster_data': is_cluster_data,
             }
-            new_obj = DoubleMLFramework(doubleml_dict)
 
+            # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
+            if self._sensitivity_implemented and other._sensitivity_implemented:
+                nu2_score_element = self._sensitivity_elements['psi_nu2'] + other._sensitivity_elements['psi_nu2'] - \
+                     np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
+                                                  self._sensitivity_elements['riesz_rep']))
+                nu2 = np.mean(nu2_score_element)
+                psi_nu2 = nu2_score_element - nu2
+
+                sensitivity_elements = {
+                    'sigma2': self._sensitivity_elements['sigma2'],
+                    'nu2': nu2,
+                    'psi_sigma2': self._sensitivity_elements['psi_sigma2'],
+                    'psi_nu2': psi_nu2,
+                    'riesz_rep': self._sensitivity_elements['riesz_rep'] + other._sensitivity_elements['riesz_rep'],
+                }
+                doubleml_dict['sensitivity_elements'] = sensitivity_elements
+
+            new_obj = DoubleMLFramework(doubleml_dict)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -278,8 +295,25 @@ class DoubleMLFramework():
                 'scaled_psi': scaled_psi,
                 'is_cluster_data': is_cluster_data,
             }
-            new_obj = DoubleMLFramework(doubleml_dict)
 
+            # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
+            if self._sensitivity_implemented and other._sensitivity_implemented:
+                nu2_score_element = self._sensitivity_elements['psi_nu2'] - other._sensitivity_elements['psi_nu2'] + \
+                     np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
+                                                  self._sensitivity_elements['riesz_rep']))
+                nu2 = np.mean(nu2_score_element)
+                psi_nu2 = nu2_score_element - nu2
+
+                sensitivity_elements = {
+                    'sigma2': self._sensitivity_elements['sigma2'],
+                    'nu2': nu2,
+                    'psi_sigma2': self._sensitivity_elements['psi_sigma2'],
+                    'psi_nu2': psi_nu2,
+                    'riesz_rep': self._sensitivity_elements['riesz_rep'] - other._sensitivity_elements['riesz_rep'],
+                }
+                doubleml_dict['sensitivity_elements'] = sensitivity_elements
+
+            new_obj = DoubleMLFramework(doubleml_dict)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
 
@@ -309,6 +343,22 @@ class DoubleMLFramework():
                 'scaled_psi': scaled_psi,
                 'is_cluster_data': is_cluster_data,
             }
+
+            # sensitivity combination only available for linear models
+            if self._sensitivity_implemented:
+                nu2_score_element = np.multiply(np.square(other), self._sensitivity_elements['psi_nu2'])
+                nu2 = np.mean(nu2_score_element)
+                psi_nu2 = nu2_score_element - nu2
+
+                sensitivity_elements = {
+                    'sigma2': self._sensitivity_elements['sigma2'],
+                    'nu2': nu2,
+                    'psi_sigma2': self._sensitivity_elements['psi_sigma2'],
+                    'psi_nu2': psi_nu2,
+                    'riesz_rep': np.multiply(other, self._sensitivity_elements['riesz_rep']),
+                }
+                doubleml_dict['sensitivity_elements'] = sensitivity_elements
+
             new_obj = DoubleMLFramework(doubleml_dict)
         else:
             raise TypeError(f"Unsupported operand type: {type(other)}")
