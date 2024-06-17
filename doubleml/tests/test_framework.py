@@ -170,7 +170,7 @@ def dml_framework_from_doubleml_fixture(n_rep):
     ci = dml_framework_obj.confint(joint=False, level=0.95)
     dml_framework_obj.bootstrap(method='normal')
     ci_joint = dml_framework_obj.confint(joint=True, level=0.95)
-    dml_framework_obj._calc_sensitivity_analysis()
+    dml_framework_obj.sensitivity_analysis()
 
     # add objects
     dml_framework_obj_add_obj = dml_framework_obj + dml_framework_obj
@@ -326,3 +326,4 @@ def test_dml_framework_sensitivity(dml_framework_from_doubleml_fixture):
     for key in score_keys:
         assert dml_framework_from_doubleml_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
             (n_obs, 2, n_rep)
+

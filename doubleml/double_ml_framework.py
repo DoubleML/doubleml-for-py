@@ -383,6 +383,15 @@ class DoubleMLFramework():
                              f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
                              'Most likely this is due to low quality learners (especially propensity scores).')
 
+        # elementwise operations
+        confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
+        sensitivity_scaling = np.sqrt(np.multiply(sigma2, nu2))
+
+        # sigma2 and nu2 are of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
+        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+
+
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._n_thetas-1)
