@@ -343,6 +343,12 @@ def test_sensitivity_exceptions():
         _ = dml_framework_obj_1._calc_robustness_value(rho=1.0, level=0.0, null_hypothesis=0.0, idx_treatment=0)
 
     # test null_hypothesis
+    msg = "null_hypothesis has to be of type float or np.ndarry. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_1.sensitivity_analysis(null_hypothesis=1)
+    msg = r"null_hypothesis is numpy.ndarray but does not have the required shape \(2,\). Array of shape \(3,\) was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_1.sensitivity_analysis(null_hypothesis=np.array([1, 2, 3]))
     msg = "null_hypothesis must be of float type. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = dml_framework_obj_1._calc_robustness_value(null_hypothesis=1, level=0.95, rho=1.0, idx_treatment=0)

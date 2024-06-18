@@ -515,8 +515,7 @@ class DoubleMLFramework():
         -------
         self : object
         """
-
-        # input checks
+        # check null_hypothesis
         if isinstance(null_hypothesis, float):
             null_hypothesis_vec = np.full(shape=self._n_thetas, fill_value=null_hypothesis)
         elif isinstance(null_hypothesis, np.ndarray):
