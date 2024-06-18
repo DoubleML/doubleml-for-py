@@ -431,7 +431,32 @@ class DoubleMLFramework():
                 all_sigma_lower[i_theta, i_rep] = np.sqrt(sigma2_lower_hat)
                 all_sigma_upper[i_theta, i_rep] = np.sqrt(sigma2_upper_hat)
 
-        return
+        # aggregate coefs and ses over n_rep
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
+
+        # per repetition confidence intervals
+        quant = norm.ppf(level)
+        all_ci_lower = all_theta_lower - np.multiply(quant, all_sigma_lower)
+        all_ci_upper = all_theta_upper + np.multiply(quant, all_sigma_upper)
+
+        ci_lower = np.median(all_ci_lower, axis=1)
+        ci_upper = np.median(all_ci_upper, axis=1)
+
+        theta_dict = {'lower': theta_lower,
+                      'upper': theta_upper}
+
+        se_dict = {'lower': sigma_lower,
+                   'upper': sigma_upper}
+
+        ci_dict = {'lower': ci_lower,
+                   'upper': ci_upper}
+
+        res_dict = {'theta': theta_dict,
+                    'se': se_dict,
+                    'ci': ci_dict}
+
+        return res_dict
 
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")

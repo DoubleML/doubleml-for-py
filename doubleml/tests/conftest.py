@@ -9,6 +9,8 @@ from sklearn.datasets import make_regression, make_classification
 from doubleml.datasets import make_plr_turrell2018, make_irm_data, \
     make_pliv_CHS2015
 
+from doubleml import DoubleMLData
+
 
 def _g(x):
     return np.power(np.sin(x), 2)
@@ -20,6 +22,29 @@ def _m(x, nu=0., gamma=1.):
 
 def _m2(x):
     return np.power(x, 2)
+
+
+@pytest.fixture(scope='session',
+                params=[(500, 5)])
+def generate_data_simple(request):
+    n_p = request.param
+    np.random.seed(1111)
+    # setting parameters
+    n = n_p[0]
+    p = n_p[1]
+    theta = 1.0
+
+    # generating data
+    D1 = 1.0 * (np.random.uniform(size=n) > 0.5)
+    D2 = 1.0 * (np.random.uniform(size=n) > 0.5)
+    X = np.random.normal(size=(n, p))
+    Y = theta * D1 + np.dot(X, np.ones(p)) + np.random.normal(size=n)
+    df = pd.DataFrame(np.column_stack((X, Y, D1, D2)),
+                      columns=[f'X{i + 1}' for i in np.arange(p)] + ['Y', 'D1', 'D2'])
+    data_d1 = DoubleMLData(df, 'Y', 'D1')
+    data_d2 = DoubleMLData(df, 'Y', 'D2')
+
+    return data_d1, data_d2
 
 
 @pytest.fixture(scope='session',

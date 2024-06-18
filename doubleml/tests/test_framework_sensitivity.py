@@ -1,6 +1,5 @@
 import pytest
 
-from doubleml.datasets import make_irm_data
 from doubleml.irm.irm import DoubleMLIRM
 from doubleml.double_ml_framework import concat
 
@@ -14,8 +13,8 @@ def n_rep(request):
 
 
 @pytest.fixture(scope='module')
-def dml_framework_sensitivity_fixture(n_rep):
-    dml_data = make_irm_data()
+def dml_framework_sensitivity_fixture(n_rep, generate_data_simple):
+    dml_data, dml_data_2 = generate_data_simple
 
     ml_g = LinearRegression()
     ml_m = LogisticRegression()
@@ -29,7 +28,6 @@ def dml_framework_sensitivity_fixture(n_rep):
     dml_framework_obj_add_obj = dml_framework_obj + dml_framework_obj
 
     # substract objects
-    dml_data_2 = make_irm_data()
     dml_irm_obj_2 = DoubleMLIRM(dml_data_2, ml_g, ml_m, n_rep=n_rep)
     dml_irm_obj_2.fit()
     dml_framework_obj_2 = dml_irm_obj_2.construct_framework()
