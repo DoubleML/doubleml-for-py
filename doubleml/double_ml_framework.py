@@ -215,8 +215,6 @@ class DoubleMLFramework():
             all_ses = np.sqrt(sigma2_hat)
             thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
 
-            is_cluster_data = self._is_cluster_data or other._is_cluster_data
-
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -224,7 +222,8 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
-                'is_cluster_data': is_cluster_data,
+                'is_cluster_data': self._is_cluster_data,
+                'cluster_dict': self._cluster_dict,
             }
 
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
@@ -275,7 +274,6 @@ class DoubleMLFramework():
             all_ses = np.sqrt(sigma2_hat)
             thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
 
-            is_cluster_data = self._is_cluster_data or other._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -283,7 +281,8 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
-                'is_cluster_data': is_cluster_data,
+                'is_cluster_data': self._is_cluster_data,
+                'cluster_dict': self._cluster_dict,
             }
 
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
@@ -323,7 +322,6 @@ class DoubleMLFramework():
             all_ses = np.multiply(other, self._all_ses)
             scaled_psi = np.multiply(other, self._scaled_psi)
 
-            is_cluster_data = self._is_cluster_data
             doubleml_dict = {
                 'thetas': thetas,
                 'ses': ses,
@@ -331,7 +329,8 @@ class DoubleMLFramework():
                 'all_ses': all_ses,
                 'var_scaling_factors': var_scaling_factors,
                 'scaled_psi': scaled_psi,
-                'is_cluster_data': is_cluster_data,
+                'is_cluster_data': self._is_cluster_data,
+                'cluster_dict': self._cluster_dict,
             }
 
             # sensitivity combination only available for linear models
@@ -409,10 +408,10 @@ class DoubleMLFramework():
                     smpls_cluster = None
                     n_folds_per_cluster = None
                 else:
-                    smpls = self._smpls[i_rep]
-                    cluster_vars = self._dml_data.cluster_vars
-                    smpls_cluster = self._smpls_cluster[i_rep]
-                    n_folds_per_cluster = self._n_folds_per_cluster
+                    smpls = self._cluster_dict['smpls'][i_rep]
+                    cluster_vars = self._cluster_dict['cluster_vars']
+                    smpls_cluster = self._cluster_dict['smpls_cluster'][i_rep]
+                    n_folds_per_cluster = self._cluster_dict['n_folds_per_cluster']
 
                 sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_theta, i_rep],
                                                psi_deriv=np.ones_like(psi_lower[:, i_theta, i_rep]),

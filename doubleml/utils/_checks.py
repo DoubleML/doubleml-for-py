@@ -348,6 +348,10 @@ def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treat
             raise ValueError('The number of parameters theta in DoubleMLFrameworks must be the same. '
                              f'Got {str(dml_framework_1.n_thetas)} and {str(dml_framework_2.n_thetas)}.')
 
+    if dml_framework_1._is_cluster_data != dml_framework_2._is_cluster_data:
+        raise ValueError('The cluster structure in DoubleMLFrameworks must be the same. '
+                         f'Got {str(dml_framework_1._is_cluster_data)} and {str(dml_framework_2._is_cluster_data)}.')
+
 
 def _check_set(x):
     return {x} if x is not None else {}

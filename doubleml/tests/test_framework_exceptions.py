@@ -240,7 +240,12 @@ def test_operation_exceptions():
             'n_folds_per_cluster': 2
         }
         dml_framework_obj_cluster = DoubleMLFramework(doubleml_dict_cluster)
-        _ = concat([dml_framework_obj_2, dml_framework_obj_cluster])
+        _ = concat([dml_framework_obj_cluster, dml_framework_obj_cluster])
+
+    # cluster compatibility
+    msg = "The cluster structure in DoubleMLFrameworks must be the same. Got False and True."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_2 + dml_framework_obj_cluster
 
 
 @pytest.mark.ci
