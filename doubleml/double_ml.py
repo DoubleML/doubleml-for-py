@@ -14,9 +14,8 @@ from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
 from .utils._estimation import _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
-from .utils._checks import _check_in_zero_one, _check_integer, _check_bool, _check_is_partition, \
-    _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, _check_benchmarks, _check_external_predictions
-from .utils._plots import _sensitivity_contour_plot
+from .utils._checks import _check_is_partition, _check_all_smpls, _check_smpl_split, _check_smpl_split_tpl, \
+    _check_external_predictions
 from .utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -1448,7 +1447,7 @@ class DoubleML(ABC):
         """
 
         if self._framework is None:
-            raise ValueError('Apply fit() before bootstrap().')
+            raise ValueError('Apply fit() before sensitivity_analysis().')
         self._framework.sensitivity_analysis(
             cf_y=cf_y,
             cf_d=cf_d,
@@ -1508,8 +1507,8 @@ class DoubleML(ABC):
 
         return res
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True, benchmarks=None,
-                         fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+    def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
+                         include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
 
@@ -1524,9 +1523,22 @@ class DoubleML(ABC):
             and ``'ci'`` (refers to the bounds including statistical uncertainty).
             Default is ``'theta'``.
 
+        rho: float
+            The correlation between the differences in short and long representations in the main regression and
+            Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
+            confounding (maximizes at 1.0).
+            Default is ``1.0``.
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
             Default is ``True``.
+
+        null_hypothesis : float
+            Null hypothesis for the effect. Determines the direction of the contour lines.
 
         benchmarks : dict or None
             Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
@@ -1549,81 +1561,21 @@ class DoubleML(ABC):
         fig : object
             Plotly figure of the sensitivity contours.
         """
-        if self.sensitivity_params is None:
-            raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
-                             'The values of rho and the level are used for the scenario.')
-        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
-        if not isinstance(value, str):
-            raise TypeError('value must be a string. '
-                            f'{str(value)} of type {type(value)} was passed.')
-        valid_values = ['theta', 'ci']
-        if value not in valid_values:
-            raise ValueError('Invalid value ' + value + '. ' +
-                             'Valid values ' + ' or '.join(valid_values) + '.')
-        _check_bool(include_scenario, 'include_scenario')
-        _check_benchmarks(benchmarks)
-        _check_bool(fill, 'fill')
-        _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
-        _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
-        _check_integer(grid_size, "grid_size", lower_bound=10)
+        if self._framework is None:
+            raise ValueError('Apply fit() before sensitivity_plot().')
+        fig = self._framework.sensitivity_plot(
+            idx_treatment=idx_treatment,
+            value=value,
+            rho=rho,
+            level=level,
+            null_hypothesis=null_hypothesis,
+            include_scenario=include_scenario,
+            benchmarks=benchmarks,
+            fill=fill,
+            grid_bounds=grid_bounds,
+            grid_size=grid_size
+        )
 
-        null_hypothesis = self.sensitivity_params['input']['null_hypothesis'][idx_treatment]
-        unadjusted_theta = self.coef[idx_treatment]
-        # check which side is relvant
-        bound = 'upper' if (null_hypothesis > unadjusted_theta) else 'lower'
-
-        # create evaluation grid
-        cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
-        cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
-
-        # compute contour values
-        contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
-        for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
-            for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
-
-                sens_dict = self.framework._calc_sensitivity_analysis(
-                    cf_y=cf_y_grid,
-                    cf_d=cf_d_grid,
-                    rho=self.sensitivity_params['input']['rho'],
-                    level=self.sensitivity_params['input']['level']
-                )
-                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict[value][bound][idx_treatment]
-
-        # get the correct unadjusted value for confidence bands
-        if value == 'theta':
-            unadjusted_value = unadjusted_theta
-        else:
-            assert value == 'ci'
-            ci = self.confint(level=self.sensitivity_params['input']['level'])
-            if bound == 'upper':
-                unadjusted_value = ci.iloc[idx_treatment, 1]
-            else:
-                unadjusted_value = ci.iloc[idx_treatment, 0]
-
-        # compute the values for the benchmarks
-        benchmark_dict = copy.deepcopy(benchmarks)
-        if benchmarks is not None:
-            n_benchmarks = len(benchmarks['name'])
-            benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
-            for benchmark_idx in range(len(benchmarks['name'])):
-                sens_dict_bench = self.framework._calc_sensitivity_analysis(
-                    cf_y=benchmarks['cf_y'][benchmark_idx],
-                    cf_d=benchmarks['cf_y'][benchmark_idx],
-                    rho=self.sensitivity_params['input']['rho'],
-                    level=self.sensitivity_params['input']['level']
-                )
-                benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
-            benchmark_dict['value'] = benchmark_values
-        fig = _sensitivity_contour_plot(x=cf_d_vec,
-                                        y=cf_y_vec,
-                                        contour_values=contour_values,
-                                        unadjusted_value=unadjusted_value,
-                                        scenario_x=self.sensitivity_params['input']['cf_d'],
-                                        scenario_y=self.sensitivity_params['input']['cf_y'],
-                                        scenario_value=self.sensitivity_params[value][bound][idx_treatment],
-                                        include_scenario=include_scenario,
-                                        benchmarks=benchmark_dict,
-                                        fill=fill)
         return fig
 
     def sensitivity_benchmark(self, benchmarking_set, fit_args=None):

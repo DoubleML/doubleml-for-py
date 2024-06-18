@@ -1097,8 +1097,7 @@ def test_doubleml_sensitivity_plot_input():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
     dml_irm.fit()
 
-    msg = (r'Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. '
-           'The values of rho and the level are used for the scenario.')
+    msg = (r'Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. ')
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_plot()
 
