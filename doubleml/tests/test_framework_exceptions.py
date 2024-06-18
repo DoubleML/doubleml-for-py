@@ -418,16 +418,20 @@ def test_framework_sensitivity_plot_input():
         _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': 0.1, 'cf_d': 0.15})
     msg = r"benchmarks has to be a dictionary with values of same length. Got \[1, 2, 2\]."
     with pytest.raises(ValueError, match=msg):
-        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1], 'cf_d': [0.15, 0.2],
+                                                                'name': ['test', 'test2']})
     msg = "benchmarks cf_y must be of float type. 2 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 2], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 2], 'cf_d': [0.15, 0.2],
+                                                                'name': ['test', 'test2']})
     msg = r'benchmarks cf_y must be in \[0,1\). 1.0 was passed.'
     with pytest.raises(ValueError, match=msg):
-        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 1.0], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 1.0], 'cf_d': [0.15, 0.2],
+                                                                'name': ['test', 'test2']})
     msg = "benchmarks name must be of string type. 2 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
-        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2], 'name': [2, 2]})
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2],
+                                                                'name': [2, 2]})
 
     msg = "value must be a string. 2 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
