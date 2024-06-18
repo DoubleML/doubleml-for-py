@@ -46,9 +46,8 @@ class DoubleMLFramework():
         self._var_scaling_factors = doubleml_dict['var_scaling_factors']
         self._scaled_psi = doubleml_dict['scaled_psi']
 
-        if "is_cluster_data" in doubleml_dict.keys():
-            _check_bool(doubleml_dict['is_cluster_data'], 'is_cluster_data')
-            self._is_cluster_data = doubleml_dict['is_cluster_data']
+        # initialize cluster data
+        self._check_and_set_cluster_data(doubleml_dict)
 
         # initialize sensitivity analysis
         self._sensitivity_implemented, self._sensitivity_elements = self._check_and_set_sensitivity_elements(doubleml_dict)
@@ -643,6 +642,17 @@ class DoubleMLFramework():
             columns=['thetas', 'pval'])
 
         return df_p_vals, all_p_vals_corrected
+
+    def _check_and_set_cluster_data(self, doubleml_dict):
+        if "is_cluster_data" in doubleml_dict.keys():
+            _check_bool(doubleml_dict['is_cluster_data'], 'is_cluster_data')
+            self._is_cluster_data = doubleml_dict['is_cluster_data']
+
+        if self._is_cluster_data:
+            if not ("cluster_dict" in doubleml_dict.keys()):
+                raise ValueError('If is_cluster_data is True, cluster_dict must be provided.')
+
+        return
 
     def _check_and_set_sensitivity_elements(self, doubleml_dict):
         if not ("sensitivity_elements" in doubleml_dict.keys()):
