@@ -643,6 +643,8 @@ class DoubleMLFramework():
         return df_p_vals, all_p_vals_corrected
 
     def _check_and_set_cluster_data(self, doubleml_dict):
+        self._cluster_dict = None
+
         if "is_cluster_data" in doubleml_dict.keys():
             _check_bool(doubleml_dict['is_cluster_data'], 'is_cluster_data')
             self._is_cluster_data = doubleml_dict['is_cluster_data']
