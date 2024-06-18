@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from scipy.stats import norm
+from scipy.optimize import minimize_scalar
 from statsmodels.stats.multitest import multipletests
 
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses, _var_est
@@ -462,9 +463,21 @@ class DoubleMLFramework():
         _check_float(null_hypothesis, "null_hypothesis")
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._n_thetas-1)
 
-        cf_y = 0.03
-        cf_d = 0.03
-        sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
+        # check which side is relvant
+        bound = 'upper' if (null_hypothesis > self.thetas[idx_treatment]) else 'lower'
+
+        # minimize the square to find boundary solutions
+        def rv_fct(value, param):
+            res = self._calc_sensitivity_analysis(cf_y=value,
+                                                  cf_d=value,
+                                                  rho=rho,
+                                                  level=level)[param][bound][idx_treatment] - null_hypothesis
+            return np.square(res)
+
+        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
+        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci', )).x
+
+        return rv, rva
 
     def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
         """
@@ -502,9 +515,49 @@ class DoubleMLFramework():
         -------
         self : object
         """
+
+        # input checks
+        if isinstance(null_hypothesis, float):
+            null_hypothesis_vec = np.full(shape=self._n_thetas, fill_value=null_hypothesis)
+        elif isinstance(null_hypothesis, np.ndarray):
+            if null_hypothesis.shape == (self._n_thetas,):
+                null_hypothesis_vec = null_hypothesis
+            else:
+                raise ValueError("null_hypothesis is numpy.ndarray but does not have the required "
+                                 f"shape ({self._n_thetas},). "
+                                 f'Array of shape {str(null_hypothesis.shape)} was passed.')
+        else:
+            raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
+                            f"{str(null_hypothesis)} of type {str(type(null_hypothesis))} was passed.")
+
         # compute sensitivity analysis
         sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
-        _ = self._calc_robustness_value(null_hypothesis=null_hypothesis, level=level, rho=rho, idx_treatment=0)
+
+        # compute robustess values with respect to null_hypothesis
+        rv = np.full(shape=self._n_thetas, fill_value=np.nan)
+        rva = np.full(shape=self._n_thetas, fill_value=np.nan)
+
+        for i_theta in range(self._n_thetas):
+            rv[i_theta], rva[i_theta] = self._calc_robustness_value(
+                null_hypothesis=null_hypothesis_vec[i_theta],
+                level=level,
+                rho=rho,
+                idx_treatment=i_theta
+            )
+
+        sensitivity_dict['rv'] = rv
+        sensitivity_dict['rva'] = rva
+
+        # add all input parameters
+        input_params = {'cf_y': cf_y,
+                        'cf_d': cf_d,
+                        'rho': rho,
+                        'level': level,
+                        'null_hypothesis': null_hypothesis_vec}
+        sensitivity_dict['input'] = input_params
+
+        self._sensitivity_params = sensitivity_dict
+        return self
 
     def confint(self, joint=False, level=0.95):
         """
@@ -719,6 +772,7 @@ class DoubleMLFramework():
 
         self._sensitivity_implemented = sensitivity_implemented
         self._sensitivity_elements = sensitivity_elements
+        self._sensitivity_params = None
 
         return
 
