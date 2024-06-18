@@ -376,11 +376,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
-        if self.score == 'ATE':
-            g_hat1 = preds['predictions']['ml_g1']
-        else:
-            assert self.score == 'ATTE'
-            g_hat1 = y
+        g_hat1 = preds['predictions']['ml_g1']
 
         # use weights make this extendable
         weights, weights_bar = self._get_weights(m_hat=m_hat)
