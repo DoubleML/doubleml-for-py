@@ -5,6 +5,7 @@ from .double_ml_framework import DoubleMLFramework
 from .plm.plr import DoubleMLPLR
 from .plm.pliv import DoubleMLPLIV
 from .irm.irm import DoubleMLIRM
+from .irm.apo import DoubleMLAPO
 from .irm.iivm import DoubleMLIIVM
 from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .did.did import DoubleMLDID
@@ -23,6 +24,7 @@ __all__ = ['concat',
            'DoubleMLPLR',
            'DoubleMLPLIV',
            'DoubleMLIRM',
+           'DoubleMLAPO',
            'DoubleMLIIVM',
            'DoubleMLData',
            'DoubleMLClusterData',
