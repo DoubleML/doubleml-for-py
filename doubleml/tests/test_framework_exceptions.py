@@ -115,6 +115,12 @@ def test_input_exceptions():
         test_dict['sensitivity_elements']['riesz_rep'] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
         DoubleMLFramework(test_dict)
 
+    msg = "s_cluster_data has to be boolean. 1.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['is_cluster_data'] = 1.0
+        DoubleMLFramework(test_dict)
+
 
 def test_operation_exceptions():
     # addition

@@ -6,7 +6,7 @@ from statsmodels.stats.multitest import multipletests
 
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses, _var_est
 from .utils._checks import _check_bootstrap, _check_framework_compatibility, _check_in_zero_one, \
-    _check_float, _check_integer
+    _check_float, _check_integer, _check_bool
 
 
 class DoubleMLFramework():
@@ -47,6 +47,7 @@ class DoubleMLFramework():
         self._scaled_psi = doubleml_dict['scaled_psi']
 
         if "is_cluster_data" in doubleml_dict.keys():
+            _check_bool(doubleml_dict['is_cluster_data'], 'is_cluster_data')
             self._is_cluster_data = doubleml_dict['is_cluster_data']
 
         # initialize sensitivity analysis
@@ -404,24 +405,26 @@ class DoubleMLFramework():
             for i_theta in range(self.n_thetas):
 
                 if not self._is_cluster_data:
+                    smpls = None
                     cluster_vars = None
                     smpls_cluster = None
                     n_folds_per_cluster = None
                 else:
+                    smpls = self._smpls[i_rep]
                     cluster_vars = self._dml_data.cluster_vars
                     smpls_cluster = self._smpls_cluster[i_rep]
                     n_folds_per_cluster = self._n_folds_per_cluster
 
                 sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_theta, i_rep],
                                                psi_deriv=np.ones_like(psi_lower[:, i_theta, i_rep]),
-                                               smpls=self._smpls[i_rep],
+                                               smpls=smpls,
                                                is_cluster_data=self._is_cluster_data,
                                                cluster_vars=cluster_vars,
                                                smpls_cluster=smpls_cluster,
                                                n_folds_per_cluster=n_folds_per_cluster)
                 sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_theta, i_rep],
                                                psi_deriv=np.ones_like(psi_upper[:, i_theta, i_rep]),
-                                               smpls=self._smpls[i_rep],
+                                               smpls=smpls,
                                                is_cluster_data=self._is_cluster_data,
                                                cluster_vars=cluster_vars,
                                                smpls_cluster=smpls_cluster,
