@@ -233,6 +233,10 @@ def test_operation_exceptions():
     with pytest.raises(NotImplementedError, match=msg):
         doubleml_dict_cluster = generate_dml_dict(psi_a_2, psi_b_2)
         doubleml_dict_cluster['is_cluster_data'] = True
+        doubleml_dict_cluster['cluster_dict'] = {'smpls': np.ones(shape=(n_obs, n_rep)),
+                                                 'smpls_cluster': np.ones(shape=(n_obs, n_rep)),
+                                                 'cluster_vars': np.ones(shape=(n_obs, n_rep)),
+                                                 'n_folds_per_cluster': 2}
         dml_framework_obj_cluster = DoubleMLFramework(doubleml_dict_cluster)
         _ = concat([dml_framework_obj_2, dml_framework_obj_cluster])
 
