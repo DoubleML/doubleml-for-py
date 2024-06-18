@@ -1,11 +1,17 @@
 import numpy as np
 
+from sklearn.utils import check_X_y
+from sklearn.utils.multiclass import type_of_target
+
 from ..double_ml import DoubleML
 
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..double_ml_data import DoubleMLData
 
-from ..utils._checks import _check_score, _check_trimming, _check_weights
+from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _cond_targets, _trimm, \
+    _normalize_ipw
+from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_finite_predictions, \
+    _check_is_propensity
 
 
 class DoubleMLAPO(LinearScoreMixin, DoubleML):
@@ -48,7 +54,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-        self._normalize_ipw = normalize_ipw
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
@@ -73,8 +78,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         # ATE weights are the standard case
         _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
         self._initialize_weights(weights)
-
-        return self
 
     @property
     def treatment_level(self):
@@ -119,24 +122,168 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return self._weights
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g', 'ml_m']
+        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
-    def _nuisance_est(self):
-        # Estimate nuisance parameters
-        # This is a placeholder for the estimation logic
-        print("Estimating nuisance parameters...")
+    def _initialize_weights(self, weights):
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if isinstance(weights, np.ndarray):
+            self._weights = {'weights': weights}
+        else:
+            assert isinstance(weights, dict)
+            self._weights = weights
+
+    def _get_weights(self, m_hat=None):
+        # standard case for APO/ATE
+        weights = self._weights['weights']
+        if 'weights_bar' not in self._weights.keys():
+            weights_bar = self._weights['weights']
+        else:
+            weights_bar = self._weights['weights_bar'][:, self._i_rep]
+
+        return weights, weights_bar
+
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        # use the treated indicator to get the correct sample splits
+        x, d = check_X_y(x, self.treated,
+                         force_all_finite=False)
+
+        # get train indices for d == treatment_level
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        g0_external = external_predictions['ml_g0'] is not None
+        g1_external = external_predictions['ml_g1'] is not None
+        m_external = external_predictions['ml_m'] is not None
+
+        # nuisance g (g0 only relevant for sensitivity analysis)
+        if g0_external:
+            # use external predictions
+            g_hat0 = {'preds': external_predictions['ml_g0'],
+                      'targets': None,
+                      'models': None}
+        else:
+            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
+
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
+
+        if g1_external:
+            # use external predictions
+            g_hat1 = {'preds': external_predictions['ml_g1'],
+                      'targets': None,
+                      'models': None}
+        else:
+            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
+                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
+                                     return_models=return_models)
+            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
+
+        if self._dml_data.binary_outcome:
+            binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
+            zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
+            if binary_preds & zero_one_preds:
+                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
+                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
+                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                                 'probabilities and not labels are predicted.')
+
+        # nuisance m
+        if m_external:
+            # use external predictions
+            m_hat = {'preds': external_predictions['ml_m'],
+                     'targets': None,
+                     'models': None}
+        else:
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                    return_models=return_models)
+            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+
+        # also trimm external predictions
+        m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+
+        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], g_hat1['preds'],
+                                            m_hat['preds'], smpls)
+        psi_elements = {'psi_a': psi_a,
+                        'psi_b': psi_b}
+
+        preds = {'predictions': {'ml_g0': g_hat0['preds'],
+                                 'ml_g1': g_hat1['preds'],
+                                 'ml_m': m_hat['preds']},
+                 'targets': {'ml_g0': g_hat0['targets'],
+                             'ml_g1': g_hat1['targets'],
+                             'ml_m': m_hat['targets']},
+                 'models': {'ml_g0': g_hat0['models'],
+                            'ml_g1': g_hat1['models'],
+                            'ml_m': m_hat['models']}
+                 }
+        return psi_elements, preds
+
+    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
+        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
+        if self.normalize_ipw:
+            m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
+
+        u_hat = y - g_hat1
+        weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
+        psi_b = weights * g_hat1 + weights_bar * np.divide(np.multiply(d, u_hat), m_hat_adj)
+        psi_a = np.full_like(m_hat_adj, -1.0)
+
+        return psi_a, psi_b
+
+    def _sensitivity_element_est(self, preds):
+        # set elments for readability
+        y = self._dml_data.y
+        d = self.treated
+
+        m_hat = preds['predictions']['ml_m']
+        g_hat0 = preds['predictions']['ml_g0']
+        g_hat1 = preds['predictions']['ml_g1']
+
+        weights, weights_bar = self._get_weights(m_hat=m_hat)
+
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
+        rr = np.multiply(weights_bar, np.divide(d, m_hat))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = {'sigma2': sigma2,
+                        'nu2': nu2,
+                        'psi_sigma2': psi_sigma2,
+                        'psi_nu2': psi_nu2,
+                        'riesz_rep': rr,
+                        }
+        return element_dict
 
     def _nuisance_tuning(self):
         # Tune nuisance parameters
         # This is a placeholder for tuning logic
         print("Tuning nuisance parameters...")
-
-    def _sensitivity_element_est(self):
-        # Estimate sensitivity elements
-        # This is a placeholder for sensitivity estimation logic
-        print("Estimating sensitivity elements...")
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
