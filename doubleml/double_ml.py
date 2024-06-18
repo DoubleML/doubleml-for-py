@@ -344,7 +344,11 @@ class DoubleML(ABC):
         If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
         and ``rva``.
         """
-        return self._sensitivity_params
+        if self._framework is None:
+            sensitivity_params = None
+        else:
+            sensitivity_params = self._framework.sensitivity_params
+        return sensitivity_params
 
     @property
     def coef(self):
@@ -1559,42 +1563,17 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        # compute sensitivity analysis
-        sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
 
-        if isinstance(null_hypothesis, float):
-            null_hypothesis_vec = np.full(shape=self._dml_data.n_treat, fill_value=null_hypothesis)
-        elif isinstance(null_hypothesis, np.ndarray):
-            if null_hypothesis.shape == (self._dml_data.n_treat,):
-                null_hypothesis_vec = null_hypothesis
-            else:
-                raise ValueError("null_hypothesis is numpy.ndarray but does not have the required "
-                                 f"shape ({self._dml_data.n_treat},). "
-                                 f'Array of shape {str(null_hypothesis.shape)} was passed.')
-        else:
-            raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
-                            f"{str(null_hypothesis)} of type {str(type(null_hypothesis))} was passed.")
+        if self._framework is None:
+            raise ValueError('Apply fit() before bootstrap().')
+        self._framework.sensitivity_analysis(
+            cf_y=cf_y,
+            cf_d=cf_d,
+            rho=rho,
+            level=level,
+            null_hypothesis=null_hypothesis
+        )
 
-        # compute robustess values with respect to null_hypothesis
-        rv = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
-        rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
-
-        for i_treat in range(self._dml_data.n_treat):
-            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat],
-                                                                    level=level, rho=rho, idx_treatment=i_treat)
-
-        sensitivity_dict['rv'] = rv
-        sensitivity_dict['rva'] = rva
-
-        # add all input parameters
-        input_params = {'cf_y': cf_y,
-                        'cf_d': cf_d,
-                        'rho': rho,
-                        'level': level,
-                        'null_hypothesis': null_hypothesis_vec}
-        sensitivity_dict['input'] = input_params
-
-        self._sensitivity_params = sensitivity_dict
         return self
 
     @property
@@ -1617,19 +1596,19 @@ class DoubleML(ABC):
                               f'rho={self.sensitivity_params["input"]["rho"]}'
 
             theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
-            theta_and_ci = np.transpose(np.vstack((self._sensitivity_params['ci']['lower'],
-                                                   self._sensitivity_params['theta']['lower'],
+            theta_and_ci = np.transpose(np.vstack((self.sensitivity_params['ci']['lower'],
+                                                   self.sensitivity_params['theta']['lower'],
                                                    self.coef,
-                                                   self._sensitivity_params['theta']['upper'],
-                                                   self._sensitivity_params['ci']['upper'])))
+                                                   self.sensitivity_params['theta']['upper'],
+                                                   self.sensitivity_params['ci']['upper'])))
             df_theta_and_ci = pd.DataFrame(theta_and_ci,
                                            columns=theta_and_ci_col_names,
                                            index=self._dml_data.d_cols)
             theta_and_ci_summary = str(df_theta_and_ci)
 
             rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
-            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
-                                          self._sensitivity_params['rva']))) * 100
+            rvs = np.transpose(np.vstack((self.sensitivity_params['rv'],
+                                          self.sensitivity_params['rva']))) * 100
 
             df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
                                   columns=rvs_col_names,
