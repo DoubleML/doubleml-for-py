@@ -1411,122 +1411,6 @@ class DoubleML(ABC):
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
 
-    def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
-        if self._sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
-
-        # checks
-        _check_in_zero_one(cf_y, 'cf_y', include_one=False)
-        _check_in_zero_one(cf_d, 'cf_d', include_one=False)
-        if not isinstance(rho, float):
-            raise TypeError(f'rho must be of float type. '
-                            f'{str(rho)} of type {str(type(rho))} was passed.')
-        _check_in_zero_one(abs(rho), 'The absolute value of rho')
-        _check_in_zero_one(level, 'The confidence level', include_zero=False, include_one=False)
-
-        # set elements for readability
-        sigma2 = self.sensitivity_elements['sigma2']
-        nu2 = self.sensitivity_elements['nu2']
-        psi_sigma = self.sensitivity_elements['psi_sigma2']
-        psi_nu = self.sensitivity_elements['psi_nu2']
-        psi_scaled = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
-
-        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
-            raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
-                             f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
-                             'Most likely this is due to low quality learners (especially propensity scores).')
-
-        # elementwise operations
-        confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
-        S = np.sqrt(np.multiply(sigma2, nu2))
-
-        # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
-        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
-        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
-
-        psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
-        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
-        psi_lower = psi_scaled - psi_bias
-        psi_upper = psi_scaled + psi_bias
-
-        # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
-        all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
-        all_sigma_upper = np.full_like(all_theta_upper, fill_value=np.nan)
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-            for i_d in range(self._dml_data.n_treat):
-                self._i_treat = i_d
-
-                if not self._is_cluster_data:
-                    cluster_vars = None
-                    smpls_cluster = None
-                    n_folds_per_cluster = None
-                else:
-                    cluster_vars = self._dml_data.cluster_vars
-                    smpls_cluster = self.__smpls_cluster
-                    n_folds_per_cluster = self._n_folds_per_cluster
-
-                sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
-                                               psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
-                                               smpls=self.__smpls,
-                                               is_cluster_data=self._is_cluster_data,
-                                               cluster_vars=cluster_vars,
-                                               smpls_cluster=smpls_cluster,
-                                               n_folds_per_cluster=n_folds_per_cluster)
-                sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_rep, i_d],
-                                               psi_deriv=np.ones_like(psi_upper[:, i_rep, i_d]),
-                                               smpls=self.__smpls,
-                                               is_cluster_data=self._is_cluster_data,
-                                               cluster_vars=cluster_vars,
-                                               smpls_cluster=smpls_cluster,
-                                               n_folds_per_cluster=n_folds_per_cluster)
-
-                all_sigma_lower[self._i_treat, self._i_rep] = np.sqrt(sigma2_lower_hat)
-                all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
-
-        # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
-        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
-
-        quant = norm.ppf(level)
-        ci_lower = theta_lower - np.multiply(quant, sigma_lower)
-        ci_upper = theta_upper + np.multiply(quant, sigma_upper)
-
-        theta_dict = {'lower': theta_lower,
-                      'upper': theta_upper}
-
-        se_dict = {'lower': sigma_lower,
-                   'upper': sigma_upper}
-
-        ci_dict = {'lower': ci_lower,
-                   'upper': ci_upper}
-
-        res_dict = {'theta': theta_dict,
-                    'se': se_dict,
-                    'ci': ci_dict}
-
-        return res_dict
-
-    def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
-        _check_float(null_hypothesis, "null_hypothesis")
-        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
-
-        # check which side is relvant
-        bound = 'upper' if (null_hypothesis > self.coef[idx_treatment]) else 'lower'
-
-        # minimize the square to find boundary solutions
-        def rv_fct(value, param):
-            res = self._calc_sensitivity_analysis(cf_y=value,
-                                                  cf_d=value,
-                                                  rho=rho,
-                                                  level=level)[param][bound][idx_treatment] - null_hypothesis
-            return np.square(res)
-
-        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
-        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci', )).x
-
-        return rv, rva
-
     def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
         """
         Performs a sensitivity analysis to account for unobserved confounders.
@@ -1697,10 +1581,13 @@ class DoubleML(ABC):
         contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
         for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
             for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
-                sens_dict = self._calc_sensitivity_analysis(cf_y=cf_y_grid,
-                                                            cf_d=cf_d_grid,
-                                                            rho=self.sensitivity_params['input']['rho'],
-                                                            level=self.sensitivity_params['input']['level'])
+
+                sens_dict = self.framework._calc_sensitivity_analysis(
+                    cf_y=cf_y_grid,
+                    cf_d=cf_d_grid,
+                    rho=self.sensitivity_params['input']['rho'],
+                    level=self.sensitivity_params['input']['level']
+                )
                 contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict[value][bound][idx_treatment]
 
         # get the correct unadjusted value for confidence bands
@@ -1720,10 +1607,12 @@ class DoubleML(ABC):
             n_benchmarks = len(benchmarks['name'])
             benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
             for benchmark_idx in range(len(benchmarks['name'])):
-                sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
-                                                                  cf_d=benchmarks['cf_y'][benchmark_idx],
-                                                                  rho=self.sensitivity_params['input']['rho'],
-                                                                  level=self.sensitivity_params['input']['level'])
+                sens_dict_bench = self.framework._calc_sensitivity_analysis(
+                    cf_y=benchmarks['cf_y'][benchmark_idx],
+                    cf_d=benchmarks['cf_y'][benchmark_idx],
+                    rho=self.sensitivity_params['input']['rho'],
+                    level=self.sensitivity_params['input']['level']
+                )
                 benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
             benchmark_dict['value'] = benchmark_values
         fig = _sensitivity_contour_plot(x=cf_d_vec,
