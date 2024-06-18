@@ -50,7 +50,7 @@ class DoubleMLFramework():
         self._check_and_set_cluster_data(doubleml_dict)
 
         # initialize sensitivity analysis
-        self._sensitivity_implemented, self._sensitivity_elements = self._check_and_set_sensitivity_elements(doubleml_dict)
+        self._check_and_set_sensitivity_elements(doubleml_dict)
 
         # check if all sizes match
         self._check_framework_shapes()
@@ -681,7 +681,10 @@ class DoubleMLFramework():
                 'riesz_rep': doubleml_dict['sensitivity_elements']['riesz_rep'],
             }
 
-        return sensitivity_implemented, sensitivity_elements
+        self._sensitivity_implemented = sensitivity_implemented
+        self._sensitivity_elements = sensitivity_elements
+
+        return
 
     def _check_framework_shapes(self):
         score_dim = (self._n_obs, self._n_thetas, self.n_rep)
