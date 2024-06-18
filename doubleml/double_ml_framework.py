@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
-from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses
+from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses, _var_est
 from .utils._checks import _check_bootstrap, _check_framework_compatibility, _check_in_zero_one, \
     _check_float, _check_integer
 
@@ -388,9 +388,49 @@ class DoubleMLFramework():
         sensitivity_scaling = np.sqrt(np.multiply(sigma2, nu2))
 
         # sigma2 and nu2 are of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
-        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
-        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
+        all_theta_lower = self.all_thetas - np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
+        all_theta_upper = self.all_thetas + np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
 
+        psi_variances = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
+        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, sensitivity_scaling)), psi_variances)
+        psi_lower = psi_scaled - psi_bias
+        psi_upper = psi_scaled + psi_bias
+
+        # shape (n_thetas, n_reps); includes scaling with n^{-1/2}
+        all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
+        all_sigma_upper = np.full_like(all_theta_upper, fill_value=np.nan)
+
+        for i_rep in range(self.n_rep):
+            for i_theta in range(self.n_thetas):
+
+                if not self._is_cluster_data:
+                    cluster_vars = None
+                    smpls_cluster = None
+                    n_folds_per_cluster = None
+                else:
+                    cluster_vars = self._dml_data.cluster_vars
+                    smpls_cluster = self._smpls_cluster[i_rep]
+                    n_folds_per_cluster = self._n_folds_per_cluster
+
+                sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_theta, i_rep],
+                                               psi_deriv=np.ones_like(psi_lower[:, i_theta, i_rep]),
+                                               smpls=self._smpls[i_rep],
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+                sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_theta, i_rep],
+                                               psi_deriv=np.ones_like(psi_upper[:, i_theta, i_rep]),
+                                               smpls=self._smpls[i_rep],
+                                               is_cluster_data=self._is_cluster_data,
+                                               cluster_vars=cluster_vars,
+                                               smpls_cluster=smpls_cluster,
+                                               n_folds_per_cluster=n_folds_per_cluster)
+
+                all_sigma_lower[i_theta, i_rep] = np.sqrt(sigma2_lower_hat)
+                all_sigma_upper[i_theta, i_rep] = np.sqrt(sigma2_upper_hat)
+
+        return
 
     def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
         _check_float(null_hypothesis, "null_hypothesis")
@@ -690,7 +730,11 @@ def concat(objs):
     thetas = np.concatenate([obj.thetas for obj in objs], axis=0)
     ses = np.concatenate([obj.ses for obj in objs], axis=0)
 
-    is_cluster_data = any(obj._is_cluster_data for obj in objs)
+    if any(obj._is_cluster_data for obj in objs):
+        raise NotImplementedError('concat not yet implemented with clustering.')
+    else:
+        is_cluster_data = False
+
     doubleml_dict = {
         'thetas': thetas,
         'ses': ses,

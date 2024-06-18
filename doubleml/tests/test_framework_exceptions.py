@@ -202,6 +202,13 @@ def test_operation_exceptions():
         dml_framework_obj_2 = DoubleMLFramework(doubleml_dict_2)
         _ = concat([dml_framework_obj_1, dml_framework_obj_2])
 
+    msg = 'concat not yet implemented with clustering.'
+    with pytest.raises(NotImplementedError, match=msg):
+        doubleml_dict_cluster = generate_dml_dict(psi_a_2, psi_b_2)
+        doubleml_dict_cluster['is_cluster_data'] = True
+        dml_framework_obj_cluster = DoubleMLFramework(doubleml_dict_cluster)
+        _ = concat([dml_framework_obj_2, dml_framework_obj_cluster])
+
 
 @pytest.mark.ci
 def test_p_adjust_exceptions():
