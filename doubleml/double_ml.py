@@ -1533,12 +1533,12 @@ class DoubleML(ABC):
             The confidence level.
             Default is ``0.95``.
 
+        null_hypothesis : float
+            Null hypothesis for the effect. Determines the direction of the contour lines.
+
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
             Default is ``True``.
-
-        null_hypothesis : float
-            Null hypothesis for the effect. Determines the direction of the contour lines.
 
         benchmarks : dict or None
             Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
