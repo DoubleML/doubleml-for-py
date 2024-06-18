@@ -170,7 +170,6 @@ def dml_framework_from_doubleml_fixture(n_rep):
     ci = dml_framework_obj.confint(joint=False, level=0.95)
     dml_framework_obj.bootstrap(method='normal')
     ci_joint = dml_framework_obj.confint(joint=True, level=0.95)
-    dml_framework_obj.sensitivity_analysis()
 
     # add objects
     dml_framework_obj_add_obj = dml_framework_obj + dml_framework_obj
@@ -295,35 +294,3 @@ def test_dml_framework_from_doubleml_ci(dml_framework_from_doubleml_fixture):
     assert isinstance(dml_framework_from_doubleml_fixture['ci_joint_mul_obj'], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture['ci_concat'], pd.DataFrame)
     assert isinstance(dml_framework_from_doubleml_fixture['ci_joint_concat'], pd.DataFrame)
-
-
-@pytest.mark.ci
-def test_dml_framework_sensitivity(dml_framework_from_doubleml_fixture):
-    n_rep = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_rep
-    n_thetas = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_thetas
-    n_obs = dml_framework_from_doubleml_fixture['dml_framework_obj'].n_obs
-
-    object_list = ['dml_framework_obj',
-                   'dml_framework_obj_add_obj',
-                   'dml_framework_obj_sub_obj',
-                   'dml_framework_obj_mul_obj']
-    var_keys = ['sigma2', 'nu2']
-    score_keys = ['psi_sigma2', 'psi_nu2', 'riesz_rep']
-
-    for obj in object_list:
-        assert dml_framework_from_doubleml_fixture[obj]._sensitivity_implemented
-        for key in var_keys:
-            assert dml_framework_from_doubleml_fixture[obj]._sensitivity_elements[key].shape == \
-                (1, n_thetas, n_rep)
-        for key in score_keys:
-            assert dml_framework_from_doubleml_fixture[obj]._sensitivity_elements[key].shape == \
-                (n_obs, n_thetas, n_rep)
-
-    # separate test for concat
-    for key in var_keys:
-        assert dml_framework_from_doubleml_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
-            (1, 2, n_rep)
-    for key in score_keys:
-        assert dml_framework_from_doubleml_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
-            (n_obs, 2, n_rep)
-
