@@ -366,6 +366,20 @@ def test_sensitivity_exceptions():
     }
     dml_framework_sensitivity = DoubleMLFramework(sensitivity_dict)
 
+    # test idx_treatment
+    dml_framework_obj_1.sensitivity_analysis()
+    msg = "idx_treatment must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_1.sensitivity_plot(idx_treatment=0.0)
+
+    msg = "idx_treatment must be larger or equal to 0. -1 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_1.sensitivity_plot(idx_treatment=-1)
+
+    msg = "idx_treatment must be smaller or equal to 1. 2 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_1.sensitivity_plot(idx_treatment=2)
+
     # test variances
     msg = (
         r'sensitivity_elements sigma2 and nu2 have to be positive\. '
@@ -377,3 +391,74 @@ def test_sensitivity_exceptions():
         _ = dml_framework_sensitivity._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95)
     with pytest.raises(ValueError, match=msg):
         dml_framework_sensitivity.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.95)
+
+
+@pytest.mark.ci
+def test_framework_sensitivity_plot_input():
+    dml_framework_obj_plot = DoubleMLFramework(doubleml_dict)
+
+    msg = (r'Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. ')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot()
+
+    dml_framework_obj_plot.sensitivity_analysis()
+    msg = "null_hypothesis must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(null_hypothesis=1)
+
+    msg = "include_scenario has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(include_scenario="True")
+
+    msg = "benchmarks has to be either None or a dictionary. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks="True")
+    msg = r"benchmarks has to be a dictionary with keys cf_y, cf_d and name. Got dict_keys\(\['cf_y', 'cf_d'\]\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': 0.1, 'cf_d': 0.15})
+    msg = r"benchmarks has to be a dictionary with values of same length. Got \[1, 2, 2\]."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = "benchmarks cf_y must be of float type. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 2], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = r'benchmarks cf_y must be in \[0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 1.0], 'cf_d': [0.15, 0.2], 'name': ['test', 'test2']})
+    msg = "benchmarks name must be of string type. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(benchmarks={'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2], 'name': [2, 2]})
+
+    msg = "value must be a string. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(value=2)
+    msg = "Invalid value test. Valid values theta or ci."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(value='test')
+
+    msg = "fill has to be boolean. True of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(fill="True")
+
+    msg = "grid_size must be an integer. 0.0 of type <class 'float'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_size=0.0)
+    msg = "grid_size must be larger or equal to 10. 9 was passed."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_size=9)
+
+    msg = "grid_bounds must be of float type. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(0.15, 1))
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(1, 0.15))
+    msg = r'grid_bounds must be in \(0,1\). 1.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(1.0, 0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(0.15, 1.0))
+    msg = r'grid_bounds must be in \(0,1\). 0.0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(0.0, 0.15))
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_framework_obj_plot.sensitivity_plot(grid_bounds=(0.15, 0.0))
