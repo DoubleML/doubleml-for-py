@@ -115,11 +115,11 @@ def apo_dml2(y, x, d, treated, g_hat0_list, g_hat1_list, m_hat_list, smpls, scor
     return theta_hat, se
 
 
-def apo_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, treated, score):
+def apo_orth(g_hat0, g_hat1, m_hat, u_hat0, u_hat1, treated, score):
     res = np.mean(g_hat1 + np.divide(np.multiply(treated, u_hat1), m_hat))
     return res
 
 
-def var_apo(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, treated, score, n_obs):
+def var_apo(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, treated, score, n_obs):
     var = 1/n_obs * np.mean(np.power(g_hat1 + np.divide(np.multiply(treated, u_hat1), m_hat), 2))
     return var
