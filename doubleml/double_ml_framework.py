@@ -652,6 +652,16 @@ class DoubleMLFramework():
             if not ("cluster_dict" in doubleml_dict.keys()):
                 raise ValueError('If is_cluster_data is True, cluster_dict must be provided.')
 
+            if not isinstance(doubleml_dict['cluster_dict'], dict):
+                raise TypeError('cluster_dict must be a dictionary.')
+
+            expected_keys_cluster = ['smpls', 'smpls_cluster', 'cluster_vars', 'n_folds_per_cluster']
+            if not all(key in doubleml_dict['cluster_dict'].keys() for key in expected_keys_cluster):
+                raise ValueError('The cluster_dict must contain the following keys: ' + ', '.join(expected_keys_cluster)
+                                 + '. Got: ' + ', '.join(doubleml_dict['cluster_dict'].keys()) + '.')
+
+            self._cluster_dict = doubleml_dict['cluster_dict']
+
         return
 
     def _check_and_set_sensitivity_elements(self, doubleml_dict):

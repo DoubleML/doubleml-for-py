@@ -552,6 +552,17 @@ class DoubleML(ABC):
                 }
             })
 
+        if self._is_cluster_data:
+            doubleml_dict.update({
+                'is_cluster_data': True,
+                'cluster_dict': {
+                    'smpls': self._smpls,
+                    'smpls_cluster': self._smpls_cluster,
+                    'cluster_vars': self._dml_data.cluster_vars,
+                    'n_folds_per_cluster': self._n_folds_per_cluster,
+                }
+            })
+
         doubleml_framework = DoubleMLFramework(doubleml_dict)
         return doubleml_framework
 

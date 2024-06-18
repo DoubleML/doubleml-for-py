@@ -127,6 +127,21 @@ def test_input_exceptions():
         test_dict['is_cluster_data'] = True
         DoubleMLFramework(test_dict)
 
+    msg = "cluster_dict must be a dictionary."
+    with pytest.raises(TypeError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['is_cluster_data'] = True
+        test_dict['cluster_dict'] = 1.0
+        DoubleMLFramework(test_dict)
+
+    msg = ('The cluster_dict must contain the following keys: smpls, smpls_cluster,'
+           ' cluster_vars, n_folds_per_cluster. Got: cluster_ids.')
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['is_cluster_data'] = True
+        test_dict['cluster_dict'] = {'cluster_ids': np.ones(shape=(n_obs, n_rep))}
+        DoubleMLFramework(test_dict)
+
 
 def test_operation_exceptions():
     # addition
