@@ -143,7 +143,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
         _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
-        self._normalize_ipw = normalize_ipw
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
@@ -154,6 +153,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
         self._initialize_ml_nuisance_params()
 
+        self._normalize_ipw = normalize_ipw
         if not isinstance(self.normalize_ipw, bool):
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
