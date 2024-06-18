@@ -1433,3 +1433,63 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
             return DoubleMLData(data, 'y', 'd', x_cols, 'z', None, 's')
     else:
         raise ValueError('Invalid return_type.')
+
+
+def make_irm_data_discrete_treatements(n_obs=200, p=10, support_size=5, n_levels=3, random_state=42):
+    """
+    Generates data from a interactive regression (IRM) model with multiple treatment levels.
+    """
+
+    np.random.seed(random_state)
+
+    # define continous treatment effect
+    def treatment_effect(x):
+        return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 0])
+
+    # Outcome support and coefficients
+    support_y = np.random.choice(np.arange(p), size=support_size, replace=False)
+    coefs_y = np.random.uniform(0, 1, size=support_size)
+    # treatment support and coefficients
+    support_d = support_y
+    range_coefs_d = [0.2, 0.3]
+    coefs_d = np.random.uniform(range_coefs_d[0], range_coefs_d[1], size=support_size)
+
+    # noise
+    epsilon = np.random.uniform(-1, 1, size=n_obs)
+
+    # Generate controls, covariates, treatments and outcomes
+    x = np.random.uniform(0, 1, size=(n_obs, p))
+    # Heterogeneous treatment effects
+    te = treatment_effect(x)
+
+    # set d to be a discrete number of levels
+    range_cont_d = support_size * range_coefs_d
+    # devide the range into n_levels
+    levels = np.linspace(range_cont_d[0], range_cont_d[1], n_levels - 1)
+
+    # define a discrete treatment version (with a baseline probability)
+    eta = np.random.uniform(0, 1, size=n_obs)
+    potential_level = sum([1.0 * (np.dot(x[:, support_d], coefs_d) >= level) for level in levels]) + 1
+    d = 1.0 * (eta >= 1/n_levels) * potential_level
+
+    # only treated for d > 0 compared to the baseline
+    y = te * (d > 0) + np.dot(x[:, support_y], coefs_y) + epsilon
+
+    oracle_values = {
+        'levels': levels,
+        'support_y': support_y,
+        'coefs_y': coefs_y,
+        'support_d': support_d,
+        'coefs_d': coefs_d,
+        'te': te,
+        'treatment_effect': treatment_effect
+    }
+
+    resul_dict = {
+        'x': x,
+        'y': y,
+        'd': d,
+        'oracle_values': oracle_values
+    }
+
+    return resul_dict
