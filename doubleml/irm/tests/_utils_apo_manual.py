@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import clone, is_classifier
 
 from ...tests._utils_boot import boot_manual, draw_weights
-from ...tests._utils import fit_predict, fit_predict_proba
+from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 from ...utils._estimation import _normalize_ipw
 from ...utils._checks import _check_is_propensity
@@ -203,3 +203,23 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
                     'psi_sigma2': psi_sigma2,
                     'psi_nu2': psi_nu2}
     return element_dict
+
+
+def tune_nuisance_apo(y, x, d, treatment_level, ml_g, ml_m, smpls, score, n_folds_tune,
+                      param_grid_g, param_grid_m):
+    train_cond0 = np.where(d != treatment_level)[0]
+    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond0)
+
+    train_cond1 = np.where(d == treatment_level)[0]
+    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
+                                   train_cond=train_cond1)
+
+    treated = (d == treatment_level)
+    m_tune_res = tune_grid_search(treated, x, ml_m, smpls, param_grid_m, n_folds_tune)
+
+    g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+    g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+    m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g0_best_params, g1_best_params, m_best_params
