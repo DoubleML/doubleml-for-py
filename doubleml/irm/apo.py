@@ -239,7 +239,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, treated, g_hat0, g_hat1, m_hat, smpls):
-        m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
         if self.normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat, treated)
         else:
@@ -302,7 +301,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         g0_tune_res = _dml_tune(y, x, train_inds_d0,
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g1_tune_res = list()
         g1_tune_res = _dml_tune(y, x, train_inds_d1,
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)

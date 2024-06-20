@@ -154,7 +154,6 @@ def boot_apo_single_split(theta, y, d, treated, g_hat0_list, g_hat1_list, m_hat_
     _, u_hat1, _, g_hat1, m_hat = compute_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, smpls)
 
-    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
     if normalize_ipw:
         m_hat_adj = _normalize_ipw(m_hat, treated)
     else:
