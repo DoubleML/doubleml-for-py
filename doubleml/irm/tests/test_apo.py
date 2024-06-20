@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data_discrete_treatements
+from doubleml.datasets import make_irm_data_discrete_treatements, make_irm_data
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import fit_apo, boot_apo, fit_sensitivity_elements_apo
@@ -36,12 +36,17 @@ def trimming_threshold(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[0, 1])
+def treatment_level(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshold):
+def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshold, treatment_level):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
-    treatment_level = 0
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -193,3 +198,48 @@ def test_dml_apo_sensitivity(dml_apo_fixture):
         assert np.allclose(dml_apo_fixture['sensitivity_elements'][sensitivity_element],
                            dml_apo_fixture['sensitivity_elements_manual'][sensitivity_element],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_apo_capo_gapo(treatment_level):
+    n = 20
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    # First stage estimation
+    ml_g = RandomForestRegressor(n_estimators=10)
+    ml_m = RandomForestClassifier(n_estimators=10)
+
+    dml_obj = dml.DoubleMLAPO(obj_dml_data,
+                              ml_m=ml_m,
+                              ml_g=ml_g,
+                              treatment_level=treatment_level,
+                              trimming_threshold=0.05,
+                              n_folds=5)
+
+    dml_obj.fit()
+    # create a random basis
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+    capo = dml_obj.capo(random_basis)
+    assert isinstance(capo, dml.utils.blp.DoubleMLBLP)
+    assert isinstance(capo.confint(), pd.DataFrame)
+
+    groups_1 = pd.DataFrame(np.column_stack([obj_dml_data.data['X1'] <= -1.0,
+                                             obj_dml_data.data['X1'] > 0.2]),
+                            columns=['Group 1', 'Group 2'])
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gapo_1 = dml_obj.gapo(groups_1)
+    assert isinstance(gapo_1, dml.utils.blp.DoubleMLBLP)
+    assert isinstance(gapo_1.confint(), pd.DataFrame)
+    assert all(gapo_1.confint().index == groups_1.columns.to_list())
+
+    np.random.seed(42)
+    groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n, p=[0.1, 0.9]))
+    msg = ('At least one group effect is estimated with less than 6 observations.')
+    with pytest.warns(UserWarning, match=msg):
+        gapo_2 = dml_obj.gapo(groups_2)
+    assert isinstance(gapo_2, dml.utils.blp.DoubleMLBLP)
+    assert isinstance(gapo_2.confint(), pd.DataFrame)
+    assert all(gapo_2.confint().index == ["Group_1", "Group_2"])

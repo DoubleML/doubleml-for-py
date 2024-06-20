@@ -1,10 +1,13 @@
 import numpy as np
+import pandas as pd
+import warnings
 
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
 from ..double_ml import DoubleML
 
+from ..utils.blp import DoubleMLBLP
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..double_ml_data import DoubleMLData
 
@@ -341,3 +344,70 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             )
 
         return
+
+    def capo(self, basis, is_gate=False):
+        """
+        Calculate conditional average potential outcomes (CAPO) for a given basis.
+
+        Parameters
+        ----------
+        basis : :class:`pandas.DataFrame`
+            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
+            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+        is_gate : bool
+            Indicates whether the basis is constructed for GATE/GAPOs (dummy-basis).
+            Default is ``False``.
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model.
+        """
+        valid_score = ['APO']
+        if self.score not in valid_score:
+            raise ValueError('Invalid score ' + self.score + '. ' +
+                             'Valid score ' + ' or '.join(valid_score) + '.')
+
+        if self.n_rep != 1:
+            raise NotImplementedError('Only implemented for one repetition. ' +
+                                      f'Number of repetitions is {str(self.n_rep)}.')
+
+        # define the orthogonal signal
+        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        # fit the best linear predictor
+        model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
+        model.fit()
+        return model
+
+    def gapo(self, groups):
+        """
+        Calculate group average potential outcomes (GAPO) for groups.
+
+        Parameters
+        ----------
+        groups : :class:`pandas.DataFrame`
+            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
+            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
+            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
+
+        Returns
+        -------
+        model : :class:`doubleML.DoubleMLBLP`
+            Best linear Predictor model for group average potential outcomes.
+        """
+        if not isinstance(groups, pd.DataFrame):
+            raise TypeError('Groups must be of DataFrame type. '
+                            f'Groups of type {str(type(groups))} was passed.')
+
+        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
+            if groups.shape[1] == 1:
+                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
+            else:
+                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
+                                'Alternatively, groups should only contain one column.')
+
+        if any(groups.sum(0) <= 5):
+            warnings.warn('At least one group effect is estimated with less than 6 observations.')
+
+        model = self.capo(groups, is_gate=True)
+        return model
