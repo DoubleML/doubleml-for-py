@@ -27,7 +27,7 @@ def set_ml_g_ext(request):
 
 
 @pytest.fixture(scope="module")
-def doubleml_apo_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
+def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
 
     score = "APO"
     treatment_level = 0
@@ -87,10 +87,10 @@ def doubleml_apo_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
 
 
 @pytest.mark.ci
-def test_doubleml_apo_coef(doubleml_apo_fixture):
+def test_doubleml_apo_ext_coef(doubleml_apo_ext_fixture):
     assert math.isclose(
-        doubleml_apo_fixture["coef_normal"],
-        doubleml_apo_fixture["coef_ext"],
+        doubleml_apo_ext_fixture["coef_normal"],
+        doubleml_apo_ext_fixture["coef_ext"],
         rel_tol=1e-9,
         abs_tol=1e-4
     )
