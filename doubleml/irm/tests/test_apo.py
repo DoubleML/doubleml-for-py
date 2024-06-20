@@ -10,7 +10,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data_discrete_treatements
-from doubleml.utils.resampling import DoubleMLResampling
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import fit_apo, boot_apo, fit_sensitivity_elements_apo
