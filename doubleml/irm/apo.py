@@ -135,7 +135,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             assert isinstance(weights, dict)
             self._weights = weights
 
-    def _get_weights(self, m_hat=None):
+    def _get_weights(self):
         # standard case for APO/ATE
         weights = self._weights['weights']
         if 'weights_bar' not in self._weights.keys():
@@ -243,7 +243,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             m_hat_adj = m_hat
 
         u_hat = y - g_hat1
-        weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
+        weights, weights_bar = self._get_weights()
         psi_b = weights * g_hat1 + weights_bar * np.divide(np.multiply(treated, u_hat), m_hat_adj)
         psi_a = np.full_like(m_hat_adj, -1.0)
 
@@ -258,7 +258,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        weights, weights_bar = self._get_weights(m_hat=m_hat)
+        weights, weights_bar = self._get_weights()
 
         sigma2_score_element = np.square(y - np.multiply(treated, g_hat1) - np.multiply(1.0-treated, g_hat0))
         sigma2 = np.mean(sigma2_score_element)

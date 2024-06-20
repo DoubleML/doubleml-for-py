@@ -18,7 +18,7 @@ from ._utils_apo_manual import fit_apo
 
 @pytest.fixture(scope='module',
                 params=[[LinearRegression(),
-                         LogisticRegression(solver='lbfgs', max_iter=250)],
+                         LogisticRegression(solver='lbfgs', max_iter=250, random_state=42)],
                         [RandomForestRegressor(max_depth=5, n_estimators=10, random_state=42),
                          RandomForestClassifier(max_depth=5, n_estimators=10, random_state=42)]])
 def learner(request):
@@ -67,6 +67,7 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
                                   ml_g, ml_m,
                                   treatment_level=0,
                                   n_folds=n_folds,
+                                  score='APO',
                                   normalize_ipw=normalize_ipw,
                                   draw_sample_splitting=False,
                                   trimming_threshold=trimming_threshold)
@@ -84,11 +85,32 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
                          normalize_ipw=normalize_ipw,
                          trimming_threshold=trimming_threshold)
 
+    np.random.seed(3141)
+    # test with external nuisance predictions
+    dml_obj_ext = dml.DoubleMLAPO(dml_data,
+                                  ml_g, ml_m,
+                                  treatment_level=0,
+                                  n_folds=n_folds,
+                                  score='APO',
+                                  normalize_ipw=normalize_ipw,
+                                  draw_sample_splitting=False,
+                                  trimming_threshold=trimming_threshold)
+
+    # synchronize the sample splitting
+    dml_obj_ext.set_sample_splitting(all_smpls=all_smpls)
+
+    prediction_dict = {'d': {'ml_g0': dml_obj.predictions['ml_g0'].reshape(-1, 1),
+                             'ml_g1': dml_obj.predictions['ml_g1'].reshape(-1, 1),
+                             'ml_m': dml_obj.predictions['ml_m'].reshape(-1, 1)}}
+    dml_obj_ext.fit(external_predictions=prediction_dict)
+
+
     res_dict = {'coef': dml_obj.coef,
                 'coef_manual': res_manual['theta'],
-                'coef_ext': dml_obj.coef_extern,
+                'coef_ext': dml_obj_ext.coef,
                 'se': dml_obj.se,
-                'se_manual': res_manual['se']}
+                'se_manual': res_manual['se'],
+                'se_ext': dml_obj_ext.se}
 
     return res_dict
 
@@ -100,4 +122,14 @@ def test_dml_apo_coef(dml_apo_fixture):
                         rel_tol=1e-9, abs_tol=1e-4)
     assert math.isclose(dml_apo_fixture['coef'][0],
                         dml_apo_fixture['coef_ext'][0],
+                        rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_apo_se(dml_apo_fixture):
+    assert math.isclose(dml_apo_fixture['se'][0],
+                        dml_apo_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_apo_fixture['se'][0],
+                        dml_apo_fixture['se_ext'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
