@@ -123,3 +123,83 @@ def apo_orth(g_hat0, g_hat1, m_hat, u_hat0, u_hat1, treated, score):
 def var_apo(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, treated, score, n_obs):
     var = 1/n_obs * np.mean(np.power(g_hat1 + np.divide(np.multiply(treated, u_hat1), m_hat) - theta, 2))
     return var
+
+
+def boot_apo(y, d, treatment_level, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat,
+             all_smpls, score, bootstrap, n_rep_boot,
+             n_rep=1, apply_cross_fitting=True, normalize_ipw=True):
+    treated = (d == treatment_level)
+    all_boot_t_stat = list()
+    for i_rep in range(n_rep):
+        smpls = all_smpls[i_rep]
+        if apply_cross_fitting:
+            n_obs = len(y)
+        else:
+            test_index = smpls[0][1]
+            n_obs = len(test_index)
+        weights = draw_weights(bootstrap, n_rep_boot, n_obs)
+        boot_t_stat = boot_apo_single_split(
+            thetas[i_rep], y, d, treated,
+            all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], smpls,
+            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting, normalize_ipw)
+        all_boot_t_stat.append(boot_t_stat)
+
+    boot_t_stat = np.hstack(all_boot_t_stat)
+
+    return boot_t_stat
+
+
+def boot_apo_single_split(theta, y, d, treated, g_hat0_list, g_hat1_list, m_hat_list,
+                          smpls, score, se, weights, n_rep_boot, apply_cross_fitting, normalize_ipw):
+    _, u_hat1, _, g_hat1, m_hat = compute_residuals(
+        y, g_hat0_list, g_hat1_list, m_hat_list, smpls)
+
+    m_hat_adj = np.full_like(m_hat, np.nan, dtype='float64')
+    if normalize_ipw:
+        m_hat_adj = _normalize_ipw(m_hat, treated)
+    else:
+        m_hat_adj = m_hat
+
+    J = -1.0
+    psi = g_hat1 + np.divide(np.multiply(treated, u_hat1), m_hat_adj) - theta
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+
+    return boot_t_stat
+
+
+def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, score, n_rep):
+    n_treat = 1
+    n_obs = len(y)
+    treated = (d == treatment_level)
+
+    sigma2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    nu2 = np.full(shape=(1, n_rep, n_treat), fill_value=np.nan)
+    psi_sigma2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+    psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
+
+    for i_rep in range(n_rep):
+
+        m_hat = predictions['ml_m'][:, i_rep, 0]
+        g_hat0 = predictions['ml_g0'][:, i_rep, 0]
+        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
+
+        weights = np.ones_like(d)
+        weights_bar = np.ones_like(d)
+
+        sigma2_score_element = np.square(y - np.multiply(treated, g_hat1) - np.multiply(1.0-treated, g_hat0))
+        sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
+        psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
+
+        # calc m(W,alpha) and Riesz representer
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
+        rr = np.multiply(weights_bar, np.divide(treated, m_hat))
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2[0, i_rep, 0] = np.mean(nu2_score_element)
+        psi_nu2[:, i_rep, 0] = nu2_score_element - nu2[0, i_rep, 0]
+
+    element_dict = {'sigma2': sigma2,
+                    'nu2': nu2,
+                    'psi_sigma2': psi_sigma2,
+                    'psi_nu2': psi_nu2}
+    return element_dict
