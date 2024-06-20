@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from ...tests._utils import draw_smpls
 import doubleml as dml
 
+
 @pytest.fixture(scope='module',
                 params=[[LinearRegression(),
                          LogisticRegression(solver='lbfgs', max_iter=250)],
