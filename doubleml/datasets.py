@@ -1519,6 +1519,11 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, 
     c = kwargs.get('c', 0.0)
     dim_x = kwargs.get('dim_x', 5)
 
+    if not isinstance(n_levels, int):
+        raise ValueError('n_levels must be an integer.')
+    if n_levels < 2:
+        raise ValueError('n_levels must be at least 2.')
+
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
@@ -1565,7 +1570,6 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, 
         'potential_level': potential_level,
         'ite': ite,
         'y0': y0,
-        'treatment_effect': treatment_effect
     }
 
     resul_dict = {
