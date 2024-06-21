@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data_discrete_treatements, make_irm_data
+from doubleml.datasets import make_irm_data_discrete_treatments, make_irm_data
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import fit_apo, boot_apo, fit_sensitivity_elements_apo
@@ -54,7 +54,7 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
 
     np.random.seed(3141)
     n_obs = 500
-    data_apo = make_irm_data_discrete_treatements(n_obs=n_obs)
+    data_apo = make_irm_data_discrete_treatments(n_obs=n_obs)
     y = data_apo['y']
     x = data_apo['x']
     d = data_apo['d']

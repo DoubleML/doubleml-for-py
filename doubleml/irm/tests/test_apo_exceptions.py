@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_irm_data_discrete_treatements, make_iivm_data
+from doubleml.datasets import make_irm_data_discrete_treatments, make_iivm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
 
 n = 100
-data_apo = make_irm_data_discrete_treatements(n_obs=n)
+data_apo = make_irm_data_discrete_treatments(n_obs=n)
 df_apo = pd.DataFrame(np.column_stack((data_apo['y'], data_apo['d'], data_apo['x'])),
                       columns=['y', 'd'] + ['x' + str(i) for i in range(data_apo['x'].shape[1])])
 

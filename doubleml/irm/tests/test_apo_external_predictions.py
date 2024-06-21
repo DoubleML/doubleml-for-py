@@ -5,7 +5,7 @@ import math
 
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_irm_data_discrete_treatements
+from doubleml.datasets import make_irm_data_discrete_treatments
 from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 
 from ...tests._utils import draw_smpls
@@ -35,7 +35,7 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
 
     np.random.seed(3141)
     n_obs = 500
-    data_apo = make_irm_data_discrete_treatements(n_obs=n_obs)
+    data_apo = make_irm_data_discrete_treatments(n_obs=n_obs)
     df_apo = pd.DataFrame(
         np.column_stack((data_apo['y'], data_apo['d'], data_apo['x'])),
         columns=['y', 'd'] + ['x' + str(i) for i in range(data_apo['x'].shape[1])]

@@ -1435,7 +1435,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
         raise ValueError('Invalid return_type.')
 
 
-def make_irm_data_discrete_treatements(n_obs=200, n_levels=3, random_state=42, **kwargs):
+def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=42, **kwargs):
     """
     Generates data from a interactive regression (IRM) model with multiple treatment levels (based on an
     underlying continous treatment).
