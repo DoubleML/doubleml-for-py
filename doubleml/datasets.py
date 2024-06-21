@@ -1435,60 +1435,143 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
         raise ValueError('Invalid return_type.')
 
 
-def make_irm_data_discrete_treatements(n_obs=200, p=10, support_size=5, n_levels=3, random_state=42):
+def make_irm_data_discrete_treatements(n_obs=200, n_levels=3, random_state=42, **kwargs):
     """
-    Generates data from a interactive regression (IRM) model with multiple treatment levels.
+    Generates data from a interactive regression (IRM) model with multiple treatment levels (based on an
+    underlying continous treatment).
+
+    The data generating process is defined as follows (similar to the Monte Carlo simulation used
+    in Sant'Anna and Zhao (2020)).
+
+    Let :math:`X= (X_1, X_2, X_3, X_4, X_5)^T \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` corresponds
+    to the identity matrix.
+    Further, define :math:`Z_j = (\\tilde{Z_j} - \\mathbb{E}[\\tilde{Z}_j]) / \\sqrt{\\text{Var}(\\tilde{Z}_j)}`,
+    where
+
+    .. math::
+
+            \\tilde{Z}_1 &= \\exp(0.5 \\cdot X_1)
+
+            \\tilde{Z}_2 &= 10 + X_2/(1 + \\exp(X_1))
+
+            \\tilde{Z}_3 &= (0.6 + X_1 \\cdot X_3 / 25)^3
+
+            \\tilde{Z}_4 &= (20 + X_2 + X_4)^2
+
+            \\tilde{Z}_5 &= X_5.
+
+    A continuous treatment :math:`D_{\\text{cont}}` is generated as
+
+    .. math::
+
+        D_{\\text{cont}} = \\xi (-Z_1 + 0.5 Z_2 - 0.25 Z_3 - 0.1 Z_4) + \\varepsilon_D,
+
+    where :math:`\\varepsilon_D \\sim \\mathcal{N}(0,1)` and :math:`\\xi=0.3`. The corresponding treatment
+    effect is defined as
+
+    .. math::
+
+        \\text{\\theta}(d) = 0.1 \\exp(d) + 10 \\sin(0.7 d) + 2 d - 0.2 d^2.
+
+    Based on the continous treatment, a discrete treatment :math:`D` is generated as with a baseline level of
+    :math:`D=0` and additional levels based on the quantiles of :math:`D_{\\text{cont}}`. The number of levels
+    is defined by :math:`n_{\\text{levels}}`. Each level is chosen to have the same probability of being selected.
+
+    The potential outcomes are defined as
+
+    .. math::
+
+            Y(0) &= 210 + 27.4 Z_1 + 13.7 (Z_2 + Z_3 + Z_4) + \\varepsilon_Y
+
+            Y(1) &= \\text{\\theta}(D_{\\text{cont}}) 1\\{D_{\\text{cont}} > 0\\} + Y(0),
+
+    where :math:`\\varepsilon_Y \\sim \\mathcal{N}(0,5)`. Further, the observed outcome is defined as
+
+    .. math::
+
+        Y = Y(1) 1\\{D > 0\\} + Y(0) 1\\{D = 0\\}.
+
+    The data is returned as a dictionary with the entries ``x``, ``y``, ``d`` and ``oracle_values``.
+
+    Parameters
+    ----------
+    n_obs : int
+        The number of observations to simulate.
+        Default is ``200``.
+
+    n_levels : int
+        The number of treatment levels.
+        Default is ``3``.
+
+    random_state : int
+        Random seed for reproducibility.
+        Default is ``42``.
+
+    Returns
+    -------
+    res_dict : dictionary
+       Dictionary with entries ``x``, ``y``, ``d`` and ``oracle_values``.
+
     """
 
     np.random.seed(random_state)
+    xi = kwargs.get('xi', 0.3)
+    c = kwargs.get('c', 0.0)
+    dim_x = kwargs.get('dim_x', 5)
 
-    # define continous treatment effect
-    def treatment_effect(x):
-        return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 0])
+    # observed covariates
+    cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    # Outcome support and coefficients
-    support_y = np.random.choice(np.arange(p), size=support_size, replace=False)
-    coefs_y = np.random.uniform(0, 1, size=support_size)
-    # treatment support and coefficients
-    support_d = support_y
-    range_coefs_d = [0.2, 0.3]
-    coefs_d = np.random.uniform(range_coefs_d[0], range_coefs_d[1], size=support_size)
+    def f_reg(w):
+        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        return res
 
-    # noise
-    epsilon = np.random.uniform(-1, 1, size=n_obs)
+    def f_treatment(w, xi):
+        res = xi * (-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        return res
 
-    # Generate controls, covariates, treatments and outcomes
-    x = np.random.uniform(0, 1, size=(n_obs, p))
-    # Heterogeneous treatment effects
-    te = treatment_effect(x)
+    def treatment_effect(d):
+        return 0.1 * np.exp(d) + 10 * np.sin(0.7 * d) + 2 * d - 0.2 * np.square(d)
 
-    # set d to be a discrete number of levels
-    range_cont_d = support_size * range_coefs_d
-    # devide the range into n_levels
-    levels = np.linspace(range_cont_d[0], range_cont_d[1], n_levels - 1)
+    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
 
-    # define a discrete treatment version (with a baseline probability)
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
+    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
+
+    # error terms
+    var_eps_y = 5
+    eps_y = np.random.normal(loc=0, scale=np.sqrt(var_eps_y), size=n_obs)
+    var_eps_d = 1
+    eps_d = np.random.normal(loc=0, scale=np.sqrt(var_eps_d), size=n_obs)
+
+    cont_d = f_treatment(z, xi) + eps_d
+    level_bounds = np.quantile(cont_d, q=np.linspace(0, 1, n_levels + 1))
+    potential_level = sum([1.0 * (cont_d >= bound) for bound in level_bounds[1:-1]]) + 1
     eta = np.random.uniform(0, 1, size=n_obs)
-    potential_level = sum([1.0 * (np.dot(x[:, support_d], coefs_d) >= level) for level in levels]) + 1
-    d = 1.0 * (eta >= 1/n_levels) * potential_level
+    observed_d = 1.0 * (eta >= 1/n_levels) * potential_level
 
+    ite = treatment_effect(cont_d)
+    y0 = f_reg(z) + eps_y
     # only treated for d > 0 compared to the baseline
-    y = te * (d > 0) + np.dot(x[:, support_y], coefs_y) + epsilon
+    y = ite * (observed_d > 0) + y0
 
     oracle_values = {
-        'levels': levels,
-        'support_y': support_y,
-        'coefs_y': coefs_y,
-        'support_d': support_d,
-        'coefs_d': coefs_d,
-        'te': te,
+        'cont_d': cont_d,
+        'level_bounds': level_bounds,
+        'potential_level': potential_level,
+        'ite': ite,
+        'y0': y0,
         'treatment_effect': treatment_effect
     }
 
     resul_dict = {
         'x': x,
         'y': y,
-        'd': d,
+        'd': observed_d,
         'oracle_values': oracle_values
     }
 

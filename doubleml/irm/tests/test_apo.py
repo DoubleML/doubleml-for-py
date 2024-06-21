@@ -53,7 +53,7 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
     ml_m = clone(learner[1])
 
     np.random.seed(3141)
-    n_obs = 100
+    n_obs = 500
     data_apo = make_irm_data_discrete_treatements(n_obs=n_obs)
     y = data_apo['y']
     x = data_apo['x']
