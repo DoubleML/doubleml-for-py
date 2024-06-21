@@ -138,7 +138,6 @@ class DoubleMLQTE:
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        self._check_quantile()
         if not isinstance(self.normalize_ipw, bool):
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
