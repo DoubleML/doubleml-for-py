@@ -18,9 +18,64 @@ from ..utils._checks import _check_score, _check_trimming, _check_weights, _chec
 
 
 class DoubleMLAPO(LinearScoreMixin, DoubleML):
-    """Double machine learning average potential outcomes for interactive regression models
+    """Double machine learning average potential outcomes for interactive regression models.
 
     Parameters
+    ----------
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(D,X) = E[Y|X,D]`.
+        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
+
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+
+    treatment_level : int or float
+        Chosen treatment level for average potential outcomes.
+
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
+
+    n_rep : int
+        Number of repetitons for the sample splitting.
+        Default is ``1``.
+
+    score : str or callable
+        A str (``'APO'``) specifying the score function.
+        Default is ``'APO'``.
+
+    weights : array, dict or None
+        An numpy array of weights for each individual observation. If None, then the ``'APO'`` score
+        is applied (corresponds to weights equal to 1).
+        An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
+        A dictionary can be used to specify weights which depend on the treatment variable.
+        In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
+        have to be arrays of shape ``(n,)`` and ``(n, n_rep)``.
+        Default is ``None``.
+
+    normalize_ipw : bool
+        Indicates whether the inverse probability weights are normalized.
+        Default is ``False``.
+
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
+
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-2``.
+
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
+
     """
     def __init__(self,
                  obj_dml_data,
