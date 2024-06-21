@@ -396,6 +396,10 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
                 f'Number of treated observations: {np.sum(self.treated)} for treatment level {self.treatment_level}.'
             )
 
+        if np.mean(self.treated) <= 0.05:
+            warnings.warn(f'The proportion of observations with treatment level {self.treatment_level} is less than 5%.'
+                          f' Got {np.mean(self.treated) * 100:.2f}%.')
+
         return
 
     def capo(self, basis, is_gate=False):

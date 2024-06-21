@@ -33,6 +33,19 @@ def test_apo_exception_data():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLAPO(dml_data, ml_g, ml_m, treatment_level=1.1)
 
+    msg = r'The proportion of observations with treatment level 42 is less than 5\%. Got 0.70\%.'
+    # test warning
+    with pytest.warns(UserWarning, match=msg):
+        data_apo_warn = make_irm_data_discrete_treatments(n_obs=1000)
+        data_apo_warn['d'][0:7] = 42
+        df_apo_warn = pd.DataFrame(
+            np.column_stack((data_apo_warn['y'], data_apo_warn['d'], data_apo_warn['x'])),
+            columns=['y', 'd'] + ['x' + str(i) for i in range(data_apo_warn['x'].shape[1])]
+        )
+        dml_data_warn = DoubleMLData(df_apo_warn, 'y', 'd')
+
+        _ = DoubleMLAPO(dml_data_warn, ml_g, ml_m, treatment_level=42)
+
 
 @pytest.mark.ci
 def test_apo_exception_scores():
