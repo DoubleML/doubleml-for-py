@@ -411,14 +411,13 @@ class DoubleMLQTE:
         framework_list = [None] * self.n_quantiles
 
         for i_quant in range(self.n_quantiles):
-            self._i_quant = i_quant
             # save the parallel fitted models in the right list
-            self._modellist_0[self._i_quant] = fitted_models[self._i_quant][0]
-            self._modellist_1[self._i_quant] = fitted_models[self._i_quant][1]
+            self._modellist_0[i_quant] = fitted_models[i_quant][0]
+            self._modellist_1[i_quant] = fitted_models[i_quant][1]
 
             # set up the framework
-            framework_list[self._i_quant] = self._modellist_1[self._i_quant].framework - \
-                self._modellist_0[self._i_quant].framework
+            framework_list[i_quant] = self._modellist_1[i_quant].framework - \
+                self._modellist_0[i_quant].framework
 
         # aggregate all frameworks
         self._framework = concat(framework_list)
@@ -558,7 +557,6 @@ class DoubleMLQTE:
             'draw_sample_splitting': False
         }
         for i_quant in range(self.n_quantiles):
-            self._i_quant = i_quant
 
             # initialize models for both potential quantiles
             if self.score == 'PQ':
