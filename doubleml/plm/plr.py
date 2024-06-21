@@ -279,13 +279,17 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
-        nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
-        psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
+        treatment_residual = d - m_hat
+        nu2 = np.divide(1.0, np.mean(np.square(treatment_residual)))
+        psi_nu2 = nu2 - np.multiply(np.square(treatment_residual), np.square(nu2))
+        rr = np.multiply(treatment_residual, nu2)
 
         element_dict = {'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
-                        'psi_nu2': psi_nu2}
+                        'psi_nu2': psi_nu2,
+                        'riesz_rep': rr,
+                        }
         return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
