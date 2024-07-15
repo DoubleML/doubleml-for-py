@@ -10,7 +10,7 @@ from .apo import DoubleMLAPO
 from ..double_ml_framework import concat
 
 from ..utils.resampling import DoubleMLResampling
-from ..utils._checks import _check_score, _check_trimming
+from ..utils._checks import _check_score, _check_trimming, _check_weights
 
 
 class DoubleMLAPOS:
@@ -22,7 +22,7 @@ class DoubleMLAPOS:
                  ml_m,
                  treatment_levels,
                  n_folds=5,
-                 n_rep=1,   
+                 n_rep=1,
                  score='APO',
                  weights=None,
                  normalize_ipw=False,
@@ -36,7 +36,7 @@ class DoubleMLAPOS:
 
         self._treatment_levels = np.asarray(treatment_levels).reshape((-1, ))
         self._check_treatment_levels()
-        self._n_levels = len(self._treatment_levels)
+        self._n_treatment_levels = len(self._treatment_levels)
 
         self._normalize_ipw = normalize_ipw
         self._n_folds = n_folds
@@ -67,6 +67,10 @@ class DoubleMLAPOS:
         self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
         self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
 
+        # APO weights
+        _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
+        self._initialize_weights(weights)
+
         # initialize all models
         self._modellist = self._initialize_models()
 
@@ -78,11 +82,11 @@ class DoubleMLAPOS:
         return self._score
 
     @property
-    def n_levels(self):
+    def n_treatment_levels(self):
         """
         The number of treatment levels.
         """
-        return self._n_levels
+        return self._n_treatment_levels
 
     @property
     def normalize_ipw(self):
@@ -138,6 +142,17 @@ class DoubleMLAPOS:
         return coef
 
     @property
+    def smpls(self):
+        """
+        The partition used for cross-fitting.
+        """
+        if self._smpls is None:
+            err_msg = ('Sample splitting not specified. Draw samples via .draw_sample splitting(). ' +
+                       'External samples not implemented yet.')
+            raise ValueError(err_msg)
+        return self._smpls
+
+    @property
     def framework(self):
         """
         The corresponding :class:`doubleml.DoubleMLFramework` object.
@@ -189,10 +204,10 @@ class DoubleMLAPOS:
                                  for i_level in range(self.n_treatment_levels))
 
         # combine the estimates and scores
-        framework_list = [None] * self.n_levels
+        framework_list = [None] * self.n_treatment_levels
 
-        for i_level in range(self.n_levels):
-            self._modellist[i_level] = fitted_models[i_level][0]
+        for i_level in range(self.n_treatment_levels):
+            self._modellist[i_level] = fitted_models[i_level]
             framework_list[i_level] = self._modellist[i_level].framework
 
         # aggregate all frameworks
@@ -249,7 +264,7 @@ class DoubleMLAPOS:
 
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False):
 
-        model = self.modellist_0[i_level]
+        model = self.modellist[i_level]
         model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
         return model
 
@@ -264,8 +279,17 @@ class DoubleMLAPOS:
             raise ValueError('The data must not contain instrumental variables.')
         return
 
+    def _initialize_weights(self, weights):
+        if weights is None:
+            weights = np.ones(self._dml_data.n_obs)
+        if isinstance(weights, np.ndarray):
+            self._weights = weights
+        else:
+            assert isinstance(weights, dict)
+            self._weights = weights
+
     def _initialize_models(self):
-        modellist = [None] * self.n_levels
+        modellist = [None] * self.n_treatment_levels
         kwargs = {
             'obj_dml_data': self._dml_data,
             'ml_g': self._learner['ml_g'],
@@ -279,7 +303,7 @@ class DoubleMLAPOS:
             'normalize_ipw': self.normalize_ipw,
             'draw_sample_splitting': False
         }
-        for i_level in range(self.n_levels):
+        for i_level in range(self.n_treatment_levels):
             # initialize models for all levels
             model = DoubleMLAPO(
                 treatment_level=self._treatment_levels[i_level],
