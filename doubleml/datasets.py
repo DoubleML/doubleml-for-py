@@ -1435,7 +1435,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
         raise ValueError('Invalid return_type.')
 
 
-def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, **kwargs):
+def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, random_state=None, **kwargs):
     """
     Generates data from a interactive regression (IRM) model with multiple treatment levels (based on an
     underlying continous treatment).
@@ -1536,10 +1536,10 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, 
         res = xi * (-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
         return res
 
-    def treatment_effect(d):
-        return 0.1 * np.exp(d) + 10 * np.sin(0.7 * d) + 2 * d - 0.2 * np.square(d)
+    def treatment_effect(d, scale=5):
+        return scale * (1 / (1 + np.exp(-d - 1.2 * np.cos(d)))) - 2
 
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
     z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
     z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
@@ -1553,16 +1553,24 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, 
     var_eps_d = 1
     eps_d = np.random.normal(loc=0, scale=np.sqrt(var_eps_d), size=n_obs)
 
-    cont_d = f_treatment(z, xi) + eps_d
+    if linear:
+        g = f_reg(x)
+        m = f_treatment(x, xi)
+    else:
+        assert not linear
+        g = f_reg(z)
+        m = f_treatment(z, xi)
+
+    cont_d = m + eps_d
     level_bounds = np.quantile(cont_d, q=np.linspace(0, 1, n_levels + 1))
     potential_level = sum([1.0 * (cont_d >= bound) for bound in level_bounds[1:-1]]) + 1
     eta = np.random.uniform(0, 1, size=n_obs)
-    observed_d = 1.0 * (eta >= 1/n_levels) * potential_level
+    d = 1.0 * (eta >= 1/n_levels) * potential_level
 
     ite = treatment_effect(cont_d)
-    y0 = f_reg(z) + eps_y
+    y0 = g + eps_y
     # only treated for d > 0 compared to the baseline
-    y = ite * (observed_d > 0) + y0
+    y = ite * (d > 0) + y0
 
     oracle_values = {
         'cont_d': cont_d,
@@ -1575,7 +1583,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, random_state=None, 
     resul_dict = {
         'x': x,
         'y': y,
-        'd': observed_d,
+        'd': d,
         'oracle_values': oracle_values
     }
 
