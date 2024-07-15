@@ -133,7 +133,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
-        # ATE weights are the standard case
+        # APO weights
         _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
         self._initialize_weights(weights)
 
