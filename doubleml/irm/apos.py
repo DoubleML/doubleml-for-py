@@ -10,7 +10,8 @@ from .apo import DoubleMLAPO
 from ..double_ml_framework import concat
 
 from ..utils.resampling import DoubleMLResampling
-from ..utils._checks import _check_score, _check_trimming, _check_weights
+from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_is_partition, \
+    _check_smpl_split_tpl, _check_smpl_split, _check_all_smpls
 
 
 class DoubleMLAPOS:
@@ -64,6 +65,9 @@ class DoubleMLAPOS:
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
+            # initialize all models if splits are known
+            self._modellist = self._initialize_models()
+
         self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
         self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
 
@@ -71,8 +75,6 @@ class DoubleMLAPOS:
         _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
         self._initialize_weights(weights)
 
-        # initialize all models
-        self._modellist = self._initialize_models()
 
     @property
     def score(self):
@@ -133,13 +135,48 @@ class DoubleMLAPOS:
     @property
     def coef(self):
         """
-        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
+        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_treatment_levels``,)).
         """
         if self._framework is None:
             coef = None
         else:
             coef = self.framework.thetas
         return coef
+
+    @property
+    def all_coef(self):
+        """
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_treatment_levels``, ``n_rep``)).
+        """
+        if self._framework is None:
+            all_coef = None
+        else:
+            all_coef = self.framework.all_thetas
+        return all_coef
+
+    @property
+    def se(self):
+        """
+        Standard errors for the causal parameter(s) after calling :meth:`fit` (shape (``n_treatment_levels``,)).
+        """
+        if self._framework is None:
+            se = None
+        else:
+            se = self.framework.ses
+        return se
+
+    @property
+    def all_se(self):
+        """
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_treatment_levels``, ``n_rep``)).
+        """
+        if self._framework is None:
+            all_se = None
+        else:
+            all_se = self.framework.all_ses
+        return all_se
 
     @property
     def smpls(self):
@@ -259,6 +296,125 @@ class DoubleMLAPOS:
                                                 n_obs=self._dml_data.n_obs,
                                                 stratify=self._dml_data.d)
         self._smpls = obj_dml_resampling.split_samples()
+
+        return self
+
+    def set_sample_splitting(self, all_smpls):
+        """
+        Set the sample splitting for DoubleML models.
+
+        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
+
+        Parameters
+        ----------
+        all_smpls : list or tuple
+            If nested list of lists of tuples:
+                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
+                ``n_rep``).
+                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
+                ``n_folds``). test_ind must form a partition for each inner list.
+            If list of tuples:
+                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
+                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
+            If tuple:
+                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
+                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
+                ``n_folds=1`` and ``n_rep=1`` is always set.
+
+        Returns
+        -------
+        self : object
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import doubleml as dml
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> from sklearn.ensemble import RandomForestRegressor
+        >>> from sklearn.base import clone
+        >>> np.random.seed(3141)
+        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
+        >>> ml_g = learner
+        >>> ml_m = learner
+        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
+        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
+        >>> # sample splitting with two folds and cross-fitting
+        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
+        >>> dml_plr_obj.set_sample_splitting(smpls)
+        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
+        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
+        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
+        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
+        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
+        >>> dml_plr_obj.set_sample_splitting(smpls)
+        """
+        if self._is_cluster_data:
+            raise NotImplementedError('Externally setting the sample splitting for DoubleML is '
+                                      'not yet implemented with clustering.')
+        if isinstance(all_smpls, tuple):
+            if not len(all_smpls) == 2:
+                raise ValueError('Invalid partition provided. '
+                                 'Tuple for train_ind and test_ind must consist of exactly two elements.')
+            all_smpls = _check_smpl_split_tpl(all_smpls, self._dml_data.n_obs)
+            if (_check_is_partition([all_smpls], self._dml_data.n_obs) &
+                    _check_is_partition([(all_smpls[1], all_smpls[0])], self._dml_data.n_obs)):
+                self._n_rep = 1
+                self._n_folds = 1
+                self._smpls = [[all_smpls]]
+            else:
+                raise ValueError('Invalid partition provided. '
+                                 'Tuple provided that doesn\'t form a partition.')
+        else:
+            if not isinstance(all_smpls, list):
+                raise TypeError('all_smpls must be of list or tuple type. '
+                                f'{str(all_smpls)} of type {str(type(all_smpls))} was passed.')
+            all_tuple = all([isinstance(tpl, tuple) for tpl in all_smpls])
+            if all_tuple:
+                if not all([len(tpl) == 2 for tpl in all_smpls]):
+                    raise ValueError('Invalid partition provided. '
+                                     'All tuples for train_ind and test_ind must consist of exactly two elements.')
+                self._n_rep = 1
+                all_smpls = _check_smpl_split(all_smpls, self._dml_data.n_obs)
+                if _check_is_partition(all_smpls, self._dml_data.n_obs):
+                    if ((len(all_smpls) == 1) &
+                            _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], self._dml_data.n_obs)):
+                        self._n_folds = 1
+                        self._smpls = [all_smpls]
+                    else:
+                        self._n_folds = len(all_smpls)
+                        self._smpls = _check_all_smpls([all_smpls], self._dml_data.n_obs, check_intersect=True)
+                else:
+                    raise ValueError('Invalid partition provided. '
+                                     'Tuples provided that don\'t form a partition.')
+            else:
+                all_list = all([isinstance(smpl, list) for smpl in all_smpls])
+                if not all_list:
+                    raise ValueError('Invalid partition provided. '
+                                     'all_smpls is a list where neither all elements are tuples '
+                                     'nor all elements are lists.')
+                all_tuple = all([all([isinstance(tpl, tuple) for tpl in smpl]) for smpl in all_smpls])
+                if not all_tuple:
+                    raise TypeError('For repeated sample splitting all_smpls must be list of lists of tuples.')
+                all_pairs = all([all([len(tpl) == 2 for tpl in smpl]) for smpl in all_smpls])
+                if not all_pairs:
+                    raise ValueError('Invalid partition provided. '
+                                     'All tuples for train_ind and test_ind must consist of exactly two elements.')
+                n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
+                if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
+                    raise ValueError('Invalid partition provided. '
+                                     'Different number of folds for repeated sample splitting.')
+                all_smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs)
+                smpls_are_partitions = [_check_is_partition(smpl, self._dml_data.n_obs) for smpl in all_smpls]
+
+                if all(smpls_are_partitions):
+                    self._n_rep = len(all_smpls)
+                    self._n_folds = int(n_folds_each_smpl[0])
+                    self._smpls = _check_all_smpls(all_smpls, self._dml_data.n_obs, check_intersect=True)
+                else:
+                    raise ValueError('Invalid partition provided. '
+                                     'At least one inner list does not form a partition.')
+        self._modellist = self._initialize_models()
 
         return self
 
