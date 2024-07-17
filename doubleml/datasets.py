@@ -1027,9 +1027,10 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, *
     a_bounds = (-1, 1)
     a = np.random.uniform(low=a_bounds[0], high=a_bounds[1], size=n_obs)
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
+
     # Propensity score
-    features_ps = x
-    features_reg = x
+    features_ps = z
+    features_reg = z
     p = np.exp(f_ps(features_ps, xi)) / (1 + np.exp(f_ps(features_ps, xi)))
     # compute short and long form of propensity score
     m_long = p + gamma_a*a
