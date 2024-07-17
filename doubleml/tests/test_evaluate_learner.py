@@ -49,7 +49,7 @@ def dml_irm_eval_learner_fixture(learner, trimming_threshold, n_rep):
     dml_irm_obj.fit()
     res_manual = dml_irm_obj.evaluate_learners()
 
-    res_dict = {'rmses': dml_irm_obj.rmses,
+    res_dict = {'rmses': dml_irm_obj.nuisance_loss,
                 'rmses_manual': res_manual
                 }
     return res_dict
