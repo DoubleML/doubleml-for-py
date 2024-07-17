@@ -122,7 +122,7 @@ class DoubleML(ABC):
         if self.nuisance_loss is not None:
             learner_info += 'Out-of-sample Performance:\n'
             for learner in self.params_names:
-                learner_info += f'Learner {learner} RMSE: {self.nuisance_loss[learner]}\n'
+                learner_info += f'Learner {learner} Loss: {self.nuisance_loss[learner]}\n'
 
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
@@ -915,7 +915,7 @@ class DoubleML(ABC):
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
     def _initalize_fit(self, store_predictions, store_models):
-        # initialize rmse arrays for nuisance functions evaluation
+        # initialize loss arrays for nuisance functions evaluation
         self._initialize_nuisance_loss()
 
         if store_predictions:
@@ -1022,9 +1022,10 @@ class DoubleML(ABC):
             if targets[learner] is None:
                 self._nuisance_loss[learner][self._i_rep, self._i_treat] = np.nan
             else:
-                learner_key = [key for key in self._learner.keys() if key in learner][0]
+                learner_keys = [key for key in self._learner.keys() if key in learner]
+                assert len(learner_keys) == 1
                 is_classifier = self._check_learner(
-                    self._learner[learner_key],
+                    self._learner[learner_keys[0]],
                     learner,
                     regressor=True, classifier=True
                 )
