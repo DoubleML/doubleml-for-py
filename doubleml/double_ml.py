@@ -50,6 +50,7 @@ class DoubleML(ABC):
         # initialize learners and parameters which are set model specific
         self._learner = None
         self._params = None
+        self._is_classfier = None
 
         # initialize predictions and target to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
@@ -1017,19 +1018,24 @@ class DoubleML(ABC):
             self._nuisance_targets[learner][:, self._i_rep, self._i_treat] = targets[learner]
 
     def _calc_nuisance_loss(self, preds, targets):
+        self._is_classfier = {key: False for key in self.params_names}
         for learner in self.params_names:
+            # check if the learner is a classifier
+            learner_keys = [key for key in self._learner.keys() if key in learner]
+            assert len(learner_keys) == 1
+            self._is_classfier[learner] = self._check_learner(
+                self._learner[learner_keys[0]],
+                learner,
+                regressor=True, classifier=True
+            )
 
             if targets[learner] is None:
                 self._nuisance_loss[learner][self._i_rep, self._i_treat] = np.nan
             else:
                 learner_keys = [key for key in self._learner.keys() if key in learner]
                 assert len(learner_keys) == 1
-                is_classifier = self._check_learner(
-                    self._learner[learner_keys[0]],
-                    learner,
-                    regressor=True, classifier=True
-                )
-                if is_classifier:
+
+                if self._is_classfier[learner]:
                     predictions = np.clip(preds[learner], 1e-15, 1 - 1e-15)
                     logloss = targets[learner] * np.log(predictions) + (1 - targets[learner]) * np.log(1 - predictions)
                     loss = -np.nanmean(logloss, axis=0)
