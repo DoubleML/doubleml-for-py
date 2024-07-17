@@ -54,7 +54,7 @@ class DoubleML(ABC):
         # initialize predictions and target to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
         self._nuisance_targets = None
-        self._losses = None
+        self._nuisance_loss = None
 
         # initialize models to None which are only stored if method fit is called with store_models=True
         self._models = None
@@ -119,10 +119,10 @@ class DoubleML(ABC):
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
-        if self.rmses is not None:
+        if self.nuisance_loss is not None:
             learner_info += 'Out-of-sample Performance:\n'
             for learner in self.params_names:
-                learner_info += f'Learner {learner} RMSE: {self.rmses[learner]}\n'
+                learner_info += f'Learner {learner} RMSE: {self.nuisance_loss[learner]}\n'
 
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
