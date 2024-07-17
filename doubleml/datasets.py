@@ -940,7 +940,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, *
 
     .. math::
 
-        P(D=1|X) = p(\\tilde_{Z}).
+        P(D=1|X) = p(Z).
 
     Further, generate the outcome of interest :math:`Y` as
 
@@ -967,7 +967,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, *
     The observed data is given as :math:`W = (Y, D, Z)`.
     Further, orcale values of the confounder :math:`A`, the transformed covariated :math:`Z`,
     the potential outcomes of :math:`Y`, the long and short forms of the main regression and the propensity score and
-    in sample versions of the confounding parameters :math:``cf_d`` and :math:``cf_y`` (for ATE and ATTE)
+    in sample versions of the confounding parameters :math:`cf_d` and :math:`cf_y` (for ATE and ATTE)
     are returned in a dictionary.
 
     Parameters
