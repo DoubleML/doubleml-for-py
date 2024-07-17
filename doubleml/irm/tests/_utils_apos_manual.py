@@ -47,11 +47,11 @@ def fit_apos(y, x, d,
 
             apo_scaled_score[:, i_level, i_rep] = apo_psi / J
 
-        apos = np.median(all_apos, axis=1)
-        se = np.zeros(n_treatments)
-        for i_level in range(n_treatments):
-            se[i_level] = np.sqrt(np.median(np.power(all_se[i_level, :], 2) * n_obs +
-                                            np.power(all_apos[i_level, :] - all_apos[i_level], 2)) / n_obs)
+    apos = np.median(all_apos, axis=1)
+    se = np.zeros(n_treatments)
+    for i_level in range(n_treatments):
+        se[i_level] = np.sqrt(np.median(np.power(all_se[i_level, :], 2) * n_obs +
+                                        np.power(all_apos[i_level, :] - all_apos[i_level], 2)) / n_obs)
 
     res = {'apos': apos, 'se': se,
            'all_apos': all_apos, 'all_se': all_se,
