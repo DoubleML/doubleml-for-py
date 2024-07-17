@@ -1018,11 +1018,25 @@ class DoubleML(ABC):
 
     def _calc_nuisance_loss(self, preds, targets):
         for learner in self.params_names:
+
             if targets[learner] is None:
                 self._nuisance_loss[learner][self._i_rep, self._i_treat] = np.nan
             else:
-                sq_error = np.power(targets[learner] - preds[learner], 2)
-                self._nuisance_loss[learner][self._i_rep, self._i_treat] = np.sqrt(np.nanmean(sq_error, axis=0))
+                learner_key = [key for key in self._learner.keys() if key in learner][0]
+                is_classifier = self._check_learner(
+                    self._learner[learner_key],
+                    learner,
+                    regressor=True, classifier=True
+                )
+                if is_classifier:
+                    predictions = np.clip(preds[learner], 1e-15, 1 - 1e-15)
+                    logloss = targets[learner] * np.log(predictions) + (1 - targets[learner]) * np.log(1 - predictions)
+                    loss = -np.nanmean(logloss, axis=0)
+                else:
+                    sq_error = np.power(targets[learner] - preds[learner], 2)
+                    loss = np.sqrt(np.nanmean(sq_error, axis=0))
+
+                self._nuisance_loss[learner][self._i_rep, self._i_treat] = loss
 
     def _store_models(self, models):
         for learner in self.params_names:
