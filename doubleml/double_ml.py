@@ -1194,8 +1194,6 @@ class DoubleML(ABC):
         >>> ml_m = learner
         >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
         >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> # simple sample splitting with two folds and without cross-fitting
-        >>> smpls = ([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
         >>> dml_plr_obj.set_sample_splitting(smpls)
         >>> # sample splitting with two folds and cross-fitting
         >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
