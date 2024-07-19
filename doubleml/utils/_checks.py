@@ -351,3 +351,73 @@ def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treat
 
 def _check_set(x):
     return {x} if x is not None else {}
+
+
+def _check_sample_splitting(all_smpls, n_obs, is_cluster_data):
+    if is_cluster_data:
+        raise NotImplementedError('Externally setting the sample splitting for DoubleML is '
+                                  'not yet implemented with clustering.')
+    if isinstance(all_smpls, tuple):
+        if not len(all_smpls) == 2:
+            raise ValueError('Invalid partition provided. '
+                             'Tuple for train_ind and test_ind must consist of exactly two elements.')
+        all_smpls = _check_smpl_split_tpl(all_smpls, n_obs)
+        if (_check_is_partition([all_smpls], n_obs) &
+                _check_is_partition([(all_smpls[1], all_smpls[0])], n_obs)):
+            n_rep = 1
+            n_folds = 1
+            smpls = [[all_smpls]]
+        else:
+            raise ValueError('Invalid partition provided. '
+                             'Tuple provided that doesn\'t form a partition.')
+    else:
+        if not isinstance(all_smpls, list):
+            raise TypeError('all_smpls must be of list or tuple type. '
+                            f'{str(all_smpls)} of type {str(type(all_smpls))} was passed.')
+        all_tuple = all([isinstance(tpl, tuple) for tpl in all_smpls])
+        if all_tuple:
+            if not all([len(tpl) == 2 for tpl in all_smpls]):
+                raise ValueError('Invalid partition provided. '
+                                 'All tuples for train_ind and test_ind must consist of exactly two elements.')
+            n_rep = 1
+            all_smpls = _check_smpl_split(all_smpls, n_obs)
+            if _check_is_partition(all_smpls, n_obs):
+                if ((len(all_smpls) == 1) &
+                        _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], n_obs)):
+                    n_folds = 1
+                    smpls = [all_smpls]
+                else:
+                    n_folds = len(all_smpls)
+                    smpls = _check_all_smpls([all_smpls], n_obs, check_intersect=True)
+            else:
+                raise ValueError('Invalid partition provided. '
+                                 'Tuples provided that don\'t form a partition.')
+        else:
+            all_list = all([isinstance(smpl, list) for smpl in all_smpls])
+            if not all_list:
+                raise ValueError('Invalid partition provided. '
+                                 'all_smpls is a list where neither all elements are tuples '
+                                 'nor all elements are lists.')
+            all_tuple = all([all([isinstance(tpl, tuple) for tpl in smpl]) for smpl in all_smpls])
+            if not all_tuple:
+                raise TypeError('For repeated sample splitting all_smpls must be list of lists of tuples.')
+            all_pairs = all([all([len(tpl) == 2 for tpl in smpl]) for smpl in all_smpls])
+            if not all_pairs:
+                raise ValueError('Invalid partition provided. '
+                                 'All tuples for train_ind and test_ind must consist of exactly two elements.')
+            n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
+            if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
+                raise ValueError('Invalid partition provided. '
+                                 'Different number of folds for repeated sample splitting.')
+            all_smpls = _check_all_smpls(all_smpls, n_obs)
+            smpls_are_partitions = [_check_is_partition(smpl, n_obs) for smpl in all_smpls]
+
+            if all(smpls_are_partitions):
+                n_rep = len(all_smpls)
+                n_folds = n_folds_each_smpl[0]
+                smpls = _check_all_smpls(all_smpls, n_obs, check_intersect=True)
+            else:
+                raise ValueError('Invalid partition provided. '
+                                 'At least one inner list does not form a partition.')
+
+    return smpls, n_rep, n_folds
