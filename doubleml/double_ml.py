@@ -50,11 +50,12 @@ class DoubleML(ABC):
         # initialize learners and parameters which are set model specific
         self._learner = None
         self._params = None
+        self._is_classifier = {}
 
         # initialize predictions and target to None which are only stored if method fit is called with store_predictions=True
         self._predictions = None
         self._nuisance_targets = None
-        self._rmses = None
+        self._nuisance_loss = None
 
         # initialize models to None which are only stored if method fit is called with store_models=True
         self._models = None
@@ -119,10 +120,18 @@ class DoubleML(ABC):
         learner_info = ''
         for key, value in self.learner.items():
             learner_info += f'Learner {key}: {str(value)}\n'
-        if self.rmses is not None:
+        if self.nuisance_loss is not None:
             learner_info += 'Out-of-sample Performance:\n'
-            for learner in self.params_names:
-                learner_info += f'Learner {learner} RMSE: {self.rmses[learner]}\n'
+            is_classifier = [value for value in self._is_classifier.values()]
+            is_regressor = [not value for value in is_classifier]
+            if any(is_regressor):
+                learner_info += 'Regression:\n'
+                for learner in [key for key, value in self._is_classifier.items() if value is False]:
+                    learner_info += f'Learner {learner} RMSE: {self.nuisance_loss[learner]}\n'
+            if any(is_classifier):
+                learner_info += 'Classification:\n'
+                for learner in [key for key, value in self._is_classifier.items() if value is True]:
+                    learner_info += f'Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n'
 
         if self._is_cluster_data:
             resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
@@ -234,11 +243,11 @@ class DoubleML(ABC):
         return self._nuisance_targets
 
     @property
-    def rmses(self):
+    def nuisance_loss(self):
         """
-        The root-mean-squared-errors of the nuisance models.
+        The losses of the nuisance models (root-mean-squared-errors or logloss).
         """
-        return self._rmses
+        return self._nuisance_loss
 
     @property
     def models(self):
@@ -915,8 +924,8 @@ class DoubleML(ABC):
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
     def _initalize_fit(self, store_predictions, store_models):
-        # initialize rmse arrays for nuisance functions evaluation
-        self._initialize_rmses()
+        # initialize loss arrays for nuisance functions evaluation
+        self._initialize_nuisance_loss()
 
         if store_predictions:
             self._initialize_predictions_and_targets()
@@ -942,8 +951,8 @@ class DoubleML(ABC):
 
         self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
-        # calculate rmses and store predictions and targets of the nuisance models
-        self._calc_rmses(preds['predictions'], preds['targets'])
+        # calculate nuisance losses and store predictions and targets of the nuisance models
+        self._calc_nuisance_loss(preds['predictions'], preds['targets'])
         if store_predictions:
             self._store_predictions_and_targets(preds['predictions'], preds['targets'])
         if store_models:
@@ -1001,9 +1010,11 @@ class DoubleML(ABC):
         self._nuisance_targets = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
                                   for learner in self.params_names}
 
-    def _initialize_rmses(self):
-        self._rmses = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
-                       for learner in self.params_names}
+    def _initialize_nuisance_loss(self):
+        self._nuisance_loss = {
+            learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
+            for learner in self.params_names
+        }
 
     def _initialize_models(self):
         self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
@@ -1014,13 +1025,33 @@ class DoubleML(ABC):
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
             self._nuisance_targets[learner][:, self._i_rep, self._i_treat] = targets[learner]
 
-    def _calc_rmses(self, preds, targets):
+    def _calc_nuisance_loss(self, preds, targets):
+        self._is_classifier = {key: False for key in self.params_names}
         for learner in self.params_names:
+            # check if the learner is a classifier
+            learner_keys = [key for key in self._learner.keys() if key in learner]
+            assert len(learner_keys) == 1
+            self._is_classifier[learner] = self._check_learner(
+                self._learner[learner_keys[0]],
+                learner,
+                regressor=True, classifier=True
+            )
+
             if targets[learner] is None:
-                self._rmses[learner][self._i_rep, self._i_treat] = np.nan
+                self._nuisance_loss[learner][self._i_rep, self._i_treat] = np.nan
             else:
-                sq_error = np.power(targets[learner] - preds[learner], 2)
-                self._rmses[learner][self._i_rep, self._i_treat] = np.sqrt(np.nanmean(sq_error, axis=0))
+                learner_keys = [key for key in self._learner.keys() if key in learner]
+                assert len(learner_keys) == 1
+
+                if self._is_classifier[learner]:
+                    predictions = np.clip(preds[learner], 1e-15, 1 - 1e-15)
+                    logloss = targets[learner] * np.log(predictions) + (1 - targets[learner]) * np.log(1 - predictions)
+                    loss = -np.nanmean(logloss, axis=0)
+                else:
+                    sq_error = np.power(targets[learner] - preds[learner], 2)
+                    loss = np.sqrt(np.nanmean(sq_error, axis=0))
+
+                self._nuisance_loss[learner][self._i_rep, self._i_treat] = loss
 
     def _store_models(self, models):
         for learner in self.params_names:

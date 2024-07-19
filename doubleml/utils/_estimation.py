@@ -6,7 +6,7 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.base import clone
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import root_mean_squared_error
+from sklearn.metrics import root_mean_squared_error, log_loss
 
 from statsmodels.nonparametric.kde import KDEUnivariate
 
@@ -202,6 +202,12 @@ def _rmse(y_true, y_pred):
     subset = np.logical_not(np.isnan(y_true))
     rmse = root_mean_squared_error(y_true[subset], y_pred[subset])
     return rmse
+
+
+def _logloss(y_true, y_pred):
+    subset = np.logical_not(np.isnan(y_true))
+    logloss = log_loss(y_true[subset], y_pred[subset])
+    return logloss
 
 
 def _predict_zero_one_propensity(learner, X):

@@ -220,7 +220,6 @@ def fit_sensitivity_elements_did(y, d, all_coef, predictions, score, in_sample_n
 
     for i_rep in range(n_rep):
 
-        m_hat = predictions['ml_m'][:, i_rep, 0]
         g_hat0 = predictions['ml_g0'][:, i_rep, 0]
         g_hat1 = predictions['ml_g1'][:, i_rep, 0]
 
@@ -229,6 +228,7 @@ def fit_sensitivity_elements_did(y, d, all_coef, predictions, score, in_sample_n
         psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
 
         if score == 'observational':
+            m_hat = predictions['ml_m'][:, i_rep, 0]
             propensity_weight_d0 = np.divide(m_hat, 1.0-m_hat)
             if in_sample_normalization:
                 m_alpha_1 = np.divide(d, np.mean(d))
