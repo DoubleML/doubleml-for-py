@@ -39,7 +39,8 @@ def doubleml_didcs_fixture(did_score, n_rep):
     ext_predictions["d"]["ml_g_d0_t1"] = dml_did_cs.predictions["ml_g_d0_t1"][:, :, 0]
     ext_predictions["d"]["ml_g_d1_t0"] = dml_did_cs.predictions["ml_g_d1_t0"][:, :, 0]
     ext_predictions["d"]["ml_g_d1_t1"] = dml_did_cs.predictions["ml_g_d1_t1"][:, :, 0]
-    ext_predictions["d"]["ml_m"] = dml_did_cs.predictions["ml_m"][:, :, 0]
+    if did_score == "observational":
+        ext_predictions["d"]["ml_m"] = dml_did_cs.predictions["ml_m"][:, :, 0]
 
     dml_did_cs_ext = DoubleMLDIDCS(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
     dml_did_cs_ext.set_sample_splitting(all_smpls)

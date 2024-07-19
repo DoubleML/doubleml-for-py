@@ -162,8 +162,13 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
-                         'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
+        if self.score == 'observational':
+            valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
+                             'ml_g_d1_t0', 'ml_g_d1_t1', 'ml_m']
+        else:
+            assert self.score == 'experimental'
+            valid_learner = ['ml_g_d0_t0', 'ml_g_d0_t1',
+                             'ml_g_d1_t0', 'ml_g_d1_t1']
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in valid_learner}
 
