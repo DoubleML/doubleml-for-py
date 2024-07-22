@@ -1155,7 +1155,7 @@ class DoubleML(ABC):
 
         return self
 
-    def set_sample_splitting(self, all_smpls):
+    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
         """
         Set the sample splitting for DoubleML models.
 
@@ -1176,6 +1176,13 @@ class DoubleML(ABC):
                 Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
                 train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
                 ``n_folds=1`` and ``n_rep=1`` is always set.
+
+        all_smpls_cluster : list or None
+            Nested list or ``None``. The first level of nesting corresponds to the number of repetitions. The second level
+            of nesting corresponds to the number of folds. The third level of nesting contains a tuple of training and
+            testing lists. Both training and testing contain an array for each cluster variable, which form a partition of
+            the clusters.
+            Default is ``None``.
 
         Returns
         -------
@@ -1206,8 +1213,8 @@ class DoubleML(ABC):
         >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
-        self._smpls, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, self._dml_data.n_obs, self._is_cluster_data)
+        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data)
 
         self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
             self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
