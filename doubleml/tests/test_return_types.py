@@ -349,50 +349,50 @@ def test_stored_nuisance_targets():
 
 
 @pytest.mark.ci
-def test_rmses():
-    assert plr_obj.rmses['ml_l'].shape == (n_rep, n_treat)
-    assert plr_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+def test_nuisance_loss():
+    assert plr_obj.nuisance_loss['ml_l'].shape == (n_rep, n_treat)
+    assert plr_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert pliv_obj.rmses['ml_l'].shape == (n_rep, n_treat)
-    assert pliv_obj.rmses['ml_m'].shape == (n_rep, n_treat)
-    assert pliv_obj.rmses['ml_r'].shape == (n_rep, n_treat)
+    assert pliv_obj.nuisance_loss['ml_l'].shape == (n_rep, n_treat)
+    assert pliv_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
+    assert pliv_obj.nuisance_loss['ml_r'].shape == (n_rep, n_treat)
 
-    assert irm_obj.rmses['ml_g0'].shape == (n_rep, n_treat)
-    assert irm_obj.rmses['ml_g1'].shape == (n_rep, n_treat)
-    assert irm_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert irm_obj.nuisance_loss['ml_g0'].shape == (n_rep, n_treat)
+    assert irm_obj.nuisance_loss['ml_g1'].shape == (n_rep, n_treat)
+    assert irm_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert iivm_obj.rmses['ml_g0'].shape == (n_rep, n_treat)
-    assert iivm_obj.rmses['ml_g1'].shape == (n_rep, n_treat)
-    assert iivm_obj.rmses['ml_m'].shape == (n_rep, n_treat)
-    assert iivm_obj.rmses['ml_r0'].shape == (n_rep, n_treat)
-    assert iivm_obj.rmses['ml_r1'].shape == (n_rep, n_treat)
+    assert iivm_obj.nuisance_loss['ml_g0'].shape == (n_rep, n_treat)
+    assert iivm_obj.nuisance_loss['ml_g1'].shape == (n_rep, n_treat)
+    assert iivm_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
+    assert iivm_obj.nuisance_loss['ml_r0'].shape == (n_rep, n_treat)
+    assert iivm_obj.nuisance_loss['ml_r1'].shape == (n_rep, n_treat)
 
-    assert cvar_obj.rmses['ml_g'].shape == (n_rep, n_treat)
-    assert cvar_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert cvar_obj.nuisance_loss['ml_g'].shape == (n_rep, n_treat)
+    assert cvar_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert pq_obj.rmses['ml_g'].shape == (n_rep, n_treat)
-    assert pq_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert pq_obj.nuisance_loss['ml_g'].shape == (n_rep, n_treat)
+    assert pq_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert lpq_obj.rmses['ml_g_du_z0'].shape == (n_rep, n_treat)
-    assert lpq_obj.rmses['ml_g_du_z1'].shape == (n_rep, n_treat)
-    assert lpq_obj.rmses['ml_m_z'].shape == (n_rep, n_treat)
-    assert lpq_obj.rmses['ml_m_d_z0'].shape == (n_rep, n_treat)
-    assert lpq_obj.rmses['ml_m_d_z1'].shape == (n_rep, n_treat)
+    assert lpq_obj.nuisance_loss['ml_g_du_z0'].shape == (n_rep, n_treat)
+    assert lpq_obj.nuisance_loss['ml_g_du_z1'].shape == (n_rep, n_treat)
+    assert lpq_obj.nuisance_loss['ml_m_z'].shape == (n_rep, n_treat)
+    assert lpq_obj.nuisance_loss['ml_m_d_z0'].shape == (n_rep, n_treat)
+    assert lpq_obj.nuisance_loss['ml_m_d_z1'].shape == (n_rep, n_treat)
 
-    assert did_obj.rmses['ml_g0'].shape == (n_rep, n_treat)
-    assert did_obj.rmses['ml_g1'].shape == (n_rep, n_treat)
-    assert did_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert did_obj.nuisance_loss['ml_g0'].shape == (n_rep, n_treat)
+    assert did_obj.nuisance_loss['ml_g1'].shape == (n_rep, n_treat)
+    assert did_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert did_cs_obj.rmses['ml_g_d0_t0'].shape == (n_rep, n_treat)
-    assert did_cs_obj.rmses['ml_g_d0_t1'].shape == (n_rep, n_treat)
-    assert did_cs_obj.rmses['ml_g_d1_t0'].shape == (n_rep, n_treat)
-    assert did_cs_obj.rmses['ml_g_d1_t1'].shape == (n_rep, n_treat)
-    assert did_cs_obj.rmses['ml_m'].shape == (n_rep, n_treat)
+    assert did_cs_obj.nuisance_loss['ml_g_d0_t0'].shape == (n_rep, n_treat)
+    assert did_cs_obj.nuisance_loss['ml_g_d0_t1'].shape == (n_rep, n_treat)
+    assert did_cs_obj.nuisance_loss['ml_g_d1_t0'].shape == (n_rep, n_treat)
+    assert did_cs_obj.nuisance_loss['ml_g_d1_t1'].shape == (n_rep, n_treat)
+    assert did_cs_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
 
-    assert ssm_obj.rmses['ml_g_d0'].shape == (n_rep, n_treat)
-    assert ssm_obj.rmses['ml_g_d1'].shape == (n_rep, n_treat)
-    assert ssm_obj.rmses['ml_m'].shape == (n_rep, n_treat)
-    assert ssm_obj.rmses['ml_pi'].shape == (n_rep, n_treat)
+    assert ssm_obj.nuisance_loss['ml_g_d0'].shape == (n_rep, n_treat)
+    assert ssm_obj.nuisance_loss['ml_g_d1'].shape == (n_rep, n_treat)
+    assert ssm_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
+    assert ssm_obj.nuisance_loss['ml_pi'].shape == (n_rep, n_treat)
 
 
 @pytest.mark.ci

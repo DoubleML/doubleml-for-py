@@ -355,3 +355,112 @@ def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treat
 
 def _check_set(x):
     return {x} if x is not None else {}
+
+
+def _check_cluster_partitions(smpls, values):
+    test_indices = np.concatenate([test_index for test_index in smpls])
+    if len(test_indices) != len(values):
+        return False
+    if np.any(np.sort(test_indices) != np.sort(values)):
+        return False
+    return True
+
+
+def _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds):
+    if all_smpls_cluster is None:
+        raise ValueError('For cluster data, all_smpls_cluster must be provided.')
+
+    n_rep_cluster = len(all_smpls_cluster)
+    if n_rep_cluster != n_rep:
+        raise ValueError('Invalid samples provided. '
+                         'Number of repetitions for all_smpls and all_smpls_cluster must be the same.')
+
+    for i_rep in range(n_rep):
+        n_folds_cluster = len(all_smpls_cluster[i_rep])
+        if n_folds_cluster != n_folds:
+            raise ValueError('Invalid samples provided. '
+                             'Number of folds for all_smpls and all_smpls_cluster must be the same.')
+        for i_cluster in range(dml_data.n_cluster_vars):
+            this_cluster_var = dml_data.cluster_vars[:, i_cluster]
+            clusters = np.unique(this_cluster_var)
+            cluster_partition = [all_smpls_cluster[0][0][0][i_cluster], all_smpls_cluster[0][0][1][i_cluster]]
+            is_cluster_partition = _check_cluster_partitions(cluster_partition, clusters)
+            if not is_cluster_partition:
+                raise ValueError('Invalid cluster partition provided. '
+                                 'At least one inner list does not form a partition.')
+
+    smpls_cluster = all_smpls_cluster
+    return smpls_cluster
+
+
+def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_data):
+
+    if isinstance(all_smpls, tuple):
+        if not len(all_smpls) == 2:
+            raise ValueError('Invalid partition provided. '
+                             'Tuple for train_ind and test_ind must consist of exactly two elements.')
+        all_smpls = _check_smpl_split_tpl(all_smpls, dml_data.n_obs)
+        if (_check_is_partition([all_smpls], dml_data.n_obs) &
+                _check_is_partition([(all_smpls[1], all_smpls[0])], dml_data.n_obs)):
+            n_rep = 1
+            n_folds = 1
+            smpls = [[all_smpls]]
+        else:
+            raise ValueError('Invalid partition provided. '
+                             'Tuple provided that doesn\'t form a partition.')
+    else:
+        if not isinstance(all_smpls, list):
+            raise TypeError('all_smpls must be of list or tuple type. '
+                            f'{str(all_smpls)} of type {str(type(all_smpls))} was passed.')
+        all_tuple = all([isinstance(tpl, tuple) for tpl in all_smpls])
+        if all_tuple:
+            if not all([len(tpl) == 2 for tpl in all_smpls]):
+                raise ValueError('Invalid partition provided. '
+                                 'All tuples for train_ind and test_ind must consist of exactly two elements.')
+            n_rep = 1
+            all_smpls = _check_smpl_split(all_smpls, dml_data.n_obs)
+            if _check_is_partition(all_smpls, dml_data.n_obs):
+                if ((len(all_smpls) == 1) &
+                        _check_is_partition([(all_smpls[0][1], all_smpls[0][0])], dml_data.n_obs)):
+                    n_folds = 1
+                    smpls = [all_smpls]
+                else:
+                    n_folds = len(all_smpls)
+                    smpls = _check_all_smpls([all_smpls], dml_data.n_obs, check_intersect=True)
+            else:
+                raise ValueError('Invalid partition provided. '
+                                 'Tuples provided that don\'t form a partition.')
+        else:
+            all_list = all([isinstance(smpl, list) for smpl in all_smpls])
+            if not all_list:
+                raise ValueError('Invalid partition provided. '
+                                 'all_smpls is a list where neither all elements are tuples '
+                                 'nor all elements are lists.')
+            all_tuple = all([all([isinstance(tpl, tuple) for tpl in smpl]) for smpl in all_smpls])
+            if not all_tuple:
+                raise TypeError('For repeated sample splitting all_smpls must be list of lists of tuples.')
+            all_pairs = all([all([len(tpl) == 2 for tpl in smpl]) for smpl in all_smpls])
+            if not all_pairs:
+                raise ValueError('Invalid partition provided. '
+                                 'All tuples for train_ind and test_ind must consist of exactly two elements.')
+            n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
+            if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
+                raise ValueError('Invalid partition provided. '
+                                 'Different number of folds for repeated sample splitting.')
+            all_smpls = _check_all_smpls(all_smpls, dml_data.n_obs)
+            smpls_are_partitions = [_check_is_partition(smpl, dml_data.n_obs) for smpl in all_smpls]
+
+            if all(smpls_are_partitions):
+                n_rep = len(all_smpls)
+                n_folds = int(n_folds_each_smpl[0])
+                smpls = _check_all_smpls(all_smpls, dml_data.n_obs, check_intersect=True)
+            else:
+                raise ValueError('Invalid partition provided. '
+                                 'At least one inner list does not form a partition.')
+
+    if is_cluster_data:
+        smpls_cluster = _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
+    else:
+        smpls_cluster = None
+
+    return smpls, smpls_cluster, n_rep, n_folds
