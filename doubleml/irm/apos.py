@@ -459,6 +459,33 @@ class DoubleMLAPOS:
 
         return self
 
+    def average_treatment_effect(self, baseline_level=None):
+        """
+        Average treatment effects for DoubleMLAPOS models.
+
+        Parameters
+        ----------
+        baseline_level : None or int
+            The baseline level for the average treatment effect.
+            Default is ``None``.
+
+        Returns
+        -------
+        ate : pd.Series
+            A data frame with the average treatment effect(s).
+        """
+
+        if self.framework is None:
+            raise ValueError('Apply fit() before average_treatment_effect().')
+
+        i_baseline_level = self.treatment_levels.tolist().index(baseline_level)
+        baseline_framework = self.modellist[i_baseline_level].framework
+
+        ate_frameworks = [model.framework - baseline_framework for i, model in
+                          enumerate(self.modellist) if i != i_baseline_level]
+        ate = concat(ate_frameworks)
+        return ate
+
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False):
 
         model = self.modellist[i_level]
