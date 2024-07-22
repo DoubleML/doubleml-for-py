@@ -181,6 +181,7 @@ def test_doubleml_qte_exceptions():
         _ = dml_obj.smpls
 
 
+@pytest.mark.ci
 def test_doubleml_qte_return_types(dml_qte_fixture):
     assert isinstance(dml_qte_fixture['qte_model'].__str__(), str)
     assert isinstance(dml_qte_fixture['qte_model'].summary, pd.DataFrame)

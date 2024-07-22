@@ -15,6 +15,8 @@ from ..utils._estimation import _default_kde
 from ..utils.resampling import DoubleMLResampling
 from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_sample_splitting
 
+from ..utils._descriptive import generate_summary
+
 
 class DoubleMLQTE:
     """Double machine learning for quantile treatment effects
@@ -355,18 +357,13 @@ class DoubleMLQTE:
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
-        col_names = ['coef', 'std err', 't', 'P>|t|']
         if self.framework is None:
+            col_names = ['coef', 'std err', 't', 'P>|t|']
             df_summary = pd.DataFrame(columns=col_names)
         else:
-            summary_stats = np.transpose(np.vstack(
-                [self.coef, self.se,
-                 self.t_stat, self.pval]))
-            df_summary = pd.DataFrame(summary_stats,
-                                      columns=col_names,
-                                      index=self.quantiles)
             ci = self.confint()
-            df_summary = df_summary.join(ci)
+            df_summary = generate_summary(self.coef, self.se, self.t_stat,
+                                          self.pval, ci, self.quantiles)
         return df_summary
 
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
