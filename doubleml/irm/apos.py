@@ -98,6 +98,13 @@ class DoubleMLAPOS:
         return self._n_treatment_levels
 
     @property
+    def treatment_levels(self):
+        """
+        The evaluated treatment levels.
+        """
+        return self._treatment_levels
+
+    @property
     def normalize_ipw(self):
         """
         Indicates whether the inverse probability weights are normalized.
@@ -308,7 +315,7 @@ class DoubleMLAPOS:
         if external_predictions is not None:
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
-        # parallel estimation of the quantiles
+        # parallel estimation of the models
         parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
         fitted_models = parallel(delayed(self._fit_model)(i_level, n_jobs_cv, store_predictions, store_models)
                                  for i_level in range(self.n_treatment_levels))
