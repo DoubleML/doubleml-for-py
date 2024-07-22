@@ -68,6 +68,21 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score):
     np.random.seed(3141)
     dml_pliv_obj.fit()
 
+    dml_pliv_obj_ext_smpls = dml.DoubleMLPLIV(
+        obj_dml_cluster_data,
+        ml_l, ml_m, ml_r, ml_g,
+        n_folds=n_folds,
+        n_rep=n_rep,
+        score=score,
+        draw_sample_splitting=False)
+
+    dml_pliv_obj_ext_smpls.set_sample_splitting(
+        all_smpls=dml_pliv_obj.smpls,
+        all_smpls_cluster=dml_pliv_obj.smpls_cluster)
+
+    np.random.seed(3141)
+    dml_pliv_obj_ext_smpls.fit()
+
     np.random.seed(3141)
     y = obj_dml_cluster_data.y
     x = obj_dml_cluster_data.x
@@ -126,7 +141,9 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score):
     res_dict = {'coef': dml_pliv_obj.coef,
                 'se': dml_pliv_obj.se,
                 'coef_manual': theta,
-                'se_manual': se}
+                'se_manual': se,
+                'coef_ext_smpls': dml_pliv_obj_ext_smpls.coef,
+                'se_ext_smpls': dml_pliv_obj_ext_smpls.se}
 
     return res_dict
 
@@ -136,12 +153,18 @@ def test_dml_pliv_multiway_cluster_coef(dml_pliv_multiway_cluster_fixture):
     assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'][0],
                         dml_pliv_multiway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_multiway_cluster_fixture['coef'][0],
+                        dml_pliv_multiway_cluster_fixture['coef_ext_smpls'][0],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_pliv_multiway_cluster_se(dml_pliv_multiway_cluster_fixture):
     assert math.isclose(dml_pliv_multiway_cluster_fixture['se'][0],
                         dml_pliv_multiway_cluster_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_multiway_cluster_fixture['se'][0],
+                        dml_pliv_multiway_cluster_fixture['se_ext_smpls'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -166,6 +189,20 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score):
 
     np.random.seed(3141)
     dml_pliv_obj.fit()
+
+    dml_pliv_obj_ext_smpls = dml.DoubleMLPLIV(
+        obj_dml_oneway_cluster_data,
+        ml_l, ml_m, ml_r, ml_g,
+        n_folds=n_folds,
+        score=score,
+        draw_sample_splitting=False)
+
+    dml_pliv_obj_ext_smpls.set_sample_splitting(
+        all_smpls=dml_pliv_obj.smpls,
+        all_smpls_cluster=dml_pliv_obj.smpls_cluster)
+
+    np.random.seed(3141)
+    dml_pliv_obj_ext_smpls.fit()
 
     np.random.seed(3141)
     y = obj_dml_oneway_cluster_data.y
@@ -210,7 +247,9 @@ def dml_pliv_oneway_cluster_fixture(generate_data_iv, learner, score):
     res_dict = {'coef': dml_pliv_obj.coef,
                 'se': dml_pliv_obj.se,
                 'coef_manual': theta,
-                'se_manual': se}
+                'se_manual': se,
+                'coef_ext_smpls': dml_pliv_obj_ext_smpls.coef,
+                'se_ext_smpls': dml_pliv_obj_ext_smpls.se}
 
     return res_dict
 
@@ -220,12 +259,18 @@ def test_dml_pliv_oneway_cluster_coef(dml_pliv_oneway_cluster_fixture):
     assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'][0],
                         dml_pliv_oneway_cluster_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['coef'][0],
+                        dml_pliv_oneway_cluster_fixture['coef_ext_smpls'][0],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_pliv_oneway_cluster_se(dml_pliv_oneway_cluster_fixture):
     assert math.isclose(dml_pliv_oneway_cluster_fixture['se'][0],
                         dml_pliv_oneway_cluster_fixture['se_manual'],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_pliv_oneway_cluster_fixture['se'][0],
+                        dml_pliv_oneway_cluster_fixture['se_ext_smpls'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
@@ -247,6 +292,7 @@ def dml_plr_cluster_with_index(generate_data1, learner):
     dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
                                   ml_l, ml_m,
                                   n_folds=n_folds)
+    np.random.seed(3141)
     dml_plr_obj.fit()
 
     df = data.reset_index()
@@ -259,12 +305,28 @@ def dml_plr_cluster_with_index(generate_data1, learner):
     dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data,
                                           ml_l, ml_m,
                                           n_folds=n_folds)
+    np.random.seed(3141)
     dml_plr_cluster_obj.fit()
+
+    dml_plr_cluster_ext_smpls = dml.DoubleMLPLR(
+        dml_cluster_data,
+        ml_l, ml_m,
+        n_folds=n_folds,
+        draw_sample_splitting=False)
+
+    dml_plr_cluster_ext_smpls.set_sample_splitting(
+        all_smpls=dml_plr_cluster_obj.smpls,
+        all_smpls_cluster=dml_plr_cluster_obj.smpls_cluster)
+
+    np.random.seed(3141)
+    dml_plr_cluster_ext_smpls.fit()
 
     res_dict = {'coef': dml_plr_obj.coef,
                 'coef_manual': dml_plr_cluster_obj.coef,
                 'se': dml_plr_obj.se,
-                'se_manual': dml_plr_cluster_obj.se}
+                'se_manual': dml_plr_cluster_obj.se,
+                'coef_ext_smpls': dml_plr_cluster_ext_smpls.coef,
+                'se_ext_smpls': dml_plr_cluster_ext_smpls.se}
 
     return res_dict
 
@@ -274,10 +336,16 @@ def test_dml_plr_cluster_with_index_coef(dml_plr_cluster_with_index):
     assert math.isclose(dml_plr_cluster_with_index['coef'][0],
                         dml_plr_cluster_with_index['coef_manual'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_cluster_with_index['coef'][0],
+                        dml_plr_cluster_with_index['coef_ext_smpls'][0],
+                        rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_plr_cluster_with_index_se(dml_plr_cluster_with_index):
     assert math.isclose(dml_plr_cluster_with_index['se'][0],
                         dml_plr_cluster_with_index['se_manual'][0],
+                        rel_tol=1e-9, abs_tol=1e-4)
+    assert math.isclose(dml_plr_cluster_with_index['se'][0],
+                        dml_plr_cluster_with_index['se_ext_smpls'][0],
                         rel_tol=1e-9, abs_tol=1e-4)
