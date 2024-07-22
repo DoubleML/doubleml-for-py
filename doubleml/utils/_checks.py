@@ -448,7 +448,7 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
 
             if all(smpls_are_partitions):
                 n_rep = len(all_smpls)
-                n_folds = n_folds_each_smpl[0]
+                n_folds = int(n_folds_each_smpl[0])
                 smpls = _check_all_smpls(all_smpls, dml_data.n_obs, check_intersect=True)
             else:
                 raise ValueError('Invalid partition provided. '

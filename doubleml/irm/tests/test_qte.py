@@ -54,17 +54,35 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
     ml_g = clone(learner)
     ml_m = clone(learner)
 
+    input_args = {
+        "quantiles": quantiles,
+        "n_folds": n_folds,
+        "n_rep": n_rep,
+        "normalize_ipw": normalize_ipw,
+        "trimming_threshold": 1e-12,
+        "kde": kde
+    }
+
     np.random.seed(42)
-    dml_qte_obj = dml.DoubleMLQTE(obj_dml_data,
-                                  ml_g, ml_m,
-                                  quantiles=quantiles,
-                                  n_folds=n_folds,
-                                  n_rep=n_rep,
-                                  normalize_ipw=normalize_ipw,
-                                  trimming_threshold=1e-12,
-                                  kde=kde)
+    dml_qte_obj = dml.DoubleMLQTE(
+        obj_dml_data,
+        ml_g, ml_m,
+        **input_args
+    )
     unfitted_qte_model = copy.copy(dml_qte_obj)
+    np.random.seed(42)
     dml_qte_obj.fit()
+
+    np.random.seed(42)
+    dml_qte_obj_ext_smpls = dml.DoubleMLQTE(
+        obj_dml_data,
+        ml_g, ml_m,
+        draw_sample_splitting=False,
+        **input_args
+    )
+    dml_qte_obj_ext_smpls.set_sample_splitting(dml_qte_obj.smpls)
+    np.random.seed(42)
+    dml_qte_obj_ext_smpls.fit()
 
     np.random.seed(42)
     n_obs = len(y)
@@ -80,8 +98,10 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
                             boot_t_stat=None, joint=False, level=0.95)
     res_dict = {'coef': dml_qte_obj.coef,
                 'coef_manual': res_manual['qte'],
+                'coef_ext_smpls': dml_qte_obj_ext_smpls.coef,
                 'se': dml_qte_obj.se,
                 'se_manual': res_manual['se'],
+                'se_ext_smpls': dml_qte_obj_ext_smpls.se,
                 'boot_methods': boot_methods,
                 'ci': ci.to_numpy(),
                 'ci_manual': ci_manual.to_numpy(),
@@ -112,12 +132,18 @@ def test_dml_qte_coef(dml_qte_fixture):
     assert np.allclose(dml_qte_fixture['coef'],
                        dml_qte_fixture['coef_manual'],
                        rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_qte_fixture['coef'],
+                       dml_qte_fixture['coef_ext_smpls'],
+                       rtol=1e-9, atol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_qte_se(dml_qte_fixture):
     assert np.allclose(dml_qte_fixture['se'],
                        dml_qte_fixture['se_manual'],
+                       rtol=1e-9, atol=1e-4)
+    assert np.allclose(dml_qte_fixture['se'],
+                       dml_qte_fixture['se_ext_smpls'],
                        rtol=1e-9, atol=1e-4)
 
 
@@ -148,8 +174,8 @@ def test_doubleml_qte_exceptions():
     ml_g = RandomForestClassifier(n_estimators=20)
     ml_m = RandomForestClassifier(n_estimators=20)
 
-    msg = r'Sample splitting not specified. Draw samples via .draw_sample splitting\(\). ' \
-          'External samples not implemented yet.'
+    msg = ('Sample splitting not specified. '
+           r'Either draw samples via .draw_sample splitting\(\) or set external samples via .set_sample_splitting\(\).')
     with pytest.raises(ValueError, match=msg):
         dml_obj = dml.DoubleMLQTE(obj_dml_data, ml_g, ml_m, draw_sample_splitting=False)
         _ = dml_obj.smpls
