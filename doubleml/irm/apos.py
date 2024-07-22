@@ -10,6 +10,7 @@ from .apo import DoubleMLAPO
 from ..double_ml_framework import concat
 
 from ..utils.resampling import DoubleMLResampling
+from ..utils._descriptive import generate_summary
 from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_sample_splitting
 
 
@@ -73,6 +74,14 @@ class DoubleMLAPOS:
 
             # initialize all models if splits are known
             self._modellist = self._initialize_models()
+
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f'================== {class_name} Object ==================\n'
+        fit_summary = str(self.summary)
+        res = header + \
+            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        return res
 
     @property
     def score(self):
@@ -199,6 +208,21 @@ class DoubleMLAPOS:
         return all_se
 
     @property
+    def t_stat(self):
+        """
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
+        """
+        t_stat = self.coef / self.se
+        return t_stat
+
+    @property
+    def pval(self):
+        """
+        p-values for the causal parameter(s) (shape (``n_quantiles``,)).
+        """
+        return self.framework.pvals
+
+    @property
     def smpls(self):
         """
         The partition used for cross-fitting.
@@ -234,6 +258,20 @@ class DoubleMLAPOS:
         The list of models for each level.
         """
         return self._modellist
+
+    @property
+    def summary(self):
+        """
+        A summary for the estimated causal effect after calling :meth:`fit`.
+        """
+        if self.framework is None:
+            col_names = ['coef', 'std err', 't', 'P>|t|']
+            df_summary = pd.DataFrame(columns=col_names)
+        else:
+            ci = self.confint()
+            df_summary = generate_summary(self.coef, self.se, self.t_stat,
+                                          self.pval, ci, self._treatment_levels)
+        return df_summary
 
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
         """

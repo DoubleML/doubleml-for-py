@@ -80,6 +80,7 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
         "trimming_threshold": trimming_threshold,
     }
 
+    unfitted_apos_model = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args)
     np.random.seed(42)
     dml_obj = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args)
     dml_obj.fit()
@@ -117,10 +118,13 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
         'se_ext_smpls': dml_obj_ext_smpls.se,
         'se_manual': res_manual['se'],
         'boot_methods': boot_methods,
+        'n_treatment_levels': len(treatment_levels),
+        'n_rep': n_rep,
         'ci': ci.to_numpy(),
         'ci_ext_smpls': ci_ext_smpls.to_numpy(),
         'ci_manual': ci_manual.to_numpy(),
-        'apo_model': dml_obj
+        'apos_model': dml_obj,
+        'unfitted_apos_model': unfitted_apos_model
     }
 
     for bootstrap in boot_methods:
@@ -169,3 +173,29 @@ def test_dml_apos_boot(dml_apos_fixture):
         assert np.allclose(dml_apos_fixture['boot_t_stat_' + bootstrap],
                            dml_apos_fixture['boot_t_stat_' + bootstrap + '_manual'],
                            rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_dml_apos_ci(dml_apos_fixture):
+    for bootstrap in dml_apos_fixture['boot_methods']:
+        assert np.allclose(dml_apos_fixture['ci'],
+                           dml_apos_fixture['ci_manual'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_apos_fixture['ci'],
+                           dml_apos_fixture['ci_ext_smpls'],
+                           rtol=1e-9, atol=1e-4)
+        assert np.allclose(dml_apos_fixture['boot_ci_' + bootstrap],
+                           dml_apos_fixture['boot_ci_' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)
+
+
+@pytest.mark.ci
+def test_doubleml_apos_return_types(dml_apos_fixture):
+    assert isinstance(dml_apos_fixture['apos_model'].__str__(), str)
+    assert isinstance(dml_apos_fixture['apos_model'].summary, pd.DataFrame)
+
+    assert dml_apos_fixture['apos_model'].all_coef.shape == (
+        dml_apos_fixture['n_treatment_levels'],
+        dml_apos_fixture['n_rep']
+    )
+    assert isinstance(dml_apos_fixture['unfitted_apos_model'].summary, pd.DataFrame)
