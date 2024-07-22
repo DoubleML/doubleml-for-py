@@ -646,10 +646,7 @@ def test_doubleml_exception_smpls():
     dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
-    msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
     dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_l, ml_m, ml_r, draw_sample_splitting=False)
-    with pytest.raises(ValueError, match=msg):
-        _ = dml_pliv_cluster_no_smpls.smpls_cluster
     with pytest.raises(ValueError, match=msg):
         _ = dml_pliv_cluster_no_smpls.smpls
 

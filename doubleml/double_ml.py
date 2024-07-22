@@ -289,11 +289,8 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            if self._is_cluster_data:
-                err_msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
-            else:
-                err_msg = ('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
-                           'or set external samples via .set_sample_splitting().')
+            err_msg = ('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
+                       'or set external samples via .set_sample_splitting().')
             raise ValueError(err_msg)
         return self._smpls
 
@@ -302,9 +299,6 @@ class DoubleML(ABC):
         """
         The partition of clusters used for cross-fitting.
         """
-        if self._is_cluster_data:
-            if self._smpls_cluster is None:
-                raise ValueError('Sample splitting not specified. Draw samples via .draw_sample splitting().')
         return self._smpls_cluster
 
     @property
