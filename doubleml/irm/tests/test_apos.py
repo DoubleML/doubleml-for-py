@@ -76,7 +76,7 @@ def dml_apos_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatmen
         "score": 'APO',
         "normalize_ipw": normalize_ipw,
         "trimming_rule": 'truncate',
-            "trimming_threshold": trimming_threshold,
+        "trimming_threshold": trimming_threshold,
         }
 
     unfitted_apos_model = dml.DoubleMLAPOS(**input_args)
