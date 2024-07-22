@@ -10,7 +10,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import doubleml as dml
 from doubleml.datasets import make_irm_data_discrete_treatments
 
-from ._utils_apos_manual import fit_apos
+from ._utils_apos_manual import fit_apos, boot_apos
+from ...tests._utils import confint_manual
 
 
 @pytest.fixture(scope='module',
@@ -101,12 +102,44 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
         normalize_ipw=normalize_ipw,
         trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_obj.coef,
-                'coef_ext_smpls': dml_obj_ext_smpls.coef,
-                'coef_manual': res_manual['apos'],
-                'se': dml_obj.se,
-                'se_ext_smpls': dml_obj_ext_smpls.se,
-                'se_manual': res_manual['se']}
+    ci = dml_obj.confint(joint=False, level=0.95)
+    ci_ext_smpls = dml_obj_ext_smpls.confint(joint=False, level=0.95)
+    ci_manual = confint_manual(
+        res_manual['apos'], res_manual['se'], treatment_levels,
+        boot_t_stat=None, joint=False, level=0.95
+        )
+
+    res_dict = {
+        'coef': dml_obj.coef,
+        'coef_ext_smpls': dml_obj_ext_smpls.coef,
+        'coef_manual': res_manual['apos'],
+        'se': dml_obj.se,
+        'se_ext_smpls': dml_obj_ext_smpls.se,
+        'se_manual': res_manual['se'],
+        'boot_methods': boot_methods,
+        'ci': ci.to_numpy(),
+        'ci_ext_smpls': ci_ext_smpls.to_numpy(),
+        'ci_manual': ci_manual.to_numpy(),
+        'apo_model': dml_obj
+    }
+
+    for bootstrap in boot_methods:
+        np.random.seed(42)
+        boot_t_stat = boot_apos(res_manual['apo_scaled_score'], res_manual['all_se'], treatment_levels,
+                                all_smpls, n_rep, bootstrap, n_rep_boot)
+
+        np.random.seed(42)
+        dml_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+
+        res_dict['boot_t_stat_' + bootstrap] = dml_obj.boot_t_stat
+        res_dict['boot_t_stat_' + bootstrap + '_manual'] = boot_t_stat
+
+        ci = dml_obj.confint(joint=True, level=0.95)
+        ci_manual = confint_manual(res_manual['apos'], res_manual['se'], treatment_levels,
+                                   boot_t_stat=boot_t_stat, joint=True, level=0.95)
+        res_dict['boot_ci_' + bootstrap] = ci.to_numpy()
+        res_dict['boot_ci_' + bootstrap + '_manual'] = ci_manual.to_numpy()
+
     return res_dict
 
 
@@ -118,3 +151,21 @@ def test_dml_apos_coef(dml_apos_fixture):
     assert np.allclose(dml_apos_fixture['coef'],
                        dml_apos_fixture['coef_ext_smpls'],
                        rtol=1e-9, atol=1e-9)
+
+
+@pytest.mark.ci
+def test_dml_apos_se(dml_apos_fixture):
+    assert np.allclose(dml_apos_fixture['se'],
+                       dml_apos_fixture['se_manual'],
+                       rtol=1e-9, atol=1e-9)
+    assert np.allclose(dml_apos_fixture['se'],
+                       dml_apos_fixture['se_ext_smpls'],
+                       rtol=1e-9, atol=1e-9)
+
+
+@pytest.mark.ci
+def test_dml_apos_boot(dml_apos_fixture):
+    for bootstrap in dml_apos_fixture['boot_methods']:
+        assert np.allclose(dml_apos_fixture['boot_t_stat_' + bootstrap],
+                           dml_apos_fixture['boot_t_stat_' + bootstrap + '_manual'],
+                           rtol=1e-9, atol=1e-4)

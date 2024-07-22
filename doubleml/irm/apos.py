@@ -131,6 +131,28 @@ class DoubleMLAPOS:
         return self._n_rep
 
     @property
+    def n_rep_boot(self):
+        """
+        The number of bootstrap replications.
+        """
+        if self._framework is None:
+            n_rep_boot = None
+        else:
+            n_rep_boot = self._framework.n_rep_boot
+        return n_rep_boot
+
+    @property
+    def boot_method(self):
+        """
+        The method to construct the bootstrap replications.
+        """
+        if self._framework is None:
+            method = None
+        else:
+            method = self._framework.boot_method
+        return method
+
+    @property
     def coef(self):
         """
         Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_treatment_levels``,)).
@@ -193,6 +215,18 @@ class DoubleMLAPOS:
         The corresponding :class:`doubleml.DoubleMLFramework` object.
         """
         return self._framework
+
+    @property
+    def boot_t_stat(self):
+        """
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
+         (shape (``n_rep_boot``, ``n_quantiles``, ``n_rep``)).
+        """
+        if self._framework is None:
+            boot_t_stat = None
+        else:
+            boot_t_stat = self._framework.boot_t_stat
+        return boot_t_stat
 
     @property
     def modellist(self):
@@ -280,6 +314,29 @@ class DoubleMLAPOS:
         df_ci.set_index(pd.Index(self._treatment_levels), inplace=True)
 
         return df_ci
+
+    def bootstrap(self, method='normal', n_rep_boot=500):
+        """
+        Multiplier bootstrap for DoubleML models.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the multiplier bootstrap method.
+            Default is ``'normal'``
+
+        n_rep_boot : int
+            The number of bootstrap replications.
+
+        Returns
+        -------
+        self : object
+        """
+        if self._framework is None:
+            raise ValueError('Apply fit() before bootstrap().')
+        self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
+
+        return self
 
     def draw_sample_splitting(self):
         """
