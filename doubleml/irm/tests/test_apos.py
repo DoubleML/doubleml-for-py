@@ -48,14 +48,10 @@ def treatment_levels(request):
 
 
 @pytest.fixture(scope='module')
-def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_threshold, treatment_levels):
+def dml_apos_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatment_levels):
     boot_methods = ['normal']
     n_folds = 2
     n_rep_boot = 499
-
-    # Set machine learning methods for m & g
-    ml_g = clone(learner[0])
-    ml_m = clone(learner[1])
 
     np.random.seed(3141)
     n_obs = 500
@@ -71,24 +67,27 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
     dml_data = dml.DoubleMLData(df, 'y', 'd')
 
     input_args = {
+        'obj_dml_data': dml_data,
+        'ml_g': clone(learner[0]),
+        'ml_m': clone(learner[1]),
         "treatment_levels": treatment_levels,
         "n_folds": n_folds,
         "n_rep": n_rep,
         "score": 'APO',
         "normalize_ipw": normalize_ipw,
         "trimming_rule": 'truncate',
-        "trimming_threshold": trimming_threshold,
-    }
+            "trimming_threshold": trimming_threshold,
+        }
 
-    unfitted_apos_model = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args)
+    unfitted_apos_model = dml.DoubleMLAPOS(**input_args)
     np.random.seed(42)
-    dml_obj = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args)
+    dml_obj = dml.DoubleMLAPOS(**input_args)
     dml_obj.fit()
     # get the sample splitting
     all_smpls = dml_obj.smpls
 
     np.random.seed(42)
-    dml_obj_ext_smpls = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args, draw_sample_splitting=False)
+    dml_obj_ext_smpls = dml.DoubleMLAPOS(**input_args, draw_sample_splitting=False)
     dml_obj_ext_smpls.set_sample_splitting(dml_obj.smpls)
     dml_obj_ext_smpls.fit()
 
