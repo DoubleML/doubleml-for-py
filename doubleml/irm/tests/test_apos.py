@@ -10,7 +10,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import doubleml as dml
 from doubleml.datasets import make_irm_data_discrete_treatments
 
-from ...tests._utils import draw_smpls
 from ._utils_apos_manual import fit_apos
 
 
@@ -69,26 +68,29 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
     )
 
     dml_data = dml.DoubleMLData(df, 'y', 'd')
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
 
-    np.random.seed(3141)
-    dml_obj = dml.DoubleMLAPOS(
-        dml_data,
-        ml_g, ml_m,
-        treatment_levels=treatment_levels,
-        n_folds=n_folds,
-        n_rep=n_rep,
-        score='APO',
-        normalize_ipw=normalize_ipw,
-        trimming_rule='truncate',
-        trimming_threshold=trimming_threshold,
-        draw_sample_splitting=False)
+    input_args = {
+        "treatment_levels": treatment_levels,
+        "n_folds": n_folds,
+        "n_rep": n_rep,
+        "score": 'APO',
+        "normalize_ipw": normalize_ipw,
+        "trimming_rule": 'truncate',
+        "trimming_threshold": trimming_threshold,
+    }
 
-    # synchronize the sample splitting
-    dml_obj.set_sample_splitting(all_smpls)
+    np.random.seed(42)
+    dml_obj = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args)
     dml_obj.fit()
+    # get the sample splitting
+    all_smpls = dml_obj.smpls
 
-    np.random.seed(3141)
+    np.random.seed(42)
+    dml_obj_ext_smpls = dml.DoubleMLAPOS(dml_data, ml_g, ml_m, **input_args, draw_sample_splitting=False)
+    dml_obj_ext_smpls.set_sample_splitting(dml_obj.smpls)
+    dml_obj_ext_smpls.fit()
+
+    np.random.seed(42)
     res_manual = fit_apos(
         y, x, d,
         clone(learner[0]), clone(learner[1]),
@@ -100,8 +102,10 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
         trimming_threshold=trimming_threshold)
 
     res_dict = {'coef': dml_obj.coef,
+                'coef_ext_smpls': dml_obj_ext_smpls.coef,
                 'coef_manual': res_manual['apos'],
                 'se': dml_obj.se,
+                'se_ext_smpls': dml_obj_ext_smpls.se,
                 'se_manual': res_manual['se']}
     return res_dict
 
@@ -110,4 +114,7 @@ def dml_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_
 def test_dml_apos_coef(dml_apos_fixture):
     assert np.allclose(dml_apos_fixture['coef'],
                        dml_apos_fixture['coef_manual'],
+                       rtol=1e-9, atol=1e-9)
+    assert np.allclose(dml_apos_fixture['coef'],
+                       dml_apos_fixture['coef_ext_smpls'],
                        rtol=1e-9, atol=1e-9)
