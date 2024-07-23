@@ -204,9 +204,21 @@ class DoubleMLFramework():
         return self._sensitivity_params
 
     @property
+    def treatment_names(self):
+        """
+        Names of the treatments.
+        """
+        return self._treatment_names
+
+    @treatment_names.setter
+    def treatment_names(self, value):
+        self._check_treatment_names(value)
+        self._treatment_names = value
+
+    @property
     def summary(self):
         """
-        A summary for the estimated causal effect ``theta``.
+        A summary for the estimated causal parameters ``thetas``.
         """
         ci = self.confint()
         df_summary = generate_summary(self.thetas, self.ses, self.t_stats,
