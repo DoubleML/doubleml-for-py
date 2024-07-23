@@ -217,15 +217,14 @@ class DoubleMLAPOS:
     @property
     def t_stat(self):
         """
-        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_quantiles``,)).
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_treatment_levels``,)).
         """
-        t_stat = self.coef / self.se
-        return t_stat
+        return self.framework.t_stats
 
     @property
     def pval(self):
         """
-        p-values for the causal parameter(s) (shape (``n_quantiles``,)).
+        p-values for the causal parameter(s) (shape (``n_treatment_levels``,)).
         """
         return self.framework.pvals
 
@@ -251,7 +250,7 @@ class DoubleMLAPOS:
     def boot_t_stat(self):
         """
         Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
-         (shape (``n_rep_boot``, ``n_quantiles``, ``n_rep``)).
+         (shape (``n_rep_boot``, ``n_treatment_levels``, ``n_rep``)).
         """
         if self._framework is None:
             boot_t_stat = None
