@@ -142,6 +142,24 @@ def test_input_exceptions():
         test_dict['cluster_dict'] = {'cluster_ids': np.ones(shape=(n_obs, n_rep))}
         DoubleMLFramework(test_dict)
 
+    msg = "treatment_names must be a list. Got 1 of type <class 'int'>."
+    with pytest.raises(TypeError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['treatment_names'] = 1
+        DoubleMLFramework(test_dict)
+
+    msg = r"treatment_names must be a list of strings. At least one element is not a string: \['test', 1\]."
+    with pytest.raises(TypeError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['treatment_names'] = ['test', 1]
+        DoubleMLFramework(test_dict)
+
+    msg = "The length of treatment_names does not match the number of treatments. Got 2 treatments and 3 treatment names."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict['treatment_names'] = ['test', 'test2', 'test3']
+        DoubleMLFramework(test_dict)
+
 
 def test_operation_exceptions():
     # addition
