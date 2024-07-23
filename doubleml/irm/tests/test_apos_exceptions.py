@@ -70,3 +70,11 @@ def test_apos_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0, normalize_ipw=1)
+
+
+@pytest.mark.ci
+def test_causal_contrast_exceptions():
+    msg = r"Apply fit() before causal_contrast()."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0)
+        dml_obj.causal_contrast()

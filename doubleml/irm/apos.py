@@ -458,32 +458,36 @@ class DoubleMLAPOS:
 
         return self
 
-    def average_treatment_effect(self, baseline_level=None):
+    def causal_contrast(self, reference_level):
         """
-        Average treatment effects for DoubleMLAPOS models.
+        Average causal contrasts for DoubleMLAPOS models. Estimates the difference in
+        average potential outcomes between the treatment levels and the reference level.
+        The reference has to be one of the treatment levels.
 
         Parameters
         ----------
-        baseline_level : None or int
-            The baseline level for the average treatment effect.
-            Default is ``None``.
+        reference_level :
+            The reference level for the difference in average potential outcomes.
+            Has to be an element of ``treatment_levels``.
 
         Returns
         -------
-        ate : pd.Series
-            A data frame with the average treatment effect(s).
+        acc : DoubleMLFramework
+            A DoubleMLFramwork class for average causal contrast(s).
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before average_treatment_effect().')
+            raise ValueError('Apply fit() before causal_contrast().')
 
-        i_baseline_level = self.treatment_levels.tolist().index(baseline_level)
-        baseline_framework = self.modellist[i_baseline_level].framework
+        i_reference_level = self.treatment_levels.tolist().index(reference_level)
+        reference_framework = self.modellist[i_reference_level].framework
 
-        ate_frameworks = [model.framework - baseline_framework for i, model in
-                          enumerate(self.modellist) if i != i_baseline_level]
-        ate = concat(ate_frameworks)
-        return ate
+        acc_frameworks = [model.framework - reference_framework for i, model in
+                          enumerate(self.modellist) if i != i_reference_level]
+        acc = concat(acc_frameworks)
+        acc.treatment_names = [f"{self.treatment_levels[i]} vs {reference_level}" for i in
+                               range(self.n_treatment_levels) if i != i_reference_level]
+        return acc
 
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False):
 
