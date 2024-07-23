@@ -31,7 +31,8 @@ def test_apos_exception_data():
         dml_data_z = make_iivm_data()
         _ = DoubleMLAPOS(dml_data_z, ml_g, ml_m, treatment_levels=0)
 
-    msg = 'The treatment levels have to be a subset of the unique treatment levels in the data.'
+    msg = ('Invalid reference_levels. reference_levels has to be an iterable subset or '
+           'a single element of the unique treatment levels in the data.')
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[1.1])
     with pytest.raises(ValueError, match=msg):
@@ -74,7 +75,18 @@ def test_apos_exception_ipw_normalization():
 
 @pytest.mark.ci
 def test_causal_contrast_exceptions():
-    msg = r"Apply fit() before causal_contrast()."
+    msg = r"Apply fit\(\) before causal_contrast\(\)."
     with pytest.raises(ValueError, match=msg):
-        dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0)
-        dml_obj.causal_contrast()
+        dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1])
+        dml_obj.causal_contrast(reference_levels=0)
+
+    dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1])
+    dml_obj.fit()
+    msg = ('Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or '
+           'a single treatment level.')
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.causal_contrast(reference_levels=2)
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.causal_contrast(reference_levels=[2])
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.causal_contrast(reference_levels=[0, 2])

@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from collections.abc import Iterable
 
 from sklearn.base import clone
 
@@ -35,8 +36,7 @@ class DoubleMLAPOS:
         self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
 
-        self._treatment_levels = np.asarray(treatment_levels).reshape((-1, ))
-        self._check_treatment_levels()
+        self._treatment_levels = self._check_treatment_levels(treatment_levels)
         self._n_treatment_levels = len(self._treatment_levels)
 
         self._normalize_ipw = normalize_ipw
@@ -458,16 +458,17 @@ class DoubleMLAPOS:
 
         return self
 
-    def causal_contrast(self, reference_level):
+    def causal_contrast(self, reference_levels):
         """
         Average causal contrasts for DoubleMLAPOS models. Estimates the difference in
-        average potential outcomes between the treatment levels and the reference level.
-        The reference has to be one of the treatment levels.
+        average potential outcomes between the treatment levels and the reference levels.
+        The reference levels have to be a subset of the treatment levels or a single
+        treatment level.
 
         Parameters
         ----------
-        reference_level :
-            The reference level for the difference in average potential outcomes.
+        reference_levels :
+            The reference levels for the difference in average potential outcomes.
             Has to be an element of ``treatment_levels``.
 
         Returns
@@ -478,14 +479,23 @@ class DoubleMLAPOS:
 
         if self.framework is None:
             raise ValueError('Apply fit() before causal_contrast().')
+        is_iterable = isinstance(reference_levels, Iterable)
+        if not is_iterable:
+            reference_levels = [reference_levels]
+        is_treatment_level_subset = set(reference_levels).issubset(set(self.treatment_levels))
+        if not is_treatment_level_subset:
+            raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or '
+                             'a single treatment level.')
 
-        i_reference_level = self.treatment_levels.tolist().index(reference_level)
+        for ref_lvl in reference_levels:
+            i_ref_lvl = self.treatment_levels.to
+        i_ref_lvls = self.treatment_levels.tolist().index(reference_levels)
         reference_framework = self.modellist[i_reference_level].framework
 
         acc_frameworks = [model.framework - reference_framework for i, model in
                           enumerate(self.modellist) if i != i_reference_level]
         acc = concat(acc_frameworks)
-        acc.treatment_names = [f"{self.treatment_levels[i]} vs {reference_level}" for i in
+        acc.treatment_names = [f"{self.treatment_levels[i]} vs {reference_levels}" for i in
                                range(self.n_treatment_levels) if i != i_reference_level]
         return acc
 
@@ -495,9 +505,17 @@ class DoubleMLAPOS:
         model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
         return model
 
-    def _check_treatment_levels(self):
-        if not np.all(np.isin(self._treatment_levels, np.unique(self._dml_data.d))):
-            raise ValueError('The treatment levels have to be a subset of the unique treatment levels in the data.')
+    def _check_treatment_levels(self, treatment_levels):
+        is_iterable = isinstance(treatment_levels, Iterable)
+        if not is_iterable:
+            treatment_level_list = [treatment_levels]
+        else:
+            treatment_level_list = [t_lvl for t_lvl in treatment_levels]
+        is_d_subset = set(treatment_level_list).issubset(set(np.unique(self._dml_data.d)))
+        if not is_d_subset:
+            raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset or '
+                             'a single element of the unique treatment levels in the data.')
+        return treatment_level_list
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
