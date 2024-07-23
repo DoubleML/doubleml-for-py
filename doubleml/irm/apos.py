@@ -479,6 +479,8 @@ class DoubleMLAPOS:
 
         if self.framework is None:
             raise ValueError('Apply fit() before causal_contrast().')
+        if self.n_treatment_levels == 1:
+            raise ValueError('Only one treatment level. No causal contrast can be computed.')
         is_iterable = isinstance(reference_levels, Iterable)
         if not is_iterable:
             reference_levels = [reference_levels]
@@ -487,16 +489,21 @@ class DoubleMLAPOS:
             raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or '
                              'a single treatment level.')
 
+        skip_index = []
+        all_treatment_names = []
+        all_acc_frameworks = []
         for ref_lvl in reference_levels:
-            i_ref_lvl = self.treatment_levels.to
-        i_ref_lvls = self.treatment_levels.tolist().index(reference_levels)
-        reference_framework = self.modellist[i_reference_level].framework
+            i_ref_lvl = self.treatment_levels.index(ref_lvl)
+            ref_framework = self.modellist[i_ref_lvl].framework
 
-        acc_frameworks = [model.framework - reference_framework for i, model in
-                          enumerate(self.modellist) if i != i_reference_level]
-        acc = concat(acc_frameworks)
-        acc.treatment_names = [f"{self.treatment_levels[i]} vs {reference_levels}" for i in
-                               range(self.n_treatment_levels) if i != i_reference_level]
+            skip_index += [i_ref_lvl]
+            all_acc_frameworks += [model.framework - ref_framework for i, model in
+                                   enumerate(self.modellist) if i not in skip_index]
+            all_treatment_names += [f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}" for
+                                    i in range(self.n_treatment_levels) if i not in skip_index]
+
+        acc = concat(all_acc_frameworks)
+        acc.treatment_names = all_treatment_names
         return acc
 
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False):

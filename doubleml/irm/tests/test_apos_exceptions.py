@@ -80,6 +80,12 @@ def test_causal_contrast_exceptions():
         dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1])
         dml_obj.causal_contrast(reference_levels=0)
 
+    msg = 'Only one treatment level. No causal contrast can be computed.'
+    with pytest.raises(ValueError, match=msg):
+        dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0])
+        dml_obj.fit()
+        dml_obj.causal_contrast(reference_levels=0)
+
     dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1])
     dml_obj.fit()
     msg = ('Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or '

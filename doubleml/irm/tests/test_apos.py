@@ -143,6 +143,13 @@ def dml_apos_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatmen
         res_dict['boot_ci_' + bootstrap] = ci.to_numpy()
         res_dict['boot_ci_' + bootstrap + '_manual'] = ci_manual.to_numpy()
 
+    # causal contrasts
+    if len(treatment_levels) > 1:
+        acc_single = dml_obj.causal_contrast(reference_levels=[treatment_levels[0]])
+        res_dict['causal_contrast_single'] = acc_single
+        acc_multiple = dml_obj.causal_contrast(reference_levels=treatment_levels)
+        res_dict['causal_contrast_multiple'] = acc_multiple
+
     return res_dict
 
 
@@ -198,3 +205,22 @@ def test_doubleml_apos_return_types(dml_apos_fixture):
         dml_apos_fixture['n_rep']
     )
     assert isinstance(dml_apos_fixture['unfitted_apos_model'].summary, pd.DataFrame)
+    if dml_apos_fixture['n_treatment_levels'] > 1:
+        assert isinstance(dml_apos_fixture['causal_contrast_single'], dml.DoubleMLFramework)
+        assert isinstance(dml_apos_fixture['causal_contrast_multiple'], dml.DoubleMLFramework)
+
+
+@pytest.mark.ci
+def test_doubleml_apos_causal_contrast(dml_apos_fixture):
+    if dml_apos_fixture['n_treatment_levels'] == 1:
+        pytest.skip("Skipping test as n_treatment_levels is 1")
+
+    acc_single = dml_apos_fixture['coef'][1:] - dml_apos_fixture['coef'][0]
+    assert np.allclose(dml_apos_fixture['causal_contrast_single'].thetas,
+                       acc_single,
+                       rtol=1e-9, atol=1e-9)
+
+    acc_multiple = np.append(acc_single, dml_apos_fixture['coef'][2] - dml_apos_fixture['coef'][1])
+    assert np.allclose(dml_apos_fixture['causal_contrast_multiple'].thetas,
+                       acc_multiple,
+                       rtol=1e-9, atol=1e-9)
