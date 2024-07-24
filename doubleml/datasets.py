@@ -1536,7 +1536,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
         res = xi * (-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
         return res
 
-    def treatment_effect(d, scale=5):
+    def treatment_effect(d, scale=15):
         return scale * (1 / (1 + np.exp(-d - 1.2 * np.cos(d)))) - 2
 
     z_tilde_1 = np.exp(0.5 * x[:, 0])
