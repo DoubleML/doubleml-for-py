@@ -7,7 +7,8 @@ from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
 
 from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw
-from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
+from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, \
+    _check_binary_predictions
 
 
 class DoubleMLIIVM(LinearScoreMixin, DoubleML):
@@ -264,15 +265,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             g_hat0['targets'][z == 1] = np.nan
 
         if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
-
+            _check_binary_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
             _check_is_propensity(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls, eps=1e-12)
+
         if external_predictions['ml_g1'] is not None:
             g_hat1 = {'preds': external_predictions['ml_g1'],
                       'targets': None,
@@ -287,14 +282,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             g_hat1['targets'][z == 0] = np.nan
 
         if self._dml_data.binary_outcome:
-            binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
-
+            _check_binary_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
             _check_is_propensity(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls, eps=1e-12)
 
         # nuisance m
