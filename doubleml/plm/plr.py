@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
-from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
 import warnings
