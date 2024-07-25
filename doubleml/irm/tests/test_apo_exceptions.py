@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_irm_data_discrete_treatments, make_iivm_data
+from doubleml.datasets import make_irm_data_discrete_treatments, make_iivm_data, make_irm_data
 
 from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 n = 100
 data_apo = make_irm_data_discrete_treatments(n_obs=n)
@@ -142,3 +143,51 @@ def test_apo_exception_weights():
         _ = DoubleMLAPO(dml_data, ml_g, ml_m, treatment_level=0,
                         weights={'weights': np.ones((dml_data.d.shape[0], )),
                                  'weights_bar': np.zeros((dml_data.d.shape[0], 1))})
+
+
+@pytest.mark.ci
+def test_apo_exception_capo_gapo():
+    n = 20
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    # First stage estimation
+    ml_g = RandomForestRegressor(n_estimators=10)
+    ml_m = RandomForestClassifier(n_estimators=10)
+
+    dml_obj = DoubleMLAPO(obj_dml_data,
+                          ml_m=ml_m,
+                          ml_g=ml_g,
+                          treatment_level=0)
+
+    dml_obj.fit()
+    # create a random basis
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
+
+    msg = "Invalid score APO_2. Valid score APO."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj._score = 'APO_2'
+        _ = dml_obj.capo(random_basis)
+    # reset the score
+    dml_obj._score = 'APO'
+
+    msg = "Only implemented for one repetition. Number of repetitions is 2."
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_obj._n_rep = 2
+        dml_obj.capo(random_basis)
+    # reset the number of repetitions
+    dml_obj._n_rep = 1
+
+    msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_obj.gapo(1)
+
+    groups_1 = pd.DataFrame(
+        np.column_stack([obj_dml_data.data['X1'] > 0.2, np.ones_like(obj_dml_data.data['X1'])]),
+        columns=['Group 1', 'Group 2']
+    )
+    msg = (r'Columns of groups must be of bool type or int type \(dummy coded\). Alternatively,'
+           ' groups should only contain one column.')
+    with pytest.raises(TypeError, match=msg):
+        _ = dml_obj.gapo(groups_1)
