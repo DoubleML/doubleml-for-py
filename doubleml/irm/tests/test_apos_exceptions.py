@@ -47,7 +47,7 @@ def test_apos_exception_learner():
            ' binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         ml_g_classifier = LogisticRegression()
-        _ = DoubleMLAPOS(dml_data, ml_g_classifier, ml_m, treatment_level=0)
+        _ = DoubleMLAPOS(dml_data, ml_g_classifier, ml_m, treatment_levels=0)
 
 
 @pytest.mark.ci
