@@ -206,6 +206,16 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
     return
 
 
+def _check_binary_predictions(pred, learner, learner_name, variable_name):
+    binary_preds = (type_of_target(pred) == 'binary')
+    zero_one_preds = np.all((np.power(pred, 2) - pred) == 0)
+    if binary_preds & zero_one_preds:
+        raise ValueError(f'For the binary variable {variable_name}, '
+                         f'predictions obtained with the {learner_name} learner {str(learner)} are also '
+                         'observed to be binary with values 0 and 1. Make sure that for classifiers '
+                         'probabilities and not labels are predicted.')
+
+
 def _check_benchmarks(benchmarks):
     if benchmarks is not None:
         if not isinstance(benchmarks, dict):

@@ -966,7 +966,7 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning, match=msg):
         dml_irm_hidden_classifier = DoubleMLIRM(dml_data_irm_binary_outcome,
                                                 log_reg, LogisticRegression())
-    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner '
+    msg = (r'For the binary variable y, predictions obtained with the ml_g learner '
            r'LogisticRegressionManipulatedPredict\(\) are also observed to be binary with values 0 and 1. Make sure '
            'that for classifiers probabilities and not labels are predicted.')
     with pytest.raises(ValueError, match=msg):

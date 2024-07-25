@@ -13,7 +13,7 @@ from ..double_ml_score_mixins import LinearScoreMixin
 
 from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
 from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
-    _check_weights
+    _check_weights, _check_binary_predictions
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -275,13 +275,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
 
             if self._dml_data.binary_outcome:
-                binary_preds = (type_of_target(g_hat0['preds']) == 'binary')
-                zero_one_preds = np.all((np.power(g_hat0['preds'], 2) - g_hat0['preds']) == 0)
-                if binary_preds & zero_one_preds:
-                    raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                     f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                     'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                     'probabilities and not labels are predicted.')
+                _check_binary_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
 
         if g1_external:
             # use external predictions
@@ -297,13 +291,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
 
         if self._dml_data.binary_outcome & (self.score != 'ATTE'):
-            binary_preds = (type_of_target(g_hat1['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(g_hat1['preds'], 2) - g_hat1['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary outcome variable {self._dml_data.y_col}, '
-                                 f'predictions obtained with the ml_g learner {str(self._learner["ml_g"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
+            _check_binary_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
 
         # nuisance m
         if m_external:
