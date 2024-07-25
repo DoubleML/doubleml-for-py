@@ -109,6 +109,7 @@ def test_apo_weighted_coef(weighted_apo_score_fixture):
                        weighted_apo_score_fixture['weighted_coef_dict'])
 
 
+@pytest.mark.ci
 def test_apo_default_weights(weighted_apo_score_fixture):
     assert isinstance(weighted_apo_score_fixture['default_weights'], dict)
 
