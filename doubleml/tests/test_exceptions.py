@@ -8,7 +8,8 @@ from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, Doubl
     DoubleMLDIDCS, DoubleMLBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
-from doubleml.double_ml_data import DoubleMLBaseData
+
+from ._utils import DummyDataClass
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
@@ -36,16 +37,6 @@ y[y > 0] = 1
 y[y < 0] = 0
 dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
 dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
-
-
-class DummyDataClass(DoubleMLBaseData):
-    def __init__(self,
-                 data):
-        DoubleMLBaseData.__init__(self, data)
-
-    @property
-    def n_coefs(self):
-        return 1
 
 
 @pytest.mark.ci

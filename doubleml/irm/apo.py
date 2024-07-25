@@ -8,7 +8,6 @@ from ..double_ml import DoubleML
 
 from ..utils.blp import DoubleMLBLP
 from ..double_ml_score_mixins import LinearScoreMixin
-from ..double_ml_data import DoubleMLData
 
 from ..utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _cond_targets, _trimm, \
     _normalize_ipw
@@ -368,9 +367,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return res
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +

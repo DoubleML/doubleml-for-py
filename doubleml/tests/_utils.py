@@ -5,6 +5,17 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..utils._estimation import _var_est, _aggregate_coefs_and_ses
+from ..double_ml_data import DoubleMLBaseData
+
+
+class DummyDataClass(DoubleMLBaseData):
+    def __init__(self,
+                 data):
+        DoubleMLBaseData.__init__(self, data)
+
+    @property
+    def n_coefs(self):
+        return 1
 
 
 def draw_smpls(n_obs, n_folds, n_rep=1, groups=None):
