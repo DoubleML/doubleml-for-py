@@ -8,10 +8,53 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data_discrete_treatments
+from doubleml.datasets import make_irm_data_discrete_treatments, make_irm_data
 
 from ._utils_apos_manual import fit_apos, boot_apos
 from ...tests._utils import confint_manual
+
+
+@pytest.mark.ci
+def test_apo_properties():
+    n = 20
+    # collect data
+    np.random.seed(42)
+    obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
+
+    dml_obj = dml.DoubleMLAPOS(obj_dml_data,
+                               ml_g=RandomForestRegressor(n_estimators=10),
+                               ml_m=RandomForestClassifier(n_estimators=10),
+                               treatment_levels=0)
+
+    # check properties before fit
+    assert dml_obj.n_rep_boot is None
+    assert dml_obj.coef is None
+    assert dml_obj.all_coef is None
+    assert dml_obj.se is None
+    assert dml_obj.all_se is None
+    assert dml_obj.t_stat is None
+    assert dml_obj.pval is None
+    assert dml_obj.n_rep_boot is None
+    assert dml_obj.boot_t_stat is None
+    assert dml_obj.boot_method is None
+
+    # check properties after fit
+    dml_obj.fit()
+    assert dml_obj.coef is not None
+    assert dml_obj.all_coef is not None
+    assert dml_obj.se is not None
+    assert dml_obj.all_se is not None
+    assert dml_obj.t_stat is not None
+    assert dml_obj.pval is not None
+    assert dml_obj.n_rep_boot is None
+    assert dml_obj.boot_t_stat is None
+    assert dml_obj.boot_method is None
+
+    # check properties after bootstrap
+    dml_obj.bootstrap()
+    assert dml_obj.n_rep_boot is not None
+    assert dml_obj.boot_t_stat is not None
+    assert dml_obj.boot_method is not None
 
 
 @pytest.fixture(scope='module',

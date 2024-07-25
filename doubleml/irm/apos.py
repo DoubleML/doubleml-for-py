@@ -229,14 +229,22 @@ class DoubleMLAPOS:
         """
         t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_treatment_levels``,)).
         """
-        return self.framework.t_stats
+        if self._framework is None:
+            t_stats = None
+        else:
+            t_stats = self.framework.t_stats
+        return t_stats
 
     @property
     def pval(self):
         """
         p-values for the causal parameter(s) (shape (``n_treatment_levels``,)).
         """
-        return self.framework.pvals
+        if self._framework is None:
+            pvals = None
+        else:
+            pvals = self.framework.pvals
+        return pvals
 
     @property
     def smpls(self):
