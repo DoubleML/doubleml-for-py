@@ -950,7 +950,7 @@ def test_doubleml_exception_learner():
            'nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
         dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
-    msg = (r'For the binary treatment variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
+    msg = (r'For the binary variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
            'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
            'labels are predicted.')
     with pytest.raises(ValueError, match=msg):
