@@ -6,6 +6,7 @@ from sklearn.base import clone
 
 from joblib import Parallel, delayed
 
+from ..double_ml import DoubleML
 from ..double_ml_data import DoubleMLData, DoubleMLClusterData
 from .apo import DoubleMLAPO
 from ..double_ml_framework import concat
@@ -60,8 +61,17 @@ class DoubleMLAPOS:
             raise TypeError('Normalization indicator has to be boolean. ' +
                             f'Object of type {str(type(self.normalize_ipw))} passed.')
 
+        ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
         self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
-        self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
+                                 'but the outcome variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
 
         # APO weights
         _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
