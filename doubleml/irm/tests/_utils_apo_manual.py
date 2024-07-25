@@ -127,21 +127,18 @@ def var_apo(theta, g_hat0, g_hat1, m_hat, u_hat0, u_hat1, treated, score, n_obs)
 
 def boot_apo(y, d, treatment_level, thetas, ses, all_g_hat0, all_g_hat1, all_m_hat,
              all_smpls, score, bootstrap, n_rep_boot,
-             n_rep=1, apply_cross_fitting=True, normalize_ipw=True):
+             n_rep=1, normalize_ipw=True):
     treated = (d == treatment_level)
     all_boot_t_stat = list()
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
-        if apply_cross_fitting:
-            n_obs = len(y)
-        else:
-            test_index = smpls[0][1]
-            n_obs = len(test_index)
+        n_obs = len(y)
+
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         boot_t_stat = boot_apo_single_split(
             thetas[i_rep], y, d, treated,
             all_g_hat0[i_rep], all_g_hat1[i_rep], all_m_hat[i_rep], smpls,
-            score, ses[i_rep], weights, n_rep_boot, apply_cross_fitting, normalize_ipw)
+            score, ses[i_rep], weights, n_rep_boot, normalize_ipw)
         all_boot_t_stat.append(boot_t_stat)
 
     boot_t_stat = np.hstack(all_boot_t_stat)
@@ -150,7 +147,7 @@ def boot_apo(y, d, treatment_level, thetas, ses, all_g_hat0, all_g_hat1, all_m_h
 
 
 def boot_apo_single_split(theta, y, d, treated, g_hat0_list, g_hat1_list, m_hat_list,
-                          smpls, score, se, weights, n_rep_boot, apply_cross_fitting, normalize_ipw):
+                          smpls, score, se, weights, n_rep_boot, normalize_ipw):
     _, u_hat1, _, g_hat1, m_hat = compute_residuals(
         y, g_hat0_list, g_hat1_list, m_hat_list, smpls)
 
@@ -161,7 +158,7 @@ def boot_apo_single_split(theta, y, d, treated, g_hat0_list, g_hat1_list, m_hat_
 
     J = -1.0
     psi = g_hat1 + np.divide(np.multiply(treated, u_hat1), m_hat_adj) - theta
-    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot, apply_cross_fitting)
+    boot_t_stat = boot_manual(psi, J, smpls, se, weights, n_rep_boot)
 
     return boot_t_stat
 
