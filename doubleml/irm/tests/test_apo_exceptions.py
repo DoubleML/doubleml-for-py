@@ -48,6 +48,15 @@ def test_apo_exception_data():
 
 
 @pytest.mark.ci
+def test_apo_exception_learner():
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier but the outcome variable is not'
+           ' binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        ml_g_classifier = LogisticRegression()
+        _ = DoubleMLAPO(dml_data, ml_g_classifier, ml_m, treatment_level=0)
+
+
+@pytest.mark.ci
 def test_apo_exception_scores():
     msg = 'Invalid score MAR. Valid score APO.'
     with pytest.raises(ValueError, match=msg):
