@@ -261,6 +261,14 @@ def test_doubleml_exception_data():
 
 
 @pytest.mark.ci
+def test_doubleml_exception_framework():
+    msg = r'Apply fit\(\) before sensitivity_analysis\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_obj = DoubleMLPLR(dml_data, ml_l, ml_m)
+        dml_obj.sensitivity_analysis()
+
+
+@pytest.mark.ci
 def test_doubleml_exception_scores():
     # PLR
     msg = 'Invalid score IV. Valid score IV-type or partialling out.'
