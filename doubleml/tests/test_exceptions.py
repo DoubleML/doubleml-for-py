@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+import copy
 
 from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
     DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, \
@@ -645,12 +646,47 @@ def test_doubleml_exception_smpls():
     dml_plr_no_smpls = DoubleMLPLR(dml_data, ml_l, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
-    msg = 'Sample splitting not specified. Draw samples via .draw_sample splitting().'
     dml_pliv_cluster_no_smpls = DoubleMLPLIV(dml_cluster_data_pliv, ml_l, ml_m, ml_r, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
-        _ = dml_pliv_cluster_no_smpls.smpls_cluster
-    with pytest.raises(ValueError, match=msg):
         _ = dml_pliv_cluster_no_smpls.smpls
+
+    dml_pliv_cluster = DoubleMLPLIV(dml_cluster_data_pliv, ml_g, ml_m, ml_r)
+    smpls = dml_plr.smpls
+    msg = ('For cluster data, all_smpls_cluster must be provided.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(smpls)
+
+    all_smpls_cluster = copy.deepcopy(dml_pliv_cluster.smpls_cluster)
+    all_smpls_cluster.append(all_smpls_cluster[0])
+    msg = ('Invalid samples provided. Number of repetitions for all_smpls and all_smpls_cluster must be the same.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(
+            all_smpls=dml_pliv_cluster.smpls,
+            all_smpls_cluster=all_smpls_cluster)
+
+    all_smpls_cluster = copy.deepcopy(dml_pliv_cluster.smpls_cluster)
+    all_smpls_cluster[0] = all_smpls_cluster[0][0]
+    msg = ('Invalid samples provided. Number of folds for all_smpls and all_smpls_cluster must be the same.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(
+            all_smpls=dml_pliv_cluster.smpls,
+            all_smpls_cluster=all_smpls_cluster)
+
+    all_smpls_cluster = copy.deepcopy(dml_pliv_cluster.smpls_cluster)
+    all_smpls_cluster[0][0][1][1] = np.append(all_smpls_cluster[0][0][1][1], [11], axis=0)
+    msg = ('Invalid cluster partition provided. At least one inner list does not form a partition.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(
+            all_smpls=dml_pliv_cluster.smpls,
+            all_smpls_cluster=all_smpls_cluster)
+
+    all_smpls_cluster = copy.deepcopy(dml_pliv_cluster.smpls_cluster)
+    all_smpls_cluster[0][0][1][1][1] = 11
+    msg = ('Invalid cluster partition provided. At least one inner list does not form a partition.')
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_pliv_cluster.set_sample_splitting(
+            all_smpls=dml_pliv_cluster.smpls,
+            all_smpls_cluster=all_smpls_cluster)
 
 
 @pytest.mark.ci
@@ -1167,12 +1203,6 @@ def test_doubleml_cluster_not_yet_implemented():
     msg = 'bootstrap not yet implemented with clustering.'
     with pytest.raises(NotImplementedError, match=msg):
         _ = dml_pliv_cluster.bootstrap()
-
-    smpls = dml_plr.smpls
-    msg = ('Externally setting the sample splitting for DoubleML is '
-           'not yet implemented with clustering.')
-    with pytest.raises(NotImplementedError, match=msg):
-        _ = dml_pliv_cluster.set_sample_splitting(smpls)
 
     df = dml_cluster_data_pliv.data.copy()
     df['cluster_var_k'] = df['cluster_var_i'] + df['cluster_var_j'] - 2
