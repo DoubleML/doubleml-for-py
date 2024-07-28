@@ -213,9 +213,9 @@ def test_apo_defaults():
 @pytest.mark.ci
 def test_apos_defaults():
     assert dml_apos.n_rep_boot is None
-    assert dml_apo.boot_method is None
-    assert dml_apo.framework is None
-    assert dml_apo.boot_t_stat is None
+    assert dml_apos.boot_method is None
+    assert dml_apos.framework is None
+    assert dml_apos.boot_t_stat is None
     _fit_bootstrap(dml_qte)
     assert dml_apos.score == 'APO'
     assert dml_apos.trimming_rule == 'truncate'
