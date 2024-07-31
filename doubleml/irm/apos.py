@@ -39,6 +39,7 @@ class DoubleMLAPOS:
         self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
 
+        self._all_treatments = np.unique(self._dml_data.d)
         self._treatment_levels = self._check_treatment_levels(treatment_levels)
         self._n_treatment_levels = len(self._treatment_levels)
 
@@ -739,7 +740,7 @@ class DoubleMLAPOS:
             treatment_level_list = [treatment_levels]
         else:
             treatment_level_list = [t_lvl for t_lvl in treatment_levels]
-        is_d_subset = set(treatment_level_list).issubset(set(np.unique(self._dml_data.d)))
+        is_d_subset = set(treatment_level_list).issubset(set(self._all_treatments))
         if not is_d_subset:
             raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset or '
                              'a single element of the unique treatment levels in the data.')
