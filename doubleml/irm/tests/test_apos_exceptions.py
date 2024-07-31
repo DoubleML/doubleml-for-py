@@ -101,6 +101,9 @@ def test_apos_exception_properties_and_methods():
     msg = r'Apply fit\(\) before sensitivity_analysis\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_obj.sensitivity_analysis()
+    msg = r'Apply fit\(\) before sensitivity_plot\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.sensitivity_plot()
 
 
 @pytest.mark.ci

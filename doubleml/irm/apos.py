@@ -475,6 +475,77 @@ class DoubleMLAPOS:
 
         return self
 
+    def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
+                         include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+        """
+        Contour plot of the sensivity with respect to latent/confounding variables.
+
+        Parameters
+        ----------
+        idx_treatment : int
+            Index of the treatment to perform the sensitivity analysis.
+            Default is ``0``.
+
+        value : str
+            Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
+            and ``'ci'`` (refers to the bounds including statistical uncertainty).
+            Default is ``'theta'``.
+
+        rho: float
+            The correlation between the differences in short and long representations in the main regression and
+            Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
+            confounding (maximizes at 1.0).
+            Default is ``1.0``.
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        null_hypothesis : float
+            Null hypothesis for the effect. Determines the direction of the contour lines.
+
+        include_scenario : bool
+            Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
+            Default is ``True``.
+
+        benchmarks : dict or None
+            Dictionary of benchmarks to be included in the plot. The keys are ``cf_y``, ``cf_d`` and ``name``.
+            Default is ``None``.
+
+        fill : bool
+            Indicates whether to use a heatmap style or only contour lines.
+            Default is ``True``.
+
+        grid_bounds : tuple
+            Determines the evaluation bounds of the grid for ``cf_d`` and ``cf_y``. Has to contain two floats in [0, 1).
+            Default is ``(0.15, 0.15)``.
+
+        grid_size : int
+            Determines the number of evaluation points of the grid.
+            Default is ``100``.
+
+        Returns
+        -------
+        fig : object
+            Plotly figure of the sensitivity contours.
+        """
+        if self._framework is None:
+            raise ValueError('Apply fit() before sensitivity_plot().')
+        fig = self._framework.sensitivity_plot(
+            idx_treatment=idx_treatment,
+            value=value,
+            rho=rho,
+            level=level,
+            null_hypothesis=null_hypothesis,
+            include_scenario=include_scenario,
+            benchmarks=benchmarks,
+            fill=fill,
+            grid_bounds=grid_bounds,
+            grid_size=grid_size
+        )
+
+        return fig
+
     def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.
