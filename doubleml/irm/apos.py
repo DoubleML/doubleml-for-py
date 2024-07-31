@@ -385,7 +385,9 @@ class DoubleMLAPOS:
 
         if external_predictions is not None:
             self._check_external_predictions(external_predictions)
-            ext_pred_dict = self._recompute_external_predictions(self)
+            ext_pred_dict = self._recompute_external_predictions(external_predictions)
+        else:
+            ext_pred_dict = None
 
         # parallel estimation of the models
         parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
@@ -794,14 +796,16 @@ class DoubleMLAPOS:
         return
 
     def _recompute_external_predictions(self, external_predictions):
-        ext_pred_dict = {}
-        for i_level in range(self.n_treatment_levels):
-            ext_pred_dict[self.treatment_levels[i_level]] = {
-                'ml_g1': external_predictions[self.treatment_levels[i_level]]['ml_g'],
-                'ml_m': external_predictions[self.treatment_levels[i_level]]['ml_m']
-            }
-            ext_pred_dict[self.treatment_levels[i_level]]['ml_g0'] = \
-                external_predictions[self.treatment_levels[i_level]]['ml_g']
+        d_col = self._dml_data.d_cols[0]
+        ext_pred_dict = {treatment_level: {d_col: {}} for treatment_level in self.treatment_levels}
+        for treatment_level in self.treatment_levels:
+            if "ml_g1" in external_predictions[treatment_level]:
+                ext_pred_dict[treatment_level][d_col]['ml_g1'] = external_predictions[treatment_level]['ml_g1']
+            if "ml_m" in external_predictions[treatment_level]:
+                ext_pred_dict[treatment_level][d_col]['ml_m'] = external_predictions[treatment_level]['ml_m']
+            if "ml_g0" in external_predictions[treatment_level]:
+                ext_pred_dict[treatment_level][d_col]['ml_g0'] = external_predictions[treatment_level]['ml_g0']
+            # TODO: Combine the models
 
         return ext_pred_dict
 
