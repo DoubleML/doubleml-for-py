@@ -1111,7 +1111,7 @@ def test_doubleml_sensitivity_summary():
     dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
     msg = r'Apply sensitivity_analysis\(\) before sensitivity_summary.'
     with pytest.raises(ValueError, match=msg):
-        _ = dml_irm.sensitivity_summary()
+        _ = dml_irm.sensitivity_summary
 
 
 @pytest.mark.ci
