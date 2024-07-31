@@ -110,6 +110,50 @@ def test_apos_exception_properties_and_methods():
 
 
 @pytest.mark.ci
+def test_apos_exception_ext_pred():
+    dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0)
+    external_predictions = [0, 1]
+    msg = r'external_predictions must be a dictionary. Object of type <class \'list\'> passed.'
+    with pytest.raises(TypeError, match=msg):
+        dml_obj.fit(external_predictions=external_predictions)
+
+    # test with a level subset
+    external_predictions = {
+        0: "dummy",
+        1: "dummy"
+    }
+    msg = (
+        r"external_predictions must contain predictions for all treatment levels\. "
+        r"Expected keys: \{0, 'add_treatment_levels'\}\. "
+        r"Passed keys: \{0, 1\}\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit(external_predictions=external_predictions)
+
+    external_predictions = {
+        0: {"ml_g": "dummy"},
+        'add_treatment_levels': {"ml_m": "dummy"}
+    }
+    msg = "The predictions for ml_g have to provided for all treatment levels or not at all."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit(external_predictions=external_predictions)
+
+    # test with all levels
+    dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1, 2, 3])
+    external_predictions = {
+        0: "dummy",
+        1: "dummy"
+    }
+    msg = (
+        r"external_predictions must contain predictions for all treatment levels\. "
+        r"Expected keys: \{0, 1, 2, 3\}\. "
+        r"Passed keys: \{0, 1\}\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.fit(external_predictions=external_predictions)
+
+
+@pytest.mark.ci
 def test_causal_contrast_exceptions():
     msg = r"Apply fit\(\) before causal_contrast\(\)."
     with pytest.raises(ValueError, match=msg):

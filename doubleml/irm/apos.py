@@ -39,9 +39,12 @@ class DoubleMLAPOS:
         self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
 
-        self._all_treatments = np.unique(self._dml_data.d)
+        self._all_treatment_levels = np.unique(self._dml_data.d)
+
         self._treatment_levels = self._check_treatment_levels(treatment_levels)
         self._n_treatment_levels = len(self._treatment_levels)
+        # Check if there are elements in self._all_treatments that are not in self.treatment_levels
+        self._add_treatment_levels = [t for t in self._all_treatment_levels if t not in self._treatment_levels]
 
         self._normalize_ipw = normalize_ipw
         self._n_folds = n_folds
@@ -366,8 +369,14 @@ class DoubleMLAPOS:
             to analyze the fitted models or extract information like variable importance.
             Default is ``False``.
 
-        external_predictions : None
-            Not implemented for DoubleMLAPOS.
+        external_predictions : dict or None
+            A nested dictionary where the keys correspond the the treatment levels and contain predictions according to each
+            treatment level. The values have to be dictionaries which containkeys ``'ml_g'`` and ``'ml_m'``.
+            The predictions for ``'ml_m'`` are passed directly to the DoubleMLAPO model,
+            whereas the predictions for ``'ml_g'`` are used to compute predictions for ``'ml_g1'`` and ``'ml_g0'``.
+            If the treatment levels do not cover all levels in the data, combined predictions for ``'ml_g'`` have
+            to be provided under the key ``'add_treatment_levels'``.
+            Default is `None`.
 
         Returns
         -------
@@ -375,12 +384,20 @@ class DoubleMLAPOS:
         """
 
         if external_predictions is not None:
-            raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
+            self._check_external_predictions(external_predictions)
+            ext_pred_dict = self._recompute_external_predictions(self)
 
         # parallel estimation of the models
         parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
-        fitted_models = parallel(delayed(self._fit_model)(i_level, n_jobs_cv, store_predictions, store_models)
-                                 for i_level in range(self.n_treatment_levels))
+        fitted_models = parallel(
+            delayed(self._fit_model)(
+                i_level,
+                n_jobs_cv,
+                store_predictions,
+                store_models,
+                ext_pred_dict)
+            for i_level in range(self.n_treatment_levels)
+        )
 
         # combine the estimates and scores
         framework_list = [None] * self.n_treatment_levels
@@ -728,10 +745,15 @@ class DoubleMLAPOS:
         acc.treatment_names = all_treatment_names
         return acc
 
-    def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False):
+    def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
 
         model = self.modellist[i_level]
-        model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models)
+        if external_predictions_dict is not None:
+            external_predictions = external_predictions_dict[self.treatment_levels[i_level]]
+        else:
+            external_predictions = None
+        model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models,
+                  external_predictions=external_predictions)
         return model
 
     def _check_treatment_levels(self, treatment_levels):
@@ -740,7 +762,7 @@ class DoubleMLAPOS:
             treatment_level_list = [treatment_levels]
         else:
             treatment_level_list = [t_lvl for t_lvl in treatment_levels]
-        is_d_subset = set(treatment_level_list).issubset(set(self._all_treatments))
+        is_d_subset = set(treatment_level_list).issubset(set(self._all_treatment_levels))
         if not is_d_subset:
             raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset or '
                              'a single element of the unique treatment levels in the data.')
@@ -752,6 +774,36 @@ class DoubleMLAPOS:
         if obj_dml_data.z is not None:
             raise ValueError('The data must not contain instrumental variables.')
         return
+
+    def _check_external_predictions(self, external_predictions):
+        expected_keys = self.treatment_levels
+        if len(self._add_treatment_levels) > 0:
+            expected_keys += ['add_treatment_levels']
+        if not isinstance(external_predictions, dict):
+            raise TypeError('external_predictions must be a dictionary. ' +
+                            f'Object of type {type(external_predictions)} passed.')
+
+        if not set(external_predictions.keys()) == set(expected_keys):
+            raise ValueError('external_predictions must contain predictions for all treatment levels. ' +
+                             f'Expected keys: {set(expected_keys)}. ' +
+                             f'Passed keys: {set(external_predictions.keys())}.')
+
+        contains_ml_g = ['ml_g' in external_predictions[treatment_level] for treatment_level in self.treatment_levels]
+        if not all(contains_ml_g) and not all([not contains for contains in contains_ml_g]):
+            raise ValueError('The predictions for ml_g have to provided for all treatment levels or not at all.')
+        return
+
+    def _recompute_external_predictions(self, external_predictions):
+        ext_pred_dict = {}
+        for i_level in range(self.n_treatment_levels):
+            ext_pred_dict[self.treatment_levels[i_level]] = {
+                'ml_g1': external_predictions[self.treatment_levels[i_level]]['ml_g'],
+                'ml_m': external_predictions[self.treatment_levels[i_level]]['ml_m']
+            }
+            ext_pred_dict[self.treatment_levels[i_level]]['ml_g0'] = \
+                external_predictions[self.treatment_levels[i_level]]['ml_g']
+
+        return ext_pred_dict
 
     def _initialize_weights(self, weights):
         if weights is None:
