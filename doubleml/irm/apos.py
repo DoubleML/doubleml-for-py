@@ -284,6 +284,19 @@ class DoubleMLAPOS:
         return self._modellist
 
     @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity components after calling :meth:`fit`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
+        and ``riesz_rep``.
+        """
+        if self._framework is None:
+            sensitivity_elements = None
+        else:
+            sensitivity_elements = self._framework.sensitivity_elements
+        return sensitivity_elements
+
+    @property
     def summary(self):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.

@@ -37,6 +37,7 @@ def test_apo_properties():
     assert dml_obj.n_rep_boot is None
     assert dml_obj.boot_t_stat is None
     assert dml_obj.boot_method is None
+    assert dml_obj.sensitivity_elements is None
 
     # check properties after fit
     dml_obj.fit()
@@ -49,6 +50,7 @@ def test_apo_properties():
     assert dml_obj.n_rep_boot is None
     assert dml_obj.boot_t_stat is None
     assert dml_obj.boot_method is None
+    assert dml_obj.sensitivity_elements is not None
 
     # check properties after bootstrap
     dml_obj.bootstrap()
