@@ -1436,44 +1436,11 @@ class DoubleML(ABC):
         res : str
             Summary for the sensitivity analysis.
         """
-        header = '================== Sensitivity Analysis ==================\n'
-        if self.sensitivity_params is None:
-            res = header + 'Apply sensitivity_analysis() to generate sensitivity_summary.'
+        if self._framework is None:
+            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
         else:
-            sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
-            scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
-                              f'cf_d={self.sensitivity_params["input"]["cf_d"]}, ' \
-                              f'rho={self.sensitivity_params["input"]["rho"]}'
-
-            theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
-            theta_and_ci = np.transpose(np.vstack((self.sensitivity_params['ci']['lower'],
-                                                   self.sensitivity_params['theta']['lower'],
-                                                   self.coef,
-                                                   self.sensitivity_params['theta']['upper'],
-                                                   self.sensitivity_params['ci']['upper'])))
-            df_theta_and_ci = pd.DataFrame(theta_and_ci,
-                                           columns=theta_and_ci_col_names,
-                                           index=self._dml_data.d_cols)
-            theta_and_ci_summary = str(df_theta_and_ci)
-
-            rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
-            rvs = np.transpose(np.vstack((self.sensitivity_params['rv'],
-                                          self.sensitivity_params['rva']))) * 100
-
-            df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
-                                  columns=rvs_col_names,
-                                  index=self._dml_data.d_cols)
-            rvs_summary = str(df_rvs)
-
-            res = header + \
-                '\n------------------ Scenario          ------------------\n' + \
-                sig_level + scenario_params + '\n' + \
-                '\n------------------ Bounds with CI    ------------------\n' + \
-                theta_and_ci_summary + '\n' + \
-                '\n------------------ Robustness Values ------------------\n' + \
-                rvs_summary
-
-        return res
+            sensitivity_summary = self._framework.sensitivity_summary
+        return sensitivity_summary
 
     def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
                          include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):

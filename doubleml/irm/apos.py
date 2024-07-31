@@ -323,6 +323,22 @@ class DoubleMLAPOS:
                                           self.pval, ci, self._treatment_levels)
         return df_summary
 
+    @property
+    def sensitivity_summary(self):
+        """
+        Returns a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
+
+        Returns
+        -------
+        res : str
+            Summary for the sensitivity analysis.
+        """
+        if self._framework is None:
+            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
+        else:
+            sensitivity_summary = self._framework.sensitivity_summary
+        return sensitivity_summary
+
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
         """
         Estimate DoubleMLAPOS models.
