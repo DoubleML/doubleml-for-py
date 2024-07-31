@@ -79,12 +79,12 @@ def gain_statistics(dml_long, dml_short):
     # Gain statistics
     all_cf_y_benchmark = np.clip(np.divide((R2_y_long - R2_y_short), (1.0 - R2_y_long)), 0, 1)
     all_cf_d_benchmark = np.clip(np.divide((1.0 - R2_riesz), R2_riesz), 0, 1)
-    cf_y_benchmark = np.median(all_cf_y_benchmark, axis=0)
-    cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
+    cf_y_benchmark = np.median(all_cf_y_benchmark, axis=1)
+    cf_d_benchmark = np.median(all_cf_d_benchmark, axis=1)
 
     # change in estimates (slightly different to paper)
     all_delta_theta = dml_short.all_coef - dml_long.all_coef
-    delta_theta = np.median(all_delta_theta, axis=0)
+    delta_theta = np.median(all_delta_theta, axis=1)
 
     # degree of adversity
     var_g = var_y_residuals_short - var_y_residuals_long
@@ -97,7 +97,7 @@ def gain_statistics(dml_long, dml_short):
                                    where=denom != 0),
                          0.0, 1.0)
     all_rho_benchmark = np.multiply(rho_values, rho_sign)
-    rho_benchmark = np.median(all_rho_benchmark, axis=0)
+    rho_benchmark = np.median(all_rho_benchmark, axis=1)
     benchmark_dict = {
         "cf_y": cf_y_benchmark,
         "cf_d": cf_d_benchmark,
