@@ -56,7 +56,7 @@ def gain_statistics(dml_long, dml_short):
     if not isinstance(dml_short.all_coef, np.ndarray):
         raise TypeError("dml_short.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
 
-    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[2], dml_long.sensitivity_elements['sigma2'].shape[1])
+    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[1], dml_long.sensitivity_elements['sigma2'].shape[2])
     if dml_long.all_coef.shape != expected_shape:
         raise ValueError("dml_long.all_coef does not contain the necessary coefficients. Expected shape: " +
                          str(expected_shape))
@@ -83,7 +83,7 @@ def gain_statistics(dml_long, dml_short):
     cf_d_benchmark = np.median(all_cf_d_benchmark, axis=0)
 
     # change in estimates (slightly different to paper)
-    all_delta_theta = np.transpose(dml_short.all_coef - dml_long.all_coef)
+    all_delta_theta = dml_short.all_coef - dml_long.all_coef
     delta_theta = np.median(all_delta_theta, axis=0)
 
     # degree of adversity
