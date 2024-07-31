@@ -98,6 +98,9 @@ def test_apos_exception_properties_and_methods():
     msg = r'Apply fit\(\) before bootstrap\(\).'
     with pytest.raises(ValueError, match=msg):
         dml_obj.bootstrap()
+    msg = r'Apply fit\(\) before sensitivity_analysis\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.sensitivity_analysis()
 
 
 @pytest.mark.ci

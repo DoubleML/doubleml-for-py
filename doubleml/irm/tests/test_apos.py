@@ -38,6 +38,7 @@ def test_apo_properties():
     assert dml_obj.boot_t_stat is None
     assert dml_obj.boot_method is None
     assert dml_obj.sensitivity_elements is None
+    assert dml_obj.sensitivity_params is None
 
     # check properties after fit
     dml_obj.fit()
@@ -51,12 +52,17 @@ def test_apo_properties():
     assert dml_obj.boot_t_stat is None
     assert dml_obj.boot_method is None
     assert dml_obj.sensitivity_elements is not None
+    assert dml_obj.sensitivity_params is None
 
     # check properties after bootstrap
     dml_obj.bootstrap()
     assert dml_obj.n_rep_boot is not None
     assert dml_obj.boot_t_stat is not None
     assert dml_obj.boot_method is not None
+
+    # check properties after sensitivity analysis
+    dml_obj.sensitivity_analysis()
+    assert dml_obj.sensitivity_params is not None
 
 
 @pytest.fixture(scope='module',
