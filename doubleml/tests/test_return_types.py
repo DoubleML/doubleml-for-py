@@ -172,7 +172,7 @@ ssm_obj.fit()
 ssm_obj.bootstrap(n_rep_boot=n_rep_boot)
 
 apo_obj = DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_level=0,
-                        n_rep=n_rep, n_folds=n_folds)
+                      n_rep=n_rep, n_folds=n_folds)
 apo_obj.fit()
 apo_obj.bootstrap(n_rep_boot=n_rep_boot)
 
