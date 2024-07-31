@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import copy
 from collections.abc import Iterable
 
 from sklearn.base import clone
@@ -14,6 +15,7 @@ from ..double_ml_framework import concat
 from ..utils.resampling import DoubleMLResampling
 from ..utils._descriptive import generate_summary
 from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_sample_splitting
+from ..utils.gain_statistics import gain_statistics
 
 
 class DoubleMLAPOS:
@@ -561,6 +563,45 @@ class DoubleMLAPOS:
         )
 
         return fig
+
+    def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+        Returns
+        -------
+        benchmark_results : pandas.DataFrame
+            Benchmark results.
+        """
+        x_list_long = self._dml_data.x_cols
+
+        # input checks
+        if self.sensitivity_elements is None:
+            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
+        if not isinstance(benchmarking_set, list):
+            raise TypeError('benchmarking_set must be a list. '
+                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+        if len(benchmarking_set) == 0:
+            raise ValueError('benchmarking_set must not be empty.')
+        if not set(benchmarking_set) <= set(x_list_long):
+            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                             f'{str(benchmarking_set)} was passed.')
+        if fit_args is not None and not isinstance(fit_args, dict):
+            raise TypeError('fit_args must be a dict. '
+                            f'{str(fit_args)} of type {type(fit_args)} was passed.')
+
+        # refit short form of the model
+        x_list_short = [x for x in x_list_long if x not in benchmarking_set]
+        dml_short = copy.deepcopy(self)
+        dml_short._dml_data.x_cols = x_list_short
+        if fit_args is not None:
+            dml_short.fit(**fit_args)
+        else:
+            dml_short.fit()
+
+        benchmark_dict = gain_statistics(dml_long=self, dml_short=dml_short)
+        df_benchmark = pd.DataFrame(benchmark_dict, index=self.treatment_levels)
+        return df_benchmark
 
     def draw_sample_splitting(self):
         """

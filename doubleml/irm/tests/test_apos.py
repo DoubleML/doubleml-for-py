@@ -75,7 +75,7 @@ def learner(request):
 
 
 @pytest.fixture(scope='module',
-                params=[1])
+                params=[1, 5])
 def n_rep(request):
     return request.param
 
@@ -148,6 +148,7 @@ def dml_apos_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatmen
         clone(learner[0]), clone(learner[1]),
         treatment_levels=treatment_levels,
         all_smpls=all_smpls,
+        n_rep=n_rep,
         score='APO',
         trimming_rule='truncate',
         normalize_ipw=normalize_ipw,
@@ -176,23 +177,24 @@ def dml_apos_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatmen
         'apos_model': dml_obj,
         'unfitted_apos_model': unfitted_apos_model
     }
+    if n_rep == 1:
+        for bootstrap in boot_methods:
+            np.random.seed(42)
+            boot_t_stat = boot_apos(res_manual['apo_scaled_score'], res_manual['all_se'], treatment_levels,
+                                    all_smpls, n_rep, bootstrap, n_rep_boot)
 
-    for bootstrap in boot_methods:
-        np.random.seed(42)
-        boot_t_stat = boot_apos(res_manual['apo_scaled_score'], res_manual['all_se'], treatment_levels,
-                                all_smpls, n_rep, bootstrap, n_rep_boot)
+            np.random.seed(42)
+            dml_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
 
-        np.random.seed(42)
-        dml_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+            res_dict['boot_t_stat_' + bootstrap] = dml_obj.boot_t_stat
+            res_dict['boot_t_stat_' + bootstrap + '_manual'] = boot_t_stat
 
-        res_dict['boot_t_stat_' + bootstrap] = dml_obj.boot_t_stat
-        res_dict['boot_t_stat_' + bootstrap + '_manual'] = boot_t_stat
-
-        ci = dml_obj.confint(joint=True, level=0.95)
-        ci_manual = confint_manual(res_manual['apos'], res_manual['se'], treatment_levels,
-                                   boot_t_stat=boot_t_stat, joint=True, level=0.95)
-        res_dict['boot_ci_' + bootstrap] = ci.to_numpy()
-        res_dict['boot_ci_' + bootstrap + '_manual'] = ci_manual.to_numpy()
+            ci = dml_obj.confint(joint=True, level=0.95)
+            ci_manual = confint_manual(
+                res_manual['apos'], res_manual['se'], treatment_levels,
+                boot_t_stat=boot_t_stat, joint=True, level=0.95)
+            res_dict['boot_ci_' + bootstrap] = ci.to_numpy()
+            res_dict['boot_ci_' + bootstrap + '_manual'] = ci_manual.to_numpy()
 
     # causal contrasts
     if len(treatment_levels) > 1:
@@ -216,6 +218,8 @@ def test_dml_apos_coef(dml_apos_fixture):
 
 @pytest.mark.ci
 def test_dml_apos_se(dml_apos_fixture):
+    if dml_apos_fixture['n_rep'] != 1:
+        pytest.skip("Skipping test as n_rep is not 1")
     assert np.allclose(dml_apos_fixture['se'],
                        dml_apos_fixture['se_manual'],
                        rtol=1e-9, atol=1e-9)
@@ -226,6 +230,8 @@ def test_dml_apos_se(dml_apos_fixture):
 
 @pytest.mark.ci
 def test_dml_apos_boot(dml_apos_fixture):
+    if dml_apos_fixture['n_rep'] != 1:
+        pytest.skip("Skipping test as n_rep is not 1")
     for bootstrap in dml_apos_fixture['boot_methods']:
         assert np.allclose(dml_apos_fixture['boot_t_stat_' + bootstrap],
                            dml_apos_fixture['boot_t_stat_' + bootstrap + '_manual'],
@@ -234,6 +240,8 @@ def test_dml_apos_boot(dml_apos_fixture):
 
 @pytest.mark.ci
 def test_dml_apos_ci(dml_apos_fixture):
+    if dml_apos_fixture['n_rep'] != 1:
+        pytest.skip("Skipping test as n_rep is not 1")
     for bootstrap in dml_apos_fixture['boot_methods']:
         assert np.allclose(dml_apos_fixture['ci'],
                            dml_apos_fixture['ci_manual'],
@@ -260,18 +268,23 @@ def test_doubleml_apos_return_types(dml_apos_fixture):
         assert isinstance(dml_apos_fixture['causal_contrast_single'], dml.DoubleMLFramework)
         assert isinstance(dml_apos_fixture['causal_contrast_multiple'], dml.DoubleMLFramework)
 
+    benchmark = dml_apos_fixture['apos_model'].sensitivity_benchmark(benchmarking_set=['x1'])
+    assert isinstance(benchmark, pd.DataFrame)
+
 
 @pytest.mark.ci
 def test_doubleml_apos_causal_contrast(dml_apos_fixture):
     if dml_apos_fixture['n_treatment_levels'] == 1:
         pytest.skip("Skipping test as n_treatment_levels is 1")
 
-    acc_single = dml_apos_fixture['coef'][1:] - dml_apos_fixture['coef'][0]
-    assert np.allclose(dml_apos_fixture['causal_contrast_single'].thetas,
+    acc_single = dml_apos_fixture['apos_model'].all_coef[1:, ] - dml_apos_fixture['apos_model'].all_coef[0, ]
+    assert np.allclose(dml_apos_fixture['causal_contrast_single'].all_thetas,
                        acc_single,
                        rtol=1e-9, atol=1e-9)
 
-    acc_multiple = np.append(acc_single, dml_apos_fixture['coef'][2] - dml_apos_fixture['coef'][1])
-    assert np.allclose(dml_apos_fixture['causal_contrast_multiple'].thetas,
+    acc_multiple = np.append(acc_single,
+                             dml_apos_fixture['apos_model'].all_coef[2:3, ] - dml_apos_fixture['apos_model'].all_coef[1:2, ],
+                             axis=0)
+    assert np.allclose(dml_apos_fixture['causal_contrast_multiple'].all_thetas,
                        acc_multiple,
                        rtol=1e-9, atol=1e-9)
