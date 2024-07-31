@@ -25,6 +25,11 @@ def test_apo_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPO(pd.DataFrame(), ml_g, ml_m, treatment_level=0)
 
+    msg = 'Only one treatment variable is allowed. Got 2 treatment variables.'
+    with pytest.raises(ValueError, match=msg):
+        dml_data_multiple = DoubleMLData(df_apo, 'y', ['d', 'x1'])
+        _ = DoubleMLAPO(dml_data_multiple, ml_g, ml_m, treatment_level=0)
+
     dml_data_z = make_iivm_data()
     msg = r'Incompatible data. z have been set as instrumental variable\(s\).'
     with pytest.raises(ValueError, match=msg):

@@ -367,6 +367,10 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return res
 
     def _check_data(self, obj_dml_data):
+        if len(obj_dml_data.d_cols) > 1:
+            raise ValueError('Only one treatment variable is allowed. ' +
+                             f'Got {len(obj_dml_data.d_cols)} treatment variables.')
+
         if obj_dml_data.z_cols is not None:
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
