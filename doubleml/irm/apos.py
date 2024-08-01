@@ -370,10 +370,9 @@ class DoubleMLAPOS:
             Default is ``False``.
 
         external_predictions : dict or None
-            A nested dictionary where the keys correspond the the treatment levels and contain predictions according to each
-            treatment level. The values have to be dictionaries which containkeys ``'ml_g'`` and ``'ml_m'``.
-            The predictions for ``'ml_m'`` are passed directly to the DoubleMLAPO model,
-            whereas the predictions for ``'ml_g'`` are used to compute predictions for ``'ml_g1'`` and ``'ml_g0'``.
+            A nested dictionary where the keys correspond the the treatment levels and can contain predictions according to
+            each treatment level. The values have to be dictionaries which can contain keys ``'ml_g0'``, ``'ml_g1'``
+            and ``'ml_m'``.
             Default is `None`.
 
         Returns
@@ -383,7 +382,7 @@ class DoubleMLAPOS:
 
         if external_predictions is not None:
             self._check_external_predictions(external_predictions)
-            ext_pred_dict = self._recompute_external_predictions(external_predictions)
+            ext_pred_dict = self._rename_external_predictions(external_predictions)
         else:
             ext_pred_dict = None
 
@@ -797,7 +796,7 @@ class DoubleMLAPOS:
 
         return
 
-    def _recompute_external_predictions(self, external_predictions):
+    def _rename_external_predictions(self, external_predictions):
         d_col = self._dml_data.d_cols[0]
         ext_pred_dict = {treatment_level: {d_col: {}} for treatment_level in self.treatment_levels}
         for treatment_level in self.treatment_levels:
@@ -807,7 +806,6 @@ class DoubleMLAPOS:
                 ext_pred_dict[treatment_level][d_col]['ml_m'] = external_predictions[treatment_level]['ml_m']
             if "ml_g0" in external_predictions[treatment_level]:
                 ext_pred_dict[treatment_level][d_col]['ml_g0'] = external_predictions[treatment_level]['ml_g0']
-            # TODO: Combine the models
 
         return ext_pred_dict
 
