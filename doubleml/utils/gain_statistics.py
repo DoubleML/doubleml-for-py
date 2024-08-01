@@ -19,44 +19,49 @@ def gain_statistics(dml_long, dml_short):
     benchmark_dict : dict
         Benchmarking dictionary (dict) with values for ``cf_d``, ``cf_y``, ``rho``, and ``delta_theta``.
     """
-    if not isinstance(dml_long.sensitivity_elements, dict):
+
+    # set input for readability
+    sensitivity_elements_long = dml_long.framework.sensitivity_elements
+    sensitivity_elements_short = dml_short.framework.sensitivity_elements
+
+    if not isinstance(sensitivity_elements_long, dict):
         raise TypeError("dml_long does not contain the necessary sensitivity elements. "
-                        "Expected dict for dml_long.sensitivity_elements.")
+                        "Expected dict for dml_long.framework.sensitivity_elements.")
     expected_keys = ['sigma2', 'nu2']
-    if not all(key in dml_long.sensitivity_elements.keys() for key in expected_keys):
+    if not all(key in sensitivity_elements_long.keys() for key in expected_keys):
         raise ValueError("dml_long does not contain the necessary sensitivity elements. "
                          "Required keys are: " + str(expected_keys))
-    if not isinstance(dml_short.sensitivity_elements, dict):
+    if not isinstance(sensitivity_elements_short, dict):
         raise TypeError("dml_short does not contain the necessary sensitivity elements. "
-                        "Expected dict for dml_short.sensitivity_elements.")
-    if not all(key in dml_short.sensitivity_elements.keys() for key in expected_keys):
+                        "Expected dict for dml_short.framework.sensitivity_elements.")
+    if not all(key in sensitivity_elements_short.keys() for key in expected_keys):
         raise ValueError("dml_short does not contain the necessary sensitivity elements. "
                          "Required keys are: " + str(expected_keys))
 
     for key in expected_keys:
-        if not isinstance(dml_long.sensitivity_elements[key], np.ndarray):
+        if not isinstance(sensitivity_elements_long[key], np.ndarray):
             raise TypeError("dml_long does not contain the necessary sensitivity elements. "
                             f"Expected numpy.ndarray for key {key}.")
-        if not isinstance(dml_short.sensitivity_elements[key], np.ndarray):
+        if not isinstance(sensitivity_elements_short[key], np.ndarray):
             raise TypeError("dml_short does not contain the necessary sensitivity elements. "
                             f"Expected numpy.ndarray for key {key}.")
-        if len(dml_long.sensitivity_elements[key].shape) != 3 or dml_long.sensitivity_elements[key].shape[0] != 1:
+        if len(sensitivity_elements_long[key].shape) != 3 or sensitivity_elements_long[key].shape[0] != 1:
             raise ValueError("dml_long does not contain the necessary sensitivity elements. "
                              f"Expected 3 dimensions of shape (1, n_coef, n_rep) for key {key}.")
-        if len(dml_short.sensitivity_elements[key].shape) != 3 or dml_short.sensitivity_elements[key].shape[0] != 1:
+        if len(sensitivity_elements_short[key].shape) != 3 or sensitivity_elements_short[key].shape[0] != 1:
             raise ValueError("dml_short does not contain the necessary sensitivity elements. "
                              f"Expected 3 dimensions of shape (1, n_coef, n_rep) for key {key}.")
-        if not np.array_equal(dml_long.sensitivity_elements[key].shape, dml_short.sensitivity_elements[key].shape):
+        if not np.array_equal(sensitivity_elements_long[key].shape, sensitivity_elements_short[key].shape):
             raise ValueError("dml_long and dml_short do not contain the same shape of sensitivity elements. "
-                             "Shapes of " + key + " are: " + str(dml_long.sensitivity_elements[key].shape) +
-                             " and " + str(dml_short.sensitivity_elements[key].shape))
+                             "Shapes of " + key + " are: " + str(sensitivity_elements_long[key].shape) +
+                             " and " + str(sensitivity_elements_short[key].shape))
 
     if not isinstance(dml_long.all_coef, np.ndarray):
         raise TypeError("dml_long.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
     if not isinstance(dml_short.all_coef, np.ndarray):
         raise TypeError("dml_short.all_coef does not contain the necessary coefficients. Expected numpy.ndarray.")
 
-    expected_shape = (dml_long.sensitivity_elements['sigma2'].shape[1], dml_long.sensitivity_elements['sigma2'].shape[2])
+    expected_shape = (sensitivity_elements_long['sigma2'].shape[1], sensitivity_elements_long['sigma2'].shape[2])
     if dml_long.all_coef.shape != expected_shape:
         raise ValueError("dml_long.all_coef does not contain the necessary coefficients. Expected shape: " +
                          str(expected_shape))
@@ -66,10 +71,10 @@ def gain_statistics(dml_long, dml_short):
 
     # save elements for readability
     var_y = np.var(dml_long._dml_data.y)
-    var_y_residuals_long = np.squeeze(dml_long.sensitivity_elements['sigma2'], axis=0)
-    nu2_long = np.squeeze(dml_long.sensitivity_elements['nu2'], axis=0)
-    var_y_residuals_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
-    nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
+    var_y_residuals_long = np.squeeze(sensitivity_elements_long['sigma2'], axis=0)
+    nu2_long = np.squeeze(sensitivity_elements_long['nu2'], axis=0)
+    var_y_residuals_short = np.squeeze(sensitivity_elements_short['sigma2'], axis=0)
+    nu2_short = np.squeeze(sensitivity_elements_short['nu2'], axis=0)
 
     # compute nonparametric R2
     R2_y_long = 1.0 - np.divide(var_y_residuals_long, var_y)

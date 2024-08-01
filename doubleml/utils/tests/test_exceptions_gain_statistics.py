@@ -4,9 +4,14 @@ import numpy as np
 from doubleml.utils.gain_statistics import gain_statistics
 
 
+class test_framework():
+    def __init__(self, sensitivity_elements):
+        self.sensitivity_elements = sensitivity_elements
+
+
 class test_dml_class():
     def __init__(self, sensitivity_elements, all_coef):
-        self.sensitivity_elements = sensitivity_elements
+        self.framework = test_framework(sensitivity_elements)
         self.all_coef = all_coef
 
 
@@ -30,11 +35,11 @@ def test_doubleml_exception_data():
             sensitivity_elements=np.random.normal(size=(n_obs, n_rep, n_coef)),
             all_coef=np.random.normal(size=(n_rep, n_coef))
         )
-    msg = r"dml_long does not contain the necessary sensitivity elements\. Expected dict for dml_long\.sensitivity_elements\."
+    msg = r"dml_long does not contain the necessary sensitivity elements\. Expected dict for dml_long\.framework\.sensitivity_elements\."
     with pytest.raises(TypeError, match=msg):
         _ = gain_statistics(dml_incorrect, dml_correct)
     msg = r"dml_short does not contain the necessary sensitivity elements\. "
-    msg += r"Expected dict for dml_short\.sensitivity_elements\."
+    msg += r"Expected dict for dml_short\.framework\.sensitivity_elements\."
     with pytest.raises(TypeError, match=msg):
         _ = gain_statistics(dml_correct, dml_incorrect)
 
