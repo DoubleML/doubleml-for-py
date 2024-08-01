@@ -374,8 +374,6 @@ class DoubleMLAPOS:
             treatment level. The values have to be dictionaries which containkeys ``'ml_g'`` and ``'ml_m'``.
             The predictions for ``'ml_m'`` are passed directly to the DoubleMLAPO model,
             whereas the predictions for ``'ml_g'`` are used to compute predictions for ``'ml_g1'`` and ``'ml_g0'``.
-            If the treatment levels do not cover all levels in the data, combined predictions for ``'ml_g'`` have
-            to be provided under the key ``'add_treatment_levels'``.
             Default is `None`.
 
         Returns
@@ -779,20 +777,24 @@ class DoubleMLAPOS:
 
     def _check_external_predictions(self, external_predictions):
         expected_keys = self.treatment_levels
-        if len(self._add_treatment_levels) > 0:
-            expected_keys += ['add_treatment_levels']
         if not isinstance(external_predictions, dict):
             raise TypeError('external_predictions must be a dictionary. ' +
                             f'Object of type {type(external_predictions)} passed.')
 
-        if not set(external_predictions.keys()) == set(expected_keys):
-            raise ValueError('external_predictions must contain predictions for all treatment levels. ' +
+        if not set(external_predictions.keys()).issubset(set(expected_keys)):
+            raise ValueError('external_predictions must be a subset of all treatment levels. ' +
                              f'Expected keys: {set(expected_keys)}. ' +
                              f'Passed keys: {set(external_predictions.keys())}.')
 
-        contains_ml_g = ['ml_g' in external_predictions[treatment_level] for treatment_level in self.treatment_levels]
-        if not all(contains_ml_g) and not all([not contains for contains in contains_ml_g]):
-            raise ValueError('The predictions for ml_g have to provided for all treatment levels or not at all.')
+        expected_learner_keys = ['ml_g0', 'ml_g1', 'ml_m']
+        for key, value in external_predictions.items():
+            if not isinstance(value, dict):
+                raise TypeError(f'external_predictions[{key}] must be a dictionary. ' +
+                                f'Object of type {type(value)} passed.')
+            if not set(value.keys()).issubset(set(expected_learner_keys)):
+                raise ValueError(f'external_predictions[{key}] must be a subset of {set(expected_learner_keys)}. ' +
+                                 f'Passed keys: {set(value.keys())}.')
+
         return
 
     def _recompute_external_predictions(self, external_predictions):

@@ -123,18 +123,24 @@ def test_apos_exception_ext_pred():
         1: "dummy"
     }
     msg = (
-        r"external_predictions must contain predictions for all treatment levels\. "
-        r"Expected keys: \{0, 'add_treatment_levels'\}\. "
+        r"external_predictions must be a subset of all treatment levels\. "
+        r"Expected keys: \{0\}\. "
         r"Passed keys: \{0, 1\}\."
     )
     with pytest.raises(ValueError, match=msg):
         dml_obj.fit(external_predictions=external_predictions)
 
     external_predictions = {
-        0: {"ml_g": "dummy"},
-        'add_treatment_levels': {"ml_m": "dummy"}
+        0: "dummy",
     }
-    msg = "The predictions for ml_g have to provided for all treatment levels or not at all."
+    msg = r'external_predictions\[0\] must be a dictionary. Object of type <class \'str\'> passed.'
+    with pytest.raises(TypeError, match=msg):
+        dml_obj.fit(external_predictions=external_predictions)
+
+    external_predictions = {
+        0: {"ml_g": "dummy"}
+    }
+    msg = r"external_predictions\[0\] must be a subset of \{.*\}. Passed keys: \{'ml_g'\}\."
     with pytest.raises(ValueError, match=msg):
         dml_obj.fit(external_predictions=external_predictions)
 
@@ -142,12 +148,13 @@ def test_apos_exception_ext_pred():
     dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=[0, 1, 2, 3])
     external_predictions = {
         0: "dummy",
-        1: "dummy"
+        1: "dummy",
+        4: "dummy"
     }
     msg = (
-        r"external_predictions must contain predictions for all treatment levels\. "
+        r"external_predictions must be a subset of all treatment levels\. "
         r"Expected keys: \{0, 1, 2, 3\}\. "
-        r"Passed keys: \{0, 1\}\."
+        r"Passed keys: \{0, 1, 4\}\."
     )
     with pytest.raises(ValueError, match=msg):
         dml_obj.fit(external_predictions=external_predictions)
