@@ -1503,6 +1503,10 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
         The number of treatment levels.
         Default is ``3``.
 
+    linear : bool
+        Indicates whether the true underlying regression is linear.
+        Default is ``False``.
+
     random_state : int
         Random seed for reproducibility.
         Default is ``42``.
