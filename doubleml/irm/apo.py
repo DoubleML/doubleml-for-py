@@ -218,7 +218,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         if g0_external:
             # use external predictions
             g_hat0 = {'preds': external_predictions['ml_g0'],
-                      'targets': None,
+                      'targets': _cond_targets(y, cond_sample=(treated == 0)),
                       'models': None}
         else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
@@ -233,7 +233,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         if g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
-                      'targets': None,
+                      'targets': _cond_targets(y, cond_sample=(treated == 1)),
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
@@ -250,7 +250,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         if m_external:
             # use external predictions
             m_hat = {'preds': external_predictions['ml_m'],
-                     'targets': None,
+                     'targets': treated,
                      'models': None}
         else:
             m_hat = _dml_cv_predict(self._learner['ml_m'], x, treated, smpls=smpls, n_jobs=n_jobs_cv,

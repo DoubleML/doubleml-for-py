@@ -87,7 +87,10 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
 
     res_dict = {
         "coef_normal": dml_obj.coef[0],
-        "coef_ext": dml_obj_ext.coef[0]
+        "coef_ext": dml_obj_ext.coef[0],
+        "dml_obj": dml_obj,
+        "dml_obj_ext": dml_obj_ext,
+        "treatment_levels": treatment_levels
     }
 
     return res_dict
@@ -101,3 +104,15 @@ def test_doubleml_apos_ext_coef(doubleml_apos_ext_fixture):
         rel_tol=1e-9,
         abs_tol=1e-4
     )
+
+
+@pytest.mark.ci
+def test_doubleml_apos_ext_pred_nuisance(doubleml_apos_ext_fixture):
+    for i_level, _ in enumerate(doubleml_apos_ext_fixture["treatment_levels"]):
+        for nuisance_key in ["ml_g0", "ml_g1", "ml_m"]:
+            assert np.allclose(
+                doubleml_apos_ext_fixture["dml_obj"].modellist[i_level].nuisance_loss[nuisance_key],
+                doubleml_apos_ext_fixture["dml_obj_ext"].modellist[i_level].nuisance_loss[nuisance_key],
+                rtol=1e-9,
+                atol=1e-4
+            )
