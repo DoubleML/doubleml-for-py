@@ -900,7 +900,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
     """
     Generates counfounded data from an interactive regression model.
 
-    The data generating process is defined as follows (similar to the Monte Carlo simulation used
+    The data generating process is defined as follows (inspired by the Monte Carlo simulation used
     in Sant'Anna and Zhao (2020)).
 
     Let :math:`X= (X_1, X_2, X_3, X_4, X_5)^T \\sim \\mathcal{N}(0, \\Sigma)`, where  :math:`\\Sigma` corresponds
@@ -933,7 +933,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
 
         p(Z) &= \\frac{\\exp(f_{ps}(Z))}{1 + \\exp(f_{ps}(Z))},
 
-        f_{ps}(Z) &= 0.75 \\cdot (-Z_1 + 0.5 \\cdot Z_2 -0.25 \\cdot Z_3 - 0.1 \\cdot Z_4).
+        f_{ps}(Z) &= 0.75 \\cdot (-Z_1 + 0.1 \\cdot Z_2 -0.25 \\cdot Z_3 - 0.1 \\cdot Z_4).
 
     and generate the treatment :math:`D = 1\\{m(X, A) \\ge U\\}` with :math:`U \\sim \\mathcal{U}[0, 1]`.
     Since :math:`A` is independent of :math:`X`, the short form of the propensity score is given as
@@ -948,7 +948,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
 
         Y &= \\theta \\cdot D (Z_5 + 1) + g(Z) + \\beta_A \\cdot A + \\varepsilon
 
-        g(Z) &= 210 + 27.4 \\cdot Z_1 +13.7 \\cdot (Z_2 + Z_3 + Z_4)
+        g(Z) &= 2.5 + 0.74 \\cdot Z_1 + 0.25 \\cdot Z_2 + 0.137 \\cdot (Z_3 + Z_4)
 
     where :math:`\\varepsilon \\sim \\mathcal{N}(0,5)`.
     This implies an average treatment effect of :math:`\\theta`. Additionally, the long and short forms of
@@ -977,7 +977,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
         Default is ``500``.
     theta : float or int
         Average treatment effect.
-        Default is ``5.0``.
+        Default is ``0.0``.
     gamma_a : float
         Coefficient of the unobserved confounder in the propensity score.
         Default is ``0.127``.
