@@ -1685,7 +1685,7 @@ class DoubleML(ABC):
             benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
             for benchmark_idx in range(len(benchmarks['name'])):
                 sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
-                                                                  cf_d=benchmarks['cf_y'][benchmark_idx],
+                                                                  cf_d=benchmarks['cf_d'][benchmark_idx],
                                                                   rho=self.sensitivity_params['input']['rho'],
                                                                   level=self.sensitivity_params['input']['level'])
                 benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
