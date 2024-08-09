@@ -915,7 +915,7 @@ class DoubleMLFramework():
             for benchmark_idx in range(len(benchmarks['name'])):
                 sens_dict_bench = self._calc_sensitivity_analysis(
                     cf_y=benchmarks['cf_y'][benchmark_idx],
-                    cf_d=benchmarks['cf_y'][benchmark_idx],
+                    cf_d=benchmarks['cf_d'][benchmark_idx],
                     rho=self.sensitivity_params['input']['rho'],
                     level=self.sensitivity_params['input']['level']
                 )

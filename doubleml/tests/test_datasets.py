@@ -187,10 +187,16 @@ def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
         _ = make_did_SZ2020(n_obs=100, dgp_type="5", cross_sectional_data=cross_sectional, return_type='matrix')
 
 
+@pytest.fixture(scope='function',
+                params=[True, False])
+def linear(request):
+    return request.param
+
+
 @pytest.mark.ci
-def test_make_confounded_irm_data_return_types():
+def test_make_confounded_irm_data_return_types(linear):
     np.random.seed(3141)
-    res = make_confounded_irm_data()
+    res = make_confounded_irm_data(linear=linear)
     assert isinstance(res, dict)
     assert isinstance(res['x'], np.ndarray)
     assert isinstance(res['y'], np.ndarray)
@@ -204,9 +210,14 @@ def test_make_confounded_irm_data_return_types():
     assert isinstance(res['oracle_values']['gamma_a'], float)
     assert isinstance(res['oracle_values']['beta_a'], float)
     assert isinstance(res['oracle_values']['a'], np.ndarray)
-    assert isinstance(res['oracle_values']['y0'], np.ndarray)
-    assert isinstance(res['oracle_values']['y1'], np.ndarray)
+    assert isinstance(res['oracle_values']['y_0'], np.ndarray)
+    assert isinstance(res['oracle_values']['y_1'], np.ndarray)
     assert isinstance(res['oracle_values']['z'], np.ndarray)
+    assert isinstance(res['oracle_values']['cf_y'], float)
+    assert isinstance(res['oracle_values']['cf_d_ate'], float)
+    assert isinstance(res['oracle_values']['cf_d_atte'], float)
+    assert isinstance(res['oracle_values']['rho_ate'], float)
+    assert isinstance(res['oracle_values']['rho_atte'], float)
 
 
 @pytest.mark.ci
