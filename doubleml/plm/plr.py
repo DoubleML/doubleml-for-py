@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
-from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
 
 import warnings
@@ -12,7 +11,7 @@ from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils.blp import DoubleMLBLP
 
 from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
+from ..utils._checks import _check_score, _check_finite_predictions, _check_is_propensity, _check_binary_predictions
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -198,13 +197,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
 
         if self._dml_data.binary_treats[self._dml_data.d_cols[self._i_treat]]:
-            binary_preds = (type_of_target(m_hat['preds']) == 'binary')
-            zero_one_preds = np.all((np.power(m_hat['preds'], 2) - m_hat['preds']) == 0)
-            if binary_preds & zero_one_preds:
-                raise ValueError(f'For the binary treatment variable {self._dml_data.d_cols[self._i_treat]}, '
-                                 f'predictions obtained with the ml_m learner {str(self._learner["ml_m"])} are also '
-                                 'observed to be binary with values 0 and 1. Make sure that for classifiers '
-                                 'probabilities and not labels are predicted.')
+            _check_binary_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', self._dml_data.d_cols[self._i_treat])
 
         # an estimate of g is obtained for the IV-type score and callable scores
         g_hat = {'preds': None, 'targets': None, 'models': None}
@@ -279,13 +272,17 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
-        nu2 = np.divide(1.0, np.mean(np.square(d - m_hat)))
-        psi_nu2 = nu2 - np.multiply(np.square(d-m_hat), np.square(nu2))
+        treatment_residual = d - m_hat
+        nu2 = np.divide(1.0, np.mean(np.square(treatment_residual)))
+        psi_nu2 = nu2 - np.multiply(np.square(treatment_residual), np.square(nu2))
+        rr = np.multiply(treatment_residual, nu2)
 
         element_dict = {'sigma2': sigma2,
                         'nu2': nu2,
                         'psi_sigma2': psi_sigma2,
-                        'psi_nu2': psi_nu2}
+                        'psi_nu2': psi_nu2,
+                        'riesz_rep': rr,
+                        }
         return element_dict
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,

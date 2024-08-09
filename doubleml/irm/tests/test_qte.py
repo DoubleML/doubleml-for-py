@@ -9,8 +9,8 @@ from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
-from ...tests._utils import draw_smpls
-from ._utils_qte_manual import fit_qte, boot_qte, confint_qte
+from ...tests._utils import draw_smpls, confint_manual
+from ._utils_qte_manual import fit_qte, boot_qte
 
 from doubleml.datasets import make_irm_data
 from ...utils._estimation import _default_kde
@@ -94,8 +94,8 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
                          draw_sample_splitting=True)
 
     ci = dml_qte_obj.confint(joint=False, level=0.95)
-    ci_manual = confint_qte(res_manual['qte'], res_manual['se'], quantiles,
-                            boot_t_stat=None, joint=False, level=0.95)
+    ci_manual = confint_manual(res_manual['qte'], res_manual['se'], quantiles,
+                               boot_t_stat=None, joint=False, level=0.95)
     res_dict = {'coef': dml_qte_obj.coef,
                 'coef_manual': res_manual['qte'],
                 'coef_ext_smpls': dml_qte_obj_ext_smpls.coef,
@@ -120,8 +120,8 @@ def dml_qte_fixture(generate_data_quantiles, learner, normalize_ipw, kde):
         res_dict['boot_t_stat_' + bootstrap + '_manual'] = boot_t_stat
 
         ci = dml_qte_obj.confint(joint=True, level=0.95)
-        ci_manual = confint_qte(res_manual['qte'], res_manual['se'], quantiles,
-                                boot_t_stat=boot_t_stat, joint=True, level=0.95)
+        ci_manual = confint_manual(res_manual['qte'], res_manual['se'], quantiles,
+                                   boot_t_stat=boot_t_stat, joint=True, level=0.95)
         res_dict['boot_ci_' + bootstrap] = ci.to_numpy()
         res_dict['boot_ci_' + bootstrap + '_manual'] = ci_manual.to_numpy()
     return res_dict
@@ -181,6 +181,7 @@ def test_doubleml_qte_exceptions():
         _ = dml_obj.smpls
 
 
+@pytest.mark.ci
 def test_doubleml_qte_return_types(dml_qte_fixture):
     assert isinstance(dml_qte_fixture['qte_model'].__str__(), str)
     assert isinstance(dml_qte_fixture['qte_model'].summary, pd.DataFrame)
