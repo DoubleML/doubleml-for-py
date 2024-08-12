@@ -1,7 +1,5 @@
 import numpy as np
 from sklearn.base import clone
-import pandas as pd
-from scipy.stats import norm
 
 from ..pq import DoubleMLPQ
 from ...double_ml_data import DoubleMLData
@@ -99,21 +97,3 @@ def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_b
                 (n_obs * ses[i_quant, i_rep])
 
     return boot_t_stat
-
-
-def confint_qte(coef, se, quantiles, boot_t_stat=None, joint=True, level=0.95):
-    a = (1 - level)
-    ab = np.array([a / 2, 1. - a / 2])
-    if joint:
-        assert boot_t_stat.shape[2] == 1
-        sim = np.amax(np.abs(boot_t_stat[:, :, 0]), 1)
-        hatc = np.quantile(sim, 1 - a)
-        ci = np.vstack((coef - se * hatc, coef + se * hatc)).T
-    else:
-        fac = norm.ppf(ab)
-        ci = np.vstack((coef + se * fac[0], coef + se * fac[1])).T
-
-    df_ci = pd.DataFrame(ci,
-                         columns=['{:.1f} %'.format(i * 100) for i in ab],
-                         index=quantiles)
-    return df_ci

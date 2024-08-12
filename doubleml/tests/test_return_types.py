@@ -18,6 +18,7 @@ from doubleml import (
     DoubleMLPolicyTree,
     DoubleMLFramework,
     DoubleMLSSM,
+    DoubleMLAPO
 )
 from doubleml.datasets import (
     make_plr_CCDDHNR2018,
@@ -61,6 +62,7 @@ dml_did_binary_outcome = DoubleMLDID(dml_data_did_binary_outcome, LogisticRegres
 dml_did_cs = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression())
 dml_did_cs_binary_outcome = DoubleMLDIDCS(dml_data_did_cs_binary_outcome, LogisticRegression(), LogisticRegression())
 dml_ssm = DoubleMLSSM(dml_data_ssm, ml_g=Lasso(), ml_m=LogisticRegression(), ml_pi=LogisticRegression())
+dml_apo = DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_level=0)
 
 
 @pytest.mark.ci
@@ -77,7 +79,8 @@ dml_ssm = DoubleMLSSM(dml_data_ssm, ml_g=Lasso(), ml_m=LogisticRegression(), ml_
                           (dml_did_binary_outcome, DoubleMLDID),
                           (dml_did_cs, DoubleMLDIDCS),
                           (dml_did_cs_binary_outcome, DoubleMLDIDCS),
-                          (dml_ssm, DoubleMLSSM)])
+                          (dml_ssm, DoubleMLSSM),
+                          (dml_apo, DoubleMLAPO)])
 def test_return_types(dml_obj, cls):
     # ToDo: A second test case with multiple treatment variables would be helpful
     assert isinstance(dml_obj.__str__(), str)
@@ -168,11 +171,16 @@ ssm_obj = DoubleMLSSM(dml_data_ssm, ml_g=Lasso(), ml_m=LogisticRegression(), ml_
 ssm_obj.fit()
 ssm_obj.bootstrap(n_rep_boot=n_rep_boot)
 
+apo_obj = DoubleMLAPO(dml_data_irm, Lasso(), LogisticRegression(), treatment_level=0,
+                      n_rep=n_rep, n_folds=n_folds)
+apo_obj.fit()
+apo_obj.bootstrap(n_rep_boot=n_rep_boot)
+
 
 @pytest.mark.ci
 @pytest.mark.parametrize('dml_obj',
                          [plr_obj, pliv_obj,  irm_obj,  iivm_obj, cvar_obj, pq_obj, lpq_obj,
-                          did_obj, did_cs_obj])
+                          did_obj, did_cs_obj, ssm_obj, apo_obj])
 def test_property_types_and_shapes(dml_obj):
     # not checked: learner, learner_names, params, params_names, score
     # already checked: summary
@@ -300,6 +308,10 @@ def test_stored_predictions():
     assert ssm_obj.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.predictions['ml_pi'].shape == (n_obs, n_rep, n_treat)
 
+    assert apo_obj.predictions['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions['ml_m'].shape == (n_obs, n_rep, n_treat)
+
 
 @pytest.mark.ci
 def test_stored_nuisance_targets():
@@ -346,6 +358,10 @@ def test_stored_nuisance_targets():
     assert ssm_obj.nuisance_targets['ml_g_d1'].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.nuisance_targets['ml_pi'].shape == (n_obs, n_rep, n_treat)
+
+    assert apo_obj.nuisance_targets['ml_g0'].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets['ml_g1'].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets['ml_m'].shape == (n_obs, n_rep, n_treat)
 
 
 @pytest.mark.ci
@@ -394,100 +410,55 @@ def test_nuisance_loss():
     assert ssm_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
     assert ssm_obj.nuisance_loss['ml_pi'].shape == (n_rep, n_treat)
 
+    assert apo_obj.nuisance_loss['ml_g0'].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss['ml_g1'].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss['ml_m'].shape == (n_rep, n_treat)
+
+
+def _test_sensitivity_return_types(dml_obj, n_rep, n_treat, benchmarking_set):
+    assert isinstance(dml_obj.sensitivity_elements, dict)
+    for key in ['sigma2', 'nu2']:
+        assert isinstance(dml_obj.sensitivity_elements[key], np.ndarray)
+        assert dml_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
+    for key in ['psi_sigma2', 'psi_nu2', 'riesz_rep']:
+        assert isinstance(dml_obj.sensitivity_elements[key], np.ndarray)
+        assert dml_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
+
+    assert isinstance(dml_obj.sensitivity_summary, str)
+    dml_obj.sensitivity_analysis()
+    assert isinstance(dml_obj.sensitivity_summary, str)
+    assert isinstance(dml_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    benchmarks = {'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2], 'name': ["test1", "test2"]}
+    assert isinstance(dml_obj.sensitivity_plot(value='ci', benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
+
+    assert isinstance(dml_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(
+        dml_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0),
+        tuple
+    )
+    benchmark = dml_obj.sensitivity_benchmark(benchmarking_set=benchmarking_set)
+    assert isinstance(benchmark, pd.DataFrame)
+
+    return
+
 
 @pytest.mark.ci
 def test_sensitivity():
 
-    var_keys = ['sigma2', 'nu2']
-    score_keys = ['psi_sigma2', 'psi_nu2', 'riesz_rep']
-    benchmarks = {'cf_y': [0.1, 0.2], 'cf_d': [0.15, 0.2], 'name': ["test1", "test2"]}
-
     # PLR
-    assert isinstance(plr_obj.sensitivity_elements, dict)
-    for key in var_keys:
-        assert isinstance(plr_obj.sensitivity_elements[key], np.ndarray)
-        assert plr_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
-    for key in score_keys:
-        assert isinstance(plr_obj.sensitivity_elements[key], np.ndarray)
-        assert plr_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
+    _test_sensitivity_return_types(plr_obj, n_rep, n_treat, benchmarking_set=["X1"])
 
-    assert isinstance(plr_obj.sensitivity_summary, str)
-    plr_obj.sensitivity_analysis()
-    assert isinstance(plr_obj.sensitivity_summary, str)
-    assert isinstance(plr_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
-    assert isinstance(plr_obj.sensitivity_plot(value='ci', benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
-    assert isinstance(plr_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
-    assert isinstance(
-        plr_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0),
-        tuple)
-    plr_benchmark = plr_obj.sensitivity_benchmark(benchmarking_set=["X1"])
-    assert isinstance(plr_benchmark, pd.DataFrame)
+    # IRM
+    _test_sensitivity_return_types(irm_obj, n_rep, n_treat, benchmarking_set=["X1"])
 
     # DID
-    assert isinstance(irm_obj.sensitivity_elements, dict)
-    for key in var_keys:
-        assert isinstance(irm_obj.sensitivity_elements[key], np.ndarray)
-        assert irm_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
-    for key in score_keys:
-        assert isinstance(irm_obj.sensitivity_elements[key], np.ndarray)
-        assert irm_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
-
-    assert isinstance(irm_obj.sensitivity_summary, str)
-    irm_obj.sensitivity_analysis()
-    assert isinstance(irm_obj.sensitivity_summary, str)
-    assert isinstance(irm_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
-    assert isinstance(irm_obj.sensitivity_plot(value='ci', benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
-    assert isinstance(irm_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
-    assert isinstance(
-        irm_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0),
-        tuple
-    )
-    irm_benchmark = irm_obj.sensitivity_benchmark(benchmarking_set=["X1"])
-    assert isinstance(irm_benchmark, pd.DataFrame)
-
-    # DID
-    assert isinstance(did_obj.sensitivity_elements, dict)
-    for key in var_keys:
-        assert isinstance(did_obj.sensitivity_elements[key], np.ndarray)
-        assert did_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
-    for key in score_keys:
-        assert isinstance(did_obj.sensitivity_elements[key], np.ndarray)
-        assert did_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
-
-    assert isinstance(did_obj.sensitivity_summary, str)
-    did_obj.sensitivity_analysis()
-    assert isinstance(did_obj.sensitivity_summary, str)
-    assert isinstance(did_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
-    assert isinstance(did_obj.sensitivity_plot(value='ci', benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
-    assert isinstance(did_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
-    assert isinstance(
-        did_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0),
-        tuple
-    )
-    did_benchmark = did_obj.sensitivity_benchmark(benchmarking_set=['Z1'])
-    assert isinstance(did_benchmark, pd.DataFrame)
+    _test_sensitivity_return_types(did_obj, n_rep, n_treat, benchmarking_set=["Z1"])
 
     # DIDCS
-    assert isinstance(did_cs_obj.sensitivity_elements, dict)
-    for key in var_keys:
-        assert isinstance(did_cs_obj.sensitivity_elements[key], np.ndarray)
-        assert did_cs_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
-    for key in score_keys:
-        assert isinstance(did_cs_obj.sensitivity_elements[key], np.ndarray)
-        assert did_cs_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
+    _test_sensitivity_return_types(did_cs_obj, n_rep, n_treat, benchmarking_set=["Z1"])
 
-    assert isinstance(did_cs_obj.sensitivity_summary, str)
-    did_cs_obj.sensitivity_analysis()
-    assert isinstance(did_cs_obj.sensitivity_summary, str)
-    assert isinstance(did_cs_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
-    assert isinstance(did_cs_obj.sensitivity_plot(value='ci', benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
-    assert isinstance(did_cs_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
-    assert isinstance(
-        did_cs_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0),
-        tuple
-    )
-    did_cs_benchmark = did_cs_obj.sensitivity_benchmark(benchmarking_set=['Z1'])
-    assert isinstance(did_cs_benchmark, pd.DataFrame)
+    # APO
+    _test_sensitivity_return_types(apo_obj, n_rep, n_treat, benchmarking_set=["X1"])
 
 
 @pytest.mark.ci

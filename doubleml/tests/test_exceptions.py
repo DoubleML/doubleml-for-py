@@ -8,7 +8,8 @@ from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, Doubl
     DoubleMLDIDCS, DoubleMLBLP
 from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
     make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
-from doubleml.double_ml_data import DoubleMLBaseData
+
+from ._utils import DummyDataClass
 
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.base import BaseEstimator
@@ -36,16 +37,6 @@ y[y > 0] = 1
 y[y < 0] = 0
 dml_data_irm_binary_outcome = DoubleMLData.from_arrays(x, y, d)
 dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
-
-
-class DummyDataClass(DoubleMLBaseData):
-    def __init__(self,
-                 data):
-        DoubleMLBaseData.__init__(self, data)
-
-    @property
-    def n_coefs(self):
-        return 1
 
 
 @pytest.mark.ci
@@ -267,6 +258,14 @@ def test_doubleml_exception_data():
         # non-binary t for DIDCS
         _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col='y', d_cols='d', t_col='t'),
                           Lasso(), LogisticRegression())
+
+
+@pytest.mark.ci
+def test_doubleml_exception_framework():
+    msg = r'Apply fit\(\) before sensitivity_analysis\(\).'
+    with pytest.raises(ValueError, match=msg):
+        dml_obj = DoubleMLPLR(dml_data, ml_l, ml_m)
+        dml_obj.sensitivity_analysis()
 
 
 @pytest.mark.ci
@@ -950,7 +949,7 @@ def test_doubleml_exception_learner():
            'nor a classifier. Method predict is used for prediction.')
     with pytest.warns(UserWarning, match=msg):
         dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
-    msg = (r'For the binary treatment variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
+    msg = (r'For the binary variable d, predictions obtained with the ml_m learner LogisticRegression\(\) '
            'are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not '
            'labels are predicted.')
     with pytest.raises(ValueError, match=msg):
@@ -966,7 +965,7 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning, match=msg):
         dml_irm_hidden_classifier = DoubleMLIRM(dml_data_irm_binary_outcome,
                                                 log_reg, LogisticRegression())
-    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner '
+    msg = (r'For the binary variable y, predictions obtained with the ml_g learner '
            r'LogisticRegressionManipulatedPredict\(\) are also observed to be binary with values 0 and 1. Make sure '
            'that for classifiers probabilities and not labels are predicted.')
     with pytest.raises(ValueError, match=msg):
@@ -980,7 +979,7 @@ def test_doubleml_exception_learner():
     with pytest.warns(UserWarning, match=msg):
         dml_iivm_hidden_classifier = DoubleMLIIVM(dml_data_iivm_binary_outcome,
                                                   log_reg, LogisticRegression(), LogisticRegression())
-    msg = (r'For the binary outcome variable y, predictions obtained with the ml_g learner '
+    msg = (r'For the binary variable y, predictions obtained with the ml_g learner '
            r'LogisticRegressionManipulatedPredict\(\) are also observed to be binary with values 0 and 1. Make sure '
            'that for classifiers probabilities and not labels are predicted.')
     with pytest.raises(ValueError, match=msg):
@@ -1106,6 +1105,13 @@ def test_doubleml_sensitivity_inputs():
            r'Most likely this is due to low quality learners \(especially propensity scores\).')
     with pytest.raises(ValueError, match=msg):
         dml_irm.sensitivity_analysis()
+
+
+def test_doubleml_sensitivity_summary():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    msg = r'Apply sensitivity_analysis\(\) before sensitivity_summary.'
+    with pytest.raises(ValueError, match=msg):
+        _ = dml_irm.sensitivity_summary
 
 
 @pytest.mark.ci

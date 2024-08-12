@@ -9,6 +9,7 @@ from statsmodels.stats.multitest import multipletests
 from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses, _var_est
 from .utils._checks import _check_bootstrap, _check_framework_compatibility, _check_in_zero_one, \
     _check_float, _check_integer, _check_bool, _check_benchmarks
+from .utils._descriptive import generate_summary
 from .utils._plots import _sensitivity_contour_plot
 
 
@@ -17,10 +18,10 @@ class DoubleMLFramework():
 
     Parameters
     ----------
-   doubleml_dict : :dict
+    doubleml_dict : :dict
         A dictionary providing the estimated parameters and normalized scores. Keys have to be 'thetas', 'ses',
-         'all_thetas', 'all_ses', 'var_scaling_factors' and 'scaled_psi'.
-          Values have to be numpy arrays with the corresponding shapes.
+        'all_thetas', 'all_ses', 'var_scaling_factors' and 'scaled_psi'.
+        Values have to be numpy arrays with the corresponding shapes.
 
     """
 
@@ -57,6 +58,12 @@ class DoubleMLFramework():
 
         # check if all sizes match
         self._check_framework_shapes()
+
+        self._treatment_names = None
+        if 'treatment_names' in doubleml_dict.keys():
+            self._check_treatment_names(doubleml_dict['treatment_names'])
+            self._treatment_names = doubleml_dict['treatment_names']
+
         # initialize bootstrap distribution
         self._boot_t_stat = None
         self._boot_method = None
@@ -195,6 +202,77 @@ class DoubleMLFramework():
         and ``rva``.
         """
         return self._sensitivity_params
+
+    @property
+    def treatment_names(self):
+        """
+        Names of the treatments.
+        """
+        return self._treatment_names
+
+    @treatment_names.setter
+    def treatment_names(self, value):
+        self._check_treatment_names(value)
+        self._treatment_names = value
+
+    @property
+    def summary(self):
+        """
+        A summary for the estimated causal parameters ``thetas``.
+        """
+        ci = self.confint()
+        df_summary = generate_summary(self.thetas, self.ses, self.t_stats,
+                                      self.pvals, ci, self._treatment_names)
+        return df_summary
+
+    @property
+    def sensitivity_summary(self):
+        """
+        Returns a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
+
+        Returns
+        -------
+        res : str
+            Summary for the sensitivity analysis.
+        """
+        header = '================== Sensitivity Analysis ==================\n'
+        if self.sensitivity_params is None:
+            res = header + 'Apply sensitivity_analysis() to generate sensitivity_summary.'
+        else:
+            sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
+            scenario_params = f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; ' \
+                              f'cf_d={self.sensitivity_params["input"]["cf_d"]}, ' \
+                              f'rho={self.sensitivity_params["input"]["rho"]}'
+
+            theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
+            theta_and_ci = np.transpose(np.vstack((self.sensitivity_params['ci']['lower'],
+                                                   self.sensitivity_params['theta']['lower'],
+                                                   self.thetas,
+                                                   self.sensitivity_params['theta']['upper'],
+                                                   self.sensitivity_params['ci']['upper'])))
+            df_theta_and_ci = pd.DataFrame(theta_and_ci,
+                                           columns=theta_and_ci_col_names,
+                                           index=self.treatment_names)
+            theta_and_ci_summary = str(df_theta_and_ci)
+
+            rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
+            rvs = np.transpose(np.vstack((self.sensitivity_params['rv'],
+                                          self.sensitivity_params['rva']))) * 100
+
+            df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
+                                  columns=rvs_col_names,
+                                  index=self.treatment_names)
+            rvs_summary = str(df_rvs)
+
+            res = header + \
+                '\n------------------ Scenario          ------------------\n' + \
+                sig_level + scenario_params + '\n' + \
+                '\n------------------ Bounds with CI    ------------------\n' + \
+                theta_and_ci_summary + '\n' + \
+                '\n------------------ Robustness Values ------------------\n' + \
+                rvs_summary
+
+        return res
 
     def __add__(self, other):
 
@@ -612,8 +690,11 @@ class DoubleMLFramework():
              self.all_thetas + self.all_ses * critical_values),
             axis=1)
         ci = np.median(self._all_cis, axis=2)
-        # TODO: add treatment names
         df_ci = pd.DataFrame(ci, columns=['{:.1f} %'.format(i * 100) for i in percentages])
+
+        if self._treatment_names is not None:
+            df_ci.set_index(pd.Index(self._treatment_names), inplace=True)
+
         return df_ci
 
     def bootstrap(self, method='normal', n_rep_boot=500):
@@ -942,6 +1023,19 @@ class DoubleMLFramework():
                 raise ValueError(('The shape of riesz_rep does not match the expected '
                                  f'shape ({self._n_obs}, {self._n_thetas}, {self._n_rep}).'))
 
+        return None
+
+    def _check_treatment_names(self, treatment_names):
+        if not isinstance(treatment_names, list):
+            raise TypeError('treatment_names must be a list. '
+                            f'Got {str(treatment_names)} of type {str(type(treatment_names))}.')
+        is_str = [isinstance(name, str) for name in treatment_names]
+        if not all(is_str):
+            raise TypeError('treatment_names must be a list of strings. '
+                            f'At least one element is not a string: {str(treatment_names)}.')
+        if len(treatment_names) != self._n_thetas:
+            raise ValueError('The length of treatment_names does not match the number of treatments. '
+                             f'Got {self._n_thetas} treatments and {len(treatment_names)} treatment names.')
         return None
 
 

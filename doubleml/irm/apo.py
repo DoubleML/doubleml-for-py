@@ -1,23 +1,22 @@
 import numpy as np
 import pandas as pd
 import warnings
+
 from sklearn.utils import check_X_y
-from sklearn.utils.multiclass import type_of_target
 
 from ..double_ml import DoubleML
 
 from ..utils.blp import DoubleMLBLP
-from ..utils.policytree import DoubleMLPolicyTree
-from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
 
-from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm, _normalize_ipw, _cond_targets
-from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, \
-    _check_weights, _check_binary_predictions
+from ..utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _cond_targets, _trimm, \
+    _normalize_ipw
+from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_finite_predictions, \
+    _check_is_propensity, _check_binary_predictions
 
 
-class DoubleMLIRM(LinearScoreMixin, DoubleML):
-    """Double machine learning for interactive regression models
+class DoubleMLAPO(LinearScoreMixin, DoubleML):
+    """Double machine learning average potential outcomes for interactive regression models.
 
     Parameters
     ----------
@@ -35,6 +34,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
 
+    treatment_level : int or float
+        Chosen treatment level for average potential outcomes.
+
     n_folds : int
         Number of folds.
         Default is ``5``.
@@ -44,13 +46,12 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'ATE'`` or ``'ATTE'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, g_hat0, g_hat1, m_hat, smpls)``.
-        Default is ``'ATE'``.
+        A str (``'APO'``) specifying the score function.
+        Default is ``'APO'``.
 
     weights : array, dict or None
-        An numpy array of weights for each individual observation. If None, then the ``'ATE'`` score
-        is applied (corresponds to weights equal to 1). Can only be used with ``score = 'ATE'``.
+        An numpy array of weights for each individual observation. If None, then the ``'APO'`` score
+        is applied (corresponds to weights equal to 1).
         An array has to be of shape ``(n,)``, where ``n`` is the number of observations.
         A dictionary can be used to specify weights which depend on the treatment variable.
         In this case, the dictionary has to contain two keys ``weights`` and ``weights_bar``, where the values
@@ -73,53 +74,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
-    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    >>> np.random.seed(3141)
-    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
-    >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
-    >>> dml_irm_obj.fit().summary
-           coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.414073  0.238529  1.735941  0.082574 -0.053436  0.881581
-
-    Notes
-    -----
-    **Interactive regression (IRM)** models take the form
-
-    .. math::
-
-        Y = g_0(D, X) + U, & &\\mathbb{E}(U | X, D) = 0,
-
-        D = m_0(X) + V, & &\\mathbb{E}(V | X) = 0,
-
-    where the treatment variable is binary, :math:`D \\in \\lbrace 0,1 \\rbrace`.
-    We consider estimation of the average treatment effects when treatment effects are fully heterogeneous.
-    Target parameters of interest in this model are the average treatment effect (ATE),
-
-    .. math::
-
-        \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0,X)]
-
-    and the average treatment effect of the treated (ATTE),
-
-    .. math::
-
-        \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0,X) | D=1].
     """
     def __init__(self,
                  obj_dml_data,
                  ml_g,
                  ml_m,
+                 treatment_level,
                  n_folds=5,
                  n_rep=1,
-                 score='ATE',
+                 score='APO',
                  weights=None,
                  normalize_ipw=False,
                  trimming_rule='truncate',
@@ -131,9 +94,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          score,
                          draw_sample_splitting)
 
+        # set up treatment level and check data
+        self._treatment_level = treatment_level
+        self._treated = self._dml_data.d == self._treatment_level
+
         self._check_data(self._dml_data)
-        valid_scores = ['ATE', 'ATTE']
-        _check_score(self.score, valid_scores, allow_callable=True)
+        valid_scores = ['APO']
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         # set stratication for resampling
         self._strata = self._dml_data.d
@@ -164,8 +131,23 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
-        _check_weights(weights, score, obj_dml_data.n_obs, self.n_rep)
+        # APO weights
+        _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
         self._initialize_weights(weights)
+
+    @property
+    def treatment_level(self):
+        """
+        Chosen treatment level for average potential outcomes.
+        """
+        return self._treatment_level
+
+    @property
+    def treated(self):
+        """
+        Indicator for treated observations (with the corresponding treatment level).
+        """
+        return self._treated
 
     @property
     def normalize_ipw(self):
@@ -191,7 +173,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     @property
     def weights(self):
         """
-        Specifies the weights for a weighted ATE.
+        Specifies the weights for a weighted average potential outcome.
         """
         return self._weights
 
@@ -209,78 +191,49 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             assert isinstance(weights, dict)
             self._weights = weights
 
-    def _get_weights(self, m_hat=None):
-        # standard case for ATE
-        if self.score == 'ATE':
-            weights = self._weights['weights']
-            if 'weights_bar' not in self._weights.keys():
-                weights_bar = self._weights['weights']
-            else:
-                weights_bar = self._weights['weights_bar'][:, self._i_rep]
+    def _get_weights(self):
+        # standard case for APO/ATE
+        weights = self._weights['weights']
+        if 'weights_bar' not in self._weights.keys():
+            weights_bar = self._weights['weights']
         else:
-            # special case for ATTE
-            assert self.score == 'ATTE'
-            assert m_hat is not None
-            subgroup = self._weights['weights'] * self._dml_data.d
-            subgroup_probability = np.mean(subgroup)
-            weights = np.divide(subgroup, subgroup_probability)
-
-            weights_bar = np.divide(
-                np.multiply(m_hat, self._weights['weights']),
-                subgroup_probability)
+            weights_bar = self._weights['weights_bar'][:, self._i_rep]
 
         return weights, weights_bar
-
-    def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). '
-                             'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
-        one_treat = (obj_dml_data.n_treat == 1)
-        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
-        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
-        if not (one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an IRM model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as treatment variable.')
-        return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
-        # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        # use the treated indicator to get the correct sample splits
+        x, treated = check_X_y(x, self.treated,
+                               force_all_finite=False)
+
+        # get train indices for d == treatment_level
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, treated)
         g0_external = external_predictions['ml_g0'] is not None
         g1_external = external_predictions['ml_g1'] is not None
         m_external = external_predictions['ml_m'] is not None
 
-        # nuisance g
+        # nuisance g (g0 only relevant for sensitivity analysis)
         if g0_external:
             # use external predictions
             g_hat0 = {'preds': external_predictions['ml_g0'],
-                      'targets': None,
+                      'targets': _cond_targets(y, cond_sample=(treated == 0)),
                       'models': None}
         else:
             g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
                                      est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
                                      return_models=return_models)
             _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
+            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(treated == 0))
 
-            if self._dml_data.binary_outcome:
-                _check_binary_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
+        if self._dml_data.binary_outcome:
+            _check_binary_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
 
         if g1_external:
             # use external predictions
             g_hat1 = {'preds': external_predictions['ml_g1'],
-                      'targets': None,
+                      'targets': _cond_targets(y, cond_sample=(treated == 1)),
                       'models': None}
         else:
             g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
@@ -288,31 +241,32 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                      return_models=return_models)
             _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
             # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
+            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(treated == 1))
 
-        if self._dml_data.binary_outcome & (self.score != 'ATTE'):
+        if self._dml_data.binary_outcome:
             _check_binary_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
 
         # nuisance m
         if m_external:
             # use external predictions
             m_hat = {'preds': external_predictions['ml_m'],
-                     'targets': None,
+                     'targets': treated,
                      'models': None}
         else:
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, treated, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                     return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
             _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+
         # also trimm external predictions
         m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
 
-        psi_a, psi_b = self._score_elements(y, d,
-                                            g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
-                                            smpls)
+        psi_a, psi_b = self._score_elements(y, treated, g_hat0['preds'], g_hat1['preds'],
+                                            m_hat['preds'], smpls)
         psi_elements = {'psi_a': psi_a,
                         'psi_b': psi_b}
+
         preds = {'predictions': {'ml_g0': g_hat0['preds'],
                                  'ml_g1': g_hat1['preds'],
                                  'ml_m': m_hat['preds']},
@@ -323,58 +277,39 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                             'ml_g1': g_hat1['models'],
                             'ml_m': m_hat['models']}
                  }
-
         return psi_elements, preds
 
-    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
-
+    def _score_elements(self, y, treated, g_hat0, g_hat1, m_hat, smpls):
         if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, d)
+            m_hat_adj = _normalize_ipw(m_hat, treated)
         else:
             m_hat_adj = m_hat
 
-        # compute residuals
-        u_hat0 = y - g_hat0
-        u_hat1 = y - g_hat1
-
-        if (self.score == 'ATE') or (self.score == 'ATTE'):
-            weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
-            psi_b = weights * (g_hat1 - g_hat0) \
-                + weights_bar * (
-                    np.divide(np.multiply(d, u_hat1), m_hat_adj)
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
-            if self.score == 'ATE':
-                psi_a = np.full_like(m_hat_adj, -1.0)
-            else:
-                assert self.score == 'ATTE'
-                psi_a = -1.0 * weights
-        else:
-            assert callable(self.score)
-            psi_a, psi_b = self.score(y=y, d=d,
-                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj,
-                                      smpls=smpls)
+        u_hat = y - g_hat1
+        weights, weights_bar = self._get_weights()
+        psi_b = weights * g_hat1 + weights_bar * np.divide(np.multiply(treated, u_hat), m_hat_adj)
+        psi_a = np.full_like(m_hat_adj, -1.0)
 
         return psi_a, psi_b
 
     def _sensitivity_element_est(self, preds):
         # set elments for readability
         y = self._dml_data.y
-        d = self._dml_data.d
+        treated = self.treated
 
         m_hat = preds['predictions']['ml_m']
         g_hat0 = preds['predictions']['ml_g0']
         g_hat1 = preds['predictions']['ml_g1']
 
-        # use weights make this extendable
-        weights, weights_bar = self._get_weights(m_hat=m_hat)
+        weights, weights_bar = self._get_weights()
 
-        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2_score_element = np.square(y - np.multiply(treated, g_hat1) - np.multiply(1.0-treated, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
-        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
+        rr = np.multiply(weights_bar, np.divide(treated, m_hat))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
@@ -392,10 +327,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                          search_mode, n_iter_randomized_search):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
+        x, treated = check_X_y(x, self.treated,
+                               force_all_finite=False)
         # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, treated)
 
         if scoring_methods is None:
             scoring_methods = {'ml_g': None,
@@ -411,7 +346,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                                 self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
                                 n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
-        m_tune_res = _dml_tune(d, x, train_inds,
+        m_tune_res = _dml_tune(treated, x, train_inds,
                                self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
@@ -431,9 +366,32 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis, is_gate=False):
+    def _check_data(self, obj_dml_data):
+        if len(obj_dml_data.d_cols) > 1:
+            raise ValueError('Only one treatment variable is allowed. ' +
+                             f'Got {len(obj_dml_data.d_cols)} treatment variables.')
+
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data. ' +
+                             ' and '.join(obj_dml_data.z_cols) +
+                             ' have been set as instrumental variable(s).')
+
+        # check if treatment level is valid
+        if np.sum(self.treated) < 5:
+            raise ValueError(
+                'The number of treated observations is less than 5. ' +
+                f'Number of treated observations: {np.sum(self.treated)} for treatment level {self.treatment_level}.'
+            )
+
+        if np.mean(self.treated) <= 0.05:
+            warnings.warn(f'The proportion of observations with treatment level {self.treatment_level} is less than 5%.'
+                          f' Got {np.mean(self.treated) * 100:.2f}%.')
+
+        return
+
+    def capo(self, basis, is_gate=False):
         """
-        Calculate conditional average treatment effects (CATE) for a given basis.
+        Calculate conditional average potential outcomes (CAPO) for a given basis.
 
         Parameters
         ----------
@@ -441,7 +399,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
         is_gate : bool
-            Indicates whether the basis is constructed for GATEs (dummy-basis).
+            Indicates whether the basis is constructed for GATE/GAPOs (dummy-basis).
             Default is ``False``.
 
         Returns
@@ -449,7 +407,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model.
         """
-        valid_score = ['ATE']
+        valid_score = ['APO']
         if self.score not in valid_score:
             raise ValueError('Invalid score ' + self.score + '. ' +
                              'Valid score ' + ' or '.join(valid_score) + '.')
@@ -465,9 +423,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model.fit()
         return model
 
-    def gate(self, groups):
+    def gapo(self, groups):
         """
-        Calculate group average treatment effects (GATE) for groups.
+        Calculate group average potential outcomes (GAPO) for groups.
 
         Parameters
         ----------
@@ -479,7 +437,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Returns
         -------
         model : :class:`doubleML.DoubleMLBLP`
-            Best linear Predictor model for Group Effects.
+            Best linear Predictor model for group average potential outcomes.
         """
         if not isinstance(groups, pd.DataFrame):
             raise TypeError('Groups must be of DataFrame type. '
@@ -495,51 +453,5 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        model = self.cate(groups, is_gate=True)
-        return model
-
-    def policy_tree(self, features, depth=2, **tree_params):
-        """
-        Estimate a decision tree for optimal treatment policy by weighted classification.
-
-        Parameters
-        ----------
-        depth : int
-            The depth of the estimated decision tree.
-            Has to be larger than 0. Deeper trees derive a more complex decision policy. Default is ``2``.
-
-        features : :class:`pandas.DataFrame`
-            The covariates on which the policy tree is learned.
-            Has to be of shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
-            and ``d`` is the number of covariates to be included.
-
-        **tree_params : dict
-            Parameters that are forwarded to the :class:`sklearn.tree.DecisionTreeClassifier`.
-            Note that by default we perform minimal pruning by setting the ``ccp_alpha = 0.01`` and
-            ``min_samples_leaf = 8``. This can be adjusted.
-
-        Returns
-        -------
-        model : :class:`doubleML.DoubleMLPolicyTree`
-            Policy tree model.
-        """
-        valid_score = ['ATE']
-        if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
-
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
-
-        _check_integer(depth, "Depth", 0)
-
-        if not isinstance(features, pd.DataFrame):
-            raise TypeError('Covariates must be of DataFrame type. '
-                            f'Covariates of type {str(type(features))} was passed.')
-
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
-
-        model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
-
+        model = self.capo(groups, is_gate=True)
         return model

@@ -1,8 +1,21 @@
 import numpy as np
 from sklearn.model_selection import KFold, GridSearchCV, StratifiedKFold
 from sklearn.base import clone
+import pandas as pd
+from scipy.stats import norm
 
 from ..utils._estimation import _var_est, _aggregate_coefs_and_ses
+from ..double_ml_data import DoubleMLBaseData
+
+
+class DummyDataClass(DoubleMLBaseData):
+    def __init__(self,
+                 data):
+        DoubleMLBaseData.__init__(self, data)
+
+    @property
+    def n_coefs(self):
+        return 1
 
 
 def draw_smpls(n_obs, n_folds, n_rep=1, groups=None):
@@ -111,3 +124,21 @@ def generate_dml_dict(psi_a, psi_b):
     }
 
     return doubleml_dict
+
+
+def confint_manual(coef, se, index_names, boot_t_stat=None, joint=True, level=0.95):
+    a = (1 - level)
+    ab = np.array([a / 2, 1. - a / 2])
+    if joint:
+        assert boot_t_stat.shape[2] == 1
+        sim = np.amax(np.abs(boot_t_stat[:, :, 0]), 1)
+        hatc = np.quantile(sim, 1 - a)
+        ci = np.vstack((coef - se * hatc, coef + se * hatc)).T
+    else:
+        fac = norm.ppf(ab)
+        ci = np.vstack((coef + se * fac[0], coef + se * fac[1])).T
+
+    df_ci = pd.DataFrame(ci,
+                         columns=['{:.1f} %'.format(i * 100) for i in ab],
+                         index=index_names)
+    return df_ci

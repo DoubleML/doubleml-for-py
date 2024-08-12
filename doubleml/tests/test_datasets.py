@@ -5,7 +5,8 @@ import numpy as np
 from doubleml import DoubleMLData, DoubleMLClusterData
 from doubleml.datasets import fetch_401K, fetch_bonus, make_plr_CCDDHNR2018, make_plr_turrell2018, \
     make_irm_data, make_iivm_data, _make_pliv_data, make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, \
-    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data, make_heterogeneous_data, make_ssm_data
+    make_did_SZ2020, make_confounded_irm_data, make_confounded_plr_data, make_heterogeneous_data, make_ssm_data, \
+    make_irm_data_discrete_treatments
 
 msg_inv_return_type = 'Invalid return_type.'
 
@@ -288,3 +289,34 @@ def test_make_ssm_data_return_types():
     assert isinstance(s, np.ndarray)
     with pytest.raises(ValueError, match=msg_inv_return_type):
         _ = make_ssm_data(n_obs=100, return_type='matrix')
+
+
+@pytest.fixture(scope='function',
+                params=[3, 5])
+def n_levels(request):
+    return request.param
+
+
+def test_make_data_discrete_treatments(n_levels):
+    np.random.seed(3141)
+    n = 100
+    data_apo = make_irm_data_discrete_treatments(n_obs=n, n_levels=3)
+    assert isinstance(data_apo, dict)
+    assert isinstance(data_apo['y'], np.ndarray)
+    assert isinstance(data_apo['d'], np.ndarray)
+    assert isinstance(data_apo['x'], np.ndarray)
+    assert isinstance(data_apo['oracle_values'], dict)
+
+    assert isinstance(data_apo['oracle_values']['cont_d'], np.ndarray)
+    assert isinstance(data_apo['oracle_values']['level_bounds'], np.ndarray)
+    assert isinstance(data_apo['oracle_values']['potential_level'], np.ndarray)
+    assert isinstance(data_apo['oracle_values']['ite'], np.ndarray)
+    assert isinstance(data_apo['oracle_values']['y0'], np.ndarray)
+
+    msg = 'n_levels must be at least 2.'
+    with pytest.raises(ValueError, match=msg):
+        _ = make_irm_data_discrete_treatments(n_obs=n, n_levels=1)
+
+    msg = 'n_levels must be an integer.'
+    with pytest.raises(ValueError, match=msg):
+        _ = make_irm_data_discrete_treatments(n_obs=n, n_levels=1.1)
