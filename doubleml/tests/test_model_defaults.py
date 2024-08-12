@@ -195,7 +195,7 @@ def test_sensitivity_defaults():
                   'null_hypothesis': np.array([0.])}
 
     dml_plr.sensitivity_analysis()
-    assert dml_plr._sensitivity_params['input'] == input_dict
+    assert dml_plr.sensitivity_params['input'] == input_dict
 
 
 @pytest.mark.ci

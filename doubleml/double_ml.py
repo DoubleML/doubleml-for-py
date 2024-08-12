@@ -8,16 +8,13 @@ from sklearn.base import is_regressor, is_classifier
 from scipy.stats import norm
 
 from abc import ABC, abstractmethod
-from scipy.optimize import minimize_scalar
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
 from .utils._estimation import _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
-from .utils._checks import _check_in_zero_one, _check_integer, _check_float, _check_bool, \
-    _check_benchmarks, _check_external_predictions, _check_sample_splitting
-from .utils._plots import _sensitivity_contour_plot
+from .utils._checks import _check_external_predictions, _check_sample_splitting
 from .utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
@@ -335,8 +332,8 @@ class DoubleML(ABC):
     def sensitivity_elements(self):
         """
         Values of the sensitivity components after calling :meth:`fit`;
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``
-        and ``psi_nu2``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
+        and ``riesz_rep``.
         """
         return self._sensitivity_elements
 
@@ -347,7 +344,11 @@ class DoubleML(ABC):
         If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
         and ``rva``.
         """
-        return self._sensitivity_params
+        if self._framework is None:
+            sensitivity_params = None
+        else:
+            sensitivity_params = self._framework.sensitivity_params
+        return sensitivity_params
 
     @property
     def coef(self):
@@ -534,14 +535,37 @@ class DoubleML(ABC):
         scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
 
         doubleml_dict = {
-            "thetas": self.coef,
-            "all_thetas": self.all_coef,
-            "ses": self.se,
-            "all_ses": self.all_se,
-            "var_scaling_factors": self._var_scaling_factors,
-            "scaled_psi": scaled_psi_reshape,
-            "is_cluster_data": self._is_cluster_data
+            'thetas': self.coef,
+            'all_thetas': self.all_coef,
+            'ses': self.se,
+            'all_ses': self.all_se,
+            'var_scaling_factors': self._var_scaling_factors,
+            'scaled_psi': scaled_psi_reshape,
+            'is_cluster_data': self._is_cluster_data
         }
+
+        if self._sensitivity_implemented:
+            # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
+            doubleml_dict.update({
+                'sensitivity_elements': {
+                    'sigma2': np.transpose(self.sensitivity_elements['sigma2'], (0, 2, 1)),
+                    'nu2': np.transpose(self.sensitivity_elements['nu2'], (0, 2, 1)),
+                    'psi_sigma2': np.transpose(self.sensitivity_elements['psi_sigma2'], (0, 2, 1)),
+                    'psi_nu2': np.transpose(self.sensitivity_elements['psi_nu2'], (0, 2, 1)),
+                    'riesz_rep': np.transpose(self.sensitivity_elements['riesz_rep'], (0, 2, 1))
+                }
+            })
+
+        if self._is_cluster_data:
+            doubleml_dict.update({
+                'is_cluster_data': True,
+                'cluster_dict': {
+                    'smpls': self._smpls,
+                    'smpls_cluster': self._smpls_cluster,
+                    'cluster_vars': self._dml_data.cluster_vars,
+                    'n_folds_per_cluster': self._n_folds_per_cluster,
+                }
+            })
 
         doubleml_framework = DoubleMLFramework(doubleml_dict)
         return doubleml_framework
@@ -1324,14 +1348,15 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2']
+        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
         sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
                                 'psi_sigma2': np.full(score_dim, np.nan),
-                                'psi_nu2': np.full(score_dim, np.nan)}
+                                'psi_nu2': np.full(score_dim, np.nan),
+                                'riesz_rep': np.full(score_dim, np.nan)}
         return sensitivity_elements
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
@@ -1349,122 +1374,6 @@ class DoubleML(ABC):
         for key in self._sensitivity_element_names:
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
-
-    def _calc_sensitivity_analysis(self, cf_y, cf_d, rho, level):
-        if self._sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
-
-        # checks
-        _check_in_zero_one(cf_y, 'cf_y', include_one=False)
-        _check_in_zero_one(cf_d, 'cf_d', include_one=False)
-        if not isinstance(rho, float):
-            raise TypeError(f'rho must be of float type. '
-                            f'{str(rho)} of type {str(type(rho))} was passed.')
-        _check_in_zero_one(abs(rho), 'The absolute value of rho')
-        _check_in_zero_one(level, 'The confidence level', include_zero=False, include_one=False)
-
-        # set elements for readability
-        sigma2 = self.sensitivity_elements['sigma2']
-        nu2 = self.sensitivity_elements['nu2']
-        psi_sigma = self.sensitivity_elements['psi_sigma2']
-        psi_nu = self.sensitivity_elements['psi_nu2']
-        psi_scaled = np.divide(self.psi, np.mean(self.psi_deriv, axis=0))
-
-        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
-            raise ValueError('sensitivity_elements sigma2 and nu2 have to be positive. '
-                             f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
-                             'Most likely this is due to low quality learners (especially propensity scores).')
-
-        # elementwise operations
-        confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
-        S = np.sqrt(np.multiply(sigma2, nu2))
-
-        # sigma2 and nu2 are of shape (1, n_rep, n_coefs), whereas the all_coefs is of shape (n_coefs, n_reps)
-        all_theta_lower = self.all_coef - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
-        all_theta_upper = self.all_coef + np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
-
-        psi_S2 = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
-        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, S)), psi_S2)
-        psi_lower = psi_scaled - psi_bias
-        psi_upper = psi_scaled + psi_bias
-
-        # transpose to obtain shape (n_coefs, n_reps); includes scaling with n^{-1/2}
-        all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
-        all_sigma_upper = np.full_like(all_theta_upper, fill_value=np.nan)
-        for i_rep in range(self.n_rep):
-            self._i_rep = i_rep
-            for i_d in range(self._dml_data.n_treat):
-                self._i_treat = i_d
-
-                if not self._is_cluster_data:
-                    cluster_vars = None
-                    smpls_cluster = None
-                    n_folds_per_cluster = None
-                else:
-                    cluster_vars = self._dml_data.cluster_vars
-                    smpls_cluster = self.__smpls_cluster
-                    n_folds_per_cluster = self._n_folds_per_cluster
-
-                sigma2_lower_hat, _ = _var_est(psi=psi_lower[:, i_rep, i_d],
-                                               psi_deriv=np.ones_like(psi_lower[:, i_rep, i_d]),
-                                               smpls=self.__smpls,
-                                               is_cluster_data=self._is_cluster_data,
-                                               cluster_vars=cluster_vars,
-                                               smpls_cluster=smpls_cluster,
-                                               n_folds_per_cluster=n_folds_per_cluster)
-                sigma2_upper_hat, _ = _var_est(psi=psi_upper[:, i_rep, i_d],
-                                               psi_deriv=np.ones_like(psi_upper[:, i_rep, i_d]),
-                                               smpls=self.__smpls,
-                                               is_cluster_data=self._is_cluster_data,
-                                               cluster_vars=cluster_vars,
-                                               smpls_cluster=smpls_cluster,
-                                               n_folds_per_cluster=n_folds_per_cluster)
-
-                all_sigma_lower[self._i_treat, self._i_rep] = np.sqrt(sigma2_lower_hat)
-                all_sigma_upper[self._i_treat, self._i_rep] = np.sqrt(sigma2_upper_hat)
-
-        # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
-        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
-
-        quant = norm.ppf(level)
-        ci_lower = theta_lower - np.multiply(quant, sigma_lower)
-        ci_upper = theta_upper + np.multiply(quant, sigma_upper)
-
-        theta_dict = {'lower': theta_lower,
-                      'upper': theta_upper}
-
-        se_dict = {'lower': sigma_lower,
-                   'upper': sigma_upper}
-
-        ci_dict = {'lower': ci_lower,
-                   'upper': ci_upper}
-
-        res_dict = {'theta': theta_dict,
-                    'se': se_dict,
-                    'ci': ci_dict}
-
-        return res_dict
-
-    def _calc_robustness_value(self, null_hypothesis, level, rho, idx_treatment):
-        _check_float(null_hypothesis, "null_hypothesis")
-        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
-
-        # check which side is relvant
-        bound = 'upper' if (null_hypothesis > self.coef[idx_treatment]) else 'lower'
-
-        # minimize the square to find boundary solutions
-        def rv_fct(value, param):
-            res = self._calc_sensitivity_analysis(cf_y=value,
-                                                  cf_d=value,
-                                                  rho=rho,
-                                                  level=level)[param][bound][idx_treatment] - null_hypothesis
-            return np.square(res)
-
-        rv = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('theta', )).x
-        rva = minimize_scalar(rv_fct, bounds=(0, 0.9999), method='bounded', args=('ci', )).x
-
-        return rv, rva
 
     def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
         """
@@ -1502,42 +1411,17 @@ class DoubleML(ABC):
         -------
         self : object
         """
-        # compute sensitivity analysis
-        sensitivity_dict = self._calc_sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level)
 
-        if isinstance(null_hypothesis, float):
-            null_hypothesis_vec = np.full(shape=self._dml_data.n_treat, fill_value=null_hypothesis)
-        elif isinstance(null_hypothesis, np.ndarray):
-            if null_hypothesis.shape == (self._dml_data.n_treat,):
-                null_hypothesis_vec = null_hypothesis
-            else:
-                raise ValueError("null_hypothesis is numpy.ndarray but does not have the required "
-                                 f"shape ({self._dml_data.n_treat},). "
-                                 f'Array of shape {str(null_hypothesis.shape)} was passed.')
-        else:
-            raise TypeError("null_hypothesis has to be of type float or np.ndarry. "
-                            f"{str(null_hypothesis)} of type {str(type(null_hypothesis))} was passed.")
+        if self._framework is None:
+            raise ValueError('Apply fit() before sensitivity_analysis().')
+        self._framework.sensitivity_analysis(
+            cf_y=cf_y,
+            cf_d=cf_d,
+            rho=rho,
+            level=level,
+            null_hypothesis=null_hypothesis
+        )
 
-        # compute robustess values with respect to null_hypothesis
-        rv = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
-        rva = np.full(shape=self._dml_data.n_treat, fill_value=np.nan)
-
-        for i_treat in range(self._dml_data.n_treat):
-            rv[i_treat], rva[i_treat] = self._calc_robustness_value(null_hypothesis=null_hypothesis_vec[i_treat],
-                                                                    level=level, rho=rho, idx_treatment=i_treat)
-
-        sensitivity_dict['rv'] = rv
-        sensitivity_dict['rva'] = rva
-
-        # add all input parameters
-        input_params = {'cf_y': cf_y,
-                        'cf_d': cf_d,
-                        'rho': rho,
-                        'level': level,
-                        'null_hypothesis': null_hypothesis_vec}
-        sensitivity_dict['input'] = input_params
-
-        self._sensitivity_params = sensitivity_dict
         return self
 
     @property
@@ -1560,19 +1444,19 @@ class DoubleML(ABC):
                               f'rho={self.sensitivity_params["input"]["rho"]}'
 
             theta_and_ci_col_names = ['CI lower', 'theta lower', ' theta', 'theta upper', 'CI upper']
-            theta_and_ci = np.transpose(np.vstack((self._sensitivity_params['ci']['lower'],
-                                                   self._sensitivity_params['theta']['lower'],
+            theta_and_ci = np.transpose(np.vstack((self.sensitivity_params['ci']['lower'],
+                                                   self.sensitivity_params['theta']['lower'],
                                                    self.coef,
-                                                   self._sensitivity_params['theta']['upper'],
-                                                   self._sensitivity_params['ci']['upper'])))
+                                                   self.sensitivity_params['theta']['upper'],
+                                                   self.sensitivity_params['ci']['upper'])))
             df_theta_and_ci = pd.DataFrame(theta_and_ci,
                                            columns=theta_and_ci_col_names,
                                            index=self._dml_data.d_cols)
             theta_and_ci_summary = str(df_theta_and_ci)
 
             rvs_col_names = ['H_0', 'RV (%)', 'RVa (%)']
-            rvs = np.transpose(np.vstack((self._sensitivity_params['rv'],
-                                          self._sensitivity_params['rva']))) * 100
+            rvs = np.transpose(np.vstack((self.sensitivity_params['rv'],
+                                          self.sensitivity_params['rva']))) * 100
 
             df_rvs = pd.DataFrame(np.column_stack((self.sensitivity_params["input"]["null_hypothesis"], rvs)),
                                   columns=rvs_col_names,
@@ -1589,8 +1473,8 @@ class DoubleML(ABC):
 
         return res
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', include_scenario=True, benchmarks=None,
-                         fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+    def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
+                         include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
 
@@ -1604,6 +1488,19 @@ class DoubleML(ABC):
             Determines which contours to plot. Valid values are ``'theta'`` (refers to the bounds)
             and ``'ci'`` (refers to the bounds including statistical uncertainty).
             Default is ``'theta'``.
+
+        rho: float
+            The correlation between the differences in short and long representations in the main regression and
+            Riesz representer. Has to be in [-1,1]. The absolute value determines the adversarial strength of the
+            confounding (maximizes at 1.0).
+            Default is ``1.0``.
+
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        null_hypothesis : float
+            Null hypothesis for the effect. Determines the direction of the contour lines.
 
         include_scenario : bool
             Indicates whether to highlight the scenario from the call of :meth:`sensitivity_analysis`.
@@ -1630,76 +1527,21 @@ class DoubleML(ABC):
         fig : object
             Plotly figure of the sensitivity contours.
         """
-        if self.sensitivity_params is None:
-            raise ValueError('Apply sensitivity_analysis() to include senario in sensitivity_plot. '
-                             'The values of rho and the level are used for the scenario.')
-        _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self._dml_data.n_treat-1)
-        if not isinstance(value, str):
-            raise TypeError('value must be a string. '
-                            f'{str(value)} of type {type(value)} was passed.')
-        valid_values = ['theta', 'ci']
-        if value not in valid_values:
-            raise ValueError('Invalid value ' + value + '. ' +
-                             'Valid values ' + ' or '.join(valid_values) + '.')
-        _check_bool(include_scenario, 'include_scenario')
-        _check_benchmarks(benchmarks)
-        _check_bool(fill, 'fill')
-        _check_in_zero_one(grid_bounds[0], "grid_bounds", include_zero=False, include_one=False)
-        _check_in_zero_one(grid_bounds[1], "grid_bounds", include_zero=False, include_one=False)
-        _check_integer(grid_size, "grid_size", lower_bound=10)
+        if self._framework is None:
+            raise ValueError('Apply fit() before sensitivity_plot().')
+        fig = self._framework.sensitivity_plot(
+            idx_treatment=idx_treatment,
+            value=value,
+            rho=rho,
+            level=level,
+            null_hypothesis=null_hypothesis,
+            include_scenario=include_scenario,
+            benchmarks=benchmarks,
+            fill=fill,
+            grid_bounds=grid_bounds,
+            grid_size=grid_size
+        )
 
-        null_hypothesis = self.sensitivity_params['input']['null_hypothesis'][idx_treatment]
-        unadjusted_theta = self.coef[idx_treatment]
-        # check which side is relvant
-        bound = 'upper' if (null_hypothesis > unadjusted_theta) else 'lower'
-
-        # create evaluation grid
-        cf_d_vec = np.linspace(0, grid_bounds[0], grid_size)
-        cf_y_vec = np.linspace(0, grid_bounds[1], grid_size)
-
-        # compute contour values
-        contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
-        for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
-            for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
-                sens_dict = self._calc_sensitivity_analysis(cf_y=cf_y_grid,
-                                                            cf_d=cf_d_grid,
-                                                            rho=self.sensitivity_params['input']['rho'],
-                                                            level=self.sensitivity_params['input']['level'])
-                contour_values[i_cf_d_grid, i_cf_y_grid] = sens_dict[value][bound][idx_treatment]
-
-        # get the correct unadjusted value for confidence bands
-        if value == 'theta':
-            unadjusted_value = unadjusted_theta
-        else:
-            assert value == 'ci'
-            ci = self.confint(level=self.sensitivity_params['input']['level'])
-            if bound == 'upper':
-                unadjusted_value = ci.iloc[idx_treatment, 1]
-            else:
-                unadjusted_value = ci.iloc[idx_treatment, 0]
-
-        # compute the values for the benchmarks
-        benchmark_dict = copy.deepcopy(benchmarks)
-        if benchmarks is not None:
-            n_benchmarks = len(benchmarks['name'])
-            benchmark_values = np.full(shape=(n_benchmarks,), fill_value=np.nan)
-            for benchmark_idx in range(len(benchmarks['name'])):
-                sens_dict_bench = self._calc_sensitivity_analysis(cf_y=benchmarks['cf_y'][benchmark_idx],
-                                                                  cf_d=benchmarks['cf_d'][benchmark_idx],
-                                                                  rho=self.sensitivity_params['input']['rho'],
-                                                                  level=self.sensitivity_params['input']['level'])
-                benchmark_values[benchmark_idx] = sens_dict_bench[value][bound][idx_treatment]
-            benchmark_dict['value'] = benchmark_values
-        fig = _sensitivity_contour_plot(x=cf_d_vec,
-                                        y=cf_y_vec,
-                                        contour_values=contour_values,
-                                        unadjusted_value=unadjusted_value,
-                                        scenario_x=self.sensitivity_params['input']['cf_d'],
-                                        scenario_y=self.sensitivity_params['input']['cf_y'],
-                                        scenario_value=self.sensitivity_params[value][bound][idx_treatment],
-                                        include_scenario=include_scenario,
-                                        benchmarks=benchmark_dict,
-                                        fill=fill)
         return fig
 
     def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
