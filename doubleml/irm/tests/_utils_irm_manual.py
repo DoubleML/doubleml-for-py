@@ -248,11 +248,7 @@ def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
 
         m_hat = predictions['ml_m'][:, i_rep, 0]
         g_hat0 = predictions['ml_g0'][:, i_rep, 0]
-        if score == 'ATE':
-            g_hat1 = predictions['ml_g1'][:, i_rep, 0]
-        else:
-            assert score == 'ATTE'
-            g_hat1 = y
+        g_hat1 = predictions['ml_g1'][:, i_rep, 0]
 
         if score == 'ATE':
             weights = np.ones_like(d)

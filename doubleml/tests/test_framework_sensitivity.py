@@ -43,6 +43,7 @@ def dml_framework_sensitivity_fixture(n_rep, generate_data_simple):
         'dml_obj': dml_irm_obj,
         'dml_obj_2': dml_irm_obj_2,
         'dml_framework_obj': dml_framework_obj,
+        'dml_framework_obj_2': dml_framework_obj_2,
         'dml_framework_obj_add_obj': dml_framework_obj_add_obj,
         'dml_framework_obj_sub_obj': dml_framework_obj_sub_obj,
         'dml_framework_obj_mul_obj': dml_framework_obj_mul_obj,
@@ -59,6 +60,7 @@ def test_dml_framework_sensitivity_shapes(dml_framework_sensitivity_fixture):
     n_obs = dml_framework_sensitivity_fixture['dml_framework_obj'].n_obs
 
     object_list = ['dml_framework_obj',
+                   'dml_framework_obj_2',
                    'dml_framework_obj_add_obj',
                    'dml_framework_obj_sub_obj',
                    'dml_framework_obj_mul_obj']
@@ -81,3 +83,24 @@ def test_dml_framework_sensitivity_shapes(dml_framework_sensitivity_fixture):
     for key in score_keys:
         assert dml_framework_sensitivity_fixture['dml_framework_obj_concat']._sensitivity_elements[key].shape == \
             (n_obs, 2, n_rep)
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_summary(dml_framework_sensitivity_fixture):
+    # summary without sensitivity analysis
+    sensitivity_summary = dml_framework_sensitivity_fixture['dml_framework_obj_2'].sensitivity_summary
+    substring = 'Apply sensitivity_analysis() to generate sensitivity_summary.'
+    assert substring in sensitivity_summary
+
+    # summary with sensitivity analysis
+    sensitivity_summary = dml_framework_sensitivity_fixture['dml_framework_obj'].sensitivity_summary
+    assert isinstance(sensitivity_summary, str)
+    substrings = [
+        '\n------------------ Scenario          ------------------\n',
+        '\n------------------ Bounds with CI    ------------------\n',
+        '\n------------------ Robustness Values ------------------\n',
+        'Significance Level: level=',
+        'Sensitivity parameters: cf_y='
+    ]
+    for substring in substrings:
+        assert substring in sensitivity_summary
