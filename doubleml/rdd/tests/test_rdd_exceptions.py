@@ -29,6 +29,18 @@ def test_rdd_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex([], ml_g)
 
+    # score column
+    msg = 'Incompatible data. Score variable has not been set. '
+    with pytest.raises(ValueError, match=msg):
+        tmp_dml_data = copy.deepcopy(dml_data)
+        tmp_dml_data._s_col = None
+        _ = RDFlex(tmp_dml_data, ml_g)
+    msg = 'Incompatible data. Score variable has to be continuous. '
+    with pytest.raises(ValueError, match=msg):
+        tmp_dml_data = copy.deepcopy(dml_data)
+        tmp_dml_data._s = tmp_dml_data._d
+        _ = RDFlex(tmp_dml_data, ml_g)
+
     # existing instruments
     msg = r'Incompatible data. x0 have been set as instrumental variable\(s\). '
     with pytest.raises(ValueError, match=msg):
@@ -55,14 +67,37 @@ def test_rdd_exception_data():
 
 
 @pytest.mark.ci
+def test_rdd_exception_cutoff():
+    msg = "Cutoff value has to be a float or int. Object of type <class 'list'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, cutoff=[2])
+
+    msg = 'Cutoff value is not within the range of the score variable. '
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, cutoff=2)
+
+
+@pytest.mark.ci
 def test_rdd_exception_learner():
+
+    # ml_g
     msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier but the outcome variable is not'
            ' binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=LogisticRegression())
 
+    # ml_m
     msg = r'Invalid learner provided for ml_m: Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m=Lasso())
+    msg = 'Fuzzy design requires a classifier ml_m for treatment assignment.'
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g)
 
-
+    msg = ('A learner ml_m has been provided for for a sharp design but will be ignored. '
+           'A learner ml_m is not required for estimation.')
+    with pytest.warns(UserWarning, match=msg):
+        tmp_dml_data = copy.deepcopy(dml_data)
+        tmp_dml_data._data['sharp_d'] = (tmp_dml_data.s >= 0)
+        tmp_dml_data.d_cols = 'sharp_d'
+        _ = RDFlex(tmp_dml_data, ml_g, ml_m)

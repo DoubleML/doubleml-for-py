@@ -1,9 +1,11 @@
-from rdrobust import rdrobust, rdbwselect
 import numpy as np
 import scipy.stats as stats
+import warnings
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
+
+from rdrobust import rdrobust, rdbwselect
 
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml import DoubleMLData
@@ -71,13 +73,14 @@ class RDFlex():
                  fs_kernel="uniform",
                  **kwargs):
 
-        self._check_data(obj_dml_data)
+        self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
 
-        self._check_and_set_learner(ml_g, ml_m)
+        self._score = self._dml_data.s - cutoff
+        self._intendend_treatment = (self._score >= 0).astype(bool)
+        self._fuzzy = any(self._dml_data.d != self._intendend_treatment)
 
-        if obj_dml_data.d is not None and ml_m is None:
-            raise ValueError("If D is specified (Fuzzy Design), a classifier 'ml_m' must be provided.")
+        self._check_and_set_learner(ml_g, ml_m)
 
         # TODO: Add further input checks
         self._dml_data._s -= cutoff
@@ -137,6 +140,13 @@ class RDFlex():
         result = f"{header}\n{conventional_row}\n{robust_row}"
 
         return result
+
+    @property
+    def fuzzy(self):
+        """
+        Indicates whether the design is fuzzy or not.
+        """
+        return self._fuzzy
 
     def fit(self, iterative=True, n_jobs_cv=-1, external_predictions=None):
         """
@@ -262,14 +272,27 @@ class RDFlex():
         self.cis = np.empty(shape=(3, 2, n_rep))
         return
 
-    def _check_data(self, obj_dml_data):
+    def _check_data(self, obj_dml_data, cutoff):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None:
+
+        # score checks
+        if obj_dml_data.s_col is None:
             raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). ')
+                             'Score variable has not been set. ')
+        is_continuous = (type_of_target(obj_dml_data.s) == 'continuous')
+        if not is_continuous:
+            raise ValueError('Incompatible data. ' +
+                             'Score variable has to be continuous. ')
+
+        if not isinstance(cutoff, (int, float)):
+            raise TypeError('Cutoff value has to be a float or int. '
+                            f'Object of type {str(type(cutoff))} passed.')
+        if not (obj_dml_data.s.min() <= cutoff <= obj_dml_data.s.max()):
+            raise ValueError('Cutoff value is not within the range of the score variable. ')
+
+        # treatment checks
         one_treat = (obj_dml_data.n_treat == 1)
         binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
@@ -278,10 +301,18 @@ class RDFlex():
                              'To fit an RDFlex model with DML '
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
+
+        # instrument checks
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data. ' +
+                             ' and '.join(obj_dml_data.z_cols) +
+                             ' have been set as instrumental variable(s). ')
         return
 
     def _check_and_set_learner(self, ml_g, ml_m):
+        # check ml_g
         ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        self._learner = {'ml_g': ml_g}
         if ml_g_is_classifier:
             if self._dml_data.binary_outcome:
                 self._predict_method = {'ml_g': 'predict_proba'}
@@ -291,12 +322,21 @@ class RDFlex():
         else:
             self._predict_method = {'ml_g': 'predict'}
 
-        # Update if ml_m is not None
-        if ml_m is not None:
-            _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        # check ml_m
+        if self._fuzzy:
+            if ml_m is not None:
+                _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
 
-            self._learner['ml_m'] = ml_m
-            self._predict_method['ml_m'] = 'predict_proba'
+                self._learner['ml_m'] = ml_m
+                self._predict_method['ml_m'] = 'predict_proba'
+            else:
+                raise ValueError('Fuzzy design requires a classifier ml_m for treatment assignment.')
+
+        else:
+            if ml_m is not None:
+                warnings.warn(('A learner ml_m has been provided for for a sharp design but will be ignored. '
+                               'A learner ml_m is not required for estimation.'))
+        return
 
     def aggregate_over_splits(self):
         self.coef = np.median(self.coefs, axis=1)
