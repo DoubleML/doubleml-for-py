@@ -110,7 +110,7 @@ class DoubleMLData(DoubleMLBaseData):
         Default is ``None``.
 
     s_col : None or str
-        The selection variable (only relevant/used for SSM Estimatiors).
+        The score or selection variable (only relevant/used for RDD or SSM Estimatiors).
         Default is ``None``.
 
     use_other_treat_as_covariate : bool
@@ -182,7 +182,7 @@ class DoubleMLData(DoubleMLBaseData):
         if self.t_col is not None:
             data_summary += f'Time variable: {self.t_col}\n'
         if self.s_col is not None:
-            data_summary += f'Selection variable: {self.s_col}\n'
+            data_summary += f'Score/Selection variable: {self.s_col}\n'
         data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
 
@@ -212,7 +212,7 @@ class DoubleMLData(DoubleMLBaseData):
             Default is ``None``.
 
         s : :class:`numpy.ndarray`
-            Array of the selection variable (only relevant/used for SSM models).
+            Array of the score or selection variable (only relevant/used for RDD and SSM models).
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -351,7 +351,7 @@ class DoubleMLData(DoubleMLBaseData):
     @property
     def s(self):
         """
-        Array of selection variable.
+        Array of score or selection variable.
         """
         if self.s_col is not None:
             return self._s.values
@@ -538,7 +538,7 @@ class DoubleMLData(DoubleMLBaseData):
     @property
     def s_col(self):
         """
-        The selection variable.
+        The score or selection variable.
         """
         return self._s_col
 
@@ -547,10 +547,10 @@ class DoubleMLData(DoubleMLBaseData):
         reset_value = hasattr(self, '_s_col')
         if value is not None:
             if not isinstance(value, str):
-                raise TypeError('The selection variable s_col must be of str type (or None). '
+                raise TypeError('The score or selection variable s_col must be of str type (or None). '
                                 f'{str(value)} of type {str(type(value))} was passed.')
             if value not in self.all_variables:
-                raise ValueError('Invalid selection variable s_col. '
+                raise ValueError('Invalid score or selection variable s_col. '
                                  f'{value} is no data column.')
             self._s_col = value
         else:
@@ -725,24 +725,24 @@ class DoubleMLData(DoubleMLBaseData):
         if self.s_col is not None:
             s_col_set = {self.s_col}
             if not s_col_set.isdisjoint(x_cols_set):
-                raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and covariate in '
+                raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and covariate in '
                                  '``x_cols``.')
             if not s_col_set.isdisjoint(d_cols_set):
-                raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and treatment variable in '
-                                 '``d_cols``.')
+                raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and treatment '
+                                 'variable in ``d_cols``.')
             if not s_col_set.isdisjoint(y_col_set):
-                raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and outcome variable '
-                                 '``y_col``.')
+                raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and outcome '
+                                 'variable ``y_col``.')
             if self.z_cols is not None:
                 z_cols_set = set(self.z_cols)
                 if not s_col_set.isdisjoint(z_cols_set):
-                    raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and instrumental '
-                                     'variable in ``z_cols``.')
+                    raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and '
+                                     'instrumental variable in ``z_cols``.')
             if self.t_col is not None:
                 t_col_set = {self.t_col}
                 if not s_col_set.isdisjoint(t_col_set):
-                    raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and time variable '
-                                     '``t_col``.')
+                    raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and time '
+                                     'variable ``t_col``.')
 
 
 class DoubleMLClusterData(DoubleMLData):
@@ -780,7 +780,7 @@ class DoubleMLClusterData(DoubleMLData):
         Default is ``None``.
 
     s_col : None or str
-        The selection variable (only relevant/used for SSM Estimatiors).
+        The score or selection variable (only relevant/used for RDD and SSM Estimatiors).
         Default is ``None``.
 
     use_other_treat_as_covariate : bool
@@ -854,7 +854,7 @@ class DoubleMLClusterData(DoubleMLData):
         if self.t_col is not None:
             data_summary += f'Time variable: {self.t_col}\n'
         if self.s_col is not None:
-            data_summary += f'Selection variable: {self.s_col}\n'
+            data_summary += f'Score/Selection variable: {self.s_col}\n'
 
         data_summary += f'No. Observations: {self.n_obs}\n'
         return data_summary
@@ -888,7 +888,7 @@ class DoubleMLClusterData(DoubleMLData):
             Default is ``None``.
 
         s : :class:`numpy.ndarray`
-            Array of the selection variable (only relevant/used for SSM models).
+            Array of the score or selection variable (only relevant/used for RDD or SSM models).
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -1039,7 +1039,7 @@ class DoubleMLClusterData(DoubleMLData):
                                  'cluster variable in ``cluster_cols``.')
         if self.s_col is not None:
             if not s_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(f'{str(self.s_col)} cannot be set as selection variable ``s_col`` and '
+                raise ValueError(f'{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and '
                                  'cluster variable in ``cluster_cols``.')
 
     def _set_cluster_vars(self):
