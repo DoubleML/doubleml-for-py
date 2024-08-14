@@ -1,8 +1,12 @@
 from rdrobust import rdrobust, rdbwselect
 import numpy as np
 import scipy.stats as stats
-from doubleml.utils.resampling import DoubleMLResampling
+
 from sklearn.base import clone
+from sklearn.utils.multiclass import type_of_target
+
+from doubleml.utils.resampling import DoubleMLResampling
+from doubleml import DoubleMLData
 
 
 class RDFlex():
@@ -65,13 +69,13 @@ class RDFlex():
                  fs_kernel="uniform",
                  **kwargs):
 
+        self._check_data(obj_dml_data)
+        self._dml_data = obj_dml_data
+
         if obj_dml_data.d is not None and ml_m is None:
             raise ValueError("If D is specified (Fuzzy Design), a classifier 'ml_m' must be provided.")
 
         # TODO: Add further input checks
-
-        self._dml_data = obj_dml_data
-
         self._dml_data._s -= cutoff
         self.T = (0.5*(np.sign(obj_dml_data.s)+1)).astype(bool)
 
@@ -252,6 +256,24 @@ class RDFlex():
         self.coefs = np.empty(shape=(3, n_rep))
         self.ses = np.empty(shape=(3, n_rep))
         self.cis = np.empty(shape=(3, 2, n_rep))
+        return
+
+    def _check_data(self, obj_dml_data):
+        if not isinstance(obj_dml_data, DoubleMLData):
+            raise TypeError('The data must be of DoubleMLData type. '
+                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        if obj_dml_data.z_cols is not None:
+            raise ValueError('Incompatible data. ' +
+                             ' and '.join(obj_dml_data.z_cols) +
+                             ' have been set as instrumental variable(s). ')
+        one_treat = (obj_dml_data.n_treat == 1)
+        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+        zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
+        if not (one_treat & binary_treat & zero_one_treat):
+            raise ValueError('Incompatible data. '
+                             'To fit an RDFlex model with DML '
+                             'exactly one binary variable with values 0 and 1 '
+                             'needs to be specified as treatment variable.')
         return
 
     def aggregate_over_splits(self):
