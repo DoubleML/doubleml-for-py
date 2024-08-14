@@ -8,6 +8,8 @@ from sklearn.utils.multiclass import type_of_target
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml import DoubleMLData
 
+from doubleml.double_ml import DoubleML
+
 
 class RDFlex():
     """Flexible adjustment with double machine learning for regression discontinuity designs
@@ -71,6 +73,8 @@ class RDFlex():
 
         self._check_data(obj_dml_data)
         self._dml_data = obj_dml_data
+
+        self._check_and_set_learner(ml_g, ml_m)
 
         if obj_dml_data.d is not None and ml_m is None:
             raise ValueError("If D is specified (Fuzzy Design), a classifier 'ml_m' must be provided.")
@@ -275,6 +279,24 @@ class RDFlex():
                              'exactly one binary variable with values 0 and 1 '
                              'needs to be specified as treatment variable.')
         return
+
+    def _check_and_set_learner(self, ml_g, ml_m):
+        ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        if ml_g_is_classifier:
+            if self._dml_data.binary_outcome:
+                self._predict_method = {'ml_g': 'predict_proba'}
+            else:
+                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
+                                 'but the outcome variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method = {'ml_g': 'predict'}
+
+        # Update if ml_m is not None
+        if ml_m is not None:
+            _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+
+            self._learner['ml_m'] = ml_m
+            self._predict_method['ml_m'] = 'predict_proba'
 
     def aggregate_over_splits(self):
         self.coef = np.median(self.coefs, axis=1)

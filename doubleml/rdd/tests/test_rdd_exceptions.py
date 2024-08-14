@@ -52,3 +52,17 @@ def test_rdd_exception_data():
         tmp_dml_data.x_cols = ['x1']  # reset x to only x1 to enable setting d to x0
         tmp_dml_data.d_cols = ['x0']
         _ = RDFlex(tmp_dml_data, ml_g)
+
+
+@pytest.mark.ci
+def test_rdd_exception_learner():
+    msg = (r'The ml_g learner LogisticRegression\(\) was identified as classifier but the outcome variable is not'
+           ' binary with values 0 and 1.')
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g=LogisticRegression())
+
+    msg = r'Invalid learner provided for ml_m: Lasso\(\) has no method .predict_proba\(\).'
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m=Lasso())
+
+
