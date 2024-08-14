@@ -1,9 +1,9 @@
 from rdrobust import rdrobust, rdbwselect
 import numpy as np
-from sklearn.model_selection import cross_val_predict
 import scipy.stats as stats
 from doubleml.utils.resampling import DoubleMLResampling
-from doubleml.utils._estimation import _get_cond_smpls
+from sklearn.base import clone
+
 
 class RDFlex():
     """Flexible adjustment with double machine learning for regression discontinuity designs
@@ -43,7 +43,8 @@ class RDFlex():
         Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
         Default is ``uniform``.
 
-    **kwargs : 
+    **kwargs : kwargs
+        Key-worded arguments that are not used within RDFlex but directly handed to rdrobust.
 
     Examples
     --------
@@ -53,35 +54,51 @@ class RDFlex():
 
     """
 
-    def __init__(self, obj_dml_data, ml_g, ml_m=None, cutoff=0, n_folds=5, n_rep=1, h_fs=None, fs_kernel="uniform", **kwargs):
-        self.data = {}
-        
+    def __init__(self,
+                 obj_dml_data,
+                 ml_g,
+                 ml_m=None,
+                 cutoff=0,
+                 n_folds=5,
+                 n_rep=1,
+                 h_fs=None,
+                 fs_kernel="uniform",
+                 **kwargs):
+
         if obj_dml_data.d is not None and ml_m is None:
             raise ValueError("If D is specified (Fuzzy Design), a classifier 'ml_m' must be provided.")
+
+        # TODO: Add further input checks
+
         self._dml_data = obj_dml_data
 
-        self._dml_data -= cutoff
-        self.data["T"] = (0.5*(np.sign(X)+1)).astype(bool)
+        self._dml_data._s -= cutoff
+        self.T = (0.5*(np.sign(obj_dml_data.s)+1)).astype(bool)
 
         self.ml_g = ml_g
         self.ml_m = ml_m
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.h_fs = h_fs
-        self.alpha = alpha
         self.kwargs = kwargs
+        self.fs_kernel = fs_kernel
 
-        self.initial_bw = rdbwselect(y=Y, x=X, fuzzy=D).bws.values.flatten()
-        self.w = self._set_weights(fs_kernel=fs_kernel, 
-                                   bw=2 * self.initial_bw.max() * h_fs)
-        self.w_mask = self.w.astype(bool)
-        
-        self.smpls = DoubleMLResampling(n_folds=n_folds, n_rep=n_rep, n_obs=self.w_mask.sum(), 
-                                        stratify=D[self.w_mask]).split_samples()
-        
-        self._initialize_reps(n_obs = self.w_mask.sum(), n_rep = n_rep)
+        if h_fs is None:
+            self.h_fs = rdbwselect(y=obj_dml_data.y,
+                                   x=obj_dml_data.s,
+                                   fuzzy=obj_dml_data.d).bws.values.flatten().max()
+        else:
+            self.h_fs = h_fs
+
+        self.w, self.w_mask = self._calc_weights(fs_kernel=fs_kernel, bw=self.h_fs)
+
+        self.smpls = DoubleMLResampling(n_folds=n_folds, n_rep=n_rep, n_obs=self.w_mask.sum(),
+                                        stratify=obj_dml_data.d[self.w_mask]).split_samples()
+
+        self._initialize_reps(n_obs=self.w_mask.sum(), n_rep=n_rep)
 
     def __str__(self):
+        # TODO: Adjust __str__ to other DoubleML classes (see doubleml.py)
         ci_conventional = [round(ci, 3) for ci in self.ci[0, :]]
         ci_robust = [round(ci, 3) for ci in self.ci[2, :]]
         col_format = "{:<20} {:>8} {:>8} {:>8} {:>8} to {:<8}"
@@ -110,77 +127,131 @@ class RDFlex():
         )
 
         result = f"{header}\n{conventional_row}\n{robust_row}"
-        
+
         return result
 
-    def fit(self, n_jobs=-1):
+    def fit(self, iterative=True, n_jobs_cv=-1, external_predictions=None):
+        """
+        Estimate RDFlex model.
+
+        Parameters
+        ----------
+        iterative : bool
+            Indicates whether the first stage bandwidth should be fitted iteratively.
+            Defaule is ``True``
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to fit the learners. ``None`` means ``1``.
+            Default is ``None``.
+
+        external_predictions : None or dict
+            If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
+            for a specific learner is supplied, the model will use the supplied nuisance predictions instead. Has to
+            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the
+            corresponding learners.
+            Default is `None`.
+
+        Returns
+        -------
+        self : object
+        """
+
+        # TODO: Implement external predictions
+        if external_predictions is not None:
+            raise NotImplementedError("Currently argument only included for compatibility.")
+
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-            eta_Y, eta_D = self._fit_nuisance_models(n_jobs)
-            self.M_Y[:,i_rep] = self.data["Y"][self.w_mask] - eta_Y
-            if self.data["D"] is not None:
-                self.M_D[:,i_rep] = self.data["D"][self.w_mask] - eta_D
-            self._fit_rdd()
-        
+            eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=self.w, w_mask=self.w_mask)
+            self.M_Y[i_rep] = self._dml_data.y[self.w_mask] - eta_Y
+            if self._dml_data.d is not None:
+                self.M_D[i_rep] = self._dml_data.d[self.w_mask] - eta_D
+            initial_h = self._fit_rdd(h=None, w_mask=self.w_mask)
+
+            if iterative:
+                adj_w, adj_w_mask = self._calc_weights(fs_kernel=self.fs_kernel, bw=initial_h)
+                # created new smpls for smaller mask
+                self.smpls[i_rep] = DoubleMLResampling(n_folds=self.n_folds, n_rep=1, n_obs=adj_w_mask.sum(),
+                                                       stratify=self._dml_data.d[adj_w_mask]).split_samples()[0]
+                eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=adj_w, w_mask=adj_w_mask)
+                self.M_Y[i_rep] = self._dml_data.y[adj_w_mask] - eta_Y
+                if self._dml_data.d is not None:
+                    self.M_D[i_rep] = self._dml_data.d[adj_w_mask] - eta_D
+                self._fit_rdd(h=initial_h, w_mask=adj_w_mask)
+
         self.aggregate_over_splits()
 
         return self
-    
-    def _fit_nuisance_models(self, n_jobs):
-        T = self.data["T"][self.w_mask]
-        X = np.c_[T, self.data["Z"][self.w_mask]]
-        D = self.data["D"][self.w_mask]
-        Y = self.data["Y"][self.w_mask]
 
-        _check_left, _check_right = self._check_fuzzyness(w=self.w_mask,min_smpls=2*self.n_folds)
-        if _check_left:
-            pred_treat_d0 = cross_val_predict(estimator=self.ml_m, X=self.data["Z"][self.w_mask], y=self.data["D"][self.w_mask], cv=smpls_d0, 
-                                              n_jobs=n_jobs, method="predict_proba", params = {"sample_weight": self.w[self.w_mask]})[:,1]
-        else:
-            pred_treat_d0 = np.average(self.data["D"][~self.data["T"]], weights=self.w[~self.data["T"]])
-        if _check_right:
-            pred_treat_d1 = cross_val_predict(estimator=self.ml_m, X=self.data["Z"][self.w_mask], y=self.data["D"][self.w_mask], cv=smpls_d1, 
-                                              n_jobs=n_jobs, method="predict_proba", params = {"sample_weight": self.w[self.w_mask]})[:,1]
-        else:
-            pred_treat_d1 = np.average(self.data["D"][self.data["T"]], weights=self.w[self.data["T"]])
+    def _fit_nuisance_models(self, n_jobs_cv, weights, w_mask):
+        T = self.T[w_mask]
+        TX = np.c_[T, self._dml_data.x[w_mask]]
+        Y = self._dml_data.y[w_mask]
+        X = self._dml_data.x[w_mask]
+        D = self._dml_data.d[w_mask]
+        weights = weights[w_mask]
 
-        pred_outcome_d0 = cross_val_predict(estimator=self.ml_g, X=X, y=sY, cv=smpls, n_jobs=n_jobs, method="predict", 
-                                            params = {"sample_weight": self.w[self.w_mask]})
+        # TODO: Hard coded rule ok? Min 2 * n_folds fuzzy required per side.
+        _check_left, _check_right = self._check_fuzzyness(w=w_mask, min_smpls=2*self.n_folds)
 
-        eta_D = .5 * (pred_treat_d0 + pred_treat_d1)
-        eta_Y = .5 * (pred_outcome_d0 + pred_outcome_d1)
+        pred_y, pred_d = np.zeros(Y.shape), np.zeros(D.shape)
 
-        return eta_Y, eta_D
-        
+        # TODO: Add parallelization for loop (n_jobs_cv)
+        for train_index, test_index in self.smpls[self._i_rep]:
+            ml_g, ml_m = clone(self.ml_g), clone(self.ml_m)
+            ml_g.fit(TX[train_index], Y[train_index], sample_weight=weights[train_index])
 
-    def _fit_rdd(self):
-        _rdd_res = rdrobust(y=self.M_Y[:,self._i_rep], x=self.data["X"][self.w_mask], 
-                            fuzzy=self.M_D[:,self._i_rep], **self.kwargs)
-        self.coefs[:,self._i_rep] = _rdd_res.coef.values.flatten()
-        self.ses[:,self._i_rep] = _rdd_res.se.values.flatten()
-        self.cis[:,:,self._i_rep] = _rdd_res.ci.values
+            X_test_pos = np.c_[np.ones_like(T[test_index]), X[test_index]]
+            X_test_neg = np.c_[np.zeros_like(T[test_index]), X[test_index]]
+
+            pred_y[test_index] += ml_g.predict(X_test_pos)
+            pred_y[test_index] += ml_g.predict(X_test_neg)
+
+            if (_check_left | _check_right):
+                ml_m.fit(TX[train_index], D[train_index], sample_weight=weights[train_index])
+
+            if _check_left:
+                pred_d[test_index] += ml_m.predict_proba(X_test_neg)[:, 1]
+            if _check_right:
+                pred_d[test_index] += ml_m.predict_proba(X_test_pos)[:, 1]
+
+        if ~(_check_left):
+            pred_d += np.average(D[~T], weights=weights[~T])
+        if ~(_check_right):
+            pred_d += np.average(D[T], weights=weights[T])
+
+        return pred_y/2, pred_d/2
+
+    def _fit_rdd(self, w_mask, h=None):
+        _rdd_res = rdrobust(y=self.M_Y[self._i_rep], x=self._dml_data.s[w_mask],
+                            fuzzy=self.M_D[self._i_rep], h=h, **self.kwargs)
+        self.coefs[:, self._i_rep] = _rdd_res.coef.values.flatten()
+        self.ses[:, self._i_rep] = _rdd_res.se.values.flatten()
+        self.cis[:, :, self._i_rep] = _rdd_res.ci.values
         self.rdd_res.append(_rdd_res)
-        return
-    
-    def _set_weights(self, bw, fs_kernel="uniform"):
+        # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
+        return _rdd_res.bws.loc["h"].max()
+
+    def _calc_weights(self, bw, fs_kernel="uniform"):
         if fs_kernel == "uniform":
-            return (np.abs(self.data["X"]) < bw)
+            weights = (np.abs(self._dml_data.s) < bw)
         if fs_kernel == "triangular":
-            return np.maximum(0, (bw - np.abs(self.data["X"])) / bw)
+            weights = np.maximum(0, (bw - np.abs(self._dml_data.s)) / bw)
         if fs_kernel == "epanechnikov":
-            return np.where(np.abs(self.data["X"])<bw,.75*(1-self.data["X"]/bw)**2,0)
-        
+            weights = np.where(np.abs(self._dml_data.s) < bw, .75*(1-self._dml_data.s/bw)**2, 0)
+        return weights, weights.astype(bool)
+
     def _check_fuzzyness(self, w, min_smpls):
-        return ((self.data["D"][w][self.data["X"][w]<0].sum() > min_smpls), 
-                ((self.data["D"][w][self.data["X"][w]>0] - 1).sum() < -(min_smpls)))
-    
+        return ((self._dml_data.d[w][self._dml_data.s[w] < 0].sum() > min_smpls),
+                ((self._dml_data.d[w][self._dml_data.s[w] > 0] - 1).sum() < -(min_smpls)))
+
     def _initialize_reps(self, n_obs, n_rep):
-        self.M_Y = np.empty(shape=(n_obs, n_rep))
-        self.M_D = np.empty(shape=(n_obs, n_rep)) if self.data["D"] is not None else None
+        self.M_Y = [None] * n_rep
+        self.M_D = [None] * n_rep
         self.rdd_res = []
-        self.coefs = np.empty(shape=(3,n_rep))
-        self.ses = np.empty(shape=(3,n_rep))
-        self.cis = np.empty(shape=(3,2,n_rep))
+        self.coefs = np.empty(shape=(3, n_rep))
+        self.ses = np.empty(shape=(3, n_rep))
+        self.cis = np.empty(shape=(3, 2, n_rep))
         return
 
     def aggregate_over_splits(self):
