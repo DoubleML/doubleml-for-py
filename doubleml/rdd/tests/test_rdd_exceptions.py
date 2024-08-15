@@ -137,3 +137,16 @@ def test_rdd_exception_h_fs():
     msg = "Initial bandwidth 'h_fs' has to be a float. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m, h_fs=1)
+
+
+@pytest.mark.ci
+def test_rdd_exception_fit():
+    rdd_model = RDFlex(dml_data, ml_g, ml_m)
+    msg = (r"The number of iterations for the iterative bandwidth fitting must be of int type. \[0\] of type <class 'list'> "
+           "was passed.")
+    with pytest.raises(TypeError, match=msg):
+        rdd_model.fit(n_iterations=[0])
+
+    msg = 'The number of iterations for the iterative bandwidth fitting has to be positive. 0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        rdd_model.fit(n_iterations=0)
