@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.stats as stats
+from scipy.stats import norm
 import warnings
 from collections.abc import Callable
 
@@ -202,6 +202,36 @@ class RDFlex():
         """
         return self._cutoff
 
+    @property
+    def coef(self):
+        """
+        Estimates for the causal parameter after calling :meth:`fit`.
+        """
+        return self._coef
+
+    @property
+    def se(self):
+        """
+        Standard errors for the causal parameter(s) after calling :meth:`fit`.
+        """
+        return self._se
+
+    @property
+    def t_stat(self):
+        """
+        t-statistics for the causal parameter(s) after calling :meth:`fit`.
+        """
+        t_stat = self.coef / self.se
+        return t_stat
+
+    @property
+    def pval(self):
+        """
+        p-values for the causal parameter(s) after calling :meth:`fit`.
+        """
+        pval = 2 * norm.cdf(-np.abs(self.t_stat))
+        return pval
+
     def fit(self, n_iterations=2):
         """
         Estimate RDFlex model.
@@ -397,10 +427,7 @@ class RDFlex():
         return kernel_function, kernel_name
 
     def aggregate_over_splits(self):
-        self.coef = np.median(self.coefs, axis=1)
-        self.ci = np.median(self.cis, axis=2)
-        med_se = np.median(self.ses, axis=1)
-        self.se = [np.sqrt(np.median(med_se[i]**2 + (self.coefs[i, :] - self.coef[i])**2)) for i in range(3)]
-
-        z = self.coef / self.se
-        self.p_value = 2*stats.norm.cdf(-np.abs(z))
+        self._coef = np.median(self._coefs, axis=1)
+        self._ci = np.median(self._cis, axis=2)
+        med_se = np.median(self._ses, axis=1)
+        self._se = [np.sqrt(np.median(med_se[i]**2 + (self._coefs[i, :] - self._coef[i])**2)) for i in range(3)]
