@@ -43,7 +43,7 @@ class RDFlex():
         A float or intspecifying the cutoff in the score.
         Default is ``0``.
 
-    h_fs : float or int or None
+    h_fs : float or None
         Initial bandwidth in the first stage estimation. If ``None``, then the optimal bandwidth without
         covariates will be used.
         Default is ``None``.
