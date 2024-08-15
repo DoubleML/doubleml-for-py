@@ -50,7 +50,6 @@ def _assert_return_types_after_fit(dml_obj):
     # TODO: Add Coefficient tests
 
 
-
 @pytest.mark.ci
 def test_rdd_returntypes():
     _assert_return_types(dml_rdflex)

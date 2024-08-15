@@ -193,7 +193,7 @@ class RDFlex():
         """
         return self._w_mask
 
-    def fit(self, iterative=True, n_jobs_cv=-1, external_predictions=None):
+    def fit(self, iterative=True,  external_predictions=None):
         """
         Estimate RDFlex model.
 
@@ -202,10 +202,6 @@ class RDFlex():
         iterative : bool
             Indicates whether the first stage bandwidth should be fitted iteratively.
             Defaule is ``True``
-
-        n_jobs_cv : None or int
-            The number of CPUs to use to fit the learners. ``None`` means ``1``.
-            Default is ``None``.
 
         external_predictions : None or dict
             If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
@@ -228,9 +224,13 @@ class RDFlex():
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-            eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=self.w, w_mask=self.w_mask)
+            eta_Y = self._fit_nuisance_model(outcome=y_masked, estimator_name="ml_g",
+                                             weights=self.w, w_mask=self.w_mask)
             self._M_Y[i_rep] = y_masked - eta_Y
+
             if self.fuzzy:
+                eta_D = self._fit_nuisance_model(outcome=d_masked, estimator_name="ml_m",
+                                                 weights=self.w, w_mask=self.w_mask)
                 self._M_D[i_rep] = d_masked - eta_D
             initial_h = self._fit_rdd(h=None, w_mask=self.w_mask)
 
@@ -242,55 +242,43 @@ class RDFlex():
                 # created new smpls for smaller mask
                 self.smpls[i_rep] = DoubleMLResampling(n_folds=self.n_folds, n_rep=1, n_obs=adj_w_mask.sum(),
                                                        stratify=d_masked).split_samples()[0]
-                eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=adj_w, w_mask=adj_w_mask)
+                eta_Y = self._fit_nuisance_model(outcome=y_adj_masked, estimator_name="ml_g",
+                                                 weights=adj_w, w_mask=adj_w_mask)
                 self._M_Y[i_rep] = y_adj_masked - eta_Y
                 if self.fuzzy:
+                    eta_D = self._fit_nuisance_model(outcome=d_adj_masked, estimator_name="ml_m",
+                                                     weights=adj_w, w_mask=adj_w_mask)
                     self._M_D[i_rep] = d_adj_masked - eta_D
+
                 self._fit_rdd(h=initial_h, w_mask=adj_w_mask)
 
         self.aggregate_over_splits()
 
         return self
 
-    def _fit_nuisance_models(self, n_jobs_cv, weights, w_mask):
+    def _fit_nuisance_model(self, outcome, estimator_name, weights, w_mask):
         Z = self._intendend_treatment[w_mask]  # instrument for treatment
-        Y = self._dml_data.y[w_mask]
         X = self._dml_data.x[w_mask]
-        D = self._dml_data.d[w_mask]
-        S = self._score[w_mask]
         weights = weights[w_mask]
         ZX = np.column_stack[Z, X]
 
-        # Min fuzzy obs or percentage required per training
-        _check_left, _check_right = self._check_fuzzyness(D, S, min_smpls=5, min_perc=0.02)
+        pred_left, pred_right = np.zeros_like(outcome), np.zeros_like(outcome)
 
-        pred_y, pred_d = np.zeros(Y.shape), np.zeros(D.shape)
-
-        # TODO: Add parallelization for loop (n_jobs_cv)
         for train_index, test_index in self.smpls[self._i_rep]:
-            ml_g, ml_m = clone(self.ml_g), clone(self.ml_m)
-            ml_g.fit(ZX[train_index], Y[train_index], sample_weight=weights[train_index])
+            estimator = clone(self._learner[estimator_name])
+            estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
             X_test_pos = np.c_[np.ones_like(Z[test_index]), X[test_index]]
             X_test_neg = np.c_[np.zeros_like(Z[test_index]), X[test_index]]
 
-            pred_y[test_index] += ml_g.predict(X_test_pos)
-            pred_y[test_index] += ml_g.predict(X_test_neg)
+            if self._predict_method[estimator_name] == "predict":
+                pred_left[test_index] = estimator.predict(X_test_neg)
+                pred_right[test_index] = estimator.predict(X_test_pos)
+            else:
+                pred_left[test_index] = estimator.predict_proba(X_test_neg)
+                pred_right[test_index] = estimator.predict_proba(X_test_pos)
 
-            if (_check_left | _check_right):
-                ml_m.fit(ZX[train_index], D[train_index], sample_weight=weights[train_index])
-
-            if _check_left:
-                pred_d[test_index] += ml_m.predict_proba(X_test_neg)[:, 1]
-            if _check_right:
-                pred_d[test_index] += ml_m.predict_proba(X_test_pos)[:, 1]
-
-        if ~(_check_left):
-            pred_d += np.average(D[~Z], weights=weights[~Z])
-        if ~(_check_right):
-            pred_d += np.average(D[Z], weights=weights[Z])
-
-        return pred_y/2, pred_d/2
+        return (pred_left + pred_right)/2
 
     def _fit_rdd(self, w_mask, h=None):
         _rdd_res = rdrobust(y=self._M_Y[self._i_rep], x=self._dml_data.s[w_mask],
@@ -305,20 +293,6 @@ class RDFlex():
     def _calc_weights(self, kernel, h):
         weights = kernel(self._score, h)
         return weights, weights.astype(bool)
-
-    def _check_fuzzyness(self, D, S, min_smpls, min_perc):
-        min_obs = np.ceil(min_smpls * (self.n_folds/(self.n_folds - 1)))
-
-        defier_left = D[S < 0]
-        defier_right = np.invert(D[S >= 0])
-
-        left_min_smpls = defier_left.sum() >= min_obs
-        right_min_smpls = defier_right.sum() >= min_obs
-
-        left_min_perc = defier_left.mean() >= min_perc
-        right_min_perc = defier_right.mean() >= min_perc
-
-        return (left_min_smpls & left_min_perc), (right_min_smpls & right_min_perc)
 
     def _initialize_reps(self, n_rep):
         self._M_Y = [None] * n_rep
