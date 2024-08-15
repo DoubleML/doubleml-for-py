@@ -361,10 +361,28 @@ def _check_framework_compatibility(dml_framework_1, dml_framework_2, check_treat
     if dml_framework_1._is_cluster_data != dml_framework_2._is_cluster_data:
         raise ValueError('The cluster structure in DoubleMLFrameworks must be the same. '
                          f'Got {str(dml_framework_1._is_cluster_data)} and {str(dml_framework_2._is_cluster_data)}.')
+    return
 
 
 def _check_set(x):
     return {x} if x is not None else {}
+
+
+def _check_resampling_specification(n_folds, n_rep):
+    if not isinstance(n_folds, int):
+        raise TypeError('The number of folds must be of int type. '
+                        f'{str(n_folds)} of type {str(type(n_folds))} was passed.')
+    if n_folds < 2:
+        raise ValueError('The number of folds greater or equal to 2. '
+                         f'{str(n_folds)} was passed.')
+
+    if not isinstance(n_rep, int):
+        raise TypeError('The number of repetitions for the sample splitting must be of int type. '
+                        f'{str(n_rep)} of type {str(type(n_rep))} was passed.')
+    if n_rep < 1:
+        raise ValueError('The number of repetitions for the sample splitting has to be positive. '
+                         f'{str(n_rep)} was passed.')
+    return
 
 
 def _check_cluster_partitions(smpls, values):

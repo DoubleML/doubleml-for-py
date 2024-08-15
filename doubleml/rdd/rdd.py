@@ -7,10 +7,10 @@ from sklearn.utils.multiclass import type_of_target
 
 from rdrobust import rdrobust, rdbwselect
 
-from doubleml.utils.resampling import DoubleMLResampling
 from doubleml import DoubleMLData
-
 from doubleml.double_ml import DoubleML
+from doubleml.utils.resampling import DoubleMLResampling
+from doubleml.utils._checks import _check_resampling_specification
 
 
 class RDFlex():
@@ -82,6 +82,10 @@ class RDFlex():
 
         self._check_and_set_learner(ml_g, ml_m)
 
+        _check_resampling_specification(n_folds, n_rep)
+        self._n_folds = n_folds
+        self._n_rep = n_rep
+
         # TODO: Add further input checks
         self._dml_data._s -= cutoff
         self.T = (0.5*(np.sign(obj_dml_data.s)+1)).astype(bool)
@@ -147,6 +151,20 @@ class RDFlex():
         Indicates whether the design is fuzzy or not.
         """
         return self._fuzzy
+
+    @property
+    def n_folds(self):
+        """
+        Number of folds.
+        """
+        return self._n_folds
+
+    @property
+    def n_rep(self):
+        """
+        Number of repetitions for the sample splitting.
+        """
+        return self._n_rep
 
     def fit(self, iterative=True, n_jobs_cv=-1, external_predictions=None):
         """

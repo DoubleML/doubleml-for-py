@@ -101,3 +101,22 @@ def test_rdd_exception_learner():
         tmp_dml_data._data['sharp_d'] = (tmp_dml_data.s >= 0)
         tmp_dml_data.d_cols = 'sharp_d'
         _ = RDFlex(tmp_dml_data, ml_g, ml_m)
+
+
+@pytest.mark.ci
+def test_rdd_exception_resampling():
+    # n_folds
+    msg = r"The number of folds must be of int type. \[1\] of type <class 'list'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, n_folds=[1])
+    msg = 'The number of folds greater or equal to 2. 1 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, n_folds=1)
+
+    # n_rep
+    msg = r"The number of repetitions for the sample splitting must be of int type. \[0\] of type <class 'list'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, n_rep=[0])
+    msg = 'The number of repetitions for the sample splitting has to be positive. 0 was passed.'
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, n_rep=0)
