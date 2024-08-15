@@ -78,6 +78,7 @@ class RDFlex():
         self._dml_data = obj_dml_data
 
         self._score = self._dml_data.s - cutoff
+        self._cutoff = cutoff
         self._intendend_treatment = (self._score >= 0).astype(bool)
         self._fuzzy = any(self._dml_data.d != self._intendend_treatment)
 
@@ -190,6 +191,13 @@ class RDFlex():
         Mask for the weights of the first stage estimation.
         """
         return self._w_mask
+
+    @property
+    def cutoff(self):
+        """
+        Cutoff at which the treatment effect is estimated.
+        """
+        return self._cutoff
 
     def fit(self, n_iterations=2):
         """
