@@ -197,9 +197,6 @@ class RDFlex():
 
         Parameters
         ----------
-        iterative : bool
-            Indicates whether the first stage bandwidth should be fitted iteratively.
-            Defaule is ``True``
 
         n_iterations : int
             Number of iterations for the iterative bandwidth fitting.
@@ -217,9 +214,6 @@ class RDFlex():
             raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
                              f'{str(n_iterations)} was passed.')
 
-        y_masked = self._dml_data.y[self.w_mask]
-        d_masked = self._dml_data.d[self.w_mask]
-
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
@@ -228,17 +222,19 @@ class RDFlex():
             weights = self.w
             weights_mask = self.w_mask
             for _ in range(n_iterations):
+                y_masked = self._dml_data.y[weights_mask]
                 eta_Y = self._fit_nuisance_model(outcome=y_masked, estimator_name="ml_g",
                                                  weights=weights, w_mask=weights_mask)
                 self._M_Y[i_rep] = y_masked - eta_Y
 
                 if self.fuzzy:
+                    d_masked = self._dml_data.d[weights_mask]
                     eta_D = self._fit_nuisance_model(outcome=d_masked, estimator_name="ml_m",
                                                      weights=weights, w_mask=weights_mask)
                     self._M_D[i_rep] = d_masked - eta_D
 
                 # update weights and bandwidth
-                h = self._fit_rdd(h=h, w_mask=self.w_mask)
+                h = self._fit_rdd(h=h, w_mask=weights_mask)
                 weights, weights_mask = self._calc_weights(kernel=self._fs_kernel_function, h=h)
 
         self.aggregate_over_splits()
@@ -365,9 +361,9 @@ class RDFlex():
                             f'{str(fs_kernel)} of type {str(type(fs_kernel))} was passed.')
 
         kernel_functions = {
-            "uniform": lambda x, h: np.ndarray(np.abs(x) <= h, dtype=float),
-            "triangular": lambda x, h: np.ndarray(np.maximum(0, (h - np.abs(x)) / h), dtype=float),
-            "epanechnikov": lambda x, h: np.ndarray(np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0), dtype=float)
+            "uniform": lambda x, h: np.array(np.abs(x) <= h, dtype=float),
+            "triangular": lambda x, h: np.array(np.maximum(0, (h - np.abs(x)) / h), dtype=float),
+            "epanechnikov": lambda x, h: np.array(np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0), dtype=float)
         }
 
         if isinstance(fs_kernel, str):
