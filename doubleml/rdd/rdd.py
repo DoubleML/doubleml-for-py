@@ -253,31 +253,32 @@ class RDFlex():
         return self
 
     def _fit_nuisance_models(self, n_jobs_cv, weights, w_mask):
-        T = self.T[w_mask]
-        TX = np.c_[T, self._dml_data.x[w_mask]]
+        Z = self._intendend_treatment[w_mask]  # instrument for treatment
         Y = self._dml_data.y[w_mask]
         X = self._dml_data.x[w_mask]
         D = self._dml_data.d[w_mask]
+        S = self._score[w_mask]
         weights = weights[w_mask]
+        ZX = np.column_stack[Z, X]
 
-        # TODO: Hard coded rule ok? Min 2 * n_folds fuzzy required per side.
-        _check_left, _check_right = self._check_fuzzyness(w=w_mask, min_smpls=2*self.n_folds)
+        # Min fuzzy obs or percentage required per training
+        _check_left, _check_right = self._check_fuzzyness(D, S, min_smpls=5, min_perc=0.02)
 
         pred_y, pred_d = np.zeros(Y.shape), np.zeros(D.shape)
 
         # TODO: Add parallelization for loop (n_jobs_cv)
         for train_index, test_index in self.smpls[self._i_rep]:
             ml_g, ml_m = clone(self.ml_g), clone(self.ml_m)
-            ml_g.fit(TX[train_index], Y[train_index], sample_weight=weights[train_index])
+            ml_g.fit(ZX[train_index], Y[train_index], sample_weight=weights[train_index])
 
-            X_test_pos = np.c_[np.ones_like(T[test_index]), X[test_index]]
-            X_test_neg = np.c_[np.zeros_like(T[test_index]), X[test_index]]
+            X_test_pos = np.c_[np.ones_like(Z[test_index]), X[test_index]]
+            X_test_neg = np.c_[np.zeros_like(Z[test_index]), X[test_index]]
 
             pred_y[test_index] += ml_g.predict(X_test_pos)
             pred_y[test_index] += ml_g.predict(X_test_neg)
 
             if (_check_left | _check_right):
-                ml_m.fit(TX[train_index], D[train_index], sample_weight=weights[train_index])
+                ml_m.fit(ZX[train_index], D[train_index], sample_weight=weights[train_index])
 
             if _check_left:
                 pred_d[test_index] += ml_m.predict_proba(X_test_neg)[:, 1]
@@ -285,9 +286,9 @@ class RDFlex():
                 pred_d[test_index] += ml_m.predict_proba(X_test_pos)[:, 1]
 
         if ~(_check_left):
-            pred_d += np.average(D[~T], weights=weights[~T])
+            pred_d += np.average(D[~Z], weights=weights[~Z])
         if ~(_check_right):
-            pred_d += np.average(D[T], weights=weights[T])
+            pred_d += np.average(D[Z], weights=weights[Z])
 
         return pred_y/2, pred_d/2
 
@@ -305,9 +306,19 @@ class RDFlex():
         weights = kernel(self._score, h)
         return weights, weights.astype(bool)
 
-    def _check_fuzzyness(self, w, min_smpls):
-        return ((self._dml_data.d[w][self._dml_data.s[w] < 0].sum() > min_smpls),
-                ((self._dml_data.d[w][self._dml_data.s[w] > 0] - 1).sum() < -(min_smpls)))
+    def _check_fuzzyness(self, D, S, min_smpls, min_perc):
+        min_obs = np.ceil(min_smpls * (self.n_folds/(self.n_folds - 1)))
+
+        defier_left = D[S < 0]
+        defier_right = np.invert(D[S >= 0])
+
+        left_min_smpls = defier_left.sum() >= min_obs
+        right_min_smpls = defier_right.sum() >= min_obs
+
+        left_min_perc = defier_left.mean() >= min_perc
+        right_min_perc = defier_right.mean() >= min_perc
+
+        return (left_min_smpls & left_min_perc), (right_min_smpls & right_min_perc)
 
     def _initialize_reps(self, n_rep):
         self._M_Y = [None] * n_rep
