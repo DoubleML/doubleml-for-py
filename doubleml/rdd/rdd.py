@@ -102,8 +102,6 @@ class RDFlex():
         self._w, self._w_mask = self._calc_weights(kernel=self._fs_kernel_function, h=self.h_fs)
 
         # TODO: Add further input checks
-        self.ml_g = ml_g
-        self.ml_m = ml_m
         self.kwargs = kwargs
 
         self.smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.w_mask.sum(),
@@ -260,7 +258,7 @@ class RDFlex():
         Z = self._intendend_treatment[w_mask]  # instrument for treatment
         X = self._dml_data.x[w_mask]
         weights = weights[w_mask]
-        ZX = np.column_stack[Z, X]
+        ZX = np.column_stack((Z, X))
 
         pred_left, pred_right = np.zeros_like(outcome), np.zeros_like(outcome)
 
@@ -268,15 +266,16 @@ class RDFlex():
             estimator = clone(self._learner[estimator_name])
             estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
-            X_test_pos = np.c_[np.ones_like(Z[test_index]), X[test_index]]
-            X_test_neg = np.c_[np.zeros_like(Z[test_index]), X[test_index]]
+            X_test_pos = np.column_stack((np.ones_like(Z[test_index]), X[test_index]))
+            X_test_neg = np.column_stack((np.zeros_like(Z[test_index]), X[test_index]))
 
             if self._predict_method[estimator_name] == "predict":
                 pred_left[test_index] = estimator.predict(X_test_neg)
                 pred_right[test_index] = estimator.predict(X_test_pos)
             else:
-                pred_left[test_index] = estimator.predict_proba(X_test_neg)
-                pred_right[test_index] = estimator.predict_proba(X_test_pos)
+                assert self._predict_method[estimator_name] == "predict_proba"
+                pred_left[test_index] = estimator.predict_proba(X_test_neg)[:, 1]
+                pred_right[test_index] = estimator.predict_proba(X_test_pos)[:, 1]
 
         return (pred_left + pred_right)/2
 
