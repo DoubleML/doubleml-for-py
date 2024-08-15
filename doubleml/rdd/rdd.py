@@ -89,6 +89,15 @@ class RDFlex():
 
         self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
 
+        if h_fs is None:
+            self._h_fs = rdbwselect(y=obj_dml_data.y,
+                                    x=self._score,
+                                    fuzzy=obj_dml_data.d).bws.values.flatten().max()
+        else:
+            self._h_fs = h_fs
+
+        self._w, self._w_mask = self._calc_weights(fs_kernel=self._fs_kernel_function, bw=self.h_fs)
+
         # TODO: Add further input checks
         self._dml_data._s -= cutoff
         self.T = (0.5*(np.sign(obj_dml_data.s)+1)).astype(bool)
@@ -166,6 +175,34 @@ class RDFlex():
         Number of repetitions for the sample splitting.
         """
         return self._n_rep
+
+    @property
+    def h_fs(self):
+        """
+        Initial bandwidth in the first stage estimation.
+        """
+        return self._h_fs
+
+    @property
+    def fs_kernel(self):
+        """
+        Kernel for the first stage estimation.
+        """
+        return self._fs_kernel_name
+
+    @property
+    def w(self):
+        """
+        Weights for the first stage estimation.
+        """
+        return self._w
+
+    @property
+    def w_mask(self):
+        """
+        Mask for the weights of the first stage estimation.
+        """
+        return self._w_mask
 
     def fit(self, iterative=True, n_jobs_cv=-1, external_predictions=None):
         """
@@ -269,13 +306,8 @@ class RDFlex():
         # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
         return _rdd_res.bws.loc["h"].max()
 
-    def _calc_weights(self, bw, fs_kernel="uniform"):
-        if fs_kernel == "uniform":
-            weights = (np.abs(self._dml_data.s) < bw)
-        if fs_kernel == "triangular":
-            weights = np.maximum(0, (bw - np.abs(self._dml_data.s)) / bw)
-        if fs_kernel == "epanechnikov":
-            weights = np.where(np.abs(self._dml_data.s) < bw, .75*(1-self._dml_data.s/bw)**2, 0)
+    def _calc_weights(self, kernel, h):
+        weights = kernel(self._score, h)
         return weights, weights.astype(bool)
 
     def _check_fuzzyness(self, w, min_smpls):
@@ -363,9 +395,9 @@ class RDFlex():
                             f'{str(fs_kernel)} of type {str(type(fs_kernel))} was passed.')
 
         kernel_functions = {
-            "uniform": lambda x, h: np.abs(x) <= h,
-            "triangular": lambda x, h: np.maximum(0, (h - np.abs(x)) / h),
-            "epanechnikov": lambda x, h: np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0)
+            "uniform": lambda x, h: np.ndarray(np.abs(x) <= h, dtype=float),
+            "triangular": lambda x, h: np.ndarray(np.maximum(0, (h - np.abs(x)) / h), dtype=float),
+            "epanechnikov": lambda x, h: np.ndarray(np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0), dtype=float)
         }
 
         if isinstance(fs_kernel, str):
