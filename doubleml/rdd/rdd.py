@@ -87,32 +87,29 @@ class RDFlex():
         self._n_folds = n_folds
         self._n_rep = n_rep
 
-        self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
-
         if h_fs is None:
+            fuzzy = self._dml_data.d if self._fuzzy else None
             self._h_fs = rdbwselect(y=obj_dml_data.y,
                                     x=self._score,
-                                    fuzzy=obj_dml_data.d).bws.values.flatten().max()
+                                    fuzzy=fuzzy).bws.values.flatten().max()
         else:
             if not isinstance(h_fs, (float)):
                 raise TypeError("Initial bandwidth 'h_fs' has to be a float. "
                                 f'Object of type {str(type(h_fs))} passed.')
             self._h_fs = h_fs
 
+        self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
         self._w, self._w_mask = self._calc_weights(kernel=self._fs_kernel_function, h=self.h_fs)
 
         # TODO: Add further input checks
-        self._dml_data._s -= cutoff
-        self.T = (0.5*(np.sign(obj_dml_data.s)+1)).astype(bool)
-
         self.ml_g = ml_g
         self.ml_m = ml_m
         self.kwargs = kwargs
 
-        self.smpls = DoubleMLResampling(n_folds=n_folds, n_rep=n_rep, n_obs=self.w_mask.sum(),
+        self.smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.w_mask.sum(),
                                         stratify=obj_dml_data.d[self.w_mask]).split_samples()
 
-        self._initialize_reps(n_obs=self.w_mask.sum(), n_rep=n_rep)
+        self._initialize_reps(n_rep=self.n_rep)
 
     def __str__(self):
         # TODO: Adjust __str__ to other DoubleML classes (see doubleml.py)
@@ -229,9 +226,9 @@ class RDFlex():
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=self.w, w_mask=self.w_mask)
-            self.M_Y[i_rep] = self._dml_data.y[self.w_mask] - eta_Y
+            self._M_Y[i_rep] = self._dml_data.y[self.w_mask] - eta_Y
             if self._dml_data.d is not None:
-                self.M_D[i_rep] = self._dml_data.d[self.w_mask] - eta_D
+                self._M_D[i_rep] = self._dml_data.d[self.w_mask] - eta_D
             initial_h = self._fit_rdd(h=None, w_mask=self.w_mask)
 
             if iterative:
@@ -289,12 +286,12 @@ class RDFlex():
         return pred_y/2, pred_d/2
 
     def _fit_rdd(self, w_mask, h=None):
-        _rdd_res = rdrobust(y=self.M_Y[self._i_rep], x=self._dml_data.s[w_mask],
-                            fuzzy=self.M_D[self._i_rep], h=h, **self.kwargs)
-        self.coefs[:, self._i_rep] = _rdd_res.coef.values.flatten()
-        self.ses[:, self._i_rep] = _rdd_res.se.values.flatten()
-        self.cis[:, :, self._i_rep] = _rdd_res.ci.values
-        self.rdd_res.append(_rdd_res)
+        _rdd_res = rdrobust(y=self._M_Y[self._i_rep], x=self._dml_data.s[w_mask],
+                            fuzzy=self._M_D[self._i_rep], h=h, **self.kwargs)
+        self._coefs[:, self._i_rep] = _rdd_res.coef.values.flatten()
+        self._ses[:, self._i_rep] = _rdd_res.se.values.flatten()
+        self._cis[:, :, self._i_rep] = _rdd_res.ci.values
+        self._rdd_obj[self._i_rep] = _rdd_res
         # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
         return _rdd_res.bws.loc["h"].max()
 
@@ -306,13 +303,13 @@ class RDFlex():
         return ((self._dml_data.d[w][self._dml_data.s[w] < 0].sum() > min_smpls),
                 ((self._dml_data.d[w][self._dml_data.s[w] > 0] - 1).sum() < -(min_smpls)))
 
-    def _initialize_reps(self, n_obs, n_rep):
-        self.M_Y = [None] * n_rep
-        self.M_D = [None] * n_rep
-        self.rdd_res = []
-        self.coefs = np.empty(shape=(3, n_rep))
-        self.ses = np.empty(shape=(3, n_rep))
-        self.cis = np.empty(shape=(3, 2, n_rep))
+    def _initialize_reps(self, n_rep):
+        self._M_Y = [None] * n_rep
+        self._M_D = [None] * n_rep
+        self._rdd_obj = [None] * n_rep
+        self._coefs = np.empty(shape=(3, n_rep))
+        self._ses = np.empty(shape=(3, n_rep))
+        self._cis = np.empty(shape=(3, 2, n_rep))
         return
 
     def _check_data(self, obj_dml_data, cutoff):
