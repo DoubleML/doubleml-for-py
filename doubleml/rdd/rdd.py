@@ -112,36 +112,39 @@ class RDFlex():
 
     def __str__(self):
         # TODO: Adjust __str__ to other DoubleML classes (see doubleml.py)
-        ci_conventional = [round(ci, 3) for ci in self.ci[0, :]]
-        ci_robust = [round(ci, 3) for ci in self.ci[2, :]]
-        col_format = "{:<20} {:>8} {:>8} {:>8} {:>8} to {:<8}"
+        if self._M_Y[0] is not None:
+            ci_conventional = [round(ci, 3) for ci in self.ci[0, :]]
+            ci_robust = [round(ci, 3) for ci in self.ci[2, :]]
+            col_format = "{:<20} {:>8} {:>8} {:>8} {:>8} to {:<8}"
 
-        header = (
-            "Method                  Coef.     S.E.    P>|t|            95% CI\n"
-            "-----------------------------------------------------------------"
-        )
+            header = (
+                "Method                  Coef.     S.E.    P>|t|            95% CI\n"
+                "-----------------------------------------------------------------"
+            )
 
-        conventional_row = col_format.format(
-            "Conventional",
-            round(self.coef[0], 3),
-            round(self.se[0], 3),
-            round(self.p_value[0], 3),
-            ci_conventional[0],
-            ci_conventional[1]
-        )
+            conventional_row = col_format.format(
+                "Conventional",
+                round(self.coef[0], 3),
+                round(self.se[0], 3),
+                round(self.p_value[0], 3),
+                ci_conventional[0],
+                ci_conventional[1]
+            )
 
-        robust_row = col_format.format(
-            "Robust",
-            "-",
-            "-",
-            round(self.p_value[2], 3),
-            ci_robust[0],
-            ci_robust[1]
-        )
+            robust_row = col_format.format(
+                "Robust",
+                "-",
+                "-",
+                round(self.p_value[2], 3),
+                ci_robust[0],
+                ci_robust[1]
+            )
 
-        result = f"{header}\n{conventional_row}\n{robust_row}"
+            result = f"{header}\n{conventional_row}\n{robust_row}"
 
-        return result
+            return result
+        else:
+            return "DoubleML RDFlex Object. Run `.fit()` for estimation."
 
     @property
     def fuzzy(self):
