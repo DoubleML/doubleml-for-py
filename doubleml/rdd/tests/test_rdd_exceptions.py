@@ -120,3 +120,13 @@ def test_rdd_exception_resampling():
     msg = 'The number of repetitions for the sample splitting has to be positive. 0 was passed.'
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m, n_rep=0)
+
+
+@pytest.mark.ci
+def test_rdd_exception_kernel():
+    msg = "fs_kernel must be either a string or a callable. 2 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, fs_kernel=2)
+    msg = r"Invalid kernel 'rbf'. Valid kernels are \['uniform', 'triangular', 'epanechnikov'\]."
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, fs_kernel='rbf')

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import warnings
+from collections.abc import Callable
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
@@ -85,6 +86,8 @@ class RDFlex():
         _check_resampling_specification(n_folds, n_rep)
         self._n_folds = n_folds
         self._n_rep = n_rep
+
+        self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
 
         # TODO: Add further input checks
         self._dml_data._s -= cutoff
@@ -353,6 +356,31 @@ class RDFlex():
                 warnings.warn(('A learner ml_m has been provided for for a sharp design but will be ignored. '
                                'A learner ml_m is not required for estimation.'))
         return
+
+    def _check_and_set_kernel(self, fs_kernel):
+        if not isinstance(fs_kernel, (str, Callable)):
+            raise TypeError('fs_kernel must be either a string or a callable. '
+                            f'{str(fs_kernel)} of type {str(type(fs_kernel))} was passed.')
+
+        kernel_functions = {
+            "uniform": lambda x, h: np.abs(x) <= h,
+            "triangular": lambda x, h: np.maximum(0, (h - np.abs(x)) / h),
+            "epanechnikov": lambda x, h: np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0)
+        }
+
+        if isinstance(fs_kernel, str):
+            fs_kernel = fs_kernel.casefold()
+            if fs_kernel not in kernel_functions:
+                raise ValueError(f"Invalid kernel '{fs_kernel}'. Valid kernels are {list(kernel_functions.keys())}.")
+
+            kernel_function = kernel_functions[fs_kernel]
+            kernel_name = fs_kernel
+
+        elif callable(fs_kernel):
+            kernel_function = fs_kernel
+            kernel_name = 'custom_kernel'
+
+        return kernel_function, kernel_name
 
     def aggregate_over_splits(self):
         self.coef = np.median(self.coefs, axis=1)
