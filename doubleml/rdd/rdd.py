@@ -223,23 +223,29 @@ class RDFlex():
         if external_predictions is not None:
             raise NotImplementedError("Currently argument only included for compatibility.")
 
+        y_masked = self._dml_data.y[self.w_mask]
+        d_masked = self._dml_data.d[self.w_mask]
+
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
             eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=self.w, w_mask=self.w_mask)
-            self._M_Y[i_rep] = self._dml_data.y[self.w_mask] - eta_Y
-            if self._dml_data.d is not None:
-                self._M_D[i_rep] = self._dml_data.d[self.w_mask] - eta_D
+            self._M_Y[i_rep] = y_masked - eta_Y
+            if self.fuzzy:
+                self._M_D[i_rep] = d_masked - eta_D
             initial_h = self._fit_rdd(h=None, w_mask=self.w_mask)
 
             if iterative:
-                adj_w, adj_w_mask = self._calc_weights(fs_kernel=self.fs_kernel, bw=initial_h)
+                adj_w, adj_w_mask = self._calc_weights(kernel=self._fs_kernel_function, h=initial_h)
+                y_adj_masked = self._dml_data.y[adj_w_mask]
+                d_adj_masked = self._dml_data.d[adj_w_mask]
+
                 # created new smpls for smaller mask
                 self.smpls[i_rep] = DoubleMLResampling(n_folds=self.n_folds, n_rep=1, n_obs=adj_w_mask.sum(),
-                                                       stratify=self._dml_data.d[adj_w_mask]).split_samples()[0]
+                                                       stratify=d_masked).split_samples()[0]
                 eta_Y, eta_D = self._fit_nuisance_models(n_jobs_cv, weights=adj_w, w_mask=adj_w_mask)
-                self.M_Y[i_rep] = self._dml_data.y[adj_w_mask] - eta_Y
-                if self._dml_data.d is not None:
-                    self.M_D[i_rep] = self._dml_data.d[adj_w_mask] - eta_D
+                self._M_Y[i_rep] = y_adj_masked - eta_Y
+                if self.fuzzy:
+                    self._M_D[i_rep] = d_adj_masked - eta_D
                 self._fit_rdd(h=initial_h, w_mask=adj_w_mask)
 
         self.aggregate_over_splits()
