@@ -92,8 +92,6 @@ class RDFlex():
 
         self.ml_g = ml_g
         self.ml_m = ml_m
-        self.n_folds = n_folds
-        self.n_rep = n_rep
         self.h_fs = h_fs
         self.kwargs = kwargs
         self.fs_kernel = fs_kernel
