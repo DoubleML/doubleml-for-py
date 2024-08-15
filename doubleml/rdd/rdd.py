@@ -94,9 +94,12 @@ class RDFlex():
                                     x=self._score,
                                     fuzzy=obj_dml_data.d).bws.values.flatten().max()
         else:
+            if not isinstance(h_fs, (float)):
+                raise TypeError("Initial bandwidth 'h_fs' has to be a float. "
+                                f'Object of type {str(type(h_fs))} passed.')
             self._h_fs = h_fs
 
-        self._w, self._w_mask = self._calc_weights(fs_kernel=self._fs_kernel_function, bw=self.h_fs)
+        self._w, self._w_mask = self._calc_weights(kernel=self._fs_kernel_function, h=self.h_fs)
 
         # TODO: Add further input checks
         self._dml_data._s -= cutoff
@@ -104,18 +107,7 @@ class RDFlex():
 
         self.ml_g = ml_g
         self.ml_m = ml_m
-        self.h_fs = h_fs
         self.kwargs = kwargs
-        self.fs_kernel = fs_kernel
-
-        if h_fs is None:
-            self.h_fs = rdbwselect(y=obj_dml_data.y,
-                                   x=obj_dml_data.s,
-                                   fuzzy=obj_dml_data.d).bws.values.flatten().max()
-        else:
-            self.h_fs = h_fs
-
-        self.w, self.w_mask = self._calc_weights(fs_kernel=fs_kernel, bw=self.h_fs)
 
         self.smpls = DoubleMLResampling(n_folds=n_folds, n_rep=n_rep, n_obs=self.w_mask.sum(),
                                         stratify=obj_dml_data.d[self.w_mask]).split_samples()

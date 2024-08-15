@@ -130,3 +130,10 @@ def test_rdd_exception_kernel():
     msg = r"Invalid kernel 'rbf'. Valid kernels are \['uniform', 'triangular', 'epanechnikov'\]."
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m, fs_kernel='rbf')
+
+
+@pytest.mark.ci
+def test_rdd_exception_h_fs():
+    msg = "Initial bandwidth 'h_fs' has to be a float. Object of type <class 'int'> passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, h_fs=1)
