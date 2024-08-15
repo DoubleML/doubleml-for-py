@@ -105,8 +105,8 @@ class RDFlex():
         # TODO: Add further input checks
         self.kwargs = kwargs
 
-        self.smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.w_mask.sum(),
-                                        stratify=obj_dml_data.d[self.w_mask]).split_samples()
+        self._smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.w_mask.sum(),
+                                         stratify=obj_dml_data.d[self.w_mask]).split_samples()
 
         self._initialize_reps(n_rep=self.n_rep)
 
@@ -225,31 +225,36 @@ class RDFlex():
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
-            # reset weights and bandwidth
+            # reset weights, smpls and bandwidth
             h = None
             weights = self.w
             weights_mask = self.w_mask
+            tmp_smpls = self._smpls[i_rep]
+
             for _ in range(n_iterations):
                 y_masked = self._dml_data.y[weights_mask]
                 eta_Y = self._fit_nuisance_model(outcome=y_masked, estimator_name="ml_g",
-                                                 weights=weights, w_mask=weights_mask)
+                                                 weights=weights, w_mask=weights_mask, smpls=tmp_smpls)
                 self._M_Y[i_rep] = y_masked - eta_Y
 
                 if self.fuzzy:
                     d_masked = self._dml_data.d[weights_mask]
                     eta_D = self._fit_nuisance_model(outcome=d_masked, estimator_name="ml_m",
-                                                     weights=weights, w_mask=weights_mask)
+                                                     weights=weights, w_mask=weights_mask, smpls=tmp_smpls)
                     self._M_D[i_rep] = d_masked - eta_D
 
-                # update weights and bandwidth
+                # update weights, smpls and bandwidth
                 h = self._fit_rdd(h=h, w_mask=weights_mask)
                 weights, weights_mask = self._calc_weights(kernel=self._fs_kernel_function, h=h)
-
+                # using new masked d for stratification
+                # TODO: Add seed to resampling
+                tmp_smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=1, n_obs=weights_mask.sum(),
+                                               stratify=self._dml_data.d[weights_mask]).split_samples()[0]
         self.aggregate_over_splits()
 
         return self
 
-    def _fit_nuisance_model(self, outcome, estimator_name, weights, w_mask):
+    def _fit_nuisance_model(self, outcome, estimator_name, weights, w_mask, smpls):
         Z = self._intendend_treatment[w_mask]  # instrument for treatment
         X = self._dml_data.x[w_mask]
         weights = weights[w_mask]
@@ -257,7 +262,7 @@ class RDFlex():
 
         pred_left, pred_right = np.zeros_like(outcome), np.zeros_like(outcome)
 
-        for train_index, test_index in self.smpls[self._i_rep]:
+        for train_index, test_index in smpls[self._i_rep]:
             estimator = clone(self._learner[estimator_name])
             estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
