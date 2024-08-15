@@ -232,6 +232,27 @@ class RDFlex():
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
 
+    @property
+    def ci(self):
+        """
+        Confidence intervals for the causal parameter(s) after calling :meth:`fit`.
+        """
+        return self._ci
+
+    @property
+    def all_coef(self):
+        """
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        """
+        return self._all_coef
+
+    @property
+    def all_se(self):
+        """
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        """
+        return self._all_se
+
     def fit(self, n_iterations=2):
         """
         Estimate RDFlex model.
@@ -295,7 +316,7 @@ class RDFlex():
 
         pred_left, pred_right = np.zeros_like(outcome), np.zeros_like(outcome)
 
-        for train_index, test_index in smpls[self._i_rep]:
+        for train_index, test_index in smpls:
             estimator = clone(self._learner[estimator_name])
             estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
@@ -315,9 +336,9 @@ class RDFlex():
     def _fit_rdd(self, w_mask, h=None):
         _rdd_res = rdrobust(y=self._M_Y[self._i_rep], x=self._dml_data.s[w_mask],
                             fuzzy=self._M_D[self._i_rep], h=h, **self.kwargs)
-        self._coefs[:, self._i_rep] = _rdd_res.coef.values.flatten()
-        self._ses[:, self._i_rep] = _rdd_res.se.values.flatten()
-        self._cis[:, :, self._i_rep] = _rdd_res.ci.values
+        self._all_coef[:, self._i_rep] = _rdd_res.coef.values.flatten()
+        self._all_se[:, self._i_rep] = _rdd_res.se.values.flatten()
+        self._all_ci[:, :, self._i_rep] = _rdd_res.ci.values
         self._rdd_obj[self._i_rep] = _rdd_res
         # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
         return _rdd_res.bws.loc["h"].max()
@@ -330,9 +351,9 @@ class RDFlex():
         self._M_Y = [None] * n_rep
         self._M_D = [None] * n_rep
         self._rdd_obj = [None] * n_rep
-        self._coefs = np.empty(shape=(3, n_rep))
-        self._ses = np.empty(shape=(3, n_rep))
-        self._cis = np.empty(shape=(3, 2, n_rep))
+        self._all_coef = np.empty(shape=(3, n_rep))
+        self._all_se = np.empty(shape=(3, n_rep))
+        self._all_ci = np.empty(shape=(3, 2, n_rep))
         return
 
     def _check_data(self, obj_dml_data, cutoff):
@@ -427,7 +448,7 @@ class RDFlex():
         return kernel_function, kernel_name
 
     def aggregate_over_splits(self):
-        self._coef = np.median(self._coefs, axis=1)
-        self._ci = np.median(self._cis, axis=2)
-        med_se = np.median(self._ses, axis=1)
-        self._se = [np.sqrt(np.median(med_se[i]**2 + (self._coefs[i, :] - self._coef[i])**2)) for i in range(3)]
+        self._coef = np.median(self.all_coef, axis=1)
+        self._ci = np.median(self._all_ci, axis=2)
+        med_se = np.median(self.all_se, axis=1)
+        self._se = [np.sqrt(np.median(med_se[i]**2 + (self.all_coef[i, :] - self._coef[i])**2)) for i in range(3)]
