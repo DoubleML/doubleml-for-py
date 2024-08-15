@@ -126,7 +126,7 @@ class RDFlex():
                 "Conventional",
                 round(self.coef[0], 3),
                 round(self.se[0], 3),
-                round(self.p_value[0], 3),
+                round(self.pval[0], 3),
                 ci_conventional[0],
                 ci_conventional[1]
             )
@@ -135,7 +135,7 @@ class RDFlex():
                 "Robust",
                 "-",
                 "-",
-                round(self.p_value[2], 3),
+                round(self.pval[2], 3),
                 ci_robust[0],
                 ci_robust[1]
             )
