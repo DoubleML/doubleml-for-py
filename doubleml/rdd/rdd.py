@@ -191,7 +191,7 @@ class RDFlex():
         """
         return self._w_mask
 
-    def fit(self, iterative=True,  external_predictions=None):
+    def fit(self, n_iterations=2):
         """
         Estimate RDFlex model.
 
@@ -201,54 +201,45 @@ class RDFlex():
             Indicates whether the first stage bandwidth should be fitted iteratively.
             Defaule is ``True``
 
-        external_predictions : None or dict
-            If `None` all models for the learners are fitted and evaluated. If a dictionary containing predictions
-            for a specific learner is supplied, the model will use the supplied nuisance predictions instead. Has to
-            be a nested dictionary where the keys refer to the treatment and the keys of the nested dictionarys refer to the
-            corresponding learners.
-            Default is `None`.
+        n_iterations : int
+            Number of iterations for the iterative bandwidth fitting.
+            Default is ``2``.
 
         Returns
         -------
         self : object
         """
 
-        # TODO: Implement external predictions
-        if external_predictions is not None:
-            raise NotImplementedError("Currently argument only included for compatibility.")
+        if not isinstance(n_iterations, int):
+            raise TypeError('The number of iterations for the iterative bandwidth fitting must be of int type. '
+                            f'{str(n_iterations)} of type {str(type(n_iterations))} was passed.')
+        if n_iterations < 1:
+            raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
+                             f'{str(n_iterations)} was passed.')
 
         y_masked = self._dml_data.y[self.w_mask]
         d_masked = self._dml_data.d[self.w_mask]
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
-            eta_Y = self._fit_nuisance_model(outcome=y_masked, estimator_name="ml_g",
-                                             weights=self.w, w_mask=self.w_mask)
-            self._M_Y[i_rep] = y_masked - eta_Y
 
-            if self.fuzzy:
-                eta_D = self._fit_nuisance_model(outcome=d_masked, estimator_name="ml_m",
-                                                 weights=self.w, w_mask=self.w_mask)
-                self._M_D[i_rep] = d_masked - eta_D
-            initial_h = self._fit_rdd(h=None, w_mask=self.w_mask)
+            # reset weights and bandwidth
+            h = None
+            weights = self.w
+            weights_mask = self.w_mask
+            for _ in range(n_iterations):
+                eta_Y = self._fit_nuisance_model(outcome=y_masked, estimator_name="ml_g",
+                                                 weights=weights, w_mask=weights_mask)
+                self._M_Y[i_rep] = y_masked - eta_Y
 
-            if iterative:
-                adj_w, adj_w_mask = self._calc_weights(kernel=self._fs_kernel_function, h=initial_h)
-                y_adj_masked = self._dml_data.y[adj_w_mask]
-                d_adj_masked = self._dml_data.d[adj_w_mask]
-
-                # created new smpls for smaller mask
-                self.smpls[i_rep] = DoubleMLResampling(n_folds=self.n_folds, n_rep=1, n_obs=adj_w_mask.sum(),
-                                                       stratify=d_masked).split_samples()[0]
-                eta_Y = self._fit_nuisance_model(outcome=y_adj_masked, estimator_name="ml_g",
-                                                 weights=adj_w, w_mask=adj_w_mask)
-                self._M_Y[i_rep] = y_adj_masked - eta_Y
                 if self.fuzzy:
-                    eta_D = self._fit_nuisance_model(outcome=d_adj_masked, estimator_name="ml_m",
-                                                     weights=adj_w, w_mask=adj_w_mask)
-                    self._M_D[i_rep] = d_adj_masked - eta_D
+                    eta_D = self._fit_nuisance_model(outcome=d_masked, estimator_name="ml_m",
+                                                     weights=weights, w_mask=weights_mask)
+                    self._M_D[i_rep] = d_masked - eta_D
 
-                self._fit_rdd(h=initial_h, w_mask=adj_w_mask)
+                # update weights and bandwidth
+                h = self._fit_rdd(h=h, w_mask=self.w_mask)
+                weights, weights_mask = self._calc_weights(kernel=self._fs_kernel_function, h=h)
 
         self.aggregate_over_splits()
 
