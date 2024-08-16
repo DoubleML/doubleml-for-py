@@ -267,12 +267,7 @@ class RDFlex():
         self : object
         """
 
-        if not isinstance(n_iterations, int):
-            raise TypeError('The number of iterations for the iterative bandwidth fitting must be of int type. '
-                            f'{str(n_iterations)} of type {str(type(n_iterations))} was passed.')
-        if n_iterations < 1:
-            raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
-                             f'{str(n_iterations)} was passed.')
+        self._check_iterations(n_iterations)
 
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
@@ -447,6 +442,15 @@ class RDFlex():
             kernel_name = 'custom_kernel'
 
         return kernel_function, kernel_name
+
+    def _check_iterations(self, n_iterations):
+        """Validate the number of iterations."""
+        if not isinstance(n_iterations, int):
+            raise TypeError('The number of iterations for the iterative bandwidth fitting must be of int type. '
+                            f'{str(n_iterations)} of type {str(type(n_iterations))} was passed.')
+        if n_iterations < 1:
+            raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
+                             f'{str(n_iterations)} was passed.')
 
     def aggregate_over_splits(self):
         self._coef = np.median(self.all_coef, axis=1)
