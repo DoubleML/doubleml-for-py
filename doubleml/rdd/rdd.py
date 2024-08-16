@@ -276,7 +276,7 @@ class RDFlex():
             self._i_rep = i_rep
 
             # reset weights, smpls and bandwidth
-            h = None
+            h = None  # required if n_iterations == 1
             weights = self.w
             smpls = self._smpls[i_rep]
 
@@ -292,11 +292,7 @@ class RDFlex():
 
                 # update weights via iterative bandwidth fitting
                 if iteration < (n_iterations - 1):
-                    rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._dml_data.s,
-                                       fuzzy=self._M_D[:, self._i_rep], h=None, **self.kwargs)
-                    # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
-                    h = rdd_res.bws.loc["h"].max()
-                    weights = self._calc_weights(kernel=self._fs_kernel_function, h=h)
+                    h, weights = self._update_weights()
                 else:
                     self._fit_rdd(h=h)
 
@@ -328,8 +324,17 @@ class RDFlex():
 
         return (mu_left + mu_right)/2
 
+    def _update_weights(self):
+        rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
+                           fuzzy=self._M_D[:, self._i_rep], h=None, **self.kwargs)
+        # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
+        h = rdd_res.bws.loc["h"].max()
+        weights = self._calc_weights(kernel=self._fs_kernel_function, h=h)
+
+        return h, weights
+
     def _fit_rdd(self, h=None):
-        rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._dml_data.s,
+        rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
                            fuzzy=self._M_D[:, self._i_rep], h=h, **self.kwargs)
         self._all_coef[:, self._i_rep] = rdd_res.coef.values.flatten()
         self._all_se[:, self._i_rep] = rdd_res.se.values.flatten()
