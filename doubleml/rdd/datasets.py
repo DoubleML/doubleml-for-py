@@ -6,7 +6,8 @@ def make_simple_rdd_data(n_obs=5000, fuzzy=True, **kwargs):
     score = np.random.uniform(size=n_obs, low=-1, high=1)
     D = (score >= 0)
     if fuzzy:
-        D = np.random.binomial(n=1, p=0.3 + 0.2 * D, size=n_obs)
+        p = 0.2 + 0.2 * score + 0.5 * D
+        D = np.random.binomial(n=1, p=p, size=n_obs)
     D = D.astype("int")
 
     # independent covariates
@@ -14,9 +15,10 @@ def make_simple_rdd_data(n_obs=5000, fuzzy=True, **kwargs):
     g0 = X[:, 0] + 5*X[:, 1]**2 + 3*np.sin(X[:, 2])
     g1 = g0
 
+    eps_scale = 0.5
     # potential outcomes with independent errors
-    Y0 = - score**2 + g0 + np.random.normal(size=n_obs)
-    Y1 = 1 + score**2 + g1 + np.random.normal(size=n_obs)
+    Y0 = - score**2 + g0 + np.random.normal(size=n_obs, scale=eps_scale)
+    Y1 = 1 + score**2 + g1 + np.random.normal(size=n_obs, scale=eps_scale)
 
     Y = Y0 * (1 - D) + Y1 * D
 
