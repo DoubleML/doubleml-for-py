@@ -275,25 +275,25 @@ class RDFlex():
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
-            # reset weights, smpls and bandwidth
-            h = None  # required if n_iterations == 1
+            # set initial weights smpls
             weights = self.w
-            smpls = self._smpls[i_rep]
 
             for iteration in range(n_iterations):
                 eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
-                                                 weights=weights, smpls=smpls)
+                                                 weights=weights, smpls=self._smpls[i_rep])
                 self._M_Y[:, i_rep] = Y - eta_Y
 
                 if self.fuzzy:
                     eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
-                                                     weights=weights, smpls=smpls)
+                                                     weights=weights, smpls=self._smpls[i_rep])
                     self._M_D[:, i_rep] = D - eta_D
 
                 # update weights via iterative bandwidth fitting
                 if iteration < (n_iterations - 1):
                     h, weights = self._update_weights()
                 else:
+                    if n_iterations == 1:
+                        h = None
                     self._fit_rdd(h=h)
 
         self.aggregate_over_splits()
@@ -336,6 +336,8 @@ class RDFlex():
     def _fit_rdd(self, h=None):
         rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
                            fuzzy=self._M_D[:, self._i_rep], h=h, **self.kwargs)
+
+        self._h[self._i_rep] = h
         self._all_coef[:, self._i_rep] = rdd_res.coef.values.flatten()
         self._all_se[:, self._i_rep] = rdd_res.se.values.flatten()
         self._all_ci[:, :, self._i_rep] = rdd_res.ci.values
