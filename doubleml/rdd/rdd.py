@@ -275,7 +275,7 @@ class RDFlex():
             weights = self.w
             smpls = self._smpls[i_rep]
 
-            for _ in range(n_iterations):
+            for _it in range(n_iterations):
                 Y = self._dml_data.y
                 eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
                                                  weights=weights, smpls=smpls)
@@ -286,6 +286,9 @@ class RDFlex():
                     eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
                                                      weights=weights, smpls=smpls)
                     self._M_D[:, i_rep] = D - eta_D
+
+                # set h to None if it is not the final iteration
+                h = None if (_it != (n_iterations - 1)) else h
 
                 # update weights, smpls and bandwidth
                 h = self._fit_rdd(h=h)
