@@ -339,9 +339,9 @@ class RDFlex():
         self._M_Y = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
         self._M_D = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
         self._rdd_obj = [None] * n_rep
-        self._all_coef = np.empty(shape=(3, n_rep))
-        self._all_se = np.empty(shape=(3, n_rep))
-        self._all_ci = np.empty(shape=(3, 2, n_rep))
+        self._all_coef = np.full(shape=(3, n_rep), fill_value=np.nan)
+        self._all_se = np.full(shape=(3, n_rep), fill_value=np.nan)
+        self._all_ci = np.full(shape=(3, 2, n_rep), fill_value=np.nan)
         return
 
     def _check_data(self, obj_dml_data, cutoff):
