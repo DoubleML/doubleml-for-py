@@ -16,8 +16,6 @@ df = pd.DataFrame(
     columns=['y', 'd', 'score'] + ['x' + str(i) for i in range(data['X'].shape[1])]
 )
 
-dml_data = DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
-
 ml_g_dummy = DummyRegressor(strategy='constant', constant=0)
 ml_m_dummy = DummyClassifier(strategy='constant', constant=0)
 
@@ -30,6 +28,8 @@ def cutoff(request):
 
 @pytest.fixture(scope='module')
 def rdd_zero_predictions_fixture(cutoff):
+    df['d'] = (data['score'] >= cutoff).astype(bool)
+    dml_data = DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
     dml_rdflex = RDFlex(
         dml_data,
         ml_g=ml_g_dummy,
