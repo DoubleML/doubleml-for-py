@@ -314,24 +314,24 @@ class RDFlex():
         weights = weights[w_mask]
         ZX = np.column_stack((Z, X))
 
-        pred_left, pred_right = np.zeros_like(outcome), np.zeros_like(outcome)
+        mu_left, mu_right = np.full_like(outcome, fill_value=np.nan), np.full_like(outcome, fill_value=np.nan)
 
         for train_index, test_index in smpls:
             estimator = clone(self._learner[estimator_name])
             estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
-            X_test_pos = np.column_stack((np.ones_like(Z[test_index]), X[test_index]))
-            X_test_neg = np.column_stack((np.zeros_like(Z[test_index]), X[test_index]))
+            X_test_left = np.column_stack((np.zeros_like(Z[test_index]), X[test_index]))
+            X_test_right = np.column_stack((np.ones_like(Z[test_index]), X[test_index]))
 
             if self._predict_method[estimator_name] == "predict":
-                pred_left[test_index] = estimator.predict(X_test_neg)
-                pred_right[test_index] = estimator.predict(X_test_pos)
+                mu_left[test_index] = estimator.predict(X_test_left)
+                mu_right[test_index] = estimator.predict(X_test_right)
             else:
                 assert self._predict_method[estimator_name] == "predict_proba"
-                pred_left[test_index] = estimator.predict_proba(X_test_neg)[:, 1]
-                pred_right[test_index] = estimator.predict_proba(X_test_pos)[:, 1]
+                mu_left[test_index] = estimator.predict_proba(X_test_left)[:, 1]
+                mu_right[test_index] = estimator.predict_proba(X_test_right)[:, 1]
 
-        return (pred_left + pred_right)/2
+        return (mu_left + mu_right)/2
 
     def _fit_rdd(self, w_mask, h=None):
         _rdd_res = rdrobust(y=self._M_Y[self._i_rep], x=self._dml_data.s[w_mask],
