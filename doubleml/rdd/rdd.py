@@ -111,37 +111,35 @@ class RDFlex():
         self._initialize_reps(n_rep=self.n_rep)
 
     def __str__(self):
-        # TODO: Adjust __str__ to other DoubleML classes (see doubleml.py)
-        if self._M_Y[:, 0] is not None:
-            ci_conventional = [round(ci, 3) for ci in self.ci[0, :]]
-            ci_robust = [round(ci, 3) for ci in self.ci[2, :]]
-            col_format = "{:<20} {:>8} {:>8} {:>8} {:>8} to {:<8}"
+        if np.any(~np.isnan(self._M_Y[:, 0])):
+            method_names = ["Conventional", "Robust"]
+            lines = [
+                "Method             Coef.     S.E.     t-stat       P>|t|           95% CI",
+                "-------------------------------------------------------------------------",
+            ]
 
-            header = (
-                "Method                  Coef.     S.E.    P>|t|            95% CI\n"
-                "-----------------------------------------------------------------"
-            )
+            for i, name in enumerate(method_names):
+                if i == 0:
+                    line = (
+                        f"{name:<18}"
+                        f"{self.coef[i]:<10.3f}"
+                        f"{self.se[i]:<10.3f}"
+                        f"{self.t_stat[i]:<9.3f}"
+                        f"{self.pval[i]:<11.3e}"
+                        f"[{self.ci[i,0]:.3f}, {self.ci[i,1]:.3f}]"
+                    )
+                elif i == 1:
+                    # Access robust values from index 2 as specified
+                    line = (
+                        f"{name:<17}"
+                        "      -        -     "
+                        f"{self.t_stat[2]:<9.3f}"
+                        f"{self.pval[2]:<11.3e}"
+                        f"[{self.ci[2,0]:.3f}, {self.ci[2,1]:.3f}]"
+                    )
 
-            conventional_row = col_format.format(
-                "Conventional",
-                round(self.coef[0], 3),
-                round(self.se[0], 3),
-                round(self.pval[0], 3),
-                ci_conventional[0],
-                ci_conventional[1]
-            )
-
-            robust_row = col_format.format(
-                "Robust",
-                "-",
-                "-",
-                round(self.pval[2], 3),
-                ci_robust[0],
-                ci_robust[1]
-            )
-
-            result = f"{header}\n{conventional_row}\n{robust_row}"
-
+                lines.append(line)
+            result = "\n".join(lines)
             return result
         else:
             return "DoubleML RDFlex Object. Run `.fit()` for estimation."
