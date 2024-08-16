@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+import inspect
 
 from sklearn.utils.multiclass import type_of_target
 
@@ -492,3 +493,10 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
         smpls_cluster = None
 
     return smpls, smpls_cluster, n_rep, n_folds
+
+
+def _check_supports_sample_weights(learner, learner_name):
+    if not ('sample_weight' in inspect.signature(learner.fit).parameters):
+        raise ValueError(f"The {learner_name} learner {str(learner)} does not support sample weights. "
+                         "Please choose a learner that supports sample weights.")
+    return

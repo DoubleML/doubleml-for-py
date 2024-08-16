@@ -1,17 +1,17 @@
-import numpy as np
-from scipy.stats import norm
 import warnings
+import numpy as np
 from collections.abc import Callable
+
+from scipy.stats import norm
+from rdrobust import rdrobust, rdbwselect
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
 
-from rdrobust import rdrobust, rdbwselect
-
 from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.utils.resampling import DoubleMLResampling
-from doubleml.utils._checks import _check_resampling_specification
+from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
 
 
 class RDFlex():
@@ -396,6 +396,7 @@ class RDFlex():
     def _check_and_set_learner(self, ml_g, ml_m):
         # check ml_g
         ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
+        _check_supports_sample_weights(ml_g, 'ml_g')
         self._learner = {'ml_g': ml_g}
         if ml_g_is_classifier:
             if self._dml_data.binary_outcome:
@@ -410,6 +411,7 @@ class RDFlex():
         if self._fuzzy:
             if ml_m is not None:
                 _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+                _check_supports_sample_weights(ml_m, 'ml_m')
 
                 self._learner['ml_m'] = ml_m
                 self._predict_method['ml_m'] = 'predict_proba'

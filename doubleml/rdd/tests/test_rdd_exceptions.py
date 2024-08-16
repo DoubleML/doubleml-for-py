@@ -7,6 +7,7 @@ from doubleml import DoubleMLData
 from doubleml.rdd.datasets import make_simple_rdd_data
 from doubleml.rdd import RDFlex
 
+from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 
 n = 500
@@ -20,6 +21,40 @@ dml_data = DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
 
 ml_g = Lasso()
 ml_m = LogisticRegression()
+
+
+# dummy learners for testing
+class DummyRegressorNoSampleWeight(BaseEstimator, RegressorMixin):
+    """
+    A dummy regressor that predicts the mean of the target values,
+    and does not support sample weights.
+    """
+    def fit(self, X, y):
+        self.mean_ = np.mean(y)
+        return self
+
+    def predict(self, X):
+        return np.full(shape=(X.shape[0],), fill_value=self.mean_)
+
+
+class DummyClassifierNoSampleWeight(BaseEstimator, ClassifierMixin):
+    """
+    A dummy classifier that predicts the most frequent class,
+    and does not support sample weights.
+    """
+    def fit(self, X, y):
+        self.classes_, self.counts_ = np.unique(y, return_counts=True)
+        self.most_frequent_ = self.classes_[np.argmax(self.counts_)]
+        return self
+
+    def predict(self, X):
+        return np.full(shape=(X.shape[0],), fill_value=self.most_frequent_)
+
+    def predict_proba(self, X):
+        return np.column_stack(
+            (np.full(shape=(X.shape[0],), fill_value=1),
+             np.full(shape=(X.shape[0],), fill_value=0))
+        )
 
 
 @pytest.mark.ci
@@ -85,6 +120,10 @@ def test_rdd_exception_learner():
            ' binary with values 0 and 1.')
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g=LogisticRegression())
+    msg = (r"The ml_g learner DummyRegressorNoSampleWeight\(\) does not support sample weights. Please choose a learner"
+           " that supports sample weights.")
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g=DummyRegressorNoSampleWeight(), ml_m=ml_m)
 
     # ml_m
     msg = r'Invalid learner provided for ml_m: Lasso\(\) has no method .predict_proba\(\).'
@@ -93,6 +132,10 @@ def test_rdd_exception_learner():
     msg = 'Fuzzy design requires a classifier ml_m for treatment assignment.'
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g)
+    msg = (r"The ml_m learner DummyClassifierNoSampleWeight\(\) does not support sample weights. Please choose a learner"
+           " that supports sample weights.")
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m=DummyClassifierNoSampleWeight())
 
     msg = ('A learner ml_m has been provided for for a sharp design but will be ignored. '
            'A learner ml_m is not required for estimation.')
