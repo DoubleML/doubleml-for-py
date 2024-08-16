@@ -126,7 +126,7 @@ class RDFlex():
                         f"{self.se[i]:<10.3f}"
                         f"{self.t_stat[i]:<9.3f}"
                         f"{self.pval[i]:<11.3e}"
-                        f"[{self.ci[i,0]:.3f}, {self.ci[i,1]:.3f}]"
+                        f"[{self.ci[i, 0]:.3f}, {self.ci[i, 1]:.3f}]"
                     )
                 elif i == 1:
                     # Access robust values from index 2 as specified
@@ -135,7 +135,7 @@ class RDFlex():
                         "      -        -     "
                         f"{self.t_stat[2]:<9.3f}"
                         f"{self.pval[2]:<11.3e}"
-                        f"[{self.ci[2,0]:.3f}, {self.ci[2,1]:.3f}]"
+                        f"[{self.ci[2, 0]:.3f}, {self.ci[2, 1]:.3f}]"
                     )
 
                 lines.append(line)
