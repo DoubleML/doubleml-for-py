@@ -273,18 +273,18 @@ class RDFlex():
             # reset weights, smpls and bandwidth
             h = None
             weights = self.w
-            tmp_smpls = self._smpls[i_rep]
+            smpls = self._smpls[i_rep]
 
             for _ in range(n_iterations):
                 Y = self._dml_data.y
                 eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
-                                                 weights=weights, smpls=tmp_smpls)
+                                                 weights=weights, smpls=smpls)
                 self._M_Y[:, i_rep] = Y - eta_Y
 
                 if self.fuzzy:
                     D = self._dml_data.d
                     eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
-                                                     weights=weights, smpls=tmp_smpls)
+                                                     weights=weights, smpls=smpls)
                     self._M_D[:, i_rep] = D - eta_D
 
                 # update weights, smpls and bandwidth
