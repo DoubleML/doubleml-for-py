@@ -28,6 +28,7 @@ def _assert_return_types(dml_obj):
     assert isinstance(dml_obj.fuzzy, bool)
     assert isinstance(dml_obj.fs_kernel, str)
     assert isinstance(dml_obj.w, np.ndarray)
+    assert isinstance(dml_obj.h, np.ndarray)
     assert dml_obj.w.shape == (n_obs,)
     assert dml_obj.w.dtype == float
     assert isinstance(dml_obj.__str__(), str)
@@ -42,6 +43,7 @@ def _assert_return_types_after_fit(dml_obj):
     assert isinstance(dml_obj.fuzzy, bool)
     assert isinstance(dml_obj.fs_kernel, str)
     assert isinstance(dml_obj.w, np.ndarray)
+    assert isinstance(dml_obj.h, np.ndarray)
     assert dml_obj.w.shape == (n_obs,)
     assert dml_obj.w.dtype == float
     # TODO: Add Coefficient tests
