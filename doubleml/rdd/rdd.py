@@ -112,7 +112,7 @@ class RDFlex():
 
     def __str__(self):
         # TODO: Adjust __str__ to other DoubleML classes (see doubleml.py)
-        if self._M_Y[0] is not None:
+        if self._M_Y[:, 0] is not None:
             ci_conventional = [round(ci, 3) for ci in self.ci[0, :]]
             ci_robust = [round(ci, 3) for ci in self.ci[2, :]]
             col_format = "{:<20} {:>8} {:>8} {:>8} {:>8} to {:<8}"
@@ -281,13 +281,13 @@ class RDFlex():
                 Y = self._dml_data.y
                 eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
                                                  weights=weights, smpls=tmp_smpls)
-                self._M_Y[i_rep] = Y - eta_Y
+                self._M_Y[:, i_rep] = Y - eta_Y
 
                 if self.fuzzy:
                     D = self._dml_data.d
                     eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
                                                      weights=weights, smpls=tmp_smpls)
-                    self._M_D[i_rep] = D - eta_D
+                    self._M_D[:, i_rep] = D - eta_D
 
                 # update weights, smpls and bandwidth
                 h = self._fit_rdd(h=h)
@@ -322,8 +322,8 @@ class RDFlex():
         return (mu_left + mu_right)/2
 
     def _fit_rdd(self, h=None):
-        _rdd_res = rdrobust(y=self._M_Y[self._i_rep], x=self._dml_data.s,
-                            fuzzy=self._M_D[self._i_rep], h=h, **self.kwargs)
+        _rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._dml_data.s,
+                            fuzzy=self._M_D[:, self._i_rep], h=h, **self.kwargs)
         self._all_coef[:, self._i_rep] = _rdd_res.coef.values.flatten()
         self._all_se[:, self._i_rep] = _rdd_res.se.values.flatten()
         self._all_ci[:, :, self._i_rep] = _rdd_res.ci.values
@@ -336,8 +336,8 @@ class RDFlex():
         return weights
 
     def _initialize_reps(self, n_rep):
-        self._M_Y = [None] * n_rep
-        self._M_D = [None] * n_rep
+        self._M_Y = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
+        self._M_D = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
         self._rdd_obj = [None] * n_rep
         self._all_coef = np.empty(shape=(3, n_rep))
         self._all_se = np.empty(shape=(3, n_rep))
