@@ -46,6 +46,7 @@ def _assert_return_types_after_fit(dml_obj):
     assert isinstance(dml_obj.h, np.ndarray)
     assert dml_obj.w.shape == (n_obs,)
     assert dml_obj.w.dtype == float
+    assert isinstance(dml_obj.confint(), pd.DataFrame)
     # TODO: Add Coefficient tests
 
 

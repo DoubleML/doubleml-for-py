@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import pandas as pd
 from collections.abc import Callable
 
 from scipy.stats import norm
@@ -299,6 +300,45 @@ class RDFlex():
         self.aggregate_over_splits()
 
         return self
+
+    def confint(self, level=0.95):
+        """
+        Confidence intervals for RDFlex models.
+
+        Parameters
+        ----------
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
+        if not isinstance(level, float):
+            raise TypeError('The confidence level must be of float type. '
+                            f'{str(level)} of type {str(type(level))} was passed.')
+        if (level <= 0) | (level >= 1):
+            raise ValueError('The confidence level must be in (0,1). '
+                             f'{str(level)} was passed.')
+
+        # compute critical values
+        alpha = 1 - level
+        percentages = np.array([alpha / 2, 1. - alpha / 2])
+
+        critical_values = np.repeat(norm.ppf(percentages[1]), self._n_rep)
+
+        # compute all cis over repetitions (shape: n_coef x 2 x n_rep)
+        self._all_cis = np.stack(
+            (self.all_coef - self.all_se * critical_values,
+             self.all_coef + self.all_se * critical_values),
+            axis=1)
+        ci = np.median(self._all_cis, axis=2)
+        df_ci = pd.DataFrame(ci, columns=['{:.1f} %'.format(i * 100) for i in percentages],
+                             index=['Conventional', 'Bias-Corrected', 'Robust'])
+
+        return df_ci
 
     def _fit_nuisance_model(self, outcome, estimator_name, weights, smpls):
         Z = self._intendend_treatment  # instrument for treatment
