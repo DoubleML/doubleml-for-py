@@ -269,6 +269,9 @@ class RDFlex():
 
         self._check_iterations(n_iterations)
 
+        # set variables for readablitity
+        Y = self._dml_data.y
+        D = self._dml_data.d
         for i_rep in range(self.n_rep):
             self._i_rep = i_rep
 
@@ -277,20 +280,18 @@ class RDFlex():
             weights = self.w
             smpls = self._smpls[i_rep]
 
-            for _it in range(n_iterations):
-                Y = self._dml_data.y
+            for iteration in range(n_iterations):
                 eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
                                                  weights=weights, smpls=smpls)
                 self._M_Y[:, i_rep] = Y - eta_Y
 
                 if self.fuzzy:
-                    D = self._dml_data.d
                     eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
                                                      weights=weights, smpls=smpls)
                     self._M_D[:, i_rep] = D - eta_D
 
                 # update weights via iterative bandwidth fitting
-                if _it <= (n_iterations - 1):
+                if iteration < (n_iterations - 1):
                     rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._dml_data.s,
                                        fuzzy=self._M_D[:, self._i_rep], h=None, **self.kwargs)
                     # TODO: "h" features "left" and "right" - what do we do if it is non-symmetric?
