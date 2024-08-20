@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 
 n = 500
-data = make_simple_rdd_data(n_obs=n, fuzzy=True)
+data = make_simple_rdd_data(n_obs=n, fuzzy=False)
 df = pd.DataFrame(
     np.column_stack((data['Y'], data['D'], data['score'], data['X'])),
     columns=['y', 'd', 'score'] + ['x' + str(i) for i in range(data['X'].shape[1])]
@@ -117,7 +117,17 @@ def test_rdd_warning_fuzzy():
     msg = ('Fuzzy flag indicates compliance of actual treatment with the cutoff. '
            'But the dataset contains non-compliant defiers.')
     with pytest.warns(UserWarning, match=msg):
-        _ = RDFlex(dml_data, ml_g, ml_m)
+        _ = RDFlex(dml_data, ml_g, cutoff=0.1)
+
+
+@pytest.mark.ci
+def test_rdd_warning_treatment_assignment():
+    msg = ("Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
+           "Treatment assignment might be based on the wrong side of the cutoff.")
+    with pytest.warns(UserWarning, match=msg):
+        tmp_dml_data = copy.deepcopy(dml_data)
+        tmp_dml_data._s = -1.0*tmp_dml_data._s
+        _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=True)
 
 
 @pytest.mark.ci

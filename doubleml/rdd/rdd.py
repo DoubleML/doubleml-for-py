@@ -519,12 +519,13 @@ class RDFlex():
             raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
                              f'{str(n_iterations)} was passed.')
 
-    def _check_effect_sign(self):
+    def _check_effect_sign(self, tolerance=1e-6):
         d_left, d_right = self._dml_data.d[self._score < 0], self._dml_data.d[self._score > 0]
         w_left, w_right = self._w[self._score < 0], self._w[self._score > 0]
-        if np.average(d_left, weights=w_left) > np.average(d_right, weights=w_right):
+        treatment_prob_difference = np.average(d_left, weights=w_left) - np.average(d_right, weights=w_right)
+        if treatment_prob_difference > tolerance:
             warnings.warn("Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
-                          "Treatment effect may have a reversed sign.")
+                          "Treatment assignment might be based on the wrong side of the cutoff.")
 
     def aggregate_over_splits(self):
         self._coef = np.median(self.all_coef, axis=1)
