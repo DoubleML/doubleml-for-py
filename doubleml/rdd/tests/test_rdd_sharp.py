@@ -3,18 +3,11 @@ import pandas as pd
 import numpy as np
 
 from doubleml import DoubleMLData
-from doubleml.rdd.datasets import make_simple_rdd_data
 from doubleml.rdd import RDFlex
 
 from rdrobust import rdrobust
 from sklearn.dummy import DummyRegressor, DummyClassifier
 
-n = 500
-data = make_simple_rdd_data(n_obs=n, fuzzy=False)
-df = pd.DataFrame(
-    np.column_stack((data['Y'], data['D'], data['score'], data['X'])),
-    columns=['y', 'd', 'score'] + ['x' + str(i) for i in range(data['X'].shape[1])]
-)
 
 ml_g_dummy = DummyRegressor(strategy='constant', constant=0)
 ml_m_dummy = DummyClassifier(strategy='constant', constant=0)
@@ -33,14 +26,19 @@ def p(request):
 
 
 @pytest.fixture(scope='module')
-def rdd_zero_predictions_fixture(cutoff, p):
+def data(rdd_sharp_data):
+    return rdd_sharp_data
+
+
+@pytest.fixture(scope='module')
+def rdd_zero_predictions_fixture(cutoff, p, data):
     kwargs = {
         'p': p
     }
 
     # set the treatment indicator correctly based on the cutoff
-    df['d'] = (data['score'] >= cutoff).astype(bool)
-    dml_data = DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
+    data['d'] = (data['score'] >= cutoff).astype(bool)
+    dml_data = DoubleMLData(data, y_col='y', d_cols='d', s_col='score')
 
     dml_rdflex = RDFlex(
         dml_data,
@@ -50,7 +48,7 @@ def rdd_zero_predictions_fixture(cutoff, p):
         **kwargs)
     dml_rdflex.fit(n_iterations=1)
 
-    rdrobust_model = rdrobust(y=df['y'], x=df['score'], c=cutoff, **kwargs)
+    rdrobust_model = rdrobust(y=data['y'], x=data['score'], c=cutoff, **kwargs)
 
     res_dict = {
         'dml_rdflex': dml_rdflex,
@@ -77,3 +75,11 @@ def test_rdd_se(rdd_zero_predictions_fixture):
     rdrobust_se = rdd_zero_predictions_fixture['rdrobust_se']
 
     assert np.allclose(dml_se, rdrobust_se, rtol=1e-9, atol=1e-4)
+
+
+# TODO: Failure message right of cutoff is not treated
+# TODO: Warning message if fuzzy=False and data is fuzzy
+# TODO: Dataset with different cutoffs (dataste cutoff == given cutoff)
+# TODO: Placebo test (Dataset cutoff != given cuttoff)
+
+
