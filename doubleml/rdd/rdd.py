@@ -73,6 +73,7 @@ class RDFlex():
                  n_rep=1,
                  h_fs=None,
                  fs_kernel="uniform",
+                 fuzzy=True,
                  **kwargs):
 
         self._check_data(obj_dml_data, cutoff)
@@ -81,7 +82,10 @@ class RDFlex():
         self._score = self._dml_data.s - cutoff
         self._cutoff = cutoff
         self._intendend_treatment = (self._score >= 0).astype(bool)
-        self._fuzzy = any(self._dml_data.d != self._intendend_treatment)
+        self._fuzzy = fuzzy
+
+        if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
+            warnings.warn('Fuzzy but not fuzzy')
 
         self._check_and_set_learner(ml_g, ml_m)
 

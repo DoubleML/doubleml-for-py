@@ -143,7 +143,7 @@ def test_rdd_exception_learner():
         tmp_dml_data = copy.deepcopy(dml_data)
         tmp_dml_data._data['sharp_d'] = (tmp_dml_data.s >= 0)
         tmp_dml_data.d_cols = 'sharp_d'
-        _ = RDFlex(tmp_dml_data, ml_g, ml_m)
+        _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=False)
 
 
 @pytest.mark.ci
