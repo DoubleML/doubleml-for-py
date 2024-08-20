@@ -7,7 +7,6 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, **kwargs):
     dim_x = kwargs.get('dim_x', 3)
 
     score = np.random.normal(size=n_obs)
-    intended_treatment = (score >= cutoff).astype(int)
     # independent covariates
     X = np.random.uniform(size=(n_obs, dim_x), low=-1, high=1)
 
@@ -19,20 +18,22 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, **kwargs):
     g_cov = np.sum(covs, axis=1)
 
     g0 = 0.1 * score**2
-    g1 = intended_treatment + 0.1 * score**2 - 0.5 * score**2 * intended_treatment
+    g1 = 1 + 0.1 * score**2 - 0.5 * score**2
 
     eps_scale = 0.2
     # potential outcomes with independent errors
     Y0 = g0 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
     Y1 = g1 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
 
-    D = (score >= 0)
+    intended_treatment = (score >= cutoff).astype(int)
     if fuzzy:
         prob = 0.3 + 0.4 * intended_treatment + 0.01 * score**2 - 0.02 * score**2 * intended_treatment + 0.2 * g_cov
         prob = np.clip(prob, 0.0, 1.0)
         D = np.random.binomial(n=1, p=prob, size=n_obs)
-    D = D.astype(int)
+    else:
+        D = intended_treatment
 
+    D = D.astype(int)
     Y = Y0 * (1 - D) + Y1 * D
 
     oracle_values = {
