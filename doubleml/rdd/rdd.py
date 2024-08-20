@@ -53,6 +53,11 @@ class RDFlex():
         Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
         Default is ``uniform``.
 
+    fuzzy : bool
+        indicates if the intended treatment defined by the cutoff can diverge from the actual treatment given
+        with ``obj_dml_data.d``.
+        Default is ``False``.
+
     **kwargs : kwargs
         Key-worded arguments that are not used within RDFlex but directly handed to rdrobust.
 
@@ -85,7 +90,10 @@ class RDFlex():
         self._fuzzy = fuzzy
 
         if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
-            warnings.warn('Fuzzy but not fuzzy')
+            warnings.warn(
+                'Fuzzy flag indicates compliance of actual treatment with the cutoff. '
+                'But the dataset contains non compliant defiers.'
+            )
 
         self._check_and_set_learner(ml_g, ml_m)
 
