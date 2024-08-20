@@ -35,7 +35,7 @@ class RDFlex():
     fuzzy: bool
         Indicates whether to fit a fuzzy or a sharp design.
         Default is ``True``.
-    
+
     n_folds : int
         Number of folds.
         Default is ``5``.
@@ -89,8 +89,8 @@ class RDFlex():
         self._fuzzy = fuzzy
 
         if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
-            warnings.warn('Treatment assignment does not match treatment intended. \n \
-                           Did you mean `fuzzy = True`?')
+            warnings.warn('Treatment assignment does not match treatment intended.\n'
+                          'Did you mean `fuzzy = True`?')
 
         self._check_and_set_learner(ml_g, ml_m)
 
@@ -111,6 +111,8 @@ class RDFlex():
 
         self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
         self._w = self._calc_weights(kernel=self._fs_kernel_function, h=self.h_fs)
+
+        self._check_effect_sign()
 
         # TODO: Add further input checks
         self.kwargs = kwargs
@@ -514,6 +516,13 @@ class RDFlex():
         if n_iterations < 1:
             raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
                              f'{str(n_iterations)} was passed.')
+
+    def _check_effect_sign(self):
+        d_left, d_right = self._dml_data.d[self._score < 0], self._dml_data.d[self._score > 0]
+        w_left, w_right = self._w[self._score < 0], self._w[self._score > 0]
+        if np.average(d_left, weights=w_left) > np.average(d_right, weights=w_right):
+            warnings.warn("Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
+                          "Treatment effect may have a reversed sign.")
 
     def aggregate_over_splits(self):
         self._coef = np.median(self.all_coef, axis=1)
