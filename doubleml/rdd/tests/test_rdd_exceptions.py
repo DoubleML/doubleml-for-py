@@ -105,11 +105,11 @@ def test_rdd_exception_data():
 def test_rdd_exception_cutoff():
     msg = "Cutoff value has to be a float or int. Object of type <class 'list'> passed."
     with pytest.raises(TypeError, match=msg):
-        _ = RDFlex(dml_data, ml_g, cutoff=[2])
+        _ = RDFlex(dml_data, ml_g, cutoff=[200])
 
     msg = 'Cutoff value is not within the range of the score variable. '
     with pytest.raises(ValueError, match=msg):
-        _ = RDFlex(dml_data, ml_g, cutoff=2)
+        _ = RDFlex(dml_data, ml_g, cutoff=200)
 
 
 @pytest.mark.ci
@@ -128,14 +128,14 @@ def test_rdd_exception_learner():
     # ml_m
     msg = r'Invalid learner provided for ml_m: Lasso\(\) has no method .predict_proba\(\).'
     with pytest.raises(TypeError, match=msg):
-        _ = RDFlex(dml_data, ml_g, ml_m=Lasso())
+        _ = RDFlex(dml_data, ml_g, ml_m=Lasso(), fuzzy=True)
     msg = 'Fuzzy design requires a classifier ml_m for treatment assignment.'
     with pytest.raises(ValueError, match=msg):
-        _ = RDFlex(dml_data, ml_g)
+        _ = RDFlex(dml_data, ml_g, fuzzy=True)
     msg = (r"The ml_m learner DummyClassifierNoSampleWeight\(\) does not support sample weights. Please choose a learner"
            " that supports sample weights.")
     with pytest.raises(ValueError, match=msg):
-        _ = RDFlex(dml_data, ml_g, ml_m=DummyClassifierNoSampleWeight())
+        _ = RDFlex(dml_data, ml_g, ml_m=DummyClassifierNoSampleWeight(), fuzzy=True)
 
     msg = ('A learner ml_m has been provided for for a sharp design but will be ignored. '
            'A learner ml_m is not required for estimation.')
