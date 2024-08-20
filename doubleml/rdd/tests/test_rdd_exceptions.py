@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 
 n = 500
-data = make_simple_rdd_data(n_obs=n)
+data = make_simple_rdd_data(n_obs=n, fuzzy=True)
 df = pd.DataFrame(
     np.column_stack((data['Y'], data['D'], data['score'], data['X'])),
     columns=['y', 'd', 'score'] + ['x' + str(i) for i in range(data['X'].shape[1])]
@@ -110,6 +110,14 @@ def test_rdd_exception_cutoff():
     msg = 'Cutoff value is not within the range of the score variable. '
     with pytest.raises(ValueError, match=msg):
         _ = RDFlex(dml_data, ml_g, cutoff=200)
+
+
+@pytest.mark.ci
+def test_rdd_warning_fuzzy():
+    msg = ('Fuzzy flag indicates compliance of actual treatment with the cutoff. '
+           'But the dataset contains non-compliant defiers.')
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m)
 
 
 @pytest.mark.ci
