@@ -32,6 +32,10 @@ class RDFlex():
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
         Or None, in case of a non-fuzzy design.
 
+    fuzzy: bool
+        Indicates whether to fit a fuzzy or a sharp design.
+        Default is ``True``.
+    
     n_folds : int
         Number of folds.
         Default is ``5``.
@@ -68,12 +72,12 @@ class RDFlex():
                  obj_dml_data,
                  ml_g,
                  ml_m=None,
+                 fuzzy=True,
                  cutoff=0,
                  n_folds=5,
                  n_rep=1,
                  h_fs=None,
                  fs_kernel="uniform",
-                 fuzzy=True,
                  **kwargs):
 
         self._check_data(obj_dml_data, cutoff)
@@ -85,7 +89,8 @@ class RDFlex():
         self._fuzzy = fuzzy
 
         if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
-            warnings.warn('Fuzzy but not fuzzy')
+            warnings.warn('Treatment assignment does not match treatment intended. \n \
+                           Did you mean `fuzzy = True`?')
 
         self._check_and_set_learner(ml_g, ml_m)
 
