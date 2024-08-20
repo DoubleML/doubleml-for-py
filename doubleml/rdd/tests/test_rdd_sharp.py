@@ -81,5 +81,3 @@ def test_rdd_se(rdd_zero_predictions_fixture):
 # TODO: Warning message if fuzzy=False and data is fuzzy
 # TODO: Dataset with different cutoffs (dataste cutoff == given cutoff)
 # TODO: Placebo test (Dataset cutoff != given cuttoff)
-
-

@@ -15,14 +15,14 @@ def test_dataframe(n_obs, fuzzy):
     )
 
 
-@pytest.fixture()
+@pytest.fixture(scope='module')
 def rdd_sharp_data():
     return test_dataframe(n_obs=500, fuzzy=True)
 
 
-@pytest.fixture()
+@pytest.fixture(scope='module')
 def rdd_fuzzy_data():
-    return test_dataframe(n_obs=500, fuzzy=True)
+    return test_dataframe(n_obs=500, fuzzy=False)
 
 
 @pytest.fixture()
@@ -34,4 +34,3 @@ def rdd_fuzzy_left_data():
 def rdd_fuzzy_right_data():
     data = test_dataframe(n_obs=500, fuzzy=True)
     return data
-
