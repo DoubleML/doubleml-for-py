@@ -1,13 +1,13 @@
 """
-Dummy test using fixed learner for sharp data
+Dummy test using fixed learner for fuzzy data
 """
 import pytest
 import numpy as np
 
 
 @pytest.fixture(scope='module')
-def data(rdd_sharp_data):
-    return rdd_sharp_data
+def data(rdd_fuzzy_data):
+    return rdd_fuzzy_data
 
 
 @pytest.fixture(scope='module',
@@ -104,6 +104,3 @@ def test_rdd_dmmy_nonplacebo_ci(predict_dummy, data, cutoff, alpha, p, n_rep):
         p=p
     )
     assert np.allclose(actual['ci'], reference['ci'], rtol=1e-9, atol=1e-4)
-
-# # TODO: Failure message right of cutoff is not treated
-# # TODO: Warning message if fuzzy=False and data is fuzzy

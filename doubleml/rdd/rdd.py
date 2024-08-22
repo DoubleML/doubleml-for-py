@@ -415,7 +415,6 @@ class RDFlex():
         self._all_coef = np.full(shape=(3, n_rep), fill_value=np.nan)
         self._all_se = np.full(shape=(3, n_rep), fill_value=np.nan)
         self._all_ci = np.full(shape=(3, 2, n_rep), fill_value=np.nan)
-        return
 
     def _check_data(self, obj_dml_data, cutoff):
         if not isinstance(obj_dml_data, DoubleMLData):
