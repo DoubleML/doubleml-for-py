@@ -87,7 +87,3 @@ def test_rdd_placebo_ci(predict_placebo):
 def test_rdd_nonplacebo_ci(predict_nonplacebo):
     reference, actual = predict_nonplacebo
     assert np.allclose(actual['ci'], reference['ci'], rtol=1e-9, atol=1e-4)
-
-
-# # TODO: Failure message right of cutoff is not treated
-# # TODO: Warning message if fuzzy=False and data is fuzzy
