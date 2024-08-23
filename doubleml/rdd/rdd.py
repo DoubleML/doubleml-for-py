@@ -451,7 +451,6 @@ class RDFlex():
             raise ValueError('Incompatible data. ' +
                              ' and '.join(obj_dml_data.z_cols) +
                              ' have been set as instrumental variable(s). ')
-        return
 
     def _check_and_set_learner(self, ml_g, ml_m):
         # check ml_g
@@ -482,7 +481,6 @@ class RDFlex():
             if ml_m is not None:
                 warnings.warn(('A learner ml_m has been provided for for a sharp design but will be ignored. '
                                'A learner ml_m is not required for estimation.'))
-        return
 
     def _check_and_set_kernel(self, fs_kernel):
         if not isinstance(fs_kernel, (str, Callable)):
