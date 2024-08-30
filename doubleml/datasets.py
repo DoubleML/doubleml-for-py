@@ -1523,7 +1523,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
 
     .. math::
 
-        \\text{\\theta}(d) = 0.1 \\exp(d) + 10 \\sin(0.7 d) + 2 d - 0.2 d^2.
+        \\theta (d) = 0.1 \\exp(d) + 10 \\sin(0.7 d) + 2 d - 0.2 d^2.
 
     Based on the continous treatment, a discrete treatment :math:`D` is generated as with a baseline level of
     :math:`D=0` and additional levels based on the quantiles of :math:`D_{\\text{cont}}`. The number of levels
@@ -1535,7 +1535,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
 
             Y(0) &= 210 + 27.4 Z_1 + 13.7 (Z_2 + Z_3 + Z_4) + \\varepsilon_Y
 
-            Y(1) &= \\text{\\theta}(D_{\\text{cont}}) 1\\{D_{\\text{cont}} > 0\\} + Y(0),
+            Y(1) &= \\theta (D_{\\text{cont}}) 1\\{D_{\\text{cont}} > 0\\} + Y(0),
 
     where :math:`\\varepsilon_Y \\sim \\mathcal{N}(0,5)`. Further, the observed outcome is defined as
 
@@ -1567,6 +1567,8 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     -------
     res_dict : dictionary
        Dictionary with entries ``x``, ``y``, ``d`` and ``oracle_values``.
+       The oracle values contain the continuous treatment, the level bounds, the potential level, ITE
+       and the potential outcome without treatment.
 
     """
     if random_state is not None:
