@@ -12,7 +12,7 @@ from ..double_ml_data import DoubleMLData, DoubleMLClusterData
 from .apo import DoubleMLAPO
 from ..double_ml_framework import concat
 
-from ..utils.resampling import DoubleMLResampling
+from ..utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
 from ..utils._descriptive import generate_summary
 from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_sample_splitting
 from ..utils.gain_statistics import gain_statistics
@@ -47,7 +47,11 @@ class DoubleMLAPOS:
         self._add_treatment_levels = [t for t in self._all_treatment_levels if t not in self._treatment_levels]
 
         self._normalize_ipw = normalize_ipw
-        self._n_folds = n_folds
+        if self._is_cluster_data:
+            self._n_folds_per_cluster = n_folds
+            self._n_folds = n_folds ** self._dml_data.n_cluster_vars
+        else:
+            self._n_folds = n_folds
         self._n_rep = n_rep
 
         # check score
@@ -631,11 +635,19 @@ class DoubleMLAPOS:
         -------
         self : object
         """
-        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep=self.n_rep,
-                                                n_obs=self._dml_data.n_obs,
-                                                stratify=self._dml_data.d)
-        self._smpls = obj_dml_resampling.split_samples()
+        if self._is_cluster_data:
+            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
+                                                           n_rep=self.n_rep,
+                                                           n_obs=self._dml_data.n_obs,
+                                                           n_cluster_vars=self._dml_data.n_cluster_vars,
+                                                           cluster_vars=self._dml_data.cluster_vars)
+            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
+        else:
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
+                                                    n_rep=self.n_rep,
+                                                    n_obs=self._dml_data.n_obs,
+                                                    stratify=self._dml_data.d)
+            self._smpls = obj_dml_resampling.split_samples()
 
         return self
 
