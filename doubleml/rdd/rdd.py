@@ -24,13 +24,18 @@ class RDFlex():
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(X) = E[Y|X]`.
+        A machine learner implementing ``fit()`` and ``predict()`` methods and support ``sample_weights`` (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance functions
+        :math:`g_0^{\\pm}(X) = E[Y|\\text{score}=\\text{cutoff}^{\\pm}, X]`. The adjustment function is then
+        defined as :math:`\\eta_0(X) = (g_0^{+}(X) + g_0^{-}(X))/2`.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()`` or None
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D|X]`.
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights``(e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance functions
+        :math:`m_0^{\\pm}(X) = E[D|\\text{score}=\\text{cutoff}^{\\pm}, X]`. The adjustment function is then
+        defined as :math:`\\eta_0(X) = (m_0^{+}(X) + m_0^{-}(X))/2`.
         Or None, in case of a non-fuzzy design.
+        Default is ``None``.
 
     fuzzy : bool
         Indicates whether to fit a fuzzy or a sharp design.
