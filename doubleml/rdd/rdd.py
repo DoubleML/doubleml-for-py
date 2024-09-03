@@ -126,7 +126,8 @@ class RDFlex():
         self._smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=obj_dml_data.n_obs,
                                          stratify=obj_dml_data.d).split_samples()
 
-        self._initialize_reps(n_rep=self.n_rep)
+        self._M_Y, self._M_D, self._h, self._rdd_obj, \
+            self._all_coef, self._all_se, self._all_ci = self._initialize_arrays()
 
     def __str__(self):
         if np.any(~np.isnan(self._M_Y[:, 0])):
@@ -411,14 +412,16 @@ class RDFlex():
         weights = kernel(self._score, h)
         return weights
 
-    def _initialize_reps(self, n_rep):
-        self._M_Y = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
-        self._M_D = np.full(shape=(self._dml_data.n_obs, n_rep), fill_value=np.nan)
-        self._h = np.full(shape=n_rep, fill_value=np.nan)
-        self._rdd_obj = [None] * n_rep
-        self._all_coef = np.full(shape=(3, n_rep), fill_value=np.nan)
-        self._all_se = np.full(shape=(3, n_rep), fill_value=np.nan)
-        self._all_ci = np.full(shape=(3, 2, n_rep), fill_value=np.nan)
+    def _initialize_arrays(self):
+        M_Y = np.full(shape=(self._dml_data.n_obs, self.n_rep), fill_value=np.nan)
+        M_D = np.full(shape=(self._dml_data.n_obs, self.n_rep), fill_value=np.nan)
+        h = np.full(shape=self.n_rep, fill_value=np.nan)
+        rdd_obj = [None] * self.n_rep
+        all_coef = np.full(shape=(3, self.n_rep), fill_value=np.nan)
+        all_se = np.full(shape=(3, self.n_rep), fill_value=np.nan)
+        all_ci = np.full(shape=(3, 2, self.n_rep), fill_value=np.nan)
+
+        return M_Y, M_D, h, rdd_obj, all_coef, all_se, all_ci
 
     def _check_data(self, obj_dml_data, cutoff):
         if not isinstance(obj_dml_data, DoubleMLData):
