@@ -13,6 +13,7 @@ from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
+from doubleml.utils._estimation import _aggregate_coefs_and_ses
 
 
 class RDFlex():
@@ -562,7 +563,6 @@ class RDFlex():
                           "Treatment assignment might be based on the wrong side of the cutoff.")
 
     def aggregate_over_splits(self):
-        self._coef = np.median(self.all_coef, axis=1)
+        var_scaling_factors = np.array([np.sum(res.N_h) for res in self._rdd_obj])
+        self._coef, self._se = _aggregate_coefs_and_ses(self.all_coef, self.all_se, var_scaling_factors)
         self._ci = np.median(self._all_ci, axis=2)
-        med_se = np.median(self.all_se, axis=1)
-        self._se = [np.sqrt(np.median(med_se[i]**2 + (self.all_coef[i, :] - self._coef[i])**2)) for i in range(3)]
