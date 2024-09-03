@@ -60,6 +60,10 @@ class RDFlex():
         covariates will be used.
         Default is ``None``.
 
+    fs_specification : str
+        Specification of the first stage regression.
+        Default is ``cutoff``.
+
     fs_kernel : str
         Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
         Default is ``uniform``.
@@ -84,6 +88,7 @@ class RDFlex():
                  n_folds=5,
                  n_rep=1,
                  h_fs=None,
+                 fs_specification="cutoff",
                  fs_kernel="uniform",
                  **kwargs):
 
@@ -115,6 +120,7 @@ class RDFlex():
                                 f'Object of type {str(type(h_fs))} passed.')
             self._h_fs = h_fs
 
+        self._fs_specification = self._check_fs_specification(fs_specification)
         self._fs_kernel_function, self._fs_kernel_name = self._check_and_set_kernel(fs_kernel)
         self._w = self._calc_weights(kernel=self._fs_kernel_function, h=self.h_fs)
 
@@ -361,9 +367,26 @@ class RDFlex():
         return df_ci
 
     def _fit_nuisance_model(self, outcome, estimator_name, weights, smpls):
-        Z = self._intendend_treatment  # instrument for treatment
+
+        # Include transformation of score and cutoff if necessary
+        if self._fs_specification == "cutoff":
+            Z = self._intendend_treatment  # instrument for treatment
+            Z_left = np.zeros_like(Z)
+            Z_right = np.ones_like(Z)
+        elif self._fs_specification == "cutoff and score":
+            Z = np.column_stack((self._intendend_treatment, self._score))
+            Z_left = np.column_stack((np.zeros_like(Z), np.zeros_like(Z)))
+            Z_right = np.column_stack((np.ones_like(Z), np.zeros_like(Z)))
+        else:
+            assert self._fs_specification == "interacted cutoff and score"
+            Z = np.column_stack((self._intendend_treatment, self._intendend_treatment * self._score, self._score))
+            Z_left = np.column_stack((np.zeros_like(Z), np.zeros_like(Z), np.zeros_like(Z)))
+            Z_right = np.column_stack((np.ones_like(Z), np.zeros_like(Z), np.zeros_like(Z)))
+
         X = self._dml_data.x
         ZX = np.column_stack((Z, X))
+        ZX_left = np.column_stack((Z_left, X))
+        ZX_right = np.column_stack((Z_right, X))
 
         mu_left, mu_right = np.full_like(outcome, fill_value=np.nan), np.full_like(outcome, fill_value=np.nan)
 
@@ -371,16 +394,13 @@ class RDFlex():
             estimator = clone(self._learner[estimator_name])
             estimator.fit(ZX[train_index], outcome[train_index], sample_weight=weights[train_index])
 
-            X_test_left = np.column_stack((np.zeros_like(Z[test_index]), X[test_index]))
-            X_test_right = np.column_stack((np.ones_like(Z[test_index]), X[test_index]))
-
             if self._predict_method[estimator_name] == "predict":
-                mu_left[test_index] = estimator.predict(X_test_left)
-                mu_right[test_index] = estimator.predict(X_test_right)
+                mu_left[test_index] = estimator.predict(ZX_left[test_index])
+                mu_right[test_index] = estimator.predict(ZX_right[test_index])
             else:
                 assert self._predict_method[estimator_name] == "predict_proba"
-                mu_left[test_index] = estimator.predict_proba(X_test_left)[:, 1]
-                mu_right[test_index] = estimator.predict_proba(X_test_right)[:, 1]
+                mu_left[test_index] = estimator.predict_proba(ZX_left[test_index])[:, 1]
+                mu_right[test_index] = estimator.predict_proba(ZX_right[test_index])[:, 1]
 
         return (mu_left + mu_right)/2
 
@@ -513,6 +533,16 @@ class RDFlex():
             kernel_name = 'custom_kernel'
 
         return kernel_function, kernel_name
+
+    def _check_fs_specification(self, fs_specification):
+        if not isinstance(fs_specification, str):
+            raise TypeError("fs_specification must be a string. "
+                            f'{str(fs_specification)} of type {str(type(fs_specification))} was passed.')
+        expected_specifications = ["cutoff", "cutoff and score", "interacted cutoff and score"]
+        if fs_specification not in expected_specifications:
+            raise ValueError(f"Invalid fs_specification '{fs_specification}'. "
+                             f"Valid specifications are {expected_specifications}.")
+        return fs_specification
 
     def _check_iterations(self, n_iterations):
         """Validate the number of iterations."""

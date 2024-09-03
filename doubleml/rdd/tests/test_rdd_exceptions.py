@@ -200,6 +200,18 @@ def test_rdd_exception_h_fs():
 
 
 @pytest.mark.ci
+def test_rdd_exception_fs_specification():
+    msg = "fs_specification must be a string. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, fs_specification=1)
+
+    msg = ("Invalid fs_specification 'local_constant'. "
+           r"Valid specifications are \['cutoff', 'cutoff and score', 'interacted cutoff and score'\].")
+    with pytest.raises(ValueError, match=msg):
+        _ = RDFlex(dml_data, ml_g, ml_m, fs_specification='local_constant')
+
+
+@pytest.mark.ci
 def test_rdd_exception_fit():
     rdd_model = RDFlex(dml_data, ml_g, ml_m)
     msg = (r"The number of iterations for the iterative bandwidth fitting must be of int type. \[0\] of type <class 'list'> "
