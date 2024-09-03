@@ -114,8 +114,7 @@ def test_rdd_exception_cutoff():
 
 @pytest.mark.ci
 def test_rdd_warning_fuzzy():
-    msg = ('Fuzzy flag indicates compliance of actual treatment with the cutoff. '
-           'But the dataset contains non-compliant defiers.')
+    msg = 'A sharp RD design is being estimated, but the data indicate that the design is fuzzy.'
     with pytest.warns(UserWarning, match=msg):
         _ = RDFlex(dml_data, ml_g, cutoff=0.1)
 

@@ -91,8 +91,7 @@ class RDFlex():
         self._fuzzy = fuzzy
 
         if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
-            warnings.warn('Fuzzy flag indicates compliance of actual treatment with the cutoff. '
-                          'But the dataset contains non-compliant defiers.')
+            warnings.warn('A sharp RD design is being estimated, but the data indicate that the design is fuzzy.')
 
         self._check_and_set_learner(ml_g, ml_m)
 
