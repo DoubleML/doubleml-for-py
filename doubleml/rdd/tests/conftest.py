@@ -25,14 +25,15 @@ def predict_dummy():
     - make predictions using rd-flex with constant model
     - make predictions using rdrobust as a reference
     """
-    def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p):
+    def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p, fs_specification):
         dml_rdflex = RDFlex(
             data,
             ml_g=ml_g_dummy,
             ml_m=ml_m_dummy,
             cutoff=cutoff,
             n_rep=n_rep,
-            p=p
+            p=p,
+            fs_specification=fs_specification
         )
         dml_rdflex.fit(n_iterations=1)
         ci_manual = dml_rdflex.confint(level=1-alpha)
