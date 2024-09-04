@@ -29,6 +29,12 @@ def p(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=["cutoff", "cutoff and score", "interacted cutoff and score"])
+def fs_specification(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
 def data(rdd_fuzzy_data, cutoff):
     return rdd_fuzzy_data(cutoff)
@@ -40,16 +46,16 @@ def data_zero(rdd_fuzzy_data):
 
 
 @pytest.fixture(scope='module')
-def predict_placebo(predict_dummy, data_zero, cutoff, alpha, p, n_rep):
+def predict_placebo(predict_dummy, data_zero, cutoff, alpha, p, n_rep, fs_specification):
     return predict_dummy(
-        data_zero, cutoff=cutoff, alpha=alpha, n_rep=n_rep, p=p
+        data_zero, cutoff=cutoff, alpha=alpha, n_rep=n_rep, p=p, fs_specification=fs_specification
     )
 
 
 @pytest.fixture(scope='module')
-def predict_nonplacebo(predict_dummy, data, cutoff, alpha, p, n_rep):
+def predict_nonplacebo(predict_dummy, data, cutoff, alpha, p, n_rep, fs_specification):
     return predict_dummy(
-        data, cutoff=cutoff, alpha=alpha, n_rep=n_rep, p=p
+        data, cutoff=cutoff, alpha=alpha, n_rep=n_rep, p=p, fs_specification=fs_specification
     )
 
 
