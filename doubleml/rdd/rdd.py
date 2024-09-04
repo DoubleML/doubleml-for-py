@@ -376,13 +376,14 @@ class RDFlex():
             Z_right = np.ones_like(Z)
         elif self._fs_specification == "cutoff and score":
             Z = np.column_stack((self._intendend_treatment, self._score))
-            Z_left = np.column_stack((np.zeros_like(Z), np.zeros_like(Z)))
-            Z_right = np.column_stack((np.ones_like(Z), np.zeros_like(Z)))
+            Z_left = np.zeros_like(Z)
+            Z_right = np.column_stack((np.ones_like(self._intendend_treatment), np.zeros_like(self._score)))
         else:
             assert self._fs_specification == "interacted cutoff and score"
             Z = np.column_stack((self._intendend_treatment, self._intendend_treatment * self._score, self._score))
-            Z_left = np.column_stack((np.zeros_like(Z), np.zeros_like(Z), np.zeros_like(Z)))
-            Z_right = np.column_stack((np.ones_like(Z), np.zeros_like(Z), np.zeros_like(Z)))
+            Z_left = np.zeros_like(Z)
+            Z_right = np.column_stack((np.ones_like(self._intendend_treatment), np.zeros_like(self._score),
+                                       np.zeros_like(self._score)))
 
         X = self._dml_data.x
         ZX = np.column_stack((Z, X))
