@@ -8,6 +8,7 @@ from .resampling import DoubleMLResampling, DoubleMLClusterResampling
 from .blp import DoubleMLBLP
 from .policytree import DoubleMLPolicyTree
 from .gain_statistics import gain_statistics
+from .global_learner import GlobalClassifier, GlobalRegressor
 
 __all__ = [
     "DMLDummyRegressor",
@@ -16,5 +17,7 @@ __all__ = [
     "DoubleMLClusterResampling",
     "DoubleMLBLP",
     "DoubleMLPolicyTree",
-    "gain_statistics"
+    "gain_statistics",
+    "GlobalClassifier",
+    "GlobalRegressor"
 ]
