@@ -62,7 +62,8 @@ class RDFlex():
         Default is ``None``.
 
     fs_specification : str
-        Specification of the first stage regression.
+        Specification of the first stage regression. The options are ``cutoff``, ``cutoff and score`` and
+        ``interacted cutoff and score``.
         Default is ``cutoff``.
 
     fs_kernel : str
