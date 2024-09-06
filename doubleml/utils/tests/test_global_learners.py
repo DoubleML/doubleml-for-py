@@ -49,7 +49,19 @@ def test_predict_proba(gl_fixture):
 @pytest.mark.ci
 def test_clone(gl_fixture):
     try:
-        _ = clone(gl_fixture["GlobalRegressor"])
-        _ = clone(gl_fixture["GlobalClassifier"])
+        clone_reg = clone(gl_fixture["GlobalRegressor"])
+        clone_clas = clone(gl_fixture["GlobalClassifier"])
     except Exception as e:
         pytest.fail(f"clone() raised an exception:\n{str(e)}\n")
+
+    # Test if they still work cloned
+    clone_reg.fit(y=gl_fixture["y_con"], X=gl_fixture["X"], sample_weight=gl_fixture["sample_weight"])
+    clone_clas.fit(y=gl_fixture["y_cat"], X=gl_fixture["X"], sample_weight=gl_fixture["sample_weight"])
+
+    pred_global_reg = gl_fixture["GlobalRegressor"].predict(X=gl_fixture["X"])
+    pred_global_clas = gl_fixture["GlobalClassifier"].predict_proba(X=gl_fixture["X"])
+    pred_clone_reg = clone_reg.predict(X=gl_fixture["X"])
+    pred_clone_clas = clone_clas.predict_proba(X=gl_fixture["X"])
+
+    np.allclose(pred_global_reg, pred_clone_reg)
+    np.allclose(pred_global_clas, pred_clone_clas)
