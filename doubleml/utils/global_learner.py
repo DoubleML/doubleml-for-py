@@ -1,5 +1,5 @@
 from sklearn.base import clone, BaseEstimator, RegressorMixin, ClassifierMixin
-from doubleml.double_ml import DoubleML
+# from doubleml.double_ml import DoubleML
 
 
 class GlobalRegressor(BaseEstimator, RegressorMixin):
@@ -12,7 +12,7 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
     Regressor that is used when ``fit()`` ``predict()`` and ``predict_proba()`` are being called.
     """
     def __init__(self, base_estimator):
-        DoubleML._check_learner(base_estimator, 'base_estimator', regressor=True, classifier=False)
+        # DoubleML._check_learner(base_estimator, 'base_estimator', regressor=True, classifier=False)
         self.base_estimator = base_estimator
 
     def fit(self, X, y, sample_weight=None):
@@ -57,7 +57,7 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
     Classifier that is used when ``fit()``, ``predict()`` and ``predict_proba()`` are being called.
     """
     def __init__(self, base_estimator):
-        DoubleML._check_learner(base_estimator, 'base_estimator', regressor=False, classifier=True)
+        # DoubleML._check_learner(base_estimator, 'base_estimator', regressor=False, classifier=True)
         self.base_estimator = base_estimator
 
     def fit(self, X, y, sample_weight=None):
