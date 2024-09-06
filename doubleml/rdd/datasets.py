@@ -2,7 +2,7 @@ import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 
 
-def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, **kwargs):
+def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kwargs):
     cutoff = kwargs.get('cutoff', 0.0)
     dim_x = kwargs.get('dim_x', 3)
 
@@ -22,8 +22,14 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, **kwargs):
 
     eps_scale = 0.2
     # potential outcomes with independent errors
-    Y0 = g0 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
-    Y1 = g1 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
+    if not binary_outcome:
+        Y0 = g0 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
+        Y1 = g1 + g_cov + np.random.normal(size=n_obs, scale=eps_scale)
+    else:
+        p_Y0 = 1 / (1 + np.exp(-1.0 * (g0 + g_cov)))
+        p_Y1 = 1 / (1 + np.exp(-1.0 * (g1 + g_cov)))
+        Y0 = np.random.binomial(n=1, p=p_Y0, size=n_obs)
+        Y1 = np.random.binomial(n=1, p=p_Y1, size=n_obs)
 
     intended_treatment = (score >= cutoff).astype(int)
     if fuzzy:

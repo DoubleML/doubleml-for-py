@@ -14,7 +14,6 @@ from sklearn.dummy import DummyRegressor, DummyClassifier
 
 DATA_SIZE = 500
 
-
 ml_g_dummy = DummyRegressor(strategy='constant', constant=0)
 ml_m_dummy = DummyClassifier(strategy='constant', constant=0)
 
@@ -25,10 +24,10 @@ def predict_dummy():
     - make predictions using rd-flex with constant model
     - make predictions using rdrobust as a reference
     """
-    def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p, fs_specification):
+    def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p, fs_specification, ml_g=ml_g_dummy):
         dml_rdflex = RDFlex(
             data,
-            ml_g=ml_g_dummy,
+            ml_g=ml_g,
             ml_m=ml_m_dummy,
             cutoff=cutoff,
             n_rep=n_rep,
@@ -80,11 +79,13 @@ def generate_data(
     n_obs: int,
     fuzzy: str,
     cutoff: float,
+    binary_outcome: bool = False
 ):
     data = make_simple_rdd_data(
         n_obs=n_obs,
         fuzzy=fuzzy in ['both', 'left', 'right'],
-        cutoff=cutoff
+        cutoff=cutoff,
+        binary_outcome=binary_outcome,
     )
 
     mask = defier_mask(fuzzy, data, cutoff)
@@ -101,28 +102,28 @@ def generate_data(
 
 @pytest.fixture(scope='module')
 def rdd_sharp_data():
-    def _rdd_sharp_data(cutoff):
-        return generate_data(n_obs=DATA_SIZE, fuzzy='none', cutoff=cutoff)
+    def _rdd_sharp_data(cutoff, binary_outcome=False):
+        return generate_data(n_obs=DATA_SIZE, fuzzy='none', cutoff=cutoff, binary_outcome=binary_outcome)
     return _rdd_sharp_data
 
 
 @pytest.fixture(scope='module')
 def rdd_fuzzy_data():
-    def _rdd_fuzzy_data(cutoff):
-        return generate_data(n_obs=DATA_SIZE, fuzzy='both', cutoff=cutoff)
+    def _rdd_fuzzy_data(cutoff, binary_outcome=False):
+        return generate_data(n_obs=DATA_SIZE, fuzzy='both', cutoff=cutoff, binary_outcome=binary_outcome)
     return _rdd_fuzzy_data
 
 
 @pytest.fixture(scope='module')
 def rdd_fuzzy_left_data():
-    def _rdd_fuzzy_left_data(cutoff):
-        return generate_data(n_obs=DATA_SIZE, fuzzy='left', cutoff=cutoff)
+    def _rdd_fuzzy_left_data(cutoff, binary_outcome=False):
+        return generate_data(n_obs=DATA_SIZE, fuzzy='left', cutoff=cutoff, binary_outcome=binary_outcome)
     return _rdd_fuzzy_left_data
 
 
 @pytest.fixture(scope='module')
 def rdd_fuzzy_right_data():
-    def _rdd_fuzzy_right_data(cutoff):
-        data = generate_data(n_obs=DATA_SIZE, fuzzy='left', cutoff=cutoff)
+    def _rdd_fuzzy_right_data(cutoff, binary_outcome=False):
+        data = generate_data(n_obs=DATA_SIZE, fuzzy='left', cutoff=cutoff, binary_outcome=binary_outcome)
         return data
     return _rdd_fuzzy_right_data
