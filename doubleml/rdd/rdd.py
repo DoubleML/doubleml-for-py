@@ -568,3 +568,5 @@ class RDFlex():
         var_scaling_factors = np.array([np.sum(res.N_h) for res in self._rdd_obj])
         self._coef, self._se = _aggregate_coefs_and_ses(self.all_coef, self.all_se, var_scaling_factors)
         self._ci = np.median(self._all_ci, axis=2)
+        self._N_h = np.median([res.N_h for res in self._rdd_obj], axis=0)
+        self._final_h = np.median([res.bws for res in self._rdd_obj], axis=0)[0, 0]
