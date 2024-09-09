@@ -13,7 +13,6 @@ from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
-from doubleml.utils._estimation import _aggregate_coefs_and_ses
 
 
 class RDFlex():
@@ -566,7 +565,14 @@ class RDFlex():
 
     def aggregate_over_splits(self):
         var_scaling_factors = np.array([np.sum(res.N_h) for res in self._rdd_obj])
-        self._coef, self._se = _aggregate_coefs_and_ses(self.all_coef, self.all_se, var_scaling_factors)
+
+        self._coef = np.median(self.all_coef, 1)
+        coefs_deviations = np.square(self.all_coef - self._coef.reshape(-1, 1))
+        scaled_coefs_deviations = np.divide(coefs_deviations, var_scaling_factors.reshape(1, -1))
+
+        rescaled_variances = np.median(np.square(self.all_se) + scaled_coefs_deviations, 1)
+        self._se = np.sqrt(rescaled_variances)
+
         self._ci = np.median(self._all_ci, axis=2)
         self._N_h = np.median([res.N_h for res in self._rdd_obj], axis=0)
         self._final_h = np.median([res.bws for res in self._rdd_obj], axis=0)[0, 0]
