@@ -10,6 +10,7 @@ def test_global_regressor_input():
     with pytest.raises(ValueError, match=msg):
         _ = GlobalRegressor(base_estimator=LogisticRegression(random_state=42))
 
+
 @pytest.mark.ci
 def test_global_classifier_input():
     msg = "base_estimator must be a classifier. Got LinearRegression instead."
