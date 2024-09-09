@@ -1,5 +1,7 @@
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, is_regressor, is_classifier, clone
 
+from sklearn.utils.multiclass import unique_labels
+
 
 class GlobalRegressor(BaseEstimator, RegressorMixin):
     """
@@ -80,6 +82,7 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
         sample_weight: array-like of shape (n_samples,).
         Individual weights for each sample. Ignored.
         """
+        self.classes_ = unique_labels(y)
         self._fitted_learner = clone(self.base_estimator)
         self._fitted_learner.fit(X, y)
 
