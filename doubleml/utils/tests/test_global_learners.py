@@ -3,15 +3,19 @@ import numpy as np
 from doubleml.utils import GlobalRegressor, GlobalClassifier
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 
 @pytest.fixture(scope='module',
-                params=[LinearRegression()])
+                params=[LinearRegression(),
+                        RandomForestRegressor(n_estimators=10, max_depth=2, random_state=42)])
 def regressor(request):
     return request.param
 
+
 @pytest.fixture(scope='module',
-                params=[LogisticRegression(random_state=42)])
+                params=[LogisticRegression(random_state=42),
+                        RandomForestClassifier(n_estimators=10, max_depth=2, random_state=42)])
 def classifier(request):
     return request.param
 
