@@ -21,7 +21,7 @@ def alpha(request):
 
 
 @pytest.fixture(scope='module',
-                params=[1, 3])
+                params=[1, 4])
 def n_rep(request):
     return request.param
 
