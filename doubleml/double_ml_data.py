@@ -106,12 +106,15 @@ class DoubleMLData(DoubleMLBaseData):
         Default is ``None``.
 
     t_col : None or str
-        The time variable (only relevant/used for DiD Estimators).
+        The time variable (only relevant/used for DiD estimators).
         Default is ``None``.
 
     s_col : None or str
-        The selection variable (only relevant/used for SSM Estimatiors).
+        The selection variable (only relevant/used for SSM estimators).
         Default is ``None``.
+    
+    id_col : None or str
+        The id variable (only relevant/used for DiDGT estimators).
 
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
@@ -145,6 +148,7 @@ class DoubleMLData(DoubleMLBaseData):
                  z_cols=None,
                  t_col=None,
                  s_col=None,
+                 id_col=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
         DoubleMLBaseData.__init__(self, data)
@@ -154,6 +158,7 @@ class DoubleMLData(DoubleMLBaseData):
         self.z_cols = z_cols
         self.t_col = t_col
         self.s_col = s_col
+        self.id_col = id_col
         self.x_cols = x_cols
         self._check_disjoint_sets_y_d_x_z_t_s()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
