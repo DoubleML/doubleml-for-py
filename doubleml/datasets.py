@@ -798,6 +798,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     xi = kwargs.get('xi', 0.75)
     c = kwargs.get('c', 0.0)
     lambda_t = kwargs.get('lambda_t', 0.5)
+    return_diff = kwargs.get('return_diff', True)
 
     def f_reg(w):
         res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
@@ -862,21 +863,33 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     y1 = d * y1_d1 + (1-d) * y1_d0
 
     if not cross_sectional_data:
-        y = y1 - y0
+        if return_diff:
+            y = y1 - y0
 
-        if return_type in _array_alias:
-            return z, y, d
-        elif return_type in _data_frame_alias + _dml_data_alias:
-            z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
-            data = pd.DataFrame(np.column_stack((z, y, d)),
-                                columns=z_cols + ['y', 'd'])
-            if return_type in _data_frame_alias:
-                return data
+            if return_type in _array_alias:
+                return z, y, d
+            elif return_type in _data_frame_alias + _dml_data_alias:
+                z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
+                data = pd.DataFrame(np.column_stack((z, y, d)),
+                                    columns=z_cols + ['y', 'd'])
+                if return_type in _data_frame_alias:
+                    return data
+                else:
+                    return DoubleMLData(data, 'y', 'd', z_cols)
             else:
-                return DoubleMLData(data, 'y', 'd', z_cols)
+                raise ValueError('Invalid return_type.')
         else:
-            raise ValueError('Invalid return_type.')
-
+            if return_type in _array_alias:
+                return z, y0, y1, d
+            elif return_type in _data_frame_alias + _dml_data_alias:
+                z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
+                data = pd.DataFrame(np.column_stack((z, y0, y1, d)),
+                                    columns=z_cols + ['y0', 'y1', 'd'])
+                if return_type in _data_frame_alias:
+                    return data
+                else:
+                    # TODO: Prep data backend
+                    return None
     else:
         u_t = np.random.uniform(low=0, high=1, size=n_obs)
         t = 1.0 * (u_t <= lambda_t)
