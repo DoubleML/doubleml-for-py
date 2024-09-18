@@ -46,7 +46,7 @@ def dgp_area_yield(
     This is modeled through a random placement of the center of
     the data points between the coordinate origin and the `target_center`.
     Additionally `origin_pertubation` describes
-    the magnitude of random shifts applied to the pionts in orthogonal
+    the magnitude of random shifts applied to the points in orthogonal
     direction of the target vector.
 
     To improve the situation for a lot a action can be issued that shifts
@@ -58,7 +58,7 @@ def dgp_area_yield(
 
     The running variable `X` consists of two decision criterias:
     1. the mean distance from the target `X1`
-    2. yield improvement estimated by the decision maker `X2`
+    2. yield improvement `X2` estimated by the decision maker
     Note that the the decision maker estimates the yield improvment performing
     a hypothetical `action_shift` without pertubations on some selected
     lot items he measured (because of cost consiterations not all items in a lot might be measured).
