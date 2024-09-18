@@ -30,49 +30,41 @@ def dgp_area_yield(
     treatment_random_share=0.001
 ):
     """
-    The dgp mimicks a productions process where the yield of a production lot
-    consisting of `K` individual items should be optimized.
-    Each item is described by a 2D location at the plane.
-    The initial datapoints for a lot are randomly sampled from a region specified by
-    - `origin_shape` (either equal or gaussian distribution)
-    - `origin_a`, `origin_b` determining the range of the shape in x and y direction.
+    This dgp mimics a production process where the yield of a production lot consisting of `K` individual items to be
+    optimized. Each item is described by a 2D location on a plane. The initial datapoints for a lot are randomly sampled
+    from a region specified by
+    - `origin_shape` (either 'equal' or 'gaussian' distribution)
+    - `origin_a`, `origin_b`: determining the range of the shape in the x and y directions.
 
-    The goal is to move all the items of a lot into a target region.
-    This region is specified through `target_center`, `target_a`, `target_b` and `target_shape`
-    and have the same meaning as for the origin.
+    The goal is to move all the items of a lot into a target region. This region is specified through `target_center`,
+    `target_a`, `target_b`, and `target_shape`, which have the same meaning as for the origin.
 
-    Some production lots are quite good to begin with and
-    hit the target region very well while others are not.
-    This is modeled through a random placement of the center of
-    the data points between the coordinate origin and the `target_center`.
-    Additionally `origin_pertubation` describes
-    the magnitude of random shifts applied to the points in orthogonal
-    direction of the target vector.
+    Some production lots are already well at the beginning (they lie within target region), while others do not.
+    This is modeled through a random placement of the center of the data points between the coordinate origin and the
+    `target_center`. Additionally, `origin_perturbation` describes the magnitude of random shifts applied to the points
+    in the orthogonal direction of the target vector.
 
-    To improve the situation for a lot a action can be issued that shifts
-    the whole point cloud of the lot along the action vector `action_shift`.
-    But be aware that applying the action also induces some random pertubation effects on the points:
-        - `action_scale`: expansion of the point cloud fixing it's center
-        - `action_pertubation`: magnitude of random pertubations applied to the `action_shift` vector
-        - `action_drag_share` and `action_drag_scale`: some randomly selected points get dragged behind.
+    To improve the characteristics of a lot, an action can be issued that shifts the point cloud of the lot along the action
+    vector `action_shift`. However, applying the action also induces some random perturbation effects on the points:
+    - `action_scale`: expansion of the point cloud while maintaining its center
+    - `action_perturbation`: magnitude of random perturbations applied to the `action_shift` vector
+    - `action_drag_share` and `action_drag_scale`: some randomly selected points get dragged behind.
 
-    The running variable `X` consists of two decision criterias:
-    1. the mean distance from the target `X1`
-    2. yield improvement `X2` estimated by the decision maker
-    Note that the the decision maker estimates the yield improvment performing
-    a hypothetical `action_shift` without pertubations on some selected
-    lot items he measured (because of cost consiterations not all items in a lot might be measured).
-    This is controlled by `running_mea_selection` (e.g. measure every k-th item).
-    `running_dist_measure` controls the used distance measure for the first decision criteria.
-    As the `action_shift` is fixed the `euclidean` distance
-    does also include the orthogonal displacement of the target, where as `projected` does not.
+    The running variable `X` consists of two decision criteria:
+      1. the mean distance from the target `X1`
+      2. yield improvement `X2` estimated by the decision maker
+    Note that the decision maker estimates the yield improvement by performing a hypothetical `action_shift` without
+    perturbations on some selected lot items he measures (because of cost considerations, not all items in a lot might be
+    measured). This is controlled by `running_mea_selection` (e.g., measure every k-th item).
+    `running_dist_measure` controls the used distance measure for the first decision criterion. As the `action_shift` is
+    fixed, the `euclidean` distance includes the orthogonal displacement of the target, whereas `projected` does not.
 
-    Regarding the treatment the folloing parameters are relevant:
-        - `treatment_dist`: defines the cutoff for the distance criteria `X1`
-        - `treatment_improvement`: defines the cuttof for the estimated yield improvement `X2`
-        - `treatment_random_share`: some decisionmakers might defy this
+    Regarding the treatment, the following parameters are relevant:
+    - `treatment_dist`: defines the cutoff for the distance criterion `X1`
+    - `treatment_improvement`: defines the cutoff for the estimated yield improvement `X2`
+    - `treatment_random_share`: some decision makers might defy this
 
-    Note that defiers can also be caused by the partial information the decisonmaker has!
+    Note that defiers can also be caused by the partial information the decision maker has!
     """
     rnd = np.random.default_rng(seed)
 
