@@ -8,9 +8,10 @@ from .irm.irm import DoubleMLIRM
 from .irm.apo import DoubleMLAPO
 from .irm.apos import DoubleMLAPOS
 from .irm.iivm import DoubleMLIIVM
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLData, DoubleMLClusterData, DoubleMLPanelData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
+from .did.did_binary import DoubleMLDIDBINARY
 from .irm.qte import DoubleMLQTE
 from .irm.pq import DoubleMLPQ
 from .irm.lpq import DoubleMLLPQ
@@ -33,6 +34,7 @@ __all__ = [
     'DoubleMLClusterData',
     'DoubleMLDID',
     'DoubleMLDIDCS',
+    'DoubleMLDIDBINARY',
     'DoubleMLPQ',
     'DoubleMLQTE',
     'DoubleMLLPQ',
