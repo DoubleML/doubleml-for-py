@@ -33,8 +33,9 @@ def dgp_area_yield(
     This dgp mimics a production process where the yield of a production lot consisting of `K` individual items to be
     optimized. Each item is described by a 2D location on a plane. The initial datapoints for a lot are randomly sampled
     from a region specified by
-    - `origin_shape` (either 'equal' or 'gaussian' distribution)
-    - `origin_a`, `origin_b`: determining the range of the shape in the x and y directions.
+    - `origin_shape` (either 'ellipsis' or 'rectangle', corresponding to gaussian or uniform distribution)
+    - `origin_a`, `origin_b`: determining the range of the shape (for uniform distribution) or variance
+      (for gaussian distribution) in the x and y directions.
 
     The goal is to move all the items of a lot into a target region. This region is specified through `target_center`,
     `target_a`, `target_b`, and `target_shape`, which have the same meaning as for the origin.
@@ -65,6 +66,90 @@ def dgp_area_yield(
     - `treatment_random_share`: some decision makers might defy this
 
     Note that defiers can also be caused by the partial information the decision maker has!
+
+    Parameters
+    ----------
+    seed: int or None
+        Seed for the random number generator.
+        Default is None.
+    n_obs: int
+        Number of observations.
+        Default is 5000.
+    K: int
+        Number of items in a production lot.
+        Default is 100.
+    origin_shape: str
+        Shape of the origin distribution. Either 'ellipsis' (gaussian) or 'rectangle' (uniform).
+        Default is 'ellipsis'.
+    origin_a: float
+        Parameter for the origin distribution in x direction.
+        Default is 0.035.
+    origin_b: float
+        Parameter for the origin distribution in y direction.
+        Default is 0.01.
+    origin_pertubation: float
+        Magnitude of random shifts applied to the points in the orthogonal direction of the target vector.
+        Default is 0.1.
+    target_center: tuple
+        Center of the target region.
+        Default is (1.5, 0).
+    target_a: float
+        Parameter for the target region in x direction.
+        Default is 0.6.
+    target_b: float
+        Parameter for the target region in y direction.
+        Default is 0.3.
+    target_shape: str
+        Shape of the target region. Either 'ellipsis' or 'rectangle'.
+        Default is 'ellipsis'.
+    action_shift: tuple
+        Shift vector applied to the points.
+        Default is (1.0, 0).
+    action_scale: float
+        Expansion factor of the point cloud while maintaining its center.
+        Default is 1.02.
+    action_pertubation: tuple
+        Magnitude of random perturbations applied to the `action_shift` vector.
+        Default is (0.001, 0.0006).
+    action_drag_share: float
+        Share of points that get dragged behind.
+        Default is 0.7.
+    action_drag_scale: float
+        Magnitude of the drag force.
+        Default is 0.5.
+    running_dist_measure: str
+        Distance measure for the first decision criterion. Either 'projected' or 'euclidean'.
+        Default is 'projected'.
+    running_mea_selection: int
+        Measure every k-th item.
+        Default is 5.
+    treatment_dist: float
+        Cutoff for the distance criterion `X1`.
+        Default is 0.45.
+    treatment_improvement: float
+        Cutoff for the estimated yield improvement `X2`.
+        Default is 0.
+    treatment_random_share: float
+        Share of decision makers that defy the treatment.
+        Default is 0.001.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the following
+        - state: initial state of the production lot
+        - treated_state: state after applying the action
+        - final_state: final state after treatment decision
+        - Z: observed state
+        - Y0: yield without treatment
+        - Y1: yield with treatment
+        - Y: observed yield
+        - X1: distance from target
+        - X2: estimated yield improvement
+        - X1_act: actual distance from target
+        - X2_act: actual yield improvement
+        - T: treatment assignment
+        - D: actual treatment assignment
     """
     rnd = np.random.default_rng(seed)
 
