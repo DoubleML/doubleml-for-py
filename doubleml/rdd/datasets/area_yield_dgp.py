@@ -157,8 +157,11 @@ def dgp_area_yield(
         rnd, n_obs, K,
         target_center, origin_a, origin_b, origin_shape, origin_pertubation,
     )
+
+    estimated_state = state + np.array(action_shift)
     measured_state = state[:, ::running_mea_selection, :]
-    estimated_state = measured_state + np.array(action_shift)
+    estimated_measured_state = estimated_state[:, ::running_mea_selection, :]
+
     treated_state = _execute_action(
         rnd,
         n_obs, K,
@@ -171,37 +174,39 @@ def dgp_area_yield(
     )
 
     # estimated yield + yield
-    y0_est, _ = _check_yield(measured_state, target_center, target_a, target_a, target_shape)
+    y0_est_measured, _ = _check_yield(measured_state, target_center, target_a, target_a, target_shape)
+    y1_est_measured, _ = _check_yield(estimated_measured_state, target_center, target_a, target_a, target_shape)
     y1_est, _ = _check_yield(estimated_state, target_center, target_a, target_a, target_shape)
+
     y0, _ = _check_yield(state, target_center, target_a, target_b, target_shape)
     y1, _ = _check_yield(treated_state, target_center, target_a, target_b, target_shape)
 
     # running variables
-    center_est = np.mean(measured_state, axis=1)
+    center_measured = np.mean(measured_state, axis=1)
     center = np.mean(state, axis=1)
 
     if running_dist_measure == 'projected':
         # magnitude in action_shift direction: <center - target, e_0> e_0
         e_0 = action_shift / np.linalg.norm(action_shift)
-        distance_est = np.matmul(target_center - center_est, e_0)
+        distance_measured = np.matmul(target_center - center_measured, e_0)
         distance = np.matmul(target_center - center, e_0)
 
     elif running_dist_measure == 'euclidean':
-        distance_est = np.linalg.norm(center_est - target_center, axis=1)
+        distance_measured = np.linalg.norm(center_measured - target_center, axis=1)
         distance = np.linalg.norm(center - target_center, axis=1)
     else:
         raise ValueError('unkown distance measure')
 
-    improvement_est = y1_est - y0_est
-    improvement = y1 - y0
+    improvement_est_measured = y1_est_measured - y0_est_measured
+    improvement_est = y1_est - y0
 
     # treatment decision
     if treatment_dist is None:
         treatment_dist = np.linalg.norm(action_shift)
-    assinged_treatment = (distance_est >= treatment_dist) & (improvement_est > treatment_improvement)
+    assinged_treatment = (distance_measured >= treatment_dist) & (improvement_est_measured > treatment_improvement)
 
     # we assume that the decision maker knows the state better
-    actual_treatment = (distance >= treatment_dist) & (improvement > treatment_improvement)
+    actual_treatment = (distance >= treatment_dist) & (improvement_est > treatment_improvement)
     if treatment_random_share > 0:
         n_rnd = int(n_obs*treatment_random_share)
         actual_treatment[:n_rnd] = rnd.choice([True, False], size=n_rnd)
@@ -221,10 +226,10 @@ def dgp_area_yield(
         'Y0': y0,
         'Y1': y1,
         'Y': y_obs,
-        'X1': distance_est,
-        'X2': improvement_est,
+        'X1': distance_measured,
+        'X2': improvement_est_measured,
         'X1_act': distance,
-        'X2_act': improvement,
+        'X2_act': improvement_est,
         'T': assinged_treatment,
         'D': actual_treatment
     }
