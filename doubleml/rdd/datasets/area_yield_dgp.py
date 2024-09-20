@@ -140,14 +140,14 @@ def dgp_area_yield(
         - state: initial state of the production lot
         - treated_state: state after applying the action
         - final_state: final state after treatment decision
-        - Z: observed state
+        - X: observed state
         - Y0: yield without treatment
         - Y1: yield with treatment
         - Y: observed yield
-        - X1: distance from target
-        - X2: estimated yield improvement
-        - X1_act: actual distance from target
-        - X2_act: actual yield improvement
+        - score_distance: distance from target
+        - score_improvement: estimated yield improvement
+        - score_distance_act: actual distance from target
+        - score_improvement_act: actual yield improvement
         - T: treatment assignment
         - D: actual treatment assignment
     """
@@ -222,14 +222,14 @@ def dgp_area_yield(
         'state': state,
         'treated_state': treated_state,
         'final_state': state_obs,
-        'Z': measured_state,
+        'X': measured_state,
         'Y0': y0,
         'Y1': y1,
         'Y': y_obs,
-        'X1': distance_measured,
-        'X2': improvement_est_measured,
-        'X1_act': distance,
-        'X2_act': improvement_est,
+        'score_distance': distance_measured,
+        'score_improvement': improvement_est_measured,
+        'score_distance_act': distance,
+        'score_improvement_act': improvement_est,
         'T': assinged_treatment,
         'D': actual_treatment
     }
