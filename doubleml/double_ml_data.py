@@ -1196,6 +1196,13 @@ class DoubleMLPanelData(DoubleMLData):
         Array of id variable.
         """
         return self._id_var.values
+    
+    @property
+    def id_var_unique(self):
+        """
+        Unique values of id variable.
+        """
+        return np.unique(self.id_var)
 
     @property
     def n_obs(self):
@@ -1212,14 +1219,28 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The number of time periods.
         """
-        return self.data[self.t_col].nunique()
+        return len(self.t_values)
 
     @property
     def n_groups(self):
         """
         The number of groups.
         """
-        return len(np.unique(self.d))
+        return len(self.g_values)
+
+    @property
+    def g_values(self):
+        """
+        The unique values of the treatment variable (groups) ``d``.
+        """     
+        return np.unique(self.d)
+    
+    @property
+    def t_values(self):
+        """
+        The unique values of the time variable ``t``.
+        """
+        return np.unique(self.t)
 
     @DoubleMLData.x_cols.setter
     def x_cols(self, value):

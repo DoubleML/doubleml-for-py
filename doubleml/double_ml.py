@@ -9,7 +9,7 @@ from scipy.stats import norm
 
 from abc import ABC, abstractmethod
 
-from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
+from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData, DoubleMLPanelData
 from .double_ml_framework import DoubleMLFramework
 
 from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
@@ -39,6 +39,9 @@ class DoubleML(ABC):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented.')
             self._is_cluster_data = True
+        self._is_panel_data = False
+        if isinstance(obj_dml_data, DoubleMLPanelData):
+            self._is_panel_data = True
         self._dml_data = obj_dml_data
 
         # initialize framework which is constructed after the fit method is called
@@ -340,7 +343,7 @@ class DoubleML(ABC):
     @property
     def sensitivity_params(self):
         """
-        Values of the sensitivity parameters after calling :meth:`sesitivity_analysis`;
+        Values of the sensitivity parameters after calling :meth:`sensitivity_analysis`;
         If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
         and ``rva``.
         """
@@ -509,6 +512,7 @@ class DoubleML(ABC):
                 self._solve_score_and_estimate_se()
 
                 # sensitivity elements can depend on the estimated parameter
+                # TODO: Handle panel data backend in wide format!
                 self._fit_sensitivity_elements(nuisance_predictions)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
@@ -1146,7 +1150,7 @@ class DoubleML(ABC):
             raise ValueError(f'The learners have to be a subset of {str(self.params_names)}. '
                              f'Learners {str(learners)} provided.')
 
-    def draw_sample_splitting(self):
+    def draw_sample_splitting(self, n_obs = None):
         """
         Draw sample splitting for DoubleML models.
 
@@ -1157,17 +1161,26 @@ class DoubleML(ABC):
         -------
         self : object
         """
+
+        if n_obs is None:
+            n_obs = self._dml_data.n_obs
+
+            if self._is_panel_data:
+                # TODO: Handle sample splitting (initialization)
+                # raise ValueError('n_obs must be provided for panel data.')
+                pass
+
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
                                                            n_rep=self.n_rep,
-                                                           n_obs=self._dml_data.n_obs,
+                                                           n_obs=n_obs,
                                                            n_cluster_vars=self._dml_data.n_cluster_vars,
                                                            cluster_vars=self._dml_data.cluster_vars)
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
-                                                    n_obs=self._dml_data.n_obs,
+                                                    n_obs=n_obs,
                                                     stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
