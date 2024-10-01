@@ -126,7 +126,6 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
             raise ValueError(f'The value {t_value} is not in the set of evaluation period values {t_values}.')
         self._g_value = g_value
         self._t_value = t_value
-
         pre_t = t_value
 
         # TODO: Handle base period (in DoubleMLDIDMULTI class?); here only case for "varying" base period
@@ -587,7 +586,10 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
                              'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '. '
                              'Got dict with keys: ' + ' and '.join(set(sensitivity_elements.keys())) + '.')
         for key in self._sensitivity_element_names:
-            self.sensitivity_elements[key][self._id_subset, i_rep, i_treat] = sensitivity_elements[key]
+            if key in ['sigma2', 'nu2']:
+                self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
+            else:
+                self.sensitivity_elements[key][self._id_subset, i_rep, i_treat] = sensitivity_elements[key]
         return
 
     def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
