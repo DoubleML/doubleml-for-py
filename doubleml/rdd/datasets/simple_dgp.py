@@ -3,6 +3,49 @@ from numpy.polynomial.polynomial import Polynomial
 
 
 def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kwargs):
+    """
+    Generates synthetic data for a regression discontinuity design (RDD) analysis.
+
+    .. math::
+        Y_0 &= g_0 + g_{cov} + \\epsilon_0 \\
+        Y_1 &= g_1 + g_{cov} + \\epsilon_1 \\
+        g_0 &= 0.1 \\cdot \\text{score}^2 \\
+        g_1 &= 1 + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot \\text{score}^2 \\
+        g_{cov} &= \\sum_{i=1}^{\text{dim\\_x}} \text{Polynomial}(X_i) \\
+        \\epsilon_0, \\epsilon_1 &\\sim \\mathcal{N}(0, 0.2^2)
+
+    Parameters
+    ----------
+    n_obs : int
+        Number of observations to generate. Default is 5000.
+
+    p : int
+        Degree of the polynomial for covariates. Default is 4.
+
+    fuzzy : bool
+        If True, generates data for a fuzzy RDD. Default is True.
+
+    binary_outcome : bool
+        If True, generates binary outcomes. Default is False.
+
+    **kwargs : Additional keyword arguments.
+        cutoff : float
+            The cutoff value for the score. Default is 0.0.
+        dim_x : int
+            The number of independent covariates. Default is 3.
+        a : float
+            Factor to control interaction of score and covariates to the outcome equation.
+
+    Returns
+    -------
+    dict: A dictionary containing the generated data with keys:
+        'score' (np.ndarray): The running variable.
+        'X' (np.ndarray): The independent covariates.
+        'Y0' (np.ndarray): The potential outcomes without treatment.
+        'Y1' (np.ndarray): The potential outcomes with treatment.
+        'intended_treatment' (np.ndarray): The intended treatment assignment.
+    """
+
     cutoff = kwargs.get('cutoff', 0.0)
     dim_x = kwargs.get('dim_x', 3)
     a = kwargs.get('a', 0)
