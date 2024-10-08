@@ -5,6 +5,7 @@ from numpy.polynomial.polynomial import Polynomial
 def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kwargs):
     cutoff = kwargs.get('cutoff', 0.0)
     dim_x = kwargs.get('dim_x', 3)
+    a = kwargs.get('a', 0)
 
     score = np.random.normal(size=n_obs)
     # independent covariates
@@ -18,7 +19,7 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
     g_cov = np.sum(covs, axis=1)
 
     g0 = 0.1 * score**2
-    g1 = 1 + 0.1 * score**2 - 0.5 * score**2
+    g1 = 1 + 0.1 * score**2 - 0.5 * score**2 + a * np.sum(X, axis=1) * score
 
     eps_scale = 0.2
     # potential outcomes with independent errors
