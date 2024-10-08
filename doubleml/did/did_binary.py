@@ -589,6 +589,7 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
             if key in ['sigma2', 'nu2']:
                 self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
             else:
+                self.sensitivity_elements[key][:, i_rep, i_treat] = 0
                 self.sensitivity_elements[key][self._id_subset, i_rep, i_treat] = sensitivity_elements[key]
         return
 

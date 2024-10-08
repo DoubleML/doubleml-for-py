@@ -30,6 +30,7 @@ class DoubleMLFramework():
             doubleml_dict=None,
     ):
         self._is_cluster_data = False
+        self._is_panel_data = False
 
         # check input
         if not isinstance(doubleml_dict, dict):
@@ -52,6 +53,9 @@ class DoubleMLFramework():
 
         # initialize cluster data
         self._check_and_set_cluster_data(doubleml_dict)
+
+        # TODO: initialize panel data - Check!
+        self._check_and_set_panel_data(doubleml_dict)
 
         # initialize sensitivity analysis
         self._check_and_set_sensitivity_elements(doubleml_dict)
@@ -412,6 +416,7 @@ class DoubleMLFramework():
                 'scaled_psi': scaled_psi,
                 'is_cluster_data': self._is_cluster_data,
                 'cluster_dict': self._cluster_dict,
+                'panel_dict': self._panel_dict,
             }
 
             # sensitivity combination only available for linear models
@@ -953,6 +958,29 @@ class DoubleMLFramework():
                                  + '. Got: ' + ', '.join(doubleml_dict['cluster_dict'].keys()) + '.')
 
             self._cluster_dict = doubleml_dict['cluster_dict']
+
+        return
+
+    def _check_and_set_panel_data(self, doubleml_dict):
+        self._panel_dict = None
+
+        if "is_panel_data" in doubleml_dict.keys():
+            _check_bool(doubleml_dict['is_panel_data'], 'is_panel_data')
+            self._is_panel_data = doubleml_dict['is_panel_data']
+
+        if self._is_panel_data:
+            if not ("panel_dict" in doubleml_dict.keys()):
+                raise ValueError('If is_panel_data is True, panel_dict must be provided.')
+
+            if not isinstance(doubleml_dict['panel_dict'], dict):
+                raise TypeError('panel_dict must be a dictionary.')
+
+            expected_keys_panel = ['n_subset', 'id_subset'] # TODO: Also provide id_col, t_col etc?
+            if not all(key in doubleml_dict['panel_dict'].keys() for key in expected_keys_panel):
+                raise ValueError('The panel_dict must contain the following keys: ' + ', '.join(expected_keys_panel)
+                                 + '. Got: ' + ', '.join(doubleml_dict['panel_dict'].keys()) + '.')
+
+            self._panel_dict = doubleml_dict['panel_dict']
 
         return
 
