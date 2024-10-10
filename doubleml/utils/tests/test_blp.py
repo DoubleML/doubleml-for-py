@@ -25,9 +25,17 @@ def cov_type(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=[True, False])
+def use_t(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_blp_fixture(ci_joint, ci_level, cov_type):
+def dml_blp_fixture(ci_joint, ci_level, cov_type, use_t):
     n = 50
+    kwargs = {'cov_type': cov_type, 'use_t': use_t}
+
     np.random.seed(42)
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
     random_signal = np.random.normal(0, 1, size=(n, ))
@@ -35,8 +43,8 @@ def dml_blp_fixture(ci_joint, ci_level, cov_type):
     blp = dml.DoubleMLBLP(random_signal, random_basis)
 
     blp_obj = copy.copy(blp)
-    blp.fit(cov_type=cov_type)
-    blp_manual = fit_blp(random_signal, random_basis, cov_type)
+    blp.fit(**kwargs)
+    blp_manual = fit_blp(random_signal, random_basis, **kwargs)
 
     np.random.seed(42)
     ci_1 = blp.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
