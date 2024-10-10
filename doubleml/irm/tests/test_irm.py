@@ -216,6 +216,7 @@ def test_dml_irm_cate_gate(cov_type):
     cate = dml_irm_obj.cate(random_basis, cov_type=cov_type)
     assert isinstance(cate, dml.utils.blp.DoubleMLBLP)
     assert isinstance(cate.confint(), pd.DataFrame)
+    assert cate.blp_model.cov_type == cov_type
 
     groups_1 = pd.DataFrame(np.column_stack([obj_dml_data.data['X1'] <= 0,
                                              obj_dml_data.data['X1'] > 0.2]),
@@ -226,6 +227,7 @@ def test_dml_irm_cate_gate(cov_type):
     assert isinstance(gate_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
     assert all(gate_1.confint().index == groups_1.columns.to_list())
+    assert gate_1.blp_model.cov_type == cov_type
 
     np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
@@ -235,6 +237,7 @@ def test_dml_irm_cate_gate(cov_type):
     assert isinstance(gate_2, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
+    assert gate_2.blp_model.cov_type == cov_type
 
 
 @pytest.fixture(scope='module',
