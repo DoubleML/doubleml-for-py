@@ -19,8 +19,14 @@ def ci_level(request):
     return request.param
 
 
+@pytest.fixture(scope='module',
+                params=["nonrobust", "HC0", "HC1", "HC2", "HC3"])
+def cov_type(request):
+    return request.param
+
+
 @pytest.fixture(scope='module')
-def dml_blp_fixture(ci_joint, ci_level):
+def dml_blp_fixture(ci_joint, ci_level, cov_type):
     n = 50
     np.random.seed(42)
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
@@ -30,7 +36,7 @@ def dml_blp_fixture(ci_joint, ci_level):
 
     blp_obj = copy.copy(blp)
     blp.fit()
-    blp_manual = fit_blp(random_signal, random_basis)
+    blp_manual = fit_blp(random_signal, random_basis, cov_type)
 
     np.random.seed(42)
     ci_1 = blp.confint(random_basis, joint=ci_joint, level=ci_level, n_rep_boot=1000)
@@ -49,7 +55,7 @@ def dml_blp_fixture(ci_joint, ci_level):
                 'values': blp.blp_model.fittedvalues,
                 'values_manual':  blp_manual.fittedvalues,
                 'omega': blp.blp_omega,
-                'omega_manual': blp_manual.cov_HC0,
+                'omega_manual': blp_manual.cov_params().to_numpy(),
                 'basis': blp.basis,
                 'signal': blp.orth_signal,
                 'ci_1': ci_1,
