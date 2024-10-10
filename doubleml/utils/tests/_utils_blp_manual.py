@@ -5,8 +5,8 @@ from scipy.stats import norm
 import pandas as pd
 
 
-def fit_blp(orth_signal, basis):
-    blp_model = sm.OLS(orth_signal, basis).fit()
+def fit_blp(orth_signal, basis, cov_type, **kwargs):
+    blp_model = sm.OLS(orth_signal, basis).fit(cov_type=cov_type, **kwargs)
 
     return blp_model
 
@@ -15,7 +15,7 @@ def blp_confint(blp_model, basis, joint=False, level=0.95, n_rep_boot=500):
     alpha = 1 - level
     g_hat = blp_model.predict(basis)
 
-    blp_omega = blp_model.cov_HC0
+    blp_omega = blp_model.cov_params().to_numpy()
 
     blp_se = np.sqrt((basis.dot(blp_omega) * basis).sum(axis=1))
 
