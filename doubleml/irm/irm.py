@@ -431,7 +431,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         return res
 
-    def cate(self, basis, is_gate=False):
+    def cate(self, basis, is_gate=False, **kwargs):
         """
         Calculate conditional average treatment effects (CATE) for a given basis.
 
@@ -440,9 +440,13 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         basis : :class:`pandas.DataFrame`
             The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
             where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
+
         is_gate : bool
             Indicates whether the basis is constructed for GATEs (dummy-basis).
             Default is ``False``.
+
+        **kwargs: dict
+            Additional keyword arguments to be passed to :meth:`statsmodels.regression.linear_model.OLS.fit` e.g. ``cov_type``.
 
         Returns
         -------
@@ -462,10 +466,10 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         orth_signal = self.psi_elements['psi_b'].reshape(-1)
         # fit the best linear predictor
         model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
-        model.fit()
+        model.fit(**kwargs)
         return model
 
-    def gate(self, groups):
+    def gate(self, groups, **kwargs):
         """
         Calculate group average treatment effects (GATE) for groups.
 
@@ -475,6 +479,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
             Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
             and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
+
+        **kwargs: dict
+            Additional keyword arguments to be passed to :meth:`statsmodels.regression.linear_model.OLS.fit` e.g. ``cov_type``.
 
         Returns
         -------
@@ -495,7 +502,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if any(groups.sum(0) <= 5):
             warnings.warn('At least one group effect is estimated with less than 6 observations.')
 
-        model = self.cate(groups, is_gate=True)
+        model = self.cate(groups, is_gate=True, **kwargs)
         return model
 
     def policy_tree(self, features, depth=2, **tree_params):

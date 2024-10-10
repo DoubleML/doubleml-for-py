@@ -187,8 +187,14 @@ def test_dml_irm_sensitivity_rho0(dml_irm_fixture):
                        rtol=1e-9, atol=1e-4)
 
 
+@pytest.fixture(scope='module',
+                params=["nonrobust", "HC0", "HC1", "HC2", "HC3"])
+def cov_type(request):
+    return request.param
+
+
 @pytest.mark.ci
-def test_dml_irm_cate_gate():
+def test_dml_irm_cate_gate(cov_type):
     n = 9
     # collect data
     np.random.seed(42)
@@ -207,7 +213,7 @@ def test_dml_irm_cate_gate():
     dml_irm_obj.fit()
     # create a random basis
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
-    cate = dml_irm_obj.cate(random_basis)
+    cate = dml_irm_obj.cate(random_basis, cov_type=cov_type)
     assert isinstance(cate, dml.utils.blp.DoubleMLBLP)
     assert isinstance(cate.confint(), pd.DataFrame)
 
@@ -216,7 +222,7 @@ def test_dml_irm_cate_gate():
                             columns=['Group 1', 'Group 2'])
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
-        gate_1 = dml_irm_obj.gate(groups_1)
+        gate_1 = dml_irm_obj.gate(groups_1, cov_type=cov_type)
     assert isinstance(gate_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_1.confint(), pd.DataFrame)
     assert all(gate_1.confint().index == groups_1.columns.to_list())
@@ -225,7 +231,7 @@ def test_dml_irm_cate_gate():
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
-        gate_2 = dml_irm_obj.gate(groups_2)
+        gate_2 = dml_irm_obj.gate(groups_2, cov_type=cov_type)
     assert isinstance(gate_2, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gate_2.confint(), pd.DataFrame)
     assert all(gate_2.confint().index == ["Group_1", "Group_2"])
