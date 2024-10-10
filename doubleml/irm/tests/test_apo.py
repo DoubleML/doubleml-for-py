@@ -200,8 +200,14 @@ def test_dml_apo_sensitivity(dml_apo_fixture):
                            rtol=1e-9, atol=1e-4)
 
 
+@pytest.fixture(scope='module',
+                params=["nonrobust", "HC0", "HC1", "HC2", "HC3"])
+def cov_type(request):
+    return request.param
+
+
 @pytest.mark.ci
-def test_dml_apo_capo_gapo(treatment_level):
+def test_dml_apo_capo_gapo(treatment_level, cov_type):
     n = 20
     # collect data
     np.random.seed(42)
@@ -221,25 +227,28 @@ def test_dml_apo_capo_gapo(treatment_level):
     dml_obj.fit()
     # create a random basis
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
-    capo = dml_obj.capo(random_basis)
+    capo = dml_obj.capo(random_basis, cov_type=cov_type)
     assert isinstance(capo, dml.utils.blp.DoubleMLBLP)
     assert isinstance(capo.confint(), pd.DataFrame)
+    assert capo.blp_model.cov_type == cov_type
 
     groups_1 = pd.DataFrame(np.column_stack([obj_dml_data.data['X1'] <= -1.0,
                                              obj_dml_data.data['X1'] > 0.2]),
                             columns=['Group 1', 'Group 2'])
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
-        gapo_1 = dml_obj.gapo(groups_1)
+        gapo_1 = dml_obj.gapo(groups_1, cov_type=cov_type)
     assert isinstance(gapo_1, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gapo_1.confint(), pd.DataFrame)
     assert all(gapo_1.confint().index == groups_1.columns.to_list())
+    assert gapo_1.blp_model.cov_type == cov_type
 
     np.random.seed(42)
     groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n, p=[0.1, 0.9]))
     msg = ('At least one group effect is estimated with less than 6 observations.')
     with pytest.warns(UserWarning, match=msg):
-        gapo_2 = dml_obj.gapo(groups_2)
+        gapo_2 = dml_obj.gapo(groups_2, cov_type=cov_type)
     assert isinstance(gapo_2, dml.utils.blp.DoubleMLBLP)
     assert isinstance(gapo_2.confint(), pd.DataFrame)
     assert all(gapo_2.confint().index == ["Group_1", "Group_2"])
+    assert gapo_2.blp_model.cov_type == cov_type
