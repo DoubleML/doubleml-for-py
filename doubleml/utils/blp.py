@@ -110,9 +110,18 @@ class DoubleMLBLP:
                                       columns=col_names)
         return df_summary
 
-    def fit(self):
+    def fit(self, cov_type='HC0', **kwargs):
         """
         Estimate DoubleMLBLP models.
+
+        Parameters
+        ----------
+        cov_type : str
+            The covariance type to be used in the estimation. Default is ``'HC0'``.
+            See :meth:`statsmodels.regression.linear_model.OLS.fit` for more information.
+
+        **kwargs: dict
+            Additional keyword arguments to be passed to :meth:`statsmodels.regression.linear_model.OLS.fit`.
 
         Returns
         -------
@@ -120,8 +129,8 @@ class DoubleMLBLP:
         """
 
         # fit the best-linear-predictor of the orthogonal signal with respect to the grid
-        self._blp_model = sm.OLS(self._orth_signal, self._basis).fit()
-        self._blp_omega = self._blp_model.cov_HC0
+        self._blp_model = sm.OLS(self._orth_signal, self._basis).fit(cov_type=cov_type, **kwargs)
+        self._blp_omega = self._blp_model.cov_params().to_numpy()
 
         return self
 

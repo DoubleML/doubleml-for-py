@@ -35,7 +35,7 @@ def dml_blp_fixture(ci_joint, ci_level, cov_type):
     blp = dml.DoubleMLBLP(random_signal, random_basis)
 
     blp_obj = copy.copy(blp)
-    blp.fit()
+    blp.fit(cov_type=cov_type)
     blp_manual = fit_blp(random_signal, random_basis, cov_type)
 
     np.random.seed(42)
