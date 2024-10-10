@@ -119,6 +119,23 @@ def test_dml_blp_return_types(dml_blp_fixture):
 
 
 @pytest.mark.ci
+def test_dml_blp_defaults():
+    n = 50
+    np.random.seed(42)
+    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 3)))
+    random_signal = np.random.normal(0, 1, size=(n, ))
+
+    blp = dml.DoubleMLBLP(random_signal, random_basis)
+    blp.fit()
+
+    assert np.allclose(blp.blp_omega,
+                       blp.blp_model.cov_HC0,
+                       rtol=1e-9, atol=1e-4)
+
+    assert blp._is_gate is False
+
+
+@pytest.mark.ci
 def test_doubleml_exception_blp():
     random_basis = pd.DataFrame(np.random.normal(0, 1, size=(2, 3)))
     signal = np.array([1, 2])
