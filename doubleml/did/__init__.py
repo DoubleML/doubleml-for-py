@@ -9,5 +9,6 @@ from .did_binary import DoubleMLDIDBINARY
 __all__ = [
     "DoubleMLDID",
     "DoubleMLDIDCS",
-    "DoubleMLDIDBINARY"
+    "DoubleMLDIDBINARY",
+    "DoubleMLDIDMULTI"
 ]

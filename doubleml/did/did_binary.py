@@ -8,7 +8,7 @@ from ..double_ml_data import DoubleMLPanelData
 from ..double_ml_score_mixins import LinearScoreMixin
 
 from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm
-from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, _check_bool
+from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, _check_bool, _check_preprocess_g_t
 
 
 class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
@@ -82,8 +82,9 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
                  obj_dml_data,
                  ml_g,
                  ml_m=None,
-                 g_value=1,
-                 t_value=0,
+                 g_value=None,
+                 t_value_pre=None,
+                 t_value_eval=None,
                  control_group='never_treated',
                  n_folds=5,
                  n_rep=1,
@@ -101,70 +102,61 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
 
         self._check_data(self._dml_data)
         _check_bool(print_periods, 'print_periods')
+        self._print_periods = print_periods
 
-        # TODO: store and preprocess all values of t and g here, but later move to DIDMULTI class
+        # TODO: Check if we want to keep the g_values & t_values from the backend
+        # as they might differ from the ones processed in DoubleMLDIDMULTI
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
-        # TODO: Handle preprocessing of g and t values
-        g_values, t_values = self._preprocess_g_t(g_values, t_values)
-        self._g_values = g_values
-        self._t_values = t_values
-
-        if g_value is None:
-            g_value = int(g_values[g_values > 0].min())
-        if t_value is None:
-            t_value = int(t_values.min())
-
-        _check_integer(g_value, 'g_value', 0)
-        _check_integer(t_value, 't_value', 0)     
-
-        # check if g_value and t_value are in the set of g_values and t_values
-        if g_value not in g_values:
-            raise ValueError(f'The value {g_value} is not in the set of treatment group values {g_values}.')
-        if t_value not in t_values:
-            raise ValueError(f'The value {t_value} is not in the set of evaluation period values {t_values}.')
-        self._g_value = g_value
-        self._t_value = t_value
-        pre_t = t_value
-
-        # TODO: Handle base period (in DoubleMLDIDMULTI class?); here only case for "varying" base period
-        # TODO: Handle case with anticipation (update definition of eval_t)
-        t_fac = 1
-        eval_t = t_value + t_fac
-        self._eval_t = eval_t
-                
-        # check if post_treatment evaluation
-        if g_value <= eval_t:
-            post_treatment = True
-            # Refer to class DoubleMLDIDMULTI
-            pre_periods = self._t_values[self._t_values < g_value]
-            pre_t = pre_periods.max()
-
-            if pre_t <= 0:
-                print(f"No pre-treatment period available for group first treated in {g_value}.\n\
-                        Units from this group are dropped.")
-        else:
-            post_treatment = False
-
-        self._pre_t = pre_t
-        self._post_treatment = post_treatment
-
-        # Check control group
-        # TODO: Move this to DoubleMLDIDMULTI class and refer accordingly
         valid_control_groups = ['never_treated', 'not_yet_treated']
         if control_group not in valid_control_groups:
             raise ValueError(f'The control group has to be one of {valid_control_groups}. ' +
                              f'{control_group} was passed.')
         self._control_group = control_group
 
-        if print_periods:
-            print(f'Evaluation of ATT({g_value}, {eval_t}), with pre-treatment period {pre_t}, post-treatment: {post_treatment}.\n' +
-                f'Control group: {control_group}.\n')
+        # Defaults for g and t values
+        if g_value is None:
+            g_value = int(g_values[g_values > 0].min())
+        if t_value_pre is None:
+            t_value_pre = int(t_values[t_values < g_value].max())
+        if t_value_eval is None:
+            t_value_eval = int(t_values[t_values > g_value].min())
+        
+        _check_integer(g_value, 'g_value', 0)
+        _check_integer(t_value_pre, 't_value_pre', 0)
+        _check_integer(t_value_eval, 't_value_eval', 0)
+
+        # check if g_value and t_value are in the set of g_values and t_values
+        if g_value not in g_values:
+            raise ValueError(f'The value {g_value} is not in the set of treatment group values {g_values}.')
+        if t_value_pre not in t_values:
+            raise ValueError(f'The value {t_value_pre} is not in the set of evaluation period values {t_values}.')
+        if t_value_eval not in t_values:
+            raise ValueError(f'The value {t_value_eval} is not in the set of evaluation period values {t_values}.')
+        
+        self._g_value = g_value
+        self._t_value_pre = t_value_pre
+        self._t_value_eval = t_value_eval
+                
+        # check if post_treatment evaluation
+        if g_value <= t_value_eval:
+            post_treatment = True
+            if t_value_pre <= 0:
+                print(f"No pre-treatment period available for group first treated in {g_value}.\n\
+                        Units from this group are dropped.")
+        else:
+            post_treatment = False
+
+        self._post_treatment = post_treatment
+
+        if self._print_periods:
+            print(f'Evaluation of ATT({g_value}, {t_value_eval}), with pre-treatment period {t_value_pre},\n' +
+                  f'post-treatment: {post_treatment}. Control group: {control_group}.\n')
 
         # Preprocess data
         # Y1, Y0 might be needed if we want to support custom estimators and scores; currently only output y_diff
-        self._panel_data_wide = self._preprocess_data()
+        self._panel_data_wide = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
 
         # Handling id values to match pairwise evaluation & simultaneous inference
         id_panel_data = self._panel_data_wide['id'].values
@@ -241,18 +233,18 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
         return self._g_value
     
     @property
-    def t_value(self):
+    def t_value_eval(self):
         """
         The value indicating the evaluation period.
         """
-        return self._t_value
+        return self._t_value_eval
     
     @property
-    def pre_t(self):
+    def t_value_pre(self):
         """
         The value indicating the pre-treatment period.
         """
-        return self._pre_t
+        return self._t_value_pre
     
     @property
     def post_treatment(self):
@@ -320,24 +312,7 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
                              'exactly one variable needs to be specified as treatment variable.')
         return
 
-    def _preprocess_g_t(self, g_values, t_values):
-        # TODO: Check this again and handle preprocessing in DoubleMLDIDMULTI class or DoubleMLPanelData
-        # TODO: Implement more cases
-        g_values = g_values[g_values > 0]
-        t_first = t_values.min()
-        t_last = t_values.max()
-
-        # Drop g values for treatment in first period
-        g_values = g_values[g_values > t_first]
-
-        # Drop g values for treatment in last period (no control group available)
-        # TODO: Check this again!
-        t_values = t_values[t_values <= t_last]
-
-        # TODO: dependencies of g_values, t_values and data (subsamples)
-        return g_values, t_values
-      
-    def _preprocess_data(self):
+    def _preprocess_data(self, g_value, pre_t, eval_t):
         # TODO: Check if copy is necessary
         this_data = self._dml_data.data.copy()
         t_col = self._dml_data.t_col
@@ -346,24 +321,23 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
         g_col = self._dml_data.d_cols[0]
 
         # Construct G (treatment group) indicating treatment period in g
-        G_indicator = (this_data[g_col] == self.g_value).astype(int)
+        G_indicator = (this_data[g_col] == g_value).astype(int)
+        this_data.loc[:, 'G_indicator'] = G_indicator
 
         if self._control_group == 'never_treated':
             C_indicator = (this_data[g_col] == 0).astype(int)
 
         elif self._control_group == 'not_yet_treated':
-            # TODO: Check again!
-            C_indicator = ((this_data[g_col] == 0) | ((this_data[g_col] > max(self._eval_t, self._t_value)) \
+            # TODO: Check again if max() is correct!
+            # C_indicator = Never treated or treated in period after eval_t (and not in g)
+            C_indicator = ((this_data[g_col] == 0) | ((this_data[g_col] > max(pre_t, eval_t)) \
                 & (this_data['G_indicator'] == 0))).astype(int)  
-     
-        this_data.loc[:, 'G_indicator'] = G_indicator
+        
         this_data.loc[:, 'C_indicator'] = C_indicator
 
         # Data processing from long to wide format
         select_cols = [id_col] + self._dml_data.x_cols + ['G_indicator', 'C_indicator']
-        pre_t = self._pre_t
-        eval_t = self._eval_t
-     
+        
         this_data = this_data[this_data[t_col].isin([pre_t, eval_t])]
         this_data = this_data.sort_values(by = [id_col, t_col])
 

@@ -12,6 +12,7 @@ from .double_ml_data import DoubleMLData, DoubleMLClusterData, DoubleMLPanelData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
 from .did.did_binary import DoubleMLDIDBINARY
+from .did.did_multi import DoubleMLDIDMULTI
 from .irm.qte import DoubleMLQTE
 from .irm.pq import DoubleMLPQ
 from .irm.lpq import DoubleMLLPQ
@@ -32,9 +33,11 @@ __all__ = [
     'DoubleMLIIVM',
     'DoubleMLData',
     'DoubleMLClusterData',
+    'DoubleMLPanelData',
     'DoubleMLDID',
     'DoubleMLDIDCS',
     'DoubleMLDIDBINARY',
+    'DoubleMLDIDMULTI',
     'DoubleMLPQ',
     'DoubleMLQTE',
     'DoubleMLLPQ',
