@@ -67,7 +67,7 @@ class RDFlex():
 
     fs_kernel : str
         Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
-        Default is ``uniform``.
+        Default is ``triangular``.
 
     **kwargs : kwargs
         Key-worded arguments that are not used within RDFlex but directly handed to rdrobust.
@@ -90,7 +90,7 @@ class RDFlex():
                  n_rep=1,
                  h_fs=None,
                  fs_specification="cutoff",
-                 fs_kernel="uniform",
+                 fs_kernel="triangular",
                  **kwargs):
 
         self._check_data(obj_dml_data, cutoff)
