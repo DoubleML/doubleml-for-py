@@ -159,7 +159,7 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
         self._panel_data_wide = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
 
         # Handling id values to match pairwise evaluation & simultaneous inference
-        id_panel_data = self._panel_data_wide['id'].values
+        id_panel_data = self._panel_data_wide[self._dml_data.id_col].values
 
         # Psi: 1 x n_obs (where n_obs = unique(id))
         # original unique id values
