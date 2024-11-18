@@ -173,6 +173,7 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
         self._n_subset = self._panel_data_wide.shape[0]
+        self._n_treated_subset = self._panel_data_wide['G_indicator'].sum()
 
         # Save x and y for later ML estimation
         self._x_panel = self._panel_data_wide.loc[:, self._dml_data.x_cols].values
@@ -318,7 +319,7 @@ class DoubleMLDIDBINARY(LinearScoreMixin, DoubleML):
         t_col = self._dml_data.t_col
         id_col = self._dml_data.id_col
         y_col = self._dml_data.y_col
-        g_col = self._dml_data.d_cols[0]
+        g_col = self._dml_data.g_col
 
         # Construct G (treatment group) indicating treatment period in g
         G_indicator = (this_data[g_col] == g_value).astype(int)

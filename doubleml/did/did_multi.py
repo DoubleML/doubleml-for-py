@@ -63,6 +63,11 @@ class DoubleMLDIDMULTI():
         self._all_g_values = g_values
         self._all_t_values_pre = t_values_pre
         self._all_t_values_eval = t_values_eval
+
+        # number of never treated
+        g_col = self._dml_data.g_col
+        id_col = self._dml_data.id_col
+        self._n_never_treated = len(np.unique(self._dml_data.data[self._dml_data.data[g_col] == 0][id_col].values))
         
         # TODO: Check what to export and what not
         self._in_sample_normalization = in_sample_normalization
@@ -500,6 +505,15 @@ class DoubleMLDIDMULTI():
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
+    
+    def aggregate(self, estimand='group'):
+        """
+        Aggregates the ATTs according to the specified estimand.
+        """
+
+        return
+
+
 
     def sensitivity_analysis(self, cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95, null_hypothesis=0.0):
         """

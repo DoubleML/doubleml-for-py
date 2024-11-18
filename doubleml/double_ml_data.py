@@ -1172,6 +1172,13 @@ class DoubleMLPanelData(DoubleMLData):
         The id variable.
         """
         return self._id_col
+    
+    @property
+    def g_col(self):
+        """
+        The treatment variable indicating the time of treatment exposure.
+        """
+        return self._d_cols[0]
 
     @id_col.setter
     def id_col(self, value):
