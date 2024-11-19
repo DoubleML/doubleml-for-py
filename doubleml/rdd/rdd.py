@@ -166,7 +166,16 @@ class RDFlex():
 
                 lines.append(line)
             result = "\n".join(lines)
-            return result
+
+            additional_info = (
+                "\nDesign Type:        " + ("Fuzzy" if self.fuzzy else "Sharp") +
+                f"\nCutoff:             {self.cutoff}" +
+                f"\nFirst Stage Kernel: {self.fs_kernel}" +
+                f"\nFinal Bandwidth:    {self.h}"
+            )
+
+            return result + additional_info
+
         else:
             return "DoubleML RDFlex Object. Run `.fit()` for estimation."
 
