@@ -136,6 +136,15 @@ class RDFlex():
         self._M_Y, self._M_D, self._h, self._rdd_obj, \
             self._all_coef, self._all_se, self._all_ci = self._initialize_arrays()
 
+        # Initialize all properties to None
+        self._coef = None
+        self._se = None
+        self._ci = None
+        self._N_h = None
+        self._final_h = None
+        self._all_cis = None
+        self._i_rep = None
+
     def __str__(self):
         if np.any(~np.isnan(self._M_Y[:, 0])):
             method_names = ["Conventional", "Robust"]
@@ -145,7 +154,7 @@ class RDFlex():
             ]
 
             for i, name in enumerate(method_names):
-                if i == 0:
+                if name == "Conventional":
                     line = (
                         f"{name:<18}"
                         f"{self.coef[i]:<10.3f}"
@@ -154,7 +163,8 @@ class RDFlex():
                         f"{self.pval[i]:<11.3e}"
                         f"[{self.ci[i, 0]:.3f}, {self.ci[i, 1]:.3f}]"
                     )
-                elif i == 1:
+                else:
+                    assert name == "Robust"
                     # Access robust values from index 2 as specified
                     line = (
                         f"{name:<17}"
@@ -418,7 +428,7 @@ class RDFlex():
 
     def _update_weights(self):
         rdd_res = self._fit_rdd()
-        # TODO: "h", "b" features "left" and "right" - what do we do if it is non-symmetric?
+        # TODO: "h", "b" features "left" and "right"
         h = rdd_res.bws.loc["h"].max()
         b = rdd_res.bws.loc["b"].max()
         weights = self._calc_weights(kernel=self._fs_kernel_function, h=h)
