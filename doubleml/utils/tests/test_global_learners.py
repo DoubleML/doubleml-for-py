@@ -99,6 +99,9 @@ def test_predict_proba(gl_fixture):
 
 @pytest.mark.ci
 def test_clone(gl_fixture):
+    clone_reg = None
+    clone_clas = None
+
     try:
         clone_reg = clone(gl_fixture["GlobalRegressor"])
         clone_clas = clone(gl_fixture["GlobalClassifier"])

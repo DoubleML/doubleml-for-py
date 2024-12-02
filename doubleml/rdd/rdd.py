@@ -541,7 +541,8 @@ class RDFlex():
             kernel_function = kernel_functions[fs_kernel]
             kernel_name = fs_kernel
 
-        elif callable(fs_kernel):
+        else:
+            assert callable(fs_kernel)
             kernel_function = fs_kernel
             kernel_name = 'custom_kernel'
 
