@@ -10,7 +10,7 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
         Y_0 &= g_0 + g_{cov} + \\epsilon_0 \\
         Y_1 &= g_1 + g_{cov} + \\epsilon_1 \\
         g_0 &= 0.1 \\cdot \\text{score}^2 \\
-        g_1 &= 1 + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot \\text{score}^2 \\
+        g_1 &= \tau + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot \\text{score}^2 \\
         g_{cov} &= \\sum_{i=1}^{\text{dim\\_x}} \text{Polynomial}(X_i) \\
         \\epsilon_0, \\epsilon_1 &\\sim \\mathcal{N}(0, 0.2^2)
 
