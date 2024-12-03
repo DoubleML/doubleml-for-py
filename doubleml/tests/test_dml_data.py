@@ -450,11 +450,11 @@ def test_s_col_setter():
     dml_data.s_col = 's_new'
     assert np.array_equal(dml_data.s, s_comp)
 
-    msg = r'Invalid selection variable s_col. a13 is no data column.'
+    msg = r'Invalid score or selection variable s_col. a13 is no data column.'
     with pytest.raises(ValueError, match=msg):
         dml_data.s_col = 'a13'
 
-    msg = (r'The selection variable s_col must be of str type \(or None\). '
+    msg = (r'The score or selection variable s_col must be of str type \(or None\). '
            "5 of type <class 'int'> was passed.")
     with pytest.raises(TypeError, match=msg):
         dml_data.s_col = 5
@@ -607,19 +607,19 @@ def test_disjoint_sets():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', t_col='zz')
 
-    msg = 'xx2 cannot be set as selection variable ``s_col`` and covariate in ``x_cols``.'
+    msg = 'xx2 cannot be set as score or selection variable ``s_col`` and covariate in ``x_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='xx2')
-    msg = 'dd1 cannot be set as selection variable ``s_col`` and treatment variable in ``d_cols``.'
+    msg = 'dd1 cannot be set as score or selection variable ``s_col`` and treatment variable in ``d_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='dd1')
-    msg = 'yy cannot be set as selection variable ``s_col`` and outcome variable ``y_col``.'
+    msg = 'yy cannot be set as score or selection variable ``s_col`` and outcome variable ``y_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], s_col='yy')
-    msg = 'zz cannot be set as selection variable ``s_col`` and instrumental variable in ``z_cols``.'
+    msg = 'zz cannot be set as score or selection variable ``s_col`` and instrumental variable in ``z_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], z_cols='zz', s_col='zz')
-    msg = 'tt cannot be set as selection variable ``s_col`` and time variable ``t_col``.'
+    msg = 'tt cannot be set as score or selection variable ``s_col`` and time variable ``t_col``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1', 'xx2'], t_col='tt', s_col='tt')
 
@@ -642,7 +642,7 @@ def test_disjoint_sets():
     msg = 'xx2 cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], t_col='xx2', cluster_cols='xx2')
-    msg = 'xx2 cannot be set as selection variable ``s_col`` and cluster variable in ``cluster_cols``.'
+    msg = 'xx2 cannot be set as score or selection variable ``s_col`` and cluster variable in ``cluster_cols``.'
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col='yy', d_cols=['dd1'], x_cols=['xx1'], s_col='xx2', cluster_cols='xx2')
 
