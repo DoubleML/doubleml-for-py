@@ -2,7 +2,7 @@ joblib
 numpy
 pandas
 scipy
-scikit-learn=1.5.2
+scikit-learn
 statsmodels
 plotly
 matplotlib
