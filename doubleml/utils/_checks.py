@@ -500,11 +500,3 @@ def _check_supports_sample_weights(learner, learner_name):
         raise ValueError(f"The {learner_name} learner {str(learner)} does not support sample weights. "
                          "Please choose a learner that supports sample weights.")
     return
-
-def is_regressor(estimator):
-    est_is_regressor = getattr(estimator, "_estimator_type", None) == "regressor"
-    return est_is_regressor
-
-def is_classifier(estimator):
-    est_is_classifier = getattr(estimator, "_estimator_type", None) == "classifier"
-    return est_is_classifier
