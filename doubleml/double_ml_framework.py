@@ -310,8 +310,9 @@ class DoubleMLFramework():
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
                 nu2_score_element = self._sensitivity_elements['psi_nu2'] + other._sensitivity_elements['psi_nu2'] - \
-                     np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
-                                                  self._sensitivity_elements['riesz_rep']))
+                    np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
+                                                  other._sensitivity_elements['riesz_rep'])) + \
+                    self._sensitivity_elements['nu2'] + other._sensitivity_elements['nu2']
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
@@ -369,8 +370,9 @@ class DoubleMLFramework():
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
                 nu2_score_element = self._sensitivity_elements['psi_nu2'] - other._sensitivity_elements['psi_nu2'] + \
-                     np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
-                                                  self._sensitivity_elements['riesz_rep']))
+                    np.multiply(2.0, np.multiply(self._sensitivity_elements['riesz_rep'],
+                                                other._sensitivity_elements['riesz_rep'])) + \
+                    self._sensitivity_elements['nu2'] - other._sensitivity_elements['nu2']
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
@@ -416,7 +418,8 @@ class DoubleMLFramework():
 
             # sensitivity combination only available for linear models
             if self._sensitivity_implemented:
-                nu2_score_element = np.multiply(np.square(other), self._sensitivity_elements['psi_nu2'])
+                nu2_score_element = np.multiply(np.square(other), self._sensitivity_elements['psi_nu2'] + \
+                                    self._sensitivity_elements['nu2'])
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
