@@ -6,3 +6,4 @@ scikit-learn
 statsmodels
 plotly
 matplotlib
+rdrobust
