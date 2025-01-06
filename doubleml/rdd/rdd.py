@@ -74,17 +74,21 @@ class RDFlex():
 
     Examples
     --------
-    import numpy as np
-    import doubleml as dml
-    from doubleml.rdd.datasets import make_simple_rdd_data
-    from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    np.random.seed(123)
-    data_dict = make_simple_rdd_data(fuzzy=True)
-    obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
-    ml_g = RandomForestRegressor()
-    ml_m = RandomForestClassifier()
-    rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
-    print(rdflex_obj.fit())
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.rdd.datasets import make_simple_rdd_data
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(123)
+    >>> data_dict = make_simple_rdd_data(fuzzy=True)
+    >>> obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> ml_g = RandomForestRegressor()
+    >>> ml_m = RandomForestClassifier()
+    >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
+    >>> print(rdflex_obj.fit())
+    Method             Coef.     S.E.     t-stat       P>|t|           95% CI
+    -------------------------------------------------------------------------
+    Conventional      0.935     0.220     4.244    2.196e-05  [0.503, 1.367]
+    Robust                 -        -     3.635    2.785e-04  [0.418, 1.396]
 
     """
 
