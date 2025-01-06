@@ -26,7 +26,7 @@ setup(
         'numpy',
         'pandas',
         'scipy',
-        'scikit-learn<1.6.0',
+        'scikit-learn>=1.4.0,<1.6.0',
         'statsmodels',
         'plotly',
     ],
