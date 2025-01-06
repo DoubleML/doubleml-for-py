@@ -5,14 +5,21 @@ from numpy.polynomial.polynomial import Polynomial
 def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kwargs):
     """
     Generates synthetic data for a regression discontinuity design (RDD) analysis.
+    The data generating process is defined as
 
     .. math::
-        Y_0 &= g_0 + g_{cov} + \\epsilon_0 \\
-        Y_1 &= g_1 + g_{cov} + \\epsilon_1 \\
-        g_0 &= 0.1 \\cdot \\text{score}^2 \\
-        g_1 &= \tau + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot \\text{score}^2 \\
-        g_{cov} &= \\sum_{i=1}^{\text{dim\\_x}} \text{Polynomial}(X_i) \\
-        \\epsilon_0, \\epsilon_1 &\\sim \\mathcal{N}(0, 0.2^2)
+        Y_0 &= g_0 + g_{cov} + \\epsilon_0,
+
+        Y_1 &= g_1 + g_{cov} + \\epsilon_1,
+
+        g_0 &= 0.1 \\cdot \\text{score}^2,
+
+        g_1 &= \\tau + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot score^2 + a
+        \\sum_{i=1}^{\\text{dim\\_x}} X_i \\cdot \\text{score},
+
+        g_{cov} &= \\sum_{i=1}^{\text{dim\\_x}} \text{Polynomial}(X_i),
+
+    with random noise :math:`\\epsilon_0, \\epsilon_1 \\sim \\mathcal{N}(0, 0.2^2)` and
 
     Parameters
     ----------
@@ -20,13 +27,13 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
         Number of observations to generate. Default is 5000.
 
     p : int
-        Degree of the polynomial for covariates. Default is 4.
+        Degree of the polynomial for covariates. Default is 4. If zero, no covariate effect is considered.
 
     fuzzy : bool
         If True, generates data for a fuzzy RDD. Default is True.
 
     binary_outcome : bool
-        If True, generates binary outcomes. Default is False.
+        If True, generates binary outcomes based on a logistic transformation. Default is False.
 
     **kwargs : Additional keyword arguments.
         cutoff : float
@@ -34,18 +41,15 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
         dim_x : int
             The number of independent covariates. Default is 3.
         a : float
-            Factor to control interaction of score and covariates to the outcome equation. Default is 0.0.
+            Factor to control interaction of score and covariates in the outcome equation. Default is 0.0.
         tau : float
             Parameter to control the true effect in the generated data at the given cutoff. Default is 1.0.
 
     Returns
     -------
-    dict: A dictionary containing the generated data with keys:
-        'score' (np.ndarray): The running variable.
-        'X' (np.ndarray): The independent covariates.
-        'Y0' (np.ndarray): The potential outcomes without treatment.
-        'Y1' (np.ndarray): The potential outcomes with treatment.
-        'intended_treatment' (np.ndarray): The intended treatment assignment.
+    res_dict : dictionary
+        Dictionary with entries ``score``, ``X``, ``Y``, ``D``, and ``oracle_values``.
+        The oracle values contain the potential outcomes.
     """
 
     cutoff = kwargs.get('cutoff', 0.0)
