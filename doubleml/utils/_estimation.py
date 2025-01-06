@@ -320,10 +320,10 @@ def _var_est(psi, psi_deriv, smpls, is_cluster_data,
                 J_l = test_cluster_inds[1]
                 const = np.divide(min(len(I_k), len(J_l)), (np.square(len(I_k) * len(J_l))))
                 for cluster_value in I_k:
-                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
+                    ind_cluster = (first_cluster_var == cluster_value) & np.isin(second_cluster_var, J_l)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
                 for cluster_value in J_l:
-                    ind_cluster = (second_cluster_var == cluster_value) & np.in1d(first_cluster_var, I_k)
+                    ind_cluster = (second_cluster_var == cluster_value) & np.isin(first_cluster_var, I_k)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
                 j_hat += np.sum(psi_deriv[test_inds]) / (len(I_k) * len(J_l))
 

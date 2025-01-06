@@ -76,8 +76,8 @@ class DoubleMLClusterResampling:
                     test_clusters = smpls_cluster_vars[i_var][i_fold][1]
                     this_cluster_smpl_train.append(train_clusters)
                     this_cluster_smpl_test.append(test_clusters)
-                    ind_train = ind_train & np.in1d(self.cluster_vars[:, i_var], train_clusters)
-                    ind_test = ind_test & np.in1d(self.cluster_vars[:, i_var], test_clusters)
+                    ind_train = ind_train & np.isin(self.cluster_vars[:, i_var], train_clusters)
+                    ind_test = ind_test & np.isin(self.cluster_vars[:, i_var], test_clusters)
                 train_set = np.arange(self.n_obs)[ind_train]
                 test_set = np.arange(self.n_obs)[ind_test]
                 smpls.append((train_set, test_set))
