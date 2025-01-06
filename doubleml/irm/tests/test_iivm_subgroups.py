@@ -90,9 +90,9 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw
                           normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold,
                           always_takers=subgroups['always_takers'], never_takers=subgroups['never_takers'])
 
-    res_dict = {'coef': dml_iivm_obj.coef,
+    res_dict = {'coef': dml_iivm_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_iivm_obj.se,
+                'se': dml_iivm_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods,
                 'always_takers': subgroups['always_takers'],

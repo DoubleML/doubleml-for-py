@@ -116,9 +116,9 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
                         normalize_ipw=normalize_ipw,
                         g_params=g_params, m_params=m_params)
 
-    res_dict = {'coef': dml_pq_obj.coef,
+    res_dict = {'coef': dml_pq_obj.coef.item(),
                 'coef_manual': res_manual['pq'],
-                'se': dml_pq_obj.se,
+                'se': dml_pq_obj.se.item(),
                 'se_manual': res_manual['se']}
 
     return res_dict

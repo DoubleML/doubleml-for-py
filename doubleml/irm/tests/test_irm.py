@@ -317,14 +317,14 @@ def dml_irm_weights_fixture(n_rep):
     dml_irm_obj_atte_weights.fit()
 
     res_dict = {
-        'coef_ate': dml_irm_obj_ate_no_weights.coef,
-        'coef_ate_weights': dml_irm_obj_ate_weights.coef,
-        'coef_atte': dml_irm_obj_atte_no_weights.coef,
-        'coef_atte_weights': dml_irm_obj_atte_weights.coef,
-        'se_ate': dml_irm_obj_ate_no_weights.se,
-        'se_ate_weights': dml_irm_obj_ate_weights.se,
-        'se_atte': dml_irm_obj_atte_no_weights.se,
-        'se_atte_weights': dml_irm_obj_atte_weights.se,
+        'coef_ate': dml_irm_obj_ate_no_weights.coef.item(),
+        'coef_ate_weights': dml_irm_obj_ate_weights.coef.item(),
+        'coef_atte': dml_irm_obj_atte_no_weights.coef.item(),
+        'coef_atte_weights': dml_irm_obj_atte_weights.coef.item(),
+        'se_ate': dml_irm_obj_ate_no_weights.se.item(),
+        'se_ate_weights': dml_irm_obj_ate_weights.se.item(),
+        'se_atte': dml_irm_obj_atte_no_weights.se.item(),
+        'se_atte_weights': dml_irm_obj_atte_weights.se.item(),
     }
     return res_dict
 

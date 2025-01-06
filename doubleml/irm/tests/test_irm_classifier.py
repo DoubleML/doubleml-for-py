@@ -74,9 +74,9 @@ def dml_irm_classifier_fixture(generate_data_irm_binary, learner, score, normali
                          all_smpls, score,
                          normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_irm_obj.coef,
+    res_dict = {'coef': dml_irm_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_irm_obj.se,
+                'se': dml_irm_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

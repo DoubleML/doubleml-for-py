@@ -17,7 +17,7 @@ from ._utils_irm_manual import fit_irm, boot_irm
 @pytest.fixture(scope='module',
                 params=[[XGBRegressor(n_jobs=1, objective="reg:squarederror",
                                       eta=0.1, n_estimators=10),
-                         XGBClassifier(use_label_encoder=False, n_jobs=1,
+                         XGBClassifier(n_jobs=1,
                                        objective="binary:logistic", eval_metric="logloss",
                                        eta=0.1, n_estimators=10)]])
 def learner_xgboost(request):
@@ -87,9 +87,9 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
                          normalize_ipw=normalize_ipw,
                          trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_irm_obj.coef,
+    res_dict = {'coef': dml_irm_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_irm_obj.se,
+                'se': dml_irm_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

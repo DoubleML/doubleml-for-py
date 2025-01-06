@@ -130,9 +130,9 @@ def dml_lpq_fixture(generate_data_local_quantiles, treatment, quantile, learner,
                          m_d_z0_params=m_d_z0_params, m_d_z1_params=m_d_z1_params,
                          g_du_z0_params=g_du_z0_params, g_du_z1_params=g_du_z1_params)
 
-    res_dict = {'coef': dml_lpq_obj.coef,
+    res_dict = {'coef': dml_lpq_obj.coef.item(),
                 'coef_manual': res_manual['lpq'],
-                'se': dml_lpq_obj.se,
+                'se': dml_lpq_obj.se.item(),
                 'se_manual': res_manual['se']}
 
     return res_dict

@@ -84,9 +84,9 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, normalize_ipw, trimming
                           normalize_ipw=normalize_ipw,
                           trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_iivm_obj.coef,
+    res_dict = {'coef': dml_iivm_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_iivm_obj.se,
+                'se': dml_iivm_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

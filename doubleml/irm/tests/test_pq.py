@@ -79,9 +79,9 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner,
                         trimming_threshold=trimming_threshold,
                         normalize_ipw=normalize_ipw)
 
-    res_dict = {'coef': dml_pq_obj.coef,
+    res_dict = {'coef': dml_pq_obj.coef.item(),
                 'coef_manual': res_manual['pq'],
-                'se': dml_pq_obj.se,
+                'se': dml_pq_obj.se.item(),
                 'se_manual': res_manual['se']}
 
     return res_dict

@@ -115,9 +115,9 @@ def dml_apo_tune_fixture(generate_data_irm, learner_g, learner_m, score, normali
                          normalize_ipw=normalize_ipw,
                          g0_params=g0_params, g1_params=g1_params, m_params=m_params)
 
-    res_dict = {'coef': dml_obj.coef,
+    res_dict = {'coef': dml_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_obj.se,
+                'se': dml_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
