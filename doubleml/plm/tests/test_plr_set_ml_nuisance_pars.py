@@ -64,10 +64,10 @@ def dml_plr_fixture(generate_data1, score):
 
     dml_plr_obj_ext_set_par.fit()
 
-    res_dict = {'coef': dml_plr_obj.coef,
-                'coef_manual': dml_plr_obj_ext_set_par.coef,
-                'se': dml_plr_obj.se,
-                'se_manual': dml_plr_obj_ext_set_par.se,
+    res_dict = {'coef': dml_plr_obj.coef.item(),
+                'coef_manual': dml_plr_obj_ext_set_par.coef.item(),
+                'se': dml_plr_obj.se.item(),
+                'se_manual': dml_plr_obj_ext_set_par.se.item(),
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:

@@ -63,10 +63,10 @@ def dml_plr_reestimate_fixture(generate_data1, learner, score, n_rep):
     dml_plr_obj2._se[0] = np.nan
     dml_plr_obj2._est_causal_pars_and_se()
 
-    res_dict = {'coef': dml_plr_obj.coef,
-                'coef2': dml_plr_obj2.coef,
-                'se': dml_plr_obj.se,
-                'se2': dml_plr_obj2.se}
+    res_dict = {'coef': dml_plr_obj.coef.item(),
+                'coef2': dml_plr_obj2.coef.item(),
+                'se': dml_plr_obj.se.item(),
+                'se2': dml_plr_obj2.se.item()}
 
     return res_dict
 

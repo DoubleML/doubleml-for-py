@@ -98,10 +98,10 @@ def dml_plr_fixture(generate_data1, learner, score, n_rep):
 
     dml_plr_obj_ext.fit(external_predictions=prediction_dict)
 
-    res_dict = {'coef': dml_plr_obj.coef,
+    res_dict = {'coef': dml_plr_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
                 'coef_ext': dml_plr_obj_ext.coef,
-                'se': dml_plr_obj.se,
+                'se': dml_plr_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'se_ext': dml_plr_obj_ext.se,
                 'boot_methods': boot_methods}

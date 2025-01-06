@@ -259,9 +259,9 @@ def dml_plr_ols_manual_fixture(generate_data1, score):
                                      l_hat, m_hat, g_hat,
                                      smpls, score)
 
-    res_dict = {'coef': dml_plr_obj.coef,
+    res_dict = {'coef': dml_plr_obj.coef.item(),
                 'coef_manual': res_manual,
-                'se': dml_plr_obj.se,
+                'se': dml_plr_obj.se.item(),
                 'se_manual': se_manual,
                 'boot_methods': boot_methods}
 

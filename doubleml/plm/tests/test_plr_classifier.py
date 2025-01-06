@@ -60,9 +60,9 @@ def dml_plr_binary_classifier_fixture(learner, score):
     res_manual = fit_plr(y, x, d, _clone(ml_l), _clone(ml_m), _clone(ml_g),
                          all_smpls, score)
 
-    res_dict = {'coef': dml_plr_obj.coef,
+    res_dict = {'coef': dml_plr_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_plr_obj.se,
+                'se': dml_plr_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

@@ -71,9 +71,9 @@ def dml_pliv_fixture(generate_data_iv, learner, score):
                           clone(learner), clone(learner), clone(learner), clone(learner),
                           all_smpls, score)
 
-    res_dict = {'coef': dml_pliv_obj.coef,
+    res_dict = {'coef': dml_pliv_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_pliv_obj.se,
+                'se': dml_pliv_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

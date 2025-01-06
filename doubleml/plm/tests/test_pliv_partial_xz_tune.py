@@ -119,9 +119,9 @@ def dml_pliv_partial_xz_fixture(generate_data_pliv_partialXZ, learner_l, learner
                                      all_smpls, score,
                                      l_params=l_params, m_params=m_params, r_params=r_params)
 
-    res_dict = {'coef': dml_pliv_obj.coef,
+    res_dict = {'coef': dml_pliv_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_pliv_obj.se,
+                'se': dml_pliv_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 
