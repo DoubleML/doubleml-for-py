@@ -30,6 +30,9 @@ setup(
         'statsmodels',
         'plotly',
     ],
+    extras_require={
+        'rdd': ['rdrobust>=1.3.0']
+    },
     python_requires=">=3.9",
     classifiers=[
         'Programming Language :: Python :: 3',

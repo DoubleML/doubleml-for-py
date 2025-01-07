@@ -6,4 +6,4 @@ scikit-learn>=1.4.0,<1.6.0
 statsmodels
 plotly
 matplotlib
-rdrobust
+rdrobust>=1.3.0

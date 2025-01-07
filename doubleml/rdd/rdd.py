@@ -4,7 +4,11 @@ import pandas as pd
 from collections.abc import Callable
 
 from scipy.stats import norm
-from rdrobust import rdrobust, rdbwselect
+try:
+    from rdrobust import rdrobust, rdbwselect
+    _rdrobust_available = True
+except ImportError:
+    _rdrobust_available = False
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
@@ -92,6 +96,9 @@ class RDFlex():
                  fs_specification="cutoff",
                  fs_kernel="triangular",
                  **kwargs):
+
+        if not _rdrobust_available:
+            raise ImportError("rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'")
 
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
