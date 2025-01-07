@@ -41,9 +41,7 @@ rdd = [
 dev = [
     "pytest",
     "xgboost",
-    "lightgbm",
-    "sphinx",
-    "pydata-sphinx-theme"
+    "lightgbm"
 ]
 
 [project.urls]
