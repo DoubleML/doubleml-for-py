@@ -14,12 +14,12 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
 
         g_0 &= 0.1 \\cdot \\text{score}^2,
 
-        g_1 &= \\tau + 0.1 \\cdot \\text{score}^2 - 0.5 \\cdot score^2 + a
-        \\sum_{i=1}^{\\text{dim_x}} X_i \\cdot \\text{score},
+        g_1 &= \\tau + 0.1 \\cdot score^2 - 0.5 \\cdot score^2 + a
+        \\sum_{i=1}^{\\text{dim}_x} X_i \\cdot score,
 
-        g_{cov} &= \\sum_{i=1}^{\text{dim_x}} \\text{Polynomial}(X_i),
+        g_{cov} &= \\sum_{i=1}^{\\text{dim}_x} \\text{Polynomial}(X_i),
 
-    with random noise :math:`\\epsilon_0, \\epsilon_1 \\sim \\mathcal{N}(0, 0.2^2)` and :math:`X_i` 
+    with random noise :math:`\\epsilon_0, \\epsilon_1 \\sim \\mathcal{N}(0, 0.2^2)` and :math:`X_i`
     being drawn independently from a uniform distribution.
 
     Parameters

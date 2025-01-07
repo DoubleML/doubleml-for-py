@@ -30,7 +30,7 @@ class RDFlex():
         defined as :math:`\\eta_0(X) = (g_0^{+}(X) + g_0^{-}(X))/2`.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()`` or None
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights``(e.g.
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights`` (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance functions
         :math:`m_0^{\\pm}(X) = E[D|\\text{score}=\\text{cutoff}^{\\pm}, X]`. The adjustment function is then
         defined as :math:`\\eta_0(X) = (m_0^{+}(X) + m_0^{-}(X))/2`.
@@ -66,7 +66,7 @@ class RDFlex():
         Default is ``cutoff``.
 
     fs_kernel : str
-        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
+        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov`` are supported.
         Default is ``triangular``.
 
     **kwargs : kwargs
