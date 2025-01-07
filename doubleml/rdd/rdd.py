@@ -30,7 +30,7 @@ class RDFlex():
         defined as :math:`\\eta_0(X) = (g_0^{+}(X) + g_0^{-}(X))/2`.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()`` or None
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights``(e.g.
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights`` (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance functions
         :math:`m_0^{\\pm}(X) = E[D|\\text{score}=\\text{cutoff}^{\\pm}, X]`. The adjustment function is then
         defined as :math:`\\eta_0(X) = (m_0^{+}(X) + m_0^{-}(X))/2`.
@@ -66,7 +66,7 @@ class RDFlex():
         Default is ``cutoff``.
 
     fs_kernel : str
-        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
+        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov`` are supported.
         Default is ``triangular``.
 
     **kwargs : kwargs
@@ -74,9 +74,21 @@ class RDFlex():
 
     Examples
     --------
-
-    Notes
-    -----
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.rdd.datasets import make_simple_rdd_data
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(123)
+    >>> data_dict = make_simple_rdd_data(fuzzy=True)
+    >>> obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> ml_g = RandomForestRegressor()
+    >>> ml_m = RandomForestClassifier()
+    >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
+    >>> print(rdflex_obj.fit())
+    Method             Coef.     S.E.     t-stat       P>|t|           95% CI
+    -------------------------------------------------------------------------
+    Conventional      0.935     0.220     4.244    2.196e-05  [0.503, 1.367]
+    Robust                 -        -     3.635    2.785e-04  [0.418, 1.396]
 
     """
 

@@ -29,6 +29,8 @@ setup(
         'scikit-learn>=1.4.0,<1.6.0',
         'statsmodels',
         'plotly',
+        'matplotlib',
+        'rdrobust',
     ],
     python_requires=">=3.9",
     classifiers=[
