@@ -30,6 +30,6 @@ def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.fuzzy is False
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_defaults():
     _assert_resampling_default_settings(dml_rdflex)

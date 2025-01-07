@@ -59,37 +59,37 @@ def predict_nonplacebo(predict_dummy, data, cutoff, alpha, p, n_rep, fs_specific
     )
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_placebo_coef(predict_placebo):
     reference, actual = predict_placebo
     assert np.allclose(actual['coef'], reference['coef'], rtol=1e-9, atol=1e-4)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_nonplacebo_coef(predict_nonplacebo):
     reference, actual = predict_nonplacebo
     assert np.allclose(actual['coef'], reference['coef'], rtol=1e-9, atol=1e-4)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_placebo_se(predict_placebo):
     reference, actual = predict_placebo
     assert np.allclose(actual['se'], reference['se'], rtol=1e-9, atol=1e-4)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_nonplacebo_se(predict_nonplacebo):
     reference, actual = predict_nonplacebo
     assert np.allclose(actual['se'], reference['se'], rtol=1e-9, atol=1e-4)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_placebo_ci(predict_placebo):
     reference, actual = predict_placebo
     assert np.allclose(actual['ci'], reference['ci'], rtol=1e-9, atol=1e-4)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_nonplacebo_ci(predict_nonplacebo):
     reference, actual = predict_nonplacebo
     assert np.allclose(actual['ci'], reference['ci'], rtol=1e-9, atol=1e-4)
