@@ -1,9 +1,0 @@
-
-# test
-pytest
-xgboost
-
-# doc
-sphinx
-pydata-sphinx-theme
-lightgbm

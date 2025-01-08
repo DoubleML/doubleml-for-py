@@ -7,10 +7,11 @@ from doubleml.rdd.datasets import make_simple_rdd_data
 from doubleml import DoubleMLData
 from doubleml.rdd import RDFlex
 
-from rdrobust import rdrobust
-
 from sklearn.dummy import DummyRegressor, DummyClassifier
 
+from doubleml.rdd._utils import _is_rdrobust_available
+# validate optional rdrobust import
+rdrobust = _is_rdrobust_available()
 
 DATA_SIZE = 500
 
@@ -37,7 +38,7 @@ def predict_dummy():
         dml_rdflex.fit(n_iterations=1)
         ci_manual = dml_rdflex.confint(level=1-alpha)
 
-        rdrobust_model = rdrobust(
+        rdrobust_model = rdrobust.rdrobust(
             y=data.y,
             x=data.s,
             c=cutoff,
