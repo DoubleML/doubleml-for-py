@@ -40,7 +40,6 @@ rdd = [
 ]
 dev = [
     "pytest",
-    "unittest",
     "xgboost",
     "lightgbm"
 ]
