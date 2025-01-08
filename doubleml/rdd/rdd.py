@@ -4,11 +4,6 @@ import pandas as pd
 from collections.abc import Callable
 
 from scipy.stats import norm
-try:
-    from rdrobust import rdrobust, rdbwselect
-    _rdrobust_available = True
-except ImportError:
-    _rdrobust_available = False
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
@@ -17,6 +12,10 @@ from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
+from doubleml.rdd._utils import _is_rdrobust_available
+
+# validate optional rdrobust import
+rdrobust = _is_rdrobust_available()
 
 
 class RDFlex():
@@ -109,9 +108,6 @@ class RDFlex():
                  fs_kernel="triangular",
                  **kwargs):
 
-        if not _rdrobust_available:
-            raise ImportError("rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'")
-
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
 
@@ -131,9 +127,10 @@ class RDFlex():
 
         if h_fs is None:
             fuzzy = self._dml_data.d if self._fuzzy else None
-            self._h_fs = rdbwselect(y=obj_dml_data.y,
-                                    x=self._score,
-                                    fuzzy=fuzzy).bws.values.flatten().max()
+            self._h_fs = rdrobust.rdbwselect(
+                y=obj_dml_data.y,
+                x=self._score,
+                fuzzy=fuzzy).bws.values.flatten().max()
         else:
             if not isinstance(h_fs, (float)):
                 raise TypeError("Initial bandwidth 'h_fs' has to be a float. "
@@ -456,11 +453,13 @@ class RDFlex():
 
     def _fit_rdd(self, h=None, b=None):
         if self.fuzzy:
-            rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
-                               fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(
+                y=self._M_Y[:, self._i_rep], x=self._score,
+                fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs)
         else:
-            rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
-                               h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(
+                y=self._M_Y[:, self._i_rep], x=self._score,
+                h=h, b=b, **self.kwargs)
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):

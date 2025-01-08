@@ -7,14 +7,11 @@ from doubleml.rdd.datasets import make_simple_rdd_data
 from doubleml import DoubleMLData
 from doubleml.rdd import RDFlex
 
-try:
-    from rdrobust import rdrobust
-    _rdrobust_available = True
-except ImportError:
-    _rdrobust_available = False
-
 from sklearn.dummy import DummyRegressor, DummyClassifier
 
+from doubleml.rdd._utils import _is_rdrobust_available
+# validate optional rdrobust import
+rdrobust = _is_rdrobust_available()
 
 DATA_SIZE = 500
 
@@ -29,9 +26,6 @@ def predict_dummy():
     - make predictions using rdrobust as a reference
     """
     def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p, fs_specification, ml_g=ml_g_dummy):
-        if not _rdrobust_available:
-            raise ImportError("rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'")
-
         dml_rdflex = RDFlex(
             data,
             ml_g=ml_g,
@@ -44,7 +38,7 @@ def predict_dummy():
         dml_rdflex.fit(n_iterations=1)
         ci_manual = dml_rdflex.confint(level=1-alpha)
 
-        rdrobust_model = rdrobust(
+        rdrobust_model = rdrobust.rdrobust(
             y=data.y,
             x=data.s,
             c=cutoff,
