@@ -4,7 +4,6 @@ import pandas as pd
 from collections.abc import Callable
 
 from scipy.stats import norm
-from rdrobust import rdrobust, rdbwselect
 
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
@@ -13,6 +12,10 @@ from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.utils.resampling import DoubleMLResampling
 from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
+from doubleml.rdd._utils import _is_rdrobust_available
+
+# validate optional rdrobust import
+rdrobust = _is_rdrobust_available()
 
 
 class RDFlex():
@@ -30,7 +33,7 @@ class RDFlex():
         defined as :math:`\\eta_0(X) = (g_0^{+}(X) + g_0^{-}(X))/2`.
 
     ml_m : classifier implementing ``fit()`` and ``predict_proba()`` or None
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights``(e.g.
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods and support ``sample_weights`` (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance functions
         :math:`m_0^{\\pm}(X) = E[D|\\text{score}=\\text{cutoff}^{\\pm}, X]`. The adjustment function is then
         defined as :math:`\\eta_0(X) = (m_0^{+}(X) + m_0^{-}(X))/2`.
@@ -66,7 +69,7 @@ class RDFlex():
         Default is ``cutoff``.
 
     fs_kernel : str
-        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov``are supported.
+        Kernel for the first stage estimation. ``uniform``, ``triangular`` and ``epanechnikov`` are supported.
         Default is ``triangular``.
 
     **kwargs : kwargs
@@ -74,9 +77,21 @@ class RDFlex():
 
     Examples
     --------
-
-    Notes
-    -----
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.rdd.datasets import make_simple_rdd_data
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(123)
+    >>> data_dict = make_simple_rdd_data(fuzzy=True)
+    >>> obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> ml_g = RandomForestRegressor()
+    >>> ml_m = RandomForestClassifier()
+    >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
+    >>> print(rdflex_obj.fit())
+    Method             Coef.     S.E.     t-stat       P>|t|           95% CI
+    -------------------------------------------------------------------------
+    Conventional      0.935     0.220     4.244    2.196e-05  [0.503, 1.367]
+    Robust                 -        -     3.635    2.785e-04  [0.418, 1.396]
 
     """
 
@@ -112,9 +127,10 @@ class RDFlex():
 
         if h_fs is None:
             fuzzy = self._dml_data.d if self._fuzzy else None
-            self._h_fs = rdbwselect(y=obj_dml_data.y,
-                                    x=self._score,
-                                    fuzzy=fuzzy).bws.values.flatten().max()
+            self._h_fs = rdrobust.rdbwselect(
+                y=obj_dml_data.y,
+                x=self._score,
+                fuzzy=fuzzy).bws.values.flatten().max()
         else:
             if not isinstance(h_fs, (float)):
                 raise TypeError("Initial bandwidth 'h_fs' has to be a float. "
@@ -437,11 +453,13 @@ class RDFlex():
 
     def _fit_rdd(self, h=None, b=None):
         if self.fuzzy:
-            rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
-                               fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(
+                y=self._M_Y[:, self._i_rep], x=self._score,
+                fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs)
         else:
-            rdd_res = rdrobust(y=self._M_Y[:, self._i_rep], x=self._score,
-                               h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(
+                y=self._M_Y[:, self._i_rep], x=self._score,
+                h=h, b=b, **self.kwargs)
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):

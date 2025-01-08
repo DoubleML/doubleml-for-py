@@ -57,7 +57,7 @@ class DummyClassifierNoSampleWeight(BaseEstimator, ClassifierMixin):
         )
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_data():
     # DoubleMLData
     msg = r"The data must be of DoubleMLData type. \[\] of type <class 'list'> was passed."
@@ -101,7 +101,7 @@ def test_rdd_exception_data():
         _ = RDFlex(tmp_dml_data, ml_g)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_cutoff():
     msg = "Cutoff value has to be a float or int. Object of type <class 'list'> passed."
     with pytest.raises(TypeError, match=msg):
@@ -112,14 +112,14 @@ def test_rdd_exception_cutoff():
         _ = RDFlex(dml_data, ml_g, cutoff=200)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_warning_fuzzy():
     msg = 'A sharp RD design is being estimated, but the data indicate that the design is fuzzy.'
     with pytest.warns(UserWarning, match=msg):
         _ = RDFlex(dml_data, ml_g, cutoff=0.1)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_warning_treatment_assignment():
     msg = ("Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
            "Treatment assignment might be based on the wrong side of the cutoff.")
@@ -129,7 +129,7 @@ def test_rdd_warning_treatment_assignment():
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=True)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_learner():
 
     # ml_g
@@ -163,7 +163,7 @@ def test_rdd_exception_learner():
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=False)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_resampling():
     # n_folds
     msg = r"The number of folds must be of int type. \[1\] of type <class 'list'> was passed."
@@ -182,7 +182,7 @@ def test_rdd_exception_resampling():
         _ = RDFlex(dml_data, ml_g, ml_m, n_rep=0)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_kernel():
     msg = "fs_kernel must be either a string or a callable. 2 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -192,14 +192,14 @@ def test_rdd_exception_kernel():
         _ = RDFlex(dml_data, ml_g, ml_m, fs_kernel='rbf')
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_h_fs():
     msg = "Initial bandwidth 'h_fs' has to be a float. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex(dml_data, ml_g, ml_m, h_fs=1)
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_fs_specification():
     msg = "fs_specification must be a string. 1 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -211,7 +211,7 @@ def test_rdd_exception_fs_specification():
         _ = RDFlex(dml_data, ml_g, ml_m, fs_specification='local_constant')
 
 
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_exception_fit():
     rdd_model = RDFlex(dml_data, ml_g, ml_m)
     msg = (r"The number of iterations for the iterative bandwidth fitting must be of int type. \[0\] of type <class 'list'> "

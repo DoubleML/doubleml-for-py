@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "DoubleML"
+version = "0.10.dev0"
+description = "Double Machine Learning in Python"
+readme = {file = "README.md", content-type = "text/markdown"}
+authors = [
+    {name = "Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."}
+]
+maintainers = [
+    {name = "Sven Klaassen", email = "sven.klaassen@uni-hamburg.de"}
+]
+requires-python = ">=3.9"
+dependencies = [
+    "joblib",
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn>=1.4.0,<1.6.0",
+    "statsmodels",
+    "matplotlib",
+    "plotly"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent"
+]
+
+[project.optional-dependencies]
+rdd = [
+    "rdrobust>=1.3.0"
+]
+dev = [
+    "pytest",
+    "xgboost",
+    "lightgbm"
+]
+
+[project.urls]
+Documentation = "https://docs.doubleml.org"
+Source = "https://github.com/DoubleML/doubleml-for-py"
+"Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
