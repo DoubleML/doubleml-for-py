@@ -108,6 +108,11 @@ class RDFlex():
                  fs_kernel="triangular",
                  **kwargs):
 
+        if rdrobust is None:
+            msg = ("rdrobust is not installed. "
+                   "Please install it using 'pip install DoubleML[rdd]'")
+            raise ImportError(msg)
+
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
 

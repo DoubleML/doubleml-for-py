@@ -18,8 +18,6 @@ df = pd.DataFrame(
 )
 dml_data = dml.DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
 
-dml_rdflex = RDFlex(dml_data, ml_g=Lasso(), ml_m=LogisticRegression())
-
 
 def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.n_folds == 5
@@ -32,4 +30,5 @@ def _assert_resampling_default_settings(dml_obj):
 
 @pytest.mark.ci_rdd
 def test_rdd_defaults():
+    dml_rdflex = RDFlex(dml_data, ml_g=Lasso(), ml_m=LogisticRegression())
     _assert_resampling_default_settings(dml_rdflex)
