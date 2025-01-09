@@ -18,8 +18,6 @@ df = pd.DataFrame(
 )
 dml_data = dml.DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
 
-dml_rdflex = RDFlex(dml_data, ml_g=Lasso(), ml_m=LogisticRegression())
-
 
 def _assert_return_types(dml_obj):
     assert isinstance(dml_obj.n_folds, int)
@@ -52,5 +50,7 @@ def _assert_return_types_after_fit(dml_obj):
 
 @pytest.mark.ci_rdd
 def test_rdd_returntypes():
+    dml_rdflex = RDFlex(dml_data, ml_g=Lasso(), ml_m=LogisticRegression())
+
     _assert_return_types(dml_rdflex)
     _assert_return_types_after_fit(dml_rdflex)
