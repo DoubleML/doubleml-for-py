@@ -73,9 +73,9 @@ def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw,
                          all_smpls, score,
                          normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold)
 
-    res_dict = {'coef': dml_obj.coef,
+    res_dict = {'coef': dml_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'se': dml_obj.se,
+                'se': dml_obj.se.item(),
                 'se_manual': res_manual['se'],
                 'boot_methods': boot_methods}
 

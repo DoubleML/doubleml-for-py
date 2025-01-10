@@ -80,12 +80,17 @@ def doubleml_pq_fixture(n_rep, normalize_ipw, set_ml_m_ext, set_ml_g_ext):
         tol_rel = 1e-9
         tol_abs = 1e-4
 
-    res_dict = {"coef_normal": dml_pq.coef[0], "coef_ext": dml_pq_ext.coef[0], "tol_rel": tol_rel, "tol_abs": tol_abs}
+    res_dict = {
+        "coef_normal": dml_pq.coef.item(),
+        "coef_ext": dml_pq_ext.coef.item(),
+        "tol_rel": tol_rel, "tol_abs":
+        tol_abs}
 
     return res_dict
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_doubleml_pq_coef(doubleml_pq_fixture):
     assert math.isclose(
         doubleml_pq_fixture["coef_normal"],

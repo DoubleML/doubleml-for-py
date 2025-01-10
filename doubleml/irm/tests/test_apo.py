@@ -108,12 +108,12 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
                              'ml_m': dml_obj.predictions['ml_m'].reshape(-1, 1)}}
     dml_obj_ext.fit(external_predictions=prediction_dict)
 
-    res_dict = {'coef': dml_obj.coef,
+    res_dict = {'coef': dml_obj.coef.item(),
                 'coef_manual': res_manual['theta'],
-                'coef_ext': dml_obj_ext.coef,
-                'se': dml_obj.se,
+                'coef_ext': dml_obj_ext.coef.item(),
+                'se': dml_obj.se.item(),
                 'se_manual': res_manual['se'],
-                'se_ext': dml_obj_ext.se,
+                'se_ext': dml_obj_ext.se.item(),
                 'boot_methods': boot_methods}
 
     for bootstrap in boot_methods:
@@ -152,21 +152,21 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
 
 @pytest.mark.ci
 def test_dml_apo_coef(dml_apo_fixture):
-    assert math.isclose(dml_apo_fixture['coef'][0],
+    assert math.isclose(dml_apo_fixture['coef'],
                         dml_apo_fixture['coef_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_apo_fixture['coef'][0],
-                        dml_apo_fixture['coef_ext'][0],
+    assert math.isclose(dml_apo_fixture['coef'],
+                        dml_apo_fixture['coef_ext'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
 @pytest.mark.ci
 def test_dml_apo_se(dml_apo_fixture):
-    assert math.isclose(dml_apo_fixture['se'][0],
+    assert math.isclose(dml_apo_fixture['se'],
                         dml_apo_fixture['se_manual'],
                         rel_tol=1e-9, abs_tol=1e-4)
-    assert math.isclose(dml_apo_fixture['se'][0],
-                        dml_apo_fixture['se_ext'][0],
+    assert math.isclose(dml_apo_fixture['se'],
+                        dml_apo_fixture['se_ext'],
                         rel_tol=1e-9, abs_tol=1e-4)
 
 
