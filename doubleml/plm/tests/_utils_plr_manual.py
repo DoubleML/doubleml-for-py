@@ -108,7 +108,7 @@ def fit_plr_single_split(y, x, d, learner_l, learner_m, learner_g, smpls, score,
     theta, se = plr_dml2(y, x, d, l_hat, m_hat, g_hat,
                          smpls, score)
 
-    return l_hat, m_hat, g_hat, theta, se
+    return l_hat, m_hat, g_hat, theta.item(), se.item()
 
 
 def fit_nuisance_plr(y, x, d, learner_l, learner_m, learner_g, smpls, fit_g=True,
