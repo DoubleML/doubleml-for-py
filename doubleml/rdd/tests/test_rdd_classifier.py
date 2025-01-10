@@ -21,9 +21,8 @@ df = pd.DataFrame(
 )
 dml_data = dml.DoubleMLData(df, y_col='y', d_cols='d', s_col='score')
 
-dml_rdflex = RDFlex(dml_data, ml_g=LogisticRegression(), ml_m=LogisticRegression(), fuzzy=True)
 
-
-@pytest.mark.ci
+@pytest.mark.ci_rdd
 def test_rdd_classifier():
+    dml_rdflex = RDFlex(dml_data, ml_g=LogisticRegression(), ml_m=LogisticRegression(), fuzzy=True)
     dml_rdflex.fit()
