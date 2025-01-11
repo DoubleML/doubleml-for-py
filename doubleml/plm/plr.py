@@ -108,9 +108,12 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         valid_scores = ['IV-type', 'partialling out']
         _check_score(self.score, valid_scores, allow_callable=True)
 
-        _ = self._check_learner(ml_l, 'ml_l', regressor=True, classifier=False)
-        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
+        self._set_predict_method(ml_l, 'ml_l')
+        self._set_predict_method(ml_m, 'ml_m')
         self._learner = {'ml_l': ml_l, 'ml_m': ml_m}
+
+        if self._predict_method['ml_l'] == 'predict_proba':
+            warnings.warn("The provided learner is a Classifier. This model treats the probability as additive.", UserWarning)
 
         if ml_g is not None:
             if (isinstance(self.score, str) & (self.score == 'IV-type')) | callable(self.score):
@@ -124,23 +127,22 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. "
                            "Set ml_g = clone(ml_l)."))
             self._learner['ml_g'] = clone(ml_l)
-
-        self._predict_method = {'ml_l': 'predict'}
-        if 'ml_g' in self._learner:
-            self._predict_method['ml_g'] = 'predict'
-        if ml_m_is_classifier:
-            if self._dml_data.binary_treats.all():
-                self._predict_method['ml_m'] = 'predict_proba'
-            else:
-                raise ValueError(f'The ml_m learner {str(ml_m)} was identified as classifier '
-                                 'but at least one treatment variable is not binary with values 0 and 1.')
-        else:
-            self._predict_method['ml_m'] = 'predict'
-
+            
         self._initialize_ml_nuisance_params()
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
-
+                     
+     def _set_predict_method(self, learner, learner_name:str):
+            learner_is_classifier:bool = self._check_learner(learner, learner_name, regressor=True, classifier=True)
+            if learner_is_classifier:
+                if self._dml_data.binary_treats.all():
+                    self._predict_method[learner_name] = 'predict_proba'
+                else:
+                    raise ValueError(f'The ml_m learner {str(learner)} was identified as classifier '
+                                 'but at least one treatment variable is not binary with values 0 and 1.')
+            else:
+                self._predict_method[learner_name] = 'predict'
+                
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
                         for learner in self._learner}
