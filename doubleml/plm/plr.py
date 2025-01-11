@@ -127,9 +127,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         if ml_l_is_classifier:
             warnings.warn("The provided learner is a Classifier. This model treats the probability as additive.", UserWarning)
-            self._predict_method['ml'] = 'predict_proba'
+            self._predict_method['ml_l'] = 'predict_proba'
         else:
-            self._predict_method['ml'] = 'predict'
+            self._predict_method['ml_l'] = 'predict'
         if 'ml_g' in self._learner:
             self._predict_method['ml_g'] = 'predict'
         if ml_m_is_classifier:
