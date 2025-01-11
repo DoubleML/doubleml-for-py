@@ -132,16 +132,16 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
                      
-     def _set_predict_method(self, learner, learner_name:str):
-            learner_is_classifier:bool = self._check_learner(learner, learner_name, regressor=True, classifier=True)
-            if learner_is_classifier:
-                if self._dml_data.binary_treats.all():
-                    self._predict_method[learner_name] = 'predict_proba'
-                else:
-                    raise ValueError(f'The ml_m learner {str(learner)} was identified as classifier '
-                                 'but at least one treatment variable is not binary with values 0 and 1.')
+    def _set_predict_method(self, learner, learner_name:str):
+        learner_is_classifier:bool = self._check_learner(learner, learner_name, regressor=True, classifier=True)
+        if learner_is_classifier:
+            if self._dml_data.binary_treats.all():
+                self._predict_method[learner_name] = 'predict_proba'
             else:
-                self._predict_method[learner_name] = 'predict'
+                raise ValueError(f'The ml_m learner {str(learner)} was identified as classifier '
+                                 'but at least one treatment variable is not binary with values 0 and 1.')
+        else:
+            self._predict_method[learner_name] = 'predict'
                 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
