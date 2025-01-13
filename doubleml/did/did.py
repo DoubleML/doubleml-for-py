@@ -1,14 +1,14 @@
+import warnings
+
 import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
-import warnings
 
 from ..double_ml import DoubleML
 from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
-
-from ..utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune, _trimm
-from ..utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity
+from ..utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
+from ..utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _trimm
 
 
 class DoubleMLDID(LinearScoreMixin, DoubleML):

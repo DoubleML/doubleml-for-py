@@ -1,10 +1,13 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
 from doubleml import DoubleMLDID
 from doubleml.datasets import make_did_SZ2020
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
+
 from ...tests._utils import draw_smpls
 
 
