@@ -1,16 +1,16 @@
-import numpy as np
-import pytest
 import math
 
-import doubleml as dml
-
+import numpy as np
+import pytest
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from statsmodels.nonparametric.kde import KDEUnivariate
 
+import doubleml as dml
+
 from ...tests._utils import draw_smpls
-from ._utils_lpq_manual import fit_lpq
 from ...utils._estimation import _default_kde
+from ._utils_lpq_manual import fit_lpq
 
 
 def custom_kde(u, weights):

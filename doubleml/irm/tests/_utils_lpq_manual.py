@@ -1,10 +1,10 @@
 import numpy as np
-from sklearn.base import clone
-from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
+from sklearn.base import clone
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from ...tests._utils import tune_grid_search
-from ...utils._estimation import _dml_cv_predict, _trimm, _default_kde, _normalize_ipw, _get_bracket_guess, _solve_ipw_score
+from ...utils._estimation import _default_kde, _dml_cv_predict, _get_bracket_guess, _normalize_ipw, _solve_ipw_score, _trimm
 
 
 def fit_lpq(y, x, d, z, quantile,

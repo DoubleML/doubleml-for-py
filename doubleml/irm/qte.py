@@ -1,21 +1,17 @@
 import numpy as np
 import pandas as pd
-
+from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from joblib import Parallel, delayed
-
-from ..double_ml_data import DoubleMLData, DoubleMLClusterData
-from .pq import DoubleMLPQ
-from .lpq import DoubleMLLPQ
-from .cvar import DoubleMLCVAR
+from ..double_ml_data import DoubleMLClusterData, DoubleMLData
 from ..double_ml_framework import concat
-
+from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
+from ..utils._descriptive import generate_summary
 from ..utils._estimation import _default_kde
 from ..utils.resampling import DoubleMLResampling
-from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_sample_splitting
-
-from ..utils._descriptive import generate_summary
+from .cvar import DoubleMLCVAR
+from .lpq import DoubleMLLPQ
+from .pq import DoubleMLPQ
 
 
 class DoubleMLQTE:

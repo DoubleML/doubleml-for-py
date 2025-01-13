@@ -1,19 +1,18 @@
+import math
+
 import numpy as np
 import pandas as pd
 import pytest
-import math
-
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data
 from doubleml.utils.resampling import DoubleMLResampling
 
 from ...tests._utils import draw_smpls
-from ._utils_irm_manual import fit_irm, boot_irm, fit_sensitivity_elements_irm
+from ._utils_irm_manual import boot_irm, fit_irm, fit_sensitivity_elements_irm
 
 
 @pytest.fixture(scope='module',

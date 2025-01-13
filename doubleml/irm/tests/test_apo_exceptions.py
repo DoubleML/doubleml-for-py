@@ -1,12 +1,11 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_irm_data_discrete_treatments, make_iivm_data, make_irm_data
-
-from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from doubleml.datasets import make_iivm_data, make_irm_data, make_irm_data_discrete_treatments
 
 n = 100
 data_apo = make_irm_data_discrete_treatments(n_obs=n)

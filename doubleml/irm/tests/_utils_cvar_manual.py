@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.base import clone
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from ...tests._utils import fit_predict_proba, tune_grid_search
-from ...utils._estimation import _dml_cv_predict, _normalize_ipw, _get_bracket_guess, _solve_ipw_score
+from ...utils._estimation import _dml_cv_predict, _get_bracket_guess, _normalize_ipw, _solve_ipw_score
 
 
 def fit_cvar(y, x, d, quantile,

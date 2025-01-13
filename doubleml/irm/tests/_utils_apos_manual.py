@@ -1,10 +1,9 @@
 import numpy as np
 from sklearn.base import clone
 
-from ..apo import DoubleMLAPO
 from ...double_ml_data import DoubleMLData
-
 from ...tests._utils_boot import draw_weights
+from ..apo import DoubleMLAPO
 
 
 def fit_apos(y, x, d,

@@ -1,17 +1,15 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data_discrete_treatments
 
-from ._utils_apos_manual import fit_apos, boot_apos
 from ...tests._utils import confint_manual
+from ._utils_apos_manual import boot_apos, fit_apos
 
 
 @pytest.fixture(scope='module',

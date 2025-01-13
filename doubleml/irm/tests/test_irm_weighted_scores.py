@@ -1,9 +1,8 @@
-import pytest
 import numpy as np
-
+import pytest
 from sklearn.base import clone
-from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.utils._estimation import _normalize_ipw

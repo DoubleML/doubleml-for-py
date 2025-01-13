@@ -1,9 +1,8 @@
-import pytest
 import math
+
 import numpy as np
-
+import pytest
 from sklearn.base import clone
-
 from sklearn.linear_model import LassoCV, LogisticRegressionCV
 
 import doubleml as dml

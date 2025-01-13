@@ -1,10 +1,13 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LogisticRegression
-from doubleml import DoubleMLLPQ, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLLPQ
 from doubleml.datasets import make_iivm_data
 from doubleml.utils import DMLDummyClassifier
+
 from ...tests._utils import draw_smpls
 
 

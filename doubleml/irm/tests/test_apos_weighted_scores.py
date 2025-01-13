@@ -1,10 +1,9 @@
-import pytest
 import numpy as np
 import pandas as pd
-
+import pytest
 from sklearn.base import clone
-from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.datasets import make_irm_data_discrete_treatments

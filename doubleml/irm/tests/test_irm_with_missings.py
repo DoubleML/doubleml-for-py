@@ -1,17 +1,17 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
 
 # TODO: Maybe add some learner which cannot handle missings in x and test the exception
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from xgboost import XGBClassifier, XGBRegressor
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_irm_manual import fit_irm, boot_irm
+from ._utils_irm_manual import boot_irm, fit_irm
 
 
 @pytest.fixture(scope='module',

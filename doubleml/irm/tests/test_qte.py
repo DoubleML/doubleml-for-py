@@ -1,20 +1,18 @@
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
-import copy
+from sklearn.base import clone
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
-
-from sklearn.base import clone
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-
-from ...tests._utils import draw_smpls, confint_manual
-from ._utils_qte_manual import fit_qte, boot_qte
-
 from doubleml.datasets import make_irm_data
-from ...utils._estimation import _default_kde
 
+from ...tests._utils import confint_manual, draw_smpls
+from ...utils._estimation import _default_kde
+from ._utils_qte_manual import boot_qte, fit_qte
 
 quantiles = [0.25, 0.5, 0.75]
 n_quantiles = len(quantiles)

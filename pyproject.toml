@@ -81,7 +81,11 @@ exclude = [
 [tool.ruff.lint]
 # all rules can be found here: https://beta.ruff.rs/docs/rules/
 select = ["E", "F", "W", "I"]
-ignore = []
+ignore = [
+    # Use `is` and `is not` for type comparisons, or `isinstance()` for
+    # isinstance checks
+    "E721",
+]
 
 [project.urls]
 Documentation = "https://docs.doubleml.org"

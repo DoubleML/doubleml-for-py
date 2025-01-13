@@ -1,11 +1,10 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
 

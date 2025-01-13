@@ -1,13 +1,12 @@
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLQTE, DoubleMLData
+from doubleml import DoubleMLData, DoubleMLQTE
 from doubleml.datasets import make_irm_data
 from doubleml.double_ml_data import DoubleMLBaseData
-
-from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 
 np.random.seed(42)
 n = 100

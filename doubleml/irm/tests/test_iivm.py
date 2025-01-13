@@ -1,16 +1,15 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_iivm_manual import fit_iivm, boot_iivm
+from ._utils_iivm_manual import boot_iivm, fit_iivm
 
 
 @pytest.fixture(scope='module',
