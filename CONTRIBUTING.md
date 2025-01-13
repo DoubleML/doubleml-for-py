@@ -119,7 +119,13 @@ $ pytest .
 - [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
-$ git diff upstream/main -u -- "*.py" | flake8 --diff --max-line-length=127
+$ git diff upstream/main -u -- "*.py" | ruff check --diff
+```
+
+- [x] Check wether the code formatting adheres to the **Black code style**
+by running
+```bash
+$ black . --check --diff
 ```
 
 If your PR is still **work in progress**, please consider marking it a **draft PR**
