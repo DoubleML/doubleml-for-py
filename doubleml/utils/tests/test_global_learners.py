@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
-from doubleml.utils import GlobalRegressor, GlobalClassifier
+import pytest
 from sklearn.base import clone
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+
+from doubleml.utils import GlobalClassifier, GlobalRegressor
 
 
 @pytest.fixture(scope='module',

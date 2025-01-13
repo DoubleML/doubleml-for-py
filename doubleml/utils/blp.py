@@ -1,10 +1,10 @@
-import statsmodels.api as sm
-import numpy as np
-import pandas as pd
 import warnings
 
-from scipy.stats import norm
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
 from scipy.linalg import sqrtm
+from scipy.stats import norm
 
 
 class DoubleMLBLP:

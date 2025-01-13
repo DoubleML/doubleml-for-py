@@ -1,7 +1,7 @@
-import pytest
 import numpy as np
+import pytest
 
-from doubleml.utils._estimation import _var_est, _aggregate_coefs_and_ses
+from doubleml.utils._estimation import _aggregate_coefs_and_ses, _var_est
 
 
 @pytest.fixture(scope='module',

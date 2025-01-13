@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from doubleml.utils.gain_statistics import gain_statistics
 

@@ -1,10 +1,12 @@
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
-import copy
 
 import doubleml as dml
-from ._utils_blp_manual import fit_blp, blp_confint
+
+from ._utils_blp_manual import blp_confint, fit_blp
 
 
 @pytest.fixture(scope='module',

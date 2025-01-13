@@ -1,16 +1,13 @@
-import numpy as np
 import warnings
-from scipy.optimize import minimize_scalar
 
-from sklearn.model_selection import cross_val_predict
-from sklearn.base import clone
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import KFold, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import root_mean_squared_error, log_loss
-
-from statsmodels.nonparametric.kde import KDEUnivariate
-
+import numpy as np
 from joblib import Parallel, delayed
+from scipy.optimize import minimize_scalar
+from sklearn.base import clone
+from sklearn.metrics import log_loss, root_mean_squared_error
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cross_val_predict
+from sklearn.preprocessing import LabelEncoder
+from statsmodels.nonparametric.kde import KDEUnivariate
 
 from ._checks import _check_is_partition
 

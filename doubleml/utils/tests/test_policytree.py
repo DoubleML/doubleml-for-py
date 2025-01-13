@@ -1,13 +1,14 @@
+import copy
+
 import numpy as np
 import pandas as pd
 import pytest
-import copy
+from sklearn.exceptions import NotFittedError
+from sklearn.tree import DecisionTreeClassifier
 
 import doubleml as dml
 
 from ._utils_pt_manual import fit_policytree
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.exceptions import NotFittedError
 
 
 @pytest.fixture(scope='module',

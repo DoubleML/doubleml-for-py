@@ -1,5 +1,4 @@
-from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin, is_regressor, is_classifier, clone
-
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone, is_classifier, is_regressor
 from sklearn.utils.multiclass import unique_labels
 
 

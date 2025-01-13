@@ -1,8 +1,8 @@
 import numpy as np
+import pandas as pd
 import statsmodels.api as sm
 from scipy.linalg import sqrtm
 from scipy.stats import norm
-import pandas as pd
 
 
 def fit_blp(orth_signal, basis, cov_type, **kwargs):
