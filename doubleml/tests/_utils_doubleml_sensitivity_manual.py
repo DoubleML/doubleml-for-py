@@ -10,13 +10,13 @@ from ..utils._estimation import _aggregate_coefs_and_ses
 def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv, cf_y, cf_d, rho, level):
 
     # specify the parameters
-    sigma2 = sensitivity_elements['sigma2']
-    nu2 = sensitivity_elements['nu2']
-    psi_sigma = sensitivity_elements['psi_sigma2']
-    psi_nu = sensitivity_elements['psi_nu2']
+    sigma2 = sensitivity_elements["sigma2"]
+    nu2 = sensitivity_elements["nu2"]
+    psi_sigma = sensitivity_elements["psi_sigma2"]
+    psi_nu = sensitivity_elements["psi_nu2"]
     psi_scaled = np.divide(psi, np.mean(psi_deriv, axis=0))
 
-    confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0-cf_d))))
+    confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0 - cf_d))))
     S = np.sqrt(np.multiply(sigma2, nu2))
 
     all_theta_lower = all_coefs - np.multiply(np.transpose(np.squeeze(S, axis=0)), confounding_strength)
@@ -43,18 +43,13 @@ def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv,
     ci_lower = np.median(all_ci_lower, axis=1)
     ci_upper = np.median(all_ci_upper, axis=1)
 
-    theta_dict = {'lower': theta_lower,
-                  'upper': theta_upper}
+    theta_dict = {"lower": theta_lower, "upper": theta_upper}
 
-    se_dict = {'lower': sigma_lower,
-               'upper': sigma_upper}
+    se_dict = {"lower": sigma_lower, "upper": sigma_upper}
 
-    ci_dict = {'lower': ci_lower,
-               'upper': ci_upper}
+    ci_dict = {"lower": ci_lower, "upper": ci_upper}
 
-    res_dict = {'theta': theta_dict,
-                'se': se_dict,
-                'ci': ci_dict}
+    res_dict = {"theta": theta_dict, "se": se_dict, "ci": ci_dict}
 
     return res_dict
 
@@ -68,10 +63,10 @@ def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
     dml_short.fit()
 
     var_y = np.var(dml_obj._dml_data.y)
-    var_y_long = np.squeeze(dml_obj.sensitivity_elements['sigma2'], axis=0)
-    nu2_long = np.squeeze(dml_obj.sensitivity_elements['nu2'], axis=0)
-    var_y_short = np.squeeze(dml_short.sensitivity_elements['sigma2'], axis=0)
-    nu2_short = np.squeeze(dml_short.sensitivity_elements['nu2'], axis=0)
+    var_y_long = np.squeeze(dml_obj.sensitivity_elements["sigma2"], axis=0)
+    nu2_long = np.squeeze(dml_obj.sensitivity_elements["nu2"], axis=0)
+    var_y_short = np.squeeze(dml_short.sensitivity_elements["sigma2"], axis=0)
+    nu2_short = np.squeeze(dml_short.sensitivity_elements["nu2"], axis=0)
 
     R2_y_long = 1.0 - var_y_long / var_y
     R2_y_short = 1.0 - var_y_short / var_y
@@ -89,15 +84,15 @@ def doubleml_sensitivity_benchmark_manual(dml_obj, benchmarking_set):
     var_g = var_y_short - var_y_long
     var_riesz = nu2_long - nu2_short
     denom = np.sqrt(np.multiply(var_g, var_riesz), out=np.zeros_like(var_g), where=(var_g > 0) & (var_riesz > 0))
-    all_rho_benchmark = np.sign(all_delta_theta) * \
-        np.clip(np.divide(np.absolute(all_delta_theta), denom, out=np.ones_like(all_delta_theta), where=denom != 0),
-                0, 1)
+    all_rho_benchmark = np.sign(all_delta_theta) * np.clip(
+        np.divide(np.absolute(all_delta_theta), denom, out=np.ones_like(all_delta_theta), where=denom != 0), 0, 1
+    )
     rho_benchmark = np.median(all_rho_benchmark, axis=0)
 
     benchmark_dict = {
-        'cf_y': cf_y_benchmark,
-        'cf_d': cf_d_benchmark,
-        'rho': rho_benchmark,
-        'delta_theta': delta_theta,
+        "cf_y": cf_y_benchmark,
+        "cf_d": cf_d_benchmark,
+        "rho": rho_benchmark,
+        "delta_theta": delta_theta,
     }
     return pd.DataFrame(benchmark_dict, index=dml_obj._dml_data.d_cols)

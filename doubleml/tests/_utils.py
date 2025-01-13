@@ -9,8 +9,7 @@ from ..utils._estimation import _aggregate_coefs_and_ses, _var_est
 
 
 class DummyDataClass(DoubleMLBaseData):
-    def __init__(self,
-                 data):
+    def __init__(self, data):
         DoubleMLBaseData.__init__(self, data)
 
     @property
@@ -22,11 +21,9 @@ def draw_smpls(n_obs, n_folds, n_rep=1, groups=None):
     all_smpls = []
     for _ in range(n_rep):
         if groups is None:
-            resampling = KFold(n_splits=n_folds,
-                               shuffle=True)
+            resampling = KFold(n_splits=n_folds, shuffle=True)
         else:
-            resampling = StratifiedKFold(n_splits=n_folds,
-                                         shuffle=True)
+            resampling = StratifiedKFold(n_splits=n_folds, shuffle=True)
         smpls = [(train, test) for train, test in resampling.split(X=np.zeros(n_obs), y=groups)]
         all_smpls.append(smpls)
     return all_smpls
@@ -69,8 +66,7 @@ def tune_grid_search(y, x, ml_model, smpls, param_grid, n_folds_tune, train_cond
     tune_res = [None] * len(smpls)
     for idx, (train_index, _) in enumerate(smpls):
         g_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-        g_grid_search = GridSearchCV(ml_model, param_grid,
-                                     cv=g_tune_resampling)
+        g_grid_search = GridSearchCV(ml_model, param_grid, cv=g_tune_resampling)
         if train_cond is None:
             tune_res[idx] = g_grid_search.fit(x[train_index, :], y[train_index])
         else:
@@ -93,17 +89,12 @@ def generate_dml_dict(psi_a, psi_b):
     n_thetas = psi_a.shape[1]
     n_rep = psi_a.shape[2]
 
-    all_thetas = -1.0*np.mean(psi_b, axis=0)
+    all_thetas = -1.0 * np.mean(psi_b, axis=0)
     all_ses = np.zeros(shape=(n_thetas, n_rep))
     for i_rep in range(n_rep):
         for i_theta in range(n_thetas):
-            psi = psi_a[:, i_theta, i_rep]*all_thetas[i_theta, i_rep] + psi_b[:, i_theta, i_rep]
-            var_estimate, _ = _var_est(
-                psi=psi,
-                psi_deriv=psi_a[:, i_theta, i_rep],
-                smpls=None,
-                is_cluster_data=False
-            )
+            psi = psi_a[:, i_theta, i_rep] * all_thetas[i_theta, i_rep] + psi_b[:, i_theta, i_rep]
+            var_estimate, _ = _var_est(psi=psi, psi_deriv=psi_a[:, i_theta, i_rep], smpls=None, is_cluster_data=False)
             all_ses[i_theta, i_rep] = np.sqrt(var_estimate)
 
     var_scaling_factors = np.full(n_thetas, n_obs)
@@ -115,20 +106,20 @@ def generate_dml_dict(psi_a, psi_b):
     scaled_psi = psi_b / np.mean(psi_a, axis=0)
 
     doubleml_dict = {
-        'thetas': thetas,
-        'ses': ses,
-        'all_thetas': all_thetas,
-        'all_ses': all_ses,
-        'var_scaling_factors': var_scaling_factors,
-        'scaled_psi': scaled_psi,
+        "thetas": thetas,
+        "ses": ses,
+        "all_thetas": all_thetas,
+        "all_ses": all_ses,
+        "var_scaling_factors": var_scaling_factors,
+        "scaled_psi": scaled_psi,
     }
 
     return doubleml_dict
 
 
 def confint_manual(coef, se, index_names, boot_t_stat=None, joint=True, level=0.95):
-    a = (1 - level)
-    ab = np.array([a / 2, 1. - a / 2])
+    a = 1 - level
+    ab = np.array([a / 2, 1.0 - a / 2])
     if joint:
         assert boot_t_stat.shape[2] == 1
         sim = np.amax(np.abs(boot_t_stat[:, :, 0]), 1)
@@ -138,7 +129,5 @@ def confint_manual(coef, se, index_names, boot_t_stat=None, joint=True, level=0.
         fac = norm.ppf(ab)
         ci = np.vstack((coef + se * fac[0], coef + se * fac[1])).T
 
-    df_ci = pd.DataFrame(ci,
-                         columns=['{:.1f} %'.format(i * 100) for i in ab],
-                         index=index_names)
+    df_ci = pd.DataFrame(ci, columns=["{:.1f} %".format(i * 100) for i in ab], index=index_names)
     return df_ci

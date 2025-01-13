@@ -63,14 +63,14 @@ def _assert_resampling_default_settings(dml_obj):
     assert dml_obj.models is None
 
     # bootstrap method
-    assert dml_obj.boot_method == 'normal'
+    assert dml_obj.boot_method == "normal"
     assert dml_obj.n_rep_boot == 500
 
     # confint method
     assert dml_obj.confint().equals(dml_obj.confint(joint=False, level=0.95))
 
     # p_adjust method
-    assert dml_obj.p_adjust().equals(dml_obj.p_adjust(method='romano-wolf'))
+    assert dml_obj.p_adjust().equals(dml_obj.p_adjust(method="romano-wolf"))
 
 
 @pytest.mark.ci
@@ -78,7 +78,7 @@ def test_plr_defaults():
     _assert_is_none(dml_plr)
     _fit_bootstrap(dml_plr)
     _assert_resampling_default_settings(dml_plr)
-    assert dml_plr.score == 'partialling out'
+    assert dml_plr.score == "partialling out"
 
 
 @pytest.mark.ci
@@ -86,7 +86,7 @@ def test_pliv_defaults():
     _assert_is_none(dml_pliv)
     _fit_bootstrap(dml_pliv)
     _assert_resampling_default_settings(dml_pliv)
-    assert dml_pliv.score == 'partialling out'
+    assert dml_pliv.score == "partialling out"
     assert dml_pliv.partialX
     assert not dml_pliv.partialZ
 
@@ -96,12 +96,12 @@ def test_irm_defaults():
     _assert_is_none(dml_irm)
     _fit_bootstrap(dml_irm)
     _assert_resampling_default_settings(dml_irm)
-    assert dml_irm.score == 'ATE'
-    assert dml_irm.trimming_rule == 'truncate'
+    assert dml_irm.score == "ATE"
+    assert dml_irm.trimming_rule == "truncate"
     assert dml_irm.trimming_threshold == 1e-2
     assert not dml_irm.normalize_ipw
-    assert set(dml_irm.weights.keys()) == set(['weights'])
-    assert np.array_equal(dml_irm.weights['weights'], np.ones((dml_irm._dml_data.n_obs,)))
+    assert set(dml_irm.weights.keys()) == set(["weights"])
+    assert np.array_equal(dml_irm.weights["weights"], np.ones((dml_irm._dml_data.n_obs,)))
 
 
 @pytest.mark.ci
@@ -109,9 +109,9 @@ def test_iivm_defaults():
     _assert_is_none(dml_iivm)
     _fit_bootstrap(dml_iivm)
     _assert_resampling_default_settings(dml_iivm)
-    assert dml_iivm.score == 'LATE'
-    assert dml_iivm.subgroups == {'always_takers': True, 'never_takers': True}
-    assert dml_iivm.trimming_rule == 'truncate'
+    assert dml_iivm.score == "LATE"
+    assert dml_iivm.subgroups == {"always_takers": True, "never_takers": True}
+    assert dml_iivm.trimming_rule == "truncate"
     assert dml_iivm.trimming_threshold == 1e-2
     assert not dml_iivm.normalize_ipw
 
@@ -123,8 +123,8 @@ def test_cvar_defaults():
     _assert_resampling_default_settings(dml_cvar)
     assert dml_cvar.quantile == 0.5
     assert dml_cvar.treatment == 1
-    assert dml_cvar.score == 'CVaR'
-    assert dml_cvar.trimming_rule == 'truncate'
+    assert dml_cvar.score == "CVaR"
+    assert dml_cvar.trimming_rule == "truncate"
     assert dml_cvar.trimming_threshold == 1e-2
 
 
@@ -135,8 +135,8 @@ def test_pq_defaults():
     _assert_resampling_default_settings(dml_pq)
     assert dml_pq.quantile == 0.5
     assert dml_pq.treatment == 1
-    assert dml_pq.score == 'PQ'
-    assert dml_pq.trimming_rule == 'truncate'
+    assert dml_pq.score == "PQ"
+    assert dml_pq.trimming_rule == "truncate"
     assert dml_pq.trimming_threshold == 1e-2
     assert dml_pq.normalize_ipw
 
@@ -148,8 +148,8 @@ def test_lpq_defaults():
     _assert_resampling_default_settings(dml_lpq)
     assert dml_lpq.quantile == 0.5
     assert dml_lpq.treatment == 1
-    assert dml_lpq.score == 'LPQ'
-    assert dml_lpq.trimming_rule == 'truncate'
+    assert dml_lpq.score == "LPQ"
+    assert dml_lpq.trimming_rule == "truncate"
     assert dml_lpq.trimming_threshold == 1e-2
     assert dml_lpq.normalize_ipw
 
@@ -163,8 +163,8 @@ def test_qte_defaults():
     _fit_bootstrap(dml_qte)
     # not fix since its a differen object added in future versions _assert_resampling_default_settings(dml_qte)
     assert dml_qte.quantiles == 0.5
-    assert dml_qte.score == 'PQ'
-    assert dml_qte.trimming_rule == 'truncate'
+    assert dml_qte.score == "PQ"
+    assert dml_qte.trimming_rule == "truncate"
     assert dml_qte.trimming_threshold == 1e-2
     assert dml_qte.normalize_ipw
 
@@ -174,9 +174,9 @@ def test_did_defaults():
     _assert_is_none(dml_did)
     _fit_bootstrap(dml_did)
     _assert_resampling_default_settings(dml_did)
-    assert dml_did.score == 'observational'
+    assert dml_did.score == "observational"
     assert dml_did.in_sample_normalization
-    assert dml_did.trimming_rule == 'truncate'
+    assert dml_did.trimming_rule == "truncate"
     assert dml_did.trimming_threshold == 1e-2
 
 
@@ -185,9 +185,9 @@ def test_did_cs_defaults():
     _assert_is_none(dml_did_cs)
     _fit_bootstrap(dml_did_cs)
     _assert_resampling_default_settings(dml_did_cs)
-    assert dml_did.score == 'observational'
+    assert dml_did.score == "observational"
     assert dml_did_cs.in_sample_normalization
-    assert dml_did_cs.trimming_rule == 'truncate'
+    assert dml_did_cs.trimming_rule == "truncate"
     assert dml_did_cs.trimming_threshold == 1e-2
 
 
@@ -196,8 +196,8 @@ def test_ssm_defaults():
     _assert_is_none(dml_ssm)
     _fit_bootstrap(dml_ssm)
     _assert_resampling_default_settings(dml_ssm)
-    assert dml_ssm.score == 'missing-at-random'
-    assert dml_ssm.trimming_rule == 'truncate'
+    assert dml_ssm.score == "missing-at-random"
+    assert dml_ssm.trimming_rule == "truncate"
     assert dml_ssm.trimming_threshold == 1e-2
     assert not dml_ssm.normalize_ipw
 
@@ -207,12 +207,12 @@ def test_apo_defaults():
     _assert_is_none(dml_apo)
     _fit_bootstrap(dml_apo)
     _assert_resampling_default_settings(dml_apo)
-    assert dml_apo.score == 'APO'
-    assert dml_apo.trimming_rule == 'truncate'
+    assert dml_apo.score == "APO"
+    assert dml_apo.trimming_rule == "truncate"
     assert dml_apo.trimming_threshold == 1e-2
     assert not dml_apo.normalize_ipw
-    assert set(dml_apo.weights.keys()) == set(['weights'])
-    assert np.array_equal(dml_apo.weights['weights'], np.ones((dml_apo._dml_data.n_obs,)))
+    assert set(dml_apo.weights.keys()) == set(["weights"])
+    assert np.array_equal(dml_apo.weights["weights"], np.ones((dml_apo._dml_data.n_obs,)))
 
 
 @pytest.mark.ci
@@ -222,8 +222,8 @@ def test_apos_defaults():
     assert dml_apos.framework is None
     assert dml_apos.boot_t_stat is None
     _fit_bootstrap(dml_qte)
-    assert dml_apos.score == 'APO'
-    assert dml_apos.trimming_rule == 'truncate'
+    assert dml_apos.score == "APO"
+    assert dml_apos.trimming_rule == "truncate"
     assert dml_apos.trimming_threshold == 1e-2
     assert not dml_apos.normalize_ipw
     assert np.array_equal(dml_apos.weights, np.ones((dml_apos._dml_data.n_obs,)))
@@ -231,14 +231,10 @@ def test_apos_defaults():
 
 @pytest.mark.ci
 def test_sensitivity_defaults():
-    input_dict = {'cf_y': 0.03,
-                  'cf_d': 0.03,
-                  'rho': 1.0,
-                  'level': 0.95,
-                  'null_hypothesis': np.array([0.])}
+    input_dict = {"cf_y": 0.03, "cf_d": 0.03, "rho": 1.0, "level": 0.95, "null_hypothesis": np.array([0.0])}
 
     dml_plr.sensitivity_analysis()
-    assert dml_plr.sensitivity_params['input'] == input_dict
+    assert dml_plr.sensitivity_params["input"] == input_dict
 
 
 @pytest.mark.ci
