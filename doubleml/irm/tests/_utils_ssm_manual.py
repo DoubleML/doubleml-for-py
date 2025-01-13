@@ -113,7 +113,6 @@ def fit_nuisance_selection(
     pi_params=None,
     m_params=None,
 ):
-
     ml_g_d1 = clone(learner_g)
     ml_g_d0 = clone(learner_g)
     ml_pi = clone(learner_pi)

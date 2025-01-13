@@ -85,7 +85,7 @@ def test_ssm_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_folds=1.5)
-    msg = "The number of repetitions for the sample splitting must be of int type. " "1.5 of type <class 'float'> was passed."
+    msg = "The number of repetitions for the sample splitting must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m, n_rep=1.5)
     msg = "The number of folds must be positive. 0 was passed."

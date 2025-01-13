@@ -29,7 +29,6 @@ def set_ml_g_ext(request):
 
 @pytest.fixture(scope="module")
 def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
-
     score = "APO"
     treatment_level = 0
     ext_predictions = {"d": {}}

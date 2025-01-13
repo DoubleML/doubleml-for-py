@@ -487,7 +487,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             Best linear Predictor model for group average potential outcomes.
         """
         if not isinstance(groups, pd.DataFrame):
-            raise TypeError("Groups must be of DataFrame type. " f"Groups of type {str(type(groups))} was passed.")
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
 
         if not all(groups.dtypes == bool) or all(groups.dtypes == int):
             if groups.shape[1] == 1:

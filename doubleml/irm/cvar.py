@@ -382,7 +382,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         _check_contains_iv(obj_dml_data)
         _check_zero_one_treatment(self)

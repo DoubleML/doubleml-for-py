@@ -204,7 +204,7 @@ class NonLinearScoreMixin:
                         theta_hat = theta_hat_array.item()
                         warnings.warn(
                             "Could not find a root of the score function. "
-                            f"Maximum score value found is {-1*neg_score_val} "
+                            f"Maximum score value found is {-1 * neg_score_val} "
                             f"for parameter theta equal to {theta_hat}. "
                             "No theta found such that the score function evaluates to a positive value."
                         )

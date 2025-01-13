@@ -457,7 +457,6 @@ def _test_sensitivity_return_types(dml_obj, n_rep, n_treat, benchmarking_set):
 
 @pytest.mark.ci
 def test_sensitivity():
-
     # PLR
     _test_sensitivity_return_types(plr_obj, n_rep, n_treat, benchmarking_set=["X1"])
 

@@ -274,7 +274,6 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
 
 
 def _var_est(psi, psi_deriv, smpls, is_cluster_data, cluster_vars=None, smpls_cluster=None, n_folds_per_cluster=None):
-
     if not is_cluster_data:
         # psi and psi_deriv should be of shape (n_obs, ...)
         var_scaling_factor = psi.shape[0]

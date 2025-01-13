@@ -34,7 +34,6 @@ class DoubleMLAPOS:
         trimming_threshold=1e-2,
         draw_sample_splitting=True,
     ):
-
         self._dml_data = obj_dml_data
         self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
@@ -600,7 +599,7 @@ class DoubleMLAPOS:
             raise NotImplementedError(f"Sensitivity analysis not yet implemented for {self.__class__.__name__}.")
         if not isinstance(benchmarking_set, list):
             raise TypeError(
-                "benchmarking_set must be a list. " f"{str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
+                f"benchmarking_set must be a list. {str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
             )
         if len(benchmarking_set) == 0:
             raise ValueError("benchmarking_set must not be empty.")
@@ -610,7 +609,7 @@ class DoubleMLAPOS:
                 f"{str(benchmarking_set)} was passed."
             )
         if fit_args is not None and not isinstance(fit_args, dict):
-            raise TypeError("fit_args must be a dict. " f"{str(fit_args)} of type {type(fit_args)} was passed.")
+            raise TypeError(f"fit_args must be a dict. {str(fit_args)} of type {type(fit_args)} was passed.")
 
         # refit short form of the model
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
@@ -756,7 +755,6 @@ class DoubleMLAPOS:
         return acc
 
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
-
         model = self.modellist[i_level]
         if external_predictions_dict is not None:
             external_predictions = external_predictions_dict[self.treatment_levels[i_level]]

@@ -245,11 +245,11 @@ class DoubleMLFramework:
         if self.sensitivity_params is None:
             res = header + "Apply sensitivity_analysis() to generate sensitivity_summary."
         else:
-            sig_level = f'Significance Level: level={self.sensitivity_params["input"]["level"]}\n'
+            sig_level = f"Significance Level: level={self.sensitivity_params['input']['level']}\n"
             scenario_params = (
-                f'Sensitivity parameters: cf_y={self.sensitivity_params["input"]["cf_y"]}; '
-                f'cf_d={self.sensitivity_params["input"]["cf_d"]}, '
-                f'rho={self.sensitivity_params["input"]["rho"]}'
+                f"Sensitivity parameters: cf_y={self.sensitivity_params['input']['cf_y']}; "
+                f"cf_d={self.sensitivity_params['input']['cf_d']}, "
+                f"rho={self.sensitivity_params['input']['rho']}"
             )
 
             theta_and_ci_col_names = ["CI lower", "theta lower", " theta", "theta upper", "CI upper"]
@@ -293,7 +293,6 @@ class DoubleMLFramework:
         return res
 
     def __add__(self, other):
-
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
             self._check_framework_shapes()
@@ -354,7 +353,6 @@ class DoubleMLFramework:
         return self.__add__(other)
 
     def __sub__(self, other):
-
         if isinstance(other, DoubleMLFramework):
             # internal consistency check
             self._check_framework_shapes()
@@ -468,7 +466,7 @@ class DoubleMLFramework:
         _check_in_zero_one(cf_y, "cf_y", include_one=False)
         _check_in_zero_one(cf_d, "cf_d", include_one=False)
         if not isinstance(rho, float):
-            raise TypeError(f"rho must be of float type. " f"{str(rho)} of type {str(type(rho))} was passed.")
+            raise TypeError(f"rho must be of float type. {str(rho)} of type {str(type(rho))} was passed.")
         _check_in_zero_one(abs(rho), "The absolute value of rho")
         _check_in_zero_one(level, "The confidence level", include_zero=False, include_one=False)
 
@@ -505,7 +503,6 @@ class DoubleMLFramework:
 
         for i_rep in range(self.n_rep):
             for i_theta in range(self.n_thetas):
-
                 if not self._is_cluster_data:
                     smpls = None
                     cluster_vars = None
@@ -678,14 +675,12 @@ class DoubleMLFramework:
         """
 
         if not isinstance(joint, bool):
-            raise TypeError("joint must be True or False. " f"Got {str(joint)}.")
+            raise TypeError(f"joint must be True or False. Got {str(joint)}.")
 
         if not isinstance(level, float):
-            raise TypeError(
-                "The confidence level must be of float type. " f"{str(level)} of type {str(type(level))} was passed."
-            )
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
         if (level <= 0) | (level >= 1):
-            raise ValueError("The confidence level must be in (0,1). " f"{str(level)} was passed.")
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
 
         # compute critical values
         alpha = 1 - level
@@ -765,9 +760,7 @@ class DoubleMLFramework:
             A numpy array with all corrected p-values for each repetition.
         """
         if not isinstance(method, str):
-            raise TypeError(
-                "The p_adjust method must be of str type. " f"{str(method)} of type {str(type(method))} was passed."
-            )
+            raise TypeError(f"The p_adjust method must be of str type. {str(method)} of type {str(type(method))} was passed.")
 
         all_p_vals_corrected = np.full_like(self.all_pvals, np.nan)
 
@@ -880,7 +873,7 @@ class DoubleMLFramework:
         """
         _check_integer(idx_treatment, "idx_treatment", lower_bound=0, upper_bound=self.n_thetas - 1)
         if not isinstance(value, str):
-            raise TypeError("value must be a string. " f"{str(value)} of type {type(value)} was passed.")
+            raise TypeError(f"value must be a string. {str(value)} of type {type(value)} was passed.")
         valid_values = ["theta", "ci"]
         if value not in valid_values:
             raise ValueError("Invalid value " + value + ". " + "Valid values " + " or ".join(valid_values) + ".")
@@ -907,7 +900,6 @@ class DoubleMLFramework:
         contour_values = np.full(shape=(grid_size, grid_size), fill_value=np.nan)
         for i_cf_d_grid, cf_d_grid in enumerate(cf_d_vec):
             for i_cf_y_grid, cf_y_grid in enumerate(cf_y_vec):
-
                 sens_dict = self._calc_sensitivity_analysis(
                     cf_y=cf_y_grid,
                     cf_d=cf_d_grid,
@@ -994,7 +986,7 @@ class DoubleMLFramework:
             expected_keys_sensitivity = ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
             if not all(key in doubleml_dict["sensitivity_elements"].keys() for key in expected_keys_sensitivity):
                 raise ValueError(
-                    "The sensitivity_elements dict must contain the following " "keys: " + ", ".join(expected_keys_sensitivity)
+                    "The sensitivity_elements dict must contain the following keys: " + ", ".join(expected_keys_sensitivity)
                 )
 
             for key in expected_keys_sensitivity:
@@ -1042,7 +1034,7 @@ class DoubleMLFramework:
         if self._sensitivity_implemented:
             if self._sensitivity_elements["sigma2"].shape != (1, self._n_thetas, self.n_rep):
                 raise ValueError(
-                    "The shape of sigma2 does not match the expected shape " f"(1, {self._n_thetas}, {self._n_rep})."
+                    f"The shape of sigma2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep})."
                 )
             if self._sensitivity_elements["nu2"].shape != (1, self._n_thetas, self.n_rep):
                 raise ValueError(f"The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).")
@@ -1073,12 +1065,12 @@ class DoubleMLFramework:
     def _check_treatment_names(self, treatment_names):
         if not isinstance(treatment_names, list):
             raise TypeError(
-                "treatment_names must be a list. " f"Got {str(treatment_names)} of type {str(type(treatment_names))}."
+                f"treatment_names must be a list. Got {str(treatment_names)} of type {str(type(treatment_names))}."
             )
         is_str = [isinstance(name, str) for name in treatment_names]
         if not all(is_str):
             raise TypeError(
-                "treatment_names must be a list of strings. " f"At least one element is not a string: {str(treatment_names)}."
+                f"treatment_names must be a list of strings. At least one element is not a string: {str(treatment_names)}."
             )
         if len(treatment_names) != self._n_thetas:
             raise ValueError(

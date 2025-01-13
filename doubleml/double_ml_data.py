@@ -16,9 +16,9 @@ class DoubleMLBaseData(ABC):
 
     def __init__(self, data):
         if not isinstance(data, pd.DataFrame):
-            raise TypeError("data must be of pd.DataFrame type. " f"{str(data)} of type {str(type(data))} was passed.")
+            raise TypeError(f"data must be of pd.DataFrame type. {str(data)} of type {str(type(data))} was passed.")
         if not data.columns.is_unique:
-            raise ValueError("Invalid pd.DataFrame: " "Contains duplicate column names.")
+            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
         self._data = data
 
     def __str__(self):
@@ -292,9 +292,9 @@ class DoubleMLData(DoubleMLBaseData):
         if d.shape[1] == 1:
             d_cols = ["d"]
         else:
-            d_cols = [f"d{i+1}" for i in np.arange(d.shape[1])]
+            d_cols = [f"d{i + 1}" for i in np.arange(d.shape[1])]
 
-        x_cols = [f"X{i+1}" for i in np.arange(x.shape[1])]
+        x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]
 
         # basline version with features, outcome and treatments
         data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)
@@ -426,9 +426,9 @@ class DoubleMLData(DoubleMLBaseData):
                     f"{str(value)} of type {str(type(value))} was passed."
                 )
             if not len(set(value)) == len(value):
-                raise ValueError("Invalid covariates x_cols: " "Contains duplicate values.")
+                raise ValueError("Invalid covariates x_cols: Contains duplicate values.")
             if not set(value).issubset(set(self.all_variables)):
-                raise ValueError("Invalid covariates x_cols. " "At least one covariate is no data column.")
+                raise ValueError("Invalid covariates x_cols. At least one covariate is no data column.")
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
         else:
@@ -462,9 +462,9 @@ class DoubleMLData(DoubleMLBaseData):
                 f"{str(value)} of type {str(type(value))} was passed."
             )
         if not len(set(value)) == len(value):
-            raise ValueError("Invalid treatment variable(s) d_cols: " "Contains duplicate values.")
+            raise ValueError("Invalid treatment variable(s) d_cols: Contains duplicate values.")
         if not set(value).issubset(set(self.all_variables)):
-            raise ValueError("Invalid treatment variable(s) d_cols. " "At least one treatment variable is no data column.")
+            raise ValueError("Invalid treatment variable(s) d_cols. At least one treatment variable is no data column.")
         self._d_cols = value
         if reset_value:
             self._check_disjoint_sets()
@@ -483,10 +483,10 @@ class DoubleMLData(DoubleMLBaseData):
         reset_value = hasattr(self, "_y_col")
         if not isinstance(value, str):
             raise TypeError(
-                "The outcome variable y_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
+                f"The outcome variable y_col must be of str type. {str(value)} of type {str(type(value))} was passed."
             )
         if value not in self.all_variables:
-            raise ValueError("Invalid outcome variable y_col. " f"{value} is no data column.")
+            raise ValueError(f"Invalid outcome variable y_col. {value} is no data column.")
         self._y_col = value
         if reset_value:
             self._check_disjoint_sets()
@@ -511,10 +511,10 @@ class DoubleMLData(DoubleMLBaseData):
                     f"{str(value)} of type {str(type(value))} was passed."
                 )
             if not len(set(value)) == len(value):
-                raise ValueError("Invalid instrumental variable(s) z_cols: " "Contains duplicate values.")
+                raise ValueError("Invalid instrumental variable(s) z_cols: Contains duplicate values.")
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError(
-                    "Invalid instrumental variable(s) z_cols. " "At least one instrumental variable is no data column."
+                    "Invalid instrumental variable(s) z_cols. At least one instrumental variable is no data column."
                 )
             self._z_cols = value
         else:
@@ -540,7 +540,7 @@ class DoubleMLData(DoubleMLBaseData):
                     f"{str(value)} of type {str(type(value))} was passed."
                 )
             if value not in self.all_variables:
-                raise ValueError("Invalid time variable t_col. " f"{value} is no data column.")
+                raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
             self._t_col = value
         else:
             self._t_col = None
@@ -565,7 +565,7 @@ class DoubleMLData(DoubleMLBaseData):
                     f"{str(value)} of type {str(type(value))} was passed."
                 )
             if value not in self.all_variables:
-                raise ValueError("Invalid score or selection variable s_col. " f"{value} is no data column.")
+                raise ValueError(f"Invalid score or selection variable s_col. {value} is no data column.")
             self._s_col = value
         else:
             self._s_col = None
@@ -584,7 +584,7 @@ class DoubleMLData(DoubleMLBaseData):
     def use_other_treat_as_covariate(self, value):
         reset_value = hasattr(self, "_use_other_treat_as_covariate")
         if not isinstance(value, bool):
-            raise TypeError("use_other_treat_as_covariate must be True or False. " f"Got {str(value)}.")
+            raise TypeError(f"use_other_treat_as_covariate must be True or False. Got {str(value)}.")
         self._use_other_treat_as_covariate = value
         if reset_value:
             # by default, we initialize to the first treatment variable
@@ -644,10 +644,10 @@ class DoubleMLData(DoubleMLBaseData):
         """
         if not isinstance(treatment_var, str):
             raise TypeError(
-                "treatment_var must be of str type. " f"{str(treatment_var)} of type {str(type(treatment_var))} was passed."
+                f"treatment_var must be of str type. {str(treatment_var)} of type {str(type(treatment_var))} was passed."
             )
         if treatment_var not in self.d_cols:
-            raise ValueError("Invalid treatment_var. " f"{treatment_var} is not in d_cols.")
+            raise ValueError(f"Invalid treatment_var. {treatment_var} is not in d_cols.")
         if self.use_other_treat_as_covariate:
             # note that the following line needs to be adapted in case an intersection of x_cols and d_cols as allowed
             # (see https://github.com/DoubleML/doubleml-for-py/issues/83)
@@ -687,10 +687,10 @@ class DoubleMLData(DoubleMLBaseData):
         d_cols_set = set(self.d_cols)
 
         if not y_col_set.isdisjoint(x_cols_set):
-            raise ValueError(f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in " "``x_cols``.")
+            raise ValueError(f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in ``x_cols``.")
         if not y_col_set.isdisjoint(d_cols_set):
             raise ValueError(
-                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in " "``d_cols``."
+                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in ``d_cols``."
             )
         # note that the line xd_list = self.x_cols + self.d_cols in method set_x_d needs adaption if an intersection of
         # x_cols and d_cols as allowed (see https://github.com/DoubleML/doubleml-for-py/issues/83)
@@ -704,8 +704,7 @@ class DoubleMLData(DoubleMLBaseData):
             z_cols_set = set(self.z_cols)
             if not y_col_set.isdisjoint(z_cols_set):
                 raise ValueError(
-                    f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and instrumental "
-                    "variable in ``z_cols``."
+                    f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and instrumental variable in ``z_cols``."
                 )
             if not d_cols_set.isdisjoint(z_cols_set):
                 raise ValueError(
@@ -714,7 +713,7 @@ class DoubleMLData(DoubleMLBaseData):
                 )
             if not x_cols_set.isdisjoint(z_cols_set):
                 raise ValueError(
-                    "At least one variable/column is set as covariate (``x_cols``) and instrumental " "variable in ``z_cols``."
+                    "At least one variable/column is set as covariate (``x_cols``) and instrumental variable in ``z_cols``."
                 )
 
         self._check_disjoint_sets_t_s()
@@ -727,28 +726,25 @@ class DoubleMLData(DoubleMLBaseData):
         if self.t_col is not None:
             t_col_set = {self.t_col}
             if not t_col_set.isdisjoint(x_cols_set):
-                raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in " "``x_cols``.")
+                raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in ``x_cols``.")
             if not t_col_set.isdisjoint(d_cols_set):
                 raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in " "``d_cols``."
+                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in ``d_cols``."
                 )
             if not t_col_set.isdisjoint(y_col_set):
-                raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable " "``y_col``."
-                )
+                raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable ``y_col``.")
             if self.z_cols is not None:
                 z_cols_set = set(self.z_cols)
                 if not t_col_set.isdisjoint(z_cols_set):
                     raise ValueError(
-                        f"{str(self.t_col)} cannot be set as time variable ``t_col`` and instrumental "
-                        "variable in ``z_cols``."
+                        f"{str(self.t_col)} cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``."
                     )
 
         if self.s_col is not None:
             s_col_set = {self.s_col}
             if not s_col_set.isdisjoint(x_cols_set):
                 raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and covariate in " "``x_cols``."
+                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and covariate in ``x_cols``."
                 )
             if not s_col_set.isdisjoint(d_cols_set):
                 raise ValueError(
@@ -757,8 +753,7 @@ class DoubleMLData(DoubleMLBaseData):
                 )
             if not s_col_set.isdisjoint(y_col_set):
                 raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and outcome "
-                    "variable ``y_col``."
+                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and outcome variable ``y_col``."
                 )
             if self.z_cols is not None:
                 z_cols_set = set(self.z_cols)
@@ -986,9 +981,9 @@ class DoubleMLClusterData(DoubleMLData):
                 f"{str(value)} of type {str(type(value))} was passed."
             )
         if not len(set(value)) == len(value):
-            raise ValueError("Invalid cluster variable(s) cluster_cols: " "Contains duplicate values.")
+            raise ValueError("Invalid cluster variable(s) cluster_cols: Contains duplicate values.")
         if not set(value).issubset(set(self.all_variables)):
-            raise ValueError("Invalid cluster variable(s) cluster_cols. " "At least one cluster variable is no data column.")
+            raise ValueError("Invalid cluster variable(s) cluster_cols. At least one cluster variable is no data column.")
         self._cluster_cols = value
         if reset_value:
             self._check_disjoint_sets()
@@ -1064,7 +1059,7 @@ class DoubleMLClusterData(DoubleMLData):
 
         if not y_col_set.isdisjoint(cluster_cols_set):
             raise ValueError(
-                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster " "variable in ``cluster_cols``."
+                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``."
             )
         if not d_cols_set.isdisjoint(cluster_cols_set):
             raise ValueError(
@@ -1074,7 +1069,7 @@ class DoubleMLClusterData(DoubleMLData):
         # TODO: Is the following combination allowed, or not?
         if not x_cols_set.isdisjoint(cluster_cols_set):
             raise ValueError(
-                "At least one variable/column is set as covariate (``x_cols``) and cluster " "variable in ``cluster_cols``."
+                "At least one variable/column is set as covariate (``x_cols``) and cluster variable in ``cluster_cols``."
             )
         if self.z_cols is not None:
             z_cols_set = set(self.z_cols)
@@ -1086,7 +1081,7 @@ class DoubleMLClusterData(DoubleMLData):
         if self.t_col is not None:
             if not t_col_set.isdisjoint(cluster_cols_set):
                 raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and " "cluster variable in ``cluster_cols``."
+                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``."
                 )
         if self.s_col is not None:
             if not s_col_set.isdisjoint(cluster_cols_set):

@@ -151,7 +151,6 @@ def irm_dml2(y, x, d, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls, s
 
 
 def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score, n_obs):
-
     if score == "ATE":
         var = (
             1
@@ -187,7 +186,6 @@ def var_irm(theta, g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score, n_obs
 
 
 def irm_orth(g_hat0, g_hat1, m_hat, p_hat, u_hat0, u_hat1, d, score):
-
     if score == "ATE":
         res = np.mean(
             g_hat1 - g_hat0 + np.divide(np.multiply(d, u_hat1), m_hat) - np.divide(np.multiply(1.0 - d, u_hat0), 1.0 - m_hat)
@@ -322,7 +320,6 @@ def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 
     for i_rep in range(n_rep):
-
         m_hat = predictions["ml_m"][:, i_rep, 0]
         g_hat0 = predictions["ml_g0"][:, i_rep, 0]
         g_hat1 = predictions["ml_g1"][:, i_rep, 0]

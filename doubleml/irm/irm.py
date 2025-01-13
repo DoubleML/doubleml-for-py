@@ -239,7 +239,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
             raise ValueError(
@@ -340,7 +340,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
-
         if self.normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat, d)
         else:
@@ -518,7 +517,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             Best linear Predictor model for Group Effects.
         """
         if not isinstance(groups, pd.DataFrame):
-            raise TypeError("Groups must be of DataFrame type. " f"Groups of type {str(type(groups))} was passed.")
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
 
         if not all(groups.dtypes == bool) or all(groups.dtypes == int):
             if groups.shape[1] == 1:
@@ -570,7 +569,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         _check_integer(depth, "Depth", 0)
 
         if not isinstance(features, pd.DataFrame):
-            raise TypeError("Covariates must be of DataFrame type. " f"Covariates of type {str(type(features))} was passed.")
+            raise TypeError(f"Covariates must be of DataFrame type. Covariates of type {str(type(features))} was passed.")
 
         orth_signal = self.psi_elements["psi_b"].reshape(-1)
 

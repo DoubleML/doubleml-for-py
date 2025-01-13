@@ -43,7 +43,6 @@ def level(request):
 
 @pytest.fixture(scope="module")
 def dml_sensitivity_multitreat_fixture(generate_data_bivariate, n_rep, cf_y, cf_d, rho, level):
-
     # collect data
     data = generate_data_bivariate
     x_cols = data.columns[data.columns.str.startswith("X")].tolist()

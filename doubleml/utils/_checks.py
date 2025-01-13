@@ -7,48 +7,48 @@ from sklearn.utils.multiclass import type_of_target
 
 def _check_in_zero_one(value, name, include_zero=True, include_one=True):
     if not isinstance(value, float):
-        raise TypeError(f"{name} must be of float type. " f"{str(value)} of type {str(type(value))} was passed.")
+        raise TypeError(f"{name} must be of float type. {str(value)} of type {str(type(value))} was passed.")
     if include_zero & include_one:
         if (value < 0) | (value > 1):
-            raise ValueError(f"{name} must be in [0,1]. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be in [0,1]. {str(value)} was passed.")
     elif (not include_zero) & include_one:
         if (value <= 0) | (value > 1):
-            raise ValueError(f"{name} must be in (0,1]. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be in (0,1]. {str(value)} was passed.")
     elif include_zero & (not include_one):
         if (value < 0) | (value >= 1):
-            raise ValueError(f"{name} must be in [0,1). " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be in [0,1). {str(value)} was passed.")
     else:
         if (value <= 0) | (value >= 1):
-            raise ValueError(f"{name} must be in (0,1). " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be in (0,1). {str(value)} was passed.")
     return
 
 
 def _check_integer(value, name, lower_bound=None, upper_bound=None):
     if not isinstance(value, int):
-        raise TypeError(f"{name} must be an integer." f" {str(value)} of type {str(type(value))} was passed.")
+        raise TypeError(f"{name} must be an integer. {str(value)} of type {str(type(value))} was passed.")
     if lower_bound is not None:
         if value < lower_bound:
-            raise ValueError(f"{name} must be larger or equal to {lower_bound}. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be larger or equal to {lower_bound}. {str(value)} was passed.")
     if upper_bound is not None:
         if value > upper_bound:
-            raise ValueError(f"{name} must be smaller or equal to {upper_bound}. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be smaller or equal to {upper_bound}. {str(value)} was passed.")
     return
 
 
 def _check_float(value, name, lower_bound=None, upper_bound=None):
     if not isinstance(value, float):
-        raise TypeError(f"{name} must be of float type." f" {str(value)} of type {str(type(value))} was passed.")
+        raise TypeError(f"{name} must be of float type. {str(value)} of type {str(type(value))} was passed.")
     if lower_bound is not None:
         if value < lower_bound:
-            raise ValueError(f"{name} must be larger or equal to {lower_bound}. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be larger or equal to {lower_bound}. {str(value)} was passed.")
     if upper_bound is not None:
         if value > upper_bound:
-            raise ValueError(f"{name} must be smaller or equal to {upper_bound}. " f"{str(value)} was passed.")
+            raise ValueError(f"{name} must be smaller or equal to {upper_bound}. {str(value)} was passed.")
 
 
 def _check_bool(value, name):
     if not isinstance(value, bool):
-        raise TypeError(f"{name} has to be boolean." f" {str(value)} of type {str(type(value))} was passed.")
+        raise TypeError(f"{name} has to be boolean. {str(value)} of type {str(type(value))} was passed.")
 
 
 def _check_is_partition(smpls, n_obs):
@@ -122,9 +122,9 @@ def _check_score(score, valid_score, allow_callable=True):
     else:
         if allow_callable:
             if not callable(score):
-                raise TypeError("score should be either a string or a callable. " f"{str(score)} was passed.")
+                raise TypeError(f"score should be either a string or a callable. {str(score)} was passed.")
         else:
-            raise TypeError("score should be a string. " f"{str(score)} was passed.")
+            raise TypeError(f"score should be a string. {str(score)} was passed.")
     return
 
 
@@ -192,7 +192,7 @@ def _check_is_propensity(preds, learner, learner_name, smpls, eps=1e-12):
     test_indices = np.concatenate([test_index for _, test_index in smpls])
     if any((preds[test_indices] < eps) | (preds[test_indices] > 1 - eps)):
         warnings.warn(
-            f"Propensity predictions from learner {str(learner)} for" f" {learner_name} are close to zero or one (eps={eps})."
+            f"Propensity predictions from learner {str(learner)} for {learner_name} are close to zero or one (eps={eps})."
         )
     return
 
@@ -213,41 +213,35 @@ def _check_benchmarks(benchmarks):
     if benchmarks is not None:
         if not isinstance(benchmarks, dict):
             raise TypeError(
-                "benchmarks has to be either None or a dictionary. "
-                f"{str(benchmarks)} of type {type(benchmarks)} was passed."
+                f"benchmarks has to be either None or a dictionary. {str(benchmarks)} of type {type(benchmarks)} was passed."
             )
         if not set(benchmarks.keys()) == {"cf_y", "cf_d", "name"}:
-            raise ValueError(
-                "benchmarks has to be a dictionary with keys cf_y, cf_d and name. " f"Got {str(benchmarks.keys())}."
-            )
+            raise ValueError(f"benchmarks has to be a dictionary with keys cf_y, cf_d and name. Got {str(benchmarks.keys())}.")
 
         value_lengths = [len(value) for value in benchmarks.values()]
         if not len(set(value_lengths)) == 1:
-            raise ValueError("benchmarks has to be a dictionary with values of same length. " f"Got {str(value_lengths)}.")
+            raise ValueError(f"benchmarks has to be a dictionary with values of same length. Got {str(value_lengths)}.")
         for i in range(value_lengths[0]):
             for key in ["cf_y", "cf_d"]:
                 _check_in_zero_one(benchmarks[key][i], f"benchmarks {key}", include_zero=True, include_one=False)
             if not isinstance(benchmarks["name"][i], str):
                 raise TypeError(
                     "benchmarks name must be of string type. "
-                    f'{str(benchmarks["name"][i])} of type {str(type(benchmarks["name"][i]))} was passed.'
+                    f"{str(benchmarks['name'][i])} of type {str(type(benchmarks['name'][i]))} was passed."
                 )
     return
 
 
 def _check_weights(weights, score, n_obs, n_rep):
     if weights is not None:
-
         # check general type
         if (not isinstance(weights, np.ndarray)) and (not isinstance(weights, dict)):
-            raise TypeError(
-                "weights must be a numpy array or dictionary. " f"weights of type {str(type(weights))} was passed."
-            )
+            raise TypeError(f"weights must be a numpy array or dictionary. weights of type {str(type(weights))} was passed.")
 
         # check shape
         if isinstance(weights, np.ndarray):
             if (weights.ndim != 1) or weights.shape[0] != n_obs:
-                raise ValueError(f"weights must have shape ({n_obs},). " f"weights of shape {weights.shape} was passed.")
+                raise ValueError(f"weights must have shape ({n_obs},). weights of shape {weights.shape} was passed.")
             if not np.all(0 <= weights):
                 raise ValueError("All weights values must be greater or equal 0.")
             if weights.sum() == 0:
@@ -257,7 +251,7 @@ def _check_weights(weights, score, n_obs, n_rep):
         if score == "ATTE":
             if not isinstance(weights, np.ndarray):
                 raise TypeError(
-                    "weights must be a numpy array for ATTE score. " f"weights of type {str(type(weights))} was passed."
+                    f"weights must be a numpy array for ATTE score. weights of type {str(type(weights))} was passed."
                 )
 
             is_binary = np.all((np.power(weights, 2) - weights) == 0)
@@ -269,13 +263,12 @@ def _check_weights(weights, score, n_obs, n_rep):
             assert score == "ATE"
             expected_keys = ["weights", "weights_bar"]
             if not set(weights.keys()) == set(expected_keys):
-                raise ValueError(f"weights must have keys {expected_keys}. " f"keys {str(weights.keys())} were passed.")
+                raise ValueError(f"weights must have keys {expected_keys}. keys {str(weights.keys())} were passed.")
 
             expected_shapes = [(n_obs,), (n_obs, n_rep)]
             if weights["weights"].shape != expected_shapes[0]:
                 raise ValueError(
-                    f"weights must have shape {expected_shapes[0]}. "
-                    f"weights of shape {weights['weights'].shape} was passed."
+                    f"weights must have shape {expected_shapes[0]}. weights of shape {weights['weights'].shape} was passed."
                 )
             if weights["weights_bar"].shape != expected_shapes[1]:
                 raise ValueError(
@@ -349,9 +342,8 @@ def _check_external_predictions(external_predictions, valid_treatments, valid_le
 
 
 def _check_bootstrap(method, n_rep_boot):
-
     if (not isinstance(method, str)) | (method not in ["Bayes", "normal", "wild"]):
-        raise ValueError('Method must be "Bayes", "normal" or "wild". ' f"Got {str(method)}.")
+        raise ValueError(f'Method must be "Bayes", "normal" or "wild". Got {str(method)}.')
 
     if not isinstance(n_rep_boot, int):
         raise TypeError(
@@ -359,7 +351,7 @@ def _check_bootstrap(method, n_rep_boot):
             f"{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed."
         )
     if n_rep_boot < 1:
-        raise ValueError("The number of bootstrap replications must be positive. " f"{str(n_rep_boot)} was passed.")
+        raise ValueError(f"The number of bootstrap replications must be positive. {str(n_rep_boot)} was passed.")
     return
 
 
@@ -397,9 +389,9 @@ def _check_set(x):
 
 def _check_resampling_specification(n_folds, n_rep):
     if not isinstance(n_folds, int):
-        raise TypeError("The number of folds must be of int type. " f"{str(n_folds)} of type {str(type(n_folds))} was passed.")
+        raise TypeError(f"The number of folds must be of int type. {str(n_folds)} of type {str(type(n_folds))} was passed.")
     if n_folds < 2:
-        raise ValueError("The number of folds greater or equal to 2. " f"{str(n_folds)} was passed.")
+        raise ValueError(f"The number of folds greater or equal to 2. {str(n_folds)} was passed.")
 
     if not isinstance(n_rep, int):
         raise TypeError(
@@ -407,7 +399,7 @@ def _check_resampling_specification(n_folds, n_rep):
             f"{str(n_rep)} of type {str(type(n_rep))} was passed."
         )
     if n_rep < 1:
-        raise ValueError("The number of repetitions for the sample splitting has to be positive. " f"{str(n_rep)} was passed.")
+        raise ValueError(f"The number of repetitions for the sample splitting has to be positive. {str(n_rep)} was passed.")
     return
 
 
@@ -427,33 +419,30 @@ def _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)
     n_rep_cluster = len(all_smpls_cluster)
     if n_rep_cluster != n_rep:
         raise ValueError(
-            "Invalid samples provided. " "Number of repetitions for all_smpls and all_smpls_cluster must be the same."
+            "Invalid samples provided. Number of repetitions for all_smpls and all_smpls_cluster must be the same."
         )
 
     for i_rep in range(n_rep):
         n_folds_cluster = len(all_smpls_cluster[i_rep])
         if n_folds_cluster != n_folds:
-            raise ValueError(
-                "Invalid samples provided. " "Number of folds for all_smpls and all_smpls_cluster must be the same."
-            )
+            raise ValueError("Invalid samples provided. Number of folds for all_smpls and all_smpls_cluster must be the same.")
         for i_cluster in range(dml_data.n_cluster_vars):
             this_cluster_var = dml_data.cluster_vars[:, i_cluster]
             clusters = np.unique(this_cluster_var)
             cluster_partition = [all_smpls_cluster[0][0][0][i_cluster], all_smpls_cluster[0][0][1][i_cluster]]
             is_cluster_partition = _check_cluster_partitions(cluster_partition, clusters)
             if not is_cluster_partition:
-                raise ValueError("Invalid cluster partition provided. " "At least one inner list does not form a partition.")
+                raise ValueError("Invalid cluster partition provided. At least one inner list does not form a partition.")
 
     smpls_cluster = all_smpls_cluster
     return smpls_cluster
 
 
 def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_data):
-
     if isinstance(all_smpls, tuple):
         if not len(all_smpls) == 2:
             raise ValueError(
-                "Invalid partition provided. " "Tuple for train_ind and test_ind must consist of exactly two elements."
+                "Invalid partition provided. Tuple for train_ind and test_ind must consist of exactly two elements."
             )
         all_smpls = _check_smpl_split_tpl(all_smpls, dml_data.n_obs)
         if _check_is_partition([all_smpls], dml_data.n_obs) & _check_is_partition(
@@ -463,18 +452,17 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
             n_folds = 1
             smpls = [[all_smpls]]
         else:
-            raise ValueError("Invalid partition provided. " "Tuple provided that doesn't form a partition.")
+            raise ValueError("Invalid partition provided. Tuple provided that doesn't form a partition.")
     else:
         if not isinstance(all_smpls, list):
             raise TypeError(
-                "all_smpls must be of list or tuple type. " f"{str(all_smpls)} of type {str(type(all_smpls))} was passed."
+                f"all_smpls must be of list or tuple type. {str(all_smpls)} of type {str(type(all_smpls))} was passed."
             )
         all_tuple = all([isinstance(tpl, tuple) for tpl in all_smpls])
         if all_tuple:
             if not all([len(tpl) == 2 for tpl in all_smpls]):
                 raise ValueError(
-                    "Invalid partition provided. "
-                    "All tuples for train_ind and test_ind must consist of exactly two elements."
+                    "Invalid partition provided. All tuples for train_ind and test_ind must consist of exactly two elements."
                 )
             n_rep = 1
             all_smpls = _check_smpl_split(all_smpls, dml_data.n_obs)
@@ -486,7 +474,7 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
                     n_folds = len(all_smpls)
                     smpls = _check_all_smpls([all_smpls], dml_data.n_obs, check_intersect=True)
             else:
-                raise ValueError("Invalid partition provided. " "Tuples provided that don't form a partition.")
+                raise ValueError("Invalid partition provided. Tuples provided that don't form a partition.")
         else:
             all_list = all([isinstance(smpl, list) for smpl in all_smpls])
             if not all_list:
@@ -501,12 +489,11 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
             all_pairs = all([all([len(tpl) == 2 for tpl in smpl]) for smpl in all_smpls])
             if not all_pairs:
                 raise ValueError(
-                    "Invalid partition provided. "
-                    "All tuples for train_ind and test_ind must consist of exactly two elements."
+                    "Invalid partition provided. All tuples for train_ind and test_ind must consist of exactly two elements."
                 )
             n_folds_each_smpl = np.array([len(smpl) for smpl in all_smpls])
             if not np.all(n_folds_each_smpl == n_folds_each_smpl[0]):
-                raise ValueError("Invalid partition provided. " "Different number of folds for repeated sample splitting.")
+                raise ValueError("Invalid partition provided. Different number of folds for repeated sample splitting.")
             all_smpls = _check_all_smpls(all_smpls, dml_data.n_obs)
             smpls_are_partitions = [_check_is_partition(smpl, dml_data.n_obs) for smpl in all_smpls]
 
@@ -515,7 +502,7 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
                 n_folds = int(n_folds_each_smpl[0])
                 smpls = _check_all_smpls(all_smpls, dml_data.n_obs, check_intersect=True)
             else:
-                raise ValueError("Invalid partition provided. " "At least one inner list does not form a partition.")
+                raise ValueError("Invalid partition provided. At least one inner list does not form a partition.")
 
     if is_cluster_data:
         smpls_cluster = _check_cluster_sample_splitting(all_smpls_cluster, dml_data, n_rep, n_folds)

@@ -222,7 +222,6 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 
     for i_rep in range(n_rep):
-
         m_hat = predictions["ml_m"][:, i_rep, 0]
         g_hat0 = predictions["ml_g0"][:, i_rep, 0]
         g_hat1 = predictions["ml_g1"][:, i_rep, 0]

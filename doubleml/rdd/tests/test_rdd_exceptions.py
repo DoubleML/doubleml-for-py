@@ -135,7 +135,6 @@ def test_rdd_warning_treatment_assignment():
 @pytest.mark.ci_rdd
 @pytest.mark.filterwarnings("ignore:Learner provided for ml_m is probably invalid.*no classifier.*:UserWarning")
 def test_rdd_exception_learner():
-
     # ml_g
     msg = (
         r"The ml_g learner LogisticRegression\(\) was identified as classifier but the outcome variable is not"

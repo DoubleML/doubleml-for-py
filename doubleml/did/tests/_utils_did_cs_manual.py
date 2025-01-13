@@ -243,7 +243,6 @@ def did_cs_score_elements(
     score,
     in_sample_normalization,
 ):
-
     if score == "observational":
         if in_sample_normalization:
             weight_psi_a = np.divide(d, np.mean(d))
@@ -324,7 +323,6 @@ def did_cs_score_elements(
 
 
 def tune_nuisance_did_cs(y, x, d, t, ml_g, ml_m, smpls, score, n_folds_tune, param_grid_g, param_grid_m):
-
     smpls_d0_t0 = np.intersect1d(np.where(d == 0)[0], np.where(t == 0)[0])
     smpls_d0_t1 = np.intersect1d(np.where(d == 0)[0], np.where(t == 1)[0])
     smpls_d1_t0 = np.intersect1d(np.where(d == 1)[0], np.where(t == 0)[0])
@@ -360,7 +358,6 @@ def fit_sensitivity_elements_did_cs(y, d, t, all_coef, predictions, score, in_sa
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 
     for i_rep in range(n_rep):
-
         g_hat_d0_t0 = predictions["ml_g_d0_t0"][:, i_rep, 0]
         g_hat_d0_t1 = predictions["ml_g_d0_t1"][:, i_rep, 0]
         g_hat_d1_t0 = predictions["ml_g_d1_t0"][:, i_rep, 0]

@@ -353,7 +353,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, t, g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1, m_hat, p_hat, lambda_hat):
-
         # calculate residuals
         resid_d0_t0 = y - g_hat_d0_t0
         resid_d0_t1 = y - g_hat_d0_t1

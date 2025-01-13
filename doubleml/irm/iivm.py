@@ -189,9 +189,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                     + "subgroups must be a dictionary with keys always_takers and never_takers."
                 )
             if not isinstance(subgroups["always_takers"], bool):
-                raise TypeError("subgroups['always_takers'] must be True or False. " f'Got {str(subgroups["always_takers"])}.')
+                raise TypeError(f"subgroups['always_takers'] must be True or False. Got {str(subgroups['always_takers'])}.")
             if not isinstance(subgroups["never_takers"], bool):
-                raise TypeError("subgroups['never_takers'] must be True or False. " f'Got {str(subgroups["never_takers"])}.')
+                raise TypeError(f"subgroups['never_takers'] must be True or False. Got {str(subgroups['never_takers'])}.")
         self.subgroups = subgroups
         self._external_predictions_implemented = True
 
@@ -223,7 +223,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         one_treat = obj_dml_data.n_treat == 1
         binary_treat = type_of_target(obj_dml_data.d) == "binary"

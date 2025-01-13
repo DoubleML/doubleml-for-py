@@ -11,7 +11,7 @@ class DoubleMLResampling:
 
         if n_folds < 2:
             raise ValueError(
-                "n_folds must be greater than 1. " "You can use set_sample_splitting with a tuple to only use one fold."
+                "n_folds must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold."
             )
 
         if self.stratify is None:
@@ -27,7 +27,6 @@ class DoubleMLResampling:
 
 class DoubleMLClusterResampling:
     def __init__(self, n_folds, n_rep, n_obs, n_cluster_vars, cluster_vars):
-
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.n_obs = n_obs

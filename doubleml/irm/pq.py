@@ -128,7 +128,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError("kde should be either a callable or None. " "%r was passed." % kde)
+                raise TypeError("kde should be either a callable or None. %r was passed." % kde)
             self._kde = kde
 
         self._normalize_ipw = normalize_ipw
@@ -448,7 +448,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         _check_contains_iv(obj_dml_data)
         _check_zero_one_treatment(self)

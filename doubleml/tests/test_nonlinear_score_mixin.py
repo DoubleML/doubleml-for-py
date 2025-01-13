@@ -76,7 +76,7 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
                 raise ValueError("Invalid score " + score + ". " + "Valid score " + " or ".join(valid_score) + ".")
         else:
             if not callable(score):
-                raise TypeError("score should be either a string or a callable. " "%r was passed." % score)
+                raise TypeError("score should be either a string or a callable. %r was passed." % score)
         return
 
     def _check_data(self, obj_dml_data):

@@ -244,7 +244,6 @@ def lpq_dml2(y, d, z, m_z, g_du_z0, g_du_z1, comp_prob, treatment, quantile, ipw
 
 
 def lpq_est(m_z, g_du_z0, g_du_z1, comp_prob, d, y, z, treatment, quantile, ipw_est, coef_bounds):
-
     def compute_score(coef):
         sign = 2 * treatment - 1.0
         score1 = g_du_z1 - g_du_z0

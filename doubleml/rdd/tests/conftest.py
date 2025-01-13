@@ -32,7 +32,7 @@ def predict_dummy():
         ci_manual = dml_rdflex.confint(level=1 - alpha)
 
         if rdrobust is None:
-            msg = "rdrobust is not installed. " "Please install it using 'pip install DoubleML[rdd]'"
+            msg = "rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'"
             raise ImportError(msg)
 
         rdrobust_model = rdrobust.rdrobust(y=data.y, x=data.s, c=cutoff, level=100 * (1 - alpha), p=p)

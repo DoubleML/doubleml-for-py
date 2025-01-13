@@ -8,7 +8,6 @@ from ..utils._estimation import _aggregate_coefs_and_ses
 
 
 def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv, cf_y, cf_d, rho, level):
-
     # specify the parameters
     sigma2 = sensitivity_elements["sigma2"]
     nu2 = sensitivity_elements["nu2"]

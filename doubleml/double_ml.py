@@ -61,10 +61,10 @@ class DoubleML(ABC):
         # check resampling specifications
         if not isinstance(n_folds, int):
             raise TypeError(
-                "The number of folds must be of int type. " f"{str(n_folds)} of type {str(type(n_folds))} was passed."
+                f"The number of folds must be of int type. {str(n_folds)} of type {str(type(n_folds))} was passed."
             )
         if n_folds < 1:
-            raise ValueError("The number of folds must be positive. " f"{str(n_folds)} was passed.")
+            raise ValueError(f"The number of folds must be positive. {str(n_folds)} was passed.")
 
         if not isinstance(n_rep, int):
             raise TypeError(
@@ -72,12 +72,10 @@ class DoubleML(ABC):
                 f"{str(n_rep)} of type {str(type(n_rep))} was passed."
             )
         if n_rep < 1:
-            raise ValueError(
-                "The number of repetitions for the sample splitting must be positive. " f"{str(n_rep)} was passed."
-            )
+            raise ValueError(f"The number of repetitions for the sample splitting must be positive. {str(n_rep)} was passed.")
 
         if not isinstance(draw_sample_splitting, bool):
-            raise TypeError("draw_sample_splitting must be True or False. " f"Got {str(draw_sample_splitting)}.")
+            raise TypeError(f"draw_sample_splitting must be True or False. Got {str(draw_sample_splitting)}.")
 
         # set resampling specifications
         if self._is_cluster_data:
@@ -140,7 +138,7 @@ class DoubleML(ABC):
                 f"No. repeated sample splits: {self.n_rep}\n"
             )
         else:
-            resampling_info = f"No. folds: {self.n_folds}\n" f"No. repeated sample splits: {self.n_rep}\n"
+            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
         fit_summary = str(self.summary)
         res = (
             header
@@ -757,7 +755,7 @@ class DoubleML(ABC):
                         scoring_methods[learner] = None
 
         if not isinstance(tune_on_folds, bool):
-            raise TypeError("tune_on_folds must be True or False. " f"Got {str(tune_on_folds)}.")
+            raise TypeError(f"tune_on_folds must be True or False. Got {str(tune_on_folds)}.")
 
         if not isinstance(n_folds_tune, int):
             raise TypeError(
@@ -765,10 +763,10 @@ class DoubleML(ABC):
                 f"{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed."
             )
         if n_folds_tune < 2:
-            raise ValueError("The number of folds used for tuning must be at least two. " f"{str(n_folds_tune)} was passed.")
+            raise ValueError(f"The number of folds used for tuning must be at least two. {str(n_folds_tune)} was passed.")
 
         if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search"]):
-            raise ValueError('search_mode must be "grid_search" or "randomized_search". ' f"Got {str(search_mode)}.")
+            raise ValueError(f'search_mode must be "grid_search" or "randomized_search". Got {str(search_mode)}.')
 
         if not isinstance(n_iter_randomized_search, int):
             raise TypeError(
@@ -790,10 +788,10 @@ class DoubleML(ABC):
                 )
 
         if not isinstance(set_as_params, bool):
-            raise TypeError("set_as_params must be True or False. " f"Got {str(set_as_params)}.")
+            raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
 
         if not isinstance(return_tune_res, bool):
-            raise TypeError("return_tune_res must be True or False. " f"Got {str(return_tune_res)}.")
+            raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
@@ -969,10 +967,10 @@ class DoubleML(ABC):
                 )
 
         if not isinstance(store_predictions, bool):
-            raise TypeError("store_predictions must be True or False. " f"Got {str(store_predictions)}.")
+            raise TypeError(f"store_predictions must be True or False. Got {str(store_predictions)}.")
 
         if not isinstance(store_models, bool):
-            raise TypeError("store_models must be True or False. " f"Got {str(store_models)}.")
+            raise TypeError(f"store_models must be True or False. Got {str(store_models)}.")
 
         # check if external predictions are implemented
         if self._external_predictions_implemented:
@@ -1169,7 +1167,7 @@ class DoubleML(ABC):
 
         # check metric
         if not callable(metric):
-            raise TypeError("metric should be a callable. " "%r was passed." % metric)
+            raise TypeError("metric should be a callable. %r was passed." % metric)
 
         if all(learner in self.params_names for learner in learners):
             if self.nuisance_targets is None:
@@ -1189,7 +1187,7 @@ class DoubleML(ABC):
             return dist
         else:
             raise ValueError(
-                f"The learners have to be a subset of {str(self.params_names)}. " f"Learners {str(learners)} provided."
+                f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
     def draw_sample_splitting(self):
@@ -1389,7 +1387,7 @@ class DoubleML(ABC):
     def _set_score_elements(self, psi_elements, i_rep, i_treat):
         if not isinstance(psi_elements, dict):
             raise TypeError(
-                "_ml_nuisance_and_score_elements must return score elements in a dict. " f"Got type {str(type(psi_elements))}."
+                f"_ml_nuisance_and_score_elements must return score elements in a dict. Got type {str(type(psi_elements))}."
             )
         if not (set(self._score_element_names) == set(psi_elements.keys())):
             raise ValueError(
@@ -1602,7 +1600,7 @@ class DoubleML(ABC):
             raise NotImplementedError(f"Sensitivity analysis not yet implemented for {self.__class__.__name__}.")
         if not isinstance(benchmarking_set, list):
             raise TypeError(
-                "benchmarking_set must be a list. " f"{str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
+                f"benchmarking_set must be a list. {str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
             )
         if len(benchmarking_set) == 0:
             raise ValueError("benchmarking_set must not be empty.")
@@ -1612,7 +1610,7 @@ class DoubleML(ABC):
                 f"{str(benchmarking_set)} was passed."
             )
         if fit_args is not None and not isinstance(fit_args, dict):
-            raise TypeError("fit_args must be a dict. " f"{str(fit_args)} of type {type(fit_args)} was passed.")
+            raise TypeError(f"fit_args must be a dict. {str(fit_args)} of type {type(fit_args)} was passed.")
 
         # refit short form of the model
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]

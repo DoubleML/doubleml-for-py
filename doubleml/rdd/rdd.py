@@ -108,9 +108,8 @@ class RDFlex:
         fs_kernel="triangular",
         **kwargs,
     ):
-
         if rdrobust is None:
-            msg = "rdrobust is not installed. " "Please install it using 'pip install DoubleML[rdd]'"
+            msg = "rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'"
             raise ImportError(msg)
 
         self._check_data(obj_dml_data, cutoff)
@@ -135,7 +134,7 @@ class RDFlex:
             self._h_fs = rdrobust.rdbwselect(y=obj_dml_data.y, x=self._score, fuzzy=fuzzy).bws.values.flatten().max()
         else:
             if not isinstance(h_fs, (float)):
-                raise TypeError("Initial bandwidth 'h_fs' has to be a float. " f"Object of type {str(type(h_fs))} passed.")
+                raise TypeError(f"Initial bandwidth 'h_fs' has to be a float. Object of type {str(type(h_fs))} passed.")
             self._h_fs = h_fs
 
         self._fs_specification = self._check_fs_specification(fs_specification)
@@ -382,11 +381,9 @@ class RDFlex:
             A data frame with the confidence interval(s).
         """
         if not isinstance(level, float):
-            raise TypeError(
-                "The confidence level must be of float type. " f"{str(level)} of type {str(type(level))} was passed."
-            )
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
         if (level <= 0) | (level >= 1):
-            raise ValueError("The confidence level must be in (0,1). " f"{str(level)} was passed.")
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
 
         # compute critical values
         alpha = 1 - level
@@ -406,7 +403,6 @@ class RDFlex:
         return df_ci
 
     def _fit_nuisance_model(self, outcome, estimator_name, weights, smpls):
-
         # Include transformation of score and cutoff if necessary
         if self._fs_specification == "cutoff":
             Z = self._intendend_treatment  # instrument for treatment
@@ -488,7 +484,7 @@ class RDFlex:
     def _check_data(self, obj_dml_data, cutoff):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
 
         # score checks
@@ -499,7 +495,7 @@ class RDFlex:
             raise ValueError("Incompatible data. " + "Score variable has to be continuous. ")
 
         if not isinstance(cutoff, (int, float)):
-            raise TypeError("Cutoff value has to be a float or int. " f"Object of type {str(type(cutoff))} passed.")
+            raise TypeError(f"Cutoff value has to be a float or int. Object of type {str(type(cutoff))} passed.")
         if not (obj_dml_data.s.min() <= cutoff <= obj_dml_data.s.max()):
             raise ValueError("Cutoff value is not within the range of the score variable. ")
 
@@ -560,8 +556,7 @@ class RDFlex:
     def _check_and_set_kernel(self, fs_kernel):
         if not isinstance(fs_kernel, (str, Callable)):
             raise TypeError(
-                "fs_kernel must be either a string or a callable. "
-                f"{str(fs_kernel)} of type {str(type(fs_kernel))} was passed."
+                f"fs_kernel must be either a string or a callable. {str(fs_kernel)} of type {str(type(fs_kernel))} was passed."
             )
 
         kernel_functions = {
@@ -588,13 +583,12 @@ class RDFlex:
     def _check_fs_specification(self, fs_specification):
         if not isinstance(fs_specification, str):
             raise TypeError(
-                "fs_specification must be a string. "
-                f"{str(fs_specification)} of type {str(type(fs_specification))} was passed."
+                f"fs_specification must be a string. {str(fs_specification)} of type {str(type(fs_specification))} was passed."
             )
         expected_specifications = ["cutoff", "cutoff and score", "interacted cutoff and score"]
         if fs_specification not in expected_specifications:
             raise ValueError(
-                f"Invalid fs_specification '{fs_specification}'. " f"Valid specifications are {expected_specifications}."
+                f"Invalid fs_specification '{fs_specification}'. Valid specifications are {expected_specifications}."
             )
         return fs_specification
 

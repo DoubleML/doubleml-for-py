@@ -30,7 +30,6 @@ def _assert_smpls_equal(smpls0, smpls1):
 
 @pytest.mark.ci
 def test_doubleml_set_sample_splitting_tuple():
-
     # no sample splitting
     smpls = (np.arange(n_obs), np.arange(n_obs))
     dml_plr.set_sample_splitting(smpls)
@@ -99,9 +98,7 @@ def test_doubleml_set_sample_splitting_all_list():
         [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]), ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
         (([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]), ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])),
     ]
-    msg = (
-        "Invalid partition provided. " "all_smpls is a list where neither all elements are tuples nor all elements are lists."
-    )
+    msg = "Invalid partition provided. all_smpls is a list where neither all elements are tuples nor all elements are lists."
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_sample_splitting(smpls)
 
@@ -131,13 +128,13 @@ def test_doubleml_set_sample_splitting_all_list():
 
     # sample splitting with cross-fitting and two folds that do not form a partition
     smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]), ([5, 6, 7, 8], [0, 1, 2, 3, 4, 9])]]
-    msg = "Invalid partition provided. " "At least one inner list does not form a partition."
+    msg = "Invalid partition provided. At least one inner list does not form a partition."
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_sample_splitting(smpls)
 
     # repeated no-cross-fitting (does not form a partition)
     smpls = [[([0, 1, 5, 7, 9], [2, 3, 4, 6, 8])], [([2, 4, 7, 8, 9], [0, 1, 3, 5, 6])], [([0, 1, 4, 6, 8], [2, 3, 5, 7, 9])]]
-    msg = "Invalid partition provided. " "At least one inner list does not form a partition."
+    msg = "Invalid partition provided. At least one inner list does not form a partition."
     with pytest.raises(ValueError, match=msg):
         dml_plr.set_sample_splitting(smpls)
 

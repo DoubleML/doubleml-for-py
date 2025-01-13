@@ -489,7 +489,6 @@ def test_doubleml_exception_trimming_rule():
 
 @pytest.mark.ci
 def test_doubleml_exception_weights():
-
     msg = "weights must be a numpy array or dictionary. weights of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), weights=1)
@@ -690,10 +689,7 @@ def test_doubleml_exception_subgroups():
             LogisticRegression(),
             subgroups={"always_takers": True, "never_takers": False, "abs": 5},
         )
-    msg = (
-        "Invalid subgroups {'always_takers': True}. "
-        "subgroups must be a dictionary with keys always_takers and never_takers."
-    )
+    msg = "Invalid subgroups {'always_takers': True}. subgroups must be a dictionary with keys always_takers and never_takers."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), subgroups={"always_takers": True})
     msg = r"subgroups\['always_takers'\] must be True or False. Got 5."
@@ -721,7 +717,7 @@ def test_doubleml_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=1.5)
-    msg = "The number of repetitions for the sample splitting must be of int type. " "1.5 of type <class 'float'> was passed."
+    msg = "The number of repetitions for the sample splitting must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(dml_data, ml_l, ml_m, n_rep=1.5)
     msg = "The number of folds must be positive. 0 was passed."
@@ -901,9 +897,7 @@ def test_doubleml_exception_tune():
 
     param_grids = {"ml_l": {"alpha": [0.05, 0.5]}, "ml_m": {"alpha": [0.05, 0.5]}}
     msg = (
-        "Invalid scoring_methods neg_mean_absolute_error. "
-        "scoring_methods must be a dictionary. "
-        "Valid keys are ml_l and ml_m."
+        "Invalid scoring_methods neg_mean_absolute_error. scoring_methods must be a dictionary. Valid keys are ml_l and ml_m."
     )
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune(param_grids, scoring_methods="neg_mean_absolute_error")
@@ -1226,7 +1220,7 @@ def test_doubleml_sensitivity_inputs():
         _ = dml_irm.sensitivity_plot(idx_treatment=1)
 
     # test setter
-    msg = "_sensitivity_element_est must return sensitivity elements in a dict. " "Got type <class 'int'>."
+    msg = "_sensitivity_element_est must return sensitivity elements in a dict. Got type <class 'int'>."
     with pytest.raises(TypeError, match=msg):
         _ = dml_irm._set_sensitivity_elements(sensitivity_elements=1, i_rep=0, i_treat=0)
 
@@ -1588,7 +1582,7 @@ def test_double_ml_external_predictions():
         dml_irm_obj.fit(external_predictions=predictions)
 
     predictions = {"d": "test"}
-    msg = "external_predictions must be a nested dictionary. " "For treatment d a value of type <class 'str'> was passed."
+    msg = "external_predictions must be a nested dictionary. For treatment d a value of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_irm_obj.fit(external_predictions=predictions)
 

@@ -135,7 +135,6 @@ def did_dml2(psi_a, psi_b):
 
 
 def did_score_elements(g_hat0, g_hat1, m_hat, p_hat, resid_d0, d, score, in_sample_normalization):
-
     if score == "observational":
         if in_sample_normalization:
             weight_psi_a = np.divide(d, np.mean(d))
@@ -195,7 +194,6 @@ def boot_did(y, thetas, ses, all_psi_a, all_psi_b, all_smpls, bootstrap, n_rep_b
 
 
 def boot_did_single_split(theta, psi_a, psi_b, smpls, se, weights, n_rep_boot, apply_cross_fitting):
-
     if apply_cross_fitting:
         J = np.mean(psi_a)
     else:
@@ -237,7 +235,6 @@ def fit_sensitivity_elements_did(y, d, all_coef, predictions, score, in_sample_n
     psi_nu2 = np.full(shape=(n_obs, n_rep, n_treat), fill_value=np.nan)
 
     for i_rep in range(n_rep):
-
         g_hat0 = predictions["ml_g0"][:, i_rep, 0]
         g_hat1 = predictions["ml_g1"][:, i_rep, 0]
 

@@ -1207,7 +1207,7 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
         m_short = np.clip(m_short, trimming_threshold, 1.0 - trimming_threshold)
         warnings.warn(
             f"Propensity score is close to 0 or 1. "
-            f"Trimming is at {trimming_threshold} and {1.0-trimming_threshold} is applied"
+            f"Trimming is at {trimming_threshold} and {1.0 - trimming_threshold} is applied"
         )
     # generate treatment based on long form
     u = np.random.uniform(low=0, high=1, size=n_obs)

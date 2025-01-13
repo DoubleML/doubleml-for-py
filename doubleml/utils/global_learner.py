@@ -13,7 +13,6 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
     """
 
     def __init__(self, base_estimator):
-
         if not is_regressor(base_estimator):
             raise ValueError(f"base_estimator must be a regressor. Got {base_estimator.__class__.__name__} instead.")
 
@@ -62,7 +61,6 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, base_estimator):
-
         if not is_classifier(base_estimator):
             raise ValueError(f"base_estimator must be a classifier. Got {base_estimator.__class__.__name__} instead.")
 

@@ -22,7 +22,6 @@ def fit_qte(
     normalize_ipw=True,
     draw_sample_splitting=True,
 ):
-
     n_obs = len(y)
     n_quantiles = len(quantiles)
     n_folds = len(all_smpls[0])

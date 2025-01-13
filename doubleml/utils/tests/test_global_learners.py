@@ -24,7 +24,6 @@ def classifier(request):
 
 @pytest.fixture(scope="module")
 def gl_fixture(regressor, classifier):
-
     global_reg = GlobalRegressor(base_estimator=regressor)
     weighted_reg = clone(regressor)
     unweighted_reg = clone(regressor)

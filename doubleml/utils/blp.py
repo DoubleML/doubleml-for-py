@@ -27,20 +27,19 @@ class DoubleMLBLP:
     """
 
     def __init__(self, orth_signal, basis, is_gate=False):
-
         if not isinstance(orth_signal, np.ndarray):
-            raise TypeError("The signal must be of np.ndarray type. " f"Signal of type {str(type(orth_signal))} was passed.")
+            raise TypeError(f"The signal must be of np.ndarray type. Signal of type {str(type(orth_signal))} was passed.")
 
         if orth_signal.ndim != 1:
             raise ValueError(
-                "The signal must be of one dimensional. " f"Signal of dimensions {str(orth_signal.ndim)} was passed."
+                f"The signal must be of one dimensional. Signal of dimensions {str(orth_signal.ndim)} was passed."
             )
 
         if not isinstance(basis, pd.DataFrame):
-            raise TypeError("The basis must be of DataFrame type. " f"Basis of type {str(type(basis))} was passed.")
+            raise TypeError(f"The basis must be of DataFrame type. Basis of type {str(type(basis))} was passed.")
 
         if not basis.columns.is_unique:
-            raise ValueError("Invalid pd.DataFrame: " "Contains duplicate column names.")
+            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
 
         self._orth_signal = orth_signal
         self._basis = basis
@@ -159,14 +158,12 @@ class DoubleMLBLP:
             A data frame with the confidence interval(s).
         """
         if not isinstance(joint, bool):
-            raise TypeError("joint must be True or False. " f"Got {str(joint)}.")
+            raise TypeError(f"joint must be True or False. Got {str(joint)}.")
 
         if not isinstance(level, float):
-            raise TypeError(
-                "The confidence level must be of float type. " f"{str(level)} of type {str(type(level))} was passed."
-            )
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
         if (level <= 0) | (level >= 1):
-            raise ValueError("The confidence level must be in (0,1). " f"{str(level)} was passed.")
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
 
         if not isinstance(n_rep_boot, int):
             raise TypeError(
@@ -174,7 +171,7 @@ class DoubleMLBLP:
                 f"{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed."
             )
         if n_rep_boot < 1:
-            raise ValueError("The number of bootstrap replications must be positive. " f"{str(n_rep_boot)} was passed.")
+            raise ValueError(f"The number of bootstrap replications must be positive. {str(n_rep_boot)} was passed.")
 
         if self._blp_model is None:
             raise ValueError("Apply fit() before confint().")

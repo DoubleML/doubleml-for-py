@@ -29,20 +29,19 @@ class DoubleMLPolicyTree:
     """
 
     def __init__(self, orth_signal, features, depth=2, **tree_params):
-
         if not isinstance(orth_signal, np.ndarray):
-            raise TypeError("The signal must be of np.ndarray type. " f"Signal of type {str(type(orth_signal))} was passed.")
+            raise TypeError(f"The signal must be of np.ndarray type. Signal of type {str(type(orth_signal))} was passed.")
 
         if orth_signal.ndim != 1:
             raise ValueError(
-                "The signal must be of one dimensional. " f"Signal of dimensions {str(orth_signal.ndim)} was passed."
+                f"The signal must be of one dimensional. Signal of dimensions {str(orth_signal.ndim)} was passed."
             )
 
         if not isinstance(features, pd.DataFrame):
-            raise TypeError("The features must be of DataFrame type. " f"Features of type {str(type(features))} was passed.")
+            raise TypeError(f"The features must be of DataFrame type. Features of type {str(type(features))} was passed.")
 
         if not features.columns.is_unique:
-            raise ValueError("Invalid pd.DataFrame: " "Contains duplicate column names.")
+            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
 
         self._orth_signal = orth_signal
         self._features = features
@@ -145,12 +144,11 @@ class DoubleMLPolicyTree:
         check_is_fitted(self._policy_tree, msg="Policy Tree not yet fitted. Call fit before predict.")
 
         if not isinstance(features, pd.DataFrame):
-            raise TypeError("The features must be of DataFrame type. " f"Features of type {str(type(features))} was passed.")
+            raise TypeError(f"The features must be of DataFrame type. Features of type {str(type(features))} was passed.")
 
         if not set(features.keys()) == set(self._features.keys()):
             raise KeyError(
-                f"The features must have the keys {self._features.keys()}. "
-                f"Features with keys {features.keys()} were passed."
+                f"The features must have the keys {self._features.keys()}. Features with keys {features.keys()} were passed."
             )
 
         predictions = self.policy_tree.predict(features)

@@ -114,7 +114,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                     )
                 )
         elif isinstance(self.score, str) & (self.score == "IV-type"):
-            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. " "Set ml_g = clone(ml_l)."))
+            warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l)."))
             self._learner["ml_g"] = clone(ml_l)
 
         self._predict_method = {"ml_l": "predict"}
@@ -141,7 +141,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
             raise ValueError(
@@ -418,7 +418,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         """
 
         if not isinstance(groups, pd.DataFrame):
-            raise TypeError("Groups must be of DataFrame type. " f"Groups of type {str(type(groups))} was passed.")
+            raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
         if not all(groups.dtypes == bool) or all(groups.dtypes == int):
             if groups.shape[1] == 1:
                 groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")

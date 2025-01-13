@@ -200,13 +200,13 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 raise ValueError("Invalid score " + score + ". " + "Valid score " + " or ".join(valid_score) + ".")
         else:
             if not callable(score):
-                raise TypeError("score should be either a string or a callable. " "%r was passed." % score)
+                raise TypeError("score should be either a string or a callable. %r was passed." % score)
         return score
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.n_instr == 0:
             raise ValueError(
@@ -405,9 +405,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         else:
             assert callable(self.score)
             if self._dml_data.n_instr > 1:
-                raise NotImplementedError(
-                    "Callable score not implemented for DoubleMLPLIV.partialX " "with several instruments."
-                )
+                raise NotImplementedError("Callable score not implemented for DoubleMLPLIV.partialX with several instruments.")
             else:
                 assert self._dml_data.n_instr == 1
                 psi_a, psi_b = self.score(y=y, z=z, d=d, l_hat=l_hat, m_hat=m_hat, r_hat=r_hat, g_hat=g_hat, smpls=smpls)

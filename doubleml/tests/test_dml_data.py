@@ -89,8 +89,8 @@ def test_obj_vs_from_arrays():
 
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     df = dml_data.data.copy().iloc[:, :10]
-    df.columns = [f"X{i+1}" for i in np.arange(7)] + ["y", "d1", "d2"]
-    dml_data = DoubleMLData(df, "y", ["d1", "d2"], [f"X{i+1}" for i in np.arange(7)])
+    df.columns = [f"X{i + 1}" for i in np.arange(7)] + ["y", "d1", "d2"]
+    dml_data = DoubleMLData(df, "y", ["d1", "d2"], [f"X{i + 1}" for i in np.arange(7)])
     dml_data_from_array = DoubleMLData.from_arrays(
         dml_data.data[dml_data.x_cols], dml_data.data[dml_data.y_col], dml_data.data[dml_data.d_cols]
     )

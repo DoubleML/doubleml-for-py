@@ -102,7 +102,6 @@ class DoubleMLQTE:
         trimming_threshold=1e-2,
         draw_sample_splitting=True,
     ):
-
         self._dml_data = obj_dml_data
         self._quantiles = np.asarray(quantiles).reshape((-1,))
         self._check_quantile()
@@ -112,7 +111,7 @@ class DoubleMLQTE:
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError("kde should be either a callable or None. " "%r was passed." % kde)
+                raise TypeError("kde should be either a callable or None. %r was passed." % kde)
             self._kde = kde
 
         self._normalize_ipw = normalize_ipw
@@ -585,7 +584,6 @@ class DoubleMLQTE:
         return p_val
 
     def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
-
         model_0 = self.modellist_0[i_quant]
         model_1 = self.modellist_1[i_quant]
 
@@ -597,7 +595,7 @@ class DoubleMLQTE:
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         _check_zero_one_treatment(self)
         return
@@ -621,7 +619,6 @@ class DoubleMLQTE:
             "draw_sample_splitting": False,
         }
         for i_quant in range(self.n_quantiles):
-
             # initialize models for both potential quantiles
             if self.score == "PQ":
                 model_0 = DoubleMLPQ(quantile=self._quantiles[i_quant], treatment=0, kde=self.kde, **kwargs)

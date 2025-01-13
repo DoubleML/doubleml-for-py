@@ -26,7 +26,6 @@ def test_var_est_and_aggr_fixture(n_rep, n_coefs):
     for i_coef in range(n_coefs):
         n_obs = np.random.randint(100, 200)
         for i_rep in range(n_rep):
-
             psi = np.random.normal(size=(n_obs))
             psi_deriv = np.ones((n_obs))
 

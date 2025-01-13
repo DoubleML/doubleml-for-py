@@ -14,7 +14,6 @@ def _sensitivity_contour_plot(
     benchmarks=None,
     fill=True,
 ):
-
     if fill:
         text_col = "white"
         contours_coloring = "heatmap"
