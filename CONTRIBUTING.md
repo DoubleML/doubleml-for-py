@@ -81,7 +81,7 @@ $ git merge upstream/main
 
 5. **Install DoubleML in editable mode** (more details can be found
 [here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
-via 
+via
 ```bash
 $ pip install --editable .[dev, rdd]
 ```
@@ -171,7 +171,7 @@ The source code for the website, user guide, example gallery, etc. is available 
 
 ### Contribute to the API Documentation
 The **API documentation** is generated from **docstrings** in the source code.
-It can be generated locally (dev requirements sphinx and pydata-sphinx-theme need to be installed) via 
+It can be generated locally (dev requirements sphinx and pydata-sphinx-theme need to be installed) via
 ```bash
 $ cd doc/
 $ make html
@@ -181,7 +181,7 @@ $ make html
 The **documentation of DoubleML** is hosted at [https://docs.doubleml.org](https://docs.doubleml.org).
 The **source code** for the website, user guide, example gallery, etc. is available in a **separate repository
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs)**.
-Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the 
+Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs) repo.
 We welcome contributions to the user guide, especially case studies for the
 [example gallery](https://docs.doubleml.org/stable/examples/index.html).
