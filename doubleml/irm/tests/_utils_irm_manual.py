@@ -269,7 +269,6 @@ def boot_irm_single_split(
         y, g_hat0_list, g_hat1_list, m_hat_list, p_hat_list, smpls
     )
 
-    m_hat_adj = np.full_like(m_hat, np.nan, dtype="float64")
     if normalize_ipw:
         m_hat_adj = _normalize_ipw(m_hat, d)
     else:
