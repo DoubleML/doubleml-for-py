@@ -41,8 +41,26 @@ rdd = [
 dev = [
     "pytest",
     "xgboost",
-    "lightgbm"
+    "lightgbm",
+    "black>=24.3.0",
 ]
+
+[tool.black]
+line-length = 127
+target-version = ['py39', 'py310', 'py311']
+preview = true
+exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.mypy_cache
+  | \.vscode
+  | build
+  | dist
+  | doc/_build
+  | doubleml/externals
+)/
+'''
 
 [project.urls]
 Documentation = "https://docs.doubleml.org"
