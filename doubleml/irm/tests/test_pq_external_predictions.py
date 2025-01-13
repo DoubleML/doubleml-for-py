@@ -1,10 +1,13 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LogisticRegression
-from doubleml import DoubleMLPQ, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLPQ
 from doubleml.datasets import make_irm_data
 from doubleml.utils import DMLDummyClassifier
+
 from ...tests._utils import draw_smpls
 
 
@@ -80,11 +83,7 @@ def doubleml_pq_fixture(n_rep, normalize_ipw, set_ml_m_ext, set_ml_g_ext):
         tol_rel = 1e-9
         tol_abs = 1e-4
 
-    res_dict = {
-        "coef_normal": dml_pq.coef.item(),
-        "coef_ext": dml_pq_ext.coef.item(),
-        "tol_rel": tol_rel, "tol_abs":
-        tol_abs}
+    res_dict = {"coef_normal": dml_pq.coef.item(), "coef_ext": dml_pq_ext.coef.item(), "tol_rel": tol_rel, "tol_abs": tol_abs}
 
     return res_dict
 

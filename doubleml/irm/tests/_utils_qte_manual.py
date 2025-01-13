@@ -1,17 +1,27 @@
 import numpy as np
 from sklearn.base import clone
 
-from ..pq import DoubleMLPQ
 from ...double_ml_data import DoubleMLData
-
 from ...tests._utils_boot import draw_weights
 from ...utils._estimation import _default_kde
+from ..pq import DoubleMLPQ
 
 
-def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
-            trimming_rule='truncate', trimming_threshold=1e-2, kde=_default_kde,
-            normalize_ipw=True, draw_sample_splitting=True):
-
+def fit_qte(
+    y,
+    x,
+    d,
+    quantiles,
+    learner_g,
+    learner_m,
+    all_smpls,
+    n_rep=1,
+    trimming_rule="truncate",
+    trimming_threshold=1e-2,
+    kde=_default_kde,
+    normalize_ipw=True,
+    draw_sample_splitting=True,
+):
     n_obs = len(y)
     n_quantiles = len(quantiles)
     n_folds = len(all_smpls[0])
@@ -25,30 +35,34 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
 
     for i_quant in range(n_quantiles):
         # initialize models for both potential quantiles
-        model_PQ_0 = DoubleMLPQ(dml_data,
-                                clone(learner_g),
-                                clone(learner_m),
-                                quantile=quantiles[i_quant],
-                                treatment=0,
-                                n_folds=n_folds,
-                                n_rep=n_rep,
-                                trimming_rule=trimming_rule,
-                                trimming_threshold=trimming_threshold,
-                                kde=kde,
-                                normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False)
-        model_PQ_1 = DoubleMLPQ(dml_data,
-                                clone(learner_g),
-                                clone(learner_m),
-                                quantile=quantiles[i_quant],
-                                treatment=1,
-                                n_folds=n_folds,
-                                n_rep=n_rep,
-                                trimming_rule=trimming_rule,
-                                trimming_threshold=trimming_threshold,
-                                kde=kde,
-                                normalize_ipw=normalize_ipw,
-                                draw_sample_splitting=False)
+        model_PQ_0 = DoubleMLPQ(
+            dml_data,
+            clone(learner_g),
+            clone(learner_m),
+            quantile=quantiles[i_quant],
+            treatment=0,
+            n_folds=n_folds,
+            n_rep=n_rep,
+            trimming_rule=trimming_rule,
+            trimming_threshold=trimming_threshold,
+            kde=kde,
+            normalize_ipw=normalize_ipw,
+            draw_sample_splitting=False,
+        )
+        model_PQ_1 = DoubleMLPQ(
+            dml_data,
+            clone(learner_g),
+            clone(learner_m),
+            quantile=quantiles[i_quant],
+            treatment=1,
+            n_folds=n_folds,
+            n_rep=n_rep,
+            trimming_rule=trimming_rule,
+            trimming_threshold=trimming_threshold,
+            kde=kde,
+            normalize_ipw=normalize_ipw,
+            draw_sample_splitting=False,
+        )
 
         # synchronize the sample splitting
         model_PQ_0.set_sample_splitting(all_smpls)
@@ -76,12 +90,11 @@ def fit_qte(y, x, d, quantiles, learner_g, learner_m, all_smpls, n_rep=1,
     qte = np.median(qtes, 1)
     se = np.zeros(n_quantiles)
     for i_quant in range(n_quantiles):
-        se[i_quant] = np.sqrt(np.median(np.power(ses[i_quant, :], 2) * n_obs +
-                                        np.power(qtes[i_quant, :] - qte[i_quant], 2)) / n_obs)
+        se[i_quant] = np.sqrt(
+            np.median(np.power(ses[i_quant, :], 2) * n_obs + np.power(qtes[i_quant, :] - qte[i_quant], 2)) / n_obs
+        )
 
-    res = {'qte': qte, 'se': se,
-           'qtes': qtes, 'ses': ses,
-           'scaled_scores': scaled_scores}
+    res = {"qte": qte, "se": se, "qtes": qtes, "ses": ses, "scaled_scores": scaled_scores}
 
     return res
 
@@ -93,7 +106,8 @@ def boot_qte(scaled_scores, ses, quantiles, all_smpls, n_rep, bootstrap, n_rep_b
         n_obs = scaled_scores.shape[0]
         weights = draw_weights(bootstrap, n_rep_boot, n_obs)
         for i_quant in range(n_quantiles):
-            boot_t_stat[:, i_quant, i_rep] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / \
-                (n_obs * ses[i_quant, i_rep])
+            boot_t_stat[:, i_quant, i_rep] = np.matmul(weights, scaled_scores[:, i_quant, i_rep]) / (
+                n_obs * ses[i_quant, i_rep]
+            )
 
     return boot_t_stat
