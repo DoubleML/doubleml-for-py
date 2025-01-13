@@ -25,6 +25,51 @@ class DoubleMLResampling:
         return smpls
 
 
+class DoubleMLDoubleResampling:
+    def __init__(self,
+                 n_folds,
+                 n_folds_inner,
+                 n_rep,
+                 n_obs,
+                 stratify=None):
+        self.n_folds = n_folds
+        self.n_rep = n_rep
+        self.n_obs = n_obs
+        self.stratify = stratify
+
+        if n_folds < 2:
+            raise ValueError('n_folds must be greater than 1. '
+                             'You can use set_sample_splitting with a tuple to only use one fold.')
+        if n_folds_inner < 2:
+            raise ValueError('n_folds_inner must be greater than 1. '
+                             'You can use set_sample_splitting with a tuple to only use one fold.')
+
+
+        if self.stratify is None:
+            self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
+            self.resampling_inner = RepeatedKFold(n_splits=n_folds_inner)
+        else:
+            self.resampling = RepeatedStratifiedKFold(n_splits=n_folds, n_repeats=n_rep)
+            self.resampling_inner = RepeatedStratifiedKFold(n_splits=n_folds_inner)
+
+    def split_samples(self):
+        all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
+        smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
+                 for i_repeat in range(self.n_rep)]
+        smpls_inner = []
+        for _ in range(self.n_rep):
+            smpls_inner_rep = []
+            for _, test in all_smpls:
+                if self.stratify is None:
+                    smpls_inner_rep.append([(train_inner, test_inner) for train_inner, test_inner in self.resampling_inner.split(X=test)])
+                else:
+                    smpls_inner_rep.append([(train_inner, test_inner) for train_inner, test_inner in
+                                            self.resampling_inner.split(X=np.zeros(len(test)), y=self.stratify[test])])
+            smpls_inner.append(smpls_inner_rep)
+
+        return smpls, smpls_inner
+
+
 class DoubleMLClusterResampling:
     def __init__(self, n_folds, n_rep, n_obs, n_cluster_vars, cluster_vars):
         self.n_folds = n_folds
