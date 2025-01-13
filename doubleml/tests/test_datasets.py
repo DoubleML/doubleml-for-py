@@ -188,7 +188,9 @@ def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
         )
         assert isinstance(t, np.ndarray)
     else:
-        x, y, d = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=np.ndarray)
+        x, y, d, _ = make_did_SZ2020(
+            n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=np.ndarray
+        )
     assert isinstance(x, np.ndarray)
     assert isinstance(y, np.ndarray)
     assert isinstance(d, np.ndarray)
