@@ -1,12 +1,10 @@
 import numpy as np
-
 import scipy.sparse as sp
 from joblib import Parallel, delayed
-
 from sklearn.base import clone
-from sklearn.utils.validation import _num_samples
+from sklearn.model_selection._validation import _check_is_permutation, _fit_and_predict
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection._validation import _fit_and_predict, _check_is_permutation
+from sklearn.utils.validation import _num_samples
 
 
 def _dml_cv_predict_ut_version(estimator, x, y, smpls=None,

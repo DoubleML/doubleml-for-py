@@ -1,14 +1,18 @@
-import pytest
 import numpy as np
 import pandas as pd
-
-from doubleml import DoubleMLData, DoubleMLPLR, DoubleMLClusterData, DoubleMLDIDCS, \
-    DoubleMLSSM
-from doubleml.datasets import make_plr_CCDDHNR2018, _make_pliv_data, make_pliv_CHS2015, \
-    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020, make_ssm_data
-from doubleml.double_ml_data import DoubleMLBaseData
-
+import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
+
+from doubleml import DoubleMLClusterData, DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
+from doubleml.datasets import (
+    _make_pliv_data,
+    make_did_SZ2020,
+    make_pliv_CHS2015,
+    make_pliv_multiway_cluster_CKMS2021,
+    make_plr_CCDDHNR2018,
+    make_ssm_data,
+)
+from doubleml.double_ml_data import DoubleMLBaseData
 
 
 class DummyDataClass(DoubleMLBaseData):

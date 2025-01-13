@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 
 from doubleml.double_ml_framework import DoubleMLFramework, concat
+
 from ._utils import generate_dml_dict
 
 

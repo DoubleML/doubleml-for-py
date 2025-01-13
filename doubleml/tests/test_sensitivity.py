@@ -1,14 +1,14 @@
-import pytest
-import numpy as np
 import copy
 
-import doubleml as dml
-from doubleml import DoubleMLIRM, DoubleMLData
-from doubleml.datasets import make_irm_data
+import numpy as np
+import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_manual, \
-    doubleml_sensitivity_benchmark_manual
+import doubleml as dml
+from doubleml import DoubleMLData, DoubleMLIRM
+from doubleml.datasets import make_irm_data
+
+from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual, doubleml_sensitivity_manual
 
 
 @pytest.fixture(scope="module", params=[["X1"], ["X2"], ["X3"]])

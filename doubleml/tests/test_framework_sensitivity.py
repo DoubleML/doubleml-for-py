@@ -1,9 +1,8 @@
 import pytest
-
-from doubleml.irm.irm import DoubleMLIRM
-from doubleml.double_ml_framework import concat
-
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
+from doubleml.double_ml_framework import concat
+from doubleml.irm.irm import DoubleMLIRM
 
 
 @pytest.fixture(scope='module',

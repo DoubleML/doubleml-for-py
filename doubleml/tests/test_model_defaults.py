@@ -1,12 +1,17 @@
-import pytest
 import numpy as np
+import pytest
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, make_did_SZ2020, \
-    make_ssm_data
-
-from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from doubleml.datasets import (
+    make_did_SZ2020,
+    make_iivm_data,
+    make_irm_data,
+    make_pliv_CHS2015,
+    make_plr_CCDDHNR2018,
+    make_ssm_data,
+)
 
 np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)

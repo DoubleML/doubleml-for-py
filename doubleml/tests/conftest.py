@@ -1,15 +1,10 @@
 import numpy as np
 import pandas as pd
-
 import pytest
-
-from sklearn.datasets import make_spd_matrix
-from sklearn.datasets import make_regression, make_classification
-
-from doubleml.datasets import make_plr_turrell2018, make_irm_data, \
-    make_pliv_CHS2015
+from sklearn.datasets import make_classification, make_regression, make_spd_matrix
 
 from doubleml import DoubleMLData
+from doubleml.datasets import make_irm_data, make_pliv_CHS2015, make_plr_turrell2018
 
 
 def _g(x):

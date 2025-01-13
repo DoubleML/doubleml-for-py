@@ -1,38 +1,37 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly
+import pytest
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.svm import LinearSVR
 
 from doubleml import (
-    DoubleMLPLR,
-    DoubleMLIRM,
-    DoubleMLIIVM,
-    DoubleMLPLIV,
-    DoubleMLData,
+    DoubleMLAPO,
     DoubleMLClusterData,
     DoubleMLCVAR,
-    DoubleMLPQ,
-    DoubleMLLPQ,
+    DoubleMLData,
     DoubleMLDID,
     DoubleMLDIDCS,
-    DoubleMLPolicyTree,
     DoubleMLFramework,
+    DoubleMLIIVM,
+    DoubleMLIRM,
+    DoubleMLLPQ,
+    DoubleMLPLIV,
+    DoubleMLPLR,
+    DoubleMLPolicyTree,
+    DoubleMLPQ,
     DoubleMLSSM,
-    DoubleMLAPO
 )
 from doubleml.datasets import (
-    make_plr_CCDDHNR2018,
+    make_did_SZ2020,
+    make_iivm_data,
     make_irm_data,
     make_pliv_CHS2015,
-    make_iivm_data,
     make_pliv_multiway_cluster_CKMS2021,
-    make_did_SZ2020,
+    make_plr_CCDDHNR2018,
     make_ssm_data,
 )
-
-from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import LinearSVR
 
 np.random.seed(3141)
 n_obs = 200

@@ -1,17 +1,16 @@
-import numpy as np
-import pytest
 import math
 
-from sklearn.linear_model import LinearRegression, Lasso
+import numpy as np
+import pytest
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
 
+from ..plm.tests._utils_pliv_manual import compute_pliv_residuals, fit_pliv
 from ._utils import _clone
-from ._utils_cluster import var_one_way_cluster, est_one_way_cluster_dml2, \
-    est_two_way_cluster_dml2, var_two_way_cluster
-from ..plm.tests._utils_pliv_manual import fit_pliv, compute_pliv_residuals
+from ._utils_cluster import est_one_way_cluster_dml2, est_two_way_cluster_dml2, var_one_way_cluster, var_two_way_cluster
 
 np.random.seed(1234)
 # Set the simulation parameters

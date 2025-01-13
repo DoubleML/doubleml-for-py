@@ -1,18 +1,36 @@
-import pytest
-import pandas as pd
-import numpy as np
 import copy
 
-from doubleml import DoubleMLPLR, DoubleMLIRM, DoubleMLIIVM, DoubleMLPLIV, DoubleMLData, \
-    DoubleMLClusterData, DoubleMLPQ, DoubleMLLPQ, DoubleMLCVAR, DoubleMLQTE, DoubleMLDID, \
-    DoubleMLDIDCS, DoubleMLBLP
-from doubleml.datasets import make_plr_CCDDHNR2018, make_irm_data, make_pliv_CHS2015, make_iivm_data, \
-    make_pliv_multiway_cluster_CKMS2021, make_did_SZ2020
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.base import BaseEstimator
+from sklearn.linear_model import Lasso, LogisticRegression
+
+from doubleml import (
+    DoubleMLBLP,
+    DoubleMLClusterData,
+    DoubleMLCVAR,
+    DoubleMLData,
+    DoubleMLDID,
+    DoubleMLDIDCS,
+    DoubleMLIIVM,
+    DoubleMLIRM,
+    DoubleMLLPQ,
+    DoubleMLPLIV,
+    DoubleMLPLR,
+    DoubleMLPQ,
+    DoubleMLQTE,
+)
+from doubleml.datasets import (
+    make_did_SZ2020,
+    make_iivm_data,
+    make_irm_data,
+    make_pliv_CHS2015,
+    make_pliv_multiway_cluster_CKMS2021,
+    make_plr_CCDDHNR2018,
+)
 
 from ._utils import DummyDataClass
-
-from sklearn.linear_model import Lasso, LogisticRegression
-from sklearn.base import BaseEstimator
 
 np.random.seed(3141)
 n = 100

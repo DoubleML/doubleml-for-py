@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
-
+from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.model_selection import KFold, train_test_split
 
-from sklearn.linear_model import Lasso, LogisticRegression
+from doubleml.utils._estimation import _dml_cv_predict
 
 from ._utils_dml_cv_predict import _dml_cv_predict_ut_version
-from doubleml.utils._estimation import _dml_cv_predict
 
 
 @pytest.fixture(scope='module',

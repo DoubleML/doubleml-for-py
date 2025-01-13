@@ -1,14 +1,12 @@
-import pytest
 import numpy as np
+import pytest
+from sklearn.base import clone
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LinearRegression, LogisticRegression
+
 import doubleml as dml
 from doubleml.datasets import make_irm_data
-from sklearn.base import clone
-
-from sklearn.linear_model import LogisticRegression, LinearRegression
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-
 from doubleml.utils._estimation import _logloss
-
 
 np.random.seed(3141)
 data = make_irm_data(theta=0.5, n_obs=200, dim_x=5, return_type='DataFrame')

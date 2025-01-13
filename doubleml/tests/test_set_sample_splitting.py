@@ -1,10 +1,9 @@
-import pytest
 import numpy as np
+import pytest
+from sklearn.linear_model import Lasso
 
 from doubleml import DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018
-
-from sklearn.linear_model import Lasso
 
 np.random.seed(3141)
 dml_data = make_plr_CCDDHNR2018(n_obs=10)

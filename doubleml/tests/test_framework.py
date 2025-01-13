@@ -1,13 +1,13 @@
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml.datasets import make_irm_data
-from doubleml.irm.irm import DoubleMLIRM
 from doubleml.double_ml_framework import DoubleMLFramework, concat
-from ._utils import generate_dml_dict
+from doubleml.irm.irm import DoubleMLIRM
 
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from ._utils import generate_dml_dict
 
 
 @pytest.fixture(scope='module',

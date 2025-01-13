@@ -1,13 +1,13 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021, DoubleMLClusterData
+from doubleml.datasets import DoubleMLClusterData, make_pliv_multiway_cluster_CKMS2021
 
 from .test_nonlinear_score_mixin import DoubleMLPLRWithNonLinearScoreMixin
 

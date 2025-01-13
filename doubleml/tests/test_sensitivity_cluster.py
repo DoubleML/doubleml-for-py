@@ -1,11 +1,12 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+
 from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual
 
 np.random.seed(1234)

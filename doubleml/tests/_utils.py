@@ -1,11 +1,11 @@
 import numpy as np
-from sklearn.model_selection import KFold, GridSearchCV, StratifiedKFold
-from sklearn.base import clone
 import pandas as pd
 from scipy.stats import norm
+from sklearn.base import clone
+from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
 
-from ..utils._estimation import _var_est, _aggregate_coefs_and_ses
 from ..double_ml_data import DoubleMLBaseData
+from ..utils._estimation import _aggregate_coefs_and_ses, _var_est
 
 
 class DummyDataClass(DoubleMLBaseData):

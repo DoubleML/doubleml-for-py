@@ -1,7 +1,8 @@
+import copy
+
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
-import copy
 
 from ..utils._estimation import _aggregate_coefs_and_ses
 
