@@ -156,7 +156,8 @@ def test_add_vars_in_df():
     np.random.seed(3141)
     df = make_plr_CCDDHNR2018(n_obs=100, return_type="DataFrame")
     dml_data_full_df = DoubleMLData(df, "y", "d", ["X1", "X11", "X13"])
-    dml_data_subset = DoubleMLData(df[["X1", "X11", "X13"] + ["y", "d"]], "y", "d", ["X1", "X11", "X13"])
+    subset_columns = ["X1", "X11", "X13", "y", "d"]
+    dml_data_subset = DoubleMLData(df[subset_columns], "y", "d", ["X1", "X11", "X13"])
     dml_plr_full_df = DoubleMLPLR(dml_data_full_df, Lasso(), Lasso())
     dml_plr_subset = DoubleMLPLR(dml_data_subset, Lasso(), Lasso(), draw_sample_splitting=False)
     dml_plr_subset.set_sample_splitting(dml_plr_full_df.smpls)
