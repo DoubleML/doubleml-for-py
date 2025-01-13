@@ -59,7 +59,6 @@ exclude = '''
   | build
   | dist
   | doc/_build
-  | doubleml/externals
 )/
 '''
 
@@ -67,16 +66,7 @@ exclude = '''
 # max line length for black
 line-length = 127
 target-version = "py39"
-exclude = [
-    ".git",
-    ".mypy_cache",
-    ".vscode",
-    "build",
-    "dist",
-    "doc/_build",
-    "doc/auto_examples",
-    "doubleml/externals",
-]
+
 
 [tool.ruff.lint]
 # all rules can be found here: https://beta.ruff.rs/docs/rules/
