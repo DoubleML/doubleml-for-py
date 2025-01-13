@@ -26,12 +26,7 @@ def doubleml_did_fixture(did_score, n_rep):
     ext_predictions = {"d": {}}
     dml_data = make_did_SZ2020(n_obs=500, return_type="DoubleMLData")
     all_smpls = draw_smpls(len(dml_data.y), 5, n_rep=n_rep, groups=dml_data.d)
-    kwargs = {
-        "obj_dml_data": dml_data,
-        "score": did_score,
-        "n_rep": n_rep,
-        "draw_sample_splitting": False
-    }
+    kwargs = {"obj_dml_data": dml_data, "score": did_score, "n_rep": n_rep, "draw_sample_splitting": False}
     dml_did = DoubleMLDID(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
     dml_did.set_sample_splitting(all_smpls)
     np.random.seed(3141)
