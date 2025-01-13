@@ -131,6 +131,22 @@ $ black . --check --diff
 If your PR is still **work in progress**, please consider marking it a **draft PR**
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
 
+### (Optional) Set up pre-commit Hooks
+
+To ensure code quality and consistency before committing your changes, we recommend using [pre-commit hooks](https://pre-commit.com/). Pre-commit hooks will automatically run checks like code formatting and linting on your staged files.
+
+1. **Install hooks**:
+   If you haven't already, install the required hooks by running:
+   ```bash
+   $ pre-commit install
+   ```
+
+2. **Run pre-commit manually**:
+    To run the pre-commit checks manually, use:
+   ```bash
+   $ pre-commit run --all-files
+   ```
+
 ### Unit Tests and Test Coverage
 We use the package **pytest for unit testing**.
 Unit testing is considered to be a fundamental part of the development workflow.
