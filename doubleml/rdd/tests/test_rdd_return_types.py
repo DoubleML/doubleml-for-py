@@ -1,12 +1,11 @@
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
+from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
 from doubleml.rdd import RDFlex
 from doubleml.rdd.datasets import make_simple_rdd_data
-
-from sklearn.linear_model import Lasso, LogisticRegression
 
 np.random.seed(3141)
 

@@ -1,15 +1,13 @@
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
+from sklearn.dummy import DummyClassifier, DummyRegressor
 
-from doubleml.rdd.datasets import make_simple_rdd_data
 from doubleml import DoubleMLData
 from doubleml.rdd import RDFlex
-
-from sklearn.dummy import DummyRegressor, DummyClassifier
-
 from doubleml.rdd._utils import _is_rdrobust_available
+from doubleml.rdd.datasets import make_simple_rdd_data
+
 # validate optional rdrobust import
 rdrobust = _is_rdrobust_available()
 

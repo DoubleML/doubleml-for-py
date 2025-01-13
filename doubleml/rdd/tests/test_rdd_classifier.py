@@ -1,12 +1,11 @@
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+from sklearn.linear_model import LogisticRegression
 
-from doubleml.rdd.datasets import make_simple_rdd_data
 import doubleml as dml
 from doubleml.rdd import RDFlex
-
-from sklearn.linear_model import LogisticRegression
+from doubleml.rdd.datasets import make_simple_rdd_data
 
 np.random.seed(3141)
 

@@ -1,8 +1,8 @@
 """
 Dummy test using fixed learner for right sided fuzzy data
 """
-import pytest
 import numpy as np
+import pytest
 
 
 @pytest.fixture(scope='module',

@@ -1,8 +1,8 @@
 """
 Dummy test using fixed learner for left sided fuzzy data
 """
-import pytest
 import numpy as np
+import pytest
 from sklearn.dummy import DummyClassifier
 
 ml_g_dummy = DummyClassifier(strategy='constant', constant=0)

@@ -1,18 +1,17 @@
 import warnings
-import numpy as np
-import pandas as pd
 from collections.abc import Callable
 
+import numpy as np
+import pandas as pd
 from scipy.stats import norm
-
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
 
 from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.utils.resampling import DoubleMLResampling
-from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
 from doubleml.rdd._utils import _is_rdrobust_available
+from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
+from doubleml.utils.resampling import DoubleMLResampling
 
 # validate optional rdrobust import
 rdrobust = _is_rdrobust_available()

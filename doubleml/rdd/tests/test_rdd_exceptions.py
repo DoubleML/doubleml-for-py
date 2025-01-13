@@ -1,14 +1,14 @@
-import pytest
-import pandas as pd
-import numpy as np
 import copy
 
-from doubleml import DoubleMLData
-from doubleml.rdd.datasets import make_simple_rdd_data
-from doubleml.rdd import RDFlex
-
-from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import Lasso, LogisticRegression
+
+from doubleml import DoubleMLData
+from doubleml.rdd import RDFlex
+from doubleml.rdd.datasets import make_simple_rdd_data
 
 n = 500
 data = make_simple_rdd_data(n_obs=n, fuzzy=False)
