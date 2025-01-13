@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
-
-from sklearn.linear_model import Lasso
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
-from ...tests._utils import draw_smpls, _clone
-from ._utils_plr_manual import fit_plr_multitreat, boot_plr_multitreat, fit_sensitivity_elements_plr
+from ...tests._utils import _clone, draw_smpls
+from ._utils_plr_manual import boot_plr_multitreat, fit_plr_multitreat, fit_sensitivity_elements_plr
 
 
 @pytest.fixture(scope='module',

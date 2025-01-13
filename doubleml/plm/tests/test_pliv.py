@@ -1,16 +1,15 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-
-from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_pliv_manual import fit_pliv, boot_pliv
+from ._utils_pliv_manual import boot_pliv, fit_pliv
 
 
 @pytest.fixture(scope='module',

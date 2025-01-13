@@ -1,17 +1,16 @@
+import warnings
+
 import numpy as np
 import pandas as pd
-from sklearn.utils import check_X_y
 from sklearn.base import clone
-
-import warnings
+from sklearn.utils import check_X_y
 
 from ..double_ml import DoubleML
 from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils.blp import DoubleMLBLP
-
+from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
 from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils._checks import _check_score, _check_finite_predictions, _check_is_propensity, _check_binary_predictions
+from ..utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):

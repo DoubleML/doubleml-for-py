@@ -1,16 +1,15 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-
-from sklearn.linear_model import ElasticNet
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import ElasticNet
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_pliv_partial_xz_manual import fit_pliv_partial_xz, boot_pliv_partial_xz, tune_nuisance_pliv_partial_xz
+from ._utils_pliv_partial_xz_manual import boot_pliv_partial_xz, fit_pliv_partial_xz, tune_nuisance_pliv_partial_xz
 
 
 @pytest.fixture(scope='module',

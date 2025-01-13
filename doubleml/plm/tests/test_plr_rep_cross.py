@@ -1,14 +1,14 @@
-import numpy as np
-import pytest
 import math
 
-from sklearn.linear_model import LinearRegression
+import numpy as np
+import pytest
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
 
-from ...tests._utils import draw_smpls, _clone
-from ._utils_plr_manual import fit_plr, boot_plr
+from ...tests._utils import _clone, draw_smpls
+from ._utils_plr_manual import boot_plr, fit_plr
 
 
 @pytest.fixture(scope='module',

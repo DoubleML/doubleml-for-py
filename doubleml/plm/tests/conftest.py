@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
-
 import pytest
 from scipy.linalg import toeplitz
-
 from sklearn.datasets import make_spd_matrix
-from doubleml.datasets import make_plr_turrell2018, make_pliv_CHS2015
+
+from doubleml.datasets import make_pliv_CHS2015, make_plr_turrell2018
 
 
 def _g(x):

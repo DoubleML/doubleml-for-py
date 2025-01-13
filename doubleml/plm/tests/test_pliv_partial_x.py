@@ -1,15 +1,14 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.base import clone
-
 from sklearn.linear_model import Lasso
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_pliv_partial_x_manual import fit_pliv_partial_x, boot_pliv_partial_x
+from ._utils_pliv_partial_x_manual import boot_pliv_partial_x, fit_pliv_partial_x
 
 
 @pytest.fixture(scope='module',

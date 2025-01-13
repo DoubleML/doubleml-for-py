@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-from ...tests._utils_boot import boot_manual, draw_weights
 from ...tests._utils import fit_predict, tune_grid_search
+from ...tests._utils_boot import boot_manual, draw_weights
 
 
 def fit_pliv_partial_x(y, x, d, z,

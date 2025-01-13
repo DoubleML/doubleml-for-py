@@ -1,15 +1,15 @@
-import numpy as np
-import pytest
 import math
 
-from sklearn.linear_model import Lasso, LogisticRegression
+import numpy as np
+import pytest
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
 from doubleml.datasets import fetch_bonus
 
-from ...tests._utils import draw_smpls, _clone
-from ._utils_plr_manual import fit_plr, boot_plr
+from ...tests._utils import _clone, draw_smpls
+from ._utils_plr_manual import boot_plr, fit_plr
 
 bonus_data = fetch_bonus()
 

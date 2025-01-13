@@ -1,7 +1,7 @@
-import numpy as np
-import pytest
 import math
 
+import numpy as np
+import pytest
 from sklearn.linear_model import Lasso
 
 import doubleml as dml

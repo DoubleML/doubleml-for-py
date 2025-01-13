@@ -1,18 +1,16 @@
-import numpy as np
-from sklearn.utils import check_X_y
-from sklearn.model_selection import KFold
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from sklearn.linear_model import LinearRegression
-from sklearn.dummy import DummyRegressor
-
 import warnings
+
+import numpy as np
+from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
+from sklearn.utils import check_X_y
 
 from ..double_ml import DoubleML
 from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
-
-from ..utils._estimation import _dml_cv_predict, _dml_tune
 from ..utils._checks import _check_finite_predictions
+from ..utils._estimation import _dml_cv_predict, _dml_tune
 
 
 class DoubleMLPLIV(LinearScoreMixin, DoubleML):

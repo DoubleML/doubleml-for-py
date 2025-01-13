@@ -1,13 +1,13 @@
-import numpy as np
-import pytest
 import math
 
-from sklearn.linear_model import Lasso, ElasticNet
+import numpy as np
+import pytest
+from sklearn.linear_model import ElasticNet, Lasso
 
 import doubleml as dml
 
-from ...tests._utils import draw_smpls, _clone
-from ._utils_pliv_manual import fit_pliv, boot_pliv, tune_nuisance_pliv
+from ...tests._utils import _clone, draw_smpls
+from ._utils_pliv_manual import boot_pliv, fit_pliv, tune_nuisance_pliv
 
 
 @pytest.fixture(scope='module',

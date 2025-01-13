@@ -1,18 +1,17 @@
-import pytest
 import math
-import scipy
+
 import numpy as np
 import pandas as pd
-
+import pytest
+import scipy
 from sklearn.base import clone
-
-from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_plr_manual import fit_plr, plr_dml2, boot_plr, fit_sensitivity_elements_plr
+from ._utils_plr_manual import boot_plr, fit_plr, fit_sensitivity_elements_plr, plr_dml2
 
 
 @pytest.fixture(scope='module',
