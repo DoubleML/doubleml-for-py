@@ -11,10 +11,11 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
     base_estimator: regressor implementing ``fit()`` and ``predict()``
     Regressor that is used when ``fit()`` ``predict()`` and ``predict_proba()`` are being called.
     """
+
     def __init__(self, base_estimator):
 
         if not is_regressor(base_estimator):
-            raise ValueError(f'base_estimator must be a regressor. Got {base_estimator.__class__.__name__} instead.')
+            raise ValueError(f"base_estimator must be a regressor. Got {base_estimator.__class__.__name__} instead.")
 
         self.base_estimator = base_estimator
 
@@ -59,10 +60,11 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
     base_estimator: classifier implementing ``fit()`` and ``predict_proba()``
     Classifier that is used when ``fit()``, ``predict()`` and ``predict_proba()`` are being called.
     """
+
     def __init__(self, base_estimator):
 
         if not is_classifier(base_estimator):
-            raise ValueError(f'base_estimator must be a classifier. Got {base_estimator.__class__.__name__} instead.')
+            raise ValueError(f"base_estimator must be a classifier. Got {base_estimator.__class__.__name__} instead.")
 
         self.base_estimator = base_estimator
 

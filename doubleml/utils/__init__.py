@@ -18,5 +18,5 @@ __all__ = [
     "DoubleMLPolicyTree",
     "gain_statistics",
     "GlobalClassifier",
-    "GlobalRegressor"
+    "GlobalRegressor",
 ]

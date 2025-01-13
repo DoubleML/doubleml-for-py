@@ -38,8 +38,7 @@ def blp_confint(blp_model, basis, joint=False, level=0.95, n_rep_boot=500):
         g_hat_upper = g_hat + norm.ppf(q=1 - alpha / 2) * blp_se
 
     ci = np.vstack((g_hat_lower, g_hat, g_hat_upper)).T
-    df_ci = pd.DataFrame(ci,
-                         columns=['{:.1f} %'.format(alpha / 2 * 100), 'effect',
-                                  '{:.1f} %'.format((1 - alpha / 2) * 100)],
-                         index=basis.index)
+    df_ci = pd.DataFrame(
+        ci, columns=["{:.1f} %".format(alpha / 2 * 100), "effect", "{:.1f} %".format((1 - alpha / 2) * 100)], index=basis.index
+    )
     return df_ci

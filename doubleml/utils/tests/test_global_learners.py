@@ -7,16 +7,17 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from doubleml.utils import GlobalClassifier, GlobalRegressor
 
 
-@pytest.fixture(scope='module',
-                params=[LinearRegression(),
-                        RandomForestRegressor(n_estimators=10, max_depth=2, random_state=42)])
+@pytest.fixture(
+    scope="module", params=[LinearRegression(), RandomForestRegressor(n_estimators=10, max_depth=2, random_state=42)]
+)
 def regressor(request):
     return request.param
 
 
-@pytest.fixture(scope='module',
-                params=[LogisticRegression(random_state=42),
-                        RandomForestClassifier(n_estimators=10, max_depth=2, random_state=42)])
+@pytest.fixture(
+    scope="module",
+    params=[LogisticRegression(random_state=42), RandomForestClassifier(n_estimators=10, max_depth=2, random_state=42)],
+)
 def classifier(request):
     return request.param
 
@@ -77,7 +78,7 @@ def gl_fixture(regressor, classifier):
         "unweighted_clas_pred": unweighted_clas_pred,
         "global_clas_pred_proba": global_clas_pred_proba,
         "weighted_clas_pred_proba": weighted_clas_pred_proba,
-        "unweighted_clas_pred_proba": unweighted_clas_pred_proba
+        "unweighted_clas_pred_proba": unweighted_clas_pred_proba,
     }
 
     return result_dict
