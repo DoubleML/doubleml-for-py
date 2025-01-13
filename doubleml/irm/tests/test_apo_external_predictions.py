@@ -38,12 +38,12 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
     n_obs = 500
     data_apo = make_irm_data_discrete_treatments(n_obs=n_obs)
     df_apo = pd.DataFrame(
-        np.column_stack((data_apo['y'], data_apo['d'], data_apo['x'])),
-        columns=['y', 'd'] + ['x' + str(i) for i in range(data_apo['x'].shape[1])]
+        np.column_stack((data_apo["y"], data_apo["d"], data_apo["x"])),
+        columns=["y", "d"] + ["x" + str(i) for i in range(data_apo["x"].shape[1])],
     )
 
-    dml_data = DoubleMLData(df_apo, 'y', 'd')
-    d = data_apo['d']
+    dml_data = DoubleMLData(df_apo, "y", "d")
+    d = data_apo["d"]
     all_smpls = draw_smpls(n_obs, n_folds=5, n_rep=n_rep, groups=d)
 
     kwargs = {
@@ -51,7 +51,7 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
         "score": score,
         "treatment_level": treatment_level,
         "n_rep": n_rep,
-        "draw_sample_splitting": False
+        "draw_sample_splitting": False,
     }
 
     dml_obj = DoubleMLAPO(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
@@ -79,10 +79,7 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
     np.random.seed(3141)
     dml_obj_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {
-        "coef_normal": dml_obj.coef[0],
-        "coef_ext": dml_obj_ext.coef[0]
-    }
+    res_dict = {"coef_normal": dml_obj.coef[0], "coef_ext": dml_obj_ext.coef[0]}
 
     return res_dict
 
@@ -90,8 +87,5 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
 @pytest.mark.ci
 def test_doubleml_apo_ext_coef(doubleml_apo_ext_fixture):
     assert math.isclose(
-        doubleml_apo_ext_fixture["coef_normal"],
-        doubleml_apo_ext_fixture["coef_ext"],
-        rel_tol=1e-9,
-        abs_tol=1e-4
+        doubleml_apo_ext_fixture["coef_normal"], doubleml_apo_ext_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4
     )

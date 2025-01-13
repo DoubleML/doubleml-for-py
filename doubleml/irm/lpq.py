@@ -113,10 +113,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         trimming_threshold=1e-2,
         draw_sample_splitting=True,
     ):
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep, score,
-                         draw_sample_splitting)
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._quantile = quantile
         self._treatment = treatment
@@ -385,10 +382,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
                 # preliminary propensity for z
                 ml_m_z_prelim = clone(fitted_models["ml_m_z"][i_fold])
-                m_z_hat_prelim = _dml_cv_predict(ml_m_z_prelim, x_train_1, z_train_1,
-                                                 method="predict_proba", smpls=smpls_prelim)[
-                    "preds"
-                ]
+                m_z_hat_prelim = _dml_cv_predict(
+                    ml_m_z_prelim, x_train_1, z_train_1, method="predict_proba", smpls=smpls_prelim
+                )["preds"]
 
                 m_z_hat_prelim = _trimm(m_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
                 if self._normalize_ipw:
@@ -514,7 +510,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         # this could be adjusted to be compatible with dml1
         # estimate final nuisance parameter
         comp_prob_hat = np.mean(
-            m_d_z1_hat["preds"] - m_d_z0_hat["preds"]
+            m_d_z1_hat["preds"]
+            - m_d_z0_hat["preds"]
             + z / m_z_hat_adj * (d - m_d_z1_hat["preds"])
             - (1 - z) / (1 - m_z_hat_adj) * (d - m_d_z0_hat["preds"])
         )

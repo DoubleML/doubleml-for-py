@@ -98,23 +98,21 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     Potential outcomes Y(0) and Y(1) are estimated and ATE is returned as E[Y(1) - Y(0)].
     """
 
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_pi,
-                 ml_m,
-                 n_folds=5,
-                 n_rep=1,
-                 score='missing-at-random',
-                 normalize_ipw=False,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True):
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep,
-                         score,
-                         draw_sample_splitting)
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_pi,
+        ml_m,
+        n_folds=5,
+        n_rep=1,
+        score="missing-at-random",
+        normalize_ipw=False,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+    ):
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._external_predictions_implemented = False
         self._sensitivity_implemented = False
@@ -125,37 +123,38 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._check_data(self._dml_data)
-        _check_score(self.score, ['missing-at-random', 'nonignorable'])
+        _check_score(self.score, ["missing-at-random", "nonignorable"])
 
         # for both score function stratification by d and s is viable
         self._strata = self._dml_data.d.reshape(-1, 1) + 2 * self._dml_data.s.reshape(-1, 1)
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
-        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-        _ = self._check_learner(ml_pi, 'ml_pi', regressor=False, classifier=True)
-        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        ml_g_is_classifier = self._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        _ = self._check_learner(ml_pi, "ml_pi", regressor=False, classifier=True)
+        _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
 
-        self._learner = {'ml_g': clone(ml_g),
-                         'ml_pi': clone(ml_pi),
-                         'ml_m': clone(ml_m),
-                         }
-        self._predict_method = {'ml_g': 'predict',
-                                'ml_pi': 'predict_proba',
-                                'ml_m': 'predict_proba'
-                                }
+        self._learner = {
+            "ml_g": clone(ml_g),
+            "ml_pi": clone(ml_pi),
+            "ml_m": clone(ml_m),
+        }
+        self._predict_method = {"ml_g": "predict", "ml_pi": "predict_proba", "ml_m": "predict_proba"}
         if ml_g_is_classifier:
             if self._dml_data._check_binary_outcome():
-                self._predict_method['ml_g'] = 'predict_proba'
+                self._predict_method["ml_g"] = "predict_proba"
             else:
-                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
-                                 'but the outcome is not binary with values 0 and 1.')
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome is not binary with values 0 and 1."
+                )
 
         self._initialize_ml_nuisance_params()
 
         if not isinstance(self.normalize_ipw, bool):
-            raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize_ipw))} passed.')
+            raise TypeError(
+                "Normalization indicator has to be boolean. " + f"Object of type {str(type(self.normalize_ipw))} passed."
+            )
 
     @property
     def normalize_ipw(self):
@@ -179,24 +178,26 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g_d0', 'ml_g_d1',
-                         'ml_pi', 'ml_m']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in
-                        valid_learner}
+        valid_learner = ["ml_g_d0", "ml_g_d1", "ml_pi", "ml_m"]
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
-        if obj_dml_data.z_cols is not None and self._score == 'missing-at-random':
-            warnings.warn(' and '.join(obj_dml_data.z_cols) +
-                          ' have been set as instrumental variable(s). '
-                          'You are estimating the effect under the assumption of data missing at random. \
-                             Instrumental variables will not be used in estimation.')
-        if obj_dml_data.z_cols is None and self._score == 'nonignorable':
-            raise ValueError('Sample selection by nonignorable nonresponse was set but instrumental variable \
+            raise TypeError(
+                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
+        if obj_dml_data.z_cols is not None and self._score == "missing-at-random":
+            warnings.warn(
+                " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+                "You are estimating the effect under the assumption of data missing at random. \
+                             Instrumental variables will not be used in estimation."
+            )
+        if obj_dml_data.z_cols is None and self._score == "nonignorable":
+            raise ValueError(
+                "Sample selection by nonignorable nonresponse was set but instrumental variable \
                              is None. To estimate treatment effect under nonignorable nonresponse, \
-                             specify an instrument for the selection variable.')
+                             specify an instrument for the selection variable."
+            )
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
@@ -204,7 +205,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
 
-        if self._score == 'nonignorable':
+        if self._score == "nonignorable":
             z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
             dx = np.column_stack((x, d, z))
         else:
@@ -212,49 +213,75 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
 
-        if self._score == 'missing-at-random':
-            pi_hat = _dml_cv_predict(self._learner['ml_pi'], dx, s, smpls=smpls, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_pi'), method=self._predict_method['ml_pi'],
-                                     return_models=return_models)
-            pi_hat['targets'] = pi_hat['targets'].astype(float)
-            _check_finite_predictions(pi_hat['preds'], self._learner['ml_pi'], 'ml_pi', smpls)
+        if self._score == "missing-at-random":
+            pi_hat = _dml_cv_predict(
+                self._learner["ml_pi"],
+                dx,
+                s,
+                smpls=smpls,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_pi"),
+                method=self._predict_method["ml_pi"],
+                return_models=return_models,
+            )
+            pi_hat["targets"] = pi_hat["targets"].astype(float)
+            _check_finite_predictions(pi_hat["preds"], self._learner["ml_pi"], "ml_pi", smpls)
 
             # propensity score m
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
-            m_hat['targets'] = m_hat['targets'].astype(float)
-            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
+            m_hat = _dml_cv_predict(
+                self._learner["ml_m"],
+                x,
+                d,
+                smpls=smpls,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_m"),
+                method=self._predict_method["ml_m"],
+                return_models=return_models,
+            )
+            m_hat["targets"] = m_hat["targets"].astype(float)
+            _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
 
             # conditional outcome
-            g_hat_d1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1_s1, n_jobs=n_jobs_cv,
-                                       est_params=self._get_params('ml_g_d1'), method=self._predict_method['ml_g'],
-                                       return_models=return_models)
-            g_hat_d1['targets'] = g_hat_d1['targets'].astype(float)
-            _check_finite_predictions(g_hat_d1['preds'], self._learner['ml_g'], 'ml_g_d1', smpls)
+            g_hat_d1 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d1_s1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d1"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            g_hat_d1["targets"] = g_hat_d1["targets"].astype(float)
+            _check_finite_predictions(g_hat_d1["preds"], self._learner["ml_g"], "ml_g_d1", smpls)
 
-            g_hat_d0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0_s1, n_jobs=n_jobs_cv,
-                                       est_params=self._get_params('ml_g_d0'), method=self._predict_method['ml_g'],
-                                       return_models=return_models)
-            g_hat_d0['targets'] = g_hat_d0['targets'].astype(float)
-            _check_finite_predictions(g_hat_d0['preds'], self._learner['ml_g'], 'ml_g_d0', smpls)
+            g_hat_d0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d0_s1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            g_hat_d0["targets"] = g_hat_d0["targets"].astype(float)
+            _check_finite_predictions(g_hat_d0["preds"], self._learner["ml_g"], "ml_g_d0", smpls)
 
         else:
-            assert self._score == 'nonignorable'
+            assert self._score == "nonignorable"
             # initialize nuisance predictions, targets and models
-            g_hat_d1 = {'models': None,
-                        'targets': np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
-                        'preds': np.full(shape=self._dml_data.n_obs, fill_value=np.nan)
-                        }
+            g_hat_d1 = {
+                "models": None,
+                "targets": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+                "preds": np.full(shape=self._dml_data.n_obs, fill_value=np.nan),
+            }
             g_hat_d0 = copy.deepcopy(g_hat_d1)
             pi_hat = copy.deepcopy(g_hat_d1)
             m_hat = copy.deepcopy(g_hat_d1)
 
             # pi_hat - used for preliminary estimation of propensity score pi, overwritten in each iteration
-            pi_hat_prelim = {'models': None,
-                             'targets': [],
-                             'preds': []
-                             }
+            pi_hat_prelim = {"models": None, "targets": [], "preds": []}
 
             # initialize models
             fitted_models = {}
@@ -262,8 +289,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 # set nuisance model parameters
                 est_params = self._get_params(learner)
 
-                if learner == 'ml_g_d1' or learner == 'ml_g_d0':
-                    nuisance = 'ml_g'
+                if learner == "ml_g_d1" or learner == "ml_g_d0":
+                    nuisance = "ml_g"
                 else:
                     nuisance = learner
 
@@ -291,90 +318,91 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 dx_train_1 = dx[train_inds_1, :]
 
                 # fit propensity score for selection on first part of training set
-                fitted_models['ml_pi'][i_fold].fit(dx_train_1, s_train_1)
-                pi_hat_prelim['preds'] = _predict_zero_one_propensity(fitted_models['ml_pi'][i_fold], dx)
-                pi_hat_prelim['targets'] = s
+                fitted_models["ml_pi"][i_fold].fit(dx_train_1, s_train_1)
+                pi_hat_prelim["preds"] = _predict_zero_one_propensity(fitted_models["ml_pi"][i_fold], dx)
+                pi_hat_prelim["targets"] = s
 
                 # predictions for small pi in denominator
-                pi_hat['preds'][test_inds] = pi_hat_prelim['preds'][test_inds]
-                pi_hat['targets'][test_inds] = s[test_inds]
+                pi_hat["preds"][test_inds] = pi_hat_prelim["preds"][test_inds]
+                pi_hat["targets"][test_inds] = s[test_inds]
 
                 # add predicted selection propensity to covariates
-                xpi = np.column_stack((x, pi_hat_prelim['preds']))
+                xpi = np.column_stack((x, pi_hat_prelim["preds"]))
 
                 # estimate propensity score m using the second training sample
                 xpi_train_2 = xpi[train_inds_2, :]
                 d_train_2 = d[train_inds_2]
                 xpi_test = xpi[test_inds, :]
 
-                fitted_models['ml_m'][i_fold].fit(xpi_train_2, d_train_2)
+                fitted_models["ml_m"][i_fold].fit(xpi_train_2, d_train_2)
 
-                m_hat['preds'][test_inds] = _predict_zero_one_propensity(fitted_models['ml_m'][i_fold], xpi_test)
-                m_hat['targets'][test_inds] = d[test_inds]
+                m_hat["preds"][test_inds] = _predict_zero_one_propensity(fitted_models["ml_m"][i_fold], xpi_test)
+                m_hat["targets"][test_inds] = d[test_inds]
 
                 # estimate conditional outcome g on second training sample - treatment
-                s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0],
-                                                       np.intersect1d(np.where(s == 1)[0], train_inds_2))
+                s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0], np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
                 y_s1_d1_train_2 = y[s1_d1_train_2_indices]
 
-                fitted_models['ml_g_d1'][i_fold].fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
+                fitted_models["ml_g_d1"][i_fold].fit(xpi_s1_d1_train_2, y_s1_d1_train_2)
 
                 # predict conditional outcome
-                g_hat_d1['preds'][test_inds] = fitted_models['ml_g_d1'][i_fold].predict(xpi_test)
-                g_hat_d1['targets'][test_inds] = y[test_inds]
+                g_hat_d1["preds"][test_inds] = fitted_models["ml_g_d1"][i_fold].predict(xpi_test)
+                g_hat_d1["targets"][test_inds] = y[test_inds]
 
                 # estimate conditional outcome on second training sample - control
-                s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0],
-                                                       np.intersect1d(np.where(s == 1)[0], train_inds_2))
+                s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0], np.intersect1d(np.where(s == 1)[0], train_inds_2))
                 xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
                 y_s1_d0_train_2 = y[s1_d0_train_2_indices]
 
-                fitted_models['ml_g_d0'][i_fold].fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
+                fitted_models["ml_g_d0"][i_fold].fit(xpi_s1_d0_train_2, y_s1_d0_train_2)
 
                 # predict conditional outcome
-                g_hat_d0['preds'][test_inds] = fitted_models['ml_g_d0'][i_fold].predict(xpi_test)
-                g_hat_d0['targets'][test_inds] = y[test_inds]
+                g_hat_d0["preds"][test_inds] = fitted_models["ml_g_d0"][i_fold].predict(xpi_test)
+                g_hat_d0["targets"][test_inds] = y[test_inds]
 
                 if return_models:
-                    g_hat_d1['models'] = fitted_models['ml_g_d1']
-                    g_hat_d0['models'] = fitted_models['ml_g_d0']
-                    pi_hat['models'] = fitted_models['ml_pi']
-                    m_hat['models'] = fitted_models['ml_m']
+                    g_hat_d1["models"] = fitted_models["ml_g_d1"]
+                    g_hat_d0["models"] = fitted_models["ml_g_d0"]
+                    pi_hat["models"] = fitted_models["ml_pi"]
+                    m_hat["models"] = fitted_models["ml_m"]
 
-        m_hat['preds'] = _trimm(m_hat['preds'], self._trimming_rule, self._trimming_threshold)
+        m_hat["preds"] = _trimm(m_hat["preds"], self._trimming_rule, self._trimming_threshold)
 
         # treatment indicator
-        dtreat = (d == 1)
-        dcontrol = (d == 0)
+        dtreat = d == 1
+        dcontrol = d == 0
 
-        psi_a, psi_b = self._score_elements(dtreat, dcontrol, g_hat_d1['preds'],
-                                            g_hat_d0['preds'],
-                                            pi_hat['preds'],
-                                            m_hat['preds'],
-                                            s, y)
+        psi_a, psi_b = self._score_elements(
+            dtreat, dcontrol, g_hat_d1["preds"], g_hat_d0["preds"], pi_hat["preds"], m_hat["preds"], s, y
+        )
 
-        psi_elements = {'psi_a': psi_a,
-                        'psi_b': psi_b}
+        psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
 
-        preds = {'predictions': {'ml_g_d0': g_hat_d0['preds'],
-                                 'ml_g_d1': g_hat_d1['preds'],
-                                 'ml_pi': pi_hat['preds'],
-                                 'ml_m': m_hat['preds']},
-                 'targets': {'ml_g_d0': g_hat_d0['targets'],
-                             'ml_g_d1': g_hat_d1['targets'],
-                             'ml_pi': pi_hat['targets'],
-                             'ml_m': m_hat['targets']},
-                 'models': {'ml_g_d0': g_hat_d0['models'],
-                            'ml_g_d1': g_hat_d1['models'],
-                            'ml_pi': pi_hat['models'],
-                            'ml_m': m_hat['models']}
-                 }
+        preds = {
+            "predictions": {
+                "ml_g_d0": g_hat_d0["preds"],
+                "ml_g_d1": g_hat_d1["preds"],
+                "ml_pi": pi_hat["preds"],
+                "ml_m": m_hat["preds"],
+            },
+            "targets": {
+                "ml_g_d0": g_hat_d0["targets"],
+                "ml_g_d1": g_hat_d1["targets"],
+                "ml_pi": pi_hat["targets"],
+                "ml_m": m_hat["targets"],
+            },
+            "models": {
+                "ml_g_d0": g_hat_d0["models"],
+                "ml_g_d1": g_hat_d1["models"],
+                "ml_pi": pi_hat["models"],
+                "ml_m": m_hat["models"],
+            },
+        }
 
         return psi_elements, preds
 
-    def _score_elements(self, dtreat, dcontrol, g_d1, g_d0,
-                        pi, m, s, y):
+    def _score_elements(self, dtreat, dcontrol, g_d1, g_d0, pi, m, s, y):
         # psi_a
         psi_a = -1
 
@@ -394,25 +422,22 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
-    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                         search_mode, n_iter_randomized_search):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                         force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         # time indicator is used for selection (selection not available in DoubleMLData yet)
         x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
 
-        if self._score == 'nonignorable':
+        if self._score == "nonignorable":
             z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
             dx = np.column_stack((x, d, z))
         else:
             dx = np.column_stack((x, d))
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
-                               'ml_pi': None,
-                               'ml_m': None}
+            scoring_methods = {"ml_g": None, "ml_pi": None, "ml_m": None}
 
         # nuisance training sets conditional on d
         _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
@@ -421,36 +446,65 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
 
         # hyperparameter tuning for ML
-        g_d0_tune_res = _dml_tune(y, x, train_inds_d0_s1,
-                                  self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g_d1_tune_res = _dml_tune(y, x, train_inds_d1_s1,
-                                  self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                  n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        pi_tune_res = _dml_tune(s, dx, train_inds,
-                                self._learner['ml_pi'], param_grids['ml_pi'], scoring_methods['ml_pi'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        m_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g_d0_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d0_s1,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
+        g_d1_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d1_s1,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
+        pi_tune_res = _dml_tune(
+            s,
+            dx,
+            train_inds,
+            self._learner["ml_pi"],
+            param_grids["ml_pi"],
+            scoring_methods["ml_pi"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
+        m_tune_res = _dml_tune(
+            d,
+            x,
+            train_inds,
+            self._learner["ml_m"],
+            param_grids["ml_m"],
+            scoring_methods["ml_m"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
 
         g_d0_best_params = [xx.best_params_ for xx in g_d0_tune_res]
         g_d1_best_params = [xx.best_params_ for xx in g_d1_tune_res]
         pi_best_params = [xx.best_params_ for xx in pi_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'ml_g_d0': g_d0_best_params,
-                  'ml_g_d1': g_d1_best_params,
-                  'ml_pi': pi_best_params,
-                  'ml_m': m_best_params}
+        params = {"ml_g_d0": g_d0_best_params, "ml_g_d1": g_d1_best_params, "ml_pi": pi_best_params, "ml_m": m_best_params}
 
-        tune_res = {'g_d0_tune': g_d0_tune_res,
-                    'g_d1_tune': g_d1_tune_res,
-                    'pi_tune': pi_tune_res,
-                    'm_tune': m_tune_res}
+        tune_res = {"g_d0_tune": g_d0_tune_res, "g_d1_tune": g_d1_tune_res, "pi_tune": pi_tune_res, "m_tune": m_tune_res}
 
-        res = {'params': params,
-               'tune_res': tune_res}
+        res = {"params": params, "tune_res": tune_res}
 
         return res
 

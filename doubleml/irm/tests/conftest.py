@@ -11,9 +11,7 @@ def _g(x):
     return np.power(np.sin(x), 2)
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 10),
-                        (1000, 20)])
+@pytest.fixture(scope="session", params=[(500, 10), (1000, 20)])
 def generate_data_irm(request):
     n_p = request.param
     np.random.seed(1111)
@@ -23,15 +21,12 @@ def generate_data_irm(request):
     theta = 0.5
 
     # generating data
-    data = make_irm_data(n, p, theta, return_type='array')
+    data = make_irm_data(n, p, theta, return_type="array")
 
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 10),
-                        (1000, 20),
-                        (1000, 100)])
+@pytest.fixture(scope="session", params=[(500, 10), (1000, 20), (1000, 100)])
 def generate_data_irm_binary(request):
     n_p = request.param
     np.random.seed(1111)
@@ -43,21 +38,51 @@ def generate_data_irm_binary(request):
     sigma = make_spd_matrix(p)
 
     # generating data
-    x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
+    x = np.random.multivariate_normal(
+        np.zeros(p),
+        sigma,
+        size=[
+            n,
+        ],
+    )
     G = _g(np.dot(x, b))
-    pr = 1 / (1 + np.exp((-1) * (x[:, 0] * (-0.5) + x[:, 1] * 0.5 + np.random.standard_normal(size=[n, ]))))
-    d = np.random.binomial(p=pr, n=1, size=[n, ])
+    pr = 1 / (
+        1
+        + np.exp(
+            (-1)
+            * (
+                x[:, 0] * (-0.5)
+                + x[:, 1] * 0.5
+                + np.random.standard_normal(
+                    size=[
+                        n,
+                    ]
+                )
+            )
+        )
+    )
+    d = np.random.binomial(
+        p=pr,
+        n=1,
+        size=[
+            n,
+        ],
+    )
     err = np.random.standard_normal(n)
 
     pry = 1 / (1 + np.exp((-1) * theta * d + G + err))
-    y = np.random.binomial(p=pry, n=1, size=[n, ])
+    y = np.random.binomial(
+        p=pry,
+        n=1,
+        size=[
+            n,
+        ],
+    )
 
     return x, y, d
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 10),
-                        (1000, 20)])
+@pytest.fixture(scope="session", params=[(500, 10), (1000, 20)])
 def generate_data_irm_w_missings(request):
     n_p = request.param
     np.random.seed(1111)
@@ -67,19 +92,17 @@ def generate_data_irm_w_missings(request):
     theta = 0.5
 
     # generating data
-    (x, y, d) = make_irm_data(n, p, theta, return_type='array')
+    (x, y, d) = make_irm_data(n, p, theta, return_type="array")
 
     # randomly set some entries to np.nan
-    ind = np.random.choice(np.arange(x.size), replace=False,
-                           size=int(x.size * 0.05))
+    ind = np.random.choice(np.arange(x.size), replace=False, size=int(x.size * 0.05))
     x[np.unravel_index(ind, x.shape)] = np.nan
     data = (x, y, d)
 
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 11)])
+@pytest.fixture(scope="session", params=[(500, 11)])
 def generate_data_iivm(request):
     n_p = request.param
     np.random.seed(1111)
@@ -95,10 +118,7 @@ def generate_data_iivm(request):
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 10),
-                        (1000, 20),
-                        (1000, 100)])
+@pytest.fixture(scope="session", params=[(500, 10), (1000, 20), (1000, 100)])
 def generate_data_iivm_binary(request):
     n_p = request.param
     np.random.seed(1111)
@@ -110,26 +130,81 @@ def generate_data_iivm_binary(request):
     sigma = make_spd_matrix(p)
 
     # generating data
-    x = np.random.multivariate_normal(np.zeros(p), sigma, size=[n, ])
+    x = np.random.multivariate_normal(
+        np.zeros(p),
+        sigma,
+        size=[
+            n,
+        ],
+    )
     G = _g(np.dot(x, b))
 
-    prz = 1 / (1 + np.exp((-1) * (x[:, 0] * (-1) * b[4] + x[:, 1] * b[2] + np.random.standard_normal(size=[n, ]))))
-    z = np.random.binomial(p=prz, n=1, size=[n, ])
-    u = np.random.standard_normal(size=[n, ])
-    pr = 1 / (1 + np.exp((-1) * (0.5 * z + x[:, 0] * (-0.5) + x[:, 1] * 0.25 - 0.5 * u
-                                 + np.random.standard_normal(size=[n, ]))))
-    d = np.random.binomial(p=pr, n=1, size=[n, ])
+    prz = 1 / (
+        1
+        + np.exp(
+            (-1)
+            * (
+                x[:, 0] * (-1) * b[4]
+                + x[:, 1] * b[2]
+                + np.random.standard_normal(
+                    size=[
+                        n,
+                    ]
+                )
+            )
+        )
+    )
+    z = np.random.binomial(
+        p=prz,
+        n=1,
+        size=[
+            n,
+        ],
+    )
+    u = np.random.standard_normal(
+        size=[
+            n,
+        ]
+    )
+    pr = 1 / (
+        1
+        + np.exp(
+            (-1)
+            * (
+                0.5 * z
+                + x[:, 0] * (-0.5)
+                + x[:, 1] * 0.25
+                - 0.5 * u
+                + np.random.standard_normal(
+                    size=[
+                        n,
+                    ]
+                )
+            )
+        )
+    )
+    d = np.random.binomial(
+        p=pr,
+        n=1,
+        size=[
+            n,
+        ],
+    )
     err = np.random.standard_normal(n)
 
     pry = 1 / (1 + np.exp((-1) * theta * d + G + 4 * u + err))
-    y = np.random.binomial(p=pry, n=1, size=[n, ])
+    y = np.random.binomial(
+        p=pry,
+        n=1,
+        size=[
+            n,
+        ],
+    )
 
     return x, y, d, z
 
 
-@pytest.fixture(scope='session',
-                params=[(500, 5),
-                        (1000, 10)])
+@pytest.fixture(scope="session", params=[(500, 5), (1000, 10)])
 def generate_data_quantiles(request):
     n_p = request.param
     np.random.seed(1111)
@@ -156,9 +231,7 @@ def generate_data_quantiles(request):
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(5000, 5),
-                        (10000, 10)])
+@pytest.fixture(scope="session", params=[(5000, 5), (10000, 10)])
 def generate_data_local_quantiles(request):
     n_p = request.param
     np.random.seed(1111)
@@ -186,15 +259,13 @@ def generate_data_local_quantiles(request):
     d = generate_treatment(z, x, x_conf)
     epsilon = np.random.normal(size=n)
 
-    y = f_loc(d, x, x_conf) + f_scale(d, x, x_conf)*epsilon
+    y = f_loc(d, x, x_conf) + f_scale(d, x, x_conf) * epsilon
     data = (x, y, d, z)
 
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(8000, 2),
-                        (16000, 5)])
+@pytest.fixture(scope="session", params=[(8000, 2), (16000, 5)])
 def generate_data_selection_mar(request):
     params = request.param
     np.random.seed(1111)
@@ -206,7 +277,13 @@ def generate_data_selection_mar(request):
     e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n_obs).T
 
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
 
@@ -222,9 +299,7 @@ def generate_data_selection_mar(request):
     return data
 
 
-@pytest.fixture(scope='session',
-                params=[(8000, 2),
-                        (16000, 5)])
+@pytest.fixture(scope="session", params=[(8000, 2), (16000, 5)])
 def generate_data_selection_nonignorable(request):
     params = request.param
     np.random.seed(1111)
@@ -237,7 +312,13 @@ def generate_data_selection_nonignorable(request):
     e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n_obs).T
 
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
 

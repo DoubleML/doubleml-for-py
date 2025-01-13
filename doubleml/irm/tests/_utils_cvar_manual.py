@@ -6,9 +6,21 @@ from ...tests._utils import fit_predict_proba, tune_grid_search
 from ...utils._estimation import _dml_cv_predict, _get_bracket_guess, _normalize_ipw, _solve_ipw_score
 
 
-def fit_cvar(y, x, d, quantile,
-             learner_g, learner_m, all_smpls, treatment, normalize_ipw=True, n_rep=1,
-             trimming_threshold=1e-2, g_params=None, m_params=None):
+def fit_cvar(
+    y,
+    x,
+    d,
+    quantile,
+    learner_g,
+    learner_m,
+    all_smpls,
+    treatment,
+    normalize_ipw=True,
+    n_rep=1,
+    trimming_threshold=1e-2,
+    g_params=None,
+    m_params=None,
+):
     n_obs = len(y)
 
     cvars = np.zeros(n_rep)
@@ -17,25 +29,34 @@ def fit_cvar(y, x, d, quantile,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat, ipw_est = fit_nuisance_cvar(y, x, d, quantile,
-                                                  learner_g, learner_m, smpls, treatment,
-                                                  normalize_ipw=normalize_ipw,
-                                                  trimming_threshold=trimming_threshold,
-                                                  g_params=g_params, m_params=m_params)
+        g_hat, m_hat, ipw_est = fit_nuisance_cvar(
+            y,
+            x,
+            d,
+            quantile,
+            learner_g,
+            learner_m,
+            smpls,
+            treatment,
+            normalize_ipw=normalize_ipw,
+            trimming_threshold=trimming_threshold,
+            g_params=g_params,
+            m_params=m_params,
+        )
 
         cvars[i_rep], ses[i_rep] = cvar_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
 
     cvar = np.median(cvars)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(cvars - cvar, 2)) / n_obs)
 
-    res = {'pq': cvar, 'se': se,
-           'pqs': cvars, 'ses': ses}
+    res = {"pq": cvar, "se": se, "pqs": cvars, "ses": ses}
 
     return res
 
 
-def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
-                      normalize_ipw, trimming_threshold, g_params, m_params):
+def fit_nuisance_cvar(
+    y, x, d, quantile, learner_g, learner_m, smpls, treatment, normalize_ipw, trimming_threshold, g_params, m_params
+):
     n_folds = len(smpls)
     n_obs = len(y)
     coef_bounds = (y.min(), y.max())
@@ -63,26 +84,24 @@ def fit_nuisance_cvar(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
         test_inds = smpls[i_fold][1]
 
         # start nested crossfitting
-        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                      random_state=42, stratify=d[train_inds])
-        smpls_prelim = [(train, test) for train, test in
-                        StratifiedKFold(n_splits=n_folds).split(X=train_inds_1, y=d[train_inds_1])]
+        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5, random_state=42, stratify=d[train_inds])
+        smpls_prelim = [
+            (train, test) for train, test in StratifiedKFold(n_splits=n_folds).split(X=train_inds_1, y=d[train_inds_1])
+        ]
 
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
         # todo change prediction method
-        m_hat_prelim_list = fit_predict_proba(d_train_1, x_train_1, ml_m,
-                                              params=None,
-                                              trimming_threshold=trimming_threshold,
-                                              smpls=smpls_prelim)
+        m_hat_prelim_list = fit_predict_proba(
+            d_train_1, x_train_1, ml_m, params=None, trimming_threshold=trimming_threshold, smpls=smpls_prelim
+        )
 
-        m_hat_prelim = np.full_like(y_train_1, np.nan, dtype='float64')
+        m_hat_prelim = np.full_like(y_train_1, np.nan, dtype="float64")
         for idx, (_, test_index) in enumerate(smpls_prelim):
             m_hat_prelim[test_index] = m_hat_prelim_list[idx]
 
-        m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1,
-                                       method='predict_proba', smpls=smpls_prelim)['preds']
+        m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim)["preds"]
 
         m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
         m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
@@ -168,16 +187,14 @@ def cvar_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, ipw_est, n_obs):
     return var_est
 
 
-def tune_nuisance_cvar(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
-                       param_grid_g, param_grid_m):
+def tune_nuisance_cvar(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune, param_grid_g, param_grid_m):
     train_cond_treat = np.where(d == treatment)[0]
 
     quantile_approx = np.quantile(y[d == treatment], quantile)
     g_target_1 = np.ones_like(y) * quantile_approx
     g_target_2 = (y - quantile * quantile_approx) / (1 - quantile)
     g_target_approx = np.max(np.column_stack((g_target_1, g_target_2)), 1)
-    g_tune_res = tune_grid_search(g_target_approx, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                  train_cond=train_cond_treat)
+    g_tune_res = tune_grid_search(g_target_approx, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=train_cond_treat)
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g_best_params = [xx.best_params_ for xx in g_tune_res]

@@ -6,15 +6,26 @@ from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 from ...utils._estimation import _predict_zero_one_propensity, _trimm
 
 
-def fit_selection(y, x, d, z, s,
-                  learner_g, learner_pi, learner_m,
-                  all_smpls, score,
-                  trimming_rule='truncate',
-                  trimming_threshold=1e-2,
-                  normalize_ipw=True,
-                  n_rep=1,
-                  g_d0_params=None, g_d1_params=None,
-                  pi_params=None, m_params=None):
+def fit_selection(
+    y,
+    x,
+    d,
+    z,
+    s,
+    learner_g,
+    learner_pi,
+    learner_m,
+    all_smpls,
+    score,
+    trimming_rule="truncate",
+    trimming_threshold=1e-2,
+    normalize_ipw=True,
+    n_rep=1,
+    g_d0_params=None,
+    g_d1_params=None,
+    pi_params=None,
+    m_params=None,
+):
     n_obs = len(y)
 
     thetas = np.zeros(n_rep)
@@ -31,14 +42,24 @@ def fit_selection(y, x, d, z, s,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat_d1_list, g_hat_d0_list, pi_hat_list, \
-            m_hat_list = fit_nuisance_selection(y, x, d, z, s,
-                                                learner_g, learner_pi, learner_m,
-                                                smpls, score,
-                                                trimming_rule=trimming_rule,
-                                                trimming_threshold=trimming_threshold,
-                                                g_d0_params=g_d0_params, g_d1_params=g_d1_params,
-                                                pi_params=pi_params, m_params=m_params)
+        g_hat_d1_list, g_hat_d0_list, pi_hat_list, m_hat_list = fit_nuisance_selection(
+            y,
+            x,
+            d,
+            z,
+            s,
+            learner_g,
+            learner_pi,
+            learner_m,
+            smpls,
+            score,
+            trimming_rule=trimming_rule,
+            trimming_threshold=trimming_threshold,
+            g_d0_params=g_d0_params,
+            g_d1_params=g_d1_params,
+            pi_params=pi_params,
+            m_params=m_params,
+        )
         all_g_d1_hat.append(g_hat_d1_list)
         all_g_d0_hat.append(g_hat_d0_list)
         all_pi_hat.append(pi_hat_list)
@@ -46,10 +67,9 @@ def fit_selection(y, x, d, z, s,
 
         g_hat_d1, g_hat_d0, pi_hat, m_hat = compute_selection(y, g_hat_d1_list, g_hat_d0_list, pi_hat_list, m_hat_list, smpls)
 
-        dtreat = (d == 1)
-        dcontrol = (d == 0)
-        psi_a, psi_b = selection_score_elements(dtreat, dcontrol, g_hat_d1, g_hat_d0, pi_hat, m_hat,
-                                                s, y, normalize_ipw)
+        dtreat = d == 1
+        dcontrol = d == 0
+        psi_a, psi_b = selection_score_elements(dtreat, dcontrol, g_hat_d1, g_hat_d0, pi_hat, m_hat, s, y, normalize_ipw)
 
         all_psi_a.append(psi_a)
         all_psi_b.append(psi_b)
@@ -59,22 +79,40 @@ def fit_selection(y, x, d, z, s,
     theta = np.median(thetas)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
 
-    res = {'theta': theta, 'se': se,
-           'thetas': thetas, 'ses': ses,
-           'all_g_d1_hat': all_g_d1_hat, 'all_g_d0_hat': all_g_d0_hat,
-           'all_pi_hat': all_pi_hat, 'all_m_hat': all_m_hat,
-           'all_psi_a': all_psi_a, 'all_psi_b': all_psi_b}
+    res = {
+        "theta": theta,
+        "se": se,
+        "thetas": thetas,
+        "ses": ses,
+        "all_g_d1_hat": all_g_d1_hat,
+        "all_g_d0_hat": all_g_d0_hat,
+        "all_pi_hat": all_pi_hat,
+        "all_m_hat": all_m_hat,
+        "all_psi_a": all_psi_a,
+        "all_psi_b": all_psi_b,
+    }
 
     return res
 
 
-def fit_nuisance_selection(y, x, d, z, s,
-                           learner_g, learner_pi, learner_m,
-                           smpls, score,
-                           trimming_rule='truncate',
-                           trimming_threshold=1e-2,
-                           g_d0_params=None, g_d1_params=None,
-                           pi_params=None, m_params=None):
+def fit_nuisance_selection(
+    y,
+    x,
+    d,
+    z,
+    s,
+    learner_g,
+    learner_pi,
+    learner_m,
+    smpls,
+    score,
+    trimming_rule="truncate",
+    trimming_threshold=1e-2,
+    g_d0_params=None,
+    g_d1_params=None,
+    pi_params=None,
+    m_params=None,
+):
 
     ml_g_d1 = clone(learner_g)
     ml_g_d0 = clone(learner_g)
@@ -86,7 +124,7 @@ def fit_nuisance_selection(y, x, d, z, s,
     else:
         dx = np.column_stack((d, x, z))
 
-    if score == 'missing-at-random':
+    if score == "missing-at-random":
         pi_hat_list = fit_predict_proba(s, dx, ml_pi, pi_params, smpls, trimming_threshold=trimming_threshold)
 
         m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls)
@@ -126,8 +164,9 @@ def fit_nuisance_selection(y, x, d, z, s,
             test_inds = smpls[i_fold][1]
 
             # start nested crossfitting
-            train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                          random_state=42, stratify=strata[train_inds])
+            train_inds_1, train_inds_2 = train_test_split(
+                train_inds, test_size=0.5, random_state=42, stratify=strata[train_inds]
+            )
 
             s_train_1 = s[train_inds_1]
             dx_train_1 = dx[train_inds_1, :]
@@ -154,8 +193,7 @@ def fit_nuisance_selection(y, x, d, z, s,
             m_hat = _predict_zero_one_propensity(ml_m, xpi_test)
 
             # estimate conditional outcome on second training sample -- treatment
-            s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0],
-                                                   np.intersect1d(np.where(s == 1)[0], train_inds_2))
+            s1_d1_train_2_indices = np.intersect1d(np.where(d == 1)[0], np.intersect1d(np.where(s == 1)[0], train_inds_2))
             xpi_s1_d1_train_2 = xpi[s1_d1_train_2_indices, :]
             y_s1_d1_train_2 = y[s1_d1_train_2_indices]
 
@@ -165,8 +203,7 @@ def fit_nuisance_selection(y, x, d, z, s,
             g_hat_d1 = ml_g_d1.predict(xpi_test)
 
             # estimate conditional outcome on second training sample -- control
-            s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0],
-                                                   np.intersect1d(np.where(s == 1)[0], train_inds_2))
+            s1_d0_train_2_indices = np.intersect1d(np.where(d == 0)[0], np.intersect1d(np.where(s == 1)[0], train_inds_2))
             xpi_s1_d0_train_2 = xpi[s1_d0_train_2_indices, :]
             y_s1_d0_train_2 = y[s1_d0_train_2_indices]
 
@@ -187,10 +224,10 @@ def fit_nuisance_selection(y, x, d, z, s,
 
 
 def compute_selection(y, g_hat_d1_list, g_hat_d0_list, pi_hat_list, m_hat_list, smpls):
-    g_hat_d1 = np.full_like(y, np.nan, dtype='float64')
-    g_hat_d0 = np.full_like(y, np.nan, dtype='float64')
-    pi_hat = np.full_like(y, np.nan, dtype='float64')
-    m_hat = np.full_like(y, np.nan, dtype='float64')
+    g_hat_d1 = np.full_like(y, np.nan, dtype="float64")
+    g_hat_d0 = np.full_like(y, np.nan, dtype="float64")
+    pi_hat = np.full_like(y, np.nan, dtype="float64")
+    m_hat = np.full_like(y, np.nan, dtype="float64")
 
     for idx, (_, test_index) in enumerate(smpls):
         g_hat_d1[test_index] = g_hat_d1_list[idx]
@@ -201,8 +238,7 @@ def compute_selection(y, g_hat_d1_list, g_hat_d0_list, pi_hat_list, m_hat_list, 
     return g_hat_d1, g_hat_d0, pi_hat, m_hat
 
 
-def selection_score_elements(dtreat, dcontrol, g_d1, g_d0,
-                             pi, m, s, y, normalize_ipw):
+def selection_score_elements(dtreat, dcontrol, g_d1, g_d0, pi, m, s, y, normalize_ipw):
     # psi_a
     psi_a = -1 * np.ones_like(y)
 
@@ -225,7 +261,7 @@ def selection_score_elements(dtreat, dcontrol, g_d1, g_d0,
 
 def selection_dml2(psi_a, psi_b):
     n_obs = len(psi_a)
-    theta_hat = - np.mean(psi_b) / np.mean(psi_a)
+    theta_hat = -np.mean(psi_b) / np.mean(psi_a)
     se = np.sqrt(var_selection(theta_hat, psi_a, psi_b, n_obs))
 
     return theta_hat, se
@@ -233,21 +269,18 @@ def selection_dml2(psi_a, psi_b):
 
 def var_selection(theta, psi_a, psi_b, n_obs):
     J = np.mean(psi_a)
-    var = 1/n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2)) / np.power(J, 2)
+    var = 1 / n_obs * np.mean(np.power(np.multiply(psi_a, theta) + psi_b, 2)) / np.power(J, 2)
     return var
 
 
-def tune_nuisance_ssm(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, score, n_folds_tune,
-                      param_grid_g, param_grid_pi, param_grid_m):
+def tune_nuisance_ssm(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, score, n_folds_tune, param_grid_g, param_grid_pi, param_grid_m):
     d0_s1 = np.intersect1d(np.where(d == 0)[0], np.where(s == 1)[0])
     d1_s1 = np.intersect1d(np.where(d == 1)[0], np.where(s == 1)[0])
 
-    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                   train_cond=d0_s1)
-    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                   train_cond=d1_s1)
+    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=d0_s1)
+    g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=d1_s1)
 
-    if score == 'nonignorable':
+    if score == "nonignorable":
         dx = np.column_stack((x, d, z))
     else:
         dx = np.column_stack((x, d))

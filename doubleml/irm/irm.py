@@ -119,26 +119,25 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         \\theta_0 = \\mathbb{E}[g_0(1, X) - g_0(0,X) | D=1].
     """
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m,
-                 n_folds=5,
-                 n_rep=1,
-                 score='ATE',
-                 weights=None,
-                 normalize_ipw=False,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True):
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep,
-                         score,
-                         draw_sample_splitting)
+
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m,
+        n_folds=5,
+        n_rep=1,
+        score="ATE",
+        weights=None,
+        normalize_ipw=False,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+    ):
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
-        valid_scores = ['ATE', 'ATTE']
+        valid_scores = ["ATE", "ATTE"]
         _check_score(self.score, valid_scores, allow_callable=True)
 
         # set stratication for resampling
@@ -146,23 +145,26 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
-        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-        _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-        self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        ml_g_is_classifier = self._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+        self._learner = {"ml_g": ml_g, "ml_m": ml_m}
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
-                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+                self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
             else:
-                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
-                                 'but the outcome variable is not binary with values 0 and 1.')
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
         else:
-            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+            self._predict_method = {"ml_g": "predict", "ml_m": "predict_proba"}
         self._initialize_ml_nuisance_params()
 
         self._normalize_ipw = normalize_ipw
         if not isinstance(self.normalize_ipw, bool):
-            raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize_ipw))} passed.')
+            raise TypeError(
+                "Normalization indicator has to be boolean. " + f"Object of type {str(type(self.normalize_ipw))} passed."
+            )
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
@@ -202,133 +204,138 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return self._weights
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
-                        for learner in valid_learner}
+        valid_learner = ["ml_g0", "ml_g1", "ml_m"]
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _initialize_weights(self, weights):
         if weights is None:
             weights = np.ones(self._dml_data.n_obs)
         if isinstance(weights, np.ndarray):
-            self._weights = {'weights': weights}
+            self._weights = {"weights": weights}
         else:
             assert isinstance(weights, dict)
             self._weights = weights
 
     def _get_weights(self, m_hat=None):
         # standard case for ATE
-        if self.score == 'ATE':
-            weights = self._weights['weights']
-            if 'weights_bar' not in self._weights.keys():
-                weights_bar = self._weights['weights']
+        if self.score == "ATE":
+            weights = self._weights["weights"]
+            if "weights_bar" not in self._weights.keys():
+                weights_bar = self._weights["weights"]
             else:
-                weights_bar = self._weights['weights_bar'][:, self._i_rep]
+                weights_bar = self._weights["weights_bar"][:, self._i_rep]
         else:
             # special case for ATTE
-            assert self.score == 'ATTE'
+            assert self.score == "ATTE"
             assert m_hat is not None
-            subgroup = self._weights['weights'] * self._dml_data.d
+            subgroup = self._weights["weights"] * self._dml_data.d
             subgroup_probability = np.mean(subgroup)
             weights = np.divide(subgroup, subgroup_probability)
 
-            weights_bar = np.divide(
-                np.multiply(m_hat, self._weights['weights']),
-                subgroup_probability)
+            weights_bar = np.divide(np.multiply(m_hat, self._weights["weights"]), subgroup_probability)
 
         return weights, weights_bar
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+            raise TypeError(
+                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
         if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). '
-                             'To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM.')
-        one_treat = (obj_dml_data.n_treat == 1)
-        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+            raise ValueError(
+                "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+                "To fit an interactive IV regression model use DoubleMLIIVM instead of DoubleMLIRM."
+            )
+        one_treat = obj_dml_data.n_treat == 1
+        binary_treat = type_of_target(obj_dml_data.d) == "binary"
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an IRM model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as treatment variable.')
+            raise ValueError(
+                "Incompatible data. "
+                "To fit an IRM model with DML "
+                "exactly one binary variable with values 0 and 1 "
+                "needs to be specified as treatment variable."
+            )
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                         force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
-        g0_external = external_predictions['ml_g0'] is not None
-        g1_external = external_predictions['ml_g1'] is not None
-        m_external = external_predictions['ml_m'] is not None
+        g0_external = external_predictions["ml_g0"] is not None
+        g1_external = external_predictions["ml_g1"] is not None
+        m_external = external_predictions["ml_m"] is not None
 
         # nuisance g
         if g0_external:
             # use external predictions
-            g_hat0 = {'preds': external_predictions['ml_g0'],
-                      'targets': None,
-                      'models': None}
+            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": None, "models": None}
         else:
-            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
-            g_hat0['targets'] = _cond_targets(g_hat0['targets'], cond_sample=(d == 0))
+            g_hat0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d0,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", smpls)
+            g_hat0["targets"] = _cond_targets(g_hat0["targets"], cond_sample=(d == 0))
 
             if self._dml_data.binary_outcome:
-                _check_binary_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
+                _check_binary_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
 
         if g1_external:
             # use external predictions
-            g_hat1 = {'preds': external_predictions['ml_g1'],
-                      'targets': None,
-                      'models': None}
+            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": None, "models": None}
         else:
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            g_hat1 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g1"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", smpls)
             # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = _cond_targets(g_hat1['targets'], cond_sample=(d == 1))
+            g_hat1["targets"] = _cond_targets(g_hat1["targets"], cond_sample=(d == 1))
 
-        if self._dml_data.binary_outcome & (self.score != 'ATTE'):
-            _check_binary_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', self._dml_data.y_col)
+        if self._dml_data.binary_outcome & (self.score != "ATTE"):
+            _check_binary_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
 
         # nuisance m
         if m_external:
             # use external predictions
-            m_hat = {'preds': external_predictions['ml_m'],
-                     'targets': None,
-                     'models': None}
+            m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
         else:
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
-            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
+            m_hat = _dml_cv_predict(
+                self._learner["ml_m"],
+                x,
+                d,
+                smpls=smpls,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_m"),
+                method=self._predict_method["ml_m"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
+            _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
         # also trimm external predictions
-        m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+        m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
-        psi_a, psi_b = self._score_elements(y, d,
-                                            g_hat0['preds'], g_hat1['preds'], m_hat['preds'],
-                                            smpls)
-        psi_elements = {'psi_a': psi_a,
-                        'psi_b': psi_b}
-        preds = {'predictions': {'ml_g0': g_hat0['preds'],
-                                 'ml_g1': g_hat1['preds'],
-                                 'ml_m': m_hat['preds']},
-                 'targets': {'ml_g0': g_hat0['targets'],
-                             'ml_g1': g_hat1['targets'],
-                             'ml_m': m_hat['targets']},
-                 'models': {'ml_g0': g_hat0['models'],
-                            'ml_g1': g_hat1['models'],
-                            'ml_m': m_hat['models']}
-                 }
+        psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], smpls)
+        psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
+        preds = {
+            "predictions": {"ml_g0": g_hat0["preds"], "ml_g1": g_hat1["preds"], "ml_m": m_hat["preds"]},
+            "targets": {"ml_g0": g_hat0["targets"], "ml_g1": g_hat1["targets"], "ml_m": m_hat["targets"]},
+            "models": {"ml_g0": g_hat0["models"], "ml_g1": g_hat1["models"], "ml_m": m_hat["models"]},
+        }
 
         return psi_elements, preds
 
@@ -343,22 +350,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         u_hat0 = y - g_hat0
         u_hat1 = y - g_hat1
 
-        if (self.score == 'ATE') or (self.score == 'ATTE'):
+        if (self.score == "ATE") or (self.score == "ATTE"):
             weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
-            psi_b = weights * (g_hat1 - g_hat0) \
-                + weights_bar * (
-                    np.divide(np.multiply(d, u_hat1), m_hat_adj)
-                    - np.divide(np.multiply(1.0-d, u_hat0), 1.0 - m_hat_adj))
-            if self.score == 'ATE':
+            psi_b = weights * (g_hat1 - g_hat0) + weights_bar * (
+                np.divide(np.multiply(d, u_hat1), m_hat_adj) - np.divide(np.multiply(1.0 - d, u_hat0), 1.0 - m_hat_adj)
+            )
+            if self.score == "ATE":
                 psi_a = np.full_like(m_hat_adj, -1.0)
             else:
-                assert self.score == 'ATTE'
+                assert self.score == "ATTE"
                 psi_a = -1.0 * weights
         else:
             assert callable(self.score)
-            psi_a, psi_b = self.score(y=y, d=d,
-                                      g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj,
-                                      smpls=smpls)
+            psi_a, psi_b = self.score(y=y, d=d, g_hat0=g_hat0, g_hat1=g_hat1, m_hat=m_hat_adj, smpls=smpls)
 
         return psi_a, psi_b
 
@@ -367,73 +371,94 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         y = self._dml_data.y
         d = self._dml_data.d
 
-        m_hat = preds['predictions']['ml_m']
-        g_hat0 = preds['predictions']['ml_g0']
-        g_hat1 = preds['predictions']['ml_g1']
+        m_hat = preds["predictions"]["ml_m"]
+        g_hat0 = preds["predictions"]["ml_g0"]
+        g_hat1 = preds["predictions"]["ml_g1"]
 
         # use weights make this extendable
         weights, weights_bar = self._get_weights(m_hat=m_hat)
 
-        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0-d, g_hat0))
+        sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0 - d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0-m_hat))))
-        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0-d, 1.0-m_hat)))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0 - m_hat))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0 - d, 1.0 - m_hat)))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        element_dict = {'sigma2': sigma2,
-                        'nu2': nu2,
-                        'psi_sigma2': psi_sigma2,
-                        'psi_nu2': psi_nu2,
-                        'riesz_rep': rr,
-                        }
+        element_dict = {
+            "sigma2": sigma2,
+            "nu2": nu2,
+            "psi_sigma2": psi_sigma2,
+            "psi_nu2": psi_nu2,
+            "riesz_rep": rr,
+        }
         return element_dict
 
-    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                         search_mode, n_iter_randomized_search):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                         force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
-                               'ml_m': None}
+            scoring_methods = {"ml_g": None, "ml_m": None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
         train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
-        g0_tune_res = _dml_tune(y, x, train_inds_d0,
-                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g1_tune_res = _dml_tune(y, x, train_inds_d1,
-                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g0_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d0,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
+        g1_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d1,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
 
-        m_tune_res = _dml_tune(d, x, train_inds,
-                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        m_tune_res = _dml_tune(
+            d,
+            x,
+            train_inds,
+            self._learner["ml_m"],
+            param_grids["ml_m"],
+            scoring_methods["ml_m"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {'ml_g0': g0_best_params,
-                  'ml_g1': g1_best_params,
-                  'ml_m': m_best_params}
-        tune_res = {'g0_tune': g0_tune_res,
-                    'g1_tune': g1_tune_res,
-                    'm_tune': m_tune_res}
+        params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
+        tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
 
-        res = {'params': params,
-               'tune_res': tune_res}
+        res = {"params": params, "tune_res": tune_res}
 
         return res
 
@@ -459,17 +484,15 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLBLP`
             Best linear Predictor model.
         """
-        valid_score = ['ATE']
+        valid_score = ["ATE"]
         if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
+            raise ValueError("Invalid score " + self.score + ". " + "Valid score " + " or ".join(valid_score) + ".")
 
         if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
+            raise NotImplementedError("Only implemented for one repetition. " + f"Number of repetitions is {str(self.n_rep)}.")
 
         # define the orthogonal signal
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        orth_signal = self.psi_elements["psi_b"].reshape(-1)
         # fit the best linear predictor
         model = DoubleMLBLP(orth_signal, basis=basis, is_gate=is_gate)
         model.fit(**kwargs)
@@ -495,18 +518,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             Best linear Predictor model for Group Effects.
         """
         if not isinstance(groups, pd.DataFrame):
-            raise TypeError('Groups must be of DataFrame type. '
-                            f'Groups of type {str(type(groups))} was passed.')
+            raise TypeError("Groups must be of DataFrame type. " f"Groups of type {str(type(groups))} was passed.")
 
         if not all(groups.dtypes == bool) or all(groups.dtypes == int):
             if groups.shape[1] == 1:
-                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
+                groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
             else:
-                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
-                                'Alternatively, groups should only contain one column.')
+                raise TypeError(
+                    "Columns of groups must be of bool type or int type (dummy coded). "
+                    "Alternatively, groups should only contain one column."
+                )
 
         if any(groups.sum(0) <= 5):
-            warnings.warn('At least one group effect is estimated with less than 6 observations.')
+            warnings.warn("At least one group effect is estimated with less than 6 observations.")
 
         model = self.cate(groups, is_gate=True, **kwargs)
         return model
@@ -536,22 +560,19 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         model : :class:`doubleML.DoubleMLPolicyTree`
             Policy tree model.
         """
-        valid_score = ['ATE']
+        valid_score = ["ATE"]
         if self.score not in valid_score:
-            raise ValueError('Invalid score ' + self.score + '. ' +
-                             'Valid score ' + ' or '.join(valid_score) + '.')
+            raise ValueError("Invalid score " + self.score + ". " + "Valid score " + " or ".join(valid_score) + ".")
 
         if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
+            raise NotImplementedError("Only implemented for one repetition. " + f"Number of repetitions is {str(self.n_rep)}.")
 
         _check_integer(depth, "Depth", 0)
 
         if not isinstance(features, pd.DataFrame):
-            raise TypeError('Covariates must be of DataFrame type. '
-                            f'Covariates of type {str(type(features))} was passed.')
+            raise TypeError("Covariates must be of DataFrame type. " f"Covariates of type {str(type(features))} was passed.")
 
-        orth_signal = self.psi_elements['psi_b'].reshape(-1)
+        orth_signal = self.psi_elements["psi_b"].reshape(-1)
 
         model = DoubleMLPolicyTree(orth_signal, depth=depth, features=features, **tree_params).fit()
 

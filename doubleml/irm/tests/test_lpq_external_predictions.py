@@ -59,10 +59,7 @@ def doubleml_lpq_fixture(n_rep, normalize_ipw):
     np.random.seed(3141)
     dml_lpq_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {
-        "coef_normal": dml_lpq.coef.item(),
-        "coef_ext": dml_lpq_ext.coef.item()
-    }
+    res_dict = {"coef_normal": dml_lpq.coef.item(), "coef_ext": dml_lpq_ext.coef.item()}
 
     return res_dict
 
