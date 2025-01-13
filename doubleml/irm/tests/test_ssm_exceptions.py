@@ -17,7 +17,7 @@ ml_g = Lasso()
 ml_pi = LogisticRegression()
 ml_m = LogisticRegression()
 dml_ssm_mar = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, ml_m)
-dml_ssm_nonignorable = DoubleMLSSM(dml_data_nonignorable, ml_g, ml_pi, ml_m)
+dml_ssm_nonignorable = DoubleMLSSM(dml_data_nonignorable, ml_g, ml_pi, ml_m, score='nonignorable')
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -207,6 +207,9 @@ class _DummyNoClassifier(_DummyNoGetParams):
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings(
+    r"ignore:.*is \(probably\) neither a regressor nor a classifier.*:UserWarning",
+)
 def test_ssm_exception_learner():
     err_msg_prefix = 'Invalid learner provided for ml_g: '
 
@@ -239,6 +242,11 @@ def test_ssm_exception_learner():
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings(
+    r"ignore:.*is \(probably\) neither a regressor nor a classifier.*:UserWarning",
+    r"ignore: Learner provided for ml_m is probably invalid.*is \(probably\) no classifier.*:UserWarning",
+    r"ignore: Learner provided for l_pi is probably invalid.*is \(probably\) no classifier.*:UserWarning"
+)
 def test_ssm_exception_and_warning_learner():
     # msg = err_msg_prefix + r'_DummyNoClassifier\(\) has no method .predict\(\).'
     with pytest.raises(TypeError):

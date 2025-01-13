@@ -194,6 +194,9 @@ def cov_type(request):
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings(
+    "ignore:The least populated class in y has only 4 members, which is less than n_splits=5.*:UserWarning"
+)
 def test_dml_irm_cate_gate(cov_type):
     n = 9
     # collect data
