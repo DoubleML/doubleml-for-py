@@ -155,9 +155,8 @@ def test_add_vars_in_df():
     # additional variables in the df shouldn't affect results
     np.random.seed(3141)
     df = make_plr_CCDDHNR2018(n_obs=100, return_type="DataFrame")
-    dml_data_full_df = DoubleMLData(df, "y", "d", ["X1", "X11", "X13"])
-    df_subset = df[["X1", "X11", "X13", "y", "d"]].copy()
-    dml_data_subset = DoubleMLData(df_subset, "y", "d", ["X1", "X11", "X13"])
+    dml_data_full_df = DoubleMLData(df, "y", "d", ["X1", "X2", "X3"])
+    dml_data_subset = DoubleMLData(df[["X1", "X2", "X3", "y", "d"]], "y", "d", ["X1", "X2", "X3"])
     dml_plr_full_df = DoubleMLPLR(dml_data_full_df, Lasso(), Lasso())
     dml_plr_subset = DoubleMLPLR(dml_data_subset, Lasso(), Lasso(), draw_sample_splitting=False)
     dml_plr_subset.set_sample_splitting(dml_plr_full_df.smpls)
