@@ -1,14 +1,13 @@
-import pandas as pd
-import numpy as np
 import warnings
 
+import numpy as np
+import pandas as pd
 from scipy.linalg import toeplitz
 from scipy.optimize import minimize_scalar
-
-from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
+from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLClusterData, DoubleMLData
 
 _array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
 _data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
@@ -82,7 +81,7 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
     url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
-    raw_data = pd.read_csv(url, sep='\s+')
+    raw_data = pd.read_csv(url, sep=r'\s+')
 
     ind = (raw_data['tg'] == 0) | (raw_data['tg'] == 4)
     data = raw_data.copy()[ind]

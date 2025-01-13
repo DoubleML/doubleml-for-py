@@ -1,14 +1,14 @@
-import numpy as np
-import pandas as pd
 import io
-
 from abc import ABC, abstractmethod
 
-from sklearn.utils.validation import check_array, column_or_1d,  check_consistent_length
+import numpy as np
+import pandas as pd
 from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
-from .utils._estimation import _assure_2d_array
+from sklearn.utils.validation import check_array, check_consistent_length, column_or_1d
+
 from .utils._checks import _check_set
+from .utils._estimation import _assure_2d_array
 
 
 class DoubleMLBaseData(ABC):

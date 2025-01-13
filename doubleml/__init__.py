@@ -1,22 +1,20 @@
 import importlib.metadata
 
-from .double_ml_framework import concat
-from .double_ml_framework import DoubleMLFramework
-from .plm.plr import DoubleMLPLR
-from .plm.pliv import DoubleMLPLIV
-from .irm.irm import DoubleMLIRM
-from .irm.apo import DoubleMLAPO
-from .irm.apos import DoubleMLAPOS
-from .irm.iivm import DoubleMLIIVM
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
-from .irm.qte import DoubleMLQTE
-from .irm.pq import DoubleMLPQ
-from .irm.lpq import DoubleMLLPQ
+from .double_ml_data import DoubleMLClusterData, DoubleMLData
+from .double_ml_framework import DoubleMLFramework, concat
+from .irm.apo import DoubleMLAPO
+from .irm.apos import DoubleMLAPOS
 from .irm.cvar import DoubleMLCVAR
+from .irm.iivm import DoubleMLIIVM
+from .irm.irm import DoubleMLIRM
+from .irm.lpq import DoubleMLLPQ
+from .irm.pq import DoubleMLPQ
+from .irm.qte import DoubleMLQTE
 from .irm.ssm import DoubleMLSSM
-
+from .plm.pliv import DoubleMLPLIV
+from .plm.plr import DoubleMLPLR
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
 

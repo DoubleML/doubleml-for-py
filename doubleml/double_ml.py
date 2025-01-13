@@ -1,21 +1,18 @@
+import copy
+import warnings
+from abc import ABC, abstractmethod
+
 import numpy as np
 import pandas as pd
-import warnings
-import copy
-
-from sklearn.base import is_regressor, is_classifier
-
 from scipy.stats import norm
-
-from abc import ABC, abstractmethod
+from sklearn.base import is_classifier, is_regressor
 
 from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
-
-from .utils.resampling import DoubleMLResampling, DoubleMLClusterResampling
-from .utils._estimation import _rmse, _aggregate_coefs_and_ses, _var_est, _set_external_predictions
 from .utils._checks import _check_external_predictions, _check_sample_splitting
+from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from .utils.gain_statistics import gain_statistics
+from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 _implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
 

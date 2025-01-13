@@ -1,13 +1,11 @@
 import copy
+import warnings
+from abc import abstractmethod
 
 import numpy as np
-
-import warnings
-
 from scipy.optimize import fmin_l_bfgs_b, root_scalar
-from .utils._estimation import _get_bracket_guess
 
-from abc import abstractmethod
+from .utils._estimation import _get_bracket_guess
 
 
 class LinearScoreMixin:

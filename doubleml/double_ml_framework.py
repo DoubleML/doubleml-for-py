@@ -1,15 +1,22 @@
-import numpy as np
-import pandas as pd
 import copy
 
-from scipy.stats import norm
+import numpy as np
+import pandas as pd
 from scipy.optimize import minimize_scalar
+from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 
-from .utils._estimation import _draw_weights, _aggregate_coefs_and_ses, _var_est
-from .utils._checks import _check_bootstrap, _check_framework_compatibility, _check_in_zero_one, \
-    _check_float, _check_integer, _check_bool, _check_benchmarks
+from .utils._checks import (
+    _check_benchmarks,
+    _check_bool,
+    _check_bootstrap,
+    _check_float,
+    _check_framework_compatibility,
+    _check_in_zero_one,
+    _check_integer,
+)
 from .utils._descriptive import generate_summary
+from .utils._estimation import _aggregate_coefs_and_ses, _draw_weights, _var_est
 from .utils._plots import _sensitivity_contour_plot
 
 
@@ -941,7 +948,7 @@ class DoubleMLFramework():
             self._is_cluster_data = doubleml_dict['is_cluster_data']
 
         if self._is_cluster_data:
-            if not ("cluster_dict" in doubleml_dict.keys()):
+            if "cluster_dict" not in doubleml_dict.keys():
                 raise ValueError('If is_cluster_data is True, cluster_dict must be provided.')
 
             if not isinstance(doubleml_dict['cluster_dict'], dict):
@@ -957,7 +964,7 @@ class DoubleMLFramework():
         return
 
     def _check_and_set_sensitivity_elements(self, doubleml_dict):
-        if not ("sensitivity_elements" in doubleml_dict.keys()):
+        if "sensitivity_elements" not in doubleml_dict.keys():
             sensitivity_implemented = False
             sensitivity_elements = None
 
