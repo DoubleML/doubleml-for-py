@@ -13,17 +13,17 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(".."))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'DoubleML'
-copyright = '2021, Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M.'
-author = 'Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M.'
+project = "DoubleML"
+copyright = "2021, Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."
+author = "Bach, P., Chernozhukov, V., Klaassen, S., Kurz, M. S., and Spindler, M."
 
 # The full version, including alpha/beta/rc tags
-release = '0.10.dev0'
+release = "0.10.dev0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,25 +32,25 @@ release = '0.10.dev0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.coverage',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.coverage",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-master_doc = 'index'
+master_doc = "index"
 
-autoclass_content = 'class'
+autoclass_content = "class"
 autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
@@ -58,12 +58,12 @@ autosummary_generate = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
-    'github_url': 'https://github.com/DoubleML/doubleml-for-py',
-    'navigation_with_keys': False,
-    'show_toc_level': 0
+    "github_url": "https://github.com/DoubleML/doubleml-for-py",
+    "navigation_with_keys": False,
+    "show_toc_level": 0,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -75,9 +75,9 @@ html_theme_options = {
 
 # intersphinx configuration
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
-    'sklearn': ('https://scikit-learn.org/stable/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
-    'statsmodels': ('https://www.statsmodels.org/stable/', None),
+    "python": ("https://docs.python.org/{.major}".format(sys.version_info), None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "statsmodels": ("https://www.statsmodels.org/stable/", None),
 }
