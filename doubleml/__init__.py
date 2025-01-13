@@ -19,25 +19,25 @@ from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
 
 __all__ = [
-    'concat',
-    'DoubleMLFramework',
-    'DoubleMLPLR',
-    'DoubleMLPLIV',
-    'DoubleMLIRM',
-    'DoubleMLAPO',
-    'DoubleMLAPOS',
-    'DoubleMLIIVM',
-    'DoubleMLData',
-    'DoubleMLClusterData',
-    'DoubleMLDID',
-    'DoubleMLDIDCS',
-    'DoubleMLPQ',
-    'DoubleMLQTE',
-    'DoubleMLLPQ',
-    'DoubleMLCVAR',
-    'DoubleMLBLP',
-    'DoubleMLPolicyTree',
-    'DoubleMLSSM'
+    "concat",
+    "DoubleMLFramework",
+    "DoubleMLPLR",
+    "DoubleMLPLIV",
+    "DoubleMLIRM",
+    "DoubleMLAPO",
+    "DoubleMLAPOS",
+    "DoubleMLIIVM",
+    "DoubleMLData",
+    "DoubleMLClusterData",
+    "DoubleMLDID",
+    "DoubleMLDIDCS",
+    "DoubleMLPQ",
+    "DoubleMLQTE",
+    "DoubleMLLPQ",
+    "DoubleMLCVAR",
+    "DoubleMLBLP",
+    "DoubleMLPolicyTree",
+    "DoubleMLSSM",
 ]
 
-__version__ = importlib.metadata.version('doubleml')
+__version__ = importlib.metadata.version("doubleml")

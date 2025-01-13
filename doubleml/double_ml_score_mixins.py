@@ -25,36 +25,37 @@ class LinearScoreMixin:
     `score functions <https://docs.doubleml.org/stable/guide/scores.html>`_ and on
     `variance estimation <https://docs.doubleml.org/stable/guide/se_confint.html>`_ in the DoubleML user guide.
     """
-    _score_type = 'linear'
+
+    _score_type = "linear"
 
     @property
     def _score_element_names(self):
-        return ['psi_a', 'psi_b']
+        return ["psi_a", "psi_b"]
 
     def _compute_score(self, psi_elements, coef):
-        psi = psi_elements['psi_a'] * coef + psi_elements['psi_b']
+        psi = psi_elements["psi_a"] * coef + psi_elements["psi_b"]
         return psi
 
     def _compute_score_deriv(self, psi_elements, coef):
-        return psi_elements['psi_a']
+        return psi_elements["psi_a"]
 
     def _est_coef(self, psi_elements, smpls=None, scaling_factor=None, inds=None):
-        psi_a = psi_elements['psi_a']
-        psi_b = psi_elements['psi_b']
+        psi_a = psi_elements["psi_a"]
+        psi_b = psi_elements["psi_b"]
         if inds is not None:
             psi_a = psi_a[inds]
             psi_b = psi_b[inds]
 
         if not self._is_cluster_data:
-            coef = - np.mean(psi_b) / np.mean(psi_a)
+            coef = -np.mean(psi_b) / np.mean(psi_a)
         # for cluster we need the smpls and the scaling factors
         else:
             assert smpls is not None
             assert scaling_factor is not None
             assert inds is None
             # if we have clustered data and dml2 the solution is the root of a weighted sum
-            psi_a_subsample_mean = 0.
-            psi_b_subsample_mean = 0.
+            psi_a_subsample_mean = 0.0
+            psi_b_subsample_mean = 0.0
             for i_fold, (_, test_index) in enumerate(smpls):
                 psi_a_subsample_mean += scaling_factor[i_fold] * np.sum(psi_a[test_index])
                 psi_b_subsample_mean += scaling_factor[i_fold] * np.sum(psi_b[test_index])
@@ -81,7 +82,8 @@ class NonLinearScoreMixin:
     ``_compute_score_deriv``, which should implement the evaluation of the derivative of the score function
     :math:`\\frac{\\partial}{\\partial \\theta} \\psi(W; \\theta, \\eta)`, need to be added model-specifically.
     """
-    _score_type = 'nonlinear'
+
+    _score_type = "nonlinear"
     _coef_start_val = np.nan
     _coef_bounds = None
 
@@ -119,7 +121,7 @@ class NonLinearScoreMixin:
 
             # if we have clustered data the solution is the root of a weighted sum
             else:
-                psi_mean = 0.
+                psi_mean = 0.0
                 for i_fold, (_, test_index) in enumerate(smpls):
                     psi_mean += scaling_factor[i_fold] * np.sum(psi[test_index])
 
@@ -143,71 +145,68 @@ class NonLinearScoreMixin:
             bounded = (self._coef_bounds[0] > -np.inf) & (self._coef_bounds[1] < np.inf)
 
         if not bounded:
-            root_res = root_scalar(score,
-                                   x0=self._coef_start_val,
-                                   fprime=score_deriv,
-                                   method='newton')
+            root_res = root_scalar(score, x0=self._coef_start_val, fprime=score_deriv, method="newton")
             theta_hat = root_res.root
             if not root_res.converged:
                 score_val = score(theta_hat)
-                warnings.warn('Could not find a root of the score function.\n '
-                              f'Flag: {root_res.flag}.\n'
-                              f'Score value found is {score_val} '
-                              f'for parameter theta equal to {theta_hat}.')
+                warnings.warn(
+                    "Could not find a root of the score function.\n "
+                    f"Flag: {root_res.flag}.\n"
+                    f"Score value found is {score_val} "
+                    f"for parameter theta equal to {theta_hat}."
+                )
         else:
             signs_different, bracket_guess = _get_bracket_guess(score, self._coef_start_val, self._coef_bounds)
 
             if signs_different:
-                root_res = root_scalar(score,
-                                       bracket=bracket_guess,
-                                       method='brentq')
+                root_res = root_scalar(score, bracket=bracket_guess, method="brentq")
                 theta_hat = root_res.root
             else:
                 # try to find an alternative start value
                 def score_squared(theta):
                     res = np.power(np.mean(self._compute_score(psi_elements, theta)), 2)
                     return res
+
                 # def score_squared_deriv(theta, inds):
                 #     res = 2 * np.mean(self._compute_score(psi_elements, theta, inds)) * \
                 #           np.mean(self._compute_score_deriv(psi_elements, theta, inds))
                 #     return res
-                alt_coef_start, _, _ = fmin_l_bfgs_b(score_squared,
-                                                     self._coef_start_val,
-                                                     approx_grad=True,
-                                                     bounds=[self._coef_bounds])
+                alt_coef_start, _, _ = fmin_l_bfgs_b(
+                    score_squared, self._coef_start_val, approx_grad=True, bounds=[self._coef_bounds]
+                )
                 signs_different, bracket_guess = _get_bracket_guess(score, alt_coef_start, self._coef_bounds)
 
                 if signs_different:
-                    root_res = root_scalar(score,
-                                           bracket=bracket_guess,
-                                           method='brentq')
+                    root_res = root_scalar(score, bracket=bracket_guess, method="brentq")
                     theta_hat = root_res.root
                 else:
                     score_val_sign = np.sign(score(alt_coef_start))
                     if score_val_sign > 0:
                         theta_hat_array, score_val, _ = fmin_l_bfgs_b(
-                            score,
-                            self._coef_start_val,
-                            approx_grad=True,
-                            bounds=[self._coef_bounds])
+                            score, self._coef_start_val, approx_grad=True, bounds=[self._coef_bounds]
+                        )
                         theta_hat = theta_hat_array.item()
-                        warnings.warn('Could not find a root of the score function.\n '
-                                      f'Minimum score value found is {score_val} '
-                                      f'for parameter theta equal to {theta_hat}.\n '
-                                      'No theta found such that the score function evaluates to a negative value.')
+                        warnings.warn(
+                            "Could not find a root of the score function.\n "
+                            f"Minimum score value found is {score_val} "
+                            f"for parameter theta equal to {theta_hat}.\n "
+                            "No theta found such that the score function evaluates to a negative value."
+                        )
                     else:
+
                         def neg_score(theta):
-                            res = - np.mean(self._compute_score(psi_elements, theta))
+                            res = -np.mean(self._compute_score(psi_elements, theta))
                             return res
+
                         theta_hat_array, neg_score_val, _ = fmin_l_bfgs_b(
-                            neg_score,
-                            self._coef_start_val,
-                            approx_grad=True,
-                            bounds=[self._coef_bounds])
+                            neg_score, self._coef_start_val, approx_grad=True, bounds=[self._coef_bounds]
+                        )
                         theta_hat = theta_hat_array.item()
-                        warnings.warn('Could not find a root of the score function. '
-                                      f'Maximum score value found is {-1*neg_score_val} '
-                                      f'for parameter theta equal to {theta_hat}. '
-                                      'No theta found such that the score function evaluates to a positive value.')
+                        warnings.warn(
+                            "Could not find a root of the score function. "
+                            f"Maximum score value found is {-1*neg_score_val} "
+                            f"for parameter theta equal to {theta_hat}. "
+                            "No theta found such that the score function evaluates to a positive value."
+                        )
 
         return theta_hat

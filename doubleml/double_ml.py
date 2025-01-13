@@ -14,27 +14,23 @@ from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_pr
 from .utils.gain_statistics import gain_statistics
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
-_implemented_data_backends = ['DoubleMLData', 'DoubleMLClusterData']
+_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
 
 
 class DoubleML(ABC):
-    """Double Machine Learning.
-    """
+    """Double Machine Learning."""
 
-    def __init__(self,
-                 obj_dml_data,
-                 n_folds,
-                 n_rep,
-                 score,
-                 draw_sample_splitting):
+    def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
-            raise TypeError('The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+            raise TypeError(
+                "The data must be of " + " or ".join(_implemented_data_backends) + " type. "
+                f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
         self._is_cluster_data = False
         if isinstance(obj_dml_data, DoubleMLClusterData):
             if obj_dml_data.n_cluster_vars > 2:
-                raise NotImplementedError('Multi-way (n_ways > 2) clustering not yet implemented.')
+                raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
         self._dml_data = obj_dml_data
 
@@ -64,27 +60,29 @@ class DoubleML(ABC):
 
         # check resampling specifications
         if not isinstance(n_folds, int):
-            raise TypeError('The number of folds must be of int type. '
-                            f'{str(n_folds)} of type {str(type(n_folds))} was passed.')
+            raise TypeError(
+                "The number of folds must be of int type. " f"{str(n_folds)} of type {str(type(n_folds))} was passed."
+            )
         if n_folds < 1:
-            raise ValueError('The number of folds must be positive. '
-                             f'{str(n_folds)} was passed.')
+            raise ValueError("The number of folds must be positive. " f"{str(n_folds)} was passed.")
 
         if not isinstance(n_rep, int):
-            raise TypeError('The number of repetitions for the sample splitting must be of int type. '
-                            f'{str(n_rep)} of type {str(type(n_rep))} was passed.')
+            raise TypeError(
+                "The number of repetitions for the sample splitting must be of int type. "
+                f"{str(n_rep)} of type {str(type(n_rep))} was passed."
+            )
         if n_rep < 1:
-            raise ValueError('The number of repetitions for the sample splitting must be positive. '
-                             f'{str(n_rep)} was passed.')
+            raise ValueError(
+                "The number of repetitions for the sample splitting must be positive. " f"{str(n_rep)} was passed."
+            )
 
         if not isinstance(draw_sample_splitting, bool):
-            raise TypeError('draw_sample_splitting must be True or False. '
-                            f'Got {str(draw_sample_splitting)}.')
+            raise TypeError("draw_sample_splitting must be True or False. " f"Got {str(draw_sample_splitting)}.")
 
         # set resampling specifications
         if self._is_cluster_data:
             self._n_folds_per_cluster = n_folds
-            self._n_folds = n_folds ** self._dml_data.n_cluster_vars
+            self._n_folds = n_folds**self._dml_data.n_cluster_vars
         else:
             self._n_folds = n_folds
         self._n_rep = n_rep
@@ -99,8 +97,16 @@ class DoubleML(ABC):
             self.draw_sample_splitting()
 
         # initialize arrays according to obj_dml_data and the resampling settings
-        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
-            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
+        (
+            self._psi,
+            self._psi_deriv,
+            self._psi_elements,
+            self._var_scaling_factors,
+            self._coef,
+            self._se,
+            self._all_coef,
+            self._all_se,
+        ) = self._initialize_arrays()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -108,39 +114,47 @@ class DoubleML(ABC):
 
     def __str__(self):
         class_name = self.__class__.__name__
-        header = f'================== {class_name} Object ==================\n'
+        header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
-        score_info = f'Score function: {str(self.score)}\n'
-        learner_info = ''
+        score_info = f"Score function: {str(self.score)}\n"
+        learner_info = ""
         for key, value in self.learner.items():
-            learner_info += f'Learner {key}: {str(value)}\n'
+            learner_info += f"Learner {key}: {str(value)}\n"
         if self.nuisance_loss is not None:
-            learner_info += 'Out-of-sample Performance:\n'
+            learner_info += "Out-of-sample Performance:\n"
             is_classifier = [value for value in self._is_classifier.values()]
             is_regressor = [not value for value in is_classifier]
             if any(is_regressor):
-                learner_info += 'Regression:\n'
+                learner_info += "Regression:\n"
                 for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f'Learner {learner} RMSE: {self.nuisance_loss[learner]}\n'
+                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
             if any(is_classifier):
-                learner_info += 'Classification:\n'
+                learner_info += "Classification:\n"
                 for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f'Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n'
+                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
 
         if self._is_cluster_data:
-            resampling_info = f'No. folds per cluster: {self._n_folds_per_cluster}\n' \
-                              f'No. folds: {self.n_folds}\n' \
-                              f'No. repeated sample splits: {self.n_rep}\n'
+            resampling_info = (
+                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
+                f"No. folds: {self.n_folds}\n"
+                f"No. repeated sample splits: {self.n_rep}\n"
+            )
         else:
-            resampling_info = f'No. folds: {self.n_folds}\n' \
-                              f'No. repeated sample splits: {self.n_rep}\n'
+            resampling_info = f"No. folds: {self.n_folds}\n" f"No. repeated sample splits: {self.n_rep}\n"
         fit_summary = str(self.summary)
-        res = header + \
-            '\n------------------ Data summary      ------------------\n' + data_summary + \
-            '\n------------------ Score & algorithm ------------------\n' + score_info + \
-            '\n------------------ Machine learner   ------------------\n' + learner_info + \
-            '\n------------------ Resampling        ------------------\n' + resampling_info + \
-            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        res = (
+            header
+            + "\n------------------ Data summary      ------------------\n"
+            + data_summary
+            + "\n------------------ Score & algorithm ------------------\n"
+            + score_info
+            + "\n------------------ Machine learner   ------------------\n"
+            + learner_info
+            + "\n------------------ Resampling        ------------------\n"
+            + resampling_info
+            + "\n------------------ Fit summary       ------------------\n"
+            + fit_summary
+        )
         return res
 
     @property
@@ -266,8 +280,14 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if (not isinstance(learner, str)) | (learner not in valid_learner):
-            raise ValueError('Invalid nuisance learner ' + str(learner) + '. ' +
-                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
+            raise ValueError(
+                "Invalid nuisance learner "
+                + str(learner)
+                + ". "
+                + "Valid nuisance learner "
+                + " or ".join(valid_learner)
+                + "."
+            )
         return self._params[learner]
 
     # The private function _get_params delivers the single treatment, single (cross-fitting) sample subselection.
@@ -283,8 +303,10 @@ class DoubleML(ABC):
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            err_msg = ('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
-                       'or set external samples via .set_sample_splitting().')
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
             raise ValueError(err_msg)
         return self._smpls
 
@@ -415,16 +437,12 @@ class DoubleML(ABC):
         """
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
-        col_names = ['coef', 'std err', 't', 'P>|t|']
+        col_names = ["coef", "std err", "t", "P>|t|"]
         if np.isnan(self.coef).all():
             df_summary = pd.DataFrame(columns=col_names)
         else:
-            summary_stats = np.transpose(np.vstack(
-                [self.coef, self.se,
-                 self.t_stat, self.pval]))
-            df_summary = pd.DataFrame(summary_stats,
-                                      columns=col_names,
-                                      index=self._dml_data.d_cols)
+            summary_stats = np.transpose(np.vstack([self.coef, self.se, self.t_stat, self.pval]))
+            df_summary = pd.DataFrame(summary_stats, columns=col_names, index=self._dml_data.d_cols)
             ci = self.confint()
             df_summary = df_summary.join(ci)
         return df_summary
@@ -498,10 +516,8 @@ class DoubleML(ABC):
 
                 # predictions have to be stored in loop for sensitivity analysis
                 nuisance_predictions = self._fit_nuisance_and_score_elements(
-                    n_jobs_cv,
-                    store_predictions,
-                    external_predictions,
-                    store_models)
+                    n_jobs_cv, store_predictions, external_predictions, store_models
+                )
 
                 self._solve_score_and_estimate_se()
 
@@ -532,42 +548,46 @@ class DoubleML(ABC):
         scaled_psi_reshape = np.transpose(scaled_psi, (0, 2, 1))
 
         doubleml_dict = {
-            'thetas': self.coef,
-            'all_thetas': self.all_coef,
-            'ses': self.se,
-            'all_ses': self.all_se,
-            'var_scaling_factors': self._var_scaling_factors,
-            'scaled_psi': scaled_psi_reshape,
-            'is_cluster_data': self._is_cluster_data
+            "thetas": self.coef,
+            "all_thetas": self.all_coef,
+            "ses": self.se,
+            "all_ses": self.all_se,
+            "var_scaling_factors": self._var_scaling_factors,
+            "scaled_psi": scaled_psi_reshape,
+            "is_cluster_data": self._is_cluster_data,
         }
 
         if self._sensitivity_implemented:
             # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
-            doubleml_dict.update({
-                'sensitivity_elements': {
-                    'sigma2': np.transpose(self.sensitivity_elements['sigma2'], (0, 2, 1)),
-                    'nu2': np.transpose(self.sensitivity_elements['nu2'], (0, 2, 1)),
-                    'psi_sigma2': np.transpose(self.sensitivity_elements['psi_sigma2'], (0, 2, 1)),
-                    'psi_nu2': np.transpose(self.sensitivity_elements['psi_nu2'], (0, 2, 1)),
-                    'riesz_rep': np.transpose(self.sensitivity_elements['riesz_rep'], (0, 2, 1))
+            doubleml_dict.update(
+                {
+                    "sensitivity_elements": {
+                        "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
+                        "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
+                        "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
+                        "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
+                        "riesz_rep": np.transpose(self.sensitivity_elements["riesz_rep"], (0, 2, 1)),
+                    }
                 }
-            })
+            )
 
         if self._is_cluster_data:
-            doubleml_dict.update({
-                'is_cluster_data': True,
-                'cluster_dict': {
-                    'smpls': self._smpls,
-                    'smpls_cluster': self._smpls_cluster,
-                    'cluster_vars': self._dml_data.cluster_vars,
-                    'n_folds_per_cluster': self._n_folds_per_cluster,
+            doubleml_dict.update(
+                {
+                    "is_cluster_data": True,
+                    "cluster_dict": {
+                        "smpls": self._smpls,
+                        "smpls_cluster": self._smpls_cluster,
+                        "cluster_vars": self._dml_data.cluster_vars,
+                        "n_folds_per_cluster": self._n_folds_per_cluster,
+                    },
                 }
-            })
+            )
 
         doubleml_framework = DoubleMLFramework(doubleml_dict)
         return doubleml_framework
 
-    def bootstrap(self, method='normal', n_rep_boot=500):
+    def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
 
@@ -585,7 +605,7 @@ class DoubleML(ABC):
         self : object
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before bootstrap().')
+            raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
@@ -611,14 +631,14 @@ class DoubleML(ABC):
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before confint().')
+            raise ValueError("Apply fit() before confint().")
 
         df_ci = self.framework.confint(joint=joint, level=level)
         df_ci.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
         return df_ci
 
-    def p_adjust(self, method='romano-wolf'):
+    def p_adjust(self, method="romano-wolf"):
         """
         Multiple testing adjustment for DoubleML models.
 
@@ -637,23 +657,25 @@ class DoubleML(ABC):
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before p_adjust().')
+            raise ValueError("Apply fit() before p_adjust().")
 
         p_val, _ = self.framework.p_adjust(method=method)
         p_val.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
 
         return p_val
 
-    def tune(self,
-             param_grids,
-             tune_on_folds=False,
-             scoring_methods=None,  # if None the estimator's score method is used
-             n_folds_tune=5,
-             search_mode='grid_search',
-             n_iter_randomized_search=100,
-             n_jobs_cv=None,
-             set_as_params=True,
-             return_tune_res=False):
+    def tune(
+        self,
+        param_grids,
+        tune_on_folds=False,
+        scoring_methods=None,  # if None the estimator's score method is used
+        n_folds_tune=5,
+        search_mode="grid_search",
+        n_iter_randomized_search=100,
+        n_jobs_cv=None,
+        set_as_params=True,
+        return_tune_res=False,
+    ):
         """
         Hyperparameter-tuning for DoubleML models.
 
@@ -712,14 +734,22 @@ class DoubleML(ABC):
         """
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
-            raise ValueError('Invalid param_grids ' + str(param_grids) + '. '
-                             'param_grids must be a dictionary with keys ' + ' and '.join(self.learner_names) + '.')
+            raise ValueError(
+                "Invalid param_grids " + str(param_grids) + ". "
+                "param_grids must be a dictionary with keys " + " and ".join(self.learner_names) + "."
+            )
 
         if scoring_methods is not None:
             if (not isinstance(scoring_methods, dict)) | (not all(k in self.learner_names for k in scoring_methods)):
-                raise ValueError('Invalid scoring_methods ' + str(scoring_methods) + '. ' +
-                                 'scoring_methods must be a dictionary. ' +
-                                 'Valid keys are ' + ' and '.join(self.learner_names) + '.')
+                raise ValueError(
+                    "Invalid scoring_methods "
+                    + str(scoring_methods)
+                    + ". "
+                    + "scoring_methods must be a dictionary. "
+                    + "Valid keys are "
+                    + " and ".join(self.learner_names)
+                    + "."
+                )
             if not all(k in scoring_methods for k in self.learner_names):
                 # if there are learners for which no scoring_method was set, we fall back to None, i.e., default scoring
                 for learner in self.learner_names:
@@ -727,40 +757,43 @@ class DoubleML(ABC):
                         scoring_methods[learner] = None
 
         if not isinstance(tune_on_folds, bool):
-            raise TypeError('tune_on_folds must be True or False. '
-                            f'Got {str(tune_on_folds)}.')
+            raise TypeError("tune_on_folds must be True or False. " f"Got {str(tune_on_folds)}.")
 
         if not isinstance(n_folds_tune, int):
-            raise TypeError('The number of folds used for tuning must be of int type. '
-                            f'{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed.')
+            raise TypeError(
+                "The number of folds used for tuning must be of int type. "
+                f"{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed."
+            )
         if n_folds_tune < 2:
-            raise ValueError('The number of folds used for tuning must be at least two. '
-                             f'{str(n_folds_tune)} was passed.')
+            raise ValueError("The number of folds used for tuning must be at least two. " f"{str(n_folds_tune)} was passed.")
 
-        if (not isinstance(search_mode, str)) | (search_mode not in ['grid_search', 'randomized_search']):
-            raise ValueError('search_mode must be "grid_search" or "randomized_search". '
-                             f'Got {str(search_mode)}.')
+        if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search"]):
+            raise ValueError('search_mode must be "grid_search" or "randomized_search". ' f"Got {str(search_mode)}.")
 
         if not isinstance(n_iter_randomized_search, int):
-            raise TypeError('The number of parameter settings sampled for the randomized search must be of int type. '
-                            f'{str(n_iter_randomized_search)} of type '
-                            f'{str(type(n_iter_randomized_search))} was passed.')
+            raise TypeError(
+                "The number of parameter settings sampled for the randomized search must be of int type. "
+                f"{str(n_iter_randomized_search)} of type "
+                f"{str(type(n_iter_randomized_search))} was passed."
+            )
         if n_iter_randomized_search < 2:
-            raise ValueError('The number of parameter settings sampled for the randomized search must be at least two. '
-                             f'{str(n_iter_randomized_search)} was passed.')
+            raise ValueError(
+                "The number of parameter settings sampled for the randomized search must be at least two. "
+                f"{str(n_iter_randomized_search)} was passed."
+            )
 
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
-                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
-                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
+                raise TypeError(
+                    "The number of CPUs used to fit the learners must be of int type. "
+                    f"{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed."
+                )
 
         if not isinstance(set_as_params, bool):
-            raise TypeError('set_as_params must be True or False. '
-                            f'Got {str(set_as_params)}.')
+            raise TypeError("set_as_params must be True or False. " f"Got {str(set_as_params)}.")
 
         if not isinstance(return_tune_res, bool):
-            raise TypeError('return_tune_res must be True or False. '
-                            f'Got {str(return_tune_res)}.')
+            raise TypeError("return_tune_res must be True or False. " f"Got {str(return_tune_res)}.")
 
         if tune_on_folds:
             tuning_res = [[None] * self.n_rep] * self._dml_data.n_treat
@@ -779,14 +812,18 @@ class DoubleML(ABC):
                     self._i_rep = i_rep
 
                     # tune hyperparameters
-                    res = self._nuisance_tuning(self.__smpls,
-                                                param_grids, scoring_methods,
-                                                n_folds_tune,
-                                                n_jobs_cv,
-                                                search_mode, n_iter_randomized_search)
+                    res = self._nuisance_tuning(
+                        self.__smpls,
+                        param_grids,
+                        scoring_methods,
+                        n_folds_tune,
+                        n_jobs_cv,
+                        search_mode,
+                        n_iter_randomized_search,
+                    )
 
                     tuning_res[i_rep][i_d] = res
-                    nuisance_params.append(res['params'])
+                    nuisance_params.append(res["params"])
 
                 if set_as_params:
                     for nuisance_model in nuisance_params[0].keys():
@@ -796,16 +833,14 @@ class DoubleML(ABC):
             else:
                 smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
                 # tune hyperparameters
-                res = self._nuisance_tuning(smpls,
-                                            param_grids, scoring_methods,
-                                            n_folds_tune,
-                                            n_jobs_cv,
-                                            search_mode, n_iter_randomized_search)
+                res = self._nuisance_tuning(
+                    smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                )
                 tuning_res[i_d] = res
 
                 if set_as_params:
-                    for nuisance_model in res['params'].keys():
-                        params = res['params'][nuisance_model]
+                    for nuisance_model in res["params"].keys():
+                        params = res["params"][nuisance_model]
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params[0])
 
         if return_tune_res:
@@ -835,12 +870,19 @@ class DoubleML(ABC):
         """
         valid_learner = self.params_names
         if learner not in valid_learner:
-            raise ValueError('Invalid nuisance learner ' + learner + '. ' +
-                             'Valid nuisance learner ' + ' or '.join(valid_learner) + '.')
+            raise ValueError(
+                "Invalid nuisance learner " + learner + ". " + "Valid nuisance learner " + " or ".join(valid_learner) + "."
+            )
 
         if treat_var not in self._dml_data.d_cols:
-            raise ValueError('Invalid treatment variable ' + treat_var + '. ' +
-                             'Valid treatment variable ' + ' or '.join(self._dml_data.d_cols) + '.')
+            raise ValueError(
+                "Invalid treatment variable "
+                + treat_var
+                + ". "
+                + "Valid treatment variable "
+                + " or ".join(self._dml_data.d_cols)
+                + "."
+            )
 
         if params is None:
             all_params = [None] * self.n_rep
@@ -866,24 +908,25 @@ class DoubleML(ABC):
         pass
 
     @abstractmethod
-    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                         search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
         pass
 
     @staticmethod
     def _check_learner(learner, learner_name, regressor, classifier):
-        err_msg_prefix = f'Invalid learner provided for {learner_name}: '
-        warn_msg_prefix = f'Learner provided for {learner_name} is probably invalid: '
+        err_msg_prefix = f"Invalid learner provided for {learner_name}: "
+        warn_msg_prefix = f"Learner provided for {learner_name} is probably invalid: "
 
         if isinstance(learner, type):
-            raise TypeError(err_msg_prefix + 'provide an instance of a learner instead of a class.')
+            raise TypeError(err_msg_prefix + "provide an instance of a learner instead of a class.")
 
-        if not hasattr(learner, 'fit'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .fit().')
-        if not hasattr(learner, 'set_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .set_params().')
-        if not hasattr(learner, 'get_params'):
-            raise TypeError(err_msg_prefix + f'{str(learner)} has no method .get_params().')
+        if not hasattr(learner, "fit"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .fit().")
+        if not hasattr(learner, "set_params"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .set_params().")
+        if not hasattr(learner, "get_params"):
+            raise TypeError(err_msg_prefix + f"{str(learner)} has no method .get_params().")
 
         if regressor & classifier:
             if is_classifier(learner):
@@ -891,50 +934,55 @@ class DoubleML(ABC):
             elif is_regressor(learner):
                 learner_is_classifier = False
             else:
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) neither a regressor nor a classifier. ' +
-                              'Method predict is used for prediction.')
+                warnings.warn(
+                    warn_msg_prefix
+                    + f"{str(learner)} is (probably) neither a regressor nor a classifier. "
+                    + "Method predict is used for prediction."
+                )
                 learner_is_classifier = False
         elif classifier:
             if not is_classifier(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no classifier.')
+                warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no classifier.")
             learner_is_classifier = True
         else:
             assert regressor  # classifier, regressor or both must be True
             if not is_regressor(learner):
-                warnings.warn(warn_msg_prefix + f'{str(learner)} is (probably) no regressor.')
+                warnings.warn(warn_msg_prefix + f"{str(learner)} is (probably) no regressor.")
             learner_is_classifier = False
 
         # check existence of the prediction method
         if learner_is_classifier:
-            if not hasattr(learner, 'predict_proba'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict_proba().')
+            if not hasattr(learner, "predict_proba"):
+                raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict_proba().")
         else:
-            if not hasattr(learner, 'predict'):
-                raise TypeError(err_msg_prefix + f'{str(learner)} has no method .predict().')
+            if not hasattr(learner, "predict"):
+                raise TypeError(err_msg_prefix + f"{str(learner)} has no method .predict().")
 
         return learner_is_classifier
 
     def _check_fit(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
-                raise TypeError('The number of CPUs used to fit the learners must be of int type. '
-                                f'{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed.')
+                raise TypeError(
+                    "The number of CPUs used to fit the learners must be of int type. "
+                    f"{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed."
+                )
 
         if not isinstance(store_predictions, bool):
-            raise TypeError('store_predictions must be True or False. '
-                            f'Got {str(store_predictions)}.')
+            raise TypeError("store_predictions must be True or False. " f"Got {str(store_predictions)}.")
 
         if not isinstance(store_models, bool):
-            raise TypeError('store_models must be True or False. '
-                            f'Got {str(store_models)}.')
+            raise TypeError("store_models must be True or False. " f"Got {str(store_models)}.")
 
         # check if external predictions are implemented
         if self._external_predictions_implemented:
-            _check_external_predictions(external_predictions=external_predictions,
-                                        valid_treatments=self._dml_data.d_cols,
-                                        valid_learners=self.params_names,
-                                        n_obs=self._dml_data.n_obs,
-                                        n_rep=self.n_rep)
+            _check_external_predictions(
+                external_predictions=external_predictions,
+                valid_treatments=self._dml_data.d_cols,
+                valid_learners=self.params_names,
+                n_obs=self._dml_data.n_obs,
+                n_rep=self.n_rep,
+            )
         elif not self._external_predictions_implemented and external_predictions is not None:
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
@@ -949,46 +997,46 @@ class DoubleML(ABC):
             self._initialize_models()
 
         if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements((self._dml_data.n_obs,
-                                                                                self.n_rep,
-                                                                                self._dml_data.n_coefs))
+            self._sensitivity_elements = self._initialize_sensitivity_elements(
+                (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
+            )
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
-        ext_prediction_dict = _set_external_predictions(external_predictions,
-                                                        learners=self.params_names,
-                                                        treatment=self._dml_data.d_cols[self._i_treat],
-                                                        i_rep=self._i_rep)
+        ext_prediction_dict = _set_external_predictions(
+            external_predictions, learners=self.params_names, treatment=self._dml_data.d_cols[self._i_treat], i_rep=self._i_rep
+        )
 
         # ml estimation of nuisance models and computation of score elements
-        score_elements, preds = self._nuisance_est(self.__smpls, n_jobs_cv,
-                                                   external_predictions=ext_prediction_dict,
-                                                   return_models=store_models)
+        score_elements, preds = self._nuisance_est(
+            self.__smpls, n_jobs_cv, external_predictions=ext_prediction_dict, return_models=store_models
+        )
 
         self._set_score_elements(score_elements, self._i_rep, self._i_treat)
 
         # calculate nuisance losses and store predictions and targets of the nuisance models
-        self._calc_nuisance_loss(preds['predictions'], preds['targets'])
+        self._calc_nuisance_loss(preds["predictions"], preds["targets"])
         if store_predictions:
-            self._store_predictions_and_targets(preds['predictions'], preds['targets'])
+            self._store_predictions_and_targets(preds["predictions"], preds["targets"])
         if store_models:
-            self._store_models(preds['models'])
+            self._store_models(preds["models"])
 
         return preds
 
     def _solve_score_and_estimate_se(self):
         # estimate the causal parameter
-        self._all_coef[self._i_treat, self._i_rep] = \
-            self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+        self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars(
+            self._get_score_elements(self._i_rep, self._i_treat)
+        )
 
         # compute score (depends on the estimated causal parameter)
         self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
-            self._get_score_elements(self._i_rep, self._i_treat),
-            self._all_coef[self._i_treat, self._i_rep])
+            self._get_score_elements(self._i_rep, self._i_treat), self._all_coef[self._i_treat, self._i_rep]
+        )
 
         # compute score derivative (can depend on the estimated causal parameter)
         self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
-            self._get_score_elements(self._i_rep, self._i_treat),
-            self._all_coef[self._i_treat, self._i_rep])
+            self._get_score_elements(self._i_rep, self._i_treat), self._all_coef[self._i_treat, self._i_rep]
+        )
 
         # compute standard errors for causal parameter
         self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
@@ -996,7 +1044,7 @@ class DoubleML(ABC):
     def _fit_sensitivity_elements(self, nuisance_predictions):
         if self._sensitivity_implemented:
             if callable(self.score):
-                warnings.warn('Sensitivity analysis not implemented for callable scores.')
+                warnings.warn("Sensitivity analysis not implemented for callable scores.")
             else:
                 # compute sensitivity analysis elements
                 element_dict = self._sensitivity_element_est(nuisance_predictions)
@@ -1020,20 +1068,22 @@ class DoubleML(ABC):
         return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-                             for learner in self.params_names}
-        self._nuisance_targets = {learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-                                  for learner in self.params_names}
-
-    def _initialize_nuisance_loss(self):
-        self._nuisance_loss = {
-            learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
+        self._predictions = {
+            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
+            for learner in self.params_names
+        }
+        self._nuisance_targets = {
+            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
             for learner in self.params_names
         }
 
+    def _initialize_nuisance_loss(self):
+        self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
+
     def _initialize_models(self):
-        self._models = {learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols}
-                        for learner in self.params_names}
+        self._models = {
+            learner: {treat_var: [None] * self.n_rep for treat_var in self._dml_data.d_cols} for learner in self.params_names
+        }
 
     def _store_predictions_and_targets(self, preds, targets):
         for learner in self.params_names:
@@ -1047,9 +1097,7 @@ class DoubleML(ABC):
             learner_keys = [key for key in self._learner.keys() if key in learner]
             assert len(learner_keys) == 1
             self._is_classifier[learner] = self._check_learner(
-                self._learner[learner_keys[0]],
-                learner,
-                regressor=True, classifier=True
+                self._learner[learner_keys[0]], learner, regressor=True, classifier=True
             )
 
             if targets[learner] is None:
@@ -1121,27 +1169,28 @@ class DoubleML(ABC):
 
         # check metric
         if not callable(metric):
-            raise TypeError('metric should be a callable. '
-                            '%r was passed.' % metric)
+            raise TypeError("metric should be a callable. " "%r was passed." % metric)
 
         if all(learner in self.params_names for learner in learners):
             if self.nuisance_targets is None:
-                raise ValueError('Apply fit() before evaluate_learners().')
+                raise ValueError("Apply fit() before evaluate_learners().")
             else:
-                dist = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan)
-                        for learner in learners}
+                dist = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in learners}
             for learner in learners:
                 for rep in range(self.n_rep):
                     for coef_idx in range(self._dml_data.n_coefs):
-                        res = metric(y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
-                                     y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1))
+                        res = metric(
+                            y_pred=self.predictions[learner][:, rep, coef_idx].reshape(1, -1),
+                            y_true=self.nuisance_targets[learner][:, rep, coef_idx].reshape(1, -1),
+                        )
                         if not np.isfinite(res):
-                            raise ValueError(f'Evaluation from learner {str(learner)} is not finite.')
+                            raise ValueError(f"Evaluation from learner {str(learner)} is not finite.")
                         dist[learner][rep, coef_idx] = res
             return dist
         else:
-            raise ValueError(f'The learners have to be a subset of {str(self.params_names)}. '
-                             f'Learners {str(learners)} provided.')
+            raise ValueError(
+                f"The learners have to be a subset of {str(self.params_names)}. " f"Learners {str(learners)} provided."
+            )
 
     def draw_sample_splitting(self):
         """
@@ -1155,17 +1204,18 @@ class DoubleML(ABC):
         self : object
         """
         if self._is_cluster_data:
-            obj_dml_resampling = DoubleMLClusterResampling(n_folds=self._n_folds_per_cluster,
-                                                           n_rep=self.n_rep,
-                                                           n_obs=self._dml_data.n_obs,
-                                                           n_cluster_vars=self._dml_data.n_cluster_vars,
-                                                           cluster_vars=self._dml_data.cluster_vars)
+            obj_dml_resampling = DoubleMLClusterResampling(
+                n_folds=self._n_folds_per_cluster,
+                n_rep=self.n_rep,
+                n_obs=self._dml_data.n_obs,
+                n_cluster_vars=self._dml_data.n_cluster_vars,
+                cluster_vars=self._dml_data.cluster_vars,
+            )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                    n_rep=self.n_rep,
-                                                    n_obs=self._dml_data.n_obs,
-                                                    stratify=self._strata)
+            obj_dml_resampling = DoubleMLResampling(
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._strata
+            )
             self._smpls = obj_dml_resampling.split_samples()
 
         return self
@@ -1231,10 +1281,19 @@ class DoubleML(ABC):
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data)
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
+        )
 
-        self._psi, self._psi_deriv, self._psi_elements, self._var_scaling_factors, \
-            self._coef, self._se, self._all_coef, self._all_se = self._initialize_arrays()
+        (
+            self._psi,
+            self._psi_deriv,
+            self._psi_elements,
+            self._var_scaling_factors,
+            self._coef,
+            self._se,
+            self._all_coef,
+            self._all_se,
+        ) = self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self
@@ -1245,10 +1304,10 @@ class DoubleML(ABC):
         if not self._is_cluster_data:
             coef = self._est_coef(psi_elements)
         else:
-            scaling_factor = [1.] * len(smpls)
+            scaling_factor = [1.0] * len(smpls)
             for i_fold, (_, _) in enumerate(smpls):
                 test_cluster_inds = self.__smpls_cluster[i_fold][1]
-                scaling_factor[i_fold] = 1./np.prod(np.array([len(inds) for inds in test_cluster_inds]))
+                scaling_factor[i_fold] = 1.0 / np.prod(np.array([len(inds) for inds in test_cluster_inds]))
             coef = self._est_coef(psi_elements, smpls=smpls, scaling_factor=scaling_factor)
 
         return coef
@@ -1264,13 +1323,15 @@ class DoubleML(ABC):
             smpls_cluster = self.__smpls_cluster
             n_folds_per_cluster = self._n_folds_per_cluster
 
-        sigma2_hat, var_scaling_factor = _var_est(psi=self.__psi,
-                                                  psi_deriv=self.__psi_deriv,
-                                                  smpls=self.__smpls,
-                                                  is_cluster_data=self._is_cluster_data,
-                                                  cluster_vars=cluster_vars,
-                                                  smpls_cluster=smpls_cluster,
-                                                  n_folds_per_cluster=n_folds_per_cluster)
+        sigma2_hat, var_scaling_factor = _var_est(
+            psi=self.__psi,
+            psi_deriv=self.__psi_deriv,
+            smpls=self.__smpls,
+            is_cluster_data=self._is_cluster_data,
+            cluster_vars=cluster_vars,
+            smpls_cluster=smpls_cluster,
+            n_folds_per_cluster=n_folds_per_cluster,
+        )
 
         se = np.sqrt(sigma2_hat)
         return se, var_scaling_factor
@@ -1283,18 +1344,19 @@ class DoubleML(ABC):
                 self._i_treat = i_d
 
                 # estimate the causal parameter
-                self._all_coef[self._i_treat, self._i_rep] = \
-                    self._est_causal_pars(self._get_score_elements(self._i_rep, self._i_treat))
+                self._all_coef[self._i_treat, self._i_rep] = self._est_causal_pars(
+                    self._get_score_elements(self._i_rep, self._i_treat)
+                )
 
                 # compute score (depends on the estimated causal parameter)
                 self._psi[:, self._i_rep, self._i_treat] = self._compute_score(
-                    self._get_score_elements(self._i_rep, self._i_treat),
-                    self._all_coef[self._i_treat, self._i_rep])
+                    self._get_score_elements(self._i_rep, self._i_treat), self._all_coef[self._i_treat, self._i_rep]
+                )
 
                 # compute score (can depend on the estimated causal parameter)
                 self._psi_deriv[:, self._i_rep, self._i_treat] = self._compute_score_deriv(
-                    self._get_score_elements(self._i_rep, self._i_treat),
-                    self._all_coef[self._i_treat, self._i_rep])
+                    self._get_score_elements(self._i_rep, self._i_treat), self._all_coef[self._i_treat, self._i_rep]
+                )
 
                 # compute standard errors for causal parameter
                 self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
@@ -1326,12 +1388,15 @@ class DoubleML(ABC):
 
     def _set_score_elements(self, psi_elements, i_rep, i_treat):
         if not isinstance(psi_elements, dict):
-            raise TypeError('_ml_nuisance_and_score_elements must return score elements in a dict. '
-                            f'Got type {str(type(psi_elements))}.')
+            raise TypeError(
+                "_ml_nuisance_and_score_elements must return score elements in a dict. " f"Got type {str(type(psi_elements))}."
+            )
         if not (set(self._score_element_names) == set(psi_elements.keys())):
-            raise ValueError('_ml_nuisance_and_score_elements returned incomplete score elements. '
-                             'Expected dict with keys: ' + ' and '.join(set(self._score_element_names)) + '.'
-                             'Got dict with keys: ' + ' and '.join(set(psi_elements.keys())) + '.')
+            raise ValueError(
+                "_ml_nuisance_and_score_elements returned incomplete score elements. "
+                "Expected dict with keys: " + " and ".join(set(self._score_element_names)) + "."
+                "Got dict with keys: " + " and ".join(set(psi_elements.keys())) + "."
+            )
         for key in self._score_element_names:
             self.psi_elements[key][:, i_rep, i_treat] = psi_elements[key]
         return
@@ -1347,15 +1412,17 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ['sigma2', 'nu2', 'psi_sigma2', 'psi_nu2', 'riesz_rep']
+        return ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
-        sensitivity_elements = {'sigma2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                'nu2': np.full((1, score_dim[1], score_dim[2]), np.nan),
-                                'psi_sigma2': np.full(score_dim, np.nan),
-                                'psi_nu2': np.full(score_dim, np.nan),
-                                'riesz_rep': np.full(score_dim, np.nan)}
+        sensitivity_elements = {
+            "sigma2": np.full((1, score_dim[1], score_dim[2]), np.nan),
+            "nu2": np.full((1, score_dim[1], score_dim[2]), np.nan),
+            "psi_sigma2": np.full(score_dim, np.nan),
+            "psi_nu2": np.full(score_dim, np.nan),
+            "riesz_rep": np.full(score_dim, np.nan),
+        }
         return sensitivity_elements
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
@@ -1364,12 +1431,16 @@ class DoubleML(ABC):
 
     def _set_sensitivity_elements(self, sensitivity_elements, i_rep, i_treat):
         if not isinstance(sensitivity_elements, dict):
-            raise TypeError('_sensitivity_element_est must return sensitivity elements in a dict. '
-                            f'Got type {str(type(sensitivity_elements))}.')
+            raise TypeError(
+                "_sensitivity_element_est must return sensitivity elements in a dict. "
+                f"Got type {str(type(sensitivity_elements))}."
+            )
         if not (set(self._sensitivity_element_names) == set(sensitivity_elements.keys())):
-            raise ValueError('_sensitivity_element_est returned incomplete sensitivity elements. '
-                             'Expected dict with keys: ' + ' and '.join(set(self._sensitivity_element_names)) + '. '
-                             'Got dict with keys: ' + ' and '.join(set(sensitivity_elements.keys())) + '.')
+            raise ValueError(
+                "_sensitivity_element_est returned incomplete sensitivity elements. "
+                "Expected dict with keys: " + " and ".join(set(self._sensitivity_element_names)) + ". "
+                "Got dict with keys: " + " and ".join(set(sensitivity_elements.keys())) + "."
+            )
         for key in self._sensitivity_element_names:
             self.sensitivity_elements[key][:, i_rep, i_treat] = sensitivity_elements[key]
         return
@@ -1412,14 +1483,8 @@ class DoubleML(ABC):
         """
 
         if self._framework is None:
-            raise ValueError('Apply fit() before sensitivity_analysis().')
-        self._framework.sensitivity_analysis(
-            cf_y=cf_y,
-            cf_d=cf_d,
-            rho=rho,
-            level=level,
-            null_hypothesis=null_hypothesis
-        )
+            raise ValueError("Apply fit() before sensitivity_analysis().")
+        self._framework.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level, null_hypothesis=null_hypothesis)
 
         return self
 
@@ -1434,13 +1499,24 @@ class DoubleML(ABC):
             Summary for the sensitivity analysis.
         """
         if self._framework is None:
-            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
+            raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
         else:
             sensitivity_summary = self._framework.sensitivity_summary
         return sensitivity_summary
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
-                         include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+    def sensitivity_plot(
+        self,
+        idx_treatment=0,
+        value="theta",
+        rho=1.0,
+        level=0.95,
+        null_hypothesis=0.0,
+        include_scenario=True,
+        benchmarks=None,
+        fill=True,
+        grid_bounds=(0.15, 0.15),
+        grid_size=100,
+    ):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
 
@@ -1494,7 +1570,7 @@ class DoubleML(ABC):
             Plotly figure of the sensitivity contours.
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before sensitivity_plot().')
+            raise ValueError("Apply fit() before sensitivity_plot().")
         fig = self._framework.sensitivity_plot(
             idx_treatment=idx_treatment,
             value=value,
@@ -1505,7 +1581,7 @@ class DoubleML(ABC):
             benchmarks=benchmarks,
             fill=fill,
             grid_bounds=grid_bounds,
-            grid_size=grid_size
+            grid_size=grid_size,
         )
 
         return fig
@@ -1523,18 +1599,20 @@ class DoubleML(ABC):
 
         # input checks
         if self._sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
+            raise NotImplementedError(f"Sensitivity analysis not yet implemented for {self.__class__.__name__}.")
         if not isinstance(benchmarking_set, list):
-            raise TypeError('benchmarking_set must be a list. '
-                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+            raise TypeError(
+                "benchmarking_set must be a list. " f"{str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
+            )
         if len(benchmarking_set) == 0:
-            raise ValueError('benchmarking_set must not be empty.')
+            raise ValueError("benchmarking_set must not be empty.")
         if not set(benchmarking_set) <= set(x_list_long):
-            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
-                             f'{str(benchmarking_set)} was passed.')
+            raise ValueError(
+                f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                f"{str(benchmarking_set)} was passed."
+            )
         if fit_args is not None and not isinstance(fit_args, dict):
-            raise TypeError('fit_args must be a dict. '
-                            f'{str(fit_args)} of type {type(fit_args)} was passed.')
+            raise TypeError("fit_args must be a dict. " f"{str(fit_args)} of type {type(fit_args)} was passed.")
 
         # refit short form of the model
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
