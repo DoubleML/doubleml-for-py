@@ -172,6 +172,10 @@ def dml_iivm_fixture(generate_data_iivm, learner_g, learner_m, learner_r, score,
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings(
+    r'ignore:Propensity predictions from learner RandomForestClassifier\(\) for ml_m are close to zero or one '
+    r'\(eps=1e-12\).:UserWarning'
+)
 def test_dml_iivm_coef(dml_iivm_fixture):
     assert math.isclose(dml_iivm_fixture['coef'],
                         dml_iivm_fixture['coef_manual'],
