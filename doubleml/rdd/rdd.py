@@ -17,7 +17,7 @@ from doubleml.utils.resampling import DoubleMLResampling
 rdrobust = _is_rdrobust_available()
 
 
-class RDFlex():
+class RDFlex:
     """Flexible adjustment with double machine learning for regression discontinuity designs
 
     Parameters
@@ -94,22 +94,23 @@ class RDFlex():
 
     """
 
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m=None,
-                 fuzzy=False,
-                 cutoff=0,
-                 n_folds=5,
-                 n_rep=1,
-                 h_fs=None,
-                 fs_specification="cutoff",
-                 fs_kernel="triangular",
-                 **kwargs):
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m=None,
+        fuzzy=False,
+        cutoff=0,
+        n_folds=5,
+        n_rep=1,
+        h_fs=None,
+        fs_specification="cutoff",
+        fs_kernel="triangular",
+        **kwargs,
+    ):
 
         if rdrobust is None:
-            msg = ("rdrobust is not installed. "
-                   "Please install it using 'pip install DoubleML[rdd]'")
+            msg = "rdrobust is not installed. " "Please install it using 'pip install DoubleML[rdd]'"
             raise ImportError(msg)
 
         self._check_data(obj_dml_data, cutoff)
@@ -121,7 +122,7 @@ class RDFlex():
         self._fuzzy = fuzzy
 
         if not fuzzy and any(self._dml_data.d != self._intendend_treatment):
-            warnings.warn('A sharp RD design is being estimated, but the data indicate that the design is fuzzy.')
+            warnings.warn("A sharp RD design is being estimated, but the data indicate that the design is fuzzy.")
 
         self._check_and_set_learner(ml_g, ml_m)
 
@@ -131,14 +132,10 @@ class RDFlex():
 
         if h_fs is None:
             fuzzy = self._dml_data.d if self._fuzzy else None
-            self._h_fs = rdrobust.rdbwselect(
-                y=obj_dml_data.y,
-                x=self._score,
-                fuzzy=fuzzy).bws.values.flatten().max()
+            self._h_fs = rdrobust.rdbwselect(y=obj_dml_data.y, x=self._score, fuzzy=fuzzy).bws.values.flatten().max()
         else:
             if not isinstance(h_fs, (float)):
-                raise TypeError("Initial bandwidth 'h_fs' has to be a float. "
-                                f'Object of type {str(type(h_fs))} passed.')
+                raise TypeError("Initial bandwidth 'h_fs' has to be a float. " f"Object of type {str(type(h_fs))} passed.")
             self._h_fs = h_fs
 
         self._fs_specification = self._check_fs_specification(fs_specification)
@@ -150,11 +147,11 @@ class RDFlex():
         # TODO: Add further input checks
         self.kwargs = kwargs
 
-        self._smpls = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=obj_dml_data.n_obs,
-                                         stratify=obj_dml_data.d).split_samples()
+        self._smpls = DoubleMLResampling(
+            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=obj_dml_data.n_obs, stratify=obj_dml_data.d
+        ).split_samples()
 
-        self._M_Y, self._M_D, self._h, self._rdd_obj, \
-            self._all_coef, self._all_se, self._all_ci = self._initialize_arrays()
+        self._M_Y, self._M_D, self._h, self._rdd_obj, self._all_coef, self._all_se, self._all_ci = self._initialize_arrays()
 
         # Initialize all properties to None
         self._coef = None
@@ -198,10 +195,11 @@ class RDFlex():
             result = "\n".join(lines)
 
             additional_info = (
-                "\nDesign Type:        " + ("Fuzzy" if self.fuzzy else "Sharp") +
-                f"\nCutoff:             {self.cutoff}" +
-                f"\nFirst Stage Kernel: {self.fs_kernel}" +
-                f"\nFinal Bandwidth:    {self.h}"
+                "\nDesign Type:        "
+                + ("Fuzzy" if self.fuzzy else "Sharp")
+                + f"\nCutoff:             {self.cutoff}"
+                + f"\nFirst Stage Kernel: {self.fs_kernel}"
+                + f"\nFinal Bandwidth:    {self.h}"
             )
 
             return result + additional_info
@@ -344,13 +342,13 @@ class RDFlex():
             weights = self.w
 
             for iteration in range(n_iterations):
-                eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g",
-                                                 weights=weights, smpls=self._smpls[i_rep])
+                eta_Y = self._fit_nuisance_model(outcome=Y, estimator_name="ml_g", weights=weights, smpls=self._smpls[i_rep])
                 self._M_Y[:, i_rep] = Y - eta_Y
 
                 if self.fuzzy:
-                    eta_D = self._fit_nuisance_model(outcome=D, estimator_name="ml_m",
-                                                     weights=weights, smpls=self._smpls[i_rep])
+                    eta_D = self._fit_nuisance_model(
+                        outcome=D, estimator_name="ml_m", weights=weights, smpls=self._smpls[i_rep]
+                    )
                     self._M_D[:, i_rep] = D - eta_D
 
                 # update weights via iterative bandwidth fitting
@@ -384,26 +382,26 @@ class RDFlex():
             A data frame with the confidence interval(s).
         """
         if not isinstance(level, float):
-            raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
+            raise TypeError(
+                "The confidence level must be of float type. " f"{str(level)} of type {str(type(level))} was passed."
+            )
         if (level <= 0) | (level >= 1):
-            raise ValueError('The confidence level must be in (0,1). '
-                             f'{str(level)} was passed.')
+            raise ValueError("The confidence level must be in (0,1). " f"{str(level)} was passed.")
 
         # compute critical values
         alpha = 1 - level
-        percentages = np.array([alpha / 2, 1. - alpha / 2])
+        percentages = np.array([alpha / 2, 1.0 - alpha / 2])
 
         critical_values = np.repeat(norm.ppf(percentages[1]), self._n_rep)
 
         # compute all cis over repetitions (shape: n_coef x 2 x n_rep)
         self._all_cis = np.stack(
-            (self.all_coef - self.all_se * critical_values,
-             self.all_coef + self.all_se * critical_values),
-            axis=1)
+            (self.all_coef - self.all_se * critical_values, self.all_coef + self.all_se * critical_values), axis=1
+        )
         ci = np.median(self._all_cis, axis=2)
-        df_ci = pd.DataFrame(ci, columns=['{:.1f} %'.format(i * 100) for i in percentages],
-                             index=['Conventional', 'Bias-Corrected', 'Robust'])
+        df_ci = pd.DataFrame(
+            ci, columns=["{:.1f} %".format(i * 100) for i in percentages], index=["Conventional", "Bias-Corrected", "Robust"]
+        )
 
         return df_ci
 
@@ -422,8 +420,9 @@ class RDFlex():
             assert self._fs_specification == "interacted cutoff and score"
             Z = np.column_stack((self._intendend_treatment, self._intendend_treatment * self._score, self._score))
             Z_left = np.zeros_like(Z)
-            Z_right = np.column_stack((np.ones_like(self._intendend_treatment), np.zeros_like(self._score),
-                                       np.zeros_like(self._score)))
+            Z_right = np.column_stack(
+                (np.ones_like(self._intendend_treatment), np.zeros_like(self._score), np.zeros_like(self._score))
+            )
 
         X = self._dml_data.x
         ZX = np.column_stack((Z, X))
@@ -444,7 +443,7 @@ class RDFlex():
                 mu_left[test_index] = estimator.predict_proba(ZX_left[test_index])[:, 1]
                 mu_right[test_index] = estimator.predict_proba(ZX_right[test_index])[:, 1]
 
-        return (mu_left + mu_right)/2
+        return (mu_left + mu_right) / 2
 
     def _update_weights(self):
         rdd_res = self._fit_rdd()
@@ -458,12 +457,10 @@ class RDFlex():
     def _fit_rdd(self, h=None, b=None):
         if self.fuzzy:
             rdd_res = rdrobust.rdrobust(
-                y=self._M_Y[:, self._i_rep], x=self._score,
-                fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs)
+                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs
+            )
         else:
-            rdd_res = rdrobust.rdrobust(
-                y=self._M_Y[:, self._i_rep], x=self._score,
-                h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(y=self._M_Y[:, self._i_rep], x=self._score, h=h, b=b, **self.kwargs)
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):
@@ -490,79 +487,87 @@ class RDFlex():
 
     def _check_data(self, obj_dml_data, cutoff):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+            raise TypeError(
+                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
 
         # score checks
         if obj_dml_data.s_col is None:
-            raise ValueError('Incompatible data. ' +
-                             'Score variable has not been set. ')
-        is_continuous = (type_of_target(obj_dml_data.s) == 'continuous')
+            raise ValueError("Incompatible data. " + "Score variable has not been set. ")
+        is_continuous = type_of_target(obj_dml_data.s) == "continuous"
         if not is_continuous:
-            raise ValueError('Incompatible data. ' +
-                             'Score variable has to be continuous. ')
+            raise ValueError("Incompatible data. " + "Score variable has to be continuous. ")
 
         if not isinstance(cutoff, (int, float)):
-            raise TypeError('Cutoff value has to be a float or int. '
-                            f'Object of type {str(type(cutoff))} passed.')
+            raise TypeError("Cutoff value has to be a float or int. " f"Object of type {str(type(cutoff))} passed.")
         if not (obj_dml_data.s.min() <= cutoff <= obj_dml_data.s.max()):
-            raise ValueError('Cutoff value is not within the range of the score variable. ')
+            raise ValueError("Cutoff value is not within the range of the score variable. ")
 
         # treatment checks
-        one_treat = (obj_dml_data.n_treat == 1)
-        binary_treat = (type_of_target(obj_dml_data.d) == 'binary')
+        one_treat = obj_dml_data.n_treat == 1
+        binary_treat = type_of_target(obj_dml_data.d) == "binary"
         zero_one_treat = np.all((np.power(obj_dml_data.d, 2) - obj_dml_data.d) == 0)
         if not (one_treat & binary_treat & zero_one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an RDFlex model with DML '
-                             'exactly one binary variable with values 0 and 1 '
-                             'needs to be specified as treatment variable.')
+            raise ValueError(
+                "Incompatible data. "
+                "To fit an RDFlex model with DML "
+                "exactly one binary variable with values 0 and 1 "
+                "needs to be specified as treatment variable."
+            )
 
         # instrument checks
         if obj_dml_data.z_cols is not None:
-            raise ValueError('Incompatible data. ' +
-                             ' and '.join(obj_dml_data.z_cols) +
-                             ' have been set as instrumental variable(s). ')
+            raise ValueError(
+                "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+            )
 
     def _check_and_set_learner(self, ml_g, ml_m):
         # check ml_g
-        ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-        _check_supports_sample_weights(ml_g, 'ml_g')
-        self._learner = {'ml_g': ml_g}
+        ml_g_is_classifier = DoubleML._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        _check_supports_sample_weights(ml_g, "ml_g")
+        self._learner = {"ml_g": ml_g}
         if ml_g_is_classifier:
             if self._dml_data.binary_outcome:
-                self._predict_method = {'ml_g': 'predict_proba'}
+                self._predict_method = {"ml_g": "predict_proba"}
             else:
-                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
-                                 'but the outcome variable is not binary with values 0 and 1.')
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
         else:
-            self._predict_method = {'ml_g': 'predict'}
+            self._predict_method = {"ml_g": "predict"}
 
         # check ml_m
         if self._fuzzy:
             if ml_m is not None:
-                _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-                _check_supports_sample_weights(ml_m, 'ml_m')
+                _ = DoubleML._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+                _check_supports_sample_weights(ml_m, "ml_m")
 
-                self._learner['ml_m'] = ml_m
-                self._predict_method['ml_m'] = 'predict_proba'
+                self._learner["ml_m"] = ml_m
+                self._predict_method["ml_m"] = "predict_proba"
             else:
-                raise ValueError('Fuzzy design requires a classifier ml_m for treatment assignment.')
+                raise ValueError("Fuzzy design requires a classifier ml_m for treatment assignment.")
 
         else:
             if ml_m is not None:
-                warnings.warn(('A learner ml_m has been provided for for a sharp design but will be ignored. '
-                               'A learner ml_m is not required for estimation.'))
+                warnings.warn(
+                    (
+                        "A learner ml_m has been provided for for a sharp design but will be ignored. "
+                        "A learner ml_m is not required for estimation."
+                    )
+                )
 
     def _check_and_set_kernel(self, fs_kernel):
         if not isinstance(fs_kernel, (str, Callable)):
-            raise TypeError('fs_kernel must be either a string or a callable. '
-                            f'{str(fs_kernel)} of type {str(type(fs_kernel))} was passed.')
+            raise TypeError(
+                "fs_kernel must be either a string or a callable. "
+                f"{str(fs_kernel)} of type {str(type(fs_kernel))} was passed."
+            )
 
         kernel_functions = {
             "uniform": lambda x, h: np.array(np.abs(x) <= h, dtype=float),
             "triangular": lambda x, h: np.array(np.maximum(0, (h - np.abs(x)) / h), dtype=float),
-            "epanechnikov": lambda x, h: np.array(np.where(np.abs(x) < h, .75 * (1 - np.square(x / h)), 0), dtype=float)
+            "epanechnikov": lambda x, h: np.array(np.where(np.abs(x) < h, 0.75 * (1 - np.square(x / h)), 0), dtype=float),
         }
 
         if isinstance(fs_kernel, str):
@@ -576,36 +581,45 @@ class RDFlex():
         else:
             assert callable(fs_kernel)
             kernel_function = fs_kernel
-            kernel_name = 'custom_kernel'
+            kernel_name = "custom_kernel"
 
         return kernel_function, kernel_name
 
     def _check_fs_specification(self, fs_specification):
         if not isinstance(fs_specification, str):
-            raise TypeError("fs_specification must be a string. "
-                            f'{str(fs_specification)} of type {str(type(fs_specification))} was passed.')
+            raise TypeError(
+                "fs_specification must be a string. "
+                f"{str(fs_specification)} of type {str(type(fs_specification))} was passed."
+            )
         expected_specifications = ["cutoff", "cutoff and score", "interacted cutoff and score"]
         if fs_specification not in expected_specifications:
-            raise ValueError(f"Invalid fs_specification '{fs_specification}'. "
-                             f"Valid specifications are {expected_specifications}.")
+            raise ValueError(
+                f"Invalid fs_specification '{fs_specification}'. " f"Valid specifications are {expected_specifications}."
+            )
         return fs_specification
 
     def _check_iterations(self, n_iterations):
         """Validate the number of iterations."""
         if not isinstance(n_iterations, int):
-            raise TypeError('The number of iterations for the iterative bandwidth fitting must be of int type. '
-                            f'{str(n_iterations)} of type {str(type(n_iterations))} was passed.')
+            raise TypeError(
+                "The number of iterations for the iterative bandwidth fitting must be of int type. "
+                f"{str(n_iterations)} of type {str(type(n_iterations))} was passed."
+            )
         if n_iterations < 1:
-            raise ValueError('The number of iterations for the iterative bandwidth fitting has to be positive. '
-                             f'{str(n_iterations)} was passed.')
+            raise ValueError(
+                "The number of iterations for the iterative bandwidth fitting has to be positive. "
+                f"{str(n_iterations)} was passed."
+            )
 
     def _check_effect_sign(self, tolerance=1e-6):
         d_left, d_right = self._dml_data.d[self._score < 0], self._dml_data.d[self._score > 0]
         w_left, w_right = self._w[self._score < 0], self._w[self._score > 0]
         treatment_prob_difference = np.average(d_left, weights=w_left) - np.average(d_right, weights=w_right)
         if treatment_prob_difference > tolerance:
-            warnings.warn("Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
-                          "Treatment assignment might be based on the wrong side of the cutoff.")
+            warnings.warn(
+                "Treatment probability within bandwidth left from cutoff higher than right from cutoff.\n"
+                "Treatment assignment might be based on the wrong side of the cutoff."
+            )
 
     def aggregate_over_splits(self):
         var_scaling_factors = np.array([np.sum(res.N_h) for res in self._rdd_obj])
