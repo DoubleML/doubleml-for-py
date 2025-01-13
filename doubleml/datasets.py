@@ -1018,7 +1018,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         y = y1 - y0
 
         if return_type in _array_alias:
-            return z, y, d
+            return z, y, d, None
         elif return_type in _data_frame_alias + _dml_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d)), columns=z_cols + ["y", "d"])

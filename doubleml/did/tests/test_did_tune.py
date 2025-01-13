@@ -56,7 +56,7 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
     n_rep_boot = 499
 
     # collect data
-    (x, y, d) = generate_data_did
+    (x, y, d, _) = generate_data_did
 
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
