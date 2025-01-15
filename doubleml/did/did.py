@@ -408,7 +408,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
 
-        m_tune_res = list()
         if self.score == "observational":
             m_tune_res = _dml_tune(
                 d,
