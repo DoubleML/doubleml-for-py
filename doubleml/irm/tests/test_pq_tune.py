@@ -44,6 +44,8 @@ def tune_on_folds(request):
 def get_par_grid(learner):
     if learner.__class__ in [RandomForestClassifier]:
         par_grid = {"n_estimators": [5, 10, 15, 20]}
+    else:
+        par_grid = {}
     return par_grid
 
 
