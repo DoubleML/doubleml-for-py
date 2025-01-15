@@ -5,7 +5,6 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml import DoubleMLData, DoubleMLIRM
 from doubleml.datasets import make_irm_data
 
 from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual, doubleml_sensitivity_manual
@@ -110,9 +109,9 @@ def test_dml_benchmark_fixture(benchmarking_set, n_rep):
     regressor_class = LinearRegression
 
     np.random.seed(3141)
-    dml_data = DoubleMLData.from_arrays(x=x, y=y, d=d)
+    dml_data = dml.DoubleMLData.from_arrays(x=x, y=y, d=d)
     x_list_long = copy.deepcopy(dml_data.x_cols)
-    dml_int = DoubleMLIRM(
+    dml_int = dml.DoubleMLIRM(
         dml_data, ml_m=classifier_class(random_state=random_state), ml_g=regressor_class(), n_folds=2, n_rep=n_rep
     )
     dml_int.fit(store_predictions=True)
@@ -121,9 +120,9 @@ def test_dml_benchmark_fixture(benchmarking_set, n_rep):
     df_bm = dml_int.sensitivity_benchmark(benchmarking_set=benchmarking_set)
 
     np.random.seed(3141)
-    dml_data_short = DoubleMLData.from_arrays(x=x, y=y, d=d)
+    dml_data_short = dml.DoubleMLData.from_arrays(x=x, y=y, d=d)
     dml_data_short.x_cols = [x for x in x_list_long if x not in benchmarking_set]
-    dml_short = DoubleMLIRM(
+    dml_short = dml.DoubleMLIRM(
         dml_data_short, ml_m=classifier_class(random_state=random_state), ml_g=regressor_class(), n_folds=2, n_rep=n_rep
     )
     dml_short.fit(store_predictions=True)
