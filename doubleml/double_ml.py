@@ -1588,6 +1588,7 @@ class DoubleML(ABC):
         """
         Computes a benchmark for a given set of features.
         Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
         Returns
         -------
         benchmark_results : pandas.DataFrame
