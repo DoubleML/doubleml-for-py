@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 from sklearn import __version__ as sklearn_version
@@ -11,8 +9,13 @@ from sklearn.utils.estimator_checks import check_estimator
 
 from doubleml.utils import GlobalClassifier, GlobalRegressor
 
+
+def parse_version(version):
+    return tuple(map(int, version.split('.')[:2]))
+
+
 # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
-sklearn_post_1_6 = LooseVersion(sklearn_version) >= LooseVersion("1.6")
+sklearn_post_1_6 = parse_version(sklearn_version) >= (1, 6)
 
 
 @pytest.fixture(

@@ -1,12 +1,15 @@
-from distutils.version import LooseVersion
-
 from sklearn import __version__ as sklearn_version
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone, is_classifier, is_regressor
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import _check_sample_weight, check_is_fitted
 
+
+def parse_version(version):
+    return tuple(map(int, version.split('.')[:2]))
+
+
 # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
-sklearn_supports_validation = LooseVersion(sklearn_version) >= LooseVersion("1.6")
+sklearn_supports_validation = parse_version(sklearn_version) >= (1, 6)
 if sklearn_supports_validation:
     from sklearn.utils.validation import validate_data
 
