@@ -1,5 +1,8 @@
+from distutils.version import LooseVersion
+
 import numpy as np
 import pytest
+from sklearn import __version__ as sklearn_version
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, StackingClassifier, StackingRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
@@ -7,6 +10,9 @@ from sklearn.model_selection import KFold
 from sklearn.utils.estimator_checks import check_estimator
 
 from doubleml.utils import GlobalClassifier, GlobalRegressor
+
+# TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+sklearn_post_1_6 = LooseVersion(sklearn_version) >= LooseVersion("1.6")
 
 
 @pytest.fixture(
@@ -26,24 +32,32 @@ def classifier(request):
 
 @pytest.mark.ci
 def test_global_regressor(regressor):
-    check_estimator(
-        estimator=GlobalRegressor(base_estimator=regressor),
-        expected_failed_checks={
-            "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
-            "check_estimators_nan_inf": "allowed for some estimators",
-        },
-    )
+    if sklearn_post_1_6:
+        check_estimator(
+            estimator=GlobalRegressor(base_estimator=regressor),
+            expected_failed_checks={
+                "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
+                "check_estimators_nan_inf": "allowed for some estimators",
+            },
+        )
+    else:
+        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        pytest.skip("sklearn version is too old for this test")
 
 
 @pytest.mark.ci
 def test_global_classifier(classifier):
-    check_estimator(
-        estimator=GlobalClassifier(base_estimator=classifier),
-        expected_failed_checks={
-            "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
-            "check_estimators_nan_inf": "allowed for some estimators",
-        },
-    )
+    if sklearn_post_1_6:
+        check_estimator(
+            estimator=GlobalClassifier(base_estimator=classifier),
+            expected_failed_checks={
+                "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
+                "check_estimators_nan_inf": "allowed for some estimators",
+            },
+        )
+    else:
+        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        pytest.skip("sklearn version is too old for this test")
 
 
 @pytest.fixture(scope="module")
