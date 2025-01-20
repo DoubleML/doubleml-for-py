@@ -9,7 +9,7 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
     Parameters
     ----------
     base_estimator: regressor implementing ``fit()`` and ``predict()``
-    Regressor that is used when ``fit()`` ``predict()`` and ``predict_proba()`` are being called.
+        Regressor that is used when ``fit()`` and ``predict()`` are being called.
     """
 
     def __init__(self, base_estimator):
@@ -57,7 +57,7 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
     Parameters
     ----------
     base_estimator: classifier implementing ``fit()`` and ``predict_proba()``
-    Classifier that is used when ``fit()``, ``predict()`` and ``predict_proba()`` are being called.
+        Classifier that is used when ``fit()``, ``predict()`` and ``predict_proba()`` are being called.
     """
 
     def __init__(self, base_estimator):
