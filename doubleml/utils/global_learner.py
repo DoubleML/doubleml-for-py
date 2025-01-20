@@ -1,7 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone, is_classifier, is_regressor
 from sklearn.utils.multiclass import unique_labels
-
-from sklearn.utils.validation import validate_data, check_is_fitted, _check_sample_weight
+from sklearn.utils.validation import _check_sample_weight, check_is_fitted, validate_data
 
 
 class GlobalRegressor(RegressorMixin, BaseEstimator):

@@ -30,8 +30,8 @@ def test_global_regressor(regressor):
         estimator=GlobalRegressor(base_estimator=regressor),
         expected_failed_checks={
             "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
-            "check_estimators_nan_inf": "allowed for some estimators"
-        }
+            "check_estimators_nan_inf": "allowed for some estimators",
+        },
     )
 
 
@@ -41,8 +41,8 @@ def test_global_classifier(classifier):
         estimator=GlobalClassifier(base_estimator=classifier),
         expected_failed_checks={
             "check_sample_weight_equivalence_on_dense_data": "weights are ignored",
-            "check_estimators_nan_inf": "allowed for some estimators"
-        }
+            "check_estimators_nan_inf": "allowed for some estimators",
+        },
     )
 
 
