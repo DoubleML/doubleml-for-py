@@ -11,7 +11,7 @@ from doubleml.utils import GlobalClassifier, GlobalRegressor
 
 
 def parse_version(version):
-    return tuple(map(int, version.split('.')[:2]))
+    return tuple(map(int, version.split(".")[:2]))
 
 
 # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
