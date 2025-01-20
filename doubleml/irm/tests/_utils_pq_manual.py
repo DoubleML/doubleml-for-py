@@ -1,15 +1,27 @@
 import numpy as np
-from sklearn.base import clone
-from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.optimize import root_scalar
+from sklearn.base import clone
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from ...tests._utils import tune_grid_search
-from ...utils._estimation import _dml_cv_predict, _default_kde, _normalize_ipw, _solve_ipw_score, _get_bracket_guess
+from ...utils._estimation import _default_kde, _dml_cv_predict, _get_bracket_guess, _normalize_ipw, _solve_ipw_score
 
 
-def fit_pq(y, x, d, quantile,
-           learner_g, learner_m, all_smpls, treatment, n_rep=1,
-           trimming_threshold=1e-2, normalize_ipw=True, g_params=None, m_params=None):
+def fit_pq(
+    y,
+    x,
+    d,
+    quantile,
+    learner_g,
+    learner_m,
+    all_smpls,
+    treatment,
+    n_rep=1,
+    trimming_threshold=1e-2,
+    normalize_ipw=True,
+    g_params=None,
+    m_params=None,
+):
     n_obs = len(y)
 
     pqs = np.zeros(n_rep)
@@ -18,25 +30,34 @@ def fit_pq(y, x, d, quantile,
     for i_rep in range(n_rep):
         smpls = all_smpls[i_rep]
 
-        g_hat, m_hat, ipw_est = fit_nuisance_pq(y, x, d, quantile,
-                                                learner_g, learner_m, smpls, treatment,
-                                                trimming_threshold=trimming_threshold,
-                                                normalize_ipw=normalize_ipw,
-                                                g_params=g_params, m_params=m_params)
+        g_hat, m_hat, ipw_est = fit_nuisance_pq(
+            y,
+            x,
+            d,
+            quantile,
+            learner_g,
+            learner_m,
+            smpls,
+            treatment,
+            trimming_threshold=trimming_threshold,
+            normalize_ipw=normalize_ipw,
+            g_params=g_params,
+            m_params=m_params,
+        )
 
         pqs[i_rep], ses[i_rep] = pq_dml2(y, d, g_hat, m_hat, treatment, quantile, ipw_est)
 
     pq = np.median(pqs)
     se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(pqs - pq, 2)) / n_obs)
 
-    res = {'pq': pq, 'se': se,
-           'pqs': pqs, 'ses': ses}
+    res = {"pq": pq, "se": se, "pqs": pqs, "ses": ses}
 
     return res
 
 
-def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
-                    trimming_threshold, normalize_ipw, g_params, m_params):
+def fit_nuisance_pq(
+    y, x, d, quantile, learner_g, learner_m, smpls, treatment, trimming_threshold, normalize_ipw, g_params, m_params
+):
     n_folds = len(smpls)
     n_obs = len(y)
     # initialize starting values and bounds
@@ -62,18 +83,17 @@ def fit_nuisance_pq(y, x, d, quantile, learner_g, learner_m, smpls, treatment,
         test_inds = smpls[i_fold][1]
 
         # start nested crossfitting
-        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5,
-                                                      random_state=42, stratify=d[train_inds])
-        smpls_prelim = [(train, test) for train, test in
-                        StratifiedKFold(n_splits=n_folds).split(X=train_inds_1, y=d[train_inds_1])]
+        train_inds_1, train_inds_2 = train_test_split(train_inds, test_size=0.5, random_state=42, stratify=d[train_inds])
+        smpls_prelim = [
+            (train, test) for train, test in StratifiedKFold(n_splits=n_folds).split(X=train_inds_1, y=d[train_inds_1])
+        ]
 
         d_train_1 = d[train_inds_1]
         y_train_1 = y[train_inds_1]
         x_train_1 = x[train_inds_1, :]
 
         # todo change prediction method
-        m_hat_prelim = _dml_cv_predict(clone(ml_m), x_train_1, d_train_1,
-                                       method='predict_proba', smpls=smpls_prelim)['preds']
+        m_hat_prelim = _dml_cv_predict(clone(ml_m), x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim)["preds"]
 
         m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
         m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
@@ -146,7 +166,7 @@ def pq_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
             b_guess = (a, b)
             f_a = compute_score(b_guess[0])
             f_b = compute_score(b_guess[1])
-            s_different = (np.sign(f_a) != np.sign(f_b))
+            s_different = np.sign(f_a) != np.sign(f_b)
             delta += 0.1
         return s_different, b_guess
 
@@ -154,9 +174,7 @@ def pq_est(g_hat, m_hat, d, y, treatment, quantile, ipw_est):
     coef_bounds = (y.min(), y.max())
     _, bracket_guess = get_bracket_guess(coef_start_val, coef_bounds)
 
-    root_res = root_scalar(compute_score,
-                           bracket=bracket_guess,
-                           method='brentq')
+    root_res = root_scalar(compute_score, bracket=bracket_guess, method="brentq")
     dml_est = root_res.root
 
     return dml_est
@@ -169,16 +187,14 @@ def pq_var_est(coef, g_hat, m_hat, d, y, treatment, quantile, n_obs, kde=_defaul
 
     J = np.mean(deriv)
     score = (d == treatment) * ((y <= coef) - g_hat) / m_hat + g_hat - quantile
-    var_est = 1/n_obs * np.mean(np.square(score)) / np.square(J)
+    var_est = 1 / n_obs * np.mean(np.square(score)) / np.square(J)
     return var_est
 
 
-def tune_nuisance_pq(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune,
-                     param_grid_g, param_grid_m):
+def tune_nuisance_pq(y, x, d, ml_g, ml_m, smpls, treatment, quantile, n_folds_tune, param_grid_g, param_grid_m):
     train_cond_treat = np.where(d == treatment)[0]
     approx_goal = y <= np.quantile(y[d == treatment], quantile)
-    g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune,
-                                  train_cond=train_cond_treat)
+    g_tune_res = tune_grid_search(approx_goal, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=train_cond_treat)
     m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
 
     g_best_params = [xx.best_params_ for xx in g_tune_res]

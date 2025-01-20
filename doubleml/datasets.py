@@ -1,22 +1,21 @@
-import pandas as pd
-import numpy as np
 import warnings
 
+import numpy as np
+import pandas as pd
 from scipy.linalg import toeplitz
 from scipy.optimize import minimize_scalar
-
-from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
+from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures
 
-from .double_ml_data import DoubleMLData, DoubleMLClusterData
+from .double_ml_data import DoubleMLClusterData, DoubleMLData
 
-_array_alias = ['array', 'np.ndarray', 'np.array', np.ndarray]
-_data_frame_alias = ['DataFrame', 'pd.DataFrame', pd.DataFrame]
-_dml_data_alias = ['DoubleMLData', DoubleMLData]
-_dml_cluster_data_alias = ['DoubleMLClusterData', DoubleMLClusterData]
+_array_alias = ["array", "np.ndarray", "np.array", np.ndarray]
+_data_frame_alias = ["DataFrame", "pd.DataFrame", pd.DataFrame]
+_dml_data_alias = ["DoubleMLData", DoubleMLData]
+_dml_cluster_data_alias = ["DoubleMLClusterData", DoubleMLClusterData]
 
 
-def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
+def fetch_401K(return_type="DoubleMLData", polynomial_features=False):
     """
     Data set on financial wealth and 401(k) plan participation.
 
@@ -38,17 +37,17 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
     Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
-    url = 'https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta'
+    url = "https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta"
     raw_data = pd.read_stata(url)
 
-    y_col = 'net_tfa'
-    d_cols = ['e401']
-    x_cols = ['age', 'inc', 'educ', 'fsize', 'marr', 'twoearn', 'db', 'pira', 'hown']
+    y_col = "net_tfa"
+    d_cols = ["e401"]
+    x_cols = ["age", "inc", "educ", "fsize", "marr", "twoearn", "db", "pira", "hown"]
 
     data = raw_data.copy()
 
     if polynomial_features:
-        raise NotImplementedError('polynomial_features os not implemented yet for fetch_401K.')
+        raise NotImplementedError("polynomial_features os not implemented yet for fetch_401K.")
 
     if return_type in _data_frame_alias + _dml_data_alias:
         if return_type in _data_frame_alias:
@@ -56,10 +55,10 @@ def fetch_401K(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
+def fetch_bonus(return_type="DoubleMLData", polynomial_features=False):
     """
     Data set on the Pennsylvania Reemployment Bonus experiment.
 
@@ -81,27 +80,40 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
     Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
-    url = 'https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat'
-    raw_data = pd.read_csv(url, sep='\s+')
+    url = "https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat"
+    raw_data = pd.read_csv(url, sep=r"\s+")
 
-    ind = (raw_data['tg'] == 0) | (raw_data['tg'] == 4)
+    ind = (raw_data["tg"] == 0) | (raw_data["tg"] == 4)
     data = raw_data.copy()[ind]
     data.reset_index(inplace=True)
-    data['tg'] = data['tg'].replace(4, 1)
-    data['inuidur1'] = np.log(data['inuidur1'])
+    data["tg"] = data["tg"].replace(4, 1)
+    data["inuidur1"] = np.log(data["inuidur1"])
 
     # variable dep as factor (dummy encoding)
-    dummy_enc = OneHotEncoder(drop='first', categories='auto').fit(data.loc[:, ['dep']])
-    xx = dummy_enc.transform(data.loc[:, ['dep']]).toarray()
-    data['dep1'] = xx[:, 0]
-    data['dep2'] = xx[:, 1]
+    dummy_enc = OneHotEncoder(drop="first", categories="auto").fit(data.loc[:, ["dep"]])
+    xx = dummy_enc.transform(data.loc[:, ["dep"]]).toarray()
+    data["dep1"] = xx[:, 0]
+    data["dep2"] = xx[:, 1]
 
-    y_col = 'inuidur1'
-    d_cols = ['tg']
-    x_cols = ['female', 'black', 'othrace',
-              'dep1', 'dep2',
-              'q2', 'q3', 'q4', 'q5', 'q6',
-              'agelt35', 'agegt54', 'durable', 'lusd', 'husd']
+    y_col = "inuidur1"
+    d_cols = ["tg"]
+    x_cols = [
+        "female",
+        "black",
+        "othrace",
+        "dep1",
+        "dep2",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "agelt35",
+        "agegt54",
+        "durable",
+        "lusd",
+        "husd",
+    ]
 
     if polynomial_features:
         poly = PolynomialFeatures(2, include_bias=False)
@@ -109,8 +121,7 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
         x_cols = list(poly.get_feature_names_out(x_cols))
 
         data_transf = pd.DataFrame(data_transf, columns=x_cols)
-        data = pd.concat((data[[y_col] + d_cols], data_transf),
-                         axis=1, sort=False)
+        data = pd.concat((data[[y_col] + d_cols], data_transf), axis=1, sort=False)
 
     if return_type in _data_frame_alias + _dml_data_alias:
         if return_type in _data_frame_alias:
@@ -118,18 +129,18 @@ def fetch_bonus(return_type='DoubleMLData', polynomial_features=False):
         else:
             return DoubleMLData(data, y_col, d_cols, x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
 def _g(x):
     return np.power(np.sin(x), 2)
 
 
-def _m(x, nu=0., gamma=1.):
-    return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
+def _m(x, nu=0.0, gamma=1.0):
+    return 0.5 / np.pi * (np.sinh(gamma)) / (np.cosh(gamma) - np.cos(x - nu))
 
 
-def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
+def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", **kwargs):
     """
     Generates data from a partially linear regression model used in Chernozhukov et al. (2018) for Figure 1.
     The data generating process is defined as
@@ -175,37 +186,59 @@ def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLDa
     Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
-    a_0 = kwargs.get('a_0', 1.)
-    a_1 = kwargs.get('a_1', 0.25)
-    s_1 = kwargs.get('s_1', 1.)
+    a_0 = kwargs.get("a_0", 1.0)
+    a_1 = kwargs.get("a_1", 0.25)
+    s_1 = kwargs.get("s_1", 1.0)
 
-    b_0 = kwargs.get('b_0', 1.)
-    b_1 = kwargs.get('b_1', 0.25)
-    s_2 = kwargs.get('s_2', 1.)
+    b_0 = kwargs.get("b_0", 1.0)
+    b_1 = kwargs.get("b_1", 0.25)
+    s_2 = kwargs.get("s_2", 1.0)
 
     cov_mat = toeplitz([np.power(0.7, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
-    d = a_0 * x[:, 0] + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2])) \
-        + s_1 * np.random.standard_normal(size=[n_obs, ])
-    y = alpha * d + b_0 * np.divide(np.exp(x[:, 0]), 1 + np.exp(x[:, 0])) \
-        + b_1 * x[:, 2] + s_2 * np.random.standard_normal(size=[n_obs, ])
+    d = (
+        a_0 * x[:, 0]
+        + a_1 * np.divide(np.exp(x[:, 2]), 1 + np.exp(x[:, 2]))
+        + s_1
+        * np.random.standard_normal(
+            size=[
+                n_obs,
+            ]
+        )
+    )
+    y = (
+        alpha * d
+        + b_0 * np.divide(np.exp(x[:, 0]), 1 + np.exp(x[:, 0]))
+        + b_1 * x[:, 2]
+        + s_2
+        * np.random.standard_normal(
+            size=[
+                n_obs,
+            ]
+        )
+    )
 
     if return_type in _array_alias:
         return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d)),
-                            columns=x_cols + ['y', 'd'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + ["y", "d"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols)
+            return DoubleMLData(data, "y", "d", x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLData', **kwargs):
+def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type="DoubleMLData", **kwargs):
     """
     Generates data from a partially linear regression model used in a blog article by Turrell (2018).
     The data generating process is defined as
@@ -251,33 +284,50 @@ def make_plr_turrell2018(n_obs=100, dim_x=20, theta=0.5, return_type='DoubleMLDa
     science, coding and data. `https://aeturrell.com/blog/posts/econometrics-in-python-parti-ml/
     <https://aeturrell.com/blog/posts/econometrics-in-python-parti-ml/>`_.
     """
-    nu = kwargs.get('nu', 0.)
-    gamma = kwargs.get('gamma', 1.)
+    nu = kwargs.get("nu", 0.0)
+    gamma = kwargs.get("gamma", 1.0)
 
     b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
-    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        sigma,
+        size=[
+            n_obs,
+        ],
+    )
     G = _g(np.dot(x, b))
     M = _m(np.dot(x, b), nu=nu, gamma=gamma)
-    d = M + np.random.standard_normal(size=[n_obs, ])
-    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
+    d = M + np.random.standard_normal(
+        size=[
+            n_obs,
+        ]
+    )
+    y = (
+        np.dot(theta, d)
+        + G
+        + np.random.standard_normal(
+            size=[
+                n_obs,
+            ]
+        )
+    )
 
     if return_type in _array_alias:
         return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d)),
-                            columns=x_cols + ['y', 'd'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + ["y", "d"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols)
+            return DoubleMLData(data, "y", "d", x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type='DoubleMLData'):
+def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type="DoubleMLData"):
     """
     Generates data from a interactive regression (IRM) model.
     The data generating process is defined as
@@ -327,37 +377,50 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
     High‐Dimensional Data. Econometrica, 85: 233-298.
     """
     # inspired by https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA12723, see suplement
-    v = np.random.uniform(size=[n_obs, ])
-    zeta = np.random.standard_normal(size=[n_obs, ])
+    v = np.random.uniform(
+        size=[
+            n_obs,
+        ]
+    )
+    zeta = np.random.standard_normal(
+        size=[
+            n_obs,
+        ]
+    )
 
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [1 / (k**2) for k in range(1, dim_x + 1)]
     b_sigma_b = np.dot(np.dot(cov_mat, beta), beta)
-    c_y = np.sqrt(R2_y/((1-R2_y) * b_sigma_b))
-    c_d = np.sqrt(np.pi**2 / 3. * R2_d/((1-R2_d) * b_sigma_b))
+    c_y = np.sqrt(R2_y / ((1 - R2_y) * b_sigma_b))
+    c_d = np.sqrt(np.pi**2 / 3.0 * R2_d / ((1 - R2_d) * b_sigma_b))
 
     xx = np.exp(np.dot(x, np.multiply(beta, c_d)))
-    d = 1. * ((xx/(1+xx)) > v)
+    d = 1.0 * ((xx / (1 + xx)) > v)
 
     y = d * theta + d * np.dot(x, np.multiply(beta, c_y)) + zeta
 
     if return_type in _array_alias:
         return x, y, d
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d)),
-                            columns=x_cols + ['y', 'd'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + ["y", "d"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols)
+            return DoubleMLData(data, "y", "d", x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='DoubleMLData'):
+def make_iivm_data(n_obs=500, dim_x=20, theta=1.0, alpha_x=0.2, return_type="DoubleMLData"):
     """
     Generates data from a interactive IV regression (IIVM) model.
     The data generating process is defined as
@@ -405,64 +468,100 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
     Paper No. 13-2020. Available at SSRN: http://dx.doi.org/10.2139/ssrn.3619201.
     """
     # inspired by https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3619201
-    xx = np.random.multivariate_normal(np.zeros(2),
-                                       np.array([[1., 0.3], [0.3, 1.]]),
-                                       size=[n_obs, ])
+    xx = np.random.multivariate_normal(
+        np.zeros(2),
+        np.array([[1.0, 0.3], [0.3, 1.0]]),
+        size=[
+            n_obs,
+        ],
+    )
     u = xx[:, 0]
     v = xx[:, 1]
 
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [1 / (k**2) for k in range(1, dim_x + 1)]
 
-    z = np.random.binomial(p=0.5, n=1, size=[n_obs, ])
-    d = 1. * (alpha_x * z + v > 0)
+    z = np.random.binomial(
+        p=0.5,
+        n=1,
+        size=[
+            n_obs,
+        ],
+    )
+    d = 1.0 * (alpha_x * z + v > 0)
 
     y = d * theta + np.dot(x, beta) + u
 
     if return_type in _array_alias:
         return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d, z)),
-                            columns=x_cols + ['y', 'd', 'z'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ["y", "d", "z"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols, 'z')
+            return DoubleMLData(data, "y", "d", x_cols, "z")
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, dim_x+1)]
+def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type="DoubleMLData"):
+    b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
-    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        sigma,
+        size=[
+            n_obs,
+        ],
+    )
     G = _g(np.dot(x, b))
     # instrument
-    z = _m(np.dot(x, b)) + np.random.standard_normal(size=[n_obs, ])
+    z = _m(np.dot(x, b)) + np.random.standard_normal(
+        size=[
+            n_obs,
+        ]
+    )
     # treatment
     M = _m(gamma_z * z + np.dot(x, b))
-    d = M + np.random.standard_normal(size=[n_obs, ])
-    y = np.dot(theta, d) + G + np.random.standard_normal(size=[n_obs, ])
+    d = M + np.random.standard_normal(
+        size=[
+            n_obs,
+        ]
+    )
+    y = (
+        np.dot(theta, d)
+        + G
+        + np.random.standard_normal(
+            size=[
+                n_obs,
+            ]
+        )
+    )
 
     if return_type in _array_alias:
         return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d, z)),
-                            columns=x_cols + ['y', 'd', 'z'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ["y", "d", "z"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols, 'z')
+            return DoubleMLData(data, "y", "d", x_cols, "z")
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='DoubleMLData'):
+def make_pliv_CHS2015(n_obs, alpha=1.0, dim_x=200, dim_z=150, return_type="DoubleMLData"):
     """
     Generates data from a partially linear IV regression model used in Chernozhukov, Hansen and Spindler (2015).
     The data generating process is defined as
@@ -513,26 +612,38 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     """
     assert dim_x >= dim_z
     # see https://assets.aeaweb.org/asset-server/articles-attachments/aer/app/10505/P2015_1022_app.pdf
-    xx = np.random.multivariate_normal(np.zeros(2),
-                                       np.array([[1., 0.6], [0.6, 1.]]),
-                                       size=[n_obs, ])
+    xx = np.random.multivariate_normal(
+        np.zeros(2),
+        np.array([[1.0, 0.6], [0.6, 1.0]]),
+        size=[
+            n_obs,
+        ],
+    )
     epsilon = xx[:, 0]
     u = xx[:, 1]
 
     sigma = toeplitz([np.power(0.5, k) for k in range(0, dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x),
-                                      sigma,
-                                      size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        sigma,
+        size=[
+            n_obs,
+        ],
+    )
 
     I_z = np.eye(dim_z)
-    xi = np.random.multivariate_normal(np.zeros(dim_z),
-                                       0.25*I_z,
-                                       size=[n_obs, ])
+    xi = np.random.multivariate_normal(
+        np.zeros(dim_z),
+        0.25 * I_z,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [1 / (k**2) for k in range(1, dim_x + 1)]
     gamma = beta
     delta = [1 / (k**2) for k in range(1, dim_z + 1)]
-    Pi = np.hstack((I_z, np.zeros((dim_z, dim_x-dim_z))))
+    Pi = np.hstack((I_z, np.zeros((dim_z, dim_x - dim_z))))
 
     z = np.dot(x, np.transpose(Pi)) + xi
     d = np.dot(x, gamma) + np.dot(z, delta) + u
@@ -541,19 +652,18 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
     if return_type in _array_alias:
         return x, y, d, z
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        z_cols = [f'Z{i + 1}' for i in np.arange(dim_z)]
-        data = pd.DataFrame(np.column_stack((x, y, d, z)),
-                            columns=x_cols + ['y', 'd'] + z_cols)
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        z_cols = [f"Z{i + 1}" for i in np.arange(dim_z)]
+        data = pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ["y", "d"] + z_cols)
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols, z_cols)
+            return DoubleMLData(data, "y", "d", x_cols, z_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_type='DoubleMLClusterData', **kwargs):
+def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return_type="DoubleMLClusterData", **kwargs):
     """
     Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al.
     (2021). The data generating process is defined as
@@ -631,20 +741,20 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
     arXiv:`1909.03489 <https://arxiv.org/abs/1909.03489>`_.
     """
     # additional parameters specifiable via kwargs
-    pi_10 = kwargs.get('pi_10', 1.0)
+    pi_10 = kwargs.get("pi_10", 1.0)
 
     xx = np.arange(1, dim_X + 1)
-    zeta_0 = kwargs.get('zeta_0', np.power(0.5, xx))
-    pi_20 = kwargs.get('pi_20', np.power(0.5, xx))
-    xi_0 = kwargs.get('xi_0', np.power(0.5, xx))
+    zeta_0 = kwargs.get("zeta_0", np.power(0.5, xx))
+    pi_20 = kwargs.get("pi_20", np.power(0.5, xx))
+    xi_0 = kwargs.get("xi_0", np.power(0.5, xx))
 
-    omega_X = kwargs.get('omega_X', np.array([0.25, 0.25]))
-    omega_epsilon = kwargs.get('omega_epsilon', np.array([0.25, 0.25]))
-    omega_v = kwargs.get('omega_v', np.array([0.25, 0.25]))
-    omega_V = kwargs.get('omega_V', np.array([0.25, 0.25]))
+    omega_X = kwargs.get("omega_X", np.array([0.25, 0.25]))
+    omega_epsilon = kwargs.get("omega_epsilon", np.array([0.25, 0.25]))
+    omega_v = kwargs.get("omega_v", np.array([0.25, 0.25]))
+    omega_V = kwargs.get("omega_V", np.array([0.25, 0.25]))
 
-    s_X = kwargs.get('s_X', 0.25)
-    s_epsilon_v = kwargs.get('s_epsilon_v', 0.25)
+    s_X = kwargs.get("s_X", 0.25)
+    s_epsilon_v = kwargs.get("s_epsilon_v", 0.25)
 
     # use np.tile() and np.repeat() for repeating vectors in different styles, i.e.,
     # np.tile([v1, v2, v3], 2) [v1, v2, v3, v1, v2, v3]
@@ -655,61 +765,98 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
     alpha_V_j = np.tile(np.random.normal(size=M), N)
 
     cov_mat = np.array([[1, s_epsilon_v], [s_epsilon_v, 1]])
-    alpha_eps_v = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[N * M, ])
+    alpha_eps_v = np.random.multivariate_normal(
+        np.zeros(2),
+        cov_mat,
+        size=[
+            N * M,
+        ],
+    )
     alpha_eps = alpha_eps_v[:, 0]
     alpha_v = alpha_eps_v[:, 1]
 
-    alpha_eps_v_i = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[N, ])
+    alpha_eps_v_i = np.random.multivariate_normal(
+        np.zeros(2),
+        cov_mat,
+        size=[
+            N,
+        ],
+    )
     alpha_eps_i = np.repeat(alpha_eps_v_i[:, 0], M)
     alpha_v_i = np.repeat(alpha_eps_v_i[:, 1], M)
 
-    alpha_eps_v_j = np.random.multivariate_normal(np.zeros(2), cov_mat, size=[M, ])
+    alpha_eps_v_j = np.random.multivariate_normal(
+        np.zeros(2),
+        cov_mat,
+        size=[
+            M,
+        ],
+    )
     alpha_eps_j = np.tile(alpha_eps_v_j[:, 0], N)
     alpha_v_j = np.tile(alpha_eps_v_j[:, 1], N)
 
     cov_mat = toeplitz([np.power(s_X, k) for k in range(dim_X)])
-    alpha_X = np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[N * M, ])
-    alpha_X_i = np.repeat(np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[N, ]),
-                          M, axis=0)
-    alpha_X_j = np.tile(np.random.multivariate_normal(np.zeros(dim_X), cov_mat, size=[M, ]),
-                        (N, 1))
+    alpha_X = np.random.multivariate_normal(
+        np.zeros(dim_X),
+        cov_mat,
+        size=[
+            N * M,
+        ],
+    )
+    alpha_X_i = np.repeat(
+        np.random.multivariate_normal(
+            np.zeros(dim_X),
+            cov_mat,
+            size=[
+                N,
+            ],
+        ),
+        M,
+        axis=0,
+    )
+    alpha_X_j = np.tile(
+        np.random.multivariate_normal(
+            np.zeros(dim_X),
+            cov_mat,
+            size=[
+                M,
+            ],
+        ),
+        (N, 1),
+    )
 
     # generate variables
-    x = (1 - omega_X[0] - omega_X[1]) * alpha_X \
-        + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
+    x = (1 - omega_X[0] - omega_X[1]) * alpha_X + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
-    eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
-        + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
+    eps = (
+        (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
+    )
 
-    v = (1 - omega_v[0] - omega_v[1]) * alpha_v \
-        + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j
+    v = (1 - omega_v[0] - omega_v[1]) * alpha_v + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j
 
-    V = (1 - omega_V[0] - omega_V[1]) * alpha_V \
-        + omega_V[0] * alpha_V_i + omega_V[1] * alpha_V_j
+    V = (1 - omega_V[0] - omega_V[1]) * alpha_V + omega_V[0] * alpha_V_i + omega_V[1] * alpha_V_j
 
     z = np.matmul(x, xi_0) + V
     d = z * pi_10 + np.matmul(x, pi_20) + v
     y = d * theta + np.matmul(x, zeta_0) + eps
 
-    cluster_cols = ['cluster_var_i', 'cluster_var_j']
+    cluster_cols = ["cluster_var_i", "cluster_var_j"]
     cluster_vars = pd.MultiIndex.from_product([range(N), range(M)]).to_frame(name=cluster_cols).reset_index(drop=True)
 
     if return_type in _array_alias:
         return x, y, d, cluster_vars.values, z
     elif return_type in _data_frame_alias + _dml_cluster_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_X)]
-        data = pd.concat((cluster_vars,
-                          pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ['Y', 'D', 'Z'])),
-                         axis=1)
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_X)]
+        data = pd.concat((cluster_vars, pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ["Y", "D", "Z"])), axis=1)
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLClusterData(data, 'Y', 'D', cluster_cols, x_cols, 'Z')
+            return DoubleMLClusterData(data, "Y", "D", cluster_cols, x_cols, "Z")
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
-def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type='DoubleMLData', **kwargs):
+def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type="DoubleMLData", **kwargs):
     """
     Generates data from a difference-in-differences model used in Sant'Anna and Zhao (2020).
     The data generating process is defined as follows. For a generic :math:`W=(W_1, W_2, W_3, W_4)^T`, let
@@ -795,26 +942,32 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     Doubly robust difference-in-differences estimators. Journal of Econometrics, 219(1), 101-122.
     doi:`10.1016/j.jeconom.2020.06.003 <https://doi.org/10.1016/j.jeconom.2020.06.003>`_.
     """
-    xi = kwargs.get('xi', 0.75)
-    c = kwargs.get('c', 0.0)
-    lambda_t = kwargs.get('lambda_t', 0.5)
+    xi = kwargs.get("xi", 0.75)
+    c = kwargs.get("c", 0.0)
+    lambda_t = kwargs.get("lambda_t", 0.5)
 
     def f_reg(w):
-        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
         return res
 
     def f_ps(w, xi):
-        res = xi*(-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
 
     dim_x = 4
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0]*x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -842,7 +995,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         features_ps = None
         features_reg = x
     else:
-        raise ValueError('The dgp_type is not valid.')
+        raise ValueError("The dgp_type is not valid.")
 
     # treatment and propensities
     is_experimental = (dgp_type == 5) or (dgp_type == 6)
@@ -855,45 +1008,43 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     d = 1.0 * (p >= u)
 
     # potential outcomes
-    nu = np.random.normal(loc=d*f_reg(features_reg), scale=1, size=n_obs)
+    nu = np.random.normal(loc=d * f_reg(features_reg), scale=1, size=n_obs)
     y0 = f_reg(features_reg) + nu + epsilon_0
     y1_d0 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 0]
     y1_d1 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 1]
-    y1 = d * y1_d1 + (1-d) * y1_d0
+    y1 = d * y1_d1 + (1 - d) * y1_d0
 
     if not cross_sectional_data:
         y = y1 - y0
 
         if return_type in _array_alias:
-            return z, y, d
+            return z, y, d, None
         elif return_type in _data_frame_alias + _dml_data_alias:
-            z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
-            data = pd.DataFrame(np.column_stack((z, y, d)),
-                                columns=z_cols + ['y', 'd'])
+            z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
+            data = pd.DataFrame(np.column_stack((z, y, d)), columns=z_cols + ["y", "d"])
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLData(data, 'y', 'd', z_cols)
+                return DoubleMLData(data, "y", "d", z_cols)
         else:
-            raise ValueError('Invalid return_type.')
+            raise ValueError("Invalid return_type.")
 
     else:
         u_t = np.random.uniform(low=0, high=1, size=n_obs)
         t = 1.0 * (u_t <= lambda_t)
-        y = t * y1 + (1-t)*y0
+        y = t * y1 + (1 - t) * y0
 
         if return_type in _array_alias:
             return z, y, d, t
         elif return_type in _data_frame_alias + _dml_data_alias:
-            z_cols = [f'Z{i + 1}' for i in np.arange(dim_x)]
-            data = pd.DataFrame(np.column_stack((z, y, d, t)),
-                                columns=z_cols + ['y', 'd', 't'])
+            z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
+            data = pd.DataFrame(np.column_stack((z, y, d, t)), columns=z_cols + ["y", "d", "t"])
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLData(data, 'y', 'd', z_cols, t_col='t')
+                return DoubleMLData(data, "y", "d", z_cols, t_col="t")
         else:
-            raise ValueError('Invalid return_type.')
+            raise ValueError("Invalid return_type.")
 
 
 def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, linear=False, **kwargs):
@@ -1001,26 +1152,33 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
     """
     c = 0.0  # the confounding strength is only valid for c=0
     xi = 0.75
-    dim_x = kwargs.get('dim_x', 5)
-    trimming_threshold = kwargs.get('trimming_threshold', 0.01)
-    var_eps_y = kwargs.get('var_eps_y', 1.0)
+    dim_x = kwargs.get("dim_x", 5)
+    trimming_threshold = kwargs.get("trimming_threshold", 0.01)
+    var_eps_y = kwargs.get("var_eps_y", 1.0)
 
     # Specification of main regression function
     def f_reg(w):
-        res = 2.5 + 0.74*w[:, 0] + 0.25 * w[:, 1] + 0.137*(w[:, 2] + w[:, 3])
+        res = 2.5 + 0.74 * w[:, 0] + 0.25 * w[:, 1] + 0.137 * (w[:, 2] + w[:, 3])
         return res
 
     # Specification of prop score function
     def f_ps(w, xi):
-        res = xi*(-w[:, 0] + 0.1*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.1 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
+
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
     z_tilde_5 = x[:, 4]
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, z_tilde_5))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1041,36 +1199,38 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
 
     p = np.exp(f_ps(features_ps, xi)) / (1 + np.exp(f_ps(features_ps, xi)))
     # compute short and long form of propensity score
-    m_long = p + gamma_a*a
+    m_long = p + gamma_a * a
     m_short = p
     # check propensity score bounds
     if np.any(m_long < trimming_threshold) or np.any(m_long > 1.0 - trimming_threshold):
         m_long = np.clip(m_long, trimming_threshold, 1.0 - trimming_threshold)
         m_short = np.clip(m_short, trimming_threshold, 1.0 - trimming_threshold)
-        warnings.warn(f'Propensity score is close to 0 or 1. '
-                      f'Trimming is at {trimming_threshold} and {1.0-trimming_threshold} is applied')
+        warnings.warn(
+            f"Propensity score is close to 0 or 1. "
+            f"Trimming is at {trimming_threshold} and {1.0 - trimming_threshold} is applied"
+        )
     # generate treatment based on long form
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
     # add treatment heterogeneity
     d1x = z[:, 4] + 1
-    var_dx = np.var(d*(d1x))
+    var_dx = np.var(d * (d1x))
     cov_adx = gamma_a * var_a
     # Outcome regression
     g_partial_reg = f_reg(features_reg)
     # short model
     g_short_d0 = g_partial_reg
     g_short_d1 = (theta + beta_a * cov_adx / var_dx) * d1x + g_partial_reg
-    g_short = d * g_short_d1 + (1.0-d) * g_short_d0
+    g_short = d * g_short_d1 + (1.0 - d) * g_short_d0
     # long model
     g_long_d0 = g_partial_reg + beta_a * a
     g_long_d1 = theta * d1x + g_partial_reg + beta_a * a
-    g_long = d * g_long_d1 + (1.0-d) * g_long_d0
+    g_long = d * g_long_d1 + (1.0 - d) * g_long_d0
     # Potential outcomes
     y_0 = g_long_d0 + eps_y
     y_1 = g_long_d1 + eps_y
     # Realized outcome
-    y = d * y_1 + (1.0-d) * y_0
+    y = d * y_1 + (1.0 - d) * y_0
     # In-sample values for confounding strength
     explained_residual_variance = np.square(g_long - g_short)
     residual_variance = np.square(y - g_short)
@@ -1085,7 +1245,9 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
     propensity_ratio_short = m_short / (1.0 - m_short)
     rr_short_ate = d / m_short - (1.0 - d) / (1.0 - m_short)
     rr_short_atte = treated_weight - np.multiply(untreated_weight, propensity_ratio_short)
-    cf_d_ate = (np.mean(1/(m_long * (1 - m_long))) - np.mean(1/(m_short * (1 - m_short)))) / np.mean(1/(m_long * (1 - m_long)))
+    cf_d_ate = (np.mean(1 / (m_long * (1 - m_long))) - np.mean(1 / (m_short * (1 - m_short)))) / np.mean(
+        1 / (m_long * (1 - m_long))
+    )
     cf_d_atte = (np.mean(propensity_ratio_long) - np.mean(propensity_ratio_short)) / np.mean(propensity_ratio_long)
     if (beta_a == 0) | (gamma_a == 0):
         rho_ate = 0.0
@@ -1094,28 +1256,23 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
         rho_ate = np.corrcoef((g_long - g_short), (rr_long_ate - rr_short_ate))[0, 1]
         rho_atte = np.corrcoef((g_long - g_short), (rr_long_atte - rr_short_atte))[0, 1]
     oracle_values = {
-        'g_long': g_long,
-        'g_short': g_short,
-        'm_long': m_long,
-        'm_short': m_short,
-        'gamma_a': gamma_a,
-        'beta_a': beta_a,
-        'a': a,
-        'y_0': y_0,
-        'y_1': y_1,
-        'z': z,
-        'cf_y': cf_y,
-        'cf_d_ate': cf_d_ate,
-        'cf_d_atte': cf_d_atte,
-        'rho_ate': rho_ate,
-        'rho_atte': rho_atte,
+        "g_long": g_long,
+        "g_short": g_short,
+        "m_long": m_long,
+        "m_short": m_short,
+        "gamma_a": gamma_a,
+        "beta_a": beta_a,
+        "a": a,
+        "y_0": y_0,
+        "y_1": y_1,
+        "z": z,
+        "cf_y": cf_y,
+        "cf_d_ate": cf_d_ate,
+        "cf_d_atte": cf_d_atte,
+        "rho_ate": rho_ate,
+        "rho_atte": rho_atte,
     }
-    res_dict = {
-        'x': x,
-        'y': y,
-        'd': d,
-        'oracle_values': oracle_values
-    }
+    res_dict = {"x": x, "y": y, "d": d, "oracle_values": oracle_values}
     return res_dict
 
 
@@ -1208,17 +1365,23 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
     Doubly robust difference-in-differences estimators. Journal of Econometrics, 219(1), 101-122.
     doi:`10.1016/j.jeconom.2020.06.003 <https://doi.org/10.1016/j.jeconom.2020.06.003>`_.
     """
-    c = kwargs.get('c', 0.0)
-    dim_x = kwargs.get('dim_x', 4)
+    c = kwargs.get("c", 0.0)
+    dim_x = kwargs.get("dim_x", 4)
 
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1235,7 +1398,7 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
     # get the required impact of the confounder on the propensity score
-    m_short = -z[:, 0] + 0.5*z[:, 1] - 0.25*z[:, 2] - 0.1*z[:, 3]
+    m_short = -z[:, 0] + 0.5 * z[:, 1] - 0.25 * z[:, 2] - 0.1 * z[:, 3]
 
     def f_m(gamma_a):
         rr_long = eps_d / var_eps_d
@@ -1244,40 +1407,39 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
         return np.square(C2_D / (1 + C2_D) - cf_d)
 
     gamma_a = minimize_scalar(f_m).x
-    m_long = m_short + gamma_a*a
+    m_long = m_short + gamma_a * a
     d = m_long + eps_d
 
     # short and long version of g
-    g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_partial_reg = 210 + 27.4 * z[:, 0] + 13.7 * (z[:, 1] + z[:, 2] + z[:, 3])
 
     var_d = np.var(d)
 
     def f_g(beta_a):
-        g_diff = beta_a * (a - gamma_a * (var_a/var_d) * d)
+        g_diff = beta_a * (a - gamma_a * (var_a / var_d) * d)
         y_diff = eps_y + g_diff
         return np.square(np.mean(np.square(g_diff)) / np.mean(np.square(y_diff)) - cf_y)
 
     beta_a = minimize_scalar(f_g).x
 
-    g_long = theta*d + g_partial_reg + beta_a*a
-    g_short = (theta + gamma_a*beta_a * var_a / var_d)*d + g_partial_reg
+    g_long = theta * d + g_partial_reg + beta_a * a
+    g_short = (theta + gamma_a * beta_a * var_a / var_d) * d + g_partial_reg
 
     y = g_long + eps_y
 
-    oracle_values = {'g_long': g_long,
-                     'g_short': g_short,
-                     'm_long': m_long,
-                     'm_short': m_short,
-                     'theta': theta,
-                     'gamma_a': gamma_a,
-                     'beta_a': beta_a,
-                     'a': a,
-                     'z': z}
+    oracle_values = {
+        "g_long": g_long,
+        "g_short": g_short,
+        "m_long": m_long,
+        "m_short": m_short,
+        "theta": theta,
+        "gamma_a": gamma_a,
+        "beta_a": beta_a,
+        "a": a,
+        "z": z,
+    }
 
-    res_dict = {'x': x,
-                'y': y,
-                'd': d,
-                'oracle_values': oracle_values}
+    res_dict = {"x": x, "y": y, "d": d, "oracle_values": oracle_values}
 
     return res_dict
 
@@ -1346,14 +1508,16 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
 
     """
     # simple input checks
-    assert n_x in [1, 2], 'n_x must be either 1 or 2.'
-    assert support_size <= p, 'support_size must be smaller than p.'
-    assert isinstance(binary_treatment, bool), 'binary_treatment must be a boolean.'
+    assert n_x in [1, 2], "n_x must be either 1 or 2."
+    assert support_size <= p, "support_size must be smaller than p."
+    assert isinstance(binary_treatment, bool), "binary_treatment must be a boolean."
 
     # define treatment effects
     if n_x == 1:
+
         def treatment_effect(x):
             return np.exp(2 * x[:, 0]) + 3 * np.sin(4 * x[:, 0])
+
     else:
         assert n_x == 2
 
@@ -1383,23 +1547,16 @@ def make_heterogeneous_data(n_obs=200, p=30, support_size=5, n_x=1, binary_treat
     y = te * d + np.dot(x[:, support_y], coefs_y) + epsilon
 
     # Now we build the dataset
-    y_df = pd.DataFrame({'y': y})
-    d_df = pd.DataFrame({'d': d})
-    x_df = pd.DataFrame(
-        data=x,
-        index=np.arange(x.shape[0]),
-        columns=[f'X_{i}' for i in range(x.shape[1])]
-    )
+    y_df = pd.DataFrame({"y": y})
+    d_df = pd.DataFrame({"d": d})
+    x_df = pd.DataFrame(data=x, index=np.arange(x.shape[0]), columns=[f"X_{i}" for i in range(x.shape[1])])
 
     data = pd.concat([y_df, d_df, x_df], axis=1)
-    res_dict = {
-        'data': data,
-        'effects': te,
-        'treatment_effect': treatment_effect}
+    res_dict = {"data": data, "effects": te, "treatment_effect": treatment_effect}
     return res_dict
 
 
-def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleMLData'):
+def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type="DoubleMLData"):
     """
     Generates data from a sample selection model (SSM).
     The data generating process is defined as
@@ -1456,7 +1613,13 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
     e = np.random.multivariate_normal(mean=[0, 0], cov=sigma, size=n_obs).T
 
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
 
@@ -1470,21 +1633,19 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
     if return_type in _array_alias:
         return x, y, d, z, s
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
         if mar:
-            data = pd.DataFrame(np.column_stack((x, y, d, s)),
-                                columns=x_cols + ['y', 'd', 's'])
+            data = pd.DataFrame(np.column_stack((x, y, d, s)), columns=x_cols + ["y", "d", "s"])
         else:
-            data = pd.DataFrame(np.column_stack((x, y, d, z, s)),
-                                columns=x_cols + ['y', 'd', 'z', 's'])
+            data = pd.DataFrame(np.column_stack((x, y, d, z, s)), columns=x_cols + ["y", "d", "z", "s"])
         if return_type in _data_frame_alias:
             return data
         else:
             if mar:
-                return DoubleMLData(data, 'y', 'd', x_cols, None, None, 's')
-            return DoubleMLData(data, 'y', 'd', x_cols, 'z', None, 's')
+                return DoubleMLData(data, "y", "d", x_cols, None, None, "s")
+            return DoubleMLData(data, "y", "d", x_cols, "z", None, "s")
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")
 
 
 def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, random_state=None, **kwargs):
@@ -1573,25 +1734,31 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     """
     if random_state is not None:
         np.random.seed(random_state)
-    xi = kwargs.get('xi', 0.3)
-    c = kwargs.get('c', 0.0)
-    dim_x = kwargs.get('dim_x', 5)
+    xi = kwargs.get("xi", 0.3)
+    c = kwargs.get("c", 0.0)
+    dim_x = kwargs.get("dim_x", 5)
 
     if not isinstance(n_levels, int):
-        raise ValueError('n_levels must be an integer.')
+        raise ValueError("n_levels must be an integer.")
     if n_levels < 2:
-        raise ValueError('n_levels must be at least 2.')
+        raise ValueError("n_levels must be at least 2.")
 
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
+    x = np.random.multivariate_normal(
+        np.zeros(dim_x),
+        cov_mat,
+        size=[
+            n_obs,
+        ],
+    )
 
     def f_reg(w):
-        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
         return res
 
     def f_treatment(w, xi):
-        res = xi * (-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
 
     def treatment_effect(d, scale=15):
@@ -1599,8 +1766,8 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
 
     z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1623,7 +1790,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     level_bounds = np.quantile(cont_d, q=np.linspace(0, 1, n_levels + 1))
     potential_level = sum([1.0 * (cont_d >= bound) for bound in level_bounds[1:-1]]) + 1
     eta = np.random.uniform(0, 1, size=n_obs)
-    d = 1.0 * (eta >= 1/n_levels) * potential_level
+    d = 1.0 * (eta >= 1 / n_levels) * potential_level
 
     ite = treatment_effect(cont_d)
     y0 = g + eps_y
@@ -1631,18 +1798,13 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     y = ite * (d > 0) + y0
 
     oracle_values = {
-        'cont_d': cont_d,
-        'level_bounds': level_bounds,
-        'potential_level': potential_level,
-        'ite': ite,
-        'y0': y0,
+        "cont_d": cont_d,
+        "level_bounds": level_bounds,
+        "potential_level": potential_level,
+        "ite": ite,
+        "y0": y0,
     }
 
-    resul_dict = {
-        'x': x,
-        'y': y,
-        'd': d,
-        'oracle_values': oracle_values
-    }
+    resul_dict = {"x": x, "y": y, "d": d, "oracle_values": oracle_values}
 
     return resul_dict

@@ -1,8 +1,10 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LinearRegression
-from doubleml import DoubleMLPLIV, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLPLIV
 from doubleml.datasets import make_pliv_CHS2015
 from doubleml.utils import DMLDummyRegressor
 
@@ -31,9 +33,7 @@ def adapted_doubleml_fixture(score, n_rep, dim_z):
     else:
         ext_predictions = {"d": {}}
 
-        data = make_pliv_CHS2015(
-            n_obs=500, dim_x=20, alpha=0.5, dim_z=dim_z, return_type="DataFrame"
-        )
+        data = make_pliv_CHS2015(n_obs=500, dim_x=20, alpha=0.5, dim_z=dim_z, return_type="DataFrame")
 
         np.random.seed(3141)
 
@@ -72,9 +72,7 @@ def adapted_doubleml_fixture(score, n_rep, dim_z):
                 ml_m_key = "ml_m_" + "Z" + str(instr + 1)
                 ext_predictions["d"][ml_m_key] = dml_pliv.predictions[ml_m_key][:, :, 0]
 
-        dml_pliv_ext = DoubleMLPLIV(
-            ml_m=DMLDummyRegressor(), ml_l=DMLDummyRegressor(), ml_r=DMLDummyRegressor(), **kwargs
-        )
+        dml_pliv_ext = DoubleMLPLIV(ml_m=DMLDummyRegressor(), ml_l=DMLDummyRegressor(), ml_r=DMLDummyRegressor(), **kwargs)
 
         np.random.seed(3141)
         dml_pliv_ext.fit(external_predictions=ext_predictions)

@@ -1,7 +1,7 @@
 import pytest
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml.utils import GlobalRegressor, GlobalClassifier
+from doubleml.utils import GlobalClassifier, GlobalRegressor
 
 
 @pytest.mark.ci

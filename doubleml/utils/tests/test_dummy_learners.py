@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
+import pytest
 from sklearn.base import clone
+
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
 @pytest.fixture(scope="module")

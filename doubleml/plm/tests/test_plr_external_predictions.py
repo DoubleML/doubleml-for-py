@@ -1,8 +1,10 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LinearRegression
-from doubleml import DoubleMLPLR, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLPLR
 from doubleml.datasets import make_plr_CCDDHNR2018
 from doubleml.utils import DMLDummyRegressor
 
