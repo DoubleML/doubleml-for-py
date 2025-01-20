@@ -64,14 +64,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
-    >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_g = learner
-    >>> ml_m = learner
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit().summary
-           coef  std err          t         P>|t|     2.5 %    97.5 %
-    d  0.462321  0.04107  11.256983  2.139582e-29  0.381826  0.542816
+           coef   std err          t         P>|t|     2.5 %    97.5 %
+    d  0.482251  0.040629  11.869585  1.703108e-32  0.402619  0.561883
 
     Notes
     -----
