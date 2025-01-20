@@ -1,12 +1,13 @@
-import pytest
-import numpy as np
-import pandas as pd
 import math
 
+import numpy as np
+import pandas as pd
+import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
 from doubleml import DoubleMLAPOS, DoubleMLData
 from doubleml.datasets import make_irm_data_discrete_treatments
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 from ...tests._utils import draw_smpls
 
@@ -34,20 +35,18 @@ def set_ml_g_ext(request):
 @pytest.fixture(scope="module")
 def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ext):
     score = "APO"
-    ext_predictions = {
-        treatment_level: {} for treatment_level in treatment_levels
-    }
+    ext_predictions = {treatment_level: {} for treatment_level in treatment_levels}
 
     np.random.seed(3141)
     n_obs = 500
     data_apo = make_irm_data_discrete_treatments(n_obs=n_obs)
     df_apo = pd.DataFrame(
-        np.column_stack((data_apo['y'], data_apo['d'], data_apo['x'])),
-        columns=['y', 'd'] + ['x' + str(i) for i in range(data_apo['x'].shape[1])]
+        np.column_stack((data_apo["y"], data_apo["d"], data_apo["x"])),
+        columns=["y", "d"] + ["x" + str(i) for i in range(data_apo["x"].shape[1])],
     )
 
-    dml_data = DoubleMLData(df_apo, 'y', 'd')
-    d = data_apo['d']
+    dml_data = DoubleMLData(df_apo, "y", "d")
+    d = data_apo["d"]
     all_smpls = draw_smpls(n_obs, n_folds=5, n_rep=n_rep, groups=d)
 
     kwargs = {
@@ -55,7 +54,7 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
         "score": score,
         "treatment_levels": treatment_levels,
         "n_rep": n_rep,
-        "draw_sample_splitting": False
+        "draw_sample_splitting": False,
     }
 
     dml_obj = DoubleMLAPOS(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
@@ -90,7 +89,7 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
         "coef_ext": dml_obj_ext.coef[0],
         "dml_obj": dml_obj,
         "dml_obj_ext": dml_obj_ext,
-        "treatment_levels": treatment_levels
+        "treatment_levels": treatment_levels,
     }
 
     return res_dict
@@ -99,10 +98,7 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
 @pytest.mark.ci
 def test_doubleml_apos_ext_coef(doubleml_apos_ext_fixture):
     assert math.isclose(
-        doubleml_apos_ext_fixture["coef_normal"],
-        doubleml_apos_ext_fixture["coef_ext"],
-        rel_tol=1e-9,
-        abs_tol=1e-4
+        doubleml_apos_ext_fixture["coef_normal"], doubleml_apos_ext_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4
     )
 
 
@@ -114,5 +110,5 @@ def test_doubleml_apos_ext_pred_nuisance(doubleml_apos_ext_fixture):
                 doubleml_apos_ext_fixture["dml_obj"].modellist[i_level].nuisance_loss[nuisance_key],
                 doubleml_apos_ext_fixture["dml_obj_ext"].modellist[i_level].nuisance_loss[nuisance_key],
                 rtol=1e-9,
-                atol=1e-4
+                atol=1e-4,
             )

@@ -1,30 +1,29 @@
 import numpy as np
 from sklearn.base import clone
-from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.utils import check_X_y
 
 from ..double_ml import DoubleML
-from ..double_ml_score_mixins import NonLinearScoreMixin
 from ..double_ml_data import DoubleMLData
-
-from ..utils._estimation import (
-    _dml_cv_predict,
-    _trimm,
-    _predict_zero_one_propensity,
-    _get_bracket_guess,
-    _default_kde,
-    _normalize_ipw,
-    _dml_tune,
-    _solve_ipw_score,
-    _cond_targets,
-)
+from ..double_ml_score_mixins import NonLinearScoreMixin
 from ..utils._checks import (
-    _check_score,
-    _check_trimming,
-    _check_zero_one_treatment,
-    _check_treatment,
     _check_contains_iv,
     _check_quantile,
+    _check_score,
+    _check_treatment,
+    _check_trimming,
+    _check_zero_one_treatment,
+)
+from ..utils._estimation import (
+    _cond_targets,
+    _default_kde,
+    _dml_cv_predict,
+    _dml_tune,
+    _get_bracket_guess,
+    _normalize_ipw,
+    _predict_zero_one_propensity,
+    _solve_ipw_score,
+    _trimm,
 )
 
 
@@ -105,25 +104,23 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     d  0.553878  0.149858  3.696011  0.000219  0.260161  0.847595
     """
 
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m,
-                 treatment=1,
-                 quantile=0.5,
-                 n_folds=5,
-                 n_rep=1,
-                 score='PQ',
-                 normalize_ipw=True,
-                 kde=None,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True):
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep,
-                         score,
-                         draw_sample_splitting)
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m,
+        treatment=1,
+        quantile=0.5,
+        n_folds=5,
+        n_rep=1,
+        score="PQ",
+        normalize_ipw=True,
+        kde=None,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+    ):
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._quantile = quantile
         self._treatment = treatment
@@ -131,8 +128,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError("kde should be either a callable or None. "
-                                "%r was passed." % kde)
+                raise TypeError("kde should be either a callable or None. %r was passed." % kde)
             self._kde = kde
 
         self._normalize_ipw = normalize_ipw
@@ -375,14 +371,14 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             m_hat["models"] = fitted_models["ml_m"]
 
         # clip propensities and normalize ipw weights
-        m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+        m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         # this is not done in the score to save computation due to multiple score evaluations
         # to be able to evaluate the raw models the m_hat['preds'] are not changed
         if self._normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat['preds'], d)
+            m_hat_adj = _normalize_ipw(m_hat["preds"], d)
         else:
-            m_hat_adj = m_hat['preds']
+            m_hat_adj = m_hat["preds"]
 
         if self.treatment == 0:
             m_hat_adj = 1 - m_hat_adj
@@ -452,7 +448,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         _check_contains_iv(obj_dml_data)
         _check_zero_one_treatment(self)

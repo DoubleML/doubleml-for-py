@@ -1,25 +1,24 @@
 import numpy as np
-from sklearn.utils.multiclass import type_of_target
 from sklearn.base import clone
-from sklearn.utils import check_X_y
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.utils import check_X_y
+from sklearn.utils.multiclass import type_of_target
 
 from ..double_ml import DoubleML
-from ..double_ml_score_mixins import NonLinearScoreMixin
 from ..double_ml_data import DoubleMLData
-
+from ..double_ml_score_mixins import NonLinearScoreMixin
+from ..utils._checks import _check_quantile, _check_score, _check_treatment, _check_trimming, _check_zero_one_treatment
 from ..utils._estimation import (
-    _dml_cv_predict,
-    _trimm,
-    _predict_zero_one_propensity,
     _cond_targets,
-    _get_bracket_guess,
     _default_kde,
-    _normalize_ipw,
+    _dml_cv_predict,
     _dml_tune,
+    _get_bracket_guess,
+    _normalize_ipw,
+    _predict_zero_one_propensity,
     _solve_ipw_score,
+    _trimm,
 )
-from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_treatment, _check_quantile
 
 
 class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
@@ -114,10 +113,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         trimming_threshold=1e-2,
         draw_sample_splitting=True,
     ):
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep, score,
-                         draw_sample_splitting)
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._quantile = quantile
         self._treatment = treatment
@@ -125,7 +121,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError("kde should be either a callable or None. " "%r was passed." % kde)
+                raise TypeError("kde should be either a callable or None. %r was passed." % kde)
             self._kde = kde
         self._normalize_ipw = normalize_ipw
 
@@ -386,10 +382,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
 
                 # preliminary propensity for z
                 ml_m_z_prelim = clone(fitted_models["ml_m_z"][i_fold])
-                m_z_hat_prelim = _dml_cv_predict(ml_m_z_prelim, x_train_1, z_train_1,
-                                                 method="predict_proba", smpls=smpls_prelim)[
-                    "preds"
-                ]
+                m_z_hat_prelim = _dml_cv_predict(
+                    ml_m_z_prelim, x_train_1, z_train_1, method="predict_proba", smpls=smpls_prelim
+                )["preds"]
 
                 m_z_hat_prelim = _trimm(m_z_hat_prelim, self.trimming_rule, self.trimming_threshold)
                 if self._normalize_ipw:
@@ -515,7 +510,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         # this could be adjusted to be compatible with dml1
         # estimate final nuisance parameter
         comp_prob_hat = np.mean(
-            m_d_z1_hat["preds"] - m_d_z0_hat["preds"]
+            m_d_z1_hat["preds"]
+            - m_d_z0_hat["preds"]
             + z / m_z_hat_adj * (d - m_d_z1_hat["preds"])
             - (1 - z) / (1 - m_z_hat_adj) * (d - m_d_z0_hat["preds"])
         )
@@ -664,7 +660,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                "The data must be of DoubleMLData type. " f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         _check_zero_one_treatment(self)
         one_instr = obj_dml_data.n_instr == 1

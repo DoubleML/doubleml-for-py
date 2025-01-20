@@ -1,10 +1,13 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LogisticRegression
-from doubleml import DoubleMLLPQ, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLLPQ
 from doubleml.datasets import make_iivm_data
 from doubleml.utils import DMLDummyClassifier
+
 from ...tests._utils import draw_smpls
 
 
@@ -56,11 +59,12 @@ def doubleml_lpq_fixture(n_rep, normalize_ipw):
     np.random.seed(3141)
     dml_lpq_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_lpq.coef[0], "coef_ext": dml_lpq_ext.coef[0]}
+    res_dict = {"coef_normal": dml_lpq.coef.item(), "coef_ext": dml_lpq_ext.coef.item()}
 
     return res_dict
 
 
 @pytest.mark.ci
+@pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 def test_doubleml_lpq_coef(doubleml_lpq_fixture):
     assert math.isclose(doubleml_lpq_fixture["coef_normal"], doubleml_lpq_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)

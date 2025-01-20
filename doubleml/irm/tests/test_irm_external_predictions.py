@@ -1,10 +1,12 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from doubleml import DoubleMLIRM, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLIRM
 from doubleml.datasets import make_irm_data
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
 @pytest.fixture(scope="module", params=["ATE", "ATTE"])

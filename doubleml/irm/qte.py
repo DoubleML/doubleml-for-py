@@ -1,21 +1,17 @@
 import numpy as np
 import pandas as pd
-
+from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from joblib import Parallel, delayed
-
-from ..double_ml_data import DoubleMLData, DoubleMLClusterData
-from .pq import DoubleMLPQ
-from .lpq import DoubleMLLPQ
-from .cvar import DoubleMLCVAR
+from ..double_ml_data import DoubleMLClusterData, DoubleMLData
 from ..double_ml_framework import concat
-
+from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
+from ..utils._descriptive import generate_summary
 from ..utils._estimation import _default_kde
 from ..utils.resampling import DoubleMLResampling
-from ..utils._checks import _check_score, _check_trimming, _check_zero_one_treatment, _check_sample_splitting
-
-from ..utils._descriptive import generate_summary
+from .cvar import DoubleMLCVAR
+from .lpq import DoubleMLLPQ
+from .pq import DoubleMLPQ
 
 
 class DoubleMLQTE:
@@ -90,22 +86,24 @@ class DoubleMLQTE:
     0.50  0.449150  0.192539  2.332782  0.019660  0.071782  0.826519
     0.75  0.709606  0.193308  3.670867  0.000242  0.330731  1.088482
     """
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m=None,
-                 quantiles=0.5,
-                 n_folds=5,
-                 n_rep=1,
-                 score='PQ',
-                 normalize_ipw=True,
-                 kde=None,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True):
 
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m=None,
+        quantiles=0.5,
+        n_folds=5,
+        n_rep=1,
+        score="PQ",
+        normalize_ipw=True,
+        kde=None,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+    ):
         self._dml_data = obj_dml_data
-        self._quantiles = np.asarray(quantiles).reshape((-1, ))
+        self._quantiles = np.asarray(quantiles).reshape((-1,))
         self._check_quantile()
         self._n_quantiles = len(self._quantiles)
 
@@ -113,8 +111,7 @@ class DoubleMLQTE:
             self._kde = _default_kde
         else:
             if not callable(kde):
-                raise TypeError('kde should be either a callable or None. '
-                                '%r was passed.' % kde)
+                raise TypeError("kde should be either a callable or None. %r was passed." % kde)
             self._kde = kde
 
         self._normalize_ipw = normalize_ipw
@@ -123,7 +120,7 @@ class DoubleMLQTE:
 
         # check score
         self._score = score
-        valid_scores = ['PQ', 'LPQ', 'CVaR']
+        valid_scores = ["PQ", "LPQ", "CVaR"]
         _check_score(self.score, valid_scores, allow_callable=False)
 
         # check data
@@ -141,11 +138,12 @@ class DoubleMLQTE:
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         if not isinstance(self.normalize_ipw, bool):
-            raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize_ipw))} passed.')
+            raise TypeError(
+                "Normalization indicator has to be boolean. " + f"Object of type {str(type(self.normalize_ipw))} passed."
+            )
 
-        self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
-        self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+        self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
+        self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
 
         # perform sample splitting
         self._smpls = None
@@ -156,10 +154,9 @@ class DoubleMLQTE:
 
     def __str__(self):
         class_name = self.__class__.__name__
-        header = f'================== {class_name} Object ==================\n'
+        header = f"================== {class_name} Object ==================\n"
         fit_summary = str(self.summary)
-        res = header + \
-            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        res = header + "\n------------------ Fit summary       ------------------\n" + fit_summary
         return res
 
     @property
@@ -204,8 +201,10 @@ class DoubleMLQTE:
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            err_msg = ('Sample splitting not specified. Either draw samples via .draw_sample splitting() ' +
-                       'or set external samples via .set_sample_splitting().')
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
             raise ValueError(err_msg)
         return self._smpls
 
@@ -358,12 +357,11 @@ class DoubleMLQTE:
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         if self.framework is None:
-            col_names = ['coef', 'std err', 't', 'P>|t|']
+            col_names = ["coef", "std err", "t", "P>|t|"]
             df_summary = pd.DataFrame(columns=col_names)
         else:
             ci = self.confint()
-            df_summary = generate_summary(self.coef, self.se, self.t_stat,
-                                          self.pval, ci, self.quantiles)
+            df_summary = generate_summary(self.coef, self.se, self.t_stat, self.pval, ci, self.quantiles)
         return df_summary
 
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
@@ -399,9 +397,11 @@ class DoubleMLQTE:
             raise NotImplementedError(f"External predictions not implemented for {self.__class__.__name__}.")
 
         # parallel estimation of the quantiles
-        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
-        fitted_models = parallel(delayed(self._fit_quantile)(i_quant, n_jobs_cv, store_predictions, store_models)
-                                 for i_quant in range(self.n_quantiles))
+        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch="2*n_jobs")
+        fitted_models = parallel(
+            delayed(self._fit_quantile)(i_quant, n_jobs_cv, store_predictions, store_models)
+            for i_quant in range(self.n_quantiles)
+        )
 
         # combine the estimates and scores
         framework_list = [None] * self.n_quantiles
@@ -412,15 +412,14 @@ class DoubleMLQTE:
             self._modellist_1[i_quant] = fitted_models[i_quant][1]
 
             # set up the framework
-            framework_list[i_quant] = self._modellist_1[i_quant].framework - \
-                self._modellist_0[i_quant].framework
+            framework_list[i_quant] = self._modellist_1[i_quant].framework - self._modellist_0[i_quant].framework
 
         # aggregate all frameworks
         self._framework = concat(framework_list)
 
         return self
 
-    def bootstrap(self, method='normal', n_rep_boot=500):
+    def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
 
@@ -438,7 +437,7 @@ class DoubleMLQTE:
         self : object
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before bootstrap().')
+            raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
@@ -454,10 +453,9 @@ class DoubleMLQTE:
         -------
         self : object
         """
-        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep=self.n_rep,
-                                                n_obs=self._dml_data.n_obs,
-                                                stratify=self._dml_data.d)
+        obj_dml_resampling = DoubleMLResampling(
+            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._dml_data.d
+        )
         self._smpls = obj_dml_resampling.split_samples()
         # initialize all models
         self._modellist_0, self._modellist_1 = self._initialize_models()
@@ -523,7 +521,8 @@ class DoubleMLQTE:
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data)
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
+        )
 
         # initialize all models
         self._modellist_0, self._modellist_1 = self._initialize_models()
@@ -551,14 +550,14 @@ class DoubleMLQTE:
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before confint().')
+            raise ValueError("Apply fit() before confint().")
 
         df_ci = self.framework.confint(joint=joint, level=level)
         df_ci.set_index(pd.Index(self._quantiles), inplace=True)
 
         return df_ci
 
-    def p_adjust(self, method='romano-wolf'):
+    def p_adjust(self, method="romano-wolf"):
         """
         Multiple testing adjustment for DoubleML models.
 
@@ -577,7 +576,7 @@ class DoubleMLQTE:
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before p_adjust().')
+            raise ValueError("Apply fit() before p_adjust().")
 
         p_val, _ = self.framework.p_adjust(method=method)
         p_val.set_index(pd.Index(self._quantiles), inplace=True)
@@ -585,7 +584,6 @@ class DoubleMLQTE:
         return p_val
 
     def _fit_quantile(self, i_quant, n_jobs_cv=None, store_predictions=True, store_models=False):
-
         model_0 = self.modellist_0[i_quant]
         model_1 = self.modellist_1[i_quant]
 
@@ -596,59 +594,42 @@ class DoubleMLQTE:
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+            raise TypeError(
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
         _check_zero_one_treatment(self)
         return
 
     def _check_quantile(self):
         if np.any(self.quantiles <= 0) | np.any(self.quantiles >= 1):
-            raise ValueError('Quantiles have be between 0 or 1. ' +
-                             f'Quantiles {str(self.quantiles)} passed.')
+            raise ValueError("Quantiles have be between 0 or 1. " + f"Quantiles {str(self.quantiles)} passed.")
 
     def _initialize_models(self):
         modellist_0 = [None] * self.n_quantiles
         modellist_1 = [None] * self.n_quantiles
         kwargs = {
-            'obj_dml_data': self._dml_data,
-            'ml_g': self._learner['ml_g'],
-            'ml_m': self._learner['ml_m'],
-            'n_folds': self.n_folds,
-            'n_rep': self.n_rep,
-            'trimming_rule': self.trimming_rule,
-            'trimming_threshold': self.trimming_threshold,
-            'normalize_ipw': self.normalize_ipw,
-            'draw_sample_splitting': False
+            "obj_dml_data": self._dml_data,
+            "ml_g": self._learner["ml_g"],
+            "ml_m": self._learner["ml_m"],
+            "n_folds": self.n_folds,
+            "n_rep": self.n_rep,
+            "trimming_rule": self.trimming_rule,
+            "trimming_threshold": self.trimming_threshold,
+            "normalize_ipw": self.normalize_ipw,
+            "draw_sample_splitting": False,
         }
         for i_quant in range(self.n_quantiles):
-
             # initialize models for both potential quantiles
-            if self.score == 'PQ':
-                model_0 = DoubleMLPQ(quantile=self._quantiles[i_quant],
-                                     treatment=0,
-                                     kde=self.kde,
-                                     **kwargs)
-                model_1 = DoubleMLPQ(quantile=self._quantiles[i_quant],
-                                     treatment=1,
-                                     kde=self.kde,
-                                     **kwargs)
-            elif self.score == 'LPQ':
-                model_0 = DoubleMLLPQ(quantile=self._quantiles[i_quant],
-                                      treatment=0,
-                                      kde=self.kde,
-                                      **kwargs)
-                model_1 = DoubleMLLPQ(quantile=self._quantiles[i_quant],
-                                      treatment=1,
-                                      kde=self.kde,
-                                      **kwargs)
+            if self.score == "PQ":
+                model_0 = DoubleMLPQ(quantile=self._quantiles[i_quant], treatment=0, kde=self.kde, **kwargs)
+                model_1 = DoubleMLPQ(quantile=self._quantiles[i_quant], treatment=1, kde=self.kde, **kwargs)
+            elif self.score == "LPQ":
+                model_0 = DoubleMLLPQ(quantile=self._quantiles[i_quant], treatment=0, kde=self.kde, **kwargs)
+                model_1 = DoubleMLLPQ(quantile=self._quantiles[i_quant], treatment=1, kde=self.kde, **kwargs)
 
-            elif self.score == 'CVaR':
-                model_0 = DoubleMLCVAR(quantile=self._quantiles[i_quant],
-                                       treatment=0,
-                                       **kwargs)
-                model_1 = DoubleMLCVAR(quantile=self._quantiles[i_quant],
-                                       treatment=1,
-                                       **kwargs)
+            elif self.score == "CVaR":
+                model_0 = DoubleMLCVAR(quantile=self._quantiles[i_quant], treatment=0, **kwargs)
+                model_1 = DoubleMLCVAR(quantile=self._quantiles[i_quant], treatment=1, **kwargs)
 
             # synchronize the sample splitting
             model_0.set_sample_splitting(all_smpls=self.smpls)
