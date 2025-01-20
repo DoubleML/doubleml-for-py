@@ -1,8 +1,10 @@
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone, is_classifier, is_regressor
 from sklearn.utils.multiclass import unique_labels
 
+from sklearn.utils.validation import validate_data, check_is_fitted, _check_sample_weight
 
-class GlobalRegressor(BaseEstimator, RegressorMixin):
+
+class GlobalRegressor(RegressorMixin, BaseEstimator):
     """
     A global regressor that ignores the attribute `sample_weight` when being fit to ensure a global fit.
 
@@ -13,9 +15,6 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
     """
 
     def __init__(self, base_estimator):
-        if not is_regressor(base_estimator):
-            raise ValueError(f"base_estimator must be a regressor. Got {base_estimator.__class__.__name__} instead.")
-
         self.base_estimator = base_estimator
 
     def fit(self, X, y, sample_weight=None):
@@ -33,6 +32,11 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
         sample_weight: array-like of shape (n_samples,).
         Individual weights for each sample. Ignored.
         """
+        if not is_regressor(self.base_estimator):
+            raise ValueError(f"base_estimator must be a regressor. Got {self.base_estimator.__class__.__name__} instead.")
+
+        X, y = validate_data(self, X, y)
+        _check_sample_weight(sample_weight, X)
         self._fitted_learner = clone(self.base_estimator)
         self._fitted_learner.fit(X, y)
 
@@ -47,10 +51,12 @@ class GlobalRegressor(BaseEstimator, RegressorMixin):
         X: array-like of shape (n_samples, n_features)
         Samples.
         """
+
+        check_is_fitted(self)
         return self._fitted_learner.predict(X)
 
 
-class GlobalClassifier(BaseEstimator, ClassifierMixin):
+class GlobalClassifier(ClassifierMixin, BaseEstimator):
     """
     A global classifier that ignores the attribute ``sample_weight`` when being fit to ensure a global fit.
 
@@ -61,9 +67,6 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, base_estimator):
-        if not is_classifier(base_estimator):
-            raise ValueError(f"base_estimator must be a classifier. Got {base_estimator.__class__.__name__} instead.")
-
         self.base_estimator = base_estimator
 
     def fit(self, X, y, sample_weight=None):
@@ -81,6 +84,11 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
         sample_weight: array-like of shape (n_samples,).
         Individual weights for each sample. Ignored.
         """
+        if not is_classifier(self.base_estimator):
+            raise ValueError(f"base_estimator must be a classifier. Got {self.base_estimator.__class__.__name__} instead.")
+
+        X, y = validate_data(self, X, y)
+        _check_sample_weight(sample_weight, X)
         self.classes_ = unique_labels(y)
         self._fitted_learner = clone(self.base_estimator)
         self._fitted_learner.fit(X, y)
@@ -96,6 +104,7 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
         X: array-like of shape (n_samples, n_features)
         Samples.
         """
+        check_is_fitted(self)
         return self._fitted_learner.predict(X)
 
     def predict_proba(self, X):
@@ -108,4 +117,5 @@ class GlobalClassifier(BaseEstimator, ClassifierMixin):
         X: array-like of shape (n_samples, n_features)
         Samples to be scored.
         """
+        check_is_fitted(self)
         return self._fitted_learner.predict_proba(X)
