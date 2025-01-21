@@ -1,7 +1,7 @@
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 
 
-class DMLDummyRegressor(BaseEstimator):
+class DMLDummyRegressor(RegressorMixin, BaseEstimator):
     """
     A dummy regressor that raises an AttributeError when attempting to access
     its fit, predict, or set_params methods.
@@ -35,7 +35,7 @@ class DMLDummyRegressor(BaseEstimator):
         raise AttributeError("Accessed set_params method of DMLDummyRegressor!")
 
 
-class DMLDummyClassifier(BaseEstimator):
+class DMLDummyClassifier(ClassifierMixin, BaseEstimator):
     """
     A dummy classifier that raises an AttributeError when attempting to access
     its fit, predict, set_params, or predict_proba methods.
