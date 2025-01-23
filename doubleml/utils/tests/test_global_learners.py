@@ -14,7 +14,7 @@ def parse_version(version):
     return tuple(map(int, version.split(".")[:2]))
 
 
-# TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+# TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
 sklearn_post_1_6 = parse_version(sklearn_version) >= (1, 6)
 
 
@@ -44,7 +44,7 @@ def test_global_regressor(regressor):
             },
         )
     else:
-        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
         pytest.skip("sklearn version is too old for this test")
 
 
@@ -59,7 +59,7 @@ def test_global_classifier(classifier):
             },
         )
     else:
-        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
         pytest.skip("sklearn version is too old for this test")
 
 

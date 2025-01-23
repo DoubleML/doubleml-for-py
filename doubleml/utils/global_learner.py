@@ -8,7 +8,7 @@ def parse_version(version):
     return tuple(map(int, version.split(".")[:2]))
 
 
-# TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+# TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
 sklearn_supports_validation = parse_version(sklearn_version) >= (1, 6)
 if sklearn_supports_validation:
     from sklearn.utils.validation import validate_data
@@ -45,7 +45,7 @@ class GlobalRegressor(RegressorMixin, BaseEstimator):
         if not is_regressor(self.base_estimator):
             raise ValueError(f"base_estimator must be a regressor. Got {self.base_estimator.__class__.__name__} instead.")
 
-        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
         if sklearn_supports_validation:
             X, y = validate_data(self, X, y)
         else:
@@ -101,7 +101,7 @@ class GlobalClassifier(ClassifierMixin, BaseEstimator):
         if not is_classifier(self.base_estimator):
             raise ValueError(f"base_estimator must be a classifier. Got {self.base_estimator.__class__.__name__} instead.")
 
-        # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
         if sklearn_supports_validation:
             X, y = validate_data(self, X, y)
         else:

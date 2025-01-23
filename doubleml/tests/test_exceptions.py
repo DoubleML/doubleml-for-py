@@ -1069,7 +1069,7 @@ def test_doubleml_exception_learner():
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegressionManipulatedPredict()
-    # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
     log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
@@ -1089,7 +1089,7 @@ def test_doubleml_exception_learner():
     # it then predicts labels and therefore an exception will be thrown
     # whether predict() or predict_proba() is being called can also be manipulated via the unrelated max_iter variable
     log_reg = LogisticRegressionManipulatedPredict()
-    # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
+    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
     log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_g is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
