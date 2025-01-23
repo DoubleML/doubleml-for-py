@@ -203,6 +203,13 @@ class _DummyNoClassifier(_DummyNoGetParams):
         pass
 
 
+class LogisticRegressionManipulatedType(LogisticRegression):
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = None
+        return tags
+
+
 @pytest.mark.ci
 @pytest.mark.filterwarnings(
     r"ignore:.*is \(probably\) neither a regressor nor a classifier.*:UserWarning",
@@ -233,9 +240,13 @@ def test_ssm_exception_learner():
 
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
-    log_reg = LogisticRegression()
+    log_reg = LogisticRegressionManipulatedType()
+    # TODO(0.10) can be removed if the sklearn dependency is bumped to 1.6.0
     log_reg._estimator_type = None
-    msg = r"Learner provided for ml_m is probably invalid: LogisticRegression\(\) is \(probably\) no classifier."
+    msg = (
+        r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedType\(\) is \(probably\) "
+        "no classifier."
+    )
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLSSM(dml_data_mar, ml_g, ml_pi, log_reg)
 
