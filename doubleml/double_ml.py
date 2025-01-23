@@ -29,7 +29,8 @@ class DoubleML(ABC):
                  n_folds,
                  n_rep,
                  score,
-                 draw_sample_splitting):
+                 draw_sample_splitting,
+                 split_strategy):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
             raise TypeError('The data must be of ' + ' or '.join(_implemented_data_backends) + ' type. '
@@ -64,6 +65,8 @@ class DoubleML(ABC):
 
         # initialize external predictions
         self._external_predictions_implemented = False
+
+        self.split_strategy = split_strategy
 
         # check resampling specifications
         if not isinstance(n_folds, int):
@@ -1168,7 +1171,11 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
                                                     n_rep=self.n_rep,
                                                     n_obs=self._dml_data.n_obs,
-                                                    stratify=self._strata)
+                                                    data=self._dml_data.data,
+                                                    stratify=self._strata,
+                                                    split_strategy=self.split_strategy,
+                                                    t_col=self._dml_data.t_col,
+                                                    u_col=self._dml_data.u_col)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self

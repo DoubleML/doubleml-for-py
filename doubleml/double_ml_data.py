@@ -144,6 +144,7 @@ class DoubleMLData(DoubleMLBaseData):
                  x_cols=None,
                  z_cols=None,
                  t_col=None,
+                 u_col=None,
                  s_col=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
@@ -153,6 +154,7 @@ class DoubleMLData(DoubleMLBaseData):
         self.d_cols = d_cols
         self.z_cols = z_cols
         self.t_col = t_col
+        self.u_col = u_col
         self.s_col = s_col
         self.x_cols = x_cols
         self._check_disjoint_sets_y_d_x_z_t_s()

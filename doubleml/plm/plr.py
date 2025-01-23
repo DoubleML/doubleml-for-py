@@ -97,12 +97,14 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                  n_folds=5,
                  n_rep=1,
                  score='partialling out',
-                 draw_sample_splitting=True):
+                 draw_sample_splitting=True,
+                 split_strategy="random",):
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
-                         draw_sample_splitting)
+                         draw_sample_splitting,
+                         split_strategy)
 
         self._check_data(self._dml_data)
         valid_scores = ['IV-type', 'partialling out']
