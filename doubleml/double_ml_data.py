@@ -413,9 +413,7 @@ class DoubleMLData(DoubleMLBaseData):
             if not isinstance(value, list):
                 raise TypeError('The covariates x_cols must be of str or list type (or None). '
                                 f'{str(value)} of type {str(type(value))} was passed.')
-            if not len(se
-
-            t(value)) == len(value):
+            if not len(set(value)) == len(value):
                 raise ValueError('Invalid covariates x_cols: '
                                  'Contains duplicate values.')
             if not set(value).issubset(set(self.all_variables)):

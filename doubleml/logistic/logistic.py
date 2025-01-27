@@ -1,5 +1,5 @@
 import numpy as np
-from doubleml.utils._estimation import (
+from ..utils._estimation import (
     _dml_cv_predict,
     _trimm,
     _predict_zero_one_propensity,
@@ -15,12 +15,15 @@ from sklearn.utils import check_X_y
 import scipy
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml import DoubleMLData, DoubleMLBLP
-from doubleml.double_ml import DoubleML
-from doubleml.double_ml_score_mixins import NonLinearScoreMixin
-from doubleml.utils import DoubleMLClusterResampling
-from doubleml.utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
-from doubleml.utils.resampling import DoubleMLDoubleResampling
+from .. import DoubleMLData
+from ..double_ml import DoubleML
+from ..double_ml_score_mixins import NonLinearScoreMixin
+from ..utils import DoubleMLClusterResampling
+from ..utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
+from ..utils.resampling import DoubleMLDoubleResampling
+
+
+
 
 
 class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
@@ -110,6 +113,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                  n_rep=1,
                  score='logistic',
                  draw_sample_splitting=True):
+        self.n_folds_inner = n_folds_inner
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
@@ -165,6 +169,8 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError('The data must be of DoubleMLData type. '
                             f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
+            raise TypeError('The outcome variable y must be binary with values 0 and 1.')
         return
 
     def _double_dml_cv_predict(self, estimator, estimator_name,  x, y, smpls=None, smpls_inner=None,
@@ -310,6 +316,10 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         psi_elements = {"y": y, "d": d, "r_hat": r_hat, "m_hat": m_hat, "psi_hat": psi_hat, "score_const": score_const}
 
         return psi_elements
+
+    @property
+    def _score_element_names(self):
+        return ['y', 'd', 'r_hat', 'm_hat', 'psi_hat', 'score_const']
 
     def _sensitivity_element_est(self, preds):
        pass
