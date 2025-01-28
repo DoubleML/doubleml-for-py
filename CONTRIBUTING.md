@@ -166,7 +166,7 @@ The **DoubleML package** is particularly designed in a flexible way to make it *
 **Contributions** in this direction **are very much welcome**, and we are happy to help authors to integrate their models in the
 DoubleML OOP structure.
 If you need assistance, just open an issue or contact one of the maintainers
-[@MalteKurz](https://github.com/MalteKurz) or [@PhilippBach](https://github.com/PhilippBach).
+[@SvenKlaassen](https://github.com/SvenKlaassen) or [@PhilippBach](https://github.com/PhilippBach).
 
 The **abstract base class `DoubleML` implements all core functionalities** based on a linear Neyman orthogonal score
 function.
