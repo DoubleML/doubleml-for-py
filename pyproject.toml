@@ -41,7 +41,41 @@ rdd = [
 dev = [
     "pytest",
     "xgboost",
-    "lightgbm"
+    "lightgbm",
+    "black>=24.3.0",
+    "ruff>=0.5.1",
+    "pre-commit>=4.0.1",
+]
+
+[tool.black]
+line-length = 127
+target-version = ['py39', 'py310', 'py311']
+preview = true
+exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.mypy_cache
+  | \.vscode
+  | build
+  | dist
+  | doc/_build
+)/
+'''
+
+[tool.ruff]
+# max line length for black
+line-length = 127
+target-version = "py39"
+
+
+[tool.ruff.lint]
+# all rules can be found here: https://beta.ruff.rs/docs/rules/
+select = ["E", "F", "W", "I"]
+ignore = [
+    # Use `is` and `is not` for type comparisons, or `isinstance()` for
+    # isinstance checks
+    "E721",
 ]
 
 [project.urls]

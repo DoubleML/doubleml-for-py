@@ -1,10 +1,12 @@
+import math
+
 import numpy as np
 import pytest
-import math
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from doubleml import DoubleMLIIVM, DoubleMLData
+
+from doubleml import DoubleMLData, DoubleMLIIVM
 from doubleml.datasets import make_iivm_data
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
 @pytest.fixture(scope="module", params=[1, 3])
@@ -16,9 +18,7 @@ def n_rep(request):
 def adapted_doubleml_fixture(n_rep):
     ext_predictions = {"d": {}}
 
-    data = make_iivm_data(
-        n_obs=500, dim_x=20, theta=0.5, alpha_x=1.0, return_type="DataFrame"
-    )
+    data = make_iivm_data(n_obs=500, dim_x=20, theta=0.5, alpha_x=1.0, return_type="DataFrame")
 
     np.random.seed(3141)
 
@@ -46,9 +46,7 @@ def adapted_doubleml_fixture(n_rep):
     ext_predictions["d"]["ml_r0"] = dml_iivm.predictions["ml_r0"][:, :, 0]
     ext_predictions["d"]["ml_r1"] = dml_iivm.predictions["ml_r1"][:, :, 0]
 
-    dml_iivm_ext = DoubleMLIIVM(
-        ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), ml_r=DMLDummyClassifier(), **kwargs
-    )
+    dml_iivm_ext = DoubleMLIIVM(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), ml_r=DMLDummyClassifier(), **kwargs)
 
     np.random.seed(3141)
     dml_iivm_ext.fit(external_predictions=ext_predictions)

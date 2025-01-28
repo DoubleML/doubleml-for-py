@@ -53,10 +53,10 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
         The oracle values contain the potential outcomes.
     """
 
-    cutoff = kwargs.get('cutoff', 0.0)
-    dim_x = kwargs.get('dim_x', 3)
-    a = kwargs.get('a', 0.0)
-    tau = kwargs.get('tau', 1.0)
+    cutoff = kwargs.get("cutoff", 0.0)
+    dim_x = kwargs.get("dim_x", 3)
+    a = kwargs.get("a", 0.0)
+    tau = kwargs.get("tau", 1.0)
 
     score = np.random.normal(size=n_obs)
     # independent covariates
@@ -95,14 +95,8 @@ def make_simple_rdd_data(n_obs=5000, p=4, fuzzy=True, binary_outcome=False, **kw
     Y = Y0 * (1 - D) + Y1 * D
 
     oracle_values = {
-        'Y0': Y0,
-        'Y1': Y1,
+        "Y0": Y0,
+        "Y1": Y1,
     }
-    res_dict = {
-        'score': score,
-        'Y': Y,
-        'D': D,
-        'X': X,
-        'oracle_values': oracle_values
-    }
+    res_dict = {"score": score, "Y": Y, "D": D, "X": X, "oracle_values": oracle_values}
     return res_dict

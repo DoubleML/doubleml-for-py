@@ -19,9 +19,8 @@ from doubleml.datasets import make_plr_CCDDHNR2018
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.base import clone
 np.random.seed(3141)
-learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-ml_g = learner
-ml_m = learner
+ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
 obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
 dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
 dml_plr_obj.fit().summary
@@ -81,7 +80,7 @@ $ git merge upstream/main
 
 5. **Install DoubleML in editable mode** (more details can be found
 [here](https://docs.doubleml.org/stable/intro/install.html#python-building-the-package-from-source))
-via 
+via
 ```bash
 $ pip install --editable .[dev, rdd]
 ```
@@ -119,11 +118,33 @@ $ pytest .
 - [x] Check whether your changes adhere to the **PEP8 standards**.
 For the check you can use the following code
 ```bash
-$ git diff upstream/main -u -- "*.py" | flake8 --diff --max-line-length=127
+$ git diff upstream/main -u -- "*.py" | ruff check --diff
+```
+
+- [x] Check wether the code formatting adheres to the **Black code style**
+by running
+```bash
+$ black . --check --diff
 ```
 
 If your PR is still **work in progress**, please consider marking it a **draft PR**
 (see also [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)).
+
+### (Optional) Set up pre-commit Hooks
+
+To ensure code quality and consistency before committing your changes, we recommend using [pre-commit hooks](https://pre-commit.com/). Pre-commit hooks will automatically run checks like code formatting and linting on your staged files.
+
+1. **Install hooks**:
+   If you haven't already, install the required hooks by running:
+   ```bash
+   $ pre-commit install
+   ```
+
+2. **Run pre-commit manually**:
+    To run the pre-commit checks manually, use:
+   ```bash
+   $ pre-commit run --all-files
+   ```
 
 ### Unit Tests and Test Coverage
 We use the package **pytest for unit testing**.
@@ -145,7 +166,7 @@ The **DoubleML package** is particularly designed in a flexible way to make it *
 **Contributions** in this direction **are very much welcome**, and we are happy to help authors to integrate their models in the
 DoubleML OOP structure.
 If you need assistance, just open an issue or contact one of the maintainers
-[@MalteKurz](https://github.com/MalteKurz) or [@PhilippBach](https://github.com/PhilippBach).
+[@SvenKlaassen](https://github.com/SvenKlaassen) or [@PhilippBach](https://github.com/PhilippBach).
 
 The **abstract base class `DoubleML` implements all core functionalities** based on a linear Neyman orthogonal score
 function.
@@ -165,7 +186,7 @@ The source code for the website, user guide, example gallery, etc. is available 
 
 ### Contribute to the API Documentation
 The **API documentation** is generated from **docstrings** in the source code.
-It can be generated locally (dev requirements sphinx and pydata-sphinx-theme need to be installed) via 
+It can be generated locally (dev requirements sphinx and pydata-sphinx-theme need to be installed) via
 ```bash
 $ cd doc/
 $ make html
@@ -175,7 +196,7 @@ $ make html
 The **documentation of DoubleML** is hosted at [https://docs.doubleml.org](https://docs.doubleml.org).
 The **source code** for the website, user guide, example gallery, etc. is available in a **separate repository
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs)**.
-Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the 
+Changes, issues and PRs for the documentation (except the API documentation) should be discussed in the
 [doubleml-docs](https://github.com/DoubleML/doubleml-docs) repo.
 We welcome contributions to the user guide, especially case studies for the
 [example gallery](https://docs.doubleml.org/stable/examples/index.html).

@@ -12,22 +12,21 @@ The Python package **DoubleML** provides an implementation of the double / debia
 It is built on top of [scikit-learn](https://scikit-learn.org) (Pedregosa et al., 2011).
 
 Note that the Python package was developed together with an R twin based on [mlr3](https://mlr3.mlr-org.com/).
-The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r) and 
+The R package is also available on [GitHub](https://github.com/DoubleML/doubleml-for-r) and
 [![CRAN Version](https://www.r-pkg.org/badges/version/DoubleML)](https://cran.r-project.org/package=DoubleML).
 
 ## Documentation and Maintenance
 
 Documentation and website: [https://docs.doubleml.org/](https://docs.doubleml.org/)
 
-**DoubleML** is currently maintained by
-[@MalteKurz](https://github.com/MalteKurz), [@PhilippBach](https://github.com/PhilippBach) and [@SvenKlaassen](https://github.com/SvenKlaassen).
+**DoubleML** is currently maintained by [@PhilippBach](https://github.com/PhilippBach) and [@SvenKlaassen](https://github.com/SvenKlaassen).
 
 Bugs can be reported to the issue tracker at
 [https://github.com/DoubleML/doubleml-for-py/issues](https://github.com/DoubleML/doubleml-for-py/issues).
 
 ## Main Features
 
-Double / debiased machine learning [(Chernozhukov et al. (2018))](https://doi.org/10.1111/ectj.12097) for 
+Double / debiased machine learning [(Chernozhukov et al. (2018))](https://doi.org/10.1111/ectj.12097) for
 
 - Partially linear regression models (PLR)
 - Partially linear IV regression models (PLIV)
@@ -46,14 +45,14 @@ This object-oriented implementation allows a high flexibility for the model spec
 - ... the resampling schemes,
 - ... the double machine learning algorithm,
 - ... the Neyman orthogonal score functions,
-- ... 
+- ...
 
 It further can be readily extended with regards to
 
 - ... new model classes that come with Neyman orthogonal score functions being linear in the target parameter,
 - ... alternative score functions via callables,
 - ... alternative resampling schemes,
-- ... 
+- ...
 
 ![An overview of the OOP structure of the DoubleML package is given in the graphic available at https://github.com/DoubleML/doubleml-for-py/blob/main/doc/oop.svg](https://raw.githubusercontent.com/DoubleML/doubleml-for-py/main/doc/oop.svg)
 
@@ -106,7 +105,7 @@ Bibtex-entry:
 
 ```
 @article{DoubleML2022,
-      title   = {{DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython}, 
+      title   = {{DoubleML} -- {A}n Object-Oriented Implementation of Double Machine Learning in {P}ython},
       author  = {Philipp Bach and Victor Chernozhukov and Malte S. Kurz and Martin Spindler},
       journal = {Journal of Machine Learning Research},
       year    = {2022},

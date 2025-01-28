@@ -1,10 +1,10 @@
-import statsmodels.api as sm
-import numpy as np
-import pandas as pd
 import warnings
 
-from scipy.stats import norm
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
 from scipy.linalg import sqrtm
+from scipy.stats import norm
 
 
 class DoubleMLBLP:
@@ -26,26 +26,20 @@ class DoubleMLBLP:
         Default is ``False``.
     """
 
-    def __init__(self,
-                 orth_signal,
-                 basis,
-                 is_gate=False):
-
+    def __init__(self, orth_signal, basis, is_gate=False):
         if not isinstance(orth_signal, np.ndarray):
-            raise TypeError('The signal must be of np.ndarray type. '
-                            f'Signal of type {str(type(orth_signal))} was passed.')
+            raise TypeError(f"The signal must be of np.ndarray type. Signal of type {str(type(orth_signal))} was passed.")
 
         if orth_signal.ndim != 1:
-            raise ValueError('The signal must be of one dimensional. '
-                             f'Signal of dimensions {str(orth_signal.ndim)} was passed.')
+            raise ValueError(
+                f"The signal must be of one dimensional. Signal of dimensions {str(orth_signal.ndim)} was passed."
+            )
 
         if not isinstance(basis, pd.DataFrame):
-            raise TypeError('The basis must be of DataFrame type. '
-                            f'Basis of type {str(type(basis))} was passed.')
+            raise TypeError(f"The basis must be of DataFrame type. Basis of type {str(type(basis))} was passed.")
 
         if not basis.columns.is_unique:
-            raise ValueError('Invalid pd.DataFrame: '
-                             'Contains duplicate column names.')
+            raise ValueError("Invalid pd.DataFrame: Contains duplicate column names.")
 
         self._orth_signal = orth_signal
         self._basis = basis
@@ -57,10 +51,9 @@ class DoubleMLBLP:
 
     def __str__(self):
         class_name = self.__class__.__name__
-        header = f'================== {class_name} Object ==================\n'
+        header = f"================== {class_name} Object ==================\n"
         fit_summary = str(self.summary)
-        res = header + \
-            '\n------------------ Fit summary ------------------\n' + fit_summary
+        res = header + "\n------------------ Fit summary ------------------\n" + fit_summary
         return res
 
     @property
@@ -96,21 +89,22 @@ class DoubleMLBLP:
         """
         A summary for the best linear predictor effect after calling :meth:`fit`.
         """
-        col_names = ['coef', 'std err', 't', 'P>|t|', '[0.025', '0.975]']
+        col_names = ["coef", "std err", "t", "P>|t|", "[0.025", "0.975]"]
         if self.blp_model is None:
             df_summary = pd.DataFrame(columns=col_names)
         else:
-            summary_stats = {'coef': self.blp_model.params,
-                             'std err': self.blp_model.bse,
-                             't': self.blp_model.tvalues,
-                             'P>|t|': self.blp_model.pvalues,
-                             '[0.025': self.blp_model.conf_int()[0],
-                             '0.975]': self.blp_model.conf_int()[1]}
-            df_summary = pd.DataFrame(summary_stats,
-                                      columns=col_names)
+            summary_stats = {
+                "coef": self.blp_model.params,
+                "std err": self.blp_model.bse,
+                "t": self.blp_model.tvalues,
+                "P>|t|": self.blp_model.pvalues,
+                "[0.025": self.blp_model.conf_int()[0],
+                "0.975]": self.blp_model.conf_int()[1],
+            }
+            df_summary = pd.DataFrame(summary_stats, columns=col_names)
         return df_summary
 
-    def fit(self, cov_type='HC0', **kwargs):
+    def fit(self, cov_type="HC0", **kwargs):
         """
         Estimate DoubleMLBLP models.
 
@@ -164,25 +158,23 @@ class DoubleMLBLP:
             A data frame with the confidence interval(s).
         """
         if not isinstance(joint, bool):
-            raise TypeError('joint must be True or False. '
-                            f'Got {str(joint)}.')
+            raise TypeError(f"joint must be True or False. Got {str(joint)}.")
 
         if not isinstance(level, float):
-            raise TypeError('The confidence level must be of float type. '
-                            f'{str(level)} of type {str(type(level))} was passed.')
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
         if (level <= 0) | (level >= 1):
-            raise ValueError('The confidence level must be in (0,1). '
-                             f'{str(level)} was passed.')
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
 
         if not isinstance(n_rep_boot, int):
-            raise TypeError('The number of bootstrap replications must be of int type. '
-                            f'{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed.')
+            raise TypeError(
+                "The number of bootstrap replications must be of int type. "
+                f"{str(n_rep_boot)} of type {str(type(n_rep_boot))} was passed."
+            )
         if n_rep_boot < 1:
-            raise ValueError('The number of bootstrap replications must be positive. '
-                             f'{str(n_rep_boot)} was passed.')
+            raise ValueError(f"The number of bootstrap replications must be positive. {str(n_rep_boot)} was passed.")
 
         if self._blp_model is None:
-            raise ValueError('Apply fit() before confint().')
+            raise ValueError("Apply fit() before confint().")
 
         alpha = 1 - level
         gate_names = None
@@ -194,23 +186,26 @@ class DoubleMLBLP:
                 gate_names = list(self._basis.columns.values)
             else:
                 if joint:
-                    warnings.warn('Returning pointwise confidence intervals for basis coefficients.', UserWarning)
+                    warnings.warn("Returning pointwise confidence intervals for basis coefficients.", UserWarning)
                 # return the confidence intervals for the basis coefficients
-                ci = np.vstack((
-                    self.blp_model.conf_int(alpha=alpha/2)[0],
-                    self.blp_model.params,
-                    self.blp_model.conf_int(alpha=alpha/2)[1])
-                    ).T
+                ci = np.vstack(
+                    (
+                        self.blp_model.conf_int(alpha=alpha / 2)[0],
+                        self.blp_model.params,
+                        self.blp_model.conf_int(alpha=alpha / 2)[1],
+                    )
+                ).T
                 df_ci = pd.DataFrame(
                     ci,
-                    columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
-                    index=self._basis.columns)
+                    columns=["{:.1f} %".format(alpha / 2 * 100), "effect", "{:.1f} %".format((1 - alpha / 2) * 100)],
+                    index=self._basis.columns,
+                )
                 return df_ci
 
         elif not (basis.shape[1] == self._basis.shape[1]):
-            raise ValueError('Invalid basis: DataFrame has to have the exact same number and ordering of columns.')
+            raise ValueError("Invalid basis: DataFrame has to have the exact same number and ordering of columns.")
         elif not list(basis.columns.values) == list(self._basis.columns.values):
-            raise ValueError('Invalid basis: DataFrame has to have the exact same number and ordering of columns.')
+            raise ValueError("Invalid basis: DataFrame has to have the exact same number and ordering of columns.")
 
         # blp of the orthogonal signal
         g_hat = self._blp_model.predict(basis)
@@ -222,8 +217,7 @@ class DoubleMLBLP:
         if joint:
             # calculate the maximum t-statistic with bootstrap
             normal_samples = np.random.normal(size=[basis.shape[1], n_rep_boot])
-            bootstrap_samples = np.multiply(np.dot(np_basis, np.dot(sqrtm(self._blp_omega), normal_samples)).T,
-                                            (1.0 / blp_se))
+            bootstrap_samples = np.multiply(np.dot(np_basis, np.dot(sqrtm(self._blp_omega), normal_samples)).T, (1.0 / blp_se))
 
             max_t_stat = np.quantile(np.max(np.abs(bootstrap_samples), axis=0), q=level)
 
@@ -239,9 +233,11 @@ class DoubleMLBLP:
             g_hat_upper = g_hat + norm.ppf(q=1 - alpha / 2) * blp_se
 
         ci = np.vstack((g_hat_lower, g_hat, g_hat_upper)).T
-        df_ci = pd.DataFrame(ci,
-                             columns=['{:.1f} %'.format(alpha/2 * 100), 'effect', '{:.1f} %'.format((1-alpha/2) * 100)],
-                             index=basis.index)
+        df_ci = pd.DataFrame(
+            ci,
+            columns=["{:.1f} %".format(alpha / 2 * 100), "effect", "{:.1f} %".format((1 - alpha / 2) * 100)],
+            index=basis.index,
+        )
 
         if self._is_gate and gate_names is not None:
             df_ci.index = gate_names

@@ -1,40 +1,39 @@
-import numpy as np
-import pandas as pd
 import copy
 from collections.abc import Iterable
 
+import numpy as np
+import pandas as pd
+from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from joblib import Parallel, delayed
-
 from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLData, DoubleMLClusterData
-from .apo import DoubleMLAPO
+from ..double_ml_data import DoubleMLClusterData, DoubleMLData
 from ..double_ml_framework import concat
-
-from ..utils.resampling import DoubleMLResampling
+from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
 from ..utils._descriptive import generate_summary
-from ..utils._checks import _check_score, _check_trimming, _check_weights, _check_sample_splitting
 from ..utils.gain_statistics import gain_statistics
+from ..utils.resampling import DoubleMLResampling
+from .apo import DoubleMLAPO
 
 
 class DoubleMLAPOS:
-    """Double machine learning for interactive regression models with multiple discrete treatments.
-    """
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m,
-                 treatment_levels,
-                 n_folds=5,
-                 n_rep=1,
-                 score='APO',
-                 weights=None,
-                 normalize_ipw=False,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True):
+    """Double machine learning for interactive regression models with multiple discrete treatments."""
 
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m,
+        treatment_levels,
+        n_folds=5,
+        n_rep=1,
+        score="APO",
+        weights=None,
+        normalize_ipw=False,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+    ):
         self._dml_data = obj_dml_data
         self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
@@ -52,7 +51,7 @@ class DoubleMLAPOS:
 
         # check score
         self._score = score
-        valid_scores = ['APO']
+        valid_scores = ["APO"]
         _check_score(self.score, valid_scores, allow_callable=False)
 
         # initialize framework which is constructed after the fit method is called
@@ -64,20 +63,23 @@ class DoubleMLAPOS:
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         if not isinstance(self.normalize_ipw, bool):
-            raise TypeError('Normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.normalize_ipw))} passed.')
+            raise TypeError(
+                "Normalization indicator has to be boolean. " + f"Object of type {str(type(self.normalize_ipw))} passed."
+            )
 
-        ml_g_is_classifier = DoubleML._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-        _ = DoubleML._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-        self._learner = {'ml_g': clone(ml_g), 'ml_m': clone(ml_m)}
+        ml_g_is_classifier = DoubleML._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        _ = DoubleML._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+        self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
-                self._predict_method = {'ml_g': 'predict_proba', 'ml_m': 'predict_proba'}
+                self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
             else:
-                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
-                                 'but the outcome variable is not binary with values 0 and 1.')
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
         else:
-            self._predict_method = {'ml_g': 'predict', 'ml_m': 'predict_proba'}
+            self._predict_method = {"ml_g": "predict", "ml_m": "predict_proba"}
 
         # APO weights
         _check_weights(weights, score="ATE", n_obs=obj_dml_data.n_obs, n_rep=self.n_rep)
@@ -93,10 +95,9 @@ class DoubleMLAPOS:
 
     def __str__(self):
         class_name = self.__class__.__name__
-        header = f'================== {class_name} Object ==================\n'
+        header = f"================== {class_name} Object ==================\n"
         fit_summary = str(self.summary)
-        res = header + \
-            '\n------------------ Fit summary       ------------------\n' + fit_summary
+        res = header + "\n------------------ Fit summary       ------------------\n" + fit_summary
         return res
 
     @property
@@ -258,8 +259,10 @@ class DoubleMLAPOS:
         The partition used for cross-fitting.
         """
         if self._smpls is None:
-            err_msg = ('Sample splitting not specified. Draw samples via .draw_sample splitting(). ' +
-                       'External samples not implemented yet.')
+            err_msg = (
+                "Sample splitting not specified. Draw samples via .draw_sample splitting(). "
+                + "External samples not implemented yet."
+            )
             raise ValueError(err_msg)
         return self._smpls
 
@@ -321,12 +324,11 @@ class DoubleMLAPOS:
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         if self.framework is None:
-            col_names = ['coef', 'std err', 't', 'P>|t|']
+            col_names = ["coef", "std err", "t", "P>|t|"]
             df_summary = pd.DataFrame(columns=col_names)
         else:
             ci = self.confint()
-            df_summary = generate_summary(self.coef, self.se, self.t_stat,
-                                          self.pval, ci, self._treatment_levels)
+            df_summary = generate_summary(self.coef, self.se, self.t_stat, self.pval, ci, self._treatment_levels)
         return df_summary
 
     @property
@@ -340,7 +342,7 @@ class DoubleMLAPOS:
             Summary for the sensitivity analysis.
         """
         if self._framework is None:
-            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
+            raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
         else:
             sensitivity_summary = self._framework.sensitivity_summary
         return sensitivity_summary
@@ -387,14 +389,9 @@ class DoubleMLAPOS:
             ext_pred_dict = None
 
         # parallel estimation of the models
-        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
+        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch="2*n_jobs")
         fitted_models = parallel(
-            delayed(self._fit_model)(
-                i_level,
-                n_jobs_cv,
-                store_predictions,
-                store_models,
-                ext_pred_dict)
+            delayed(self._fit_model)(i_level, n_jobs_cv, store_predictions, store_models, ext_pred_dict)
             for i_level in range(self.n_treatment_levels)
         )
 
@@ -431,14 +428,14 @@ class DoubleMLAPOS:
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before confint().')
+            raise ValueError("Apply fit() before confint().")
 
         df_ci = self.framework.confint(joint=joint, level=level)
         df_ci.set_index(pd.Index(self._treatment_levels), inplace=True)
 
         return df_ci
 
-    def bootstrap(self, method='normal', n_rep_boot=500):
+    def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
 
@@ -456,7 +453,7 @@ class DoubleMLAPOS:
         self : object
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before bootstrap().')
+            raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
@@ -499,19 +496,24 @@ class DoubleMLAPOS:
         """
 
         if self._framework is None:
-            raise ValueError('Apply fit() before sensitivity_analysis().')
-        self._framework.sensitivity_analysis(
-            cf_y=cf_y,
-            cf_d=cf_d,
-            rho=rho,
-            level=level,
-            null_hypothesis=null_hypothesis
-        )
+            raise ValueError("Apply fit() before sensitivity_analysis().")
+        self._framework.sensitivity_analysis(cf_y=cf_y, cf_d=cf_d, rho=rho, level=level, null_hypothesis=null_hypothesis)
 
         return self
 
-    def sensitivity_plot(self, idx_treatment=0, value='theta', rho=1.0, level=0.95, null_hypothesis=0.0,
-                         include_scenario=True, benchmarks=None, fill=True, grid_bounds=(0.15, 0.15), grid_size=100):
+    def sensitivity_plot(
+        self,
+        idx_treatment=0,
+        value="theta",
+        rho=1.0,
+        level=0.95,
+        null_hypothesis=0.0,
+        include_scenario=True,
+        benchmarks=None,
+        fill=True,
+        grid_bounds=(0.15, 0.15),
+        grid_size=100,
+    ):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
 
@@ -565,7 +567,7 @@ class DoubleMLAPOS:
             Plotly figure of the sensitivity contours.
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before sensitivity_plot().')
+            raise ValueError("Apply fit() before sensitivity_plot().")
         fig = self._framework.sensitivity_plot(
             idx_treatment=idx_treatment,
             value=value,
@@ -576,7 +578,7 @@ class DoubleMLAPOS:
             benchmarks=benchmarks,
             fill=fill,
             grid_bounds=grid_bounds,
-            grid_size=grid_size
+            grid_size=grid_size,
         )
 
         return fig
@@ -594,18 +596,20 @@ class DoubleMLAPOS:
 
         # input checks
         if self.sensitivity_elements is None:
-            raise NotImplementedError(f'Sensitivity analysis not yet implemented for {self.__class__.__name__}.')
+            raise NotImplementedError(f"Sensitivity analysis not yet implemented for {self.__class__.__name__}.")
         if not isinstance(benchmarking_set, list):
-            raise TypeError('benchmarking_set must be a list. '
-                            f'{str(benchmarking_set)} of type {type(benchmarking_set)} was passed.')
+            raise TypeError(
+                f"benchmarking_set must be a list. {str(benchmarking_set)} of type {type(benchmarking_set)} was passed."
+            )
         if len(benchmarking_set) == 0:
-            raise ValueError('benchmarking_set must not be empty.')
+            raise ValueError("benchmarking_set must not be empty.")
         if not set(benchmarking_set) <= set(x_list_long):
-            raise ValueError(f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
-                             f'{str(benchmarking_set)} was passed.')
+            raise ValueError(
+                f"benchmarking_set must be a subset of features {str(self._dml_data.x_cols)}. "
+                f"{str(benchmarking_set)} was passed."
+            )
         if fit_args is not None and not isinstance(fit_args, dict):
-            raise TypeError('fit_args must be a dict. '
-                            f'{str(fit_args)} of type {type(fit_args)} was passed.')
+            raise TypeError(f"fit_args must be a dict. {str(fit_args)} of type {type(fit_args)} was passed.")
 
         # refit short form of the model
         x_list_short = [x for x in x_list_long if x not in benchmarking_set]
@@ -631,10 +635,9 @@ class DoubleMLAPOS:
         -------
         self : object
         """
-        obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds,
-                                                n_rep=self.n_rep,
-                                                n_obs=self._dml_data.n_obs,
-                                                stratify=self._dml_data.d)
+        obj_dml_resampling = DoubleMLResampling(
+            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._dml_data.d
+        )
         self._smpls = obj_dml_resampling.split_samples()
 
         return self
@@ -690,7 +693,8 @@ class DoubleMLAPOS:
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data)
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
+        )
 
         self._modellist = self._initialize_models()
 
@@ -716,16 +720,18 @@ class DoubleMLAPOS:
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before causal_contrast().')
+            raise ValueError("Apply fit() before causal_contrast().")
         if self.n_treatment_levels == 1:
-            raise ValueError('Only one treatment level. No causal contrast can be computed.')
+            raise ValueError("Only one treatment level. No causal contrast can be computed.")
         is_iterable = isinstance(reference_levels, Iterable)
         if not is_iterable:
             reference_levels = [reference_levels]
         is_treatment_level_subset = set(reference_levels).issubset(set(self.treatment_levels))
         if not is_treatment_level_subset:
-            raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or '
-                             'a single treatment level.')
+            raise ValueError(
+                "Invalid reference_levels. reference_levels has to be an iterable subset of treatment_levels or "
+                "a single treatment level."
+            )
 
         skip_index = []
         all_treatment_names = []
@@ -735,24 +741,31 @@ class DoubleMLAPOS:
             ref_framework = self.modellist[i_ref_lvl].framework
 
             skip_index += [i_ref_lvl]
-            all_acc_frameworks += [model.framework - ref_framework for i, model in
-                                   enumerate(self.modellist) if i not in skip_index]
-            all_treatment_names += [f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}" for
-                                    i in range(self.n_treatment_levels) if i not in skip_index]
+            all_acc_frameworks += [
+                model.framework - ref_framework for i, model in enumerate(self.modellist) if i not in skip_index
+            ]
+            all_treatment_names += [
+                f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
+                for i in range(self.n_treatment_levels)
+                if i not in skip_index
+            ]
 
         acc = concat(all_acc_frameworks)
         acc.treatment_names = all_treatment_names
         return acc
 
     def _fit_model(self, i_level, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
-
         model = self.modellist[i_level]
         if external_predictions_dict is not None:
             external_predictions = external_predictions_dict[self.treatment_levels[i_level]]
         else:
             external_predictions = None
-        model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models,
-                  external_predictions=external_predictions)
+        model.fit(
+            n_jobs_cv=n_jobs_cv,
+            store_predictions=store_predictions,
+            store_models=store_models,
+            external_predictions=external_predictions,
+        )
         return model
 
     def _check_treatment_levels(self, treatment_levels):
@@ -763,36 +776,44 @@ class DoubleMLAPOS:
             treatment_level_list = [t_lvl for t_lvl in treatment_levels]
         is_d_subset = set(treatment_level_list).issubset(set(self._all_treatment_levels))
         if not is_d_subset:
-            raise ValueError('Invalid reference_levels. reference_levels has to be an iterable subset or '
-                             'a single element of the unique treatment levels in the data.')
+            raise ValueError(
+                "Invalid reference_levels. reference_levels has to be an iterable subset or "
+                "a single element of the unique treatment levels in the data."
+            )
         return treatment_level_list
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError('The data must be of DoubleMLData or DoubleMLClusterData type.')
+            raise TypeError("The data must be of DoubleMLData or DoubleMLClusterData type.")
         if obj_dml_data.z is not None:
-            raise ValueError('The data must not contain instrumental variables.')
+            raise ValueError("The data must not contain instrumental variables.")
         return
 
     def _check_external_predictions(self, external_predictions):
         expected_keys = self.treatment_levels
         if not isinstance(external_predictions, dict):
-            raise TypeError('external_predictions must be a dictionary. ' +
-                            f'Object of type {type(external_predictions)} passed.')
+            raise TypeError(
+                "external_predictions must be a dictionary. " + f"Object of type {type(external_predictions)} passed."
+            )
 
         if not set(external_predictions.keys()).issubset(set(expected_keys)):
-            raise ValueError('external_predictions must be a subset of all treatment levels. ' +
-                             f'Expected keys: {set(expected_keys)}. ' +
-                             f'Passed keys: {set(external_predictions.keys())}.')
+            raise ValueError(
+                "external_predictions must be a subset of all treatment levels. "
+                + f"Expected keys: {set(expected_keys)}. "
+                + f"Passed keys: {set(external_predictions.keys())}."
+            )
 
-        expected_learner_keys = ['ml_g0', 'ml_g1', 'ml_m']
+        expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
         for key, value in external_predictions.items():
             if not isinstance(value, dict):
-                raise TypeError(f'external_predictions[{key}] must be a dictionary. ' +
-                                f'Object of type {type(value)} passed.')
+                raise TypeError(
+                    f"external_predictions[{key}] must be a dictionary. " + f"Object of type {type(value)} passed."
+                )
             if not set(value.keys()).issubset(set(expected_learner_keys)):
-                raise ValueError(f'external_predictions[{key}] must be a subset of {set(expected_learner_keys)}. ' +
-                                 f'Passed keys: {set(value.keys())}.')
+                raise ValueError(
+                    f"external_predictions[{key}] must be a subset of {set(expected_learner_keys)}. "
+                    + f"Passed keys: {set(value.keys())}."
+                )
 
         return
 
@@ -801,11 +822,11 @@ class DoubleMLAPOS:
         ext_pred_dict = {treatment_level: {d_col: {}} for treatment_level in self.treatment_levels}
         for treatment_level in self.treatment_levels:
             if "ml_g1" in external_predictions[treatment_level]:
-                ext_pred_dict[treatment_level][d_col]['ml_g1'] = external_predictions[treatment_level]['ml_g1']
+                ext_pred_dict[treatment_level][d_col]["ml_g1"] = external_predictions[treatment_level]["ml_g1"]
             if "ml_m" in external_predictions[treatment_level]:
-                ext_pred_dict[treatment_level][d_col]['ml_m'] = external_predictions[treatment_level]['ml_m']
+                ext_pred_dict[treatment_level][d_col]["ml_m"] = external_predictions[treatment_level]["ml_m"]
             if "ml_g0" in external_predictions[treatment_level]:
-                ext_pred_dict[treatment_level][d_col]['ml_g0'] = external_predictions[treatment_level]['ml_g0']
+                ext_pred_dict[treatment_level][d_col]["ml_g0"] = external_predictions[treatment_level]["ml_g0"]
 
         return ext_pred_dict
 
@@ -821,24 +842,21 @@ class DoubleMLAPOS:
     def _initialize_models(self):
         modellist = [None] * self.n_treatment_levels
         kwargs = {
-            'obj_dml_data': self._dml_data,
-            'ml_g': self._learner['ml_g'],
-            'ml_m': self._learner['ml_m'],
-            'score': self.score,
-            'n_folds': self.n_folds,
-            'n_rep': self.n_rep,
-            'weights': self.weights,
-            'trimming_rule': self.trimming_rule,
-            'trimming_threshold': self.trimming_threshold,
-            'normalize_ipw': self.normalize_ipw,
-            'draw_sample_splitting': False
+            "obj_dml_data": self._dml_data,
+            "ml_g": self._learner["ml_g"],
+            "ml_m": self._learner["ml_m"],
+            "score": self.score,
+            "n_folds": self.n_folds,
+            "n_rep": self.n_rep,
+            "weights": self.weights,
+            "trimming_rule": self.trimming_rule,
+            "trimming_threshold": self.trimming_threshold,
+            "normalize_ipw": self.normalize_ipw,
+            "draw_sample_splitting": False,
         }
         for i_level in range(self.n_treatment_levels):
             # initialize models for all levels
-            model = DoubleMLAPO(
-                treatment_level=self._treatment_levels[i_level],
-                **kwargs
-            )
+            model = DoubleMLAPO(treatment_level=self._treatment_levels[i_level], **kwargs)
 
             # synchronize the sample splitting
             model.set_sample_splitting(all_smpls=self.smpls)
