@@ -8,7 +8,12 @@ from sklearn.datasets import make_spd_matrix
 from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures
 
 from .double_ml_data import DoubleMLClusterData, DoubleMLData
-from .utils._aliases import _array_alias, _data_frame_alias, _dml_cluster_data_alias, _dml_data_alias
+from .utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_cluster_data_alias, _get_dml_data_alias
+
+_array_alias = _get_array_alias()
+_data_frame_alias = _get_data_frame_alias()
+_dml_data_alias = _get_dml_data_alias()
+_dml_cluster_data_alias = _get_dml_cluster_data_alias()
 
 
 def fetch_401K(return_type="DoubleMLData", polynomial_features=False):

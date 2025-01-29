@@ -3,7 +3,11 @@ import pandas as pd
 from scipy.linalg import toeplitz
 
 from ...double_ml_data import DoubleMLData
-from ...utils._aliases import _array_alias, _data_frame_alias, _dml_data_alias
+from ...utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_data_alias
+
+_array_alias = _get_array_alias()
+_data_frame_alias = _get_data_frame_alias()
+_dml_data_alias = _get_dml_data_alias()
 
 
 def _generate_features(n_obs, c, dim_x=4):
