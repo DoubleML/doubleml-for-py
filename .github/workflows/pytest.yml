@@ -52,7 +52,7 @@ jobs:
         ruff check . --exit-zero --line-length 127 --output-format=full --statistics
     - name: Check code formatting with black
       run: |
-        black --check --verbose .
+        black --check .
     - name: Test with pytest
       if: |
         matrix.config.os != 'ubuntu-latest' ||
