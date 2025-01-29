@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from .double_ml_data import DoubleMLData
-from .utils._aliases import _array_alias, _data_frame_alias, _dml_data_alias
+from ...double_ml_data import DoubleMLData
+from ...utils._aliases import _array_alias, _data_frame_alias, _dml_data_alias
 
 
 def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type="DoubleMLData", **kwargs):

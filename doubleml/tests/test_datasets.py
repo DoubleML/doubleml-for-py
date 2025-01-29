@@ -9,7 +9,6 @@ from doubleml.datasets import (
     fetch_bonus,
     make_confounded_irm_data,
     make_confounded_plr_data,
-    make_did_SZ2020,
     make_heterogeneous_data,
     make_iivm_data,
     make_irm_data,
@@ -20,6 +19,7 @@ from doubleml.datasets import (
     make_plr_turrell2018,
     make_ssm_data,
 )
+from doubleml.did.datasets import make_did_SZ2020
 
 msg_inv_return_type = "Invalid return_type."
 

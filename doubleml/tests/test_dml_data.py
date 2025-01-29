@@ -6,12 +6,12 @@ from sklearn.linear_model import Lasso, LogisticRegression
 from doubleml import DoubleMLClusterData, DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
 from doubleml.datasets import (
     _make_pliv_data,
-    make_did_SZ2020,
     make_pliv_CHS2015,
     make_pliv_multiway_cluster_CKMS2021,
     make_plr_CCDDHNR2018,
     make_ssm_data,
 )
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.double_ml_data import DoubleMLBaseData
 
 

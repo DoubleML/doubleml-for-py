@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml.datasets import make_did_SZ2020
+from doubleml.did.datasets import make_did_SZ2020
 
 
 @pytest.fixture(scope="session", params=[(500, 1), (1000, 1), (1000, 2)])
