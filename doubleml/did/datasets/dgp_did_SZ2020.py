@@ -6,6 +6,55 @@ from ...double_ml_data import DoubleMLData
 from ...utils._aliases import _array_alias, _data_frame_alias, _dml_data_alias
 
 
+def _generate_features(n_obs, c, dim_x=4):
+    cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
+    x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=n_obs)
+
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
+    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
+
+    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
+    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
+
+    return x, z
+
+
+def _select_features(dgp_type, x, z):
+    if dgp_type == 1:
+        features_ps = z
+        features_reg = z
+    elif dgp_type == 2:
+        features_ps = x
+        features_reg = z
+    elif dgp_type == 3:
+        features_ps = z
+        features_reg = x
+    elif dgp_type == 4:
+        features_ps = x
+        features_reg = x
+    elif dgp_type == 5:
+        features_ps = None
+        features_reg = z
+    elif dgp_type == 6:
+        features_ps = None
+        features_reg = x
+    else:
+        raise ValueError("The dgp_type is not valid.")
+    return features_ps, features_reg
+
+
+def _f_reg(w):
+    res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
+    return res
+
+
+def _f_ps(w, xi):
+    res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
+    return res
+
+
 def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type="DoubleMLData", **kwargs):
     """
     Generates data from a difference-in-differences model used in Sant'Anna and Zhao (2020).
@@ -96,56 +145,14 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     c = kwargs.get("c", 0.0)
     lambda_t = kwargs.get("lambda_t", 0.5)
 
-    def f_reg(w):
-        res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
-        return res
-
-    def f_ps(w, xi):
-        res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
-        return res
-
     dim_x = 4
-    cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
-    x = np.random.multivariate_normal(
-        np.zeros(dim_x),
-        cov_mat,
-        size=[
-            n_obs,
-        ],
-    )
-
-    z_tilde_1 = np.exp(0.5 * x[:, 0])
-    z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
-
-    z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
-    z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
+    x, z = _generate_features(n_obs, c, dim_x=dim_x)
 
     # error terms
     epsilon_0 = np.random.normal(loc=0, scale=1, size=n_obs)
     epsilon_1 = np.random.normal(loc=0, scale=1, size=[n_obs, 2])
 
-    if dgp_type == 1:
-        features_ps = z
-        features_reg = z
-    elif dgp_type == 2:
-        features_ps = x
-        features_reg = z
-    elif dgp_type == 3:
-        features_ps = z
-        features_reg = x
-    elif dgp_type == 4:
-        features_ps = x
-        features_reg = x
-    elif dgp_type == 5:
-        features_ps = None
-        features_reg = z
-    elif dgp_type == 6:
-        features_ps = None
-        features_reg = x
-    else:
-        raise ValueError("The dgp_type is not valid.")
+    features_ps, features_reg = _select_features(dgp_type, x, z)
 
     # treatment and propensities
     is_experimental = (dgp_type == 5) or (dgp_type == 6)
@@ -153,15 +160,15 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         # Set D to be experimental
         p = 0.5 * np.ones(n_obs)
     else:
-        p = np.exp(f_ps(features_ps, xi)) / (1 + np.exp(f_ps(features_ps, xi)))
+        p = np.exp(_f_ps(features_ps, xi)) / (1 + np.exp(_f_ps(features_ps, xi)))
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (p >= u)
 
     # potential outcomes
-    nu = np.random.normal(loc=d * f_reg(features_reg), scale=1, size=n_obs)
-    y0 = f_reg(features_reg) + nu + epsilon_0
-    y1_d0 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 0]
-    y1_d1 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 1]
+    nu = np.random.normal(loc=d * _f_reg(features_reg), scale=1, size=n_obs)
+    y0 = _f_reg(features_reg) + nu + epsilon_0
+    y1_d0 = 2 * _f_reg(features_reg) + nu + epsilon_1[:, 0]
+    y1_d1 = 2 * _f_reg(features_reg) + nu + epsilon_1[:, 1]
     y1 = d * y1_d1 + (1 - d) * y1_d0
 
     if not cross_sectional_data:
