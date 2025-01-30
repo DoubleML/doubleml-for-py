@@ -196,8 +196,8 @@ class DoubleMLFramework:
     def sensitivity_elements(self):
         """
         Values of the sensitivity components.
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
-        and ``riesz_rep``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``max_bias`` (shape (``1``, ``n_thetas``, ``n_rep``)) and
+         ``psi_max_bias`` (shape (``n_obs``, ``n_thetas``, ``n_rep``)).
         """
         return self._sensitivity_elements
 
@@ -482,18 +482,9 @@ class DoubleMLFramework:
         _check_in_zero_one(level, "The confidence level", include_zero=False, include_one=False)
 
         # set elements for readability
-        sigma2 = self.sensitivity_elements["sigma2"]
-        nu2 = self.sensitivity_elements["nu2"]
         psi_scaled = self._scaled_psi
         max_bias = self.sensitivity_elements["max_bias"]
         psi_max_bias = self.sensitivity_elements["psi_max_bias"]
-
-        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
-            raise ValueError(
-                "sensitivity_elements sigma2 and nu2 have to be positive. "
-                f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
-                "Most likely this is due to low quality learners (especially propensity scores)."
-            )
 
         # elementwise operations
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0 - cf_d))))
@@ -991,7 +982,8 @@ class DoubleMLFramework:
         else:
             if not isinstance(doubleml_dict["sensitivity_elements"], dict):
                 raise TypeError("sensitivity_elements must be a dictionary.")
-            expected_keys_sensitivity = ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep", "max_bias", "psi_max_bias"]
+
+            expected_keys_sensitivity = ["max_bias", "psi_max_bias"]
             if not all(key in doubleml_dict["sensitivity_elements"].keys() for key in expected_keys_sensitivity):
                 raise ValueError(
                     "The sensitivity_elements dict must contain the following keys: " + ", ".join(expected_keys_sensitivity)
@@ -1003,14 +995,9 @@ class DoubleMLFramework:
 
             # set sensitivity elements
             sensitivity_implemented = True
+
             sensitivity_elements = {
-                "sigma2": doubleml_dict["sensitivity_elements"]["sigma2"],
-                "nu2": doubleml_dict["sensitivity_elements"]["nu2"],
-                "psi_sigma2": doubleml_dict["sensitivity_elements"]["psi_sigma2"],
-                "psi_nu2": doubleml_dict["sensitivity_elements"]["psi_nu2"],
-                "riesz_rep": doubleml_dict["sensitivity_elements"]["riesz_rep"],
-                "max_bias": doubleml_dict["sensitivity_elements"]["max_bias"],
-                "psi_max_bias": doubleml_dict["sensitivity_elements"]["psi_max_bias"],
+                key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_sensitivity
             }
 
         self._sensitivity_implemented = sensitivity_implemented
