@@ -1029,30 +1029,14 @@ class DoubleMLFramework:
             )
 
         if self._sensitivity_implemented:
-            if self._sensitivity_elements["sigma2"].shape != (1, self._n_thetas, self.n_rep):
+            if self._sensitivity_elements["max_bias"].shape != (1, self._n_thetas, self.n_rep):
                 raise ValueError(
-                    f"The shape of sigma2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep})."
+                    f"The shape of max_bias does not match the expected shape (1, {self._n_thetas}, {self._n_rep})."
                 )
-            if self._sensitivity_elements["nu2"].shape != (1, self._n_thetas, self.n_rep):
-                raise ValueError(f"The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).")
-            if self._sensitivity_elements["psi_sigma2"].shape != score_dim:
+            if self._sensitivity_elements["psi_max_bias"].shape != score_dim:
                 raise ValueError(
                     (
-                        "The shape of psi_sigma2 does not match the expected "
-                        f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
-                    )
-                )
-            if self._sensitivity_elements["psi_nu2"].shape != score_dim:
-                raise ValueError(
-                    (
-                        "The shape of psi_nu2 does not match the expected "
-                        f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
-                    )
-                )
-            if self._sensitivity_elements["riesz_rep"].shape != score_dim:
-                raise ValueError(
-                    (
-                        "The shape of riesz_rep does not match the expected "
+                        "The shape of psi_max_bias does not match the expected "
                         f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
                     )
                 )
