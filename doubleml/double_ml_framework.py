@@ -983,7 +983,7 @@ class DoubleMLFramework:
         else:
             if not isinstance(doubleml_dict["sensitivity_elements"], dict):
                 raise TypeError("sensitivity_elements must be a dictionary.")
-            expected_keys_sensitivity = ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
+            expected_keys_sensitivity = ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep", "bias", "psi_bias"]
             if not all(key in doubleml_dict["sensitivity_elements"].keys() for key in expected_keys_sensitivity):
                 raise ValueError(
                     "The sensitivity_elements dict must contain the following keys: " + ", ".join(expected_keys_sensitivity)
@@ -1001,6 +1001,8 @@ class DoubleMLFramework:
                 "psi_sigma2": doubleml_dict["sensitivity_elements"]["psi_sigma2"],
                 "psi_nu2": doubleml_dict["sensitivity_elements"]["psi_nu2"],
                 "riesz_rep": doubleml_dict["sensitivity_elements"]["riesz_rep"],
+                "bias": doubleml_dict["sensitivity_elements"]["bias"],
+                "psi_bias": doubleml_dict["sensitivity_elements"]["psi_bias"],
             }
 
         self._sensitivity_implemented = sensitivity_implemented
