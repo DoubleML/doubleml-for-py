@@ -1430,8 +1430,9 @@ class DoubleML(ABC):
 
     def _compute_sensitivity_bias(self, sigma2, nu2, psi_sigma2, psi_nu2, riesz_rep):
         if nu2 <= 0:
-            warnings.UserWarning(
-                "The estimated nu2 is not positive. Re-estimation based on riesz representer (non-orthogonal)."
+            warnings.warn(
+                "The estimated nu2 is not positive. Re-estimation based on riesz representer (non-orthogonal).",
+                UserWarning,
             )
             psi_nu2 = np.power(riesz_rep, 2)
             nu2 = np.mean(psi_nu2)
