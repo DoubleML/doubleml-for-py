@@ -1429,6 +1429,10 @@ class DoubleML(ABC):
         return sensitivity_elements
 
     def _compute_sensitivity_bias(self, sigma2, nu2, psi_sigma2, psi_nu2, riesz_rep=None):
+        if nu2 <= 0:
+            warnings.UserWarning("The estimated nu2 is not positive. Re-estimation based on riesz representer.")
+            nu2 = np.mean(np.power(riesz_rep, 2))
+
         bias = np.sqrt(np.multiply(sigma2, nu2))
         psi_bias = np.divide(
             np.add(np.multiply(sigma2, psi_nu2), np.multiply(nu2, psi_sigma2)),
