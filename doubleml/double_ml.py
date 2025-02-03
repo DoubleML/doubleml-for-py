@@ -1046,6 +1046,7 @@ class DoubleML(ABC):
             else:
                 # compute sensitivity analysis elements
                 element_dict = self._sensitivity_element_est(nuisance_predictions)
+                element_dict["bias"], element_dict["psi_bias"] = self._compute_sensitivity_bias(**element_dict)
                 self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
     def _initialize_arrays(self):
@@ -1410,7 +1411,7 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
+        return ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep", "bias", "psi_bias"]
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
@@ -1420,8 +1421,18 @@ class DoubleML(ABC):
             "psi_sigma2": np.full(score_dim, np.nan),
             "psi_nu2": np.full(score_dim, np.nan),
             "riesz_rep": np.full(score_dim, np.nan),
+            "bias": np.full((1, score_dim[1], score_dim[2]), np.nan),
+            "psi_bias": np.full(score_dim, np.nan)
         }
         return sensitivity_elements
+
+    def _compute_sensitivity_bias(self, sigma2, nu2, psi_sigma2, psi_nu2, riesz_rep=None):
+        bias = np.sqrt(np.multiply(sigma2, nu2))
+        psi_bias = np.divide(
+            np.add(np.multiply(sigma2, psi_nu2), np.multiply(nu2, psi_sigma2)),
+            np.multiply(2.0, bias)
+        )
+        return bias, psi_bias
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
         sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}
