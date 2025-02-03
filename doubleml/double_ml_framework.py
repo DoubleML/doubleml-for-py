@@ -322,7 +322,6 @@ class DoubleMLFramework:
                 "cluster_dict": self._cluster_dict,
             }
 
-            # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
                 nu2_score_element = (
                     self._sensitivity_elements["psi_nu2"]
@@ -334,12 +333,16 @@ class DoubleMLFramework:
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
+                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
+                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "sigma2": self._sensitivity_elements["sigma2"],
                     "nu2": nu2,
                     "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
                     "psi_nu2": psi_nu2,
                     "riesz_rep": self._sensitivity_elements["riesz_rep"] + other._sensitivity_elements["riesz_rep"],
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
@@ -394,12 +397,16 @@ class DoubleMLFramework:
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
+                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
+                psi_max_bias = self._sensitivity_elements["psi_max_bias"] - other._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "sigma2": self._sensitivity_elements["sigma2"],
                     "nu2": nu2,
                     "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
                     "psi_nu2": psi_nu2,
                     "riesz_rep": self._sensitivity_elements["riesz_rep"] - other._sensitivity_elements["riesz_rep"],
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
@@ -440,12 +447,16 @@ class DoubleMLFramework:
                 nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
                 psi_nu2 = nu2_score_element - nu2
 
+                max_bias = abs(other) * self._sensitivity_elements["max_bias"]
+                psi_max_bias = abs(other) * self._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "sigma2": self._sensitivity_elements["sigma2"],
                     "nu2": nu2,
                     "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
                     "psi_nu2": psi_nu2,
                     "riesz_rep": np.multiply(other, self._sensitivity_elements["riesz_rep"]),
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
@@ -1119,7 +1130,7 @@ def concat(objs):
 
     if all(obj._sensitivity_implemented for obj in objs):
         sensitivity_elements = {}
-        for key in ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]:
+        for key in ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep", "max_bias", "psi_max_bias"]:
             assert all(key in obj._sensitivity_elements.keys() for obj in objs)
             sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
 
