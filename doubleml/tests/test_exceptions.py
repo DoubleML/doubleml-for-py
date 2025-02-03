@@ -1235,8 +1235,6 @@ def test_doubleml_sensitivity_inputs():
         "psi_sigma2": 1.0,
         "psi_nu2": 1.0,
         "riesz_rep": 1.0,
-        "max_bias": 1.0,
-        "psi_max_bias": 1.0,
     }
     _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
     msg = (
