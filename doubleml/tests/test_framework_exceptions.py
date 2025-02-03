@@ -22,6 +22,8 @@ doubleml_dict["sensitivity_elements"] = {
     "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
     "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
     "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
+    "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
+    "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
 }
 
 # combine objects and estimate parameters
@@ -394,6 +396,8 @@ def test_sensitivity_exceptions():
         "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
         "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
         "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
+        "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
+        "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
     }
     dml_framework_sensitivity = DoubleMLFramework(sensitivity_dict)
 
