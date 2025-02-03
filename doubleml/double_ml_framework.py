@@ -473,8 +473,6 @@ class DoubleMLFramework:
         # set elements for readability
         sigma2 = self.sensitivity_elements["sigma2"]
         nu2 = self.sensitivity_elements["nu2"]
-        psi_sigma = self.sensitivity_elements["psi_sigma2"]
-        psi_nu = self.sensitivity_elements["psi_nu2"]
         psi_scaled = self._scaled_psi
         max_bias = self.sensitivity_elements["max_bias"]
         psi_max_bias = self.sensitivity_elements["psi_max_bias"]
@@ -488,16 +486,13 @@ class DoubleMLFramework:
 
         # elementwise operations
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0 - cf_d))))
-        sensitivity_scaling = np.sqrt(np.multiply(sigma2, nu2))
 
-        # sigma2 and nu2 are of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
-        all_theta_lower = self.all_thetas - np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
-        all_theta_upper = self.all_thetas + np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
+        # max_bias is of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
+        all_theta_lower = self.all_thetas - np.multiply(np.squeeze(max_bias, axis=0), confounding_strength)
+        all_theta_upper = self.all_thetas + np.multiply(np.squeeze(max_bias, axis=0), confounding_strength)
 
-        psi_variances = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
-        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, sensitivity_scaling)), psi_variances)
-        psi_lower = psi_scaled - psi_bias
-        psi_upper = psi_scaled + psi_bias
+        psi_lower = psi_scaled - psi_max_bias
+        psi_upper = psi_scaled + psi_max_bias
 
         # shape (n_thetas, n_reps); includes scaling with n^{-1/2}
         all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
