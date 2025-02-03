@@ -556,6 +556,8 @@ class DoubleML(ABC):
         }
 
         if self._sensitivity_implemented:
+
+            max_bias, psi_max_bias = self._compute_sensitivity_bias()
             # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
             doubleml_dict.update(
                 {
@@ -565,8 +567,8 @@ class DoubleML(ABC):
                         "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
                         "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
                         "riesz_rep": np.transpose(self.sensitivity_elements["riesz_rep"], (0, 2, 1)),
-                        "max_bias": np.transpose(self.sensitivity_elements["max_bias"], (0, 2, 1)),
-                        "psi_max_bias": np.transpose(self.sensitivity_elements["psi_max_bias"], (0, 2, 1)),
+                        "max_bias": np.transpose(max_bias, (0, 2, 1)),
+                        "psi_max_bias": np.transpose(psi_max_bias, (0, 2, 1)),
                     }
                 }
             )
@@ -1048,7 +1050,6 @@ class DoubleML(ABC):
             else:
                 # compute sensitivity analysis elements
                 element_dict = self._sensitivity_element_est(nuisance_predictions)
-                element_dict["max_bias"], element_dict["psi_max_bias"] = self._compute_sensitivity_bias(**element_dict)
                 self._set_sensitivity_elements(element_dict, self._i_rep, self._i_treat)
 
     def _initialize_arrays(self):
@@ -1413,7 +1414,7 @@ class DoubleML(ABC):
 
     @property
     def _sensitivity_element_names(self):
-        return ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep", "max_bias", "psi_max_bias"]
+        return ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
 
     # the dimensions will usually be (n_obs, n_rep, n_coefs) to be equal to the score dimensions psi
     def _initialize_sensitivity_elements(self, score_dim):
@@ -1423,19 +1424,30 @@ class DoubleML(ABC):
             "psi_sigma2": np.full(score_dim, np.nan),
             "psi_nu2": np.full(score_dim, np.nan),
             "riesz_rep": np.full(score_dim, np.nan),
-            "max_bias": np.full((1, score_dim[1], score_dim[2]), np.nan),
-            "psi_max_bias": np.full(score_dim, np.nan)
         }
         return sensitivity_elements
 
-    def _compute_sensitivity_bias(self, sigma2, nu2, psi_sigma2, psi_nu2, riesz_rep):
-        if nu2 <= 0:
+    def _compute_sensitivity_bias(self):
+        sigma2 = self.sensitivity_elements["sigma2"]
+        nu2 = self.sensitivity_elements["nu2"]
+        psi_sigma2 = self.sensitivity_elements["psi_sigma2"]
+        psi_nu2 = self.sensitivity_elements["psi_nu2"]
+        riesz_rep = self.sensitivity_elements["riesz_rep"]
+
+        if np.any(nu2 <= 0):
             warnings.warn(
                 "The estimated nu2 is not positive. Re-estimation based on riesz representer (non-orthogonal).",
                 UserWarning,
             )
             psi_nu2 = np.power(riesz_rep, 2)
-            nu2 = np.mean(psi_nu2)
+            nu2 = np.mean(psi_nu2, axis=0, keepdims=True)
+
+        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
+            raise ValueError(
+                "sensitivity_elements sigma2 and nu2 have to be positive. "
+                f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
+                "Most likely this is due to low quality learners (especially propensity scores)."
+            )
 
         max_bias = np.sqrt(np.multiply(sigma2, nu2))
         psi_max_bias = np.divide(
