@@ -488,11 +488,11 @@ class DoubleMLFramework:
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0 - cf_d))))
 
         # max_bias is of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
-        all_theta_lower = self.all_thetas - np.multiply(np.squeeze(max_bias, axis=0), confounding_strength)
-        all_theta_upper = self.all_thetas + np.multiply(np.squeeze(max_bias, axis=0), confounding_strength)
+        all_theta_lower = self.all_thetas - np.multiply(confounding_strength, np.squeeze(max_bias, axis=0))
+        all_theta_upper = self.all_thetas + np.multiply(confounding_strength, np.squeeze(max_bias, axis=0))
 
-        psi_lower = psi_scaled - psi_max_bias
-        psi_upper = psi_scaled + psi_max_bias
+        psi_lower = psi_scaled - np.multiply(confounding_strength, psi_max_bias)
+        psi_upper = psi_scaled + np.multiply(confounding_strength, psi_max_bias)
 
         # shape (n_thetas, n_reps); includes scaling with n^{-1/2}
         all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
