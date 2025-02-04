@@ -1,5 +1,7 @@
 import numpy as np
 
+from ._sensitivity import _validate_nu2
+
 
 def gain_statistics(dml_long, dml_short):
     """
@@ -20,9 +22,21 @@ def gain_statistics(dml_long, dml_short):
         Benchmarking dictionary (dict) with values for ``cf_d``, ``cf_y``, ``rho``, and ``delta_theta``.
     """
 
-    # set input for readability
-    sensitivity_elements_long = dml_long.framework.sensitivity_elements
-    sensitivity_elements_short = dml_short.framework.sensitivity_elements
+    # set input for readability, transpose to match expected shape of framework
+
+    sensitivity_elements_long = {key: np.transpose(value, (0, 2, 1)) for key, value in dml_long.sensitivity_elements.items()}
+    sensitivity_elements_long["nu2"], sensitivity_elements_long["psi_nu2"] = _validate_nu2(
+        nu2=sensitivity_elements_long["nu2"],
+        psi_nu2=sensitivity_elements_long["psi_nu2"],
+        riesz_rep=sensitivity_elements_long["riesz_rep"],
+    )
+
+    sensitivity_elements_short = {key: np.transpose(value, (0, 2, 1)) for key, value in dml_short.sensitivity_elements.items()}
+    sensitivity_elements_short["nu2"], sensitivity_elements_short["psi_nu2"] = _validate_nu2(
+        nu2=sensitivity_elements_short["nu2"],
+        psi_nu2=sensitivity_elements_short["psi_nu2"],
+        riesz_rep=sensitivity_elements_short["riesz_rep"],
+    )
 
     if not isinstance(sensitivity_elements_long, dict):
         raise TypeError(

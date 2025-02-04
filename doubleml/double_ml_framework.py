@@ -959,9 +959,7 @@ class DoubleMLFramework:
             # set sensitivity elements
             sensitivity_implemented = True
 
-            sensitivity_elements = {
-                key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_sensitivity
-            }
+            sensitivity_elements = {key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_sensitivity}
 
         self._sensitivity_implemented = sensitivity_implemented
         self._sensitivity_elements = sensitivity_elements

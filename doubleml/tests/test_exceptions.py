@@ -543,9 +543,11 @@ def test_doubleml_exception_weights():
             Lasso(),
             LogisticRegression(),
             weights={
-                "weights": -1
-                * np.ones(
-                    n,
+                "weights": (
+                    -1
+                    * np.ones(
+                        n,
+                    )
                 ),
                 "weights_bar": np.ones((n, 1)),
             },

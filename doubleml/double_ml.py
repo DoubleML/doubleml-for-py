@@ -11,6 +11,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_external_predictions, _check_sample_splitting
 from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from .utils._sensitivity import _validate_nu2
 from .utils.gain_statistics import gain_statistics
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
@@ -1429,25 +1430,11 @@ class DoubleML(ABC):
         psi_nu2 = self.sensitivity_elements["psi_nu2"]
         riesz_rep = self.sensitivity_elements["riesz_rep"]
 
-        if np.any(nu2 <= 0):
-            warnings.warn(
-                "The estimated nu2 is not positive. Re-estimation based on riesz representer (non-orthogonal).",
-                UserWarning,
-            )
-            psi_nu2 = np.power(riesz_rep, 2)
-            nu2 = np.mean(psi_nu2, axis=0, keepdims=True)
-
-        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
-            raise ValueError(
-                "sensitivity_elements sigma2 and nu2 have to be positive. "
-                f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
-                "Most likely this is due to low quality learners (especially propensity scores)."
-            )
+        nu2, psi_nu2 = _validate_nu2(nu2=nu2, psi_nu2=psi_nu2, riesz_rep=riesz_rep)
 
         max_bias = np.sqrt(np.multiply(sigma2, nu2))
         psi_max_bias = np.divide(
-            np.add(np.multiply(sigma2, psi_nu2), np.multiply(nu2, psi_sigma2)),
-            np.multiply(2.0, max_bias)
+            np.add(np.multiply(sigma2, psi_nu2), np.multiply(nu2, psi_sigma2)), np.multiply(2.0, max_bias)
         )
         return max_bias, psi_max_bias
 
