@@ -17,11 +17,6 @@ psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
 doubleml_dict = generate_dml_dict(psi_a, psi_b)
 # add sensitivity elements
 doubleml_dict["sensitivity_elements"] = {
-    "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
-    "nu2": np.ones(shape=(1, n_thetas, n_rep)),
-    "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-    "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-    "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
     "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
     "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
 }
@@ -373,11 +368,6 @@ def test_sensitivity_exceptions():
 
     sensitivity_dict = generate_dml_dict(psi_a, psi_b)
     sensitivity_dict["sensitivity_elements"] = {
-        "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
-        "nu2": -1.0 * np.ones(shape=(1, n_thetas, n_rep)),
-        "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-        "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-        "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
         "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
         "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
     }
