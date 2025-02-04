@@ -83,40 +83,22 @@ def test_input_exceptions():
         test_dict["sensitivity_elements"] = 1
         DoubleMLFramework(test_dict)
 
-    msg = "The sensitivity_elements dict must contain the following keys: sigma2, nu2, psi_sigma2, psi_nu2"
+    msg = "The sensitivity_elements dict must contain the following keys: max_bias, psi_max_bias"
     with pytest.raises(ValueError, match=msg):
         test_dict = doubleml_dict.copy()
         test_dict["sensitivity_elements"] = {"sensitivities": np.ones(shape=(n_obs, n_thetas, n_rep))}
         DoubleMLFramework(test_dict)
 
-    msg = r"The shape of sigma2 does not match the expected shape \(1, 2, 5\)\."
+    msg = r"The shape of max_bias does not match the expected shape \(1, 2, 5\)\."
     with pytest.raises(ValueError, match=msg):
         test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["sigma2"] = np.ones(shape=(n_obs, n_rep))
+        test_dict["sensitivity_elements"]["max_bias"] = np.ones(shape=(n_obs, n_rep))
         DoubleMLFramework(test_dict)
 
-    msg = r"The shape of nu2 does not match the expected shape \(1, 2, 5\)\."
+    msg = r"The shape of psi_max_bias does not match the expected shape \(10, 2, 5\)\."
     with pytest.raises(ValueError, match=msg):
         test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["nu2"] = np.ones(shape=(n_obs, n_rep))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of psi_sigma2 does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["psi_sigma2"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of psi_nu2 does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["psi_nu2"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of riesz_rep does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["riesz_rep"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
+        test_dict["sensitivity_elements"]["psi_max_bias"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
         DoubleMLFramework(test_dict)
 
     msg = "is_cluster_data has to be boolean. 1.0 of type <class 'float'> was passed."
