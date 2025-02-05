@@ -997,8 +997,8 @@ class DoubleMLFramework:
             ):
                 raise ValueError(
                     "sensitivity_elements sigma2 and nu2 have to be positive. "
-                    f"Got sigma2 {str(doubleml_dict["sensitivity_elements"]['sigma2'])} "
-                    f"and nu2 {str(doubleml_dict["sensitivity_elements"]['nu2'])}. "
+                    f"Got sigma2 {str(doubleml_dict['sensitivity_elements']['sigma2'])} "
+                    f"and nu2 {str(doubleml_dict['sensitivity_elements']['nu2'])}. "
                     "Most likely this is due to low quality learners (especially propensity scores)."
                 )
 
