@@ -556,6 +556,7 @@ class DoubleML(ABC):
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data,
+            "treatment_names": self._dml_data.d_cols,
         }
 
         if self._sensitivity_implemented:
