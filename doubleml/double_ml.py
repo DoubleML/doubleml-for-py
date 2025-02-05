@@ -1428,23 +1428,24 @@ class DoubleML(ABC):
         return sensitivity_elements
 
     def _validate_sensitivity_elements(self):
-        for i_treat in range(self._dml_data.n_treat):
-            nu2 = self.sensitivity_elements["nu2"][:, :, i_treat]
-            psi_nu2 = self.sensitivity_elements["psi_nu2"][:, :, i_treat]
-            riesz_rep = self.sensitivity_elements["riesz_rep"][:, :, i_treat]
+        if self._sensitivity_implemented:
+            for i_treat in range(self._dml_data.n_treat):
+                nu2 = self.sensitivity_elements["nu2"][:, :, i_treat]
+                psi_nu2 = self.sensitivity_elements["psi_nu2"][:, :, i_treat]
+                riesz_rep = self.sensitivity_elements["riesz_rep"][:, :, i_treat]
 
-            if np.any(nu2 <= 0):
-                treatment_name = self._dml_data.d_cols[i_treat]
-                msg = (
-                    f"The estimated nu2 for {treatment_name} is not positive. "
-                    "Re-estimation based on riesz representer (non-orthogonal)."
-                )
-                warnings.warn(msg, UserWarning)
-                nu2 = np.mean(np.power(riesz_rep, 2), axis=0, keepdims=True)
-                psi_nu2 = np.power(riesz_rep, 2)
+                if np.any(nu2 <= 0):
+                    treatment_name = self._dml_data.d_cols[i_treat]
+                    msg = (
+                        f"The estimated nu2 for {treatment_name} is not positive. "
+                        "Re-estimation based on riesz representer (non-orthogonal)."
+                    )
+                    warnings.warn(msg, UserWarning)
+                    nu2 = np.mean(np.power(riesz_rep, 2), axis=0, keepdims=True)
+                    psi_nu2 = np.power(riesz_rep, 2)
 
-                self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
-                self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
+                    self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
+                    self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
 
         return
 
