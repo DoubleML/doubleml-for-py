@@ -88,7 +88,16 @@ def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimm
     dml_apos = dml_apos.fit(external_predictions=external_predictions_apos)
     causal_contrast = dml_apos.causal_contrast(reference_levels=[0])
 
-    result_dict = {"dml_irm": dml_irm, "dml_apos": dml_apos, "causal_contrast": causal_contrast}
+    irm_confint = dml_irm.confint().values
+    causal_contrast_confint = causal_contrast.confint().values
+
+    result_dict = {
+        "dml_irm": dml_irm,
+        "dml_apos": dml_apos,
+        "causal_contrast": causal_contrast,
+        "irm_confint": irm_confint,
+        "causal_contrast_confint": causal_contrast_confint,
+    }
     return result_dict
 
 
@@ -107,6 +116,16 @@ def test_apos_vs_irm_ses(dml_irm_apos_fixture):
     assert np.allclose(
         dml_irm_apos_fixture["dml_irm"].framework.all_ses,
         dml_irm_apos_fixture["causal_contrast"].all_ses,
+        rtol=1e-9,
+        atol=1e-4,
+    )
+
+
+@pytest.mark.ci
+def test_apos_vs_irm_confint(dml_irm_apos_fixture):
+    assert np.allclose(
+        dml_irm_apos_fixture["irm_confint"],
+        dml_irm_apos_fixture["causal_contrast_confint"],
         rtol=1e-9,
         atol=1e-4,
     )
@@ -191,11 +210,18 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
     dml_apos = dml_apos.fit(external_predictions=external_predictions_apos)
     causal_contrast = dml_apos.causal_contrast(reference_levels=[0])
 
+    irm_confint = dml_irm.confint().values
+    irm_weighted_confint = dml_irm_weighted.confint().values
+    causal_contrast_confint = causal_contrast.confint().values
+
     result_dict = {
         "dml_irm": dml_irm,
         "dml_irm_weighted": dml_irm_weighted,
         "dml_apos": dml_apos,
         "causal_contrast": causal_contrast,
+        "irm_confint": irm_confint,
+        "irm_weighted_confint": irm_weighted_confint,
+        "causal_contrast_confint": causal_contrast_confint,
     }
     return result_dict
 
@@ -225,6 +251,16 @@ def test_apos_vs_irm_weighted_ses(dml_irm_apos_weighted_fixture):
     assert np.allclose(
         dml_irm_apos_weighted_fixture["dml_irm_weighted"].framework.all_ses,
         dml_irm_apos_weighted_fixture["causal_contrast"].all_ses,
+        rtol=1e-9,
+        atol=1e-4,
+    )
+
+
+@pytest.mark.ci
+def test_apos_vs_irm_weighted_confint(dml_irm_apos_weighted_fixture):
+    assert np.allclose(
+        dml_irm_apos_weighted_fixture["irm_weighted_confint"],
+        dml_irm_apos_weighted_fixture["causal_contrast_confint"],
         rtol=1e-9,
         atol=1e-4,
     )
