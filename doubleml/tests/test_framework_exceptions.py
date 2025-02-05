@@ -406,18 +406,22 @@ def test_sensitivity_exceptions():
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLFramework(sensitivity_dict_benchmark)
 
-    sensitivity_dict_benchmark["sensitivity_elements"].update({
-        "sigma2": 5.0,
-        "nu2": np.ones(shape=(1, n_thetas, n_rep)),
-    })
+    sensitivity_dict_benchmark["sensitivity_elements"].update(
+        {
+            "sigma2": 5.0,
+            "nu2": np.ones(shape=(1, n_thetas, n_rep)),
+        }
+    )
     msg = "The sensitivity element sigma2 must be a numpy array."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLFramework(sensitivity_dict_benchmark)
 
-    sensitivity_dict_benchmark["sensitivity_elements"].update({
-        "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
-        "nu2": -1.0 * np.ones(shape=(1, n_thetas, n_rep)),
-    })
+    sensitivity_dict_benchmark["sensitivity_elements"].update(
+        {
+            "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
+            "nu2": -1.0 * np.ones(shape=(1, n_thetas, n_rep)),
+        }
+    )
     msg = (
         r"sensitivity_elements sigma2 and nu2 have to be positive\. "
         r"Got sigma2 \[\[\[1\. 1\. 1\. 1\. 1\.\]\n\s+\[1\. 1\. 1\. 1\. 1\.\]\]\] "
