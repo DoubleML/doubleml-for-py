@@ -306,7 +306,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         u_hat = y - g_hat1
         weights, weights_bar = self._get_weights()
         psi_b = weights * g_hat1 + weights_bar * np.divide(np.multiply(treated, u_hat), m_hat_adj)
-        psi_a = np.full_like(m_hat_adj, -1.0)
+        psi_a = -1.0 * np.divide(weights, np.mean(weights))  # TODO: check if this is correct
 
         return psi_a, psi_b
 

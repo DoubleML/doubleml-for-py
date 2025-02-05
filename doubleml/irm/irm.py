@@ -355,7 +355,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                 np.divide(np.multiply(d, u_hat1), m_hat_adj) - np.divide(np.multiply(1.0 - d, u_hat0), 1.0 - m_hat_adj)
             )
             if self.score == "ATE":
-                psi_a = np.full_like(m_hat_adj, -1.0)
+                psi_a = -1.0 * np.divide(weights, np.mean(weights))  # TODO: check if this is correct
             else:
                 assert self.score == "ATTE"
                 psi_a = -1.0 * weights
