@@ -340,7 +340,6 @@ def test_dml_irm_atte_weights(dml_irm_weights_fixture):
     assert math.isclose(
         dml_irm_weights_fixture["coef_atte"], dml_irm_weights_fixture["coef_atte_weights"], rel_tol=1e-9, abs_tol=1e-4
     )
-    # Remark that the scores are slightly different (Y instead of g(1,X) and coefficient of theta)
     assert math.isclose(
-        dml_irm_weights_fixture["se_atte"], dml_irm_weights_fixture["se_atte_weights"], rel_tol=1e-5, abs_tol=1e-3
+        dml_irm_weights_fixture["se_atte"], dml_irm_weights_fixture["se_atte_weights"], rel_tol=1e-9, abs_tol=1e-4
     )

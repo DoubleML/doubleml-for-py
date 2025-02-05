@@ -245,8 +245,12 @@ def test_apos_vs_irm_weighted_thetas(dml_irm_apos_weighted_fixture):
 
 @pytest.mark.ci
 def test_apos_vs_irm_weighted_ses(dml_irm_apos_weighted_fixture):
-    # Remark that the scores are slightly different (Y instead of g(1,X) and coefficient of theta)
-    # (for weighted and unweighted case in irm)
+    assert np.allclose(
+        dml_irm_apos_weighted_fixture["dml_irm"].framework.all_ses,
+        dml_irm_apos_weighted_fixture["dml_irm_weighted"].framework.all_ses,
+        rtol=1e-9,
+        atol=1e-4,
+    )
 
     assert np.allclose(
         dml_irm_apos_weighted_fixture["dml_irm_weighted"].framework.all_ses,
@@ -258,6 +262,13 @@ def test_apos_vs_irm_weighted_ses(dml_irm_apos_weighted_fixture):
 
 @pytest.mark.ci
 def test_apos_vs_irm_weighted_confint(dml_irm_apos_weighted_fixture):
+    assert np.allclose(
+        dml_irm_apos_weighted_fixture["irm_confint"],
+        dml_irm_apos_weighted_fixture["irm_weighted_confint"],
+        rtol=1e-9,
+        atol=1e-4,
+    )
+
     assert np.allclose(
         dml_irm_apos_weighted_fixture["irm_weighted_confint"],
         dml_irm_apos_weighted_fixture["causal_contrast_confint"],
