@@ -375,7 +375,7 @@ class DoubleMLFramework:
             if self._sensitivity_implemented and other._sensitivity_implemented:
 
                 max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
-                psi_max_bias = self._sensitivity_elements["psi_max_bias"] - other._sensitivity_elements["psi_max_bias"]
+                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
                     "max_bias": max_bias,
                     "psi_max_bias": psi_max_bias,
