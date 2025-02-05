@@ -11,7 +11,6 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_external_predictions, _check_sample_splitting
 from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
-from .utils._sensitivity import _validate_nu2
 from .utils.gain_statistics import gain_statistics
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
@@ -525,6 +524,9 @@ class DoubleML(ABC):
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
+
+        # validate sensitivity elements (e.g., re-estimate nu2 if negative)
+        self._validate_sensitivity_elements()
 
         # construct framework for inference
         self._framework = self.construct_framework()
@@ -1425,14 +1427,32 @@ class DoubleML(ABC):
         }
         return sensitivity_elements
 
+    def _validate_sensitivity_elements(self):
+        for i_treat in range(self._dml_data.n_treat):
+            nu2 = self.sensitivity_elements["nu2"][:, :, i_treat]
+            psi_nu2 = self.sensitivity_elements["psi_nu2"][:, :, i_treat]
+            riesz_rep = self.sensitivity_elements["riesz_rep"][:, :, i_treat]
+
+            if np.any(nu2 <= 0):
+                treatment_name = self._dml_data.d_cols[i_treat]
+                msg = (
+                    f"The estimated nu2 for {treatment_name} is not positive. "
+                    "Re-estimation based on riesz representer (non-orthogonal)."
+                )
+                warnings.warn(msg, UserWarning)
+                nu2 = np.mean(np.power(riesz_rep, 2), axis=0, keepdims=True)
+                psi_nu2 = np.power(riesz_rep, 2)
+
+                self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
+                self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
+
+        return
+
     def _compute_sensitivity_bias(self):
         sigma2 = self.sensitivity_elements["sigma2"]
         nu2 = self.sensitivity_elements["nu2"]
         psi_sigma2 = self.sensitivity_elements["psi_sigma2"]
         psi_nu2 = self.sensitivity_elements["psi_nu2"]
-        riesz_rep = self.sensitivity_elements["riesz_rep"]
-
-        nu2, psi_nu2 = _validate_nu2(nu2=nu2, psi_nu2=psi_nu2, riesz_rep=riesz_rep)
 
         max_bias = np.sqrt(np.multiply(sigma2, nu2))
         psi_max_bias = np.divide(
