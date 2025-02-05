@@ -565,6 +565,8 @@ class DoubleML(ABC):
                     "sensitivity_elements": {
                         "max_bias": np.transpose(max_bias, (0, 2, 1)),
                         "psi_max_bias": np.transpose(psi_max_bias, (0, 2, 1)),
+                        "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
+                        "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
                     }
                 }
             )
