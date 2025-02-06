@@ -11,6 +11,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_external_predictions, _check_sample_splitting
 from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from .utils._sensitivity import _compute_sensitivity_bias
 from .utils.gain_statistics import gain_statistics
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
@@ -560,16 +561,23 @@ class DoubleML(ABC):
         }
 
         if self._sensitivity_implemented:
+            # reshape sensitivity elements to (1 or n_obs, n_coefs, n_rep)
+            sensitivity_dict = {
+                "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
+                "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
+                "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
+                "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
+            }
 
-            max_bias, psi_max_bias = self._compute_sensitivity_bias()
-            # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
+            max_bias, psi_max_bias = _compute_sensitivity_bias(**sensitivity_dict)
+
             doubleml_dict.update(
                 {
                     "sensitivity_elements": {
-                        "max_bias": np.transpose(max_bias, (0, 2, 1)),
-                        "psi_max_bias": np.transpose(psi_max_bias, (0, 2, 1)),
-                        "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
-                        "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
+                        "max_bias": max_bias,
+                        "psi_max_bias": psi_max_bias,
+                        "sigma2": sensitivity_dict["sigma2"],
+                        "nu2": sensitivity_dict["nu2"],
                     }
                 }
             )
@@ -1448,18 +1456,6 @@ class DoubleML(ABC):
                     self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
 
         return
-
-    def _compute_sensitivity_bias(self):
-        sigma2 = self.sensitivity_elements["sigma2"]
-        nu2 = self.sensitivity_elements["nu2"]
-        psi_sigma2 = self.sensitivity_elements["psi_sigma2"]
-        psi_nu2 = self.sensitivity_elements["psi_nu2"]
-
-        max_bias = np.sqrt(np.multiply(sigma2, nu2))
-        psi_max_bias = np.divide(
-            np.add(np.multiply(sigma2, psi_nu2), np.multiply(nu2, psi_sigma2)), np.multiply(2.0, max_bias)
-        )
-        return max_bias, psi_max_bias
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
         sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}
