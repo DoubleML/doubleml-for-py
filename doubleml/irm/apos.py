@@ -742,17 +742,16 @@ class DoubleMLAPOS:
             ref_framework = self.modellist[i_ref_lvl].framework
 
             skip_index.add(i_ref_lvl)
-            # update frameworks
-            all_acc_frameworks += [
-                model.framework - ref_framework for i, model in enumerate(self.modellist) if i not in skip_index
-            ]
+            for i, model in enumerate(self.modellist):
+                # only comparisons which are not yet computed
+                if i in skip_index:
+                    continue
 
-            # update treatment names
-            all_treatment_names += [
-                f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
-                for i in range(self.n_treatment_levels)
-                if i not in skip_index
-            ]
+                current_framework = model.framework - ref_framework
+                current_treatment_name = f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
+
+                all_acc_frameworks += [current_framework]
+                all_treatment_names += [current_treatment_name]
 
         acc = concat(all_acc_frameworks)
         acc.treatment_names = all_treatment_names
