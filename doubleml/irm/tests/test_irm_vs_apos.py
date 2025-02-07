@@ -214,6 +214,11 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
     irm_weighted_confint = dml_irm_weighted.confint().values
     causal_contrast_confint = causal_contrast.confint().values
 
+    # sensitivity analysis
+    dml_irm.sensitivity_analysis()
+    dml_irm_weighted.sensitivity_analysis()
+    causal_contrast.sensitivity_analysis()
+
     result_dict = {
         "dml_irm": dml_irm,
         "dml_irm_weighted": dml_irm_weighted,
@@ -275,3 +280,41 @@ def test_apos_vs_irm_weighted_confint(dml_irm_apos_weighted_fixture):
         rtol=1e-9,
         atol=1e-4,
     )
+
+
+@pytest.mark.ci
+def test_apos_vs_irm_weighted_sensitivity(dml_irm_apos_weighted_fixture):
+    params_irm = dml_irm_apos_weighted_fixture["dml_irm"].sensitivity_params
+    params_irm_weighted = dml_irm_apos_weighted_fixture["dml_irm_weighted"].sensitivity_params
+    params_causal_contrast = dml_irm_apos_weighted_fixture["causal_contrast"].sensitivity_params
+
+    for key in ["theta", "se", "ci"]:
+        for boundary in ["upper", "lower"]:
+            assert np.allclose(
+                params_irm[key][boundary],
+                params_irm_weighted[key][boundary],
+                rtol=1e-9,
+                atol=1e-4,
+            )
+
+            assert np.allclose(
+                params_irm_weighted[key][boundary],
+                params_causal_contrast[key][boundary],
+                rtol=1e-9,
+                atol=1e-4,
+            )
+
+    for key in ["rv", "rva"]:
+        assert np.allclose(
+            params_irm[key],
+            params_irm_weighted[key],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+
+        assert np.allclose(
+            params_irm_weighted[key],
+            params_causal_contrast[key],
+            rtol=1e-9,
+            atol=1e-4,
+        )
