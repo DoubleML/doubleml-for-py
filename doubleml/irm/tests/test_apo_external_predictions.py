@@ -95,7 +95,6 @@ def test_doubleml_apo_ext_coef(doubleml_apo_ext_fixture):
     )
 
 
-
 @pytest.mark.ci
 def test_doubleml_apo_ext_se(doubleml_apo_ext_fixture):
     assert math.isclose(doubleml_apo_ext_fixture["se_normal"], doubleml_apo_ext_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-4)

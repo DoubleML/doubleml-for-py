@@ -72,8 +72,12 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
 
     if set_ml_g_ext:
         for i_treatment_level, treatment_level in enumerate(treatment_levels):
-            ext_predictions[treatment_level]["ml_g_d_lvl0"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl0"][:, :, 0]
-            ext_predictions[treatment_level]["ml_g_d_lvl1"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl1"][:, :, 0]
+            ext_predictions[treatment_level]["ml_g_d_lvl0"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl0"][
+                :, :, 0
+            ]
+            ext_predictions[treatment_level]["ml_g_d_lvl1"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl1"][
+                :, :, 0
+            ]
         ml_g = DMLDummyRegressor()
     else:
         ml_g = LinearRegression()
