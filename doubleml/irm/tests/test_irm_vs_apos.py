@@ -74,13 +74,13 @@ def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimm
     external_predictions_apos = {
         0: {
             "ml_m": 1.0 - m_hat,
-            "ml_g1": g0_hat,
-            "ml_g0": g1_hat,
+            "ml_g_d_lvl1": g0_hat,
+            "ml_g_d_lvl0": g1_hat,
         },
         1: {
             "ml_m": m_hat,
-            "ml_g1": g1_hat,
-            "ml_g0": g0_hat,
+            "ml_g_d_lvl1": g1_hat,
+            "ml_g_d_lvl0": g0_hat,
         },
     }
 
@@ -194,13 +194,13 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
     external_predictions_apos = {
         0: {
             "ml_m": 1.0 - m_hat,
-            "ml_g1": g0_hat,
-            "ml_g0": g1_hat,
+            "ml_g_d_lvl1": g0_hat,
+            "ml_g_d_lvl0": g1_hat,
         },
         1: {
             "ml_m": m_hat,
-            "ml_g1": g1_hat,
-            "ml_g0": g0_hat,
+            "ml_g_d_lvl1": g1_hat,
+            "ml_g_d_lvl0": g0_hat,
         },
     }
 
