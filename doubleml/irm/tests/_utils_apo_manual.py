@@ -87,12 +87,13 @@ def fit_nuisance_apo(
 ):
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
+    dx = np.column_stack((d, x))
 
     train_cond0 = np.where(treated == 0)[0]
     if is_classifier(learner_g):
-        g_hat0_list = fit_predict_proba(y, x, ml_g0, g0_params, smpls, train_cond=train_cond0)
+        g_hat0_list = fit_predict_proba(y, dx, ml_g0, g0_params, smpls, train_cond=train_cond0)
     else:
-        g_hat0_list = fit_predict(y, x, ml_g0, g0_params, smpls, train_cond=train_cond0)
+        g_hat0_list = fit_predict(y, dx, ml_g0, g0_params, smpls, train_cond=train_cond0)
 
     train_cond1 = np.where(treated == 1)[0]
     if is_classifier(learner_g):
@@ -223,8 +224,8 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
 
     for i_rep in range(n_rep):
         m_hat = predictions["ml_m"][:, i_rep, 0]
-        g_hat0 = predictions["ml_g0"][:, i_rep, 0]
-        g_hat1 = predictions["ml_g1"][:, i_rep, 0]
+        g_hat0 = predictions["ml_g_d_lvl0"][:, i_rep, 0]
+        g_hat1 = predictions["ml_g_d_lvl1"][:, i_rep, 0]
 
         weights = np.ones_like(d)
         weights_bar = np.ones_like(d)
@@ -246,8 +247,9 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
 
 
 def tune_nuisance_apo(y, x, d, treatment_level, ml_g, ml_m, smpls, score, n_folds_tune, param_grid_g, param_grid_m):
+    dx = np.column_stack((d, x))
     train_cond0 = np.where(d != treatment_level)[0]
-    g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=train_cond0)
+    g0_tune_res = tune_grid_search(y, dx, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=train_cond0)
 
     train_cond1 = np.where(d == treatment_level)[0]
     g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=train_cond1)
