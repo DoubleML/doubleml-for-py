@@ -969,6 +969,11 @@ class _DummyNoClassifier(_DummyNoGetParams):
 
 
 class LogisticRegressionManipulatedPredict(LogisticRegression):
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.estimator_type = None
+        return tags
+
     def predict(self, X):
         if self.max_iter == 314:
             preds = super().predict_proba(X)[:, 1]
@@ -1063,16 +1068,17 @@ def test_doubleml_exception_learner():
 
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
-    log_reg = LogisticRegression()
+    log_reg = LogisticRegressionManipulatedPredict()
+    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
     log_reg._estimator_type = None
     msg = (
-        r"Learner provided for ml_m is probably invalid: LogisticRegression\(\) is \(probably\) neither a regressor "
-        "nor a classifier. Method predict is used for prediction."
+        r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
+        "neither a regressor nor a classifier. Method predict is used for prediction."
     )
     with pytest.warns(UserWarning, match=msg):
         dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
     msg = (
-        r"For the binary variable d, predictions obtained with the ml_m learner LogisticRegression\(\) "
+        r"For the binary variable d, predictions obtained with the ml_m learner LogisticRegressionManipulatedPredict\(\) "
         "are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not "
         "labels are predicted."
     )
@@ -1083,6 +1089,7 @@ def test_doubleml_exception_learner():
     # it then predicts labels and therefore an exception will be thrown
     # whether predict() or predict_proba() is being called can also be manipulated via the unrelated max_iter variable
     log_reg = LogisticRegressionManipulatedPredict()
+    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
     log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_g is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
