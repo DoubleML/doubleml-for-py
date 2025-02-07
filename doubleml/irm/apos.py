@@ -803,7 +803,7 @@ class DoubleMLAPOS:
                 + f"Passed keys: {set(external_predictions.keys())}."
             )
 
-        expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
+        expected_learner_keys = ["ml_g_d_lvl0", "ml_g_d_lvl1", "ml_m"]
         for key, value in external_predictions.items():
             if not isinstance(value, dict):
                 raise TypeError(
@@ -821,12 +821,12 @@ class DoubleMLAPOS:
         d_col = self._dml_data.d_cols[0]
         ext_pred_dict = {treatment_level: {d_col: {}} for treatment_level in self.treatment_levels}
         for treatment_level in self.treatment_levels:
-            if "ml_g1" in external_predictions[treatment_level]:
-                ext_pred_dict[treatment_level][d_col]["ml_g1"] = external_predictions[treatment_level]["ml_g1"]
+            if "ml_g_d_lvl1" in external_predictions[treatment_level]:
+                ext_pred_dict[treatment_level][d_col]["ml_g_d_lvl1"] = external_predictions[treatment_level]["ml_g_d_lvl1"]
             if "ml_m" in external_predictions[treatment_level]:
                 ext_pred_dict[treatment_level][d_col]["ml_m"] = external_predictions[treatment_level]["ml_m"]
-            if "ml_g0" in external_predictions[treatment_level]:
-                ext_pred_dict[treatment_level][d_col]["ml_g0"] = external_predictions[treatment_level]["ml_g0"]
+            if "ml_g_d_lvl0" in external_predictions[treatment_level]:
+                ext_pred_dict[treatment_level][d_col]["ml_g_d_lvl0"] = external_predictions[treatment_level]["ml_g_d_lvl0"]
 
         return ext_pred_dict
 
