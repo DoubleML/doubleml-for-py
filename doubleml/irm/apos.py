@@ -733,17 +733,21 @@ class DoubleMLAPOS:
                 "a single treatment level."
             )
 
-        skip_index = []
+        skip_index = set()
         all_treatment_names = []
         all_acc_frameworks = []
+
         for ref_lvl in reference_levels:
             i_ref_lvl = self.treatment_levels.index(ref_lvl)
             ref_framework = self.modellist[i_ref_lvl].framework
 
-            skip_index += [i_ref_lvl]
+            skip_index.add(i_ref_lvl)
+            # update frameworks
             all_acc_frameworks += [
                 model.framework - ref_framework for i, model in enumerate(self.modellist) if i not in skip_index
             ]
+
+            # update treatment names
             all_treatment_names += [
                 f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
                 for i in range(self.n_treatment_levels)
