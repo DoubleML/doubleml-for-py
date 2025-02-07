@@ -1,5 +1,3 @@
-import copy
-
 import numpy as np
 import pytest
 from sklearn.base import clone
@@ -7,7 +5,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.utils._estimation import _normalize_ipw
 
 
 @pytest.fixture(
@@ -91,6 +88,10 @@ def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimm
     irm_confint = dml_irm.confint().values
     causal_contrast_confint = causal_contrast.confint().values
 
+    # sensitivity analysis
+    dml_irm.sensitivity_analysis()
+    causal_contrast.sensitivity_analysis()
+
     result_dict = {
         "dml_irm": dml_irm,
         "dml_apos": dml_apos,
@@ -131,6 +132,29 @@ def test_apos_vs_irm_confint(dml_irm_apos_fixture):
     )
 
 
+@pytest.mark.ci
+def test_apos_vs_irm_sensitivity(dml_irm_apos_fixture):
+    params_irm = dml_irm_apos_fixture["dml_irm"].sensitivity_params
+    params_causal_contrast = dml_irm_apos_fixture["causal_contrast"].sensitivity_params
+
+    for key in ["theta", "se", "ci"]:
+        for boundary in ["upper", "lower"]:
+            assert np.allclose(
+                params_irm[key][boundary],
+                params_causal_contrast[key][boundary],
+                rtol=1e-9,
+                atol=1e-4,
+            )
+
+    for key in ["rv", "rva"]:
+        assert np.allclose(
+            params_irm[key],
+            params_causal_contrast[key],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+
+
 @pytest.fixture(scope="module")
 def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_threshold):
 
@@ -165,13 +189,9 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
 
     # define weights
     p_hat = np.mean(d)
-    m_hat_adjusted = copy.deepcopy(m_hat)
-    if normalize_ipw:
-        for i_rep in range(n_rep):
-            m_hat_adjusted[:, i_rep] = _normalize_ipw(m_hat[:, i_rep], d)
     weights_dict = {
         "weights": d / p_hat,
-        "weights_bar": m_hat_adjusted / p_hat,
+        "weights_bar": m_hat / p_hat,
     }
 
     external_predictions_irm = {
