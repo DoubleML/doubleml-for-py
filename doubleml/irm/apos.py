@@ -11,6 +11,7 @@ from ..double_ml_data import DoubleMLClusterData, DoubleMLData
 from ..double_ml_framework import concat
 from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
 from ..utils._descriptive import generate_summary
+from ..utils._sensitivity import _compute_sensitivity_bias
 from ..utils.gain_statistics import gain_statistics
 from ..utils.resampling import DoubleMLResampling
 from .apo import DoubleMLAPO
@@ -739,7 +740,7 @@ class DoubleMLAPOS:
 
         for ref_lvl in reference_levels:
             i_ref_lvl = self.treatment_levels.index(ref_lvl)
-            ref_framework = self.modellist[i_ref_lvl].framework
+            ref_model = self.modellist[i_ref_lvl]
 
             skip_index.add(i_ref_lvl)
             for i, model in enumerate(self.modellist):
@@ -747,8 +748,12 @@ class DoubleMLAPOS:
                 if i in skip_index:
                     continue
 
-                current_framework = model.framework - ref_framework
+                current_framework = model.framework - ref_model.framework
                 current_treatment_name = f"{self.treatment_levels[i]} vs {self.treatment_levels[i_ref_lvl]}"
+
+                # update sensitivity elements with sharper bounds
+                current_sensitivity_dict = self._compute_causal_contrast_sensitivity_dict(model=model, ref_model=ref_model)
+                current_framework._check_and_set_sensitivity_elements(current_sensitivity_dict)
 
                 all_acc_frameworks += [current_framework]
                 all_treatment_names += [current_treatment_name]
@@ -770,6 +775,38 @@ class DoubleMLAPOS:
             external_predictions=external_predictions,
         )
         return model
+
+    def _compute_causal_contrast_sensitivity_dict(self, model, ref_model):
+        # reshape sensitivity elements to (1 or n_obs, n_coefs, n_rep)
+        model_sigma2 = np.transpose(model.sensitivity_elements["sigma2"], (0, 2, 1))
+        model_nu2 = np.transpose(model.sensitivity_elements["nu2"], (0, 2, 1))
+        model_psi_sigma2 = np.transpose(model.sensitivity_elements["psi_sigma2"], (0, 2, 1))
+        model_psi_nu2 = np.transpose(model.sensitivity_elements["psi_nu2"], (0, 2, 1))
+
+        ref_model_sigma2 = np.transpose(ref_model.sensitivity_elements["sigma2"], (0, 2, 1))
+        ref_model_nu2 = np.transpose(ref_model.sensitivity_elements["nu2"], (0, 2, 1))
+        ref_model_psi_sigma2 = np.transpose(ref_model.sensitivity_elements["psi_sigma2"], (0, 2, 1))
+        ref_model_psi_nu2 = np.transpose(ref_model.sensitivity_elements["psi_nu2"], (0, 2, 1))
+
+        combined_sensitivity_dict = {
+            "sigma2": (model_sigma2 + ref_model_sigma2) / 2,
+            "nu2": model_nu2 + ref_model_nu2,
+            "psi_sigma2": (model_psi_sigma2 + ref_model_psi_sigma2) / 2,
+            "psi_nu2": model_psi_nu2 + ref_model_psi_nu2,
+        }
+
+        max_bias, psi_max_bias = _compute_sensitivity_bias(**combined_sensitivity_dict)
+
+        new_sensitvitiy_dict = {
+            "sensitivity_elements": {
+                "max_bias": max_bias,
+                "psi_max_bias": psi_max_bias,
+                "sigma2": combined_sensitivity_dict["sigma2"],
+                "nu2": combined_sensitivity_dict["nu2"],
+            }
+        }
+
+        return new_sensitvitiy_dict
 
     def _check_treatment_levels(self, treatment_levels):
         is_iterable = isinstance(treatment_levels, Iterable)
