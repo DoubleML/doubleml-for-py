@@ -143,8 +143,7 @@ class DoubleMLPanelData(DoubleMLData):
         if value is not None:
             if not isinstance(value, str):
                 raise TypeError(
-                    "The id variable id_col must be of str type. "
-                    f"{str(value)} of type {str(type(value))} was passed."
+                    "The id variable id_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
                 )
             if value not in self.all_variables:
                 raise ValueError("Invalid id variable id_col. " f"{value} is no data column.")
