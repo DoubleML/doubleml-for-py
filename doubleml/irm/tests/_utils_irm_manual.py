@@ -309,7 +309,7 @@ def boot_irm_single_split(
     return boot_t_stat
 
 
-def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
+def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep, normalize_ipw):
     n_treat = 1
     n_obs = len(y)
 
@@ -320,6 +320,10 @@ def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
 
     for i_rep in range(n_rep):
         m_hat = predictions["ml_m"][:, i_rep, 0]
+        if normalize_ipw:
+            m_hat_adj = _normalize_ipw(m_hat, d)
+        else:
+            m_hat_adj = m_hat
         g_hat0 = predictions["ml_g0"][:, i_rep, 0]
         g_hat1 = predictions["ml_g1"][:, i_rep, 0]
 
@@ -329,15 +333,15 @@ def fit_sensitivity_elements_irm(y, d, all_coef, predictions, score, n_rep):
         else:
             assert score == "ATTE"
             weights = np.divide(d, np.mean(d))
-            weights_bar = np.divide(m_hat, np.mean(d))
+            weights_bar = np.divide(m_hat_adj, np.mean(d))
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0 - d, g_hat0))
         sigma2[0, i_rep, 0] = np.mean(sigma2_score_element)
         psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0 - m_hat))))
-        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0 - d, 1.0 - m_hat)))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat_adj) + np.divide(1.0, 1.0 - m_hat_adj))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat_adj) - np.divide(1.0 - d, 1.0 - m_hat_adj)))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2[0, i_rep, 0] = np.mean(nu2_score_element)

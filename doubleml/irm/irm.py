@@ -18,7 +18,7 @@ from doubleml.utils._checks import (
     _check_weights,
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
-from doubleml.utils._propensity_score import _normalize_ipw, _trimm
+from doubleml.utils._propensity_score import _propensity_score_adjustments, _trimm
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.policytree import DoubleMLPolicyTree
 
@@ -341,10 +341,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
-        if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, d)
-        else:
-            m_hat_adj = m_hat
+        m_hat_adj = _propensity_score_adjustments(
+            propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
+        )
 
         # compute residuals
         u_hat0 = y - g_hat0
@@ -372,19 +371,22 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
 
         m_hat = preds["predictions"]["ml_m"]
+        m_hat_adj = _propensity_score_adjustments(
+            propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
+        )
         g_hat0 = preds["predictions"]["ml_g0"]
         g_hat1 = preds["predictions"]["ml_g1"]
 
         # use weights make this extendable
-        weights, weights_bar = self._get_weights(m_hat=m_hat)
+        weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0 - d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0 - m_hat))))
-        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0 - d, 1.0 - m_hat)))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat_adj) + np.divide(1.0, 1.0 - m_hat_adj))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat_adj) - np.divide(1.0 - d, 1.0 - m_hat_adj)))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)

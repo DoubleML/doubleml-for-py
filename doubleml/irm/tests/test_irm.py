@@ -155,7 +155,13 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
     # sensitivity tests
     res_dict["sensitivity_elements"] = dml_irm_obj.sensitivity_elements
     res_dict["sensitivity_elements_manual"] = fit_sensitivity_elements_irm(
-        y, d, all_coef=dml_irm_obj.all_coef, predictions=dml_irm_obj.predictions, score=score, n_rep=1
+        y,
+        d,
+        all_coef=dml_irm_obj.all_coef,
+        predictions=dml_irm_obj.predictions,
+        score=score,
+        n_rep=1,
+        normalize_ipw=normalize_ipw,
     )
 
     # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
