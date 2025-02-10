@@ -2,8 +2,8 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import (
     _check_binary_predictions,

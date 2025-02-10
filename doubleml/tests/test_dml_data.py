@@ -4,6 +4,7 @@ import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLClusterData, DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
+from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.datasets import (
     _make_pliv_data,
     make_pliv_CHS2015,
@@ -12,7 +13,6 @@ from doubleml.datasets import (
     make_ssm_data,
 )
 from doubleml.did.datasets import make_did_SZ2020
-from doubleml.double_ml_data import DoubleMLBaseData
 
 
 class DummyDataClass(DoubleMLBaseData):

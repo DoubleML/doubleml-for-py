@@ -7,13 +7,14 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
-from .double_ml_framework import DoubleMLFramework
-from .utils._checks import _check_external_predictions, _check_sample_splitting
-from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
-from .utils._sensitivity import _compute_sensitivity_bias
-from .utils.gain_statistics import gain_statistics
-from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
+from doubleml.data import DoubleMLClusterData
+from doubleml.data.base_data import DoubleMLBaseData
+from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils.gain_statistics import gain_statistics
+from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
 

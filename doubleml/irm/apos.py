@@ -6,8 +6,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
+from doubleml.data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml_framework import concat
 from doubleml.irm.apo import DoubleMLAPO
 from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights

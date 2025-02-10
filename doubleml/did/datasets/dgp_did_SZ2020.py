@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from ...double_ml_data import DoubleMLData
+from ...data.base_data import DoubleMLData
 from ...utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_data_alias
 
 _array_alias = _get_array_alias()
