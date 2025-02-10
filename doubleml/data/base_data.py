@@ -296,7 +296,7 @@ class DoubleMLData(DoubleMLBaseData):
 
         x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]
 
-        # basline version with features, outcome and treatments
+        # baseline version with features, outcome and treatments
         data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)
 
         if z is not None:
@@ -677,9 +677,36 @@ class DoubleMLData(DoubleMLBaseData):
         is_binary = binary_outcome & zero_one_outcome
         return is_binary
 
+    @staticmethod
+    def _check_disjoint(set1, set2, name1, name2, col_name):
+        """Helper method to check for disjoint sets."""
+        if not set1.isdisjoint(set2):
+            raise ValueError(f"At least one variable/column is set as {name1} and {name2} in {col_name}.")
+
     def _check_disjoint_sets(self):
         # this function can be extended in inherited subclasses
+        self._check_disjoint_sets_y_d_x()
+        # TODO: Clean this up, it is a mess
         self._check_disjoint_sets_y_d_x_z_t_s()
+
+    def _check_disjoint_sets_y_d_x(self):
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        if not y_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and covariate in ``x_cols``.")
+        if not y_col_set.isdisjoint(d_cols_set):
+            raise ValueError(
+                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and treatment variable in ``d_cols``."
+            )
+        # note that the line xd_list = self.x_cols + self.d_cols in method set_x_d needs adaption if an intersection of
+        # x_cols and d_cols as allowed (see https://github.com/DoubleML/doubleml-for-py/issues/83)
+        if not d_cols_set.isdisjoint(x_cols_set):
+            raise ValueError(
+                "At least one variable/column is set as treatment variable (``d_cols``) and as covariate"
+                "(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``."
+            )
 
     def _check_disjoint_sets_y_d_x_z_t_s(self):
         y_col_set = {self.y_col}
