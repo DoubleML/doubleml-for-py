@@ -57,7 +57,7 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
         "draw_sample_splitting": False,
     }
 
-    dml_obj = DoubleMLAPOS(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    dml_obj = DoubleMLAPOS(ml_g=LinearRegression(), ml_m=LogisticRegression(random_state=42), **kwargs)
     dml_obj.set_sample_splitting(all_smpls=all_smpls)
 
     np.random.seed(3141)
