@@ -17,11 +17,10 @@ psi_b = np.random.normal(size=(n_obs, n_thetas, n_rep))
 doubleml_dict = generate_dml_dict(psi_a, psi_b)
 # add sensitivity elements
 doubleml_dict["sensitivity_elements"] = {
+    "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
+    "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
     "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
     "nu2": np.ones(shape=(1, n_thetas, n_rep)),
-    "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-    "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-    "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
 }
 
 # combine objects and estimate parameters
@@ -81,40 +80,34 @@ def test_input_exceptions():
         test_dict["sensitivity_elements"] = 1
         DoubleMLFramework(test_dict)
 
-    msg = "The sensitivity_elements dict must contain the following keys: sigma2, nu2, psi_sigma2, psi_nu2"
+    msg = "The sensitivity_elements dict must contain the following keys: max_bias, psi_max_bias"
     with pytest.raises(ValueError, match=msg):
         test_dict = doubleml_dict.copy()
         test_dict["sensitivity_elements"] = {"sensitivities": np.ones(shape=(n_obs, n_thetas, n_rep))}
         DoubleMLFramework(test_dict)
 
+    msg = r"The shape of max_bias does not match the expected shape \(1, 2, 5\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict["sensitivity_elements"]["max_bias"] = np.ones(shape=(n_obs, n_rep))
+        DoubleMLFramework(test_dict)
+
+    msg = r"The shape of psi_max_bias does not match the expected shape \(10, 2, 5\)\."
+    with pytest.raises(ValueError, match=msg):
+        test_dict = copy.deepcopy(doubleml_dict)
+        test_dict["sensitivity_elements"]["psi_max_bias"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
+        DoubleMLFramework(test_dict)
+
     msg = r"The shape of sigma2 does not match the expected shape \(1, 2, 5\)\."
     with pytest.raises(ValueError, match=msg):
         test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["sigma2"] = np.ones(shape=(n_obs, n_rep))
+        test_dict["sensitivity_elements"]["sigma2"] = np.ones(shape=(n_obs, n_thetas, n_rep))
         DoubleMLFramework(test_dict)
 
     msg = r"The shape of nu2 does not match the expected shape \(1, 2, 5\)\."
     with pytest.raises(ValueError, match=msg):
         test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["nu2"] = np.ones(shape=(n_obs, n_rep))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of psi_sigma2 does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["psi_sigma2"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of psi_nu2 does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["psi_nu2"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
-        DoubleMLFramework(test_dict)
-
-    msg = r"The shape of riesz_rep does not match the expected shape \(10, 2, 5\)\."
-    with pytest.raises(ValueError, match=msg):
-        test_dict = copy.deepcopy(doubleml_dict)
-        test_dict["sensitivity_elements"]["riesz_rep"] = np.ones(shape=(n_obs, n_thetas, n_rep, 3))
+        test_dict["sensitivity_elements"]["nu2"] = np.ones(shape=(n_obs, n_thetas, n_rep))
         DoubleMLFramework(test_dict)
 
     msg = "is_cluster_data has to be boolean. 1.0 of type <class 'float'> was passed."
@@ -387,16 +380,6 @@ def test_sensitivity_exceptions():
     with pytest.raises(TypeError, match=msg):
         _ = dml_framework_obj_1._calc_robustness_value(null_hypothesis=np.array([1]), level=0.95, rho=1.0, idx_treatment=0)
 
-    sensitivity_dict = generate_dml_dict(psi_a, psi_b)
-    sensitivity_dict["sensitivity_elements"] = {
-        "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
-        "nu2": -1.0 * np.ones(shape=(1, n_thetas, n_rep)),
-        "psi_sigma2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-        "psi_nu2": np.ones(shape=(n_obs, n_thetas, n_rep)),
-        "riesz_rep": np.ones(shape=(n_obs, n_thetas, n_rep)),
-    }
-    dml_framework_sensitivity = DoubleMLFramework(sensitivity_dict)
-
     # test idx_treatment
     dml_framework_obj_1.sensitivity_analysis()
     msg = "idx_treatment must be an integer. 0.0 of type <class 'float'> was passed."
@@ -411,7 +394,34 @@ def test_sensitivity_exceptions():
     with pytest.raises(ValueError, match=msg):
         _ = dml_framework_obj_1.sensitivity_plot(idx_treatment=2)
 
-    # test variances
+    # test benchmark sensitivity elements
+    sensitivity_dict_benchmark = generate_dml_dict(psi_a, psi_b)
+    sensitivity_dict_benchmark["sensitivity_elements"] = {
+        "max_bias": np.ones(shape=(1, n_thetas, n_rep)),
+        "psi_max_bias": np.ones(shape=(n_obs, n_thetas, n_rep)),
+        "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
+        "nu2": 5.0,
+    }
+    msg = "The sensitivity element nu2 must be a numpy array."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLFramework(sensitivity_dict_benchmark)
+
+    sensitivity_dict_benchmark["sensitivity_elements"].update(
+        {
+            "sigma2": 5.0,
+            "nu2": np.ones(shape=(1, n_thetas, n_rep)),
+        }
+    )
+    msg = "The sensitivity element sigma2 must be a numpy array."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLFramework(sensitivity_dict_benchmark)
+
+    sensitivity_dict_benchmark["sensitivity_elements"].update(
+        {
+            "sigma2": np.ones(shape=(1, n_thetas, n_rep)),
+            "nu2": -1.0 * np.ones(shape=(1, n_thetas, n_rep)),
+        }
+    )
     msg = (
         r"sensitivity_elements sigma2 and nu2 have to be positive\. "
         r"Got sigma2 \[\[\[1\. 1\. 1\. 1\. 1\.\]\n\s+\[1\. 1\. 1\. 1\. 1\.\]\]\] "
@@ -419,9 +429,7 @@ def test_sensitivity_exceptions():
         r"Most likely this is due to low quality learners \(especially propensity scores\)\."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = dml_framework_sensitivity._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95)
-    with pytest.raises(ValueError, match=msg):
-        dml_framework_sensitivity.sensitivity_analysis(cf_y=0.1, cf_d=0.15, rho=1.0, level=0.95)
+        _ = DoubleMLFramework(sensitivity_dict_benchmark)
 
 
 @pytest.mark.ci

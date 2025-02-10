@@ -543,9 +543,11 @@ def test_doubleml_exception_weights():
             Lasso(),
             LogisticRegression(),
             weights={
-                "weights": -1
-                * np.ones(
-                    n,
+                "weights": (
+                    -1
+                    * np.ones(
+                        n,
+                    )
                 ),
                 "weights_bar": np.ones((n, 1)),
             },
@@ -1235,16 +1237,16 @@ def test_doubleml_sensitivity_inputs():
     with pytest.raises(ValueError):
         _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
 
-    # test variances
-    sensitivity_elements = dict({"sigma2": 1.0, "nu2": -2.4, "psi_sigma2": 1.0, "psi_nu2": 1.0, "riesz_rep": 1.0})
-    _ = dml_irm._set_sensitivity_elements(sensitivity_elements=sensitivity_elements, i_rep=0, i_treat=0)
-    msg = (
-        "sensitivity_elements sigma2 and nu2 have to be positive. "
-        r"Got sigma2 \[\[\[1.\]\]\] and nu2 \[\[\[-2.4\]\]\]. "
-        r"Most likely this is due to low quality learners \(especially propensity scores\)."
-    )
-    with pytest.raises(ValueError, match=msg):
-        dml_irm.sensitivity_analysis()
+
+def test_doubleml_sensitivity_reestimation_warning():
+    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm.fit()
+
+    dml_irm.sensitivity_elements["nu2"] = -1.0 * dml_irm.sensitivity_elements["nu2"]
+
+    msg = r"The estimated nu2 for d is not positive. Re-estimation based on riesz representer \(non-orthogonal\)."
+    with pytest.warns(UserWarning, match=msg):
+        dml_irm._validate_sensitivity_elements()
 
 
 def test_doubleml_sensitivity_summary():

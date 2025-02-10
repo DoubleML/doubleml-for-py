@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
 
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import (
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import (
     _check_binary_predictions,
     _check_finite_predictions,
     _check_is_propensity,
@@ -14,8 +14,9 @@ from ..utils._checks import (
     _check_trimming,
     _check_weights,
 )
-from ..utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls, _normalize_ipw, _trimm
-from ..utils.blp import DoubleMLBLP
+from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._propensity_score import _propensity_score_adjustment, _trimm
+from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLAPO(LinearScoreMixin, DoubleML):
@@ -183,7 +184,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return self._weights
 
     def _initialize_ml_nuisance_params(self):
-        valid_learner = ["ml_g0", "ml_g1", "ml_m"]
+        valid_learner = ["ml_g_d_lvl0", "ml_g_d_lvl1", "ml_m"]
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _initialize_weights(self, weights):
@@ -207,64 +208,68 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        dx = np.column_stack((d, x))
         # use the treated indicator to get the correct sample splits
-        x, treated = check_X_y(x, self.treated, force_all_finite=False)
+        treated = self.treated
 
         # get train indices for d == treatment_level
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, treated)
-        g0_external = external_predictions["ml_g0"] is not None
-        g1_external = external_predictions["ml_g1"] is not None
+        g_d_lvl0_external = external_predictions["ml_g_d_lvl0"] is not None
+        g_d_lvl1_external = external_predictions["ml_g_d_lvl1"] is not None
         m_external = external_predictions["ml_m"] is not None
 
-        # nuisance g (g0 only relevant for sensitivity analysis)
-        if g0_external:
+        # nuisance g_d_lvl1 (relevant for score as (average) counterfactuals)
+        if g_d_lvl1_external:
             # use external predictions
-            g_hat0 = {
-                "preds": external_predictions["ml_g0"],
-                "targets": _cond_targets(y, cond_sample=(treated == 0)),
-                "models": None,
-            }
-        else:
-            g_hat0 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls=smpls_d0,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g0"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-            _check_finite_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", smpls)
-            g_hat0["targets"] = _cond_targets(g_hat0["targets"], cond_sample=(treated == 0))
-
-        if self._dml_data.binary_outcome:
-            _check_binary_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
-
-        if g1_external:
-            # use external predictions
-            g_hat1 = {
-                "preds": external_predictions["ml_g1"],
+            g_hat_d_lvl1 = {
+                "preds": external_predictions["ml_g_d_lvl1"],
                 "targets": _cond_targets(y, cond_sample=(treated == 1)),
                 "models": None,
             }
         else:
-            g_hat1 = _dml_cv_predict(
+            g_hat_d_lvl1 = _dml_cv_predict(
                 self._learner["ml_g"],
                 x,
                 y,
                 smpls=smpls_d1,
                 n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g1"),
+                est_params=self._get_params("ml_g_d_lvl1"),
                 method=self._predict_method["ml_g"],
                 return_models=return_models,
             )
-            _check_finite_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", smpls)
+            _check_finite_predictions(g_hat_d_lvl1["preds"], self._learner["ml_g"], "ml_g", smpls)
             # adjust target values to consider only compatible subsamples
-            g_hat1["targets"] = _cond_targets(g_hat1["targets"], cond_sample=(treated == 1))
+            g_hat_d_lvl1["targets"] = _cond_targets(g_hat_d_lvl1["targets"], cond_sample=(treated == 1))
 
         if self._dml_data.binary_outcome:
-            _check_binary_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
+            _check_binary_predictions(g_hat_d_lvl1["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
+
+        # nuisance g (g for other treatment levels only relevant for sensitivity analysis)
+        if g_d_lvl0_external:
+            # use external predictions
+            g_hat_d_lvl0 = {
+                "preds": external_predictions["ml_g_d_lvl0"],
+                "targets": _cond_targets(y, cond_sample=(treated == 0)),
+                "models": None,
+            }
+        else:
+            g_hat_d_lvl0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                dx,  # used to obtain an estimation over several treatment levels (reduced variance in sensitivity)
+                y,
+                smpls=smpls_d0,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d_lvl0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(g_hat_d_lvl0["preds"], self._learner["ml_g"], "ml_g", smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat_d_lvl0["targets"] = _cond_targets(g_hat_d_lvl0["targets"], cond_sample=(treated == 0))
+
+        if self._dml_data.binary_outcome:
+            _check_binary_predictions(g_hat_d_lvl0["preds"], self._learner["ml_g"], "ml_g", self._dml_data.y_col)
 
         # nuisance m
         if m_external:
@@ -287,26 +292,33 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         # also trimm external predictions
         m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
-        psi_a, psi_b = self._score_elements(y, treated, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], smpls)
+        psi_a, psi_b = self._score_elements(y, treated, g_hat_d_lvl0["preds"], g_hat_d_lvl1["preds"], m_hat["preds"], smpls)
         psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
 
         preds = {
-            "predictions": {"ml_g0": g_hat0["preds"], "ml_g1": g_hat1["preds"], "ml_m": m_hat["preds"]},
-            "targets": {"ml_g0": g_hat0["targets"], "ml_g1": g_hat1["targets"], "ml_m": m_hat["targets"]},
-            "models": {"ml_g0": g_hat0["models"], "ml_g1": g_hat1["models"], "ml_m": m_hat["models"]},
+            "predictions": {
+                "ml_g_d_lvl0": g_hat_d_lvl0["preds"],
+                "ml_g_d_lvl1": g_hat_d_lvl1["preds"],
+                "ml_m": m_hat["preds"],
+            },
+            "targets": {
+                "ml_g_d_lvl0": g_hat_d_lvl0["targets"],
+                "ml_g_d_lvl1": g_hat_d_lvl1["targets"],
+                "ml_m": m_hat["targets"],
+            },
+            "models": {"ml_g_d_lvl0": g_hat_d_lvl0["models"], "ml_g_d_lvl1": g_hat_d_lvl1["models"], "ml_m": m_hat["models"]},
         }
         return psi_elements, preds
 
-    def _score_elements(self, y, treated, g_hat0, g_hat1, m_hat, smpls):
-        if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, treated)
-        else:
-            m_hat_adj = m_hat
+    def _score_elements(self, y, treated, g_hat_d_lvl0, g_hat_d_lvl1, m_hat, smpls):
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=treated, normalize_ipw=self.normalize_ipw
+        )
 
-        u_hat = y - g_hat1
+        u_hat = y - g_hat_d_lvl1
         weights, weights_bar = self._get_weights()
-        psi_b = weights * g_hat1 + weights_bar * np.divide(np.multiply(treated, u_hat), m_hat_adj)
-        psi_a = np.full_like(m_hat_adj, -1.0)
+        psi_b = weights * g_hat_d_lvl1 + weights_bar * np.divide(np.multiply(treated, u_hat), m_hat_adj)
+        psi_a = -1.0 * np.divide(weights, np.mean(weights))  # TODO: check if this is correct
 
         return psi_a, psi_b
 
@@ -316,18 +328,21 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         treated = self.treated
 
         m_hat = preds["predictions"]["ml_m"]
-        g_hat0 = preds["predictions"]["ml_g0"]
-        g_hat1 = preds["predictions"]["ml_g1"]
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=treated, normalize_ipw=self.normalize_ipw
+        )
+        g_hat_d_lvl0 = preds["predictions"]["ml_g_d_lvl0"]
+        g_hat_d_lvl1 = preds["predictions"]["ml_g_d_lvl1"]
 
         weights, weights_bar = self._get_weights()
 
-        sigma2_score_element = np.square(y - np.multiply(treated, g_hat1) - np.multiply(1.0 - treated, g_hat0))
+        sigma2_score_element = np.square(y - np.multiply(treated, g_hat_d_lvl1) - np.multiply(1.0 - treated, g_hat_d_lvl0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
-        rr = np.multiply(weights_bar, np.divide(treated, m_hat))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat_adj)))
+        rr = np.multiply(weights_bar, np.divide(treated, m_hat_adj))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
@@ -346,7 +361,11 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, treated = check_X_y(x, self.treated, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        dx = np.column_stack((d, x))
+        # use the treated indicator to get the correct sample splits
+        treated = self.treated
+
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, treated)
 
@@ -354,12 +373,12 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             scoring_methods = {"ml_g": None, "ml_m": None}
 
         train_inds = [train_index for (train_index, _) in smpls]
-        train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
-        train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
-        g0_tune_res = _dml_tune(
+        train_inds_d_lvl0 = [train_index for (train_index, _) in smpls_d0]
+        train_inds_d_lvl1 = [train_index for (train_index, _) in smpls_d1]
+        g_d_lvl0_tune_res = _dml_tune(
             y,
-            x,
-            train_inds_d0,
+            dx,  # used to obtain an estimation over several treatment levels (reduced variance in sensitivity)
+            train_inds_d_lvl0,
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
@@ -368,10 +387,10 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
         )
-        g1_tune_res = _dml_tune(
+        g_d_lvl1_tune_res = _dml_tune(
             y,
             x,
-            train_inds_d1,
+            train_inds_d_lvl1,
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
@@ -394,12 +413,12 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_iter_randomized_search,
         )
 
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        g_d_lvl0_best_params = [xx.best_params_ for xx in g_d_lvl0_tune_res]
+        g_d_lvl1_best_params = [xx.best_params_ for xx in g_d_lvl1_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]
 
-        params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
-        tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
+        params = {"ml_g_d_lvl0": g_d_lvl0_best_params, "ml_g_d_lvl1": g_d_lvl1_best_params, "ml_m": m_best_params}
+        tune_res = {"g_d_lvl0_tune": g_d_lvl0_tune_res, "g_d_lvl1_tune": g_d_lvl1_tune_res, "m_tune": m_tune_res}
 
         res = {"params": params, "tune_res": tune_res}
 

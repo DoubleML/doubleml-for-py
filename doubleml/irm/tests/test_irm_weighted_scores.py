@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.utils._estimation import _normalize_ipw
+from doubleml.utils._propensity_score import _normalize_ipw
 
 
 def old_score_elements(y, d, g_hat0, g_hat1, m_hat, score, normalize_ipw):

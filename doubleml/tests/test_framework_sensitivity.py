@@ -64,8 +64,8 @@ def test_dml_framework_sensitivity_shapes(dml_framework_sensitivity_fixture):
         "dml_framework_obj_sub_obj",
         "dml_framework_obj_mul_obj",
     ]
-    var_keys = ["sigma2", "nu2"]
-    score_keys = ["psi_sigma2", "psi_nu2", "riesz_rep"]
+    var_keys = ["max_bias"]
+    score_keys = ["psi_max_bias"]
 
     for obj in object_list:
         assert dml_framework_sensitivity_fixture[obj]._sensitivity_implemented

@@ -5,10 +5,10 @@ import pandas as pd
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLData
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import (
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_data import DoubleMLData
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import (
     _check_binary_predictions,
     _check_finite_predictions,
     _check_integer,
@@ -17,9 +17,10 @@ from ..utils._checks import (
     _check_trimming,
     _check_weights,
 )
-from ..utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls, _normalize_ipw, _trimm
-from ..utils.blp import DoubleMLBLP
-from ..utils.policytree import DoubleMLPolicyTree
+from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._propensity_score import _propensity_score_adjustment, _trimm
+from doubleml.utils.blp import DoubleMLBLP
+from doubleml.utils.policytree import DoubleMLPolicyTree
 
 
 class DoubleMLIRM(LinearScoreMixin, DoubleML):
@@ -340,10 +341,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
-        if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, d)
-        else:
-            m_hat_adj = m_hat
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
+        )
 
         # compute residuals
         u_hat0 = y - g_hat0
@@ -355,7 +355,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
                 np.divide(np.multiply(d, u_hat1), m_hat_adj) - np.divide(np.multiply(1.0 - d, u_hat0), 1.0 - m_hat_adj)
             )
             if self.score == "ATE":
-                psi_a = np.full_like(m_hat_adj, -1.0)
+                psi_a = -1.0 * np.divide(weights, np.mean(weights))  # TODO: check if this is correct
             else:
                 assert self.score == "ATTE"
                 psi_a = -1.0 * weights
@@ -371,19 +371,22 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
 
         m_hat = preds["predictions"]["ml_m"]
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
+        )
         g_hat0 = preds["predictions"]["ml_g0"]
         g_hat1 = preds["predictions"]["ml_g1"]
 
         # use weights make this extendable
-        weights, weights_bar = self._get_weights(m_hat=m_hat)
+        weights, weights_bar = self._get_weights(m_hat=m_hat_adj)
 
         sigma2_score_element = np.square(y - np.multiply(d, g_hat1) - np.multiply(1.0 - d, g_hat0))
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat) + np.divide(1.0, 1.0 - m_hat))))
-        rr = np.multiply(weights_bar, (np.divide(d, m_hat) - np.divide(1.0 - d, 1.0 - m_hat)))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, (np.divide(1.0, m_hat_adj) + np.divide(1.0, 1.0 - m_hat_adj))))
+        rr = np.multiply(weights_bar, (np.divide(d, m_hat_adj) - np.divide(1.0 - d, 1.0 - m_hat_adj)))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
