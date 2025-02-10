@@ -166,7 +166,14 @@ def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level)
     # sensitivity tests
     res_dict["sensitivity_elements"] = dml_obj.sensitivity_elements
     res_dict["sensitivity_elements_manual"] = fit_sensitivity_elements_apo(
-        y, d, treatment_level, all_coef=dml_obj.all_coef, predictions=dml_obj.predictions, score="APO", n_rep=1
+        y,
+        d,
+        treatment_level,
+        all_coef=dml_obj.all_coef,
+        predictions=dml_obj.predictions,
+        score="APO",
+        n_rep=1,
+        normalize_ipw=normalize_ipw,
     )
     return res_dict
 

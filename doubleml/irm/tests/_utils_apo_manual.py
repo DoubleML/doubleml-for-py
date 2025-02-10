@@ -212,7 +212,7 @@ def boot_apo_single_split(
     return boot_t_stat
 
 
-def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, score, n_rep):
+def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, score, n_rep, normalize_ipw):
     n_treat = 1
     n_obs = len(y)
     treated = d == treatment_level
@@ -224,6 +224,10 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
 
     for i_rep in range(n_rep):
         m_hat = predictions["ml_m"][:, i_rep, 0]
+        if normalize_ipw:
+            m_hat_adj = _normalize_ipw(m_hat, treated)
+        else:
+            m_hat_adj = m_hat
         g_hat0 = predictions["ml_g_d_lvl0"][:, i_rep, 0]
         g_hat1 = predictions["ml_g_d_lvl1"][:, i_rep, 0]
 
@@ -235,8 +239,8 @@ def fit_sensitivity_elements_apo(y, d, treatment_level, all_coef, predictions, s
         psi_sigma2[:, i_rep, 0] = sigma2_score_element - sigma2[0, i_rep, 0]
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
-        rr = np.multiply(weights_bar, np.divide(treated, m_hat))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat_adj)))
+        rr = np.multiply(weights_bar, np.divide(treated, m_hat_adj))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2[0, i_rep, 0] = np.mean(nu2_score_element)

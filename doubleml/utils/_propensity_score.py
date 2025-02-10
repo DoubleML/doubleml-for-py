@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def _propensity_score_adjustments(propensity_score, treatment_indicator, normalize_ipw):
+def _propensity_score_adjustment(propensity_score, treatment_indicator, normalize_ipw):
     """Adjust propensity score."""
     if normalize_ipw:
         adjusted_propensity_score = _normalize_ipw(propensity_score=propensity_score, treatment_indicator=treatment_indicator)

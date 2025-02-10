@@ -15,7 +15,7 @@ from doubleml.utils._checks import (
     _check_weights,
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
-from doubleml.utils._propensity_score import _normalize_ipw, _trimm
+from doubleml.utils._propensity_score import _propensity_score_adjustment, _trimm
 from doubleml.utils.blp import DoubleMLBLP
 
 
@@ -311,10 +311,9 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, treated, g_hat_d_lvl0, g_hat_d_lvl1, m_hat, smpls):
-        if self.normalize_ipw:
-            m_hat_adj = _normalize_ipw(m_hat, treated)
-        else:
-            m_hat_adj = m_hat
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=treated, normalize_ipw=self.normalize_ipw
+        )
 
         u_hat = y - g_hat_d_lvl1
         weights, weights_bar = self._get_weights()
@@ -329,6 +328,9 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         treated = self.treated
 
         m_hat = preds["predictions"]["ml_m"]
+        m_hat_adj = _propensity_score_adjustment(
+            propensity_score=m_hat, treatment_indicator=treated, normalize_ipw=self.normalize_ipw
+        )
         g_hat_d_lvl0 = preds["predictions"]["ml_g_d_lvl0"]
         g_hat_d_lvl1 = preds["predictions"]["ml_g_d_lvl1"]
 
@@ -339,8 +341,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
-        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat)))
-        rr = np.multiply(weights_bar, np.divide(treated, m_hat))
+        m_alpha = np.multiply(weights, np.multiply(weights_bar, np.divide(1.0, m_hat_adj)))
+        rr = np.multiply(weights_bar, np.divide(treated, m_hat_adj))
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)

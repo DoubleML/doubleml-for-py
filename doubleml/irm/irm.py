@@ -18,7 +18,7 @@ from doubleml.utils._checks import (
     _check_weights,
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
-from doubleml.utils._propensity_score import _propensity_score_adjustments, _trimm
+from doubleml.utils._propensity_score import _propensity_score_adjustment, _trimm
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.policytree import DoubleMLPolicyTree
 
@@ -341,7 +341,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, smpls):
-        m_hat_adj = _propensity_score_adjustments(
+        m_hat_adj = _propensity_score_adjustment(
             propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
         )
 
@@ -371,7 +371,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         d = self._dml_data.d
 
         m_hat = preds["predictions"]["ml_m"]
-        m_hat_adj = _propensity_score_adjustments(
+        m_hat_adj = _propensity_score_adjustment(
             propensity_score=m_hat, treatment_indicator=d, normalize_ipw=self.normalize_ipw
         )
         g_hat0 = preds["predictions"]["ml_g0"]

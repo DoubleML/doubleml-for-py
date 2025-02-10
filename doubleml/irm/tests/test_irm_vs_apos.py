@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._propensity_score import _propensity_score_adjustment
 
 
 @pytest.fixture(
@@ -193,9 +193,10 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
     # define weights
     p_hat = np.mean(d)
     m_hat_adjusted = copy.deepcopy(m_hat)
-    if normalize_ipw:
-        for i_rep in range(n_rep):
-            m_hat_adjusted[:, i_rep] = _normalize_ipw(m_hat[:, i_rep], d)
+    for i_rep in range(n_rep):
+        m_hat_adjusted[:, i_rep] = _propensity_score_adjustment(
+            propensity_score=m_hat[:, i_rep], treatment_indicator=d, normalize_ipw=normalize_ipw
+        )
     weights_dict = {
         "weights": d / p_hat,
         "weights_bar": m_hat_adjusted / p_hat,
@@ -312,19 +313,19 @@ def test_apos_vs_irm_weighted_confint(dml_irm_apos_weighted_fixture):
 @pytest.mark.ci
 def test_apos_vs_irm_weighted_sensitivity(dml_irm_apos_weighted_fixture):
     # TODO: Include after normalize_ipw rework, see Issue https://github.com/DoubleML/doubleml-for-py/issues/296
-    # params_irm = dml_irm_apos_weighted_fixture["dml_irm"].sensitivity_params
+    params_irm = dml_irm_apos_weighted_fixture["dml_irm"].sensitivity_params
     params_irm_weighted = dml_irm_apos_weighted_fixture["dml_irm_weighted"].sensitivity_params
     params_causal_contrast = dml_irm_apos_weighted_fixture["causal_contrast"].sensitivity_params
 
     for key in ["theta", "se", "ci"]:
         for boundary in ["upper", "lower"]:
             # TODO: Include after normalize_ipw rework, see Issue https://github.com/DoubleML/doubleml-for-py/issues/296
-            # assert np.allclose(
-            #     params_irm[key][boundary],
-            #     params_irm_weighted[key][boundary],
-            #     rtol=1e-9,
-            #     atol=1e-4,
-            # )
+            assert np.allclose(
+                params_irm[key][boundary],
+                params_irm_weighted[key][boundary],
+                rtol=1e-9,
+                atol=1e-4,
+            )
 
             assert np.allclose(
                 params_irm_weighted[key][boundary],
@@ -335,12 +336,12 @@ def test_apos_vs_irm_weighted_sensitivity(dml_irm_apos_weighted_fixture):
 
     for key in ["rv", "rva"]:
         # TODO: Include after normalize_ipw rework, see Issue https://github.com/DoubleML/doubleml-for-py/issues/296
-        # assert np.allclose(
-        #     params_irm[key],
-        #     params_irm_weighted[key],
-        #     rtol=1e-9,
-        #     atol=1e-4,
-        # )
+        assert np.allclose(
+            params_irm[key],
+            params_irm_weighted[key],
+            rtol=1e-9,
+            atol=1e-4,
+        )
 
         assert np.allclose(
             params_irm_weighted[key],
