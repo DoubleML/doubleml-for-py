@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import check_X_y
 
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import (
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import (
     _check_binary_predictions,
     _check_finite_predictions,
     _check_is_propensity,
@@ -14,8 +14,9 @@ from ..utils._checks import (
     _check_trimming,
     _check_weights,
 )
-from ..utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls, _normalize_ipw, _trimm
-from ..utils.blp import DoubleMLBLP
+from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._propensity_score import _normalize_ipw, _trimm
+from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLAPO(LinearScoreMixin, DoubleML):

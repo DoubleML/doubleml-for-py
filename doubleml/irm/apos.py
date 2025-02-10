@@ -6,15 +6,15 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLClusterData, DoubleMLData
-from ..double_ml_framework import concat
-from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
-from ..utils._descriptive import generate_summary
-from ..utils._sensitivity import _compute_sensitivity_bias
-from ..utils.gain_statistics import gain_statistics
-from ..utils.resampling import DoubleMLResampling
-from .apo import DoubleMLAPO
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_data import DoubleMLClusterData, DoubleMLData
+from doubleml.double_ml_framework import concat
+from doubleml.irm.apo import DoubleMLAPO
+from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
+from doubleml.utils._descriptive import generate_summary
+from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils.gain_statistics import gain_statistics
+from doubleml.utils.resampling import DoubleMLResampling
 
 
 class DoubleMLAPOS:

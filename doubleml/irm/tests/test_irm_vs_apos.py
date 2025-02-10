@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.utils._estimation import _normalize_ipw
+from doubleml.utils._propensity_score import _normalize_ipw
 
 
 @pytest.fixture(
