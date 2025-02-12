@@ -242,12 +242,9 @@ class DoubleMLClusterData(DoubleMLData):
         return self._cluster_vars.values
 
     def _get_optional_col_sets(self):
+        base_optional_col_sets = super()._get_optional_col_sets()
         cluster_cols_set = set(self.cluster_cols)
-        z_cols_set = set(self.z_cols or [])
-        t_col_set = {self.t_col} if self.t_col else set()
-        s_col_set = {self.s_col} if self.s_col else set()
-
-        return [cluster_cols_set, z_cols_set, t_col_set, s_col_set]
+        return [cluster_cols_set] + base_optional_col_sets
 
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class

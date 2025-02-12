@@ -252,6 +252,11 @@ class DoubleMLPanelData(DoubleMLData):
             # this call might become much easier with https://github.com/python/cpython/pull/26194
             super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
 
+    def _get_optional_col_sets(self):
+        base_optional_col_sets = super()._get_optional_col_sets()
+        id_col_set = {self.id_col}
+        return [id_col_set] + base_optional_col_sets
+
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class
         super(DoubleMLPanelData, self)._check_disjoint_sets()
