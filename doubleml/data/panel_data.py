@@ -21,13 +21,13 @@ class DoubleMLPanelData(DoubleMLData):
     d_cols : str or list
         The treatment variable(s) indicating the treatment groups in terms of first time of treatment exposure.
 
-    t_col : None or str
-        The time variable (only relevant/used for DiD Estimators).
-        # TODO: Check defaults for panel data setting
+    t_col : str
+        The time variable.
+        # TODO: Extend docstring
 
-    id_col : None or str
-        The id variable (only relevant/used for DiD estimators).
-        # TODO: Check defaults for panel data setting
+    id_col : str
+        The id variable.
+        # TODO: Extend docstring
 
     x_cols : None, str or list
         The covariates.
@@ -87,6 +87,10 @@ class DoubleMLPanelData(DoubleMLData):
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
         )
+        # TODO: Do we want to allow for multiple treatment columns (for multiple treatments? -> implications for g_col)
+        if self.n_treat != 1:
+            raise ValueError("Only one treatment column is allowed for panel data.")
+
         self._check_disjoint_sets_id_col()
 
     def __str__(self):
@@ -109,13 +113,9 @@ class DoubleMLPanelData(DoubleMLData):
             f"Treatment variable(s): {self.d_cols}\n"
             f"Covariates: {self.x_cols}\n"
             f"Instrument variable(s): {self.z_cols}\n"
+            f"Time variable: {self.t_col}\n"
+            f"Id variable: {self.id_col}\n"
         )
-        if self.t_col is not None:
-            data_summary += f"Time variable: {self.t_col}\n"
-        if self.id_col is not None:
-            data_summary += f"Id variable: {self.id_col}\n"
-        if self.s_col is not None:
-            data_summary += f"Selection variable: {self.s_col}\n"
 
         data_summary += f"No. Observations: {self.n_obs}\n"
         return data_summary
@@ -131,13 +131,6 @@ class DoubleMLPanelData(DoubleMLData):
         The id variable.
         """
         return self._id_col
-
-    @property
-    def g_col(self):
-        """
-        The treatment variable indicating the time of treatment exposure.
-        """
-        return self._d_cols[0]
 
     @id_col.setter
     def id_col(self, value):
@@ -175,17 +168,26 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The number of observations. For panel data, the number of unique values for id_col.
         """
-        if self.id_col is not None:
-            return len(np.unique(self.id_var))
-        else:
-            return self.data.shape[0]
+        return len(self._id_var_unique)
 
     @property
-    def n_t_periods(self):
+    def g_col(self):
         """
-        The number of time periods.
+        The treatment variable indicating the time of treatment exposure.
         """
-        return len(self.t_values)
+        return self._d_cols[0]
+
+    @DoubleMLData.x_cols.setter
+    def d_cols(self, value):
+        super(self.__class__, self.__class__).d_cols.__set__(self, value)
+        self._g_values = np.unique(self.d)  # update unique values of g
+
+    @property
+    def g_values(self):
+        """
+        The unique values of the treatment variable (groups) ``d``.
+        """
+        return self._g_values
 
     @property
     def n_groups(self):
@@ -194,19 +196,24 @@ class DoubleMLPanelData(DoubleMLData):
         """
         return len(self.g_values)
 
-    @property
-    def g_values(self):
-        """
-        The unique values of the treatment variable (groups) ``d``.
-        """
-        return np.unique(self.d)
+    @DoubleMLData.t_col.setter
+    def t_col(self, value):
+        super(self.__class__, self.__class__).t_col.__set__(self, value)
+        self._t_values = np.unique(self.t)  # update unique values of t
 
     @property
     def t_values(self):
         """
         The unique values of the time variable ``t``.
         """
-        return np.unique(self.t)
+        return self._t_values
+
+    @property
+    def n_t_periods(self):
+        """
+        The number of time periods.
+        """
+        return len(self.t_values)
 
     @DoubleMLData.x_cols.setter
     def x_cols(self, value):
@@ -254,41 +261,32 @@ class DoubleMLPanelData(DoubleMLData):
         # apply the standard checks from the DoubleMLData class
         super(DoubleMLPanelData, self)._check_disjoint_sets()
 
-        # special checks for the additional cluster variables
-        id_col_set = set(self.id_col)
+        # special checks for the additional id variable (and the time variable)
+        id_col_set = {self.id_col}
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
-        t_col_set = {self.t_col}
-        s_col_set = {self.s_col}
 
-        if not y_col_set.isdisjoint(id_col_set):
-            raise ValueError(
-                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and id " "variable in ``id_col``."
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col}  # t_col is not None for panel data
+        # s_col not tested as not relevant for panel data
+
+        id_col_check_args = [
+            (y_col_set, "outcome variable", "``y_col``"),
+            (d_cols_set, "treatment variable", "``d_cols``"),
+            (x_cols_set, "covariate", "``x_cols``"),
+            (z_cols_set, "instrumental variable", "``z_cols``"),
+            (t_col_set, "time variable", "``t_col``"),
+        ]
+        for set1, name, argument in id_col_check_args:
+            self._check_disjoint(
+                set1=set1,
+                name1=name,
+                arg1=argument,
+                set2=id_col_set,
+                name2="identifier variable",
+                arg2="``id_col``",
             )
-        if not d_cols_set.isdisjoint(id_col_set):
-            raise ValueError(
-                "At least one variable/column is set as treatment variable (``d_cols``) and " "id variable in ``id_col``."
-            )
-        if not x_cols_set.isdisjoint(id_col_set):
-            raise ValueError("At least one variable/column is set as covariate (``x_cols``) and id " "variable in ``id_col``.")
-        if self.z_cols is not None:
-            z_cols_set = set(self.z_cols)
-            if not z_cols_set.isdisjoint(id_col_set):
-                raise ValueError(
-                    "At least one variable/column is set as instrumental variable (``z_cols``) and "
-                    "id variable in ``id_col``."
-                )
-        if self.t_col is not None:
-            if not t_col_set.isdisjoint(id_col_set):
-                raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and " "id variable in ``id_col``."
-                )
-        if self.s_col is not None:
-            if not s_col_set.isdisjoint(id_col_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as selection variable ``s_col`` and " "id variable in ``id_col``."
-                )
 
     def _set_id_var(self):
         assert_all_finite(self.data.loc[:, self.id_col])
