@@ -215,43 +215,6 @@ class DoubleMLPanelData(DoubleMLData):
         """
         return len(self.t_values)
 
-    @DoubleMLData.x_cols.setter
-    def x_cols(self, value):
-        if value is not None:
-            # this call might become much easier with https://github.com/python/cpython/pull/26194
-            super(self.__class__, self.__class__).x_cols.__set__(self, value)
-        else:
-            if self.s_col is None:
-                if (self.z_cols is not None) & (self.t_col is not None):
-                    y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_t]
-                elif self.z_cols is not None:
-                    y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z]
-                elif self.t_col is not None:
-                    y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col}, set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_t]
-                else:
-                    y_d = set.union({self.y_col}, set(self.d_cols), set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d]
-            else:
-                if (self.z_cols is not None) & (self.t_col is not None):
-                    y_d_z_t_s = set.union(
-                        {self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, {self.s_col}, set(self.id_col)
-                    )
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_t_s]
-                elif self.z_cols is not None:
-                    y_d_z_s = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.s_col}, set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_s]
-                elif self.t_col is not None:
-                    y_d_t_s = set.union({self.y_col}, set(self.d_cols), {self.t_col}, {self.s_col}, set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_t_s]
-                else:
-                    y_d_s = set.union({self.y_col}, set(self.d_cols), {self.s_col}, set(self.id_col))
-                    x_cols = [col for col in self.data.columns if col not in y_d_s]
-            # this call might become much easier with https://github.com/python/cpython/pull/26194
-            super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
-
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
         id_col_set = {self.id_col}
