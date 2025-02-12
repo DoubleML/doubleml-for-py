@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import pytest
 
 from doubleml.data import DoubleMLPanelData
@@ -19,12 +18,7 @@ def test_t_col_setter():
     df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
     df["t_new"] = 1.0
     dml_data = DoubleMLPanelData(
-        data=df,
-        y_col="y",
-        d_cols="d",
-        t_col="t",
-        id_col="id",
-        x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
     )
 
     # check that after changing t_col, the t array gets updated
