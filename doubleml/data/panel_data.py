@@ -21,29 +21,23 @@ class DoubleMLPanelData(DoubleMLData):
     d_cols : str or list
         The treatment variable(s) indicating the treatment groups in terms of first time of treatment exposure.
 
+    t_col : None or str
+        The time variable (only relevant/used for DiD Estimators).
+        # TODO: Check defaults for panel data setting
+
+    id_col : None or str
+        The id variable (only relevant/used for DiD estimators).
+        # TODO: Check defaults for panel data setting
+
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
         treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
         Default is ``None``.
 
-    t_col : None or str
-        The time variable (only relevant/used for DiD Estimators).
-        Default is ``None``.
-        # TODO: Check defaults for panel data setting
-
     z_cols : None, str or list
         The instrumental variable(s).
         Default is ``None``.
-
-    s_col : None or str
-        The selection variable (only relevant/used for SSM Estimatiors).
-        Default is ``None``.
-
-    id_col : None or str
-        The id variable (only relevant/used for DiD estimators).
-        Default is ``None``.
-        # TODO: Check defaults for panel data setting
 
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
@@ -68,11 +62,10 @@ class DoubleMLPanelData(DoubleMLData):
         data,
         y_col,
         d_cols,
+        t_col,
+        id_col,
         x_cols=None,
         z_cols=None,
-        t_col=None,
-        s_col=None,
-        id_col=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
     ):
@@ -83,7 +76,16 @@ class DoubleMLPanelData(DoubleMLData):
         self._set_id_var()
 
         DoubleMLData.__init__(
-            self, data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite
+            self,
+            data=data,
+            y_col=y_col,
+            d_cols=d_cols,
+            x_cols=x_cols,
+            z_cols=z_cols,
+            t_col=t_col,
+            s_col=None,
+            use_other_treat_as_covariate=use_other_treat_as_covariate,
+            force_all_x_finite=force_all_x_finite,
         )
         self._check_disjoint_sets_id_col()
 
