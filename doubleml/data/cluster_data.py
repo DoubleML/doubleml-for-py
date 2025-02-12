@@ -292,41 +292,29 @@ class DoubleMLClusterData(DoubleMLData):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
-        t_col_set = {self.t_col}
-        s_col_set = {self.s_col}
 
-        if not y_col_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``."
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
+
+        # TODO: X can not be used as cluster variable
+        cluster_checks_args = [
+            (y_col_set, "outcome variable", "``y_col``"),
+            (d_cols_set, "treatment variable", "``d_cols``"),
+            (x_cols_set, "covariate", "``x_cols``"),
+            (z_cols_set, "instrumental variable", "``z_cols``"),
+            (t_col_set, "time variable", "``t_col``"),
+            (s_col_set, "score or selection variable", "``s_col``"),
+        ]
+        for set1, name, argument in cluster_checks_args:
+            self._check_disjoint(
+                set1=set1,
+                name1=name,
+                arg1=argument,
+                set2=cluster_cols_set,
+                name2="cluster variable(s)",
+                arg2="``cluster_cols``",
             )
-        if not d_cols_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                "At least one variable/column is set as treatment variable (``d_cols``) and "
-                "cluster variable in ``cluster_cols``."
-            )
-        # TODO: Is the following combination allowed, or not?
-        if not x_cols_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                "At least one variable/column is set as covariate (``x_cols``) and cluster variable in ``cluster_cols``."
-            )
-        if self.z_cols is not None:
-            z_cols_set = set(self.z_cols)
-            if not z_cols_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    "At least one variable/column is set as instrumental variable (``z_cols``) and "
-                    "cluster variable in ``cluster_cols``."
-                )
-        if self.t_col is not None:
-            if not t_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``."
-                )
-        if self.s_col is not None:
-            if not s_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and "
-                    "cluster variable in ``cluster_cols``."
-                )
 
     def _set_cluster_vars(self):
         assert_all_finite(self.data.loc[:, self.cluster_cols])

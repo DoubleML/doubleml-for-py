@@ -608,28 +608,42 @@ def test_disjoint_sets():
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", s_col="tt")
 
     # cluster data
-    msg = "yy cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``"
+    msg = (
+        r"At least one variable/column is set as outcome variable \(``y_col``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="yy")
     msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) and cluster variable in "
-        "``cluster_cols``."
+        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="dd1")
-    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and cluster variable in " "``cluster_cols``."
+    msg = (
+        r"At least one variable/column is set as covariate \(``x_cols``\) " r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="xx2")
+
     msg = (
-        r"At least one variable/column is set as instrumental variable \(``z_cols``\) and cluster variable in "
-        "``cluster_cols``."
+        r"At least one variable/column is set as instrumental variable \(``z_cols``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], z_cols=["xx2"], cluster_cols="xx2")
-    msg = "xx2 cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``."
+
+    msg = (
+        r"At least one variable/column is set as time variable \(``t_col``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], t_col="xx2", cluster_cols="xx2")
-    msg = "xx2 cannot be set as score or selection variable ``s_col`` and cluster variable in ``cluster_cols``."
+
+    msg = (
+        r"At least one variable/column is set as score or selection variable \(``s_col``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLClusterData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], s_col="xx2", cluster_cols="xx2")
 
