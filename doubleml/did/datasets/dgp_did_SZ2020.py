@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.linalg import toeplitz
 
 from ...data.base_data import DoubleMLData
+from ...data.panel_data import DoubleMLPanelData
 from ...utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_data_alias
 
 _array_alias = _get_array_alias()
@@ -187,6 +188,21 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
                 return data
             else:
                 return DoubleMLData(data, "y", "d", z_cols)
+        elif return_type == "DoubleMLPanelData":
+            z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
+            df0 = (
+                pd.DataFrame(np.column_stack((y0, np.zeros_like(y0), np.zeros_like(y0), z)), columns=["y", "d", "t"] + z_cols)
+                .reset_index()
+                .rename(columns={"index": "id"})
+            )
+            df1 = (
+                pd.DataFrame(np.column_stack((y1, d, np.ones_like(y0), z)), columns=["y", "d", "t"] + z_cols)
+                .reset_index()
+                .rename(columns={"index": "id"})
+            )
+            df = pd.concat([df0, df1], axis=0)
+
+            return DoubleMLPanelData(df, "y", "d", t_col="t", id_col="id", x_cols=z_cols)
         else:
             raise ValueError("Invalid return_type.")
 
