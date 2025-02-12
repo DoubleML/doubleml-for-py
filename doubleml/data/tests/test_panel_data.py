@@ -37,5 +37,34 @@ def test_t_col_setter():
         dml_data.t_col = 5
 
     msg = "Invalid time variable t_col. Time variable required for panel data."
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         dml_data.t_col = None
+
+
+@pytest.mark.ci
+def test_id_col_setter():
+    np.random.seed(3141)
+    df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
+    df["id_new"] = 1.0
+    dml_data = DoubleMLPanelData(
+        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+    )
+
+    # check that after changing id_col, the id array etc. gets updated
+    id_comp = dml_data.data["id_new"].values
+    dml_data.id_col = "id_new"
+    assert np.array_equal(dml_data.id_var, id_comp)
+    assert dml_data._id_var_unique == np.unique(id_comp)
+    assert dml_data.n_obs == 1
+
+    msg = r"Invalid id variable id_col. a13 is no data column."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.id_col = "a13"
+
+    msg = r"The id variable id_col must be of str type. " "5 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_data.id_col = 5
+
+    msg = "The id variable id_col must be of str type. None of type <class 'NoneType'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_data.id_col = None

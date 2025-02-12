@@ -139,16 +139,13 @@ class DoubleMLPanelData(DoubleMLData):
     @id_col.setter
     def id_col(self, value):
         reset_value = hasattr(self, "_id_col")
-        if value is not None:
-            if not isinstance(value, str):
-                raise TypeError(
-                    "The id variable id_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
-                )
-            if value not in self.all_variables:
-                raise ValueError("Invalid id variable id_col. " f"{value} is no data column.")
-            self._id_col = value
-        else:
-            self._id_col = None
+        if not isinstance(value, str):
+            raise TypeError(
+                "The id variable id_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
+            )
+        if value not in self.all_variables:
+            raise ValueError("Invalid id variable id_col. " f"{value} is no data column.")
+        self._id_col = value
         if reset_value:
             self._check_disjoint_sets()
             self._set_id_var()
@@ -204,7 +201,7 @@ class DoubleMLPanelData(DoubleMLData):
     @DoubleMLData.t_col.setter
     def t_col(self, value):
         if value is None:
-            raise ValueError("Invalid time variable t_col. Time variable required for panel data.")
+            raise TypeError("Invalid time variable t_col. Time variable required for panel data.")
         super(self.__class__, self.__class__).t_col.__set__(self, value)
         if hasattr(self, "_t_values"):
             self._t_values = np.unique(self.t)  # update unique values of t
