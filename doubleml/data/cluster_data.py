@@ -278,6 +278,14 @@ class DoubleMLClusterData(DoubleMLData):
             # this call might become much easier with https://github.com/python/cpython/pull/26194
             super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
 
+    def _get_optional_col_sets(self):
+        cluster_cols_set = set(self.cluster_cols)
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
+
+        return [cluster_cols_set, z_cols_set, t_col_set, s_col_set]
+
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class
         super(DoubleMLClusterData, self)._check_disjoint_sets()

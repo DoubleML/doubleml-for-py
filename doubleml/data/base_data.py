@@ -7,7 +7,6 @@ from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_array, check_consistent_length, column_or_1d
 
-from doubleml.utils._checks import _check_set
 from doubleml.utils._estimation import _assure_2d_array
 
 
@@ -431,14 +430,14 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError("Invalid covariates x_cols. At least one covariate is no data column.")
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
+
         else:
-            excluded_cols = set.union({self.y_col}, set(self.d_cols))
-            if self.z_cols is not None:
-                excluded_cols = set.union(excluded_cols, set(self.z_cols))
-            for col in [self.t_col, self.s_col]:
-                col = _check_set(col)
-                excluded_cols = set.union(excluded_cols, col)
+            excluded_cols = {self.y_col} | set(self.d_cols)
+            optional_col_sets = self._get_optional_col_sets()
+            for optional_col_set in optional_col_sets:
+                excluded_cols |= optional_col_set
             self._x_cols = [col for col in self.data.columns if col not in excluded_cols]
+
         if reset_value:
             self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
@@ -651,6 +650,14 @@ class DoubleMLData(DoubleMLBaseData):
             assert_all_finite(self.data.loc[:, xd_list], allow_nan=self.force_all_x_finite == "allow-nan")
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
+
+    def _get_optional_col_sets(self):
+        # this function can be extended in inherited subclasses
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
+
+        return [z_cols_set, t_col_set, s_col_set]
 
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
