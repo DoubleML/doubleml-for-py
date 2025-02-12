@@ -686,8 +686,9 @@ class DoubleMLData(DoubleMLBaseData):
     def _check_disjoint_sets(self):
         # this function can be extended in inherited subclasses
         self._check_disjoint_sets_y_d_x()
+        self._check_disjoint_sets_z_t_s()
         # TODO: Clean this up, it is a mess
-        self._check_disjoint_sets_y_d_x_z_t_s()
+        # self._check_disjoint_sets_y_d_x_z_t_s()
 
     def _check_disjoint_sets_y_d_x(self):
         y_col_set = {self.y_col}
@@ -706,6 +707,70 @@ class DoubleMLData(DoubleMLBaseData):
             raise ValueError(
                 "At least one variable/column is set as treatment variable (``d_cols``) and as covariate"
                 "(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``."
+            )
+
+    def _check_disjoint_sets_z_t_s(self):
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
+
+        if not y_col_set.isdisjoint(z_cols_set):
+            raise ValueError(
+                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and instrumental variable in ``z_cols``."
+            )
+        if not d_cols_set.isdisjoint(z_cols_set):
+            raise ValueError(
+                "At least one variable/column is set as treatment variable (``d_cols``) and "
+                "instrumental variable in ``z_cols``."
+            )
+        if not x_cols_set.isdisjoint(z_cols_set):
+            raise ValueError(
+                "At least one variable/column is set as covariate (``x_cols``) and instrumental variable in ``z_cols``."
+            )
+
+        if not t_col_set.isdisjoint(x_cols_set):
+            raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in ``x_cols``.")
+        if not t_col_set.isdisjoint(d_cols_set):
+            raise ValueError(
+                f"{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in ``d_cols``."
+            )
+        if not t_col_set.isdisjoint(y_col_set):
+            raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable ``y_col``.")
+        if self.z_cols is not None:
+            z_cols_set = set(self.z_cols)
+            if not t_col_set.isdisjoint(z_cols_set):
+                raise ValueError(
+                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``."
+                )
+
+        if not s_col_set.isdisjoint(x_cols_set):
+            raise ValueError(
+                f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and covariate in ``x_cols``."
+            )
+        if not s_col_set.isdisjoint(d_cols_set):
+            raise ValueError(
+                f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and treatment "
+                "variable in ``d_cols``."
+            )
+        if not s_col_set.isdisjoint(y_col_set):
+            raise ValueError(
+                f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and outcome variable ``y_col``."
+            )
+
+        if not s_col_set.isdisjoint(z_cols_set):
+            raise ValueError(
+                f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and "
+                "instrumental variable in ``z_cols``."
+            )
+
+        if not s_col_set.isdisjoint(t_col_set):
+            raise ValueError(
+                f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and time "
+                "variable ``t_col``."
             )
 
     def _check_disjoint_sets_y_d_x_z_t_s(self):
