@@ -28,7 +28,7 @@ def test_t_col_setter():
     assert dml_data._t_values == np.unique(t_comp)
     assert dml_data.n_t_periods == 1
 
-    msg = r"Invalid time variable t_col. a13 is no data column."
+    msg = "Invalid time variable t_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):
         dml_data.t_col = "a13"
 
@@ -57,14 +57,45 @@ def test_id_col_setter():
     assert dml_data._id_var_unique == np.unique(id_comp)
     assert dml_data.n_obs == 1
 
-    msg = r"Invalid id variable id_col. a13 is no data column."
+    msg = "Invalid id variable id_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):
         dml_data.id_col = "a13"
 
-    msg = r"The id variable id_col must be of str type. " "5 of type <class 'int'> was passed."
+    msg = "The id variable id_col must be of str type. " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.id_col = 5
 
     msg = "The id variable id_col must be of str type. None of type <class 'NoneType'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.id_col = None
+
+
+@pytest.mark.ci
+def test_d_col_setter():
+    np.random.seed(3141)
+    df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
+    df["d_new"] = 1.0
+    dml_data = DoubleMLPanelData(
+        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+    )
+
+    # check that after changing d_col, the id array etc. gets updated
+    d_comp = dml_data.data["d_new"].values
+    dml_data.d_cols = "d_new"
+    assert dml_data.d_cols == ["d_new"]
+    assert np.array_equal(dml_data.d, d_comp)
+    assert dml_data.g_col == "d_new"
+    assert dml_data._g_values == np.unique(d_comp)
+    assert dml_data.n_groups == 1
+
+    msg = r"Invalid treatment variable\(s\) d_cols. At least one treatment variable is no data column."
+    with pytest.raises(ValueError, match=msg):
+        dml_data.d_cols = "a13"
+
+    msg = r"The treatment variable\(s\) d_cols must be of str or list type. 5 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_data.d_cols = 5
+
+    msg = r"The treatment variable\(s\) d_cols must be of str or list type. None of type <class 'NoneType'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_data.d_cols = None
