@@ -556,44 +556,54 @@ def test_disjoint_sets():
     msg = "yy cannot be set as outcome variable ``y_col`` and covariate in ``x_cols``"
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "yy", "xx2"])
-    msg = "yy cannot be set as outcome variable ``y_col`` and instrumental variable in ``z_cols``"
+
+    # instrumental variable
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and instrumental variable \(``z_cols``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="yy")
-    msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) and instrumental variable in " "``z_cols``."
-    )
+    msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) and instrumental variable \(``z_cols``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols=["dd1"])
-    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and instrumental variable in " "``z_cols``."
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and instrumental variable \(``z_cols``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="xx2")
 
-    msg = "xx2 cannot be set as time variable ``t_col`` and covariate in ``x_cols``."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="xx2")
-    msg = "dd1 cannot be set as time variable ``t_col`` and treatment variable in ``d_cols``."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="dd1")
-    msg = "yy cannot be set as time variable ``t_col`` and outcome variable ``y_col``."
+    # time variable
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="yy")
-    msg = "zz cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``."
+    msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) and time variable \(``t_col``\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="dd1")
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and time variable \(``t_col``\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="xx2")
+    msg = r"At least one variable/column is set as instrumental variable \(``z_cols``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", t_col="zz")
 
-    msg = "xx2 cannot be set as score or selection variable ``s_col`` and covariate in ``x_cols``."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="xx2")
-    msg = "dd1 cannot be set as score or selection variable ``s_col`` and treatment variable in ``d_cols``."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
-    msg = "yy cannot be set as score or selection variable ``s_col`` and outcome variable ``y_col``."
+    # score or selection variable
+    msg = (
+        r"At least one variable/column is set as outcome variable \(``y_col``\) and score or selection variable \(``s_col``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
-    msg = "zz cannot be set as score or selection variable ``s_col`` and instrumental variable in ``z_cols``."
+    msg = (
+        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
+        r"and score or selection variable \(``s_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and score or selection variable \(``s_col``\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="xx2")
+    msg = (
+        r"At least one variable/column is set as instrumental variable \(``z_cols``\) "
+        r"and score or selection variable \(``s_col``\)."
+    )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", s_col="zz")
-    msg = "tt cannot be set as score or selection variable ``s_col`` and time variable ``t_col``."
+    msg = r"At least one variable/column is set as time variable \(``t_col``\) and score or selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", s_col="tt")
 
