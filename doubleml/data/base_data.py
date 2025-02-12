@@ -613,25 +613,16 @@ class DoubleMLData(DoubleMLBaseData):
             self.set_x_d(self.d_cols[0])
 
     def _set_y_z_t_s(self):
-        assert_all_finite(self.data.loc[:, self.y_col])
-        self._y = self.data.loc[:, self.y_col]
-        if self.z_cols is None:
-            self._z = None
-        else:
-            assert_all_finite(self.data.loc[:, self.z_cols])
-            self._z = self.data.loc[:, self.z_cols]
+        def _set_attr(col):
+            if col is None:
+                return None
+            assert_all_finite(self.data.loc[:, col])
+            return self.data.loc[:, col]
 
-        if self.t_col is None:
-            self._t = None
-        else:
-            assert_all_finite(self.data.loc[:, self.t_col])
-            self._t = self.data.loc[:, self.t_col]
-
-        if self.s_col is None:
-            self._s = None
-        else:
-            assert_all_finite(self.data.loc[:, self.s_col])
-            self._s = self.data.loc[:, self.s_col]
+        self._y = _set_attr(self.y_col)
+        self._z = _set_attr(self.z_cols)
+        self._t = _set_attr(self.t_col)
+        self._s = _set_attr(self.s_col)
 
     def set_x_d(self, treatment_var):
         """
