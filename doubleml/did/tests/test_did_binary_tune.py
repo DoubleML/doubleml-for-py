@@ -102,7 +102,9 @@ def dml_did_fixture(generate_data_did_binary, learner_g, learner_m, score, in_sa
     tune_res = dml_did_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False)
     assert isinstance(tune_res, dml.DoubleMLDID)
     np.random.seed(3141)
-    tune_res_binary = dml_did_binary_obj.tune(par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False)
+    tune_res_binary = dml_did_binary_obj.tune(
+        par_grid, tune_on_folds=tune_on_folds, n_folds_tune=n_folds_tune, return_tune_res=False
+    )
     assert isinstance(tune_res_binary, dml.did.DoubleMLDIDBinary)
 
     dml_did_obj.fit()

@@ -14,7 +14,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
 
@@ -244,9 +244,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
-        # TODO: Implement sensitivity
-        self._sensitivity_implemented = False
-        self._external_predictions_implemented = False
+        self._sensitivity_implemented = True
+        self._external_predictions_implemented = True
 
     @property
     def g_value(self):
@@ -537,8 +536,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         return
 
-    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
-                         search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
         x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
         x, d = check_X_y(x, self._g_panel, force_all_finite=False)
 
@@ -546,44 +546,107 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         if scoring_methods is None:
-            scoring_methods = {'ml_g': None,
-                               'ml_m': None}
+            scoring_methods = {"ml_g": None, "ml_m": None}
 
         train_inds = [train_index for (train_index, _) in smpls]
         train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
         train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
-        g0_tune_res = _dml_tune(y, x, train_inds_d0,
-                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
-        g1_tune_res = _dml_tune(y, x, train_inds_d1,
-                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
-                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g0_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d0,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
+        g1_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d1,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            search_mode,
+            n_iter_randomized_search,
+        )
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
 
         m_tune_res = list()
-        if self.score == 'observational':
-            m_tune_res = _dml_tune(d, x, train_inds,
-                                   self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
-                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        if self.score == "observational":
+            m_tune_res = _dml_tune(
+                d,
+                x,
+                train_inds,
+                self._learner["ml_m"],
+                param_grids["ml_m"],
+                scoring_methods["ml_m"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
             m_best_params = [xx.best_params_ for xx in m_tune_res]
-            params = {'ml_g0': g0_best_params,
-                      'ml_g1': g1_best_params,
-                      'ml_m': m_best_params}
-            tune_res = {'g0_tune': g0_tune_res,
-                        'g1_tune': g1_tune_res,
-                        'm_tune': m_tune_res}
+            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
+            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
         else:
-            params = {'ml_g0': g0_best_params,
-                      'ml_g1': g1_best_params}
-            tune_res = {'g0_tune': g0_tune_res,
-                        'g1_tune': g1_tune_res}
+            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params}
+            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res}
 
-        res = {'params': params,
-               'tune_res': tune_res}
+        res = {"params": params, "tune_res": tune_res}
 
         return res
 
     def _sensitivity_element_est(self, preds):
-        pass
+        y = self._y_panel
+        d = self._g_panel
+
+        m_hat = preds["predictions"]["ml_m"]
+        g_hat0 = preds["predictions"]["ml_g0"]
+        g_hat1 = preds["predictions"]["ml_g1"]
+
+        g_hat = np.multiply(d, g_hat1) + np.multiply(1.0 - d, g_hat0)
+        sigma2_score_element = np.square(y - g_hat)
+        sigma2 = np.mean(sigma2_score_element)
+        psi_sigma2 = sigma2_score_element - sigma2
+
+        # calc m(W,alpha) and Riesz representer
+        p_hat = np.mean(d)
+        if self.score == "observational":
+            propensity_weight_d0 = np.divide(m_hat, 1.0 - m_hat)
+            if self.in_sample_normalization:
+                weight_d0 = np.multiply(1.0 - d, propensity_weight_d0)
+                mean_weight_d0 = np.mean(weight_d0)
+
+                m_alpha = np.multiply(
+                    np.divide(d, p_hat), np.divide(1.0, p_hat) + np.divide(propensity_weight_d0, mean_weight_d0)
+                )
+                rr = np.divide(d, p_hat) - np.divide(weight_d0, mean_weight_d0)
+            else:
+                m_alpha = np.multiply(np.divide(d, np.square(p_hat)), (1.0 + propensity_weight_d0))
+                rr = np.divide(d, p_hat) - np.multiply(np.divide(1.0 - d, p_hat), propensity_weight_d0)
+        else:
+            assert self.score == "experimental"
+            # the same with or without self-normalization
+            m_alpha = np.divide(1.0, p_hat) + np.divide(1.0, 1.0 - p_hat)
+            rr = np.divide(d, p_hat) - np.divide(1.0 - d, 1.0 - p_hat)
+
+        nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
+        nu2 = np.mean(nu2_score_element)
+        psi_nu2 = nu2_score_element - nu2
+
+        element_dict = {
+            "sigma2": sigma2,
+            "nu2": nu2,
+            "psi_sigma2": psi_sigma2,
+            "psi_nu2": psi_nu2,
+            "riesz_rep": rr,
+        }
+        return element_dict

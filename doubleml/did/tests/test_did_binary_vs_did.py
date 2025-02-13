@@ -146,6 +146,7 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
 
     # sensitivity tests
     res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
+    res_dict["sensitivity_elements_binary"] = dml_did_binary_obj.sensitivity_elements
     res_dict["sensitivity_elements_manual"] = fit_sensitivity_elements_did(
         y,
         d,
@@ -158,7 +159,10 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
 
     # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
     dml_did_obj.sensitivity_analysis(rho=0.0)
+    dml_did_binary_obj.sensitivity_analysis(rho=0.0)
+
     res_dict["sensitivity_ses"] = dml_did_obj.sensitivity_params["se"]
+    res_dict["sensitivity_ses_binary"] = dml_did_binary_obj.sensitivity_params["se"]
 
     return res_dict
 
@@ -196,3 +200,44 @@ def test_boot(dml_did_binary_vs_did_fixture):
             dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap + "_binary"],
             atol=1e-4,
         )
+
+
+@pytest.mark.ci
+def test_sensitivity(dml_did_binary_vs_did_fixture):
+    sensitivity_element_names = ["sigma2", "nu2", "psi_sigma2", "psi_nu2"]
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_elements"][sensitivity_element],
+            dml_did_binary_vs_did_fixture["sensitivity_elements_manual"][sensitivity_element],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_elements"][sensitivity_element],
+            dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+
+
+@pytest.mark.ci
+def test_sensitivity_rho0(dml_did_binary_vs_did_fixture):
+    assert np.allclose(
+        dml_did_binary_vs_did_fixture["se"], dml_did_binary_vs_did_fixture["sensitivity_ses"]["lower"], rtol=1e-9, atol=1e-4
+    )
+    assert np.allclose(
+        dml_did_binary_vs_did_fixture["se"], dml_did_binary_vs_did_fixture["sensitivity_ses"]["upper"], rtol=1e-9, atol=1e-4
+    )
+
+    assert np.allclose(
+        dml_did_binary_vs_did_fixture["se_binary"],
+        dml_did_binary_vs_did_fixture["sensitivity_ses_binary"]["lower"],
+        rtol=1e-9,
+        atol=1e-4,
+    )
+    assert np.allclose(
+        dml_did_binary_vs_did_fixture["se_binary"],
+        dml_did_binary_vs_did_fixture["sensitivity_ses_binary"]["upper"],
+        rtol=1e-9,
+        atol=1e-4,
+    )
