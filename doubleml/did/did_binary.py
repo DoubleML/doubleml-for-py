@@ -137,6 +137,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # check if g_value and t_value are in the set of g_values and t_values
         if g_value not in g_values:
             raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
+        if g_value == 0:
+            raise ValueError("The never treated group is not allowed as treatment group (g_value=0).")
         if t_value_pre not in t_values:
             raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
         if t_value_eval not in t_values:
