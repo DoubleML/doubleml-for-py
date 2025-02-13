@@ -49,6 +49,14 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
 
     # collect data
     dml_panel_data = generate_data_did_binary
+    df = dml_panel_data._data.sort_values(by=["id", "t"])
+    df_panel = df.groupby("id").agg(
+        {"y": lambda x: x.iloc[1] - x.iloc[0], "d": "first", "Z1": "first", "Z2": "first", "Z3": "first", "Z4": "first"}
+    )
+
+    n_obs = df_panel.shape[0]
+    all_smpls = draw_smpls(n_obs, n_folds)
+    obj_dml_data = dml.DoubleMLData(df_panel, y_col="y", d_cols="d", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -68,13 +76,6 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         draw_sample_splitting=False,
     )
 
-    df = dml_panel_data._data.sort_values(by=["id", "t"])
-    df_panel = df.groupby("id").agg(
-        {"y": lambda x: x.iloc[1] - x.iloc[0],"d": "first", "Z1": "first", "Z2": "first", "Z3": "first", "Z4": "first"}
-    )
-
-    obj_dml_data = dml.DoubleMLData(df_panel, y_col="y", d_cols="d", x_cols=["Z1", "Z2", "Z3", "Z4"])
-
     dml_did_obj = dml.DoubleMLDID(
         obj_dml_data,
         ml_g,
@@ -86,9 +87,6 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         draw_sample_splitting=False,
     )
 
-    n_obs = df_panel.shape[0]
-    all_smpls = draw_smpls(n_obs, n_folds)
-
     # synchronize the sample splitting
     dml_did_obj.set_sample_splitting(all_smpls=all_smpls)
     dml_did_binary_obj.set_sample_splitting(all_smpls=all_smpls)
@@ -96,6 +94,7 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
     dml_did_obj.fit()
     dml_did_binary_obj.fit()
 
+    # manual fit
     y = df_panel["y"].values
     d = df_panel["d"].values
     x = df_panel[["Z1", "Z2", "Z3", "Z4"]].values

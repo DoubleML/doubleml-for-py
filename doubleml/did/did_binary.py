@@ -14,7 +14,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls
+from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune
 from doubleml.utils._propensity_score import _trimm
 
 
@@ -537,10 +537,53 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         return
 
-    def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
-    ):
-        pass
+    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                         search_mode, n_iter_randomized_search):
+        x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
+        x, d = check_X_y(x, self._g_panel, force_all_finite=False)
+
+        # get train indices for d == 0 and d == 1
+        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+
+        if scoring_methods is None:
+            scoring_methods = {'ml_g': None,
+                               'ml_m': None}
+
+        train_inds = [train_index for (train_index, _) in smpls]
+        train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
+        train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
+        g0_tune_res = _dml_tune(y, x, train_inds_d0,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        g1_tune_res = _dml_tune(y, x, train_inds_d1,
+                                self._learner['ml_g'], param_grids['ml_g'], scoring_methods['ml_g'],
+                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+
+        m_tune_res = list()
+        if self.score == 'observational':
+            m_tune_res = _dml_tune(d, x, train_inds,
+                                   self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+            m_best_params = [xx.best_params_ for xx in m_tune_res]
+            params = {'ml_g0': g0_best_params,
+                      'ml_g1': g1_best_params,
+                      'ml_m': m_best_params}
+            tune_res = {'g0_tune': g0_tune_res,
+                        'g1_tune': g1_tune_res,
+                        'm_tune': m_tune_res}
+        else:
+            params = {'ml_g0': g0_best_params,
+                      'ml_g1': g1_best_params}
+            tune_res = {'g0_tune': g0_tune_res,
+                        'g1_tune': g1_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return res
 
     def _sensitivity_element_est(self, preds):
         pass
