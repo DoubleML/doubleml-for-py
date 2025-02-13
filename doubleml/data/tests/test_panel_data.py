@@ -105,36 +105,23 @@ def test_d_col_setter():
 @pytest.mark.ci
 def test_disjoint_sets():
     np.random.seed(3141)
-    df = pd.DataFrame(
-        np.tile(np.arange(7), (4, 1)),
-        columns=["yy", "dd1", "xx1", "xx2", "zz", "tt", "id"]
-    )
+    df = pd.DataFrame(np.tile(np.arange(7), (4, 1)), columns=["yy", "dd1", "xx1", "xx2", "zz", "tt", "id"])
 
-    msg = (
-        r"At least one variable/column is set as outcome variable \(``y_col``\) "
-        r"and identifier variable \(``id_col``\)."
-    )
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) " r"and identifier variable \(``id_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="yy")
 
     msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
-        r"and identifier variable \(``id_col``\)."
+        r"At least one variable/column is set as treatment variable \(``d_cols``\) " r"and identifier variable \(``id_col``\)."
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="dd1")
 
-    msg = (
-        r"At least one variable/column is set as covariate \(``x_cols``\) "
-        r"and identifier variable \(``id_col``\)."
-    )
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) " r"and identifier variable \(``id_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="xx1")
 
-    msg = (
-        r"At least one variable/column is set as time variable \(``t_col``\) "
-        r"and identifier variable \(``id_col``\)."
-    )
+    msg = r"At least one variable/column is set as time variable \(``t_col``\) " r"and identifier variable \(``id_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="tt")
 

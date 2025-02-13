@@ -1,7 +1,8 @@
-import numpy as np
 import warnings
-
 from collections.abc import Iterable
+
+import numpy as np
+
 
 def _check_preprocess_g_t(g_values, t_values, control_group):
     # check if iterable is enough or if we should accept numpy arrays only
@@ -17,11 +18,11 @@ def _check_preprocess_g_t(g_values, t_values, control_group):
     t_last = np.max(t_values)
 
     # Don't evaluate those individuals treated in last period
-    if control_group == 'not_yet_treated':
+    if control_group == "not_yet_treated":
         if np.any(t_values > np.max(g_values)):
             # issue a warning
-            g_values <- g_values[g_values < t_last]
-            warnings.warn('Individuals treated in the last period are excluded from the analysis.')
+            g_values < -g_values[g_values < t_last]
+            warnings.warn("Individuals treated in the last period are excluded from the analysis.")
 
     t_first = np.min(t_values)
 

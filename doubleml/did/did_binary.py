@@ -1,17 +1,21 @@
-import numpy as np
-from sklearn.utils import check_X_y
-from sklearn.utils.multiclass import type_of_target
 import warnings
 
-from doubleml.double_ml import DoubleML
+import numpy as np
+from sklearn.utils import check_X_y
+
 from doubleml.data.panel_data import DoubleMLPanelData
+from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
-
-from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls, _dml_tune
-from doubleml.utils._checks import _check_score, _check_trimming, _check_finite_predictions, _check_is_propensity, _check_integer, _check_bool
-
+from doubleml.utils._checks import (
+    _check_bool,
+    _check_finite_predictions,
+    _check_integer,
+    _check_is_propensity,
+    _check_score,
+    _check_trimming,
+)
+from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
-from doubleml.utils._did_utils import _check_preprocess_g_t
 
 
 class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
@@ -82,31 +86,29 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     TODO: Add example
     """
 
-    def __init__(self,
-                 obj_dml_data,
-                 ml_g,
-                 ml_m=None,
-                 g_value=None,
-                 t_value_pre=None,
-                 t_value_eval=None,
-                 control_group='never_treated',
-                 n_folds=5,
-                 n_rep=1,
-                 score='observational',
-                 in_sample_normalization=True,
-                 trimming_rule='truncate',
-                 trimming_threshold=1e-2,
-                 draw_sample_splitting=True,
-                 print_periods=False):
+    def __init__(
+        self,
+        obj_dml_data,
+        ml_g,
+        ml_m=None,
+        g_value=None,
+        t_value_pre=None,
+        t_value_eval=None,
+        control_group="never_treated",
+        n_folds=5,
+        n_rep=1,
+        score="observational",
+        in_sample_normalization=True,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+        print_periods=False,
+    ):
 
-        super().__init__(obj_dml_data,
-                         n_folds,
-                         n_rep,
-                         score,
-                         draw_sample_splitting=False)
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
         self._check_data(self._dml_data)
-        _check_bool(print_periods, 'print_periods')
+        _check_bool(print_periods, "print_periods")
         self._print_periods = print_periods
 
         # TODO: Check if we want to keep the g_values & t_values from the backend
@@ -114,10 +116,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
-        valid_control_groups = ['never_treated', 'not_yet_treated']
+        valid_control_groups = ["never_treated", "not_yet_treated"]
         if control_group not in valid_control_groups:
-            raise ValueError(f'The control group has to be one of {valid_control_groups}. ' +
-                             f'{control_group} was passed.')
+            raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
         self._control_group = control_group
 
         # TODO: Do we really want to use default values for g and t?
@@ -129,17 +130,17 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if t_value_eval is None:
             t_value_eval = int(t_values[t_values > g_value].min())
 
-        _check_integer(g_value, 'g_value', 0)
-        _check_integer(t_value_pre, 't_value_pre', 0)
-        _check_integer(t_value_eval, 't_value_eval', 0)
+        _check_integer(g_value, "g_value", 0)
+        _check_integer(t_value_pre, "t_value_pre", 0)
+        _check_integer(t_value_eval, "t_value_eval", 0)
 
         # check if g_value and t_value are in the set of g_values and t_values
         if g_value not in g_values:
-            raise ValueError(f'The value {g_value} is not in the set of treatment group values {g_values}.')
+            raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
         if t_value_pre not in t_values:
-            raise ValueError(f'The value {t_value_pre} is not in the set of evaluation period values {t_values}.')
+            raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
         if t_value_eval not in t_values:
-            raise ValueError(f'The value {t_value_eval} is not in the set of evaluation period values {t_values}.')
+            raise ValueError(f"The value {t_value_eval} is not in the set of evaluation period values {t_values}.")
 
         self._g_value = g_value
         self._t_value_pre = t_value_pre
@@ -150,16 +151,20 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             post_treatment = True
             if t_value_pre <= 0:
                 # TODO: What does this mean?
-                print(f"No pre-treatment period available for group first treated in {g_value}.\n\
-                        Units from this group are dropped.")
+                print(
+                    f"No pre-treatment period available for group first treated in {g_value}.\n\
+                        Units from this group are dropped."
+                )
         else:
             post_treatment = False
 
         self._post_treatment = post_treatment
 
         if self._print_periods:
-            print(f'Evaluation of ATT({g_value}, {t_value_eval}), with pre-treatment period {t_value_pre},\n' +
-                  f'post-treatment: {post_treatment}. Control group: {control_group}.\n')
+            print(
+                f"Evaluation of ATT({g_value}, {t_value_eval}), with pre-treatment period {t_value_pre},\n"
+                + f"post-treatment: {post_treatment}. Control group: {control_group}.\n"
+            )
 
         # Preprocess data
         # Y1, Y0 might be needed if we want to support custom estimators and scores; currently only output y_diff
@@ -180,51 +185,59 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
         self._n_subset = self._panel_data_wide.shape[0]
-        self._n_treated_subset = self._panel_data_wide['G_indicator'].sum()
+        self._n_treated_subset = self._panel_data_wide["G_indicator"].sum()
 
         # TODO: Is this necessary?
         # Save x and y for later ML estimation
         self._x_panel = self._panel_data_wide.loc[:, self._dml_data.x_cols].values
-        self._y_panel = self._panel_data_wide.loc[:, 'y_diff'].values
-        self._g_panel = self._panel_data_wide.loc[:, 'G_indicator'].values
+        self._y_panel = self._panel_data_wide.loc[:, "y_diff"].values
+        self._g_panel = self._panel_data_wide.loc[:, "G_indicator"].values
 
-        valid_scores = ['observational', 'experimental']
+        valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
 
         self._in_sample_normalization = in_sample_normalization
         if not isinstance(self.in_sample_normalization, bool):
-            raise TypeError('in_sample_normalization indicator has to be boolean. ' +
-                            f'Object of type {str(type(self.in_sample_normalization))} passed.')
+            raise TypeError(
+                "in_sample_normalization indicator has to be boolean. "
+                + f"Object of type {str(type(self.in_sample_normalization))} passed."
+            )
 
         # set stratication for resampling
-        self._strata = self._panel_data_wide['G_indicator']
+        self._strata = self._panel_data_wide["G_indicator"]
         if draw_sample_splitting:
             # TODO: Handle n_obs: n_obs_subset is likely smaller than n_obs!
             self.draw_sample_splitting(n_obs=self._n_subset)
 
         # check learners
-        ml_g_is_classifier = self._check_learner(ml_g, 'ml_g', regressor=True, classifier=True)
-        if self.score == 'observational':
-            _ = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
-            self._learner = {'ml_g': ml_g, 'ml_m': ml_m}
+        ml_g_is_classifier = self._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        if self.score == "observational":
+            _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+            self._learner = {"ml_g": ml_g, "ml_m": ml_m}
         else:
-            assert self.score == 'experimental'
+            assert self.score == "experimental"
             if ml_m is not None:
-                warnings.warn(('A learner ml_m has been provided for score = "experimental" but will be ignored. '
-                               'A learner ml_m is not required for estimation.'))
-            self._learner = {'ml_g': ml_g}
+                warnings.warn(
+                    (
+                        'A learner ml_m has been provided for score = "experimental" but will be ignored. '
+                        "A learner ml_m is not required for estimation."
+                    )
+                )
+            self._learner = {"ml_g": ml_g}
 
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
-                self._predict_method = {'ml_g': 'predict_proba'}
+                self._predict_method = {"ml_g": "predict_proba"}
             else:
-                raise ValueError(f'The ml_g learner {str(ml_g)} was identified as classifier '
-                                 'but the outcome variable is not binary with values 0 and 1.')
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
         else:
-            self._predict_method = {'ml_g': 'predict'}
+            self._predict_method = {"ml_g": "predict"}
 
-        if 'ml_m' in self._learner:
-            self._predict_method['ml_m'] = 'predict_proba'
+        if "ml_m" in self._learner:
+            self._predict_method["ml_m"] = "predict_proba"
         self._initialize_ml_nuisance_params()
 
         self._trimming_rule = trimming_rule
@@ -292,31 +305,33 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     def _initialize_ml_nuisance_params(self):
-        if self.score == 'observational':
-            valid_learner = ['ml_g0', 'ml_g1', 'ml_m']
+        if self.score == "observational":
+            valid_learner = ["ml_g0", "ml_g1", "ml_m"]
         else:
-            assert self.score == 'experimental'
-            valid_learner = ['ml_g0', 'ml_g1']
-        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols}
-                        for learner in valid_learner}
+            assert self.score == "experimental"
+            valid_learner = ["ml_g0", "ml_g1"]
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLPanelData):
-            raise TypeError('For repeated outcomes the data must be of DoubleMLPanelData type. '
-                            f'{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed.')
+            raise TypeError(
+                "For repeated outcomes the data must be of DoubleMLPanelData type. "
+                f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
         if obj_dml_data.z_cols is not None:
             raise NotImplementedError(
-                'Incompatible data. ' +
-                ' and '.join(obj_dml_data.z_cols) +
-                ' have been set as instrumental variable(s). '
-                'At the moment there are not DiD models with instruments implemented.')
+                "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+                "At the moment there are not DiD models with instruments implemented."
+            )
 
         # TODO: Update checks!
-        one_treat = (obj_dml_data.n_treat == 1)
+        one_treat = obj_dml_data.n_treat == 1
         if not (one_treat):
-            raise ValueError('Incompatible data. '
-                             'To fit an DID model with DML '
-                             'exactly one variable needs to be specified as treatment variable.')
+            raise ValueError(
+                "Incompatible data. "
+                "To fit an DID model with DML "
+                "exactly one variable needs to be specified as treatment variable."
+            )
         return
 
     def _preprocess_data(self, g_value, pre_t, eval_t):
@@ -337,29 +352,31 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # Construct C (control group) indicating never treated or not yet treated
         never_treated = data_subset[g_col] == 0
-        if self._control_group == 'never_treated':
+        if self._control_group == "never_treated":
             C_indicator = never_treated.astype(int)
 
-        elif self._control_group == 'not_yet_treated':
+        elif self._control_group == "not_yet_treated":
             # C_indicator = Never treated or treated in period after eval_t (and not in g)
             # TODO: Check again if this_data['G_indicator'] == 0 makes sense
-            later_treated = (data_subset[g_col] > max(pre_t, eval_t)) & (data_subset['G_indicator'] == 0)
+            later_treated = (data_subset[g_col] > max(pre_t, eval_t)) & (data_subset["G_indicator"] == 0)
             not_yet_treated = never_treated | later_treated
             C_indicator = not_yet_treated.astype(int)
 
         data_subset = data_subset.assign(C_indicator=C_indicator, G_indicator=G_indicator)
         # reduce to relevant subset
-        data_subset = data_subset[(data_subset['G_indicator'] == 1) | (data_subset['C_indicator'] == 1)]
+        data_subset = data_subset[(data_subset["G_indicator"] == 1) | (data_subset["C_indicator"] == 1)]
         # TODO: Add checks e.g. T != C
         # TODO: Enforce Balanced panel data!
 
         # Alternatively, use .shift() (check if time ordering is correct)
         # y_diff = this_data.groupby(id_col)[y_col].shift(-1)
-        y_diff = data_subset[data_subset[t_col] == eval_t][y_col].values - data_subset[data_subset[t_col] == pre_t][y_col].values
+        y_diff = (
+            data_subset[data_subset[t_col] == eval_t][y_col].values - data_subset[data_subset[t_col] == pre_t][y_col].values
+        )
 
         # keep covariates only observations from the first period
         # Data processing from long to wide format
-        select_cols = [id_col, 'G_indicator', 'C_indicator'] + self._dml_data.x_cols
+        select_cols = [id_col, "G_indicator", "C_indicator"] + self._dml_data.x_cols
         first_period = data_subset[t_col].min()
         wide_data = data_subset[select_cols][data_subset[t_col] == first_period]
         wide_data = wide_data.assign(y_diff=y_diff)
@@ -370,80 +387,86 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # TODO: Decide whether to do preprocessing here or before?
         # Here: d is a binary treatment indicator
-        x, y = check_X_y(self._x_panel, self._y_panel,
-                         force_all_finite=False)
-        x, d = check_X_y(x, self._g_panel,
-                         force_all_finite=False)
+        x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
+        x, d = check_X_y(x, self._g_panel, force_all_finite=False)
         # nuisance g
         # get train indices for d == 0
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 
         # nuisance g for d==0
-        if external_predictions['ml_g0'] is not None:
-            g_hat0 = {'preds': external_predictions['ml_g0'],
-                      'targets': None,
-                      'models': None}
+        if external_predictions["ml_g0"] is not None:
+            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": None, "models": None}
         else:
-            g_hat0 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d0, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g0'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
+            g_hat0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d0,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
 
-            _check_finite_predictions(g_hat0['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            _check_finite_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", smpls)
             # adjust target values to consider only compatible subsamples
-            g_hat0['targets'] = g_hat0['targets'].astype(float)
-            g_hat0['targets'][d == 1] = np.nan
+            g_hat0["targets"] = g_hat0["targets"].astype(float)
+            g_hat0["targets"][d == 1] = np.nan
 
         # nuisance g for d==1
-        if external_predictions['ml_g1'] is not None:
-            g_hat1 = {'preds': external_predictions['ml_g1'],
-                      'targets': None,
-                      'models': None}
+        if external_predictions["ml_g1"] is not None:
+            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": None, "models": None}
         else:
-            g_hat1 = _dml_cv_predict(self._learner['ml_g'], x, y, smpls=smpls_d1, n_jobs=n_jobs_cv,
-                                     est_params=self._get_params('ml_g1'), method=self._predict_method['ml_g'],
-                                     return_models=return_models)
+            g_hat1 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls=smpls_d1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g1"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
 
-            _check_finite_predictions(g_hat1['preds'], self._learner['ml_g'], 'ml_g', smpls)
+            _check_finite_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", smpls)
             # adjust target values to consider only compatible subsamples
-            g_hat1['targets'] = g_hat1['targets'].astype(float)
-            g_hat1['targets'][d == 0] = np.nan
+            g_hat1["targets"] = g_hat1["targets"].astype(float)
+            g_hat1["targets"][d == 0] = np.nan
 
         # only relevant for observational setting
-        m_hat = {'preds': None, 'targets': None, 'models': None}
-        if self.score == 'observational':
+        m_hat = {"preds": None, "targets": None, "models": None}
+        if self.score == "observational":
             # nuisance m
-            if external_predictions['ml_m'] is not None:
-                m_hat = {'preds': external_predictions['ml_m'],
-                         'targets': None,
-                         'models': None}
+            if external_predictions["ml_m"] is not None:
+                m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
             else:
-                m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
-                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                        return_models=return_models)
-            _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
-            _check_is_propensity(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls, eps=1e-12)
-            m_hat['preds'] = _trimm(m_hat['preds'], self.trimming_rule, self.trimming_threshold)
+                m_hat = _dml_cv_predict(
+                    self._learner["ml_m"],
+                    x,
+                    d,
+                    smpls=smpls,
+                    n_jobs=n_jobs_cv,
+                    est_params=self._get_params("ml_m"),
+                    method=self._predict_method["ml_m"],
+                    return_models=return_models,
+                )
+            _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
+            _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
+            m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype='float64')
+        p_hat = np.full_like(d, np.nan, dtype="float64")
         for train_index, test_index in smpls:
             p_hat[test_index] = np.mean(d[train_index])
 
-        psi_a, psi_b = self._score_elements(y, d, g_hat0['preds'], g_hat1['preds'], m_hat['preds'], p_hat)
+        psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
-        psi_elements = {'psi_a': psi_a,
-                        'psi_b': psi_b}
-        preds = {'predictions': {'ml_g0': g_hat0['preds'],
-                                 'ml_g1': g_hat1['preds'],
-                                 'ml_m': m_hat['preds']},
-                 'targets': {'ml_g0': g_hat0['targets'],
-                             'ml_g1': g_hat1['targets'],
-                             'ml_m': m_hat['targets']},
-                 'models': {'ml_g0': g_hat0['models'],
-                            'ml_g1': g_hat1['models'],
-                            'ml_m': m_hat['models']
-                            }
-                 }
+        psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
+        preds = {
+            "predictions": {"ml_g0": g_hat0["preds"], "ml_g1": g_hat1["preds"], "ml_m": m_hat["preds"]},
+            "targets": {"ml_g0": g_hat0["targets"], "ml_g1": g_hat1["targets"], "ml_m": m_hat["targets"]},
+            "models": {"ml_g0": g_hat0["models"], "ml_g1": g_hat1["models"], "ml_m": m_hat["models"]},
+        }
 
         return psi_elements, preds
 
@@ -451,35 +474,35 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # calc residuals
         resid_d0 = y - g_hat0
 
-        if self.score == 'observational':
+        if self.score == "observational":
             if self.in_sample_normalization:
                 weight_psi_a = np.divide(d, np.mean(d))
-                propensity_weight = np.multiply(1.0-d, np.divide(m_hat, 1.0-m_hat))
+                propensity_weight = np.multiply(1.0 - d, np.divide(m_hat, 1.0 - m_hat))
                 weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
             else:
                 weight_psi_a = np.divide(d, p_hat)
-                weight_resid_d0 = np.divide(d-m_hat, np.multiply(p_hat, 1.0-m_hat))
+                weight_resid_d0 = np.divide(d - m_hat, np.multiply(p_hat, 1.0 - m_hat))
 
             psi_b_1 = np.zeros_like(y)
 
         else:
-            assert self.score == 'experimental'
+            assert self.score == "experimental"
             if self.in_sample_normalization:
                 weight_psi_a = np.ones_like(y)
                 weight_g0 = np.divide(d, np.mean(d)) - 1.0
                 weight_g1 = 1.0 - np.divide(d, np.mean(d))
-                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(1.0-d, np.mean(1.0-d))
+                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(1.0 - d, np.mean(1.0 - d))
             else:
                 weight_psi_a = np.ones_like(y)
                 weight_g0 = np.divide(d, p_hat) - 1.0
                 weight_g1 = 1.0 - np.divide(d, p_hat)
-                weight_resid_d0 = np.divide(d-p_hat, np.multiply(p_hat, 1.0-p_hat))
+                weight_resid_d0 = np.divide(d - p_hat, np.multiply(p_hat, 1.0 - p_hat))
 
-            psi_b_1 = np.multiply(weight_g0,  g_hat0) + np.multiply(weight_g1,  g_hat1)
+            psi_b_1 = np.multiply(weight_g0, g_hat0) + np.multiply(weight_g1, g_hat1)
 
         # set score elements
         psi_a = -1.0 * weight_psi_a
-        psi_b = psi_b_1 + np.multiply(weight_resid_d0,  resid_d0)
+        psi_b = psi_b_1 + np.multiply(weight_resid_d0, resid_d0)
 
         # TODO: Check rescaling by factor n_obs/n_subset
         # scaling_factor_did = self._dml_data.n_obs / self._n_subset
@@ -488,20 +511,25 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
     def _initialize_predictions_and_targets(self):
         # Here: Initialize predictions and targets based on panel data in wide format (n_subset)
-        self._predictions = {learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan)
-                             for learner in self.params_names}
-        self._nuisance_targets = {learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan)
-                                  for learner in self.params_names}
+        self._predictions = {
+            learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names
+        }
+        self._nuisance_targets = {
+            learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names
+        }
 
     def _set_score_elements(self, psi_elements, i_rep, i_treat):
         # Specific implementation for DoubleMLDIDBINARY to account for long vs. wide data format
         if not isinstance(psi_elements, dict):
-            raise TypeError('_ml_nuisance_and_score_elements must return score elements in a dict. '
-                            f'Got type {str(type(psi_elements))}.')
+            raise TypeError(
+                "_ml_nuisance_and_score_elements must return score elements in a dict. " f"Got type {str(type(psi_elements))}."
+            )
         if not (set(self._score_element_names) == set(psi_elements.keys())):
-            raise ValueError('_ml_nuisance_and_score_elements returned incomplete score elements. '
-                             'Expected dict with keys: ' + ' and '.join(set(self._score_element_names)) + '.'
-                             'Got dict with keys: ' + ' and '.join(set(psi_elements.keys())) + '.')
+            raise ValueError(
+                "_ml_nuisance_and_score_elements returned incomplete score elements. "
+                "Expected dict with keys: " + " and ".join(set(self._score_element_names)) + "."
+                "Got dict with keys: " + " and ".join(set(psi_elements.keys())) + "."
+            )
         for key in self._score_element_names:
             # set values for psi_a and psi_b entries for i's not in gt subgroup to 0
             self.psi_elements[key][:, i_rep, i_treat] = 0
@@ -509,7 +537,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         return
 
-    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search):
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
         pass
 
     def _sensitivity_element_est(self, preds):

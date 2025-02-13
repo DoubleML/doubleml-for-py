@@ -42,7 +42,7 @@ def trimming_threshold(request):
 
 
 @pytest.fixture(scope="module")
-def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_sample_normalization, trimming_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -54,7 +54,6 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
     ml_g = clone(learner[0])
     ml_m = clone(learner[1])
 
-    np.random.seed(3141)
     dml_did_binary_obj = dml.did.DoubleMLDIDBinary(
         dml_panel_data,
         ml_g,
@@ -66,14 +65,16 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
         score=score,
         in_sample_normalization=in_sample_normalization,
         trimming_threshold=trimming_threshold,
+        draw_sample_splitting=False,
     )
 
-    np.random.seed(3141)
-    n_obs = len(y)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+    df = dml_panel_data._data.sort_values(by=["id", "t"])
+    df_panel = df.groupby("id").agg(
+        {"y": lambda x: x.iloc[1] - x.iloc[0],"d": "first", "Z1": "first", "Z2": "first", "Z3": "first", "Z4": "first"}
+    )
 
-    np.random.seed(3141)
+    obj_dml_data = dml.DoubleMLData(df_panel, y_col="y", d_cols="d", x_cols=["Z1", "Z2", "Z3", "Z4"])
+
     dml_did_obj = dml.DoubleMLDID(
         obj_dml_data,
         ml_g,
@@ -81,13 +82,23 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
         n_folds,
         score=score,
         in_sample_normalization=in_sample_normalization,
-        draw_sample_splitting=False,
         trimming_threshold=trimming_threshold,
+        draw_sample_splitting=False,
     )
+
+    n_obs = df_panel.shape[0]
+    all_smpls = draw_smpls(n_obs, n_folds)
 
     # synchronize the sample splitting
     dml_did_obj.set_sample_splitting(all_smpls=all_smpls)
+    dml_did_binary_obj.set_sample_splitting(all_smpls=all_smpls)
+
     dml_did_obj.fit()
+    dml_did_binary_obj.fit()
+
+    y = df_panel["y"].values
+    d = df_panel["d"].values
+    x = df_panel[["Z1", "Z2", "Z3", "Z4"]].values
 
     np.random.seed(3141)
     res_manual = fit_did(
@@ -104,8 +115,10 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
 
     res_dict = {
         "coef": dml_did_obj.coef,
+        "coef_binary": dml_did_binary_obj.coef,
         "coef_manual": res_manual["theta"],
         "se": dml_did_obj.se,
+        "se_binary": dml_did_binary_obj.se,
         "se_manual": res_manual["se"],
         "boot_methods": boot_methods,
     }
@@ -125,7 +138,11 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
 
         np.random.seed(3141)
         dml_did_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+        np.random.seed(3141)
+        dml_did_binary_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
+
         res_dict["boot_t_stat" + bootstrap] = dml_did_obj.boot_t_stat
+        res_dict["boot_t_stat" + bootstrap + "_binary"] = dml_did_binary_obj.boot_t_stat
         res_dict["boot_t_stat" + bootstrap + "_manual"] = boot_t_stat.reshape(-1, 1, 1)
 
     # sensitivity tests
@@ -148,5 +165,35 @@ def dml_did_binary_fixture(generate_data_did_binary, learner, score, in_sample_n
 
 
 @pytest.mark.ci
-def test_dml_did_binary_coef(dml_did_binary_fixture):
-    assert math.isclose(dml_did_binary_fixture["coef"][0], dml_did_binary_fixture["coef_manual"], rel_tol=1e-9, abs_tol=1e-4)
+def test_coefs(dml_did_binary_vs_did_fixture):
+    assert math.isclose(
+        dml_did_binary_vs_did_fixture["coef"][0], dml_did_binary_vs_did_fixture["coef_manual"], rel_tol=1e-9, abs_tol=1e-4
+    )
+    assert math.isclose(
+        dml_did_binary_vs_did_fixture["coef_binary"][0], dml_did_binary_vs_did_fixture["coef"][0], rel_tol=1e-9, abs_tol=1e-4
+    )
+
+
+@pytest.mark.ci
+def test_ses(dml_did_binary_vs_did_fixture):
+    assert math.isclose(
+        dml_did_binary_vs_did_fixture["se"][0], dml_did_binary_vs_did_fixture["se_manual"], rel_tol=1e-9, abs_tol=1e-4
+    )
+    assert math.isclose(
+        dml_did_binary_vs_did_fixture["se_binary"][0], dml_did_binary_vs_did_fixture["se"][0], rel_tol=1e-9, abs_tol=1e-4
+    )
+
+
+@pytest.mark.ci
+def test_boot(dml_did_binary_vs_did_fixture):
+    for bootstrap in dml_did_binary_vs_did_fixture["boot_methods"]:
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap],
+            dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap + "_manual"],
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap],
+            dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap + "_binary"],
+            atol=1e-4,
+        )

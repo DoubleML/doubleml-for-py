@@ -1239,9 +1239,7 @@ class DoubleML(ABC):
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata
-            )
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self
