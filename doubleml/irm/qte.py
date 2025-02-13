@@ -3,15 +3,15 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from ..double_ml_data import DoubleMLClusterData, DoubleMLData
-from ..double_ml_framework import concat
-from ..utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
-from ..utils._descriptive import generate_summary
-from ..utils._estimation import _default_kde
-from ..utils.resampling import DoubleMLResampling
-from .cvar import DoubleMLCVAR
-from .lpq import DoubleMLLPQ
-from .pq import DoubleMLPQ
+from doubleml.double_ml_data import DoubleMLClusterData, DoubleMLData
+from doubleml.double_ml_framework import concat
+from doubleml.irm.cvar import DoubleMLCVAR
+from doubleml.irm.lpq import DoubleMLLPQ
+from doubleml.irm.pq import DoubleMLPQ
+from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
+from doubleml.utils._descriptive import generate_summary
+from doubleml.utils._estimation import _default_kde
+from doubleml.utils.resampling import DoubleMLResampling
 
 
 class DoubleMLQTE:

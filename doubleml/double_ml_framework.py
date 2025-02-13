@@ -196,8 +196,9 @@ class DoubleMLFramework:
     def sensitivity_elements(self):
         """
         Values of the sensitivity components.
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
-        and ``riesz_rep``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``max_bias`` (shape (``1``, ``n_thetas``, ``n_rep``)) and
+         ``psi_max_bias`` (shape (``n_obs``, ``n_thetas``, ``n_rep``)).
+        Optionally, additional entries ``sigma2`` and ``nu2``(shape (``1``, ``n_thetas``, ``n_rep``)) are available.
         """
         return self._sensitivity_elements
 
@@ -322,24 +323,12 @@ class DoubleMLFramework:
                 "cluster_dict": self._cluster_dict,
             }
 
-            # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
-                nu2_score_element = (
-                    self._sensitivity_elements["psi_nu2"]
-                    + other._sensitivity_elements["psi_nu2"]
-                    - np.multiply(
-                        2.0, np.multiply(self._sensitivity_elements["riesz_rep"], self._sensitivity_elements["riesz_rep"])
-                    )
-                )
-                nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
-                psi_nu2 = nu2_score_element - nu2
-
+                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
+                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
-                    "sigma2": self._sensitivity_elements["sigma2"],
-                    "nu2": nu2,
-                    "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
-                    "psi_nu2": psi_nu2,
-                    "riesz_rep": self._sensitivity_elements["riesz_rep"] + other._sensitivity_elements["riesz_rep"],
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
@@ -384,22 +373,12 @@ class DoubleMLFramework:
 
             # sensitivity combination only available for same outcome and cond. expectation (e.g. IRM)
             if self._sensitivity_implemented and other._sensitivity_implemented:
-                nu2_score_element = (
-                    self._sensitivity_elements["psi_nu2"]
-                    - other._sensitivity_elements["psi_nu2"]
-                    + np.multiply(
-                        2.0, np.multiply(self._sensitivity_elements["riesz_rep"], self._sensitivity_elements["riesz_rep"])
-                    )
-                )
-                nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
-                psi_nu2 = nu2_score_element - nu2
 
+                max_bias = self._sensitivity_elements["max_bias"] + other._sensitivity_elements["max_bias"]
+                psi_max_bias = self._sensitivity_elements["psi_max_bias"] + other._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
-                    "sigma2": self._sensitivity_elements["sigma2"],
-                    "nu2": nu2,
-                    "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
-                    "psi_nu2": psi_nu2,
-                    "riesz_rep": self._sensitivity_elements["riesz_rep"] - other._sensitivity_elements["riesz_rep"],
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
@@ -436,17 +415,20 @@ class DoubleMLFramework:
 
             # sensitivity combination only available for linear models
             if self._sensitivity_implemented:
-                nu2_score_element = np.multiply(np.square(other), self._sensitivity_elements["psi_nu2"])
-                nu2 = np.mean(nu2_score_element, axis=0, keepdims=True)
-                psi_nu2 = nu2_score_element - nu2
 
+                max_bias = abs(other) * self._sensitivity_elements["max_bias"]
+                psi_max_bias = abs(other) * self._sensitivity_elements["psi_max_bias"]
                 sensitivity_elements = {
-                    "sigma2": self._sensitivity_elements["sigma2"],
-                    "nu2": nu2,
-                    "psi_sigma2": self._sensitivity_elements["psi_sigma2"],
-                    "psi_nu2": psi_nu2,
-                    "riesz_rep": np.multiply(other, self._sensitivity_elements["riesz_rep"]),
+                    "max_bias": max_bias,
+                    "psi_max_bias": psi_max_bias,
                 }
+                if self._benchmark_available:
+                    sensitivity_elements.update(
+                        {
+                            "sigma2": self._sensitivity_elements["sigma2"],
+                            "nu2": np.multiply(np.square(other), self._sensitivity_elements["nu2"]),
+                        }
+                    )
                 doubleml_dict["sensitivity_elements"] = sensitivity_elements
 
             new_obj = DoubleMLFramework(doubleml_dict)
@@ -471,31 +453,19 @@ class DoubleMLFramework:
         _check_in_zero_one(level, "The confidence level", include_zero=False, include_one=False)
 
         # set elements for readability
-        sigma2 = self.sensitivity_elements["sigma2"]
-        nu2 = self.sensitivity_elements["nu2"]
-        psi_sigma = self.sensitivity_elements["psi_sigma2"]
-        psi_nu = self.sensitivity_elements["psi_nu2"]
         psi_scaled = self._scaled_psi
-
-        if (np.any(sigma2 < 0)) | (np.any(nu2 < 0)):
-            raise ValueError(
-                "sensitivity_elements sigma2 and nu2 have to be positive. "
-                f"Got sigma2 {str(sigma2)} and nu2 {str(nu2)}. "
-                "Most likely this is due to low quality learners (especially propensity scores)."
-            )
+        max_bias = self.sensitivity_elements["max_bias"]
+        psi_max_bias = self.sensitivity_elements["psi_max_bias"]
 
         # elementwise operations
         confounding_strength = np.multiply(np.abs(rho), np.sqrt(np.multiply(cf_y, np.divide(cf_d, 1.0 - cf_d))))
-        sensitivity_scaling = np.sqrt(np.multiply(sigma2, nu2))
 
-        # sigma2 and nu2 are of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
-        all_theta_lower = self.all_thetas - np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
-        all_theta_upper = self.all_thetas + np.multiply(np.squeeze(sensitivity_scaling, axis=0), confounding_strength)
+        # max_bias is of shape (1, n_thetas, n_rep), whereas the all_thetas is of shape (n_thetas, n_rep)
+        all_theta_lower = self.all_thetas - np.multiply(confounding_strength, np.squeeze(max_bias, axis=0))
+        all_theta_upper = self.all_thetas + np.multiply(confounding_strength, np.squeeze(max_bias, axis=0))
 
-        psi_variances = np.multiply(sigma2, psi_nu) + np.multiply(nu2, psi_sigma)
-        psi_bias = np.multiply(np.divide(confounding_strength, np.multiply(2.0, sensitivity_scaling)), psi_variances)
-        psi_lower = psi_scaled - psi_bias
-        psi_upper = psi_scaled + psi_bias
+        psi_lower = psi_scaled - np.multiply(confounding_strength, psi_max_bias)
+        psi_upper = psi_scaled + np.multiply(confounding_strength, psi_max_bias)
 
         # shape (n_thetas, n_reps); includes scaling with n^{-1/2}
         all_sigma_lower = np.full_like(all_theta_lower, fill_value=np.nan)
@@ -979,11 +949,13 @@ class DoubleMLFramework:
         if "sensitivity_elements" not in doubleml_dict.keys():
             sensitivity_implemented = False
             sensitivity_elements = None
+            benchmark_available = False
 
         else:
             if not isinstance(doubleml_dict["sensitivity_elements"], dict):
                 raise TypeError("sensitivity_elements must be a dictionary.")
-            expected_keys_sensitivity = ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]
+
+            expected_keys_sensitivity = ["max_bias", "psi_max_bias"]
             if not all(key in doubleml_dict["sensitivity_elements"].keys() for key in expected_keys_sensitivity):
                 raise ValueError(
                     "The sensitivity_elements dict must contain the following keys: " + ", ".join(expected_keys_sensitivity)
@@ -995,70 +967,84 @@ class DoubleMLFramework:
 
             # set sensitivity elements
             sensitivity_implemented = True
-            sensitivity_elements = {
-                "sigma2": doubleml_dict["sensitivity_elements"]["sigma2"],
-                "nu2": doubleml_dict["sensitivity_elements"]["nu2"],
-                "psi_sigma2": doubleml_dict["sensitivity_elements"]["psi_sigma2"],
-                "psi_nu2": doubleml_dict["sensitivity_elements"]["psi_nu2"],
-                "riesz_rep": doubleml_dict["sensitivity_elements"]["riesz_rep"],
-            }
+            sensitivity_elements = {key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_sensitivity}
 
+            # check if benchmarks are available and update sensitivity elements
+            benchmark_available, sensitivity_elements_benchmark = self._check_sensitivity_benchmark(doubleml_dict)
+            sensitivity_elements.update(sensitivity_elements_benchmark)
+
+        # set attributes
         self._sensitivity_implemented = sensitivity_implemented
         self._sensitivity_elements = sensitivity_elements
+        self._benchmark_available = benchmark_available
         self._sensitivity_params = None
 
         return
 
-    def _check_framework_shapes(self):
-        score_dim = (self._n_obs, self._n_thetas, self.n_rep)
-        # check if all sizes match
-        if self._thetas.shape != (self._n_thetas,):
-            raise ValueError(f"The shape of thetas does not match the expected shape ({self._n_thetas},).")
-        if self._ses.shape != (self._n_thetas,):
-            raise ValueError(f"The shape of ses does not match the expected shape ({self._n_thetas},).")
-        if self._all_thetas.shape != (self._n_thetas, self._n_rep):
-            raise ValueError(f"The shape of all_thetas does not match the expected shape ({self._n_thetas}, {self._n_rep}).")
-        if self._all_ses.shape != (self._n_thetas, self._n_rep):
-            raise ValueError(f"The shape of all_ses does not match the expected shape ({self._n_thetas}, {self._n_rep}).")
-        if self._var_scaling_factors.shape != (self._n_thetas,):
-            raise ValueError(f"The shape of var_scaling_factors does not match the expected shape ({self._n_thetas},).")
-        # dimension of scaled_psi is n_obs x n_thetas x n_rep (per default)
-        if self._scaled_psi.shape != score_dim:
-            raise ValueError(
-                (
-                    "The shape of scaled_psi does not match the expected "
-                    f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
+    def _check_sensitivity_benchmark(self, doubleml_dict):
+        # check if benchmarks are available
+        expected_keys_benchmark = ["sigma2", "nu2"]
+        benchmark_available = all(key in doubleml_dict["sensitivity_elements"] for key in expected_keys_benchmark)
+        if benchmark_available:
+            # type checks
+            for key in expected_keys_benchmark:
+                if not isinstance(doubleml_dict["sensitivity_elements"][key], np.ndarray):
+                    raise TypeError(f"The sensitivity element {key} must be a numpy array.")
+
+            # additional constraints
+            if (np.any(doubleml_dict["sensitivity_elements"]["sigma2"] < 0)) | (
+                np.any(doubleml_dict["sensitivity_elements"]["nu2"] < 0)
+            ):
+                raise ValueError(
+                    "sensitivity_elements sigma2 and nu2 have to be positive. "
+                    f"Got sigma2 {str(doubleml_dict['sensitivity_elements']['sigma2'])} "
+                    f"and nu2 {str(doubleml_dict['sensitivity_elements']['nu2'])}. "
+                    "Most likely this is due to low quality learners (especially propensity scores)."
                 )
-            )
+
+            sensitivity_elements_benchmark = {
+                key: doubleml_dict["sensitivity_elements"][key] for key in expected_keys_benchmark
+            }
+        else:
+            sensitivity_elements_benchmark = {}
+
+        return benchmark_available, sensitivity_elements_benchmark
+
+    def _check_framework_shapes(self):
+        expected_shapes = {
+            "thetas": (self._n_thetas,),
+            "ses": (self._n_thetas,),
+            "all_thetas": (self._n_thetas, self._n_rep),
+            "all_ses": (self._n_thetas, self._n_rep),
+            "var_scaling_factors": (self._n_thetas,),
+            "scaled_psi": (self._n_obs, self._n_thetas, self.n_rep),
+        }
+
+        for attr, expected_shape in expected_shapes.items():
+            actual_shape = getattr(self, f"_{attr}").shape
+            if actual_shape != expected_shape:
+                raise ValueError(f"The shape of {attr} does not match the expected shape {expected_shape}.")
 
         if self._sensitivity_implemented:
-            if self._sensitivity_elements["sigma2"].shape != (1, self._n_thetas, self.n_rep):
-                raise ValueError(
-                    f"The shape of sigma2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep})."
-                )
-            if self._sensitivity_elements["nu2"].shape != (1, self._n_thetas, self.n_rep):
-                raise ValueError(f"The shape of nu2 does not match the expected shape (1, {self._n_thetas}, {self._n_rep}).")
-            if self._sensitivity_elements["psi_sigma2"].shape != score_dim:
-                raise ValueError(
-                    (
-                        "The shape of psi_sigma2 does not match the expected "
-                        f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
-                    )
-                )
-            if self._sensitivity_elements["psi_nu2"].shape != score_dim:
-                raise ValueError(
-                    (
-                        "The shape of psi_nu2 does not match the expected "
-                        f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
-                    )
-                )
-            if self._sensitivity_elements["riesz_rep"].shape != score_dim:
-                raise ValueError(
-                    (
-                        "The shape of riesz_rep does not match the expected "
-                        f"shape ({self._n_obs}, {self._n_thetas}, {self._n_rep})."
-                    )
-                )
+            self._check_sensitivity_elements_shapes()
+
+        return None
+
+    def _check_sensitivity_elements_shapes(self):
+        expected_sensitivity_shapes = {
+            "max_bias": (1, self._n_thetas, self.n_rep),
+            "psi_max_bias": (self._n_obs, self._n_thetas, self.n_rep),
+        }
+
+        if self._benchmark_available:
+            expected_sensitivity_shapes.update(
+                {"sigma2": (1, self._n_thetas, self.n_rep), "nu2": (1, self._n_thetas, self.n_rep)}
+            )
+
+        for key, expected_shape in expected_sensitivity_shapes.items():
+            actual_shape = self._sensitivity_elements[key].shape
+            if actual_shape != expected_shape:
+                raise ValueError(f"The shape of {key} does not match the expected shape {expected_shape}.")
 
         return None
 
@@ -1120,9 +1106,14 @@ def concat(objs):
 
     if all(obj._sensitivity_implemented for obj in objs):
         sensitivity_elements = {}
-        for key in ["sigma2", "nu2", "psi_sigma2", "psi_nu2", "riesz_rep"]:
+        for key in ["max_bias", "psi_max_bias"]:
             assert all(key in obj._sensitivity_elements.keys() for obj in objs)
             sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
+
+        if all(obj._benchmark_available for obj in objs):
+            for key in ["sigma2", "nu2"]:
+                assert all(key in obj._sensitivity_elements.keys() for obj in objs)
+                sensitivity_elements[key] = np.concatenate([obj._sensitivity_elements[key] for obj in objs], axis=1)
 
         doubleml_dict["sensitivity_elements"] = sensitivity_elements
 

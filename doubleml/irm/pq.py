@@ -3,10 +3,10 @@ from sklearn.base import clone
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import check_X_y
 
-from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLData
-from ..double_ml_score_mixins import NonLinearScoreMixin
-from ..utils._checks import (
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_data import DoubleMLData
+from doubleml.double_ml_score_mixins import NonLinearScoreMixin
+from doubleml.utils._checks import (
     _check_contains_iv,
     _check_quantile,
     _check_score,
@@ -14,17 +14,16 @@ from ..utils._checks import (
     _check_trimming,
     _check_zero_one_treatment,
 )
-from ..utils._estimation import (
+from doubleml.utils._estimation import (
     _cond_targets,
     _default_kde,
     _dml_cv_predict,
     _dml_tune,
     _get_bracket_guess,
-    _normalize_ipw,
     _predict_zero_one_propensity,
     _solve_ipw_score,
-    _trimm,
 )
+from doubleml.utils._propensity_score import _normalize_ipw, _trimm
 
 
 class DoubleMLPQ(NonLinearScoreMixin, DoubleML):

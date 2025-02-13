@@ -3,7 +3,8 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 
 from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
-from ...utils._estimation import _predict_zero_one_propensity, _trimm
+from ...utils._estimation import _predict_zero_one_propensity
+from ...utils._propensity_score import _trimm
 
 
 def fit_selection(

@@ -322,8 +322,8 @@ def test_stored_predictions():
     assert ssm_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.predictions["ml_pi"].shape == (n_obs, n_rep, n_treat)
 
-    assert apo_obj.predictions["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert apo_obj.predictions["ml_g1"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions["ml_g_d_lvl0"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions["ml_g_d_lvl1"].shape == (n_obs, n_rep, n_treat)
     assert apo_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
 
 
@@ -373,8 +373,8 @@ def test_stored_nuisance_targets():
     assert ssm_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.nuisance_targets["ml_pi"].shape == (n_obs, n_rep, n_treat)
 
-    assert apo_obj.nuisance_targets["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert apo_obj.nuisance_targets["ml_g1"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets["ml_g_d_lvl0"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets["ml_g_d_lvl1"].shape == (n_obs, n_rep, n_treat)
     assert apo_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
 
 
@@ -424,8 +424,8 @@ def test_nuisance_loss():
     assert ssm_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
     assert ssm_obj.nuisance_loss["ml_pi"].shape == (n_rep, n_treat)
 
-    assert apo_obj.nuisance_loss["ml_g0"].shape == (n_rep, n_treat)
-    assert apo_obj.nuisance_loss["ml_g1"].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss["ml_g_d_lvl0"].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss["ml_g_d_lvl1"].shape == (n_rep, n_treat)
     assert apo_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
 
 

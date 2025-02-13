@@ -66,8 +66,8 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
         ml_m = LogisticRegression(random_state=42)
 
     if set_ml_g_ext:
-        ext_predictions["d"]["ml_g0"] = dml_obj.predictions["ml_g0"][:, :, 0]
-        ext_predictions["d"]["ml_g1"] = dml_obj.predictions["ml_g1"][:, :, 0]
+        ext_predictions["d"]["ml_g_d_lvl0"] = dml_obj.predictions["ml_g_d_lvl0"][:, :, 0]
+        ext_predictions["d"]["ml_g_d_lvl1"] = dml_obj.predictions["ml_g_d_lvl1"][:, :, 0]
         ml_g = DMLDummyRegressor()
     else:
         ml_g = LinearRegression()
@@ -78,7 +78,12 @@ def doubleml_apo_ext_fixture(n_rep, set_ml_m_ext, set_ml_g_ext):
     np.random.seed(3141)
     dml_obj_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_obj.coef[0], "coef_ext": dml_obj_ext.coef[0]}
+    res_dict = {
+        "coef_normal": dml_obj.coef[0],
+        "coef_ext": dml_obj_ext.coef[0],
+        "se_normal": dml_obj.se[0],
+        "se_ext": dml_obj_ext.se[0],
+    }
 
     return res_dict
 
@@ -88,3 +93,8 @@ def test_doubleml_apo_ext_coef(doubleml_apo_ext_fixture):
     assert math.isclose(
         doubleml_apo_ext_fixture["coef_normal"], doubleml_apo_ext_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4
     )
+
+
+@pytest.mark.ci
+def test_doubleml_apo_ext_se(doubleml_apo_ext_fixture):
+    assert math.isclose(doubleml_apo_ext_fixture["se_normal"], doubleml_apo_ext_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-4)

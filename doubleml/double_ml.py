@@ -11,6 +11,7 @@ from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
 from .double_ml_framework import DoubleMLFramework
 from .utils._checks import _check_external_predictions, _check_sample_splitting
 from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from .utils._sensitivity import _compute_sensitivity_bias
 from .utils.gain_statistics import gain_statistics
 from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
@@ -525,6 +526,9 @@ class DoubleML(ABC):
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
+        # validate sensitivity elements (e.g., re-estimate nu2 if negative)
+        self._validate_sensitivity_elements()
+
         # construct framework for inference
         self._framework = self.construct_framework()
 
@@ -553,18 +557,27 @@ class DoubleML(ABC):
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data,
+            "treatment_names": self._dml_data.d_cols,
         }
 
         if self._sensitivity_implemented:
-            # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
+            # reshape sensitivity elements to (1 or n_obs, n_coefs, n_rep)
+            sensitivity_dict = {
+                "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
+                "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
+                "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
+                "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
+            }
+
+            max_bias, psi_max_bias = _compute_sensitivity_bias(**sensitivity_dict)
+
             doubleml_dict.update(
                 {
                     "sensitivity_elements": {
-                        "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
-                        "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
-                        "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
-                        "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
-                        "riesz_rep": np.transpose(self.sensitivity_elements["riesz_rep"], (0, 2, 1)),
+                        "max_bias": max_bias,
+                        "psi_max_bias": psi_max_bias,
+                        "sigma2": sensitivity_dict["sigma2"],
+                        "nu2": sensitivity_dict["nu2"],
                     }
                 }
             )
@@ -1422,6 +1435,27 @@ class DoubleML(ABC):
             "riesz_rep": np.full(score_dim, np.nan),
         }
         return sensitivity_elements
+
+    def _validate_sensitivity_elements(self):
+        if self._sensitivity_implemented:
+            for i_treat in range(self._dml_data.n_treat):
+                nu2 = self.sensitivity_elements["nu2"][:, :, i_treat]
+                riesz_rep = self.sensitivity_elements["riesz_rep"][:, :, i_treat]
+
+                if np.any(nu2 <= 0):
+                    treatment_name = self._dml_data.d_cols[i_treat]
+                    msg = (
+                        f"The estimated nu2 for {treatment_name} is not positive. "
+                        "Re-estimation based on riesz representer (non-orthogonal)."
+                    )
+                    warnings.warn(msg, UserWarning)
+                    psi_nu2 = np.power(riesz_rep, 2)
+                    nu2 = np.mean(psi_nu2, axis=0, keepdims=True)
+
+                    self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
+                    self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
+
+        return
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
         sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}
