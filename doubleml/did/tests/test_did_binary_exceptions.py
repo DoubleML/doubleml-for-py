@@ -1,8 +1,7 @@
 import pytest
-
-import doubleml as dml
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
+import doubleml as dml
 
 dml_data = dml.did.datasets.make_did_SZ2020(n_obs=500, dgp_type=1, return_type="DoubleMLPanelData")
 

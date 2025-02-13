@@ -9,9 +9,9 @@ def _check_preprocess_g_t(g_values, t_values, control_group):
     is_iterable_g = isinstance(g_values, Iterable)
     is_iterable_t = isinstance(t_values, Iterable)
     if not is_iterable_g:
-        g_value_list = np.array([g_values])
+        g_values = np.array([g_values])
     if not is_iterable_t:
-        t_value_list = np.array([t_values])
+        t_values = np.array([t_values])
 
     # Don't evaluate always treated
     g_values = g_values[g_values > 0]

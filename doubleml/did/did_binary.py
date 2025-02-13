@@ -19,7 +19,8 @@ from doubleml.utils._propensity_score import _trimm
 
 
 class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
-    """Double machine learning for difference-in-differences models with panel data (binary setting in terms of group and time combinations).
+    """Double machine learning for difference-in-differences models with panel data (binary setting in terms of group and time
+     combinations).
 
     Parameters
     ----------

@@ -36,7 +36,7 @@ def doubleml_did_fixture(did_score, n_rep):
         "t_value_eval": 1,
         "score": did_score,
         "n_rep": n_rep,
-        "draw_sample_splitting": False
+        "draw_sample_splitting": False,
     }
 
     dml_did = DoubleMLDIDBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
@@ -62,7 +62,7 @@ def doubleml_did_fixture(did_score, n_rep):
         "se": dml_did.se[0],
         "se_ext": dml_did_ext.se[0],
         "score": dml_did.psi,
-        "score_ext": dml_did_ext.psi
+        "score_ext": dml_did_ext.psi,
     }
 
     return res_dict
