@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from doubleml.data import DoubleMLPanelData
@@ -99,3 +100,47 @@ def test_d_col_setter():
     msg = r"The treatment variable\(s\) d_cols must be of str or list type. None of type <class 'NoneType'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.d_cols = None
+
+
+@pytest.mark.ci
+def test_disjoint_sets():
+    np.random.seed(3141)
+    df = pd.DataFrame(
+        np.tile(np.arange(7), (4, 1)),
+        columns=["yy", "dd1", "xx1", "xx2", "zz", "tt", "id"]
+    )
+
+    msg = (
+        r"At least one variable/column is set as outcome variable \(``y_col``\) "
+        r"and identifier variable \(``id_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="yy")
+
+    msg = (
+        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
+        r"and identifier variable \(``id_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="dd1")
+
+    msg = (
+        r"At least one variable/column is set as covariate \(``x_cols``\) "
+        r"and identifier variable \(``id_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="xx1")
+
+    msg = (
+        r"At least one variable/column is set as time variable \(``t_col``\) "
+        r"and identifier variable \(``id_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", id_col="tt")
+
+    msg = (
+        r"At least one variable/column is set as instrumental variable \(``z_cols``\) "
+        r"and identifier variable \(``id_col``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", z_cols=["zz"], id_col="zz")
