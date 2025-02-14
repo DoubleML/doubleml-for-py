@@ -2,7 +2,7 @@ import pytest
 
 import numpy as np
 
-from .._did_utils import _check_preprocess_g_t
+from .._did_utils import _check_g_t_values
 
 valid_args = {
     "g_values": np.array([1, 2]),
@@ -12,7 +12,7 @@ valid_args = {
 
 
 @pytest.mark.ci
-def test_input_check_preprocess_g_t():
+def test_input_check_g_t_values():
     invalid_args = [
         ({"g_values": ["test"]}, TypeError, r"Invalid type for g_values: expected one of \(<class 'int'>, <class 'float'>\)."),
         ({"t_values": ["test"]}, TypeError, r"Invalid type for t_values: expected one of \(<class 'int'>, <class 'float'>\)."),
@@ -20,15 +20,16 @@ def test_input_check_preprocess_g_t():
         ({"t_values": np.array([[0, 1, 2]])}, ValueError, "t_values must be a vector. Number of dimensions is 2."),
         ({"g_values": None}, TypeError, "Invalid type for g_values."),
         ({"t_values": None}, TypeError, "Invalid type for t_values."),
+        ({"t_values": np.array([0, 1, np.nan])}, ValueError, "t_values contains missing values."),
     ]
 
     for arg, error, msg in invalid_args:
         with pytest.raises(error, match=msg):
-            _check_preprocess_g_t(**(valid_args | arg))
+            _check_g_t_values(**(valid_args | arg))
 
 
 @pytest.mark.ci
-def test_modify_g_values_check_preprocess_g_t():
+def test_modify_g_values_check_g_t_values():
     arguments = [
         ({"g_values": [0, 1]}, UserWarning, "The never treated group 0 is removed from g_values."),
         ({"t_values": [1, 2]}, UserWarning, "Values before/equal the first period 1 are removed from g_values."),
@@ -38,4 +39,4 @@ def test_modify_g_values_check_preprocess_g_t():
 
     for arg, error, msg in arguments:
         with pytest.warns(error, match=msg):
-            _check_preprocess_g_t(**(valid_args | arg))
+            _check_g_t_values(**(valid_args | arg))

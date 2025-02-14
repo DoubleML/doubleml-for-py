@@ -8,7 +8,7 @@ import numpy as np
 expected_time_types = (int, float)
 
 
-def _convert_to_numpy_arrray(x, input_name):
+def _convert_to_numpy_arrray(x, input_name, allow_nan=False):
     if isinstance(x, np.ndarray):
         if not x.ndim == 1:
             raise ValueError(f"{input_name} must be a vector. Number of dimensions is {x.ndim}.")
@@ -21,14 +21,20 @@ def _convert_to_numpy_arrray(x, input_name):
     else:
         raise TypeError(f"Invalid type for {input_name}.")
 
+    if not allow_nan and np.any(np.isnan(x)):
+        raise ValueError(f"{input_name} contains missing values.")
+
     return x
 
 
-def _check_preprocess_g_t(g_values, t_values, control_group):
+def _check_g_t_values(g_values, t_values, control_group):
     # TODO: Implement specific possiblities (date, float, etc.) and checks
 
-    g_values = _convert_to_numpy_arrray(g_values, "g_values")
-    t_values = _convert_to_numpy_arrray(t_values, "t_values")
+    g_values = _convert_to_numpy_arrray(g_values, "g_values", allow_nan=True)
+    t_values = _convert_to_numpy_arrray(t_values, "t_values", allow_nan=False)
+
+    g_values = np.sort(g_values)
+    t_values = np.sort(t_values)
 
     # Don't evaluate always treated
     never_treated_value = 0
@@ -61,6 +67,10 @@ def _check_preprocess_g_t(g_values, t_values, control_group):
 
     g_values = np.atleast_1d(g_values[valid_g_values])
 
+    return g_values, t_values
+
+
+def _check_preprocess_g_t(g_values, t_values, control_group):
     # For each combination of g and t values, we need to find a pretreatment and evaluation period
     # Here only varying base period (for universal t_fac would be 0)
     t_fac = 1
