@@ -33,6 +33,7 @@ def test_modify_g_values_check_preprocess_g_t():
         ({"g_values": [0, 1]}, UserWarning, "The never treated group 0 is removed from g_values."),
         ({"t_values": [1, 2]}, UserWarning, "Values before/equal the first period 1 are removed from g_values."),
         ({"g_values": [1, 2, 3]}, UserWarning, "Values after the last period 2 are removed from g_values."),
+        ({"g_values": [1, 2], "control_group": "not_yet_treated"}, UserWarning, r"Individuals treated in the last period are excluded from the analysis \(no comparison group available\)."),
     ]
 
     for arg, error, msg in arguments:
