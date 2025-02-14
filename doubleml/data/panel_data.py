@@ -94,8 +94,8 @@ class DoubleMLPanelData(DoubleMLData):
         self._check_disjoint_sets_id_col()
 
         # intialize the unique values of g and t
-        self._g_values = np.unique(self.d)  # unique values of g
-        self._t_values = np.unique(self.t)  # unique values of t
+        self._g_values = np.sort(np.unique(self.d))  # unique values of g
+        self._t_values = np.sort(np.unique(self.t))  # unique values of t
 
     def __str__(self):
         data_summary = self._data_summary_str()
@@ -182,7 +182,7 @@ class DoubleMLPanelData(DoubleMLData):
     def d_cols(self, value):
         super(self.__class__, self.__class__).d_cols.__set__(self, value)
         if hasattr(self, "_g_values"):
-            self._g_values = np.unique(self.d)  # update unique values of g
+            self._g_values = np.sort(np.unique(self.d))  # update unique values of g
 
     @property
     def g_values(self):
@@ -204,7 +204,7 @@ class DoubleMLPanelData(DoubleMLData):
             raise TypeError("Invalid time variable t_col. Time variable required for panel data.")
         super(self.__class__, self.__class__).t_col.__set__(self, value)
         if hasattr(self, "_t_values"):
-            self._t_values = np.unique(self.t)  # update unique values of t
+            self._t_values = np.sort(np.unique(self.t))  # update unique values of t
 
     @property
     def t_values(self):
