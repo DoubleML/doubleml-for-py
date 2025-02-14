@@ -1,35 +1,34 @@
 import warnings
 
+from collections.abc import Iterable
 import pandas as pd
 
 import numpy as np
 
-expected_time_vec_types = (int, float, np.ndarray)
 expected_time_types = (int, float)
+
+
+def _convert_to_numpy_arrray(x, input_name):
+    if isinstance(x, np.ndarray):
+        if not x.ndim == 1:
+            raise ValueError(f"{input_name} must be a vector. Number of dimensions is {x.ndim}.")
+    elif isinstance(x, (int, float)):
+        x = np.array([x])
+    elif isinstance(x, Iterable):
+        if not all(isinstance(i, expected_time_types) for i in x):
+            raise TypeError(f"Invalid type for {input_name}: expected one of {expected_time_types}.")
+        x = np.array(x)
+    else:
+        raise TypeError(f"Invalid type for {input_name}.")
+
+    return x
 
 
 def _check_preprocess_g_t(g_values, t_values, control_group):
     # TODO: Implement specific possiblities (date, float, etc.) and checks
-    if not isinstance(g_values, expected_time_vec_types):
-        raise TypeError(f"Invalid type for g_values: expected one of {expected_time_vec_types}.")
-    if not isinstance(t_values, expected_time_vec_types):
-        raise TypeError(f"Invalid type for t_values: expected one of {expected_time_vec_types}.")
 
-    if isinstance(g_values, (float, int)):
-        g_values = np.array([g_values])
-    if isinstance(t_values, (float, int)):
-        t_values = np.array([t_values])
-
-    if not all(isinstance(g, expected_time_types) for g in g_values):
-        raise TypeError(f"Invalid type for g_values: expected one of {expected_time_types}.")
-    if not all(isinstance(t, expected_time_types) for t in t_values):
-        raise TypeError(f"Invalid type for t_values: expected one of {expected_time_types}.")
-
-    # check shape is vector
-    if g_values.ndim != 1:
-        raise ValueError(f"g_values must be a vector. Number of dimensions is {g_values.ndim}.")
-    if t_values.ndim != 1:
-        raise ValueError(f"t_values must be a vector. Number of dimensions is {t_values.ndim}.")
+    g_values = _convert_to_numpy_arrray(g_values, "g_values")
+    t_values = _convert_to_numpy_arrray(t_values, "t_values")
 
     # Don't evaluate always treated
     never_treated_value = 0
