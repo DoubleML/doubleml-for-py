@@ -24,7 +24,6 @@ from doubleml import (
     DoubleMLSSM,
 )
 from doubleml.datasets import (
-    make_did_SZ2020,
     make_iivm_data,
     make_irm_data,
     make_pliv_CHS2015,
@@ -32,6 +31,7 @@ from doubleml.datasets import (
     make_plr_CCDDHNR2018,
     make_ssm_data,
 )
+from doubleml.did.datasets import make_did_SZ2020
 
 np.random.seed(3141)
 n_obs = 200
@@ -322,8 +322,8 @@ def test_stored_predictions():
     assert ssm_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.predictions["ml_pi"].shape == (n_obs, n_rep, n_treat)
 
-    assert apo_obj.predictions["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert apo_obj.predictions["ml_g1"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions["ml_g_d_lvl0"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.predictions["ml_g_d_lvl1"].shape == (n_obs, n_rep, n_treat)
     assert apo_obj.predictions["ml_m"].shape == (n_obs, n_rep, n_treat)
 
 
@@ -373,8 +373,8 @@ def test_stored_nuisance_targets():
     assert ssm_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
     assert ssm_obj.nuisance_targets["ml_pi"].shape == (n_obs, n_rep, n_treat)
 
-    assert apo_obj.nuisance_targets["ml_g0"].shape == (n_obs, n_rep, n_treat)
-    assert apo_obj.nuisance_targets["ml_g1"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets["ml_g_d_lvl0"].shape == (n_obs, n_rep, n_treat)
+    assert apo_obj.nuisance_targets["ml_g_d_lvl1"].shape == (n_obs, n_rep, n_treat)
     assert apo_obj.nuisance_targets["ml_m"].shape == (n_obs, n_rep, n_treat)
 
 
@@ -424,8 +424,8 @@ def test_nuisance_loss():
     assert ssm_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
     assert ssm_obj.nuisance_loss["ml_pi"].shape == (n_rep, n_treat)
 
-    assert apo_obj.nuisance_loss["ml_g0"].shape == (n_rep, n_treat)
-    assert apo_obj.nuisance_loss["ml_g1"].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss["ml_g_d_lvl0"].shape == (n_rep, n_treat)
+    assert apo_obj.nuisance_loss["ml_g_d_lvl1"].shape == (n_rep, n_treat)
     assert apo_obj.nuisance_loss["ml_m"].shape == (n_rep, n_treat)
 
 

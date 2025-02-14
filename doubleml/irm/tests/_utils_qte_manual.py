@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.base import clone
 
-from ...double_ml_data import DoubleMLData
+from ...data.base_data import DoubleMLData
 from ...tests._utils_boot import draw_weights
 from ...utils._estimation import _default_kde
 from ..pq import DoubleMLPQ

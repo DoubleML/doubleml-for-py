@@ -44,7 +44,7 @@ def treatment_level(request):
 
 
 @pytest.fixture(scope="module")
-def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshold, treatment_level):
+def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -116,8 +116,8 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
 
     prediction_dict = {
         "d": {
-            "ml_g0": dml_obj.predictions["ml_g0"].reshape(-1, 1),
-            "ml_g1": dml_obj.predictions["ml_g1"].reshape(-1, 1),
+            "ml_g_d_lvl0": dml_obj.predictions["ml_g_d_lvl0"].reshape(-1, 1),
+            "ml_g_d_lvl1": dml_obj.predictions["ml_g_d_lvl1"].reshape(-1, 1),
             "ml_m": dml_obj.predictions["ml_m"].reshape(-1, 1),
         }
     }
@@ -166,7 +166,14 @@ def dml_apo_fixture(generate_data_irm, learner, normalize_ipw, trimming_threshol
     # sensitivity tests
     res_dict["sensitivity_elements"] = dml_obj.sensitivity_elements
     res_dict["sensitivity_elements_manual"] = fit_sensitivity_elements_apo(
-        y, d, treatment_level, all_coef=dml_obj.all_coef, predictions=dml_obj.predictions, score="APO", n_rep=1
+        y,
+        d,
+        treatment_level,
+        all_coef=dml_obj.all_coef,
+        predictions=dml_obj.predictions,
+        score="APO",
+        n_rep=1,
+        normalize_ipw=normalize_ipw,
     )
     return res_dict
 

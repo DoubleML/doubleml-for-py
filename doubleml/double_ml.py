@@ -7,12 +7,14 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
-from .double_ml_framework import DoubleMLFramework
-from .utils._checks import _check_external_predictions, _check_sample_splitting
-from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
-from .utils.gain_statistics import gain_statistics
-from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
+from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
+from doubleml.data.base_data import DoubleMLBaseData
+from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils.gain_statistics import gain_statistics
+from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
 
@@ -32,6 +34,10 @@ class DoubleML(ABC):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
+        self._is_panel_data = False
+        if isinstance(obj_dml_data, DoubleMLPanelData):
+            self._is_panel_data = True
+
         self._dml_data = obj_dml_data
 
         # initialize framework which is constructed after the fit method is called
@@ -525,6 +531,9 @@ class DoubleML(ABC):
         # aggregated parameter estimates and standard errors from repeated cross-fitting
         self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
 
+        # validate sensitivity elements (e.g., re-estimate nu2 if negative)
+        self._validate_sensitivity_elements()
+
         # construct framework for inference
         self._framework = self.construct_framework()
 
@@ -553,18 +562,27 @@ class DoubleML(ABC):
             "var_scaling_factors": self._var_scaling_factors,
             "scaled_psi": scaled_psi_reshape,
             "is_cluster_data": self._is_cluster_data,
+            "treatment_names": self._dml_data.d_cols,
         }
 
         if self._sensitivity_implemented:
-            # reshape sensitivity elements to (n_obs, n_coefs, n_rep)
+            # reshape sensitivity elements to (1 or n_obs, n_coefs, n_rep)
+            sensitivity_dict = {
+                "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
+                "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
+                "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
+                "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
+            }
+
+            max_bias, psi_max_bias = _compute_sensitivity_bias(**sensitivity_dict)
+
             doubleml_dict.update(
                 {
                     "sensitivity_elements": {
-                        "sigma2": np.transpose(self.sensitivity_elements["sigma2"], (0, 2, 1)),
-                        "nu2": np.transpose(self.sensitivity_elements["nu2"], (0, 2, 1)),
-                        "psi_sigma2": np.transpose(self.sensitivity_elements["psi_sigma2"], (0, 2, 1)),
-                        "psi_nu2": np.transpose(self.sensitivity_elements["psi_nu2"], (0, 2, 1)),
-                        "riesz_rep": np.transpose(self.sensitivity_elements["riesz_rep"], (0, 2, 1)),
+                        "max_bias": max_bias,
+                        "psi_max_bias": psi_max_bias,
+                        "sigma2": sensitivity_dict["sigma2"],
+                        "nu2": sensitivity_dict["nu2"],
                     }
                 }
             )
@@ -1190,29 +1208,39 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
+    def draw_sample_splitting(self, n_obs=None):
         """
         Draw sample splitting for DoubleML models.
 
         The samples are drawn according to the attributes
         ``n_folds`` and ``n_rep``.
 
+        Parameters
+        ----------
+        n_obs : int or None
+            The number of observations. If ``None``, the number of observations is set to the number of observations in
+            the data set.
+
         Returns
         -------
         self : object
         """
+
+        if n_obs is None:
+            n_obs = self._dml_data.n_obs
+
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=self._dml_data.n_obs,
+                n_obs=n_obs,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._strata
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata
             )
             self._smpls = obj_dml_resampling.split_samples()
 
@@ -1422,6 +1450,27 @@ class DoubleML(ABC):
             "riesz_rep": np.full(score_dim, np.nan),
         }
         return sensitivity_elements
+
+    def _validate_sensitivity_elements(self):
+        if self._sensitivity_implemented:
+            for i_treat in range(self._dml_data.n_treat):
+                nu2 = self.sensitivity_elements["nu2"][:, :, i_treat]
+                riesz_rep = self.sensitivity_elements["riesz_rep"][:, :, i_treat]
+
+                if np.any(nu2 <= 0):
+                    treatment_name = self._dml_data.d_cols[i_treat]
+                    msg = (
+                        f"The estimated nu2 for {treatment_name} is not positive. "
+                        "Re-estimation based on riesz representer (non-orthogonal)."
+                    )
+                    warnings.warn(msg, UserWarning)
+                    psi_nu2 = np.power(riesz_rep, 2)
+                    nu2 = np.mean(psi_nu2, axis=0, keepdims=True)
+
+                    self.sensitivity_elements["nu2"][:, :, i_treat] = nu2
+                    self.sensitivity_elements["psi_nu2"][:, :, i_treat] = psi_nu2
+
+        return
 
     def _get_sensitivity_elements(self, i_rep, i_treat):
         sensitivity_elements = {key: value[:, i_rep, i_treat] for key, value in self.sensitivity_elements.items()}

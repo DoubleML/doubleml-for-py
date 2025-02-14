@@ -5,8 +5,8 @@ from sklearn.base import BaseEstimator
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLSSM
+from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.datasets import make_ssm_data
-from doubleml.double_ml_data import DoubleMLBaseData
 
 np.random.seed(3141)
 n = 100
