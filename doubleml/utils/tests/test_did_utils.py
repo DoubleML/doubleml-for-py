@@ -1,14 +1,24 @@
 import pytest
 
 import numpy as np
+import pandas as pd
 
-from .._did_utils import _check_g_t_values
+from .._did_utils import _check_g_t_values, _get_never_treated_value
 
 valid_args = {
     "g_values": np.array([1, 2]),
     "t_values": np.array([0, 1, 2]),
     "control_group": "never_treated",
 }
+
+
+@pytest.mark.ci
+def test_get_never_treated_value():
+    assert _get_never_treated_value(np.array([1, 2])) == 0
+    assert np.isnan(_get_never_treated_value(np.array([1.0, 2.0])))
+    assert np.isnan(_get_never_treated_value(np.array([1.0, 2])))
+    assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"], dtype="datetime64")) is pd.NaT
+    assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"])) == 0
 
 
 @pytest.mark.ci
