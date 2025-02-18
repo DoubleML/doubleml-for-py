@@ -113,7 +113,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._print_periods = print_periods
 
         # TODO: Check if we want to keep the g_values & t_values from the backend
-        # as they might differ from the ones processed in DoubleMLDIDMULTI
+        # as they might differ from the ones processed in DoubleMLDIDMulti
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
@@ -582,7 +582,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
         g1_best_params = [xx.best_params_ for xx in g1_tune_res]
 
-        m_tune_res = list()
         if self.score == "observational":
             m_tune_res = _dml_tune(
                 d,
