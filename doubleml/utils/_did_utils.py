@@ -27,11 +27,23 @@ def _convert_to_numpy_arrray(x, input_name, allow_nan=False):
     return x
 
 
+def _get_never_treated_value(g_values):
+    never_treated_value = 0
+    if np.issubdtype(g_values.dtype, np.floating):
+        never_treated_value = np.nan
+    elif np.issubdtype(g_values.dtype, np.datetime64):
+        never_treated_value = pd.NaT
+    return never_treated_value
+
+
 def _check_g_t_values(g_values, t_values, control_group):
     # TODO: Implement specific possiblities (date, float, etc.) and checks
 
     g_values = _convert_to_numpy_arrray(g_values, "g_values", allow_nan=True)
     t_values = _convert_to_numpy_arrray(t_values, "t_values", allow_nan=False)
+
+    if g_values.dtype != t_values.dtype:
+        raise ValueError(f"g_values and t_values must have the same data type. Got {g_values.dtype} and {t_values.dtype}.")
 
     g_values = np.sort(g_values)
     t_values = np.sort(t_values)

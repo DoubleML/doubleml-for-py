@@ -21,6 +21,8 @@ def test_input_check_g_t_values():
         ({"g_values": None}, TypeError, "Invalid type for g_values."),
         ({"t_values": None}, TypeError, "Invalid type for t_values."),
         ({"t_values": np.array([0, 1, np.nan])}, ValueError, "t_values contains missing values."),
+        ({"g_values": np.array([0, 1]), "t_values": np.array([0.0, 1.0, 2.0])}, ValueError,
+         "g_values and t_values must have the same data type. Got int64 and float64."),
     ]
 
     for arg, error, msg in invalid_args:
