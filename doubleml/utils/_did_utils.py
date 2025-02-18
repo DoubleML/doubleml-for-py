@@ -36,6 +36,19 @@ def _get_never_treated_value(g_values):
     return never_treated_value
 
 
+def _is_never_treated(x, never_treated_value):
+    if not isinstance(x, np.ndarray):
+        x = np.array([x])
+
+    if never_treated_value is np.nan:
+        return np.isnan(x)
+    elif never_treated_value is pd.NaT:
+        return pd.isna(x)
+    else:
+        assert never_treated_value == 0
+        return x == 0
+
+
 def _check_g_t_values(g_values, t_values, control_group):
     # TODO: Implement specific possiblities (date, float, etc.) and checks
 

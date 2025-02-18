@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from .._did_utils import _check_g_t_values, _get_never_treated_value
+from .._did_utils import _check_g_t_values, _get_never_treated_value, _is_never_treated
 
 valid_args = {
     "g_values": np.array([1, 2]),
@@ -19,6 +19,34 @@ def test_get_never_treated_value():
     assert np.isnan(_get_never_treated_value(np.array([1.0, 2])))
     assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"], dtype="datetime64")) is pd.NaT
     assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"])) == 0
+
+
+@pytest.mark.ci
+def test_is_never_treated():
+    # check single values
+    arguments = (
+        (0, 0, True),
+        (1, 0, False),
+        (np.nan, np.nan, True),
+        (0, np.nan, False),
+        (pd.NaT, pd.NaT, True),
+        (0, pd.NaT, False),
+    )
+    for x, never_treated_value, expected in arguments:
+        assert _is_never_treated(x, never_treated_value) == expected
+
+    # check arrays
+    arguments = (
+        (np.array([0, 1]), 0, np.array([True, False])),
+        (np.array([0, 1]), np.nan, np.array([False, False])),
+        (np.array([0, 1]), pd.NaT, np.array([False, False])),
+        (np.array([0, np.nan]), 0, np.array([True, False])),
+        (np.array([0, np.nan]), np.nan, np.array([False, True])),
+        (np.array([0, pd.NaT]), 0, np.array([True, False])),
+        (np.array([0, pd.NaT]), pd.NaT, np.array([False, True])),
+    )
+    for x, never_treated_value, expected in arguments:
+        assert np.all(_is_never_treated(x, never_treated_value) == expected)
 
 
 @pytest.mark.ci
