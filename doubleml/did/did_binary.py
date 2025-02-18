@@ -122,19 +122,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
         self._control_group = control_group
 
-        # TODO: Do we really want to use default values for g and t?
-        # Defaults for g and t values
-        if g_value is None:
-            g_value = int(g_values[g_values > 0].min())
-        if t_value_pre is None:
-            t_value_pre = int(t_values[t_values < g_value].max())
-        if t_value_eval is None:
-            t_value_eval = int(t_values[t_values > g_value].min())
-
-        _check_integer(g_value, "g_value", 0)
-        _check_integer(t_value_pre, "t_value_pre", 0)
-        _check_integer(t_value_eval, "t_value_eval", 0)
-
         # check if g_value and t_value are in the set of g_values and t_values
         if g_value not in g_values:
             raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
