@@ -70,27 +70,26 @@ def dml_did_fixture(generate_data_did_binary, learner_g, learner_m, score, in_sa
     ml_g = clone(learner_g)
     ml_m = clone(learner_m)
 
+    dml_args = {
+        "ml_g": ml_g,
+        "ml_m": ml_m,
+        "n_folds": n_folds,
+        "score": score,
+        "in_sample_normalization": in_sample_normalization,
+        "draw_sample_splitting": False,
+    }
+
     dml_did_binary_obj = dml.did.DoubleMLDIDBinary(
         dml_panel_data,
-        ml_g,
-        ml_m,
         g_value=1,
         t_value_pre=0,
         t_value_eval=1,
-        n_folds=n_folds,
-        score=score,
-        in_sample_normalization=in_sample_normalization,
-        draw_sample_splitting=False,
+        **dml_args,
     )
 
     dml_did_obj = dml.DoubleMLDID(
         obj_dml_data,
-        ml_g,
-        ml_m,
-        n_folds,
-        score=score,
-        in_sample_normalization=in_sample_normalization,
-        draw_sample_splitting=False,
+        **dml_args,
     )
 
     # synchronize the sample splitting

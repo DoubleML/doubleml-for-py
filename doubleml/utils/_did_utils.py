@@ -1,9 +1,8 @@
 import warnings
-
 from collections.abc import Iterable
-import pandas as pd
 
 import numpy as np
+import pandas as pd
 
 expected_time_types = (int, float)
 
@@ -86,8 +85,9 @@ def _check_g_t_values(g_values, t_values, control_group):
     # Don't evaluate those individuals treated in last period
     if (control_group == "not_yet_treated") and (not never_treated_exist):
         if np.any(g_values == t_last):
-            warnings.warn("Individuals treated in the last period are excluded from the analysis " +
-                          "(no comparison group available).")
+            warnings.warn(
+                "Individuals treated in the last period are excluded from the analysis " + "(no comparison group available)."
+            )
             valid_g_values &= g_values < t_last
 
     g_values = np.atleast_1d(g_values[valid_g_values])

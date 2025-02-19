@@ -1,7 +1,6 @@
-import pytest
-
 import numpy as np
 import pandas as pd
+import pytest
 
 from .._did_utils import _check_g_t_values, _get_never_treated_value, _is_never_treated
 
@@ -59,8 +58,11 @@ def test_input_check_g_t_values():
         ({"g_values": None}, TypeError, "Invalid type for g_values."),
         ({"t_values": None}, TypeError, "Invalid type for t_values."),
         ({"t_values": np.array([0, 1, np.nan])}, ValueError, "t_values contains missing values."),
-        ({"g_values": np.array([0, 1]), "t_values": np.array([0.0, 1.0, 2.0])}, ValueError,
-         "g_values and t_values must have the same data type. Got int64 and float64."),
+        (
+            {"g_values": np.array([0, 1]), "t_values": np.array([0.0, 1.0, 2.0])},
+            ValueError,
+            "g_values and t_values must have the same data type. Got int64 and float64.",
+        ),
     ]
 
     for arg, error, msg in invalid_args:
@@ -74,7 +76,11 @@ def test_modify_g_values_check_g_t_values():
         ({"g_values": [0, 1]}, UserWarning, "The never treated group 0 is removed from g_values."),
         ({"t_values": [1, 2]}, UserWarning, "Values before/equal the first period 1 are removed from g_values."),
         ({"g_values": [1, 2, 3]}, UserWarning, "Values after the last period 2 are removed from g_values."),
-        ({"g_values": [1, 2], "control_group": "not_yet_treated"}, UserWarning, r"Individuals treated in the last period are excluded from the analysis \(no comparison group available\)."),
+        (
+            {"g_values": [1, 2], "control_group": "not_yet_treated"},
+            UserWarning,
+            r"Individuals treated in the last period are excluded from the analysis \(no comparison group available\).",
+        ),
     ]
 
     for arg, error, msg in arguments:

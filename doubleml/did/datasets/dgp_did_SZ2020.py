@@ -191,12 +191,26 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
         elif return_type == "DoubleMLPanelData":
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             df0 = (
-                pd.DataFrame(np.column_stack((y0, d, np.zeros_like(y0), z)), columns=["y", "d", "t"] + z_cols)
+                pd.DataFrame(
+                    {
+                        "y": y0,
+                        "d": d.astype(np.int32),
+                        "t": np.zeros_like(y0, dtype=np.int32),
+                        **{col: z[:, i] for i, col in enumerate(z_cols)},
+                    }
+                )
                 .reset_index()
                 .rename(columns={"index": "id"})
             )
             df1 = (
-                pd.DataFrame(np.column_stack((y1, d, np.ones_like(y0), z)), columns=["y", "d", "t"] + z_cols)
+                pd.DataFrame(
+                    {
+                        "y": y1,
+                        "d": d.astype(np.int32),
+                        "t": np.ones_like(y0, dtype=np.int32),
+                        **{col: z[:, i] for i, col in enumerate(z_cols)},
+                    }
+                )
                 .reset_index()
                 .rename(columns={"index": "id"})
             )

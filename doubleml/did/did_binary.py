@@ -9,11 +9,11 @@ from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import (
     _check_bool,
     _check_finite_predictions,
-    _check_integer,
     _check_is_propensity,
     _check_score,
     _check_trimming,
 )
+from doubleml.utils._did_utils import _get_never_treated_value, _is_never_treated
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
@@ -90,11 +90,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def __init__(
         self,
         obj_dml_data,
+        g_value,
+        t_value_pre,
+        t_value_eval,
         ml_g,
         ml_m=None,
-        g_value=None,
-        t_value_pre=None,
-        t_value_eval=None,
         control_group="never_treated",
         n_folds=5,
         n_rep=1,
@@ -121,12 +121,15 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if control_group not in valid_control_groups:
             raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
         self._control_group = control_group
+        self._never_treated_value = _get_never_treated_value(g_values)
 
         # check if g_value and t_value are in the set of g_values and t_values
         if g_value not in g_values:
             raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
-        if g_value == 0:
-            raise ValueError("The never treated group is not allowed as treatment group (g_value=0).")
+        if _is_never_treated(g_value, self._never_treated_value):
+            raise ValueError(
+                f"The never treated group is not allowed as treatment group (g_value={self._never_treated_value})."
+            )
         if t_value_pre not in t_values:
             raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
         if t_value_eval not in t_values:
