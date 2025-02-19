@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from doubleml import DoubleMLData
-from doubleml.did.datasets import make_did_SZ2020
+from doubleml.did.datasets import make_did_SZ2020, make_did_CS2021
 
 msg_inv_return_type = "Invalid return_type."
 
@@ -42,3 +42,17 @@ def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
     msg = "The dgp_type is not valid."
     with pytest.raises(ValueError, match=msg):
         _ = make_did_SZ2020(n_obs=100, dgp_type="5", cross_sectional_data=cross_sectional, return_type="matrix")
+
+
+@pytest.mark.ci
+def test_make_did_CS2021_return_types(dgp_type):
+    np.random.seed(3141)
+    df = make_did_CS2021(n_obs=100, dgp_type=dgp_type)
+    assert isinstance(df, pd.DataFrame)
+
+
+@pytest.mark.ci
+def test_make_did_CS2021_exceptions():
+    msg = r"time_type must be one of \('datetime', 'float'\). Got 2."
+    with pytest.raises(ValueError, match=msg):
+        _ = make_did_CS2021(n_obs=100, time_type=2)
