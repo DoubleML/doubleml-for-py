@@ -31,7 +31,13 @@ def _f_reg_time(w, n_time_perios):
     return res
 
 
-def make_did_CS2021(n_obs=1000, dgp_type=1, time_type="datetime", **kwargs):
+def make_did_CS2021(
+        n_obs=1000,
+        dgp_type=1,
+        include_never_treated=True,
+        time_type="datetime",
+        **kwargs
+    ):
     c = kwargs.get("c", 0.0)
     dim_x = kwargs.get("dim_x", 4)
     xi = kwargs.get("xi", 0.75)
@@ -47,12 +53,20 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, time_type="datetime", **kwargs):
     features_ps, features_reg = _select_features(dgp_type, x, z)
 
     # generate possible time periods
-    time_periods = np.array([np.datetime64(start_date) + np.timedelta64(i, 'M') for i in range(n_periods)])
+    if time_type == "datetime":
+        time_periods = np.array([np.datetime64(start_date) + np.timedelta64(i, 'M') for i in range(n_periods)])
+        never_treated_value = np.datetime64('NaT')
+    else:
+        assert time_type == "float"
+        time_periods = np.arange(n_periods)
+        never_treated_value = np.nan
     n_time_periods = len(time_periods)
 
     # set treatment values for time periods greater than n_pre_treat_periods
     treatment_values = time_periods[time_periods >= time_periods[n_pre_treat_periods]]
-    treatment_values = np.append(treatment_values, np.datetime64('NaT'))
+    max_exposure = len(treatment_values)  # exclude never treated
+    if include_never_treated:
+        treatment_values = np.append(treatment_values, never_treated_value)
     n_treatment_groups = len(treatment_values)
 
     # treatment assignment and propensities (shape (n_obs,))
@@ -81,7 +95,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, time_type="datetime", **kwargs):
 
     # treatment effecs (shape (n_obs, n_time_periods))
     exposure_pre_period = np.zeros((n_obs, n_pre_treat_periods))
-    exposure_post_first_treatment = np.clip(np.arange(n_treatment_groups - 1) - d_index.reshape(-1, 1) + 1, a_min=0,
+    exposure_post_first_treatment = np.clip(np.arange(max_exposure) - d_index.reshape(-1, 1) + 1, a_min=0,
                                             a_max=None)
     exposure_time = np.column_stack((exposure_pre_period, exposure_post_first_treatment))
     delta_e = exposure_time
