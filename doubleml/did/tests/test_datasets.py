@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from doubleml import DoubleMLData
-from doubleml.did.datasets import make_did_SZ2020, make_did_CS2021
+from doubleml.did.datasets import make_did_CS2021, make_did_SZ2020
 
 msg_inv_return_type = "Invalid return_type."
 

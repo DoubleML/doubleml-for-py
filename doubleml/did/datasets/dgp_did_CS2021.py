@@ -1,9 +1,6 @@
-
 import numpy as np
 import pandas as pd
-from scipy.linalg import toeplitz
 
-from ...data.panel_data import DoubleMLPanelData
 from .dgp_did_SZ2020 import _generate_features, _select_features
 
 # Based on https://doi.org/10.1016/j.jeconom.2020.12.001 (see Appendix SC)
@@ -15,7 +12,7 @@ def _f_ps_groups(w, xi, n_groups):
     coef_vec = np.array([-1.0, 0.5, -0.25, -0.1])
 
     # use i_group/n_groups as coeffect for columns
-    coef_matrix = np.array([coef_vec * (i_group/n_groups) for i_group in range(1, n_groups + 1)]).T
+    coef_matrix = np.array([coef_vec * (i_group / n_groups) for i_group in range(1, n_groups + 1)]).T
 
     res = xi * (w @ coef_matrix)
     return res
@@ -31,13 +28,7 @@ def _f_reg_time(w, n_time_perios):
     return res
 
 
-def make_did_CS2021(
-        n_obs=1000,
-        dgp_type=1,
-        include_never_treated=True,
-        time_type="datetime",
-        **kwargs
-    ):
+def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_type="datetime", **kwargs):
     c = kwargs.get("c", 0.0)
     dim_x = kwargs.get("dim_x", 4)
     xi = kwargs.get("xi", 0.75)
@@ -54,8 +45,8 @@ def make_did_CS2021(
 
     # generate possible time periods
     if time_type == "datetime":
-        time_periods = np.array([np.datetime64(start_date) + np.timedelta64(i, 'M') for i in range(n_periods)])
-        never_treated_value = np.datetime64('NaT')
+        time_periods = np.array([np.datetime64(start_date) + np.timedelta64(i, "M") for i in range(n_periods)])
+        never_treated_value = np.datetime64("NaT")
     else:
         assert time_type == "float"
         time_periods = np.arange(n_periods)
@@ -95,8 +86,7 @@ def make_did_CS2021(
 
     # treatment effecs (shape (n_obs, n_time_periods))
     exposure_pre_period = np.zeros((n_obs, n_pre_treat_periods))
-    exposure_post_first_treatment = np.clip(np.arange(max_exposure) - d_index.reshape(-1, 1) + 1, a_min=0,
-                                            a_max=None)
+    exposure_post_first_treatment = np.clip(np.arange(max_exposure) - d_index.reshape(-1, 1) + 1, a_min=0, a_max=None)
     exposure_time = np.column_stack((exposure_pre_period, exposure_post_first_treatment))
     delta_e = exposure_time
 
@@ -121,14 +111,16 @@ def make_did_CS2021(
     id_matrix = np.tile(np.arange(n_obs), (n_time_periods, 1)).T
     time_matrix = np.tile(time_periods, (n_obs, 1))
 
-    df = pd.DataFrame({
-        "id": id_matrix.flatten(),
-        "y": y.flatten(),
-        "y0": y0.flatten(),
-        "y1": y1.flatten(),
-        "d": d_matrix.flatten(),
-        "t": time_matrix.flatten(),
-        **{f"Z{i + 1}": z[:, i].repeat(n_time_periods) for i in range(dim_x)}
-    })
+    df = pd.DataFrame(
+        {
+            "id": id_matrix.flatten(),
+            "y": y.flatten(),
+            "y0": y0.flatten(),
+            "y1": y1.flatten(),
+            "d": d_matrix.flatten(),
+            "t": time_matrix.flatten(),
+            **{f"Z{i + 1}": z[:, i].repeat(n_time_periods) for i in range(dim_x)},
+        }
+    )
 
     return df
