@@ -501,25 +501,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # psi_b = psi_b * scaling_factor_did
         return psi_a, psi_b
 
-    def _set_score_elements(self, psi_elements, i_rep, i_treat):
-        # Specific implementation for DoubleMLDIDBINARY to account for long vs. wide data format
-        if not isinstance(psi_elements, dict):
-            raise TypeError(
-                "_ml_nuisance_and_score_elements must return score elements in a dict. " f"Got type {str(type(psi_elements))}."
-            )
-        if not (set(self._score_element_names) == set(psi_elements.keys())):
-            raise ValueError(
-                "_ml_nuisance_and_score_elements returned incomplete score elements. "
-                "Expected dict with keys: " + " and ".join(set(self._score_element_names)) + "."
-                "Got dict with keys: " + " and ".join(set(psi_elements.keys())) + "."
-            )
-        for key in self._score_element_names:
-            # set values for psi_a and psi_b entries for i's not in gt subgroup to 0
-            self.psi_elements[key][:, i_rep, i_treat] = 0
-            self.psi_elements[key][self._id_subset, i_rep, i_treat] = psi_elements[key]
-
-        return
-
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
