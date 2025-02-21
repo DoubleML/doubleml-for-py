@@ -45,10 +45,12 @@ def _fit(estimator, x, y, train_index, idx=None):
 
 def _dml_cv_predict(
     estimator, x, y, smpls=None, n_jobs=None, est_params=None, method="predict", return_train_preds=False, return_models=False
-):
+, smpls_is_partition=None):
     n_obs = x.shape[0]
 
-    smpls_is_partition = _check_is_partition(smpls, n_obs)
+    # TODO: Better name for smples_is_partition
+    if smpls_is_partition is None:
+        smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
     manual_cv_predict = (

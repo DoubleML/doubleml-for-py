@@ -103,7 +103,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     def __init__(self,
                  obj_dml_data,
-                 ml_r,
                  ml_m,
                  ml_M,
                  ml_t,
@@ -119,16 +118,17 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                          n_rep,
                          score,
                          draw_sample_splitting)
+        self._coef_bounds = (-1e-2, 1e2)
+        self._coef_start_val = 1.0
 
         self._check_data(self._dml_data)
         valid_scores = ['logistic']
         _check_score(self.score, valid_scores, allow_callable=True)
 
-        _ = self._check_learner(ml_r, 'ml_r', regressor=True, classifier=False)
         _ = self._check_learner(ml_t, 'ml_t', regressor=True, classifier=False)
         _ = self._check_learner(ml_M, 'ml_M', regressor=False, classifier=True)
         ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
-        self._learner = {'ml_l': ml_r, 'ml_m': ml_m, 'ml_t': ml_t, 'ml_M': ml_M}
+        self._learner = {'ml_m': ml_m, 'ml_t': ml_t, 'ml_M': ml_M}
 
         if ml_a is not None:
             ml_a_is_classifier = self._check_learner(ml_a, 'ml_a', regressor=True, classifier=True)
@@ -137,7 +137,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             self._learner['ml_a'] = clone(ml_m)
             ml_a_is_classifier = ml_m_is_classifier
 
-        self._predict_method = {'ml_r': 'predict', 'ml_t': 'predict', 'ml_M': 'predict_proba'}
+        self._predict_method = {'ml_t': 'predict', 'ml_M': 'predict_proba'}
 
         if ml_m_is_classifier:
             if self._dml_data.binary_treats.all():
@@ -158,7 +158,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             self._predict_method['ml_a'] = 'predict'
 
         self._initialize_ml_nuisance_params()
-        self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
     def _initialize_ml_nuisance_params(self):
@@ -173,34 +172,40 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             raise TypeError('The outcome variable y must be binary with values 0 and 1.')
         return
 
+
     def _double_dml_cv_predict(self, estimator, estimator_name,  x, y, smpls=None, smpls_inner=None,
                     n_jobs=None, est_params=None, method='predict'):
         res = {}
         res['preds'] = np.zeros_like(y)
-        res['preds_inner'] = np.zeros_like(y)
+        res['preds_inner'] = []
+        res['models'] = []
         for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
             res_inner = _dml_cv_predict(estimator, x, y, smpls=smpls_double_split, n_jobs=n_jobs,
                                     est_params=est_params, method=method,
-                                    return_models=True)
+                                    return_models=True, smpls_is_partition=True)
             _check_finite_predictions(res_inner['preds'], estimator, estimator_name, smpls_double_split)
 
-            res['preds_inner'] += res_inner['preds']
+            res['preds_inner'].append(res_inner['preds'])
             for model in res_inner['models']:
                 res['models'].append(model)
-                res['preds'][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
-
+                if method == 'predict_proba':
+                    res['preds'][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
+                else:
+                    res['preds'][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
+        res["preds_inner"]
         res["preds"] /= len(smpls)
         res['targets'] = np.copy(y)
+        return res
 
 
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
+        # TODO: How to deal with smpls_inner?
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
                          force_all_finite=False)
-        x_d_concat = np.hstack([[d, np.newaxis], x])
-        r_external = external_predictions['ml_r'] is not None
+        x_d_concat = np.hstack((d.reshape(-1,1), x))
         m_external = external_predictions['ml_m'] is not None
         M_external = external_predictions['ml_M'] is not None
         t_external = external_predictions['ml_t'] is not None
@@ -215,7 +220,11 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                      'targets': None,
                      'models': None}
         else:
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+            filtered_smpls = []
+            for train, test in smpls:
+                train_filtered = train[y[train] == 0]
+                filtered_smpls.append((train_filtered, test))
+            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=filtered_smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                     return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
@@ -238,7 +247,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                      'targets': None,
                      'models': None}
         else:
-            M_hat = (self.double_dml_cv_predict(self._learner['ml_M'], 'ml_M', x_d_concat, y, smpls=smpls, smpls_inner=smpls_inner,
+            M_hat = (self._double_dml_cv_predict(self._learner['ml_M'], 'ml_M', x_d_concat, y, smpls=smpls, smpls_inner=self.__smpls__inner,
                                                 n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_M'), method=self._predict_method['ml_M']))
 
@@ -247,18 +256,49 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                      'targets': None,
                      'models': None}
         else:
-            a_hat = (self.double_dml_cv_predict(self._learner['ml_a'], 'ml_a', x_d_concat, y, smpls=smpls, smpls_inner=smpls_inner,
+            a_hat = (self._double_dml_cv_predict(self._learner['ml_a'], 'ml_a', x, d, smpls=smpls, smpls_inner=self.__smpls__inner,
                                                 n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_a'), method=self._predict_method['ml_a']))
 
+        # r_legacy = np.zeros_like(y)
+        # smpls_inner = self.__smpls__inner
+        # M_hat = {}
+        # a_hat = {}
+        # M_hat['preds_inner'] = []
+        # M_hat['preds'] = np.full_like(y, np.nan)
+        # a_hat['preds_inner'] = []
+        # a_hat['preds'] = np.full_like(y, np.nan)
+        # for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+        #     test = smpls_single_split[1]
+        #     train = smpls_single_split[0]
+        #     # r_legacy[test] =
+        #     Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
+        #                                                       self._learner['ml_m'], self._learner['ml_M'],
+        #                                                       smpls_single_split, smpls_double_split, y, x, d,
+        #                                                       x_d_concat, n_jobs_cv)
+        #     Mtemp = np.full_like(y, np.nan)
+        #     Mtemp[train] = Mleg
+        #     Atemp = np.full_like(y, np.nan)
+        #     Atemp[train] = aleg
+        #     M_hat['preds_inner'].append(Mtemp)
+        #     a_hat['preds_inner'].append(Atemp)
+        #     a_hat['preds'][test] = a_nf_leg
+        #
+        # #r_hat['preds'] = r_legacy
 
-        W = scipy.special.logit(M_hat['preds'])
-        d_tilde_full = d - a_hat['preds']
 
-        beta_notFold = np.zeros_like(d)
 
-        for _, test in smpls:
-            beta_notFold[test] = np.sum(d_tilde_full[test] * W[test]) / np.sum(d_tilde_full[test] ** 2)
+        W_inner = []
+        beta = np.zeros_like(d)
+
+        for i, (train, test) in enumerate(smpls):
+            M_iteration = M_hat['preds_inner'][i][train]
+            M_iteration = np.clip(M_iteration, 1e-8, 1 - 1e-8)
+            w = scipy.special.logit(M_iteration)
+            W_inner.append(w)
+            d_tilde = (d - a_hat['preds_inner'][i])[train]
+            beta[test] = np.sum(d_tilde * w) / np.sum(d_tilde ** 2)
+
 
         # nuisance t
         if t_external:
@@ -266,26 +306,17 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                      'targets': None,
                      'models': None}
         else:
-            t_hat = _dml_cv_predict(self._learner['ml_t'], x, W, smpls=smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_t'), method=self._predict_method['ml_t'],
-                                    return_models=return_models)
-            _check_finite_predictions(t_hat['preds'], self._learner['ml_l'], 'ml_l', smpls)
-
-        W = scipy.special.expit(M_hat['preds'])
-
-        # nuisance W
-        if t_external:
-            t_hat = {'preds': external_predictions['ml_t'],
-                     'targets': None,
-                     'models': None}
-        else:
-            t_hat = _dml_cv_predict(self._learner['ml_t'], x, W, smpls=smpls, n_jobs=n_jobs_cv,
+            t_hat = _dml_cv_predict(self._learner['ml_t'], x, W_inner, smpls=smpls, n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_t'), method=self._predict_method['ml_t'],
                                     return_models=return_models)
             _check_finite_predictions(t_hat['preds'], self._learner['ml_t'], 'ml_t', smpls)
 
+
         r_hat = {}
-        r_hat['preds'] = t_hat['preds'] - beta_notFold * a_hat['preds']
+        r_hat['preds'] = t_hat['preds'] - beta * a_hat['preds']
+
+
+
 
 
         psi_elements = self._score_elements(y, d, r_hat['preds'], m_hat['preds'])
@@ -295,7 +326,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                  'ml_a': a_hat['preds'],
                                  'ml_t': t_hat['preds'],
                                  'ml_M': M_hat['preds']},
-                 'targets': {'ml_r': r_hat['targets'],
+                 'targets': {'ml_r': None,
                              'ml_m': m_hat['targets'],
                              'ml_a': a_hat['targets'],
                              'ml_t': t_hat['targets'],
@@ -308,18 +339,86 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
         return psi_elements, preds
 
+
+    def legacy_implementation(self, Yfold: np.ndarray, Xfold: np.ndarray, Afold: np.ndarray, XnotFold: np.ndarray, AnotFold: np.ndarray,
+                    learner, learnerClassifier, smpls_single_split, smpls_double_split, yfull, xfull, afull, x_d_concat, n_jobs_cv, noFolds: int = 5, seed=None, )-> (np.ndarray, np.ndarray, np.ndarray):
+
+        def learn_predict(X, Y, Xpredict, learner, learnerClassifier, fit_args={}):
+            results = []
+            if len(np.unique(Y)) == 2:
+                learnerClassifier.fit(X, Y, **fit_args)
+                for x in Xpredict:
+                    results.append(learnerClassifier.predict_proba(x)[:, 1])
+            else:
+                learner.fit(X, Y, **fit_args)
+                for x in Xpredict:
+                    results.append(learner.predict(x))
+            return (*results,)
+
+        nFold = len(Yfold)
+        i = np.remainder(np.arange(nFold), noFolds)
+        np.random.default_rng(seed).shuffle(i)
+
+        M = np.zeros((nFold))
+        a_hat = np.zeros((nFold))
+        a_hat_notFold = np.zeros((len(XnotFold)))
+        M_notFold = np.zeros((len(XnotFold)))
+        loss = {}
+
+        a_hat_inner = _dml_cv_predict(self._learner['ml_a'], xfull, afull, smpls=smpls_double_split, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_a'), method=self._predict_method['ml_a'],
+                                    return_models=True, smpls_is_partition=True)
+        _check_finite_predictions(a_hat_inner['preds'], self._learner['ml_a'], 'ml_a', smpls_double_split)
+        a_hat_notFold = np.full_like(yfull, 0.)
+        for model in a_hat_inner['models']:
+            if self._predict_method['ml_a'] == 'predict_proba':
+                a_hat_notFold[smpls_single_split[1]] += model.predict_proba(xfull[smpls_single_split[1]])[:, 1]
+            else:
+                a_hat_notFold[smpls_single_split[1]] += model.predict(xfull[smpls_single_split[1]])
+
+        M_hat = _dml_cv_predict(self._learner['ml_M'], x_d_concat, yfull, smpls=smpls_double_split, n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_M'), method=self._predict_method['ml_M'],
+                                    return_models=True, smpls_is_partition=True)
+        _check_finite_predictions(M_hat['preds'], self._learner['ml_M'], 'ml_M', smpls_double_split)
+
+        M = M_hat['preds'][~np.isnan(M_hat['preds'])]
+        a_hat = a_hat_inner['preds'][~np.isnan(a_hat_inner['preds'])]
+        a_hat_notFold = a_hat_notFold[smpls_single_split[1]]
+
+        np.clip(M, 1e-8, 1 - 1e-8, out=M)
+#        loss["M"] = compute_loss(Yfold, M)
+#        loss["a_hat"] = compute_loss(Afold, a_hat)
+        a_hat_notFold /= noFolds
+      #  M_notFold /= noFolds
+        np.clip(M_notFold, 1e-8, 1 - 1e-8, out=M_notFold)
+
+        # Obtain preliminary estimate of beta based on M and residual of a
+        W = scipy.special.logit(M)
+        A_resid = Afold - a_hat
+        beta_notFold = sum(A_resid * W) / sum(A_resid ** 2)
+    #    print(beta_notFold)
+        t_notFold, = learn_predict(Xfold, W, [XnotFold], learner, learnerClassifier)
+        W_notFold = scipy.special.expit(M_notFold)
+#        loss["t"] = compute_loss(W_notFold, t_notFold)
+
+
+        # Compute r based on estimates for W=logit(M), beta and residual of A
+        r_notFold = t_notFold - beta_notFold * a_hat_notFold
+
+        return M, a_hat, a_hat_notFold #r_notFold #, a_hat_notFold, M_notFold, t_notFold
+
     def _score_elements(self, y, d, r_hat, m_hat):
         # compute residual
         d_tilde = d - m_hat
-        psi_hat = scipy.special.expit(-r)
-        score_const = d_tilde * (1 - y) * np.exp(r)
-        psi_elements = {"y": y, "d": d, "r_hat": r_hat, "m_hat": m_hat, "psi_hat": psi_hat, "score_const": score_const}
+        psi_hat = scipy.special.expit(-r_hat)
+        score_const = d_tilde * (1 - y) * np.exp(r_hat)
+        psi_elements = {"y": y, "d": d, "d_tilde": d_tilde, "r_hat": r_hat, "m_hat": m_hat, "psi_hat": psi_hat, "score_const": score_const}
 
         return psi_elements
 
     @property
     def _score_element_names(self):
-        return ['y', 'd', 'r_hat', 'm_hat', 'psi_hat', 'score_const']
+        return ['y', 'd', 'd_tilde', 'r_hat', 'm_hat', 'psi_hat', 'score_const']
 
     def _sensitivity_element_est(self, preds):
        pass
@@ -329,7 +428,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     @property
     def __smpls__inner(self):
-        return self._smpls[self._i_rep]
+        return self._smpls_inner[self._i_rep]
 
     def draw_sample_splitting(self):
         """
@@ -357,13 +456,13 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     def _compute_score(self, psi_elements, coef):
 
-        score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["r_hat"]) * psi_elements["d_tilde"]
+        score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d_tilde"]
 
 
         return psi_elements["psi_hat"] * (score_1 - psi_elements["score_const"])
 
     def _compute_score_deriv(self, psi_elements, coef, inds=None):
-        deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["r_hat"]) * psi_elements["d"]
+        deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d"]
 
         return psi_elements["psi_hat"] * psi_elements["d_tilde"] *  deriv_1
 

@@ -33,6 +33,7 @@ class DoubleMLDoubleResampling:
                  n_obs,
                  stratify=None):
         self.n_folds = n_folds
+        self.n_folds_inner = n_folds_inner
         self.n_rep = n_rep
         self.n_obs = n_obs
         self.stratify = stratify
@@ -47,10 +48,10 @@ class DoubleMLDoubleResampling:
 
         if self.stratify is None:
             self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
-            self.resampling_inner = RepeatedKFold(n_splits=n_folds_inner)
+            self.resampling_inner = RepeatedKFold(n_splits=n_folds_inner, n_repeats=1)
         else:
             self.resampling = RepeatedStratifiedKFold(n_splits=n_folds, n_repeats=n_rep)
-            self.resampling_inner = RepeatedStratifiedKFold(n_splits=n_folds_inner)
+            self.resampling_inner = RepeatedStratifiedKFold(n_splits=n_folds_inner, n_repeats=1)
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
@@ -59,12 +60,12 @@ class DoubleMLDoubleResampling:
         smpls_inner = []
         for _ in range(self.n_rep):
             smpls_inner_rep = []
-            for _, test in all_smpls:
+            for train, test in all_smpls:
                 if self.stratify is None:
-                    smpls_inner_rep.append([(train_inner, test_inner) for train_inner, test_inner in self.resampling_inner.split(X=test)])
+                    smpls_inner_rep.append([(train[train_inner], train[test_inner]) for train_inner, test_inner in self.resampling_inner.split(X=train)])
                 else:
-                    smpls_inner_rep.append([(train_inner, test_inner) for train_inner, test_inner in
-                                            self.resampling_inner.split(X=np.zeros(len(test)), y=self.stratify[test])])
+                    smpls_inner_rep.append([(train[train_inner], train[test_inner]) for train_inner, test_inner in
+                                            self.resampling_inner.split(X=np.zeros(len(train)), y=self.stratify[train])])
             smpls_inner.append(smpls_inner_rep)
 
         return smpls, smpls_inner
