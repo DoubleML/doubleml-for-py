@@ -357,8 +357,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         data_subset = data_subset.assign(C_indicator=C_indicator, G_indicator=G_indicator)
         # reduce to relevant subset
         data_subset = data_subset[(data_subset["G_indicator"] == 1) | (data_subset["C_indicator"] == 1)]
-        # TODO: Add checks e.g. T != C
-        # TODO: Enforce Balanced panel data!
+        # check if G and C are disjoint
+        assert sum(G_indicator & C_indicator) == 0
+
+        if data_subset[id_col].nunique() != self._dml_data.n_obs:
+            raise NotImplementedError("Balanced panel data is required for the current implementation.")
 
         # Alternatively, use .shift() (check if time ordering is correct)
         # y_diff = this_data.groupby(id_col)[y_col].shift(-1)
