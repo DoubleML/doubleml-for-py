@@ -501,15 +501,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # psi_b = psi_b * scaling_factor_did
         return psi_a, psi_b
 
-    def _initialize_predictions_and_targets(self):
-        # Here: Initialize predictions and targets based on panel data in wide format (n_subset)
-        self._predictions = {
-            learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names
-        }
-        self._nuisance_targets = {
-            learner: np.full((self._n_subset, self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names
-        }
-
     def _set_score_elements(self, psi_elements, i_rep, i_treat):
         # Specific implementation for DoubleMLDIDBINARY to account for long vs. wide data format
         if not isinstance(psi_elements, dict):
