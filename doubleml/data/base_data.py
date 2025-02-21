@@ -126,6 +126,14 @@ class DoubleMLData(DoubleMLBaseData):
         in the covariates ``x``.
         Default is ``True``.
 
+    force_all_d_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the model used allows for missing
+        and / or infinite values in the treatment variables ``d`` (e.g. panel data models).
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLData
@@ -149,6 +157,7 @@ class DoubleMLData(DoubleMLBaseData):
         s_col=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
+        force_all_d_finite=True,
     ):
         DoubleMLBaseData.__init__(self, data)
 
@@ -161,6 +170,7 @@ class DoubleMLData(DoubleMLBaseData):
         self._check_disjoint_sets()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
+        self.force_all_d_finite = force_all_d_finite
         self._binary_treats = self._check_binary_treats()
         self._binary_outcome = self._check_binary_outcome()
         self._set_y_z_t_s()
@@ -196,7 +206,18 @@ class DoubleMLData(DoubleMLBaseData):
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, t=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True):
+    def from_arrays(
+        cls,
+        x,
+        y,
+        d,
+        z=None,
+        t=None,
+        s=None,
+        use_other_treat_as_covariate=True,
+        force_all_x_finite=True,
+        force_all_d_finite=True,
+    ):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
@@ -236,6 +257,14 @@ class DoubleMLData(DoubleMLBaseData):
             in the covariates ``x``.
             Default is ``True``.
 
+        force_all_d_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the model used allows for missing
+            and / or infinite values in the treatment variables ``d`` (e.g. panel data models).
+            Default is ``True``.
+
         Examples
         --------
         >>> from doubleml import DoubleMLData
@@ -254,8 +283,16 @@ class DoubleMLData(DoubleMLBaseData):
         elif not isinstance(force_all_x_finite, bool):
             raise TypeError("Invalid force_all_x_finite. " + "force_all_x_finite must be True, False or 'allow-nan'.")
 
+        if isinstance(force_all_d_finite, str):
+            if force_all_d_finite != "allow-nan":
+                raise ValueError(
+                    "Invalid force_all_d_finite " + force_all_d_finite + ". " + "force_all_d_finite must be True, False or 'allow-nan'."
+                )
+        elif not isinstance(force_all_d_finite, bool):
+            raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
+
         x = check_array(x, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
-        d = check_array(d, ensure_2d=False, allow_nd=False)
+        d = check_array(d, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
         y = column_or_1d(y, warn=True)
 
         x = _assure_2d_array(x)
@@ -308,7 +345,18 @@ class DoubleMLData(DoubleMLBaseData):
         if s is not None:
             data[s_col] = s
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite)
+        return cls(
+            data,
+            y_col,
+            d_cols,
+            x_cols,
+            z_cols,
+            t_col,
+            s_col,
+            use_other_treat_as_covariate,
+            force_all_x_finite,
+            force_all_d_finite,
+        )
 
     @property
     def x(self):
@@ -611,6 +659,30 @@ class DoubleMLData(DoubleMLBaseData):
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
+    @property
+    def force_all_d_finite(self):
+        """
+        Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        """
+        return self._force_all_d_finite
+
+    @force_all_d_finite.setter
+    def force_all_d_finite(self, value):
+        reset_value = hasattr(self, "_force_all_d_finite")
+        if isinstance(value, str):
+            if value != "allow-nan":
+                raise ValueError(
+                    "Invalid force_all_d_finite " + value + ". " + "force_all_d_finite must be True, False or 'allow-nan'."
+                )
+        elif not isinstance(value, bool):
+            raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
+        self._force_all_d_finite = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
+
     def _set_y_z_t_s(self):
         def _set_attr(col):
             if col is None:
@@ -645,7 +717,8 @@ class DoubleMLData(DoubleMLBaseData):
             xd_list.remove(treatment_var)
         else:
             xd_list = self.x_cols
-        assert_all_finite(self.data.loc[:, treatment_var])
+        if self.force_all_d_finite:
+            assert_all_finite(self.data.loc[:, self.d_cols], allow_nan=self.force_all_d_finite == "allow-nan")
         if self.force_all_x_finite:
             assert_all_finite(self.data.loc[:, xd_list], allow_nan=self.force_all_x_finite == "allow-nan")
         self._d = self.data.loc[:, treatment_var]
@@ -661,11 +734,14 @@ class DoubleMLData(DoubleMLBaseData):
 
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
-        for treatment_var in self.d_cols:
-            this_d = self.data.loc[:, treatment_var]
-            binary_treat = type_of_target(this_d) == "binary"
-            zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
-            is_binary[treatment_var] = binary_treat & zero_one_treat
+        if not self.force_all_d_finite:
+            is_binary[:] = False  # if we allow infinite values, we cannot check for binary
+        else:
+            for treatment_var in self.d_cols:
+                this_d = self.data.loc[:, treatment_var]
+                binary_treat = type_of_target(this_d) == "binary"
+                zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
+                is_binary[treatment_var] = binary_treat & zero_one_treat
         return is_binary
 
     def _check_binary_outcome(self):

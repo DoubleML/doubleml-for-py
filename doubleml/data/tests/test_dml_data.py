@@ -586,3 +586,57 @@ def test_dml_data_w_missings(generate_data_irm_w_missings):
     assert dml_data.force_all_x_finite is False
     dml_data.force_all_x_finite = "allow-nan"
     assert dml_data.force_all_x_finite == "allow-nan"
+
+
+def test_dml_data_w_missing_d(generate_data1):
+    data = generate_data1
+    np.random.seed(3141)
+    x_cols = data.columns[data.columns.str.startswith("X")].tolist()
+
+    pd_args = {
+        "data": data,
+        "y_col": "y",
+        "d_cols": ["d"],
+        "x_cols": x_cols,
+    }
+    dml_data = DoubleMLData(force_all_d_finite=True, **pd_args)
+
+    data["d"] = np.nan
+    np_args = {
+        "x": data.loc[:, x_cols].values,
+        "y": data["y"].values,
+        "d": data["d"].values,
+    }
+    msg = r"Input contains NaN."
+    with pytest.raises(ValueError, match=msg):
+        dml_data2 = DoubleMLData(force_all_d_finite=False, **pd_args)
+        dml_data2.force_all_d_finite = True
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(force_all_d_finite=True, **np_args)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(force_all_d_finite=True, **pd_args)
+
+    data["d"] = np.inf
+    np_args = {
+        "x": data.loc[:, x_cols].values,
+        "y": data["y"].values,
+        "d": data["d"].values,
+    }
+    msg = r"Input contains infinity or a value too large for dtype\('float64'\)."
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData.from_arrays(force_all_d_finite=True, **np_args)
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(force_all_d_finite=True, **pd_args)
+
+    msg = "Invalid force_all_d_finite. force_all_d_finite must be True, False or 'allow-nan'."
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData(force_all_d_finite=1, **pd_args)
+    with pytest.raises(TypeError, match=msg):
+        _ = DoubleMLData.from_arrays(force_all_d_finite=1, **np_args)
+
+    data["d"] = 1.0
+    assert dml_data.force_all_d_finite is True
+    dml_data.force_all_d_finite = False
+    assert dml_data.force_all_d_finite is False
+    dml_data.force_all_d_finite = "allow-nan"
+    assert dml_data.force_all_d_finite == "allow-nan"

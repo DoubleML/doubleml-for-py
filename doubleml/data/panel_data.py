@@ -86,6 +86,7 @@ class DoubleMLPanelData(DoubleMLData):
             s_col=None,
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
+            force_all_d_finite=False,
         )
         # TODO: Do we want to allow for multiple treatment columns (for multiple treatments? -> implications for g_col)
         if self.n_treat != 1:
