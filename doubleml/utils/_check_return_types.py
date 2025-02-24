@@ -108,3 +108,19 @@ def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_fold
     assert n_folds_each_smpl[0] == n_folds
 
     return
+
+
+def check_basic_predictions_and_targets(dml_obj, n_obs, n_treat, n_rep):
+
+    expected_keys = dml_obj.params_names
+    for key in expected_keys:
+        assert isinstance(dml_obj.predictions[key], np.ndarray)
+        assert dml_obj.predictions[key].shape == (n_obs, n_rep, n_treat)
+
+        assert isinstance(dml_obj.nuisance_targets[key], np.ndarray)
+        assert dml_obj.nuisance_targets[key].shape == (n_obs, n_rep, n_treat)
+
+        assert isinstance(dml_obj.nuisance_loss[key], np.ndarray)
+        assert dml_obj.nuisance_loss[key].shape == (n_rep, n_treat)
+
+    return
