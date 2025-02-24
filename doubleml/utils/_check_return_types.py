@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import plotly
 
 from doubleml import DoubleMLFramework
 from doubleml.data import DoubleMLClusterData
@@ -122,5 +123,31 @@ def check_basic_predictions_and_targets(dml_obj, n_obs, n_treat, n_rep):
 
         assert isinstance(dml_obj.nuisance_loss[key], np.ndarray)
         assert dml_obj.nuisance_loss[key].shape == (n_rep, n_treat)
+
+    return
+
+
+def check_sensitivity_return_types(dml_obj, n_obs, n_rep, n_treat, benchmarking_set):
+    assert isinstance(dml_obj.sensitivity_elements, dict)
+    for key in ["sigma2", "nu2"]:
+        assert isinstance(dml_obj.sensitivity_elements[key], np.ndarray)
+        assert dml_obj.sensitivity_elements[key].shape == (1, n_rep, n_treat)
+    for key in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
+        assert isinstance(dml_obj.sensitivity_elements[key], np.ndarray)
+        assert dml_obj.sensitivity_elements[key].shape == (n_obs, n_rep, n_treat)
+
+    assert isinstance(dml_obj.sensitivity_summary, str)
+    dml_obj.sensitivity_analysis()
+    assert isinstance(dml_obj.sensitivity_summary, str)
+    assert isinstance(dml_obj.sensitivity_plot(), plotly.graph_objs._figure.Figure)
+    benchmarks = {"cf_y": [0.1, 0.2], "cf_d": [0.15, 0.2], "name": ["test1", "test2"]}
+    assert isinstance(dml_obj.sensitivity_plot(value="ci", benchmarks=benchmarks), plotly.graph_objs._figure.Figure)
+
+    assert isinstance(dml_obj.framework._calc_sensitivity_analysis(cf_y=0.03, cf_d=0.03, rho=1.0, level=0.95), dict)
+    assert isinstance(
+        dml_obj.framework._calc_robustness_value(null_hypothesis=0.0, level=0.95, rho=1.0, idx_treatment=0), tuple
+    )
+    benchmark = dml_obj.sensitivity_benchmark(benchmarking_set=benchmarking_set)
+    assert isinstance(benchmark, pd.DataFrame)
 
     return

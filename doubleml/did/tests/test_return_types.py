@@ -5,7 +5,12 @@ from sklearn.linear_model import Lasso, LogisticRegression
 from doubleml.data import DoubleMLData
 from doubleml.did import DoubleMLDID, DoubleMLDIDCS
 from doubleml.did.datasets import make_did_SZ2020
-from doubleml.utils._check_return_types import check_basic_property_types_and_shapes, check_basic_return_types, check_basic_predictions_and_targets
+from doubleml.utils._check_return_types import (
+    check_basic_predictions_and_targets,
+    check_basic_property_types_and_shapes,
+    check_basic_return_types,
+    check_sensitivity_return_types,
+)
 
 # Test constants
 N_OBS = 200
@@ -61,3 +66,10 @@ def fitted_dml_obj(request):
 def test_property_types_and_shapes(fitted_dml_obj):
     check_basic_property_types_and_shapes(fitted_dml_obj, N_OBS, N_TREAT, N_REP, N_FOLDS, N_REP_BOOT)
     check_basic_predictions_and_targets(fitted_dml_obj, N_OBS, N_TREAT, N_REP)
+
+
+@pytest.mark.ci
+def test_sensitivity_return_types(fitted_dml_obj):
+    if fitted_dml_obj._sensitivity_implemented:
+        benchmarking_set = [fitted_dml_obj._dml_data.x_cols[0]]
+        check_sensitivity_return_types(fitted_dml_obj, N_OBS, N_REP, N_TREAT, benchmarking_set=benchmarking_set)
