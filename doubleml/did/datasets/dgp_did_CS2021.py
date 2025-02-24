@@ -9,10 +9,10 @@ from .dgp_did_SZ2020 import _generate_features, _select_features
 
 def _f_ps_groups(w, xi, n_groups):
     # Create coefficient matrix: 4 features x n_groups
-    coef_vec = np.array([-1.0, 0.5, -0.25, -0.1])
+    coef_vec = np.array([-1.0, 0.5, -0.25, -0.2])
 
     # use i_group/n_groups as coeffect for columns
-    coef_matrix = np.array([coef_vec * (i_group / n_groups) for i_group in range(1, n_groups + 1)]).T
+    coef_matrix = np.array([coef_vec * (1.0 - (i_group / n_groups)) for i_group in range(n_groups)]).T
 
     res = xi * (w @ coef_matrix)
     return res
@@ -31,7 +31,7 @@ def _f_reg_time(w, n_time_periods):
 def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_type="datetime", **kwargs):
     c = kwargs.get("c", 0.0)
     dim_x = kwargs.get("dim_x", 4)
-    xi = kwargs.get("xi", 0.75)
+    xi = kwargs.get("xi", 0.9)
     n_periods = kwargs.get("n_periods", 5)
     n_pre_treat_periods = kwargs.get("n_pre_treat_periods", 2)
     start_date = kwargs.get("start_date", "2025-01")
