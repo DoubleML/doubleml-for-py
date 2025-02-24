@@ -286,7 +286,10 @@ class DoubleMLData(DoubleMLBaseData):
         if isinstance(force_all_d_finite, str):
             if force_all_d_finite != "allow-nan":
                 raise ValueError(
-                    "Invalid force_all_d_finite " + force_all_d_finite + ". " + "force_all_d_finite must be True, False or 'allow-nan'."
+                    "Invalid force_all_d_finite "
+                    + force_all_d_finite
+                    + ". "
+                    + "force_all_d_finite must be True, False or 'allow-nan'."
                 )
         elif not isinstance(force_all_d_finite, bool):
             raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
