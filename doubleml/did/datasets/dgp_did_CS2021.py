@@ -18,11 +18,11 @@ def _f_ps_groups(w, xi, n_groups):
     return res
 
 
-def _f_reg_time(w, n_time_perios):
+def _f_reg_time(w, n_time_periods):
     coef_vec = np.array([27.4, 13.7, 13.7, 13.7])
 
     # use time period as coeffect for columns
-    coef_matrix = np.array([coef_vec * i_time for i_time in range(1, n_time_perios + 1)]).T
+    coef_matrix = np.array([coef_vec * (i_time / n_time_periods) for i_time in range(1, n_time_periods + 1)]).T
 
     res = 210 + w @ coef_matrix
     return res
