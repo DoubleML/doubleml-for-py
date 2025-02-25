@@ -387,11 +387,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if external_predictions["ml_g0"] is not None:
             ml_g0_targets = np.full_like(y, np.nan, dtype="float64")
             ml_g0_targets[d == 0] = y[d == 0]
-            g_hat0 = {
-                "preds": external_predictions["ml_g0"],
-                "targets": ml_g0_targets,
-                "models": None
-            }
+            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": ml_g0_targets, "models": None}
         else:
             g_hat0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -413,11 +409,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if external_predictions["ml_g1"] is not None:
             ml_g1_targets = np.full_like(y, np.nan, dtype="float64")
             ml_g1_targets[d == 1] = y[d == 1]
-            g_hat1 = {
-                "preds": external_predictions["ml_g1"],
-                "targets": ml_g1_targets,
-                "models": None
-            }
+            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": ml_g1_targets, "models": None}
         else:
             g_hat1 = _dml_cv_predict(
                 self._learner["ml_g"],
