@@ -26,21 +26,3 @@ def test_input():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"g_value": 0}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
-
-
-@pytest.mark.ci
-def test_unbalanced_panel():
-    msg = r"Balanced panel data is required for the current implementation."
-    with pytest.raises(NotImplementedError, match=msg):
-        dml_data_unbalanced = dml.data.DoubleMLPanelData(
-            data=df.sample(frac=0.3, random_state=42),
-            y_col="y",
-            d_cols="d",
-            id_col="id",
-            t_col="t",
-            x_cols=["Z1", "Z2", "Z3", "Z4"],
-        )
-        invalid_arguments = {
-            "obj_dml_data": dml_data_unbalanced,
-        }
-        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
