@@ -117,6 +117,8 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         "se": dml_did_obj.se,
         "se_binary": dml_did_binary_obj.se,
         "se_manual": res_manual["se"],
+        "nuisance_loss": dml_did_obj.nuisance_loss,
+        "nuisance_loss_binary": dml_did_binary_obj.nuisance_loss,
         "boot_methods": boot_methods,
     }
 
@@ -198,6 +200,13 @@ def test_boot(dml_did_binary_vs_did_fixture):
             dml_did_binary_vs_did_fixture["boot_t_stat" + bootstrap + "_binary"],
             atol=1e-4,
         )
+
+
+@pytest.mark.ci
+def test_nuisance_loss(dml_did_binary_vs_did_fixture):
+    assert dml_did_binary_vs_did_fixture["nuisance_loss"].keys() == dml_did_binary_vs_did_fixture["nuisance_loss_binary"].keys()
+    for key, value in dml_did_binary_vs_did_fixture["nuisance_loss"].items():
+        assert np.allclose(value, dml_did_binary_vs_did_fixture["nuisance_loss_binary"][key], rtol=1e-9, atol=1e-3)
 
 
 @pytest.mark.ci
