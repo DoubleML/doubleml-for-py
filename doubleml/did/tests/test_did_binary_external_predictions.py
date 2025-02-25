@@ -63,6 +63,8 @@ def doubleml_did_fixture(did_score, n_rep):
         "se_ext": dml_did_ext.se[0],
         "score": dml_did.psi,
         "score_ext": dml_did_ext.psi,
+        "dml_did_nuisance_loss": dml_did.nuisance_loss,
+        "dml_did_ext_nuisance_loss": dml_did_ext.nuisance_loss,
     }
 
     return res_dict
@@ -81,3 +83,9 @@ def test_se(doubleml_did_fixture):
 @pytest.mark.ci
 def test_score(doubleml_did_fixture):
     assert np.allclose(doubleml_did_fixture["score"], doubleml_did_fixture["score_ext"], rtol=1e-9, atol=1e-3)
+
+
+@pytest.mark.ci
+def test_nuisance_loss(doubleml_did_fixture):
+    for key, value in doubleml_did_fixture["dml_did_nuisance_loss"].items():
+        assert np.allclose(value, doubleml_did_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)
