@@ -117,3 +117,22 @@ def _check_preprocess_g_t(g_values, t_values, control_group):
             gt_combinations.append((int(g_val), int(t_pre), int(t_eval)))
 
     return gt_combinations
+
+
+def _set_id_positions(a, n_obs, id_positions, fill_value):
+    if a is not None:
+        new_a = np.full((n_obs, *a.shape[1:]), fill_value=fill_value)
+        new_a[id_positions] = a
+    else:
+        new_a = None
+
+    return new_a
+
+
+def _get_id_positions(a, id_positions):
+    if a is not None:
+        new_a = a[id_positions]
+    else:
+        new_a = None
+
+    return new_a

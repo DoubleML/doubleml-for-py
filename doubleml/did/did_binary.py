@@ -13,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._did_utils import _get_never_treated_value, _is_never_treated
+from doubleml.utils._did_utils import _get_never_treated_value, _is_never_treated, _set_id_positions, _get_id_positions
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
@@ -165,15 +165,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # Handling id values to match pairwise evaluation & simultaneous inference
         id_panel_data = self._panel_data_wide[self._dml_data.id_col].values
-
-        # Psi: 1 x n_obs (where n_obs = unique(id))
-        # original unique id values
         id_original = self._dml_data.id_var_unique
-
+        if not np.all(np.isin(id_panel_data, id_original)):
+            raise ValueError("The id values in the panel data are not a subset of the original id values.")
+        
         # Find position of id_panel_data in original data
         # These entries should be replaced by nuisance predictions, all others should be set to 0.
-        id_subset = np.where(np.isin(id_original, id_panel_data))
-        self._id_subset = id_subset
+        self._id_positions = np.searchsorted(id_original, id_panel_data)
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
@@ -343,7 +341,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         G_indicator = (data_subset[g_col] == g_value).astype(int)
 
         # Construct C (control group) indicating never treated or not yet treated
-        never_treated = data_subset[g_col] == 0
+        never_treated = _is_never_treated(data_subset[g_col], self._never_treated_value).reshape(-1)
         if self._control_group == "never_treated":
             C_indicator = never_treated.astype(int)
 
@@ -359,9 +357,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         data_subset = data_subset[(data_subset["G_indicator"] == 1) | (data_subset["C_indicator"] == 1)]
         # check if G and C are disjoint
         assert sum(G_indicator & C_indicator) == 0
-
-        if data_subset[id_col].nunique() != self._dml_data.n_obs:
-            raise NotImplementedError("Balanced panel data is required for the current implementation.")
 
         # Alternatively, use .shift() (check if time ordering is correct)
         # y_diff = this_data.groupby(id_col)[y_col].shift(-1)
@@ -456,10 +451,25 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
-        psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
+        extend_kwargs = {
+            "n_obs": self._dml_data.n_obs,
+            "id_positions": self._id_positions,
+        }
+        psi_elements = {
+            "psi_a": _set_id_positions(psi_a, fill_value=0.0, **extend_kwargs),
+            "psi_b": _set_id_positions(psi_b, fill_value=0.0, **extend_kwargs),
+        }
         preds = {
-            "predictions": {"ml_g0": g_hat0["preds"], "ml_g1": g_hat1["preds"], "ml_m": m_hat["preds"]},
-            "targets": {"ml_g0": g_hat0["targets"], "ml_g1": g_hat1["targets"], "ml_m": m_hat["targets"]},
+            "predictions": {
+                "ml_g0": _set_id_positions(g_hat0["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g1": _set_id_positions(g_hat1["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_m": _set_id_positions(m_hat["preds"], fill_value=np.nan, **extend_kwargs),
+            },
+            "targets": {
+                "ml_g0": _set_id_positions(g_hat0["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g1": _set_id_positions(g_hat1["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_m": _set_id_positions(m_hat["targets"], fill_value=np.nan, **extend_kwargs),
+            },
             "models": {"ml_g0": g_hat0["models"], "ml_g1": g_hat1["models"], "ml_m": m_hat["models"]},
         }
 
@@ -575,9 +585,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         y = self._y_panel
         d = self._g_panel
 
-        m_hat = preds["predictions"]["ml_m"]
-        g_hat0 = preds["predictions"]["ml_g0"]
-        g_hat1 = preds["predictions"]["ml_g1"]
+        m_hat = _get_id_positions(preds["predictions"]["ml_m"], self._id_positions)
+        g_hat0 = _get_id_positions(preds["predictions"]["ml_g0"], self._id_positions)
+        g_hat1 = _get_id_positions(preds["predictions"]["ml_g1"], self._id_positions)
 
         g_hat = np.multiply(d, g_hat1) + np.multiply(1.0 - d, g_hat0)
         sigma2_score_element = np.square(y - g_hat)
@@ -609,11 +619,18 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
+        # TODO: Check array extension (not straightforward for riesz representer)
+        extend_kwargs = {
+            "n_obs": self._dml_data.n_obs,
+            "id_positions": self._id_positions,
+            "fill_value": 0.0,
+        }
+
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,
-            "psi_sigma2": psi_sigma2,
-            "psi_nu2": psi_nu2,
-            "riesz_rep": rr,
+            "psi_sigma2": _set_id_positions(psi_sigma2, **extend_kwargs),
+            "psi_nu2": _set_id_positions(psi_nu2, **extend_kwargs),
+            "riesz_rep": _set_id_positions(rr, **extend_kwargs),
         }
         return element_dict
