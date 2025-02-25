@@ -269,10 +269,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
-
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
         psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
