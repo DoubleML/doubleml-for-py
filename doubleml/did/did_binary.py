@@ -13,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._did_utils import _get_never_treated_value, _is_never_treated, _set_id_positions, _get_id_positions
+from doubleml.utils._did_utils import _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
@@ -168,7 +168,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         id_original = self._dml_data.id_var_unique
         if not np.all(np.isin(id_panel_data, id_original)):
             raise ValueError("The id values in the panel data are not a subset of the original id values.")
-        
+
         # Find position of id_panel_data in original data
         # These entries should be replaced by nuisance predictions, all others should be set to 0.
         self._id_positions = np.searchsorted(id_original, id_panel_data)
@@ -445,10 +445,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
-
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
         extend_kwargs = {
@@ -509,9 +506,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         psi_a = -1.0 * weight_psi_a
         psi_b = psi_b_1 + np.multiply(weight_resid_d0, resid_d0)
 
-        # TODO: Check rescaling by factor n_obs/n_subset
-        # scaling_factor_did = self._dml_data.n_obs / self._n_subset
-        # psi_b = psi_b * scaling_factor_did
         return psi_a, psi_b
 
     def _nuisance_tuning(

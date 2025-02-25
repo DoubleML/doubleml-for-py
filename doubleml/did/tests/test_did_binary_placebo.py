@@ -1,14 +1,10 @@
-import math
-
 import numpy as np
 import pytest
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from lightgbm import LGBMRegressor, LGBMClassifier
+from lightgbm import LGBMClassifier, LGBMRegressor
 
+from doubleml.data import DoubleMLPanelData
 from doubleml.did import DoubleMLDIDBinary
 from doubleml.did.datasets import make_did_CS2021
-from doubleml.data import DoubleMLPanelData
-from doubleml.utils import DMLDummyRegressor, DMLDummyClassifier
 
 
 @pytest.fixture(scope="module", params=["observational", "experimental"])
@@ -33,8 +29,8 @@ def doubleml_did_fixture(did_score, n_rep):
         "g_value": dml_data.g_values[0],
         "t_value_pre": dml_data.t_values[0],
         "t_value_eval": dml_data.t_values[1],
-        "ml_g": LGBMRegressor(),
-        "ml_m": LGBMClassifier(),
+        "ml_g": LGBMRegressor(verbose=-1),
+        "ml_m": LGBMClassifier(verbose=-1),
         "score": did_score,
         "n_rep": n_rep,
         "n_folds": 5,

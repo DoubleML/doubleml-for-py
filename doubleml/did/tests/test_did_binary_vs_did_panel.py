@@ -55,7 +55,9 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
 
     # collect data
     df = make_did_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type)
-    dml_panel_data = dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
+    dml_panel_data = dml.data.DoubleMLPanelData(
+        df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
+    )
 
     dml_args = {
         "ml_g": clone(learner[0]),
@@ -86,10 +88,15 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     # use external predictions (sample splitting is hard to synchronize)
     ext_predictions = {"G_indicator": {}}
     ext_predictions["G_indicator"]["ml_g0"] = _get_id_positions(
-        dml_did_binary_obj.predictions["ml_g0"][:, :, 0], dml_did_binary_obj._id_positions)
-    ext_predictions["G_indicator"]["ml_g1"] = _get_id_positions(dml_did_binary_obj.predictions["ml_g1"][:, :, 0], dml_did_binary_obj._id_positions)
+        dml_did_binary_obj.predictions["ml_g0"][:, :, 0], dml_did_binary_obj._id_positions
+    )
+    ext_predictions["G_indicator"]["ml_g1"] = _get_id_positions(
+        dml_did_binary_obj.predictions["ml_g1"][:, :, 0], dml_did_binary_obj._id_positions
+    )
     if score == "observational":
-        ext_predictions["G_indicator"]["ml_m"] = _get_id_positions(dml_did_binary_obj.predictions["ml_m"][:, :, 0], dml_did_binary_obj._id_positions)
+        ext_predictions["G_indicator"]["ml_m"] = _get_id_positions(
+            dml_did_binary_obj.predictions["ml_m"][:, :, 0], dml_did_binary_obj._id_positions
+        )
     dml_did_obj.fit(external_predictions=ext_predictions)
 
     res_dict = {
