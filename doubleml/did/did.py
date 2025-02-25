@@ -264,7 +264,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         if self.score == "observational":
             # nuisance m
             if external_predictions["ml_m"] is not None:
-                m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
+                m_hat = {"preds": external_predictions["ml_m"], "targets": d, "models": None}
             else:
                 m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
