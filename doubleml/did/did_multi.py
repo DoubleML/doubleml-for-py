@@ -92,6 +92,12 @@ class DoubleMLDIDMulti:
         self._check_data(self._dml_data)
         self._print_periods = print_periods
 
+        valid_control_groups = ['never_treated', 'not_yet_treated']
+        if control_group not in valid_control_groups:
+            raise ValueError(f'The control group has to be one of {valid_control_groups}. ' +
+                             f'{control_group} was passed.')
+        self._control_group = control_group
+
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLPanelData):
             raise TypeError('The data has to be a DoubleMLPanelData object. '

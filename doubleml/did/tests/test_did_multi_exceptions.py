@@ -27,3 +27,9 @@ def test_input():
     with pytest.raises(NotImplementedError, match=msg):
         invalid_arguments = {"obj_dml_data": invalid_data}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+    # control group
+    msg = r"The control group has to be one of \['never_treated', 'not_yet_treated'\]. 0 was passed."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"control_group": 0}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
