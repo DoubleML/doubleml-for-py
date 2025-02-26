@@ -24,9 +24,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
-        The data input has to be in a panel format with one row per time period per individual.
+    obj_dml_data : :class:`DoubleMLPanelData` object
+        The :class:`DoubleMLPanelData` object providing the data and specifying the variables for the causal model.
 
     g_value : int
         The value indicating the treatment group (first period with treatment).
@@ -49,6 +48,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
         Only relevant for ``score='observational'``.
+
+    control_group : str
+        Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
+        Default is ``'never_treated'``.
 
     n_folds : int
         Number of folds.
@@ -79,6 +82,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
+
+    print_periods : bool
+        Indicates whether to print information about the evaluated periods.
+        Default is ``False``.
 
     Examples
     --------
