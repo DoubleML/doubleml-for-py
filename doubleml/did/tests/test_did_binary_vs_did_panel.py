@@ -107,6 +107,7 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
         "nuisance_loss": dml_did_obj.nuisance_loss,
         "nuisance_loss_binary": dml_did_binary_obj.nuisance_loss,
         "boot_methods": boot_methods,
+        "dml_did_binary_obj": dml_did_binary_obj,
     }
 
     for bootstrap in boot_methods:
@@ -123,12 +124,14 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
     res_dict["sensitivity_elements_binary"] = dml_did_binary_obj.sensitivity_elements
 
-    # check if sensitivity score with rho=0 gives equal asymptotic standard deviation
-    dml_did_obj.sensitivity_analysis(rho=0.0)
-    dml_did_binary_obj.sensitivity_analysis(rho=0.0)
+    dml_did_obj.framework._calc_sensitivity_analysis(cf_y=.03, cf_d=.03, rho=1.0, level=0.95)
+    dml_did_binary_obj.framework._calc_sensitivity_analysis(cf_y=.03, cf_d=.03, rho=1.0, level=0.95)
 
-    res_dict["sensitivity_ses"] = dml_did_obj.sensitivity_params["se"]
-    res_dict["sensitivity_ses_binary"] = dml_did_binary_obj.sensitivity_params["se"]
+    dml_did_obj.sensitivity_analysis()
+    dml_did_binary_obj.sensitivity_analysis()
+
+    res_dict["sensitivity_params"] = dml_did_obj.sensitivity_params
+    res_dict["sensitivity_params_binary"] = dml_did_binary_obj.sensitivity_params
 
     return res_dict
 
@@ -167,9 +170,8 @@ def test_nuisance_loss(dml_did_binary_vs_did_fixture):
 
 
 @pytest.mark.ci
-@pytest.mark.skip(reason="Sensitivity still to implement in detal")
-def test_sensitivity(dml_did_binary_vs_did_fixture):
-    sensitivity_element_names = ["sigma2", "nu2", "psi_sigma2", "psi_nu2"]
+def test_sensitivity_elements(dml_did_binary_vs_did_fixture):
+    sensitivity_element_names = ["sigma2", "nu2"]
     for sensitivity_element in sensitivity_element_names:
         assert np.allclose(
             dml_did_binary_vs_did_fixture["sensitivity_elements"][sensitivity_element],
@@ -177,26 +179,41 @@ def test_sensitivity(dml_did_binary_vs_did_fixture):
             rtol=1e-9,
             atol=1e-4,
         )
+    for sensitivity_element in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
+        dml_binary_obj = dml_did_binary_vs_did_fixture["dml_did_binary_obj"]
+        scaling = dml_binary_obj._n_subset / dml_binary_obj._dml_data.n_obs
+        binary_sensitivity_element = scaling * _get_id_positions(
+            dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element],
+            dml_binary_obj._id_positions
+        )
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_elements"][sensitivity_element],
+            binary_sensitivity_element,
+            rtol=1e-9,
+            atol=1e-4,
+        )
 
 
 @pytest.mark.ci
-def test_sensitivity_rho0(dml_did_binary_vs_did_fixture):
-    assert np.allclose(
-        dml_did_binary_vs_did_fixture["se"], dml_did_binary_vs_did_fixture["sensitivity_ses"]["lower"], rtol=1e-9, atol=1e-4
-    )
-    assert np.allclose(
-        dml_did_binary_vs_did_fixture["se"], dml_did_binary_vs_did_fixture["sensitivity_ses"]["upper"], rtol=1e-9, atol=1e-4
-    )
+def test_sensitivity_params(dml_did_binary_vs_did_fixture):
+    for key in ["theta", "se", "ci"]:
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_params"][key]["lower"],
+            dml_did_binary_vs_did_fixture["sensitivity_params_binary"][key]["lower"],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_params"][key]["upper"],
+            dml_did_binary_vs_did_fixture["sensitivity_params_binary"][key]["upper"],
+            rtol=1e-9,
+            atol=1e-4,
+        )
 
-    assert np.allclose(
-        dml_did_binary_vs_did_fixture["se_binary"],
-        dml_did_binary_vs_did_fixture["sensitivity_ses_binary"]["lower"],
-        rtol=1e-9,
-        atol=1e-4,
-    )
-    assert np.allclose(
-        dml_did_binary_vs_did_fixture["se_binary"],
-        dml_did_binary_vs_did_fixture["sensitivity_ses_binary"]["upper"],
-        rtol=1e-9,
-        atol=1e-4,
-    )
+    for key in ["rv", "rva"]:
+        assert np.allclose(
+            dml_did_binary_vs_did_fixture["sensitivity_params"][key],
+            dml_did_binary_vs_did_fixture["sensitivity_params_binary"][key],
+            rtol=1e-9,
+            atol=1e-4,
+        )

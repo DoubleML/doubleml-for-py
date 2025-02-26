@@ -614,18 +614,20 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        # TODO: Check array extension (not straightforward for riesz representer)
+        # TODO: Check array extension & Scaling (not straightforward for riesz representer)
         extend_kwargs = {
             "n_obs": self._dml_data.n_obs,
             "id_positions": self._id_positions,
             "fill_value": 0.0,
         }
 
+        # add scaling to make variance estimation consistent (sample size difference)
+        scaling = self._dml_data.n_obs / self._n_subset
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,
-            "psi_sigma2": _set_id_positions(psi_sigma2, **extend_kwargs),
-            "psi_nu2": _set_id_positions(psi_nu2, **extend_kwargs),
-            "riesz_rep": _set_id_positions(rr, **extend_kwargs),
+            "psi_sigma2": scaling * _set_id_positions(psi_sigma2, **extend_kwargs),
+            "psi_nu2": scaling * _set_id_positions(psi_nu2, **extend_kwargs),
+            "riesz_rep": scaling * _set_id_positions(rr, **extend_kwargs),
         }
         return element_dict
