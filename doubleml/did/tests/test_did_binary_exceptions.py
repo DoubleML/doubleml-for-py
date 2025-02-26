@@ -22,7 +22,28 @@ valid_arguments = {
 
 @pytest.mark.ci
 def test_input():
+    # control group
+    msg = r"The control group has to be one of \['never_treated', 'not_yet_treated'\]. 0 was passed."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"control_group": 0}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
+    # g value
+    msg = r"The value test is not in the set of treatment group values \[0 1\]."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"g_value": "test"}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
     msg = r"The never treated group is not allowed as treatment group \(g_value=0\)."
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"g_value": 0}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
+    # t values
+    msg = r"The value test is not in the set of evaluation period values \[0 1\]."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"t_value_pre": "test"}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"t_value_eval": "test"}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
