@@ -124,9 +124,6 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
     res_dict["sensitivity_elements_binary"] = dml_did_binary_obj.sensitivity_elements
 
-    dml_did_obj.framework._calc_sensitivity_analysis(cf_y=.03, cf_d=.03, rho=1.0, level=0.95)
-    dml_did_binary_obj.framework._calc_sensitivity_analysis(cf_y=.03, cf_d=.03, rho=1.0, level=0.95)
-
     dml_did_obj.sensitivity_analysis()
     dml_did_binary_obj.sensitivity_analysis()
 
@@ -183,8 +180,7 @@ def test_sensitivity_elements(dml_did_binary_vs_did_fixture):
         dml_binary_obj = dml_did_binary_vs_did_fixture["dml_did_binary_obj"]
         scaling = dml_binary_obj._n_subset / dml_binary_obj._dml_data.n_obs
         binary_sensitivity_element = scaling * _get_id_positions(
-            dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element],
-            dml_binary_obj._id_positions
+            dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element], dml_binary_obj._id_positions
         )
         assert np.allclose(
             dml_did_binary_vs_did_fixture["sensitivity_elements"][sensitivity_element],
