@@ -1,4 +1,3 @@
-import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
