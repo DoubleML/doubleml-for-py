@@ -28,6 +28,16 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
         The data input has to be in a panel format with one row per time period per individual.
 
+    g_value : int
+        The value indicating the treatment group (first period with treatment).
+        Default is ``None``. This implements the case for the smallest, non-zero value of G.
+
+    t_value_pre : int
+        The value indicating the base period for evaluation.
+
+    t_value_eval : int
+        The value indicating the pre-treatment period.
+
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
@@ -39,18 +49,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
         Only relevant for ``score='observational'``.
-
-    g_value: int
-        The value indicating the treatment group (first period with treatment).
-        Default is ``None``. This implements the case for the smallest, non-zero value of G.
-
-    t_value: int
-        The value indicating the base period for evaluation.
-        Default is ``None``. This implements the case of the smallest value of T.
-
-    pre_period : int
-        The value indicating the pre-treatment period.
-        Default is ``None`` implementing the period before the treatment period specified by ``g_value``.
 
     n_folds : int
         Number of folds.
