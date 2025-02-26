@@ -346,9 +346,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             C_indicator = never_treated.astype(int)
 
         elif self._control_group == "not_yet_treated":
-            # C_indicator = Never treated or treated in period after eval_t (and not in g)
-            # TODO: Check again if this_data['G_indicator'] == 0 makes sense
-            later_treated = (data_subset[g_col] > max(pre_t, eval_t)) & (data_subset["G_indicator"] == 0)
+            # not in G just as a additional check
+            later_treated = (data_subset[g_col] > max(pre_t, eval_t)) & (G_indicator == 0)
             not_yet_treated = never_treated | later_treated
             C_indicator = not_yet_treated.astype(int)
 
