@@ -1,5 +1,7 @@
 from sklearn.base import clone
 
+from doubleml.did import DoubleMLDIDBINARY
+
 from doubleml.data import DoubleMLPanelData
 from doubleml.double_ml import DoubleML
 from doubleml.utils._checks import _check_score, _check_trimming
@@ -146,8 +148,11 @@ class DoubleMLDIDMulti:
         # perform sample splitting
         self._smpls = None
 
-        # Check draw_sample_splitting here vs. DoubleMLDIDBINARY
+        # TODO: Check draw_sample_splitting here vs. DoubleMLDIDBINARY
         self._draw_sample_splitting = draw_sample_splitting
+
+        # initialize all models if splits are known
+        self._modellist = self._initialize_models()
 
     @property
     def score(self):
@@ -163,6 +168,7 @@ class DoubleMLDIDMulti:
         """
         return self._control_group
 
+    # TODO: Define a setter for gt_combinations
     @property
     def gt_combinations(self):
         """
@@ -177,6 +183,34 @@ class DoubleMLDIDMulti:
         """
         return self._in_sample_normalization
 
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
+
+    @property
+    def n_folds(self):
+        """
+        Number of folds.
+        """
+        return self._n_folds
+
+    @property
+    def n_rep(self):
+        """
+        Number of repetitions for the sample splitting.
+        """
+        return self._n_rep
+
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLPanelData):
             raise TypeError(
@@ -189,3 +223,32 @@ class DoubleMLDIDMulti:
                 "At the moment there are not DiD models with instruments implemented."
             )
         return
+
+    def _initialize_models(self):
+        modellist = [None] * len(self.gt_combinations)
+        kwargs = {
+            'obj_dml_data': self._dml_data,
+            'ml_g': self._learner['ml_g'],
+            'ml_m': self._learner['ml_m'],
+            'control_group': self._control_group,
+            'score': self.score,
+            'n_folds': self.n_folds,
+            'n_rep': self.n_rep,
+            'trimming_rule': self.trimming_rule,
+            'trimming_threshold': self.trimming_threshold,
+            'in_sample_normalization': self.in_sample_normalization,
+            'draw_sample_splitting': True,
+            'print_periods': self._print_periods
+        }
+        for i_model, (g_value, t_value_pre, t_value_eval) in enumerate(self.gt_combinations):
+            # initialize models for all levels
+            model = DoubleMLDIDBINARY(
+                g_value=g_value,
+                t_value_pre=t_value_pre,
+                t_value_eval=t_value_eval,
+                **kwargs
+            )
+
+            modellist[i_model] = model
+
+        return modellist
