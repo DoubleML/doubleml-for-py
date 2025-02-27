@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .._did_utils import _check_g_t_values, _get_never_treated_value, _is_never_treated, _get_id_positions, _set_id_positions
+from .._did_utils import _check_g_t_values, _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions
 
 valid_args = {
     "g_values": np.array([1, 2]),
@@ -125,13 +125,7 @@ def test_set_id_positions():
     n_obs = 5
     id_positions = np.array([0, 2, 4])
     fill_value = -1
-    expected_2d = np.array([
-        [1, 2],
-        [-1, -1],
-        [3, 4],
-        [-1, -1],
-        [5, 6]
-    ])
+    expected_2d = np.array([[1, 2], [-1, -1], [3, 4], [-1, -1], [5, 6]])
     result_2d = _set_id_positions(a_2d, n_obs, id_positions, fill_value)
     np.testing.assert_array_equal(result_2d, expected_2d)
 
