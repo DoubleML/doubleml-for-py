@@ -41,3 +41,9 @@ def test_input():
     with pytest.raises(TypeError, match=msg):
         invalid_arguments = {"in_sample_normalization": "test"}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+    # score
+    msg = 'Invalid score test. Valid score observational or experimental.'
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"score": "test"}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
