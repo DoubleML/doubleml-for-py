@@ -1,5 +1,5 @@
 from doubleml.data import DoubleMLPanelData
-from doubleml.utils._checks import _check_score
+from doubleml.utils._checks import _check_score, _check_trimming
 
 
 class DoubleMLDIDMulti:
@@ -118,6 +118,13 @@ class DoubleMLDIDMulti:
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
+        # initialize framework which is constructed after the fit method is called
+        self._framework = None
+
+        # initialize and check trimming
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
 
     @property
     def score(self):
