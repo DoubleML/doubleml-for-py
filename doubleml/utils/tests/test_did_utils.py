@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .._did_utils import _check_g_t_values, _get_never_treated_value, _is_never_treated
+from .._did_utils import _check_g_t_values, _get_never_treated_value, _is_never_treated, _get_id_positions, _set_id_positions
 
 valid_args = {
     "g_values": np.array([1, 2]),
@@ -86,3 +86,59 @@ def test_modify_g_values_check_g_t_values():
     for arg, error, msg in arguments:
         with pytest.warns(error, match=msg):
             _check_g_t_values(**(valid_args | arg))
+
+
+def test_get_id_positions():
+    # Test case 1: Normal array with valid positions
+    a = np.array([1, 2, 3, 4, 5])
+    id_positions = np.array([0, 2, 4])
+    expected = np.array([1, 3, 5])
+    result = _get_id_positions(a, id_positions)
+    np.testing.assert_array_equal(result, expected)
+
+    # Test case 2: 2D array with valid positions
+    a_2d = np.array([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+    id_positions = np.array([1, 3])
+    expected_2d = np.array([[3, 4], [7, 8]])
+    result_2d = _get_id_positions(a_2d, id_positions)
+    np.testing.assert_array_equal(result_2d, expected_2d)
+
+    # Test case 3: None input
+    a_none = None
+    id_positions = np.array([0, 1, 2])
+    result_none = _get_id_positions(a_none, id_positions)
+    assert result_none is None
+
+
+def test_set_id_positions():
+    # Test case 1: Basic 1D array
+    a = np.array([1, 2, 3])
+    n_obs = 5
+    id_positions = np.array([1, 3, 4])
+    fill_value = 0
+    expected = np.array([0, 1, 0, 2, 3])
+    result = _set_id_positions(a, n_obs, id_positions, fill_value)
+    np.testing.assert_array_equal(result, expected)
+
+    # Test case 2: 2D array
+    a_2d = np.array([[1, 2], [3, 4], [5, 6]])
+    n_obs = 5
+    id_positions = np.array([0, 2, 4])
+    fill_value = -1
+    expected_2d = np.array([
+        [1, 2],
+        [-1, -1],
+        [3, 4],
+        [-1, -1],
+        [5, 6]
+    ])
+    result_2d = _set_id_positions(a_2d, n_obs, id_positions, fill_value)
+    np.testing.assert_array_equal(result_2d, expected_2d)
+
+    # Test case 3: None input
+    a_none = None
+    n_obs = 3
+    id_positions = np.array([0, 1])
+    fill_value = 0
+    result_none = _set_id_positions(a_none, n_obs, id_positions, fill_value)
+    assert result_none is None
