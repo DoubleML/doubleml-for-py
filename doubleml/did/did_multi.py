@@ -1,8 +1,7 @@
 from sklearn.base import clone
 
-from doubleml.did import DoubleMLDIDBINARY
-
 from doubleml.data import DoubleMLPanelData
+from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.double_ml import DoubleML
 from doubleml.utils._checks import _check_score, _check_trimming
 
@@ -227,27 +226,22 @@ class DoubleMLDIDMulti:
     def _initialize_models(self):
         modellist = [None] * len(self.gt_combinations)
         kwargs = {
-            'obj_dml_data': self._dml_data,
-            'ml_g': self._learner['ml_g'],
-            'ml_m': self._learner['ml_m'],
-            'control_group': self._control_group,
-            'score': self.score,
-            'n_folds': self.n_folds,
-            'n_rep': self.n_rep,
-            'trimming_rule': self.trimming_rule,
-            'trimming_threshold': self.trimming_threshold,
-            'in_sample_normalization': self.in_sample_normalization,
-            'draw_sample_splitting': True,
-            'print_periods': self._print_periods
+            "obj_dml_data": self._dml_data,
+            "ml_g": self._learner["ml_g"],
+            "ml_m": self._learner["ml_m"],
+            "control_group": self._control_group,
+            "score": self.score,
+            "n_folds": self.n_folds,
+            "n_rep": self.n_rep,
+            "trimming_rule": self.trimming_rule,
+            "trimming_threshold": self.trimming_threshold,
+            "in_sample_normalization": self.in_sample_normalization,
+            "draw_sample_splitting": True,
+            "print_periods": self._print_periods,
         }
         for i_model, (g_value, t_value_pre, t_value_eval) in enumerate(self.gt_combinations):
             # initialize models for all levels
-            model = DoubleMLDIDBINARY(
-                g_value=g_value,
-                t_value_pre=t_value_pre,
-                t_value_eval=t_value_eval,
-                **kwargs
-            )
+            model = DoubleMLDIDBinary(g_value=g_value, t_value_pre=t_value_pre, t_value_eval=t_value_eval, **kwargs)
 
             modellist[i_model] = model
 
