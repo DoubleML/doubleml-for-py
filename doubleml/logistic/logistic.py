@@ -176,7 +176,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
     def _double_dml_cv_predict(self, estimator, estimator_name,  x, y, smpls=None, smpls_inner=None,
                     n_jobs=None, est_params=None, method='predict'):
         res = {}
-        res['preds'] = np.zeros_like(y)
+        res['preds'] = np.zeros(d.shape, dtype=float)
         res['preds_inner'] = []
         res['models'] = []
         for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
@@ -289,7 +289,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
 
         W_inner = []
-        beta = np.zeros_like(d)
+        beta = np.zeros(d.shape, dtype=float)
 
         for i, (train, test) in enumerate(smpls):
             M_iteration = M_hat['preds_inner'][i][train]
