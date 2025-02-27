@@ -1,9 +1,12 @@
 from sklearn.base import clone
 
+from joblib import Parallel, delayed
+
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.double_ml import DoubleML
 from doubleml.utils._checks import _check_score, _check_trimming
+from doubleml.double_ml_framework import concat
 
 
 class DoubleMLDIDMulti:
@@ -209,6 +212,92 @@ class DoubleMLDIDMulti:
         Number of repetitions for the sample splitting.
         """
         return self._n_rep
+
+    @property
+    def modellist(self):
+        """
+        The list of DoubleMLDIDBinary models.
+        """
+        return self._modellist
+
+    def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
+        """
+        Estimate DoubleMLDIDMulti models.
+
+        Parameters
+        ----------
+        n_jobs_models : None or int
+            The number of CPUs to use to fit the group-time ATTs. ``None`` means ``1``.
+            Default is ``None``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use to fit the learners. ``None`` means ``1``.
+            Does not speed up computation for quantile models.
+            Default is ``None``.
+
+        store_predictions : bool
+            Indicates whether the predictions for the nuisance functions should be stored in ``predictions``.
+            Default is ``True``.
+
+        store_models : bool
+            Indicates whether the fitted models for the nuisance functions should be stored in ``models``. This allows
+            to analyze the fitted models or extract information like variable importance.
+            Default is ``False``.
+
+        external_predictions : dict or None
+            A nested dictionary where the keys correspond the the treatment levels and can contain predictions according to
+            each treatment level. The values have to be dictionaries which can contain keys ``'ml_g0'``, ``'ml_g1'``
+            and ``'ml_m'``.
+            Default is `None`.
+
+        Returns
+        -------
+        self : object
+        """
+
+        if external_predictions is not None:
+            self._check_external_predictions(external_predictions)
+            ext_pred_dict = self._rename_external_predictions(external_predictions)
+        else:
+            ext_pred_dict = None
+
+        # parallel estimation of the models
+        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
+        fitted_models = parallel(
+            delayed(self._fit_model)(
+                i_gt,
+                n_jobs_cv,
+                store_predictions,
+                store_models,
+                ext_pred_dict)
+            for i_gt in range(len(self.gt_combinations))
+        )
+
+        # combine the estimates and scores
+        framework_list = [None] * len(self.gt_combinations)
+
+        for i_gt in range(len(self.gt_combinations)):
+            self._modellist[i_gt] = fitted_models[i_gt]
+            framework_list[i_gt] = self._modellist[i_gt].framework
+
+        # aggregate all frameworks
+        self._framework = concat(framework_list)
+
+        # set treatment names based on gt combinations
+        self._framework.treatment_names = self._all_gt_labels
+
+        return self
+
+    def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
+
+        model = self.modellist[i_gt]
+        if external_predictions_dict is not None:
+            external_predictions = external_predictions_dict[self.all_gt_labels[i_gt]]
+        else:
+            external_predictions = None
+        model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models,
+                  external_predictions=external_predictions)
+        return model
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLPanelData):

@@ -5,7 +5,7 @@ import doubleml as dml
 
 df = dml.did.datasets.make_did_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=0, n_periods=3, time_type="float")
 dml_data = dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
-df_binary_outcome = df.copy()
+# df_binary_outcome = df.copy()
 # df_binary_outcome["y"] = (df_binary_outcome["y"] > df_binary_outcome["y"].median()).astype(int)
 # dml_data_binary_outcome = dml.data.DoubleMLPanelData(
 #     df_binary_outcome, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
