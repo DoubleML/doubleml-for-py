@@ -1,4 +1,7 @@
+from sklearn.base import clone
+
 from doubleml.data import DoubleMLPanelData
+from doubleml.double_ml import DoubleML
 from doubleml.utils._checks import _check_score, _check_trimming
 
 
@@ -125,6 +128,26 @@ class DoubleMLDIDMulti:
         self._trimming_rule = trimming_rule
         self._trimming_threshold = trimming_threshold
         _check_trimming(self._trimming_rule, self._trimming_threshold)
+
+        ml_g_is_classifier = DoubleML._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        _ = DoubleML._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+        self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
+            else:
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
+        else:
+            self._predict_method = {"ml_g": "predict", "ml_m": "predict_proba"}
+
+        # perform sample splitting
+        self._smpls = None
+
+        # Check draw_sample_splitting here vs. DoubleMLDIDBINARY
+        self._draw_sample_splitting = draw_sample_splitting
 
     @property
     def score(self):

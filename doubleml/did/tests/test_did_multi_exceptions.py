@@ -5,6 +5,11 @@ import doubleml as dml
 
 df = dml.did.datasets.make_did_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=0, n_periods=3, time_type="float")
 dml_data = dml.data.DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
+df_binary_outcome = df.copy()
+# df_binary_outcome["y"] = (df_binary_outcome["y"] > df_binary_outcome["y"].median()).astype(int)
+# dml_data_binary_outcome = dml.data.DoubleMLPanelData(
+#     df_binary_outcome, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
+# )
 
 valid_arguments = {
     "obj_dml_data": dml_data,
@@ -43,7 +48,7 @@ def test_input():
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
 
     # score
-    msg = 'Invalid score test. Valid score observational or experimental.'
+    msg = "Invalid score test. Valid score observational or experimental."
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"score": "test"}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
@@ -62,4 +67,15 @@ def test_input():
     msg = "Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5."
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"trimming_threshold": 0.6}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+
+@pytest.mark.ci
+def test_exception_learners():
+    msg = (
+        r"The ml_g learner LogisticRegression\(\) was identified as classifier but "
+        + "the outcome variable is not binary with values 0 and 1."
+    )
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"ml_g": LogisticRegression()}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
