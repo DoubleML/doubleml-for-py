@@ -391,7 +391,7 @@ class DoubleMLDIDMulti:
             df_summary = pd.DataFrame(columns=col_names)
         else:
             ci = self.confint()
-            df_summary = generate_summary(self.coef, self.se, self.t_stat, self.pval, ci, self._all_gt_labels)
+            df_summary = generate_summary(self.coef, self.se, self.t_stat, self.pval, ci, self.gt_labels)
         return df_summary
 
     @property
@@ -493,7 +493,7 @@ class DoubleMLDIDMulti:
             raise ValueError("Apply fit() before confint().")
 
         df_ci = self.framework.confint(joint=joint, level=level)
-        df_ci.set_index(pd.Index(self._all_gt_labels), inplace=True)
+        df_ci.set_index(pd.Index(self.gt_labels), inplace=True)
 
         return df_ci
 
@@ -521,7 +521,7 @@ class DoubleMLDIDMulti:
 
         model = self.modellist[i_gt]
         if external_predictions_dict is not None:
-            external_predictions = external_predictions_dict[self.all_gt_labels[i_gt]]
+            external_predictions = external_predictions_dict[self.gt_labels[i_gt]]
         else:
             external_predictions = None
         model.fit(
@@ -544,6 +544,41 @@ class DoubleMLDIDMulti:
                 "At the moment there are not DiD models with instruments implemented."
             )
         return
+
+    def _check_external_predictions(self, external_predictions):
+        expected_keys = self.gt_labels
+        if not isinstance(external_predictions, dict):
+            raise TypeError('external_predictions must be a dictionary. ' +
+                            f'Object of type {type(external_predictions)} passed.')
+
+        if not set(external_predictions.keys()).issubset(set(expected_keys)):
+            raise ValueError('external_predictions must be a subset of all gt_combinations. ' +
+                             f'Expected keys: {set(expected_keys)}. ' +
+                             f'Passed keys: {set(external_predictions.keys())}.')
+
+        expected_learner_keys = ['ml_g0', 'ml_g1', 'ml_m']
+        for key, value in external_predictions.items():
+            if not isinstance(value, dict):
+                raise TypeError(f'external_predictions[{key}] must be a dictionary. ' +
+                                f'Object of type {type(value)} passed.')
+            if not set(value.keys()).issubset(set(expected_learner_keys)):
+                raise ValueError(f'external_predictions[{key}] must be a subset of {set(expected_learner_keys)}. ' +
+                                 f'Passed keys: {set(value.keys())}.')
+
+        return
+
+    def _rename_external_predictions(self, external_predictions):
+        d_col = self._dml_data.d_cols[0]
+        ext_pred_dict = {gt_combination: {d_col: {}} for gt_combination in self.gt_labels}
+        for gt_combination in self.gt_labels:
+            if "ml_g0" in external_predictions[gt_combination]:
+                ext_pred_dict[gt_combination][d_col]['ml_g0'] = external_predictions[gt_combination]['ml_g0']
+            if "ml_g1" in external_predictions[gt_combination]:
+                ext_pred_dict[gt_combination][d_col]['ml_g1'] = external_predictions[gt_combination]['ml_g1']
+            if "ml_m" in external_predictions[gt_combination]:
+                ext_pred_dict[gt_combination][d_col]['ml_m'] = external_predictions[gt_combination]['ml_m']
+
+        return ext_pred_dict
 
     def _initialize_models(self):
         modellist = [None] * self.n_gt_atts
