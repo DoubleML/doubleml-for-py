@@ -105,7 +105,7 @@ class DoubleMLDIDMulti:
         # TODO: Allow for different gt_combinations (use only combinations)
         self._gt_combinations = gt_combinations
         # TODO: ADD CHECKS FOR gt_combinations
-        self._all_gt_labels = [f"ATT({g},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
+        self._gt_labels = [f"ATT({g},{t_pre},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
 
         # TODO: Check what to export and what not
         self._in_sample_normalization = in_sample_normalization
@@ -177,6 +177,20 @@ class DoubleMLDIDMulti:
         The combinations of g and t values.
         """
         return self._gt_combinations
+
+    @property
+    def n_gt_atts(self):
+        """
+        The number of evaluated combinations of the treatment variable and the period.
+        """
+        return len(self._gt_combinations)
+
+    @property
+    def gt_labels(self):
+        """
+        The evaluated labels of the treatment effects 'ATT(g, t_pre, t_eval)' and the period.
+        """
+        return self._gt_labels
 
     @property
     def in_sample_normalization(self):
@@ -270,13 +284,13 @@ class DoubleMLDIDMulti:
                 store_predictions,
                 store_models,
                 ext_pred_dict)
-            for i_gt in range(len(self.gt_combinations))
+            for i_gt in range(self.n_gt_atts)
         )
 
         # combine the estimates and scores
-        framework_list = [None] * len(self.gt_combinations)
+        framework_list = [None] * self.n_gt_atts
 
-        for i_gt in range(len(self.gt_combinations)):
+        for i_gt in range(self.n_gt_atts):
             self._modellist[i_gt] = fitted_models[i_gt]
             framework_list[i_gt] = self._modellist[i_gt].framework
 
@@ -284,7 +298,7 @@ class DoubleMLDIDMulti:
         self._framework = concat(framework_list)
 
         # set treatment names based on gt combinations
-        self._framework.treatment_names = self._all_gt_labels
+        self._framework.treatment_names = self._gt_labels
 
         return self
 
@@ -313,7 +327,7 @@ class DoubleMLDIDMulti:
         return
 
     def _initialize_models(self):
-        modellist = [None] * len(self.gt_combinations)
+        modellist = [None] * self.n_gt_atts
         kwargs = {
             "obj_dml_data": self._dml_data,
             "ml_g": self._learner["ml_g"],
