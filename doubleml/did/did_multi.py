@@ -1,11 +1,13 @@
 from sklearn.base import clone
 
+import pandas as pd
 from joblib import Parallel, delayed
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.double_ml import DoubleML
 from doubleml.utils._checks import _check_score, _check_trimming
+from doubleml.utils._descriptive import generate_summary
 from doubleml.double_ml_framework import concat
 
 
@@ -125,8 +127,6 @@ class DoubleMLDIDMulti:
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
-        # initialize framework which is constructed after the fit method is called
-        self._framework = None
 
         # initialize and check trimming
         self._trimming_rule = trimming_rule
@@ -228,11 +228,188 @@ class DoubleMLDIDMulti:
         return self._n_rep
 
     @property
+    def n_rep_boot(self):
+        """
+        The number of bootstrap replications.
+        """
+        if self._framework is None:
+            n_rep_boot = None
+        else:
+            n_rep_boot = self._framework.n_rep_boot
+        return n_rep_boot
+
+    @property
+    def boot_method(self):
+        """
+        The method to construct the bootstrap replications.
+        """
+        if self._framework is None:
+            method = None
+        else:
+            method = self._framework.boot_method
+        return method
+
+    @property
+    def coef(self):
+        """
+        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_gt_atts``,)).
+        """
+        if self._framework is None:
+            coef = None
+        else:
+            coef = self.framework.thetas
+        return coef
+
+    @property
+    def all_coef(self):
+        """
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_gt_atts``, ``n_rep``)).
+        """
+        if self._framework is None:
+            all_coef = None
+        else:
+            all_coef = self.framework.all_thetas
+        return all_coef
+
+    @property
+    def se(self):
+        """
+        Standard errors for the causal parameter(s) after calling :meth:`fit` (shape (``n_gt_atts``,)).
+        """
+        if self._framework is None:
+            se = None
+        else:
+            se = self.framework.ses
+        return se
+
+    @property
+    def all_se(self):
+        """
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+         (shape (``n_gt_atts``, ``n_rep``)).
+        """
+        if self._framework is None:
+            all_se = None
+        else:
+            all_se = self.framework.all_ses
+        return all_se
+
+    @property
+    def t_stat(self):
+        """
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_gt_atts``,)).
+        """
+        if self._framework is None:
+            t_stats = None
+        else:
+            t_stats = self.framework.t_stats
+        return t_stats
+
+    @property
+    def pval(self):
+        """
+        p-values for the causal parameter(s) (shape (``n_gt_atts``,)).
+        """
+        if self._framework is None:
+            pvals = None
+        else:
+            pvals = self.framework.pvals
+        return pvals
+
+    @property
+    def boot_t_stat(self):
+        """
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
+         (shape (``n_rep_boot``, ``n_gt_atts``, ``n_rep``)).
+        """
+        if self._framework is None:
+            boot_t_stat = None
+        else:
+            boot_t_stat = self._framework.boot_t_stat
+        return boot_t_stat
+
+    @property
+    def smpls(self):
+        """
+        The partition used for cross-fitting.
+        """
+        if self._smpls is None:
+            err_msg = (
+                "Sample splitting not specified. Draw samples via .draw_sample_splitting(). "
+                + "External samples not implemented yet."
+            )
+            raise NotImplementedError(err_msg)
+        return self._smpls
+
+    @property
+    def framework(self):
+        """
+        The corresponding :class:`doubleml.DoubleMLFramework` object.
+        """
+        return self._framework
+
+    @property
     def modellist(self):
         """
         The list of DoubleMLDIDBinary models.
         """
         return self._modellist
+
+    @property
+    def sensitivity_elements(self):
+        """
+        Values of the sensitivity components after calling :meth:`fit`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
+        and ``riesz_rep``.
+        """
+        if self._framework is None:
+            sensitivity_elements = None
+        else:
+            sensitivity_elements = self._framework.sensitivity_elements
+        return sensitivity_elements
+
+    @property
+    def sensitivity_params(self):
+        """
+        Values of the sensitivity parameters after calling :meth:`sesitivity_analysis`;
+        If available (e.g., PLR, IRM) a dictionary with entries ``theta``, ``se``, ``ci``, ``rv``
+        and ``rva``.
+        """
+        if self._framework is None:
+            sensitivity_params = None
+        else:
+            sensitivity_params = self._framework.sensitivity_params
+        return sensitivity_params
+
+    @property
+    def summary(self):
+        """
+        A summary for the estimated causal effect after calling :meth:`fit`.
+        """
+        if self.framework is None:
+            col_names = ['coef', 'std err', 't', 'P>|t|']
+            df_summary = pd.DataFrame(columns=col_names)
+        else:
+            ci = self.confint()
+            df_summary = generate_summary(self.coef, self.se, self.t_stat,
+                                          self.pval, ci, self._all_gt_labels)
+        return df_summary
+
+    @property
+    def sensitivity_summary(self):
+        """
+        Returns a summary for the sensitivity analysis after calling :meth:`sensitivity_analysis`.
+        Returns
+        -------
+        res : str
+            Summary for the sensitivity analysis.
+        """
+        if self._framework is None:
+            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
+        else:
+            sensitivity_summary = self._framework.sensitivity_summary
+        return sensitivity_summary
 
     def fit(self, n_jobs_models=None, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions=None):
         """
@@ -299,6 +476,51 @@ class DoubleMLDIDMulti:
 
         # set treatment names based on gt combinations
         self._framework.treatment_names = self._gt_labels
+
+        return self
+
+    def confint(self, joint=False, level=0.95):
+        """
+        Confidence intervals for DoubleML models.
+        Parameters
+        ----------
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``False``
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+        Returns
+        -------
+        df_ci : pd.DataFrame
+            A data frame with the confidence interval(s).
+        """
+
+        if self.framework is None:
+            raise ValueError('Apply fit() before confint().')
+
+        df_ci = self.framework.confint(joint=joint, level=level)
+        df_ci.set_index(pd.Index(self._all_gt_labels), inplace=True)
+
+        return df_ci
+
+    def bootstrap(self, method='normal', n_rep_boot=500):
+        """
+        Multiplier bootstrap for DoubleML models.
+        Parameters
+        ----------
+        method : str
+            A str (``'Bayes'``, ``'normal'`` or ``'wild'``) specifying the multiplier bootstrap method.
+            Default is ``'normal'``
+        n_rep_boot : int
+            The number of bootstrap replications.
+        Returns
+        -------
+        self : object
+        """
+        if self._framework is None:
+            raise ValueError('Apply fit() before bootstrap().')
+        self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
 
