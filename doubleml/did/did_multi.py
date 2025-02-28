@@ -1,14 +1,13 @@
-from sklearn.base import clone
-
 import pandas as pd
 from joblib import Parallel, delayed
+from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.double_ml import DoubleML
+from doubleml.double_ml_framework import concat
 from doubleml.utils._checks import _check_score, _check_trimming
 from doubleml.utils._descriptive import generate_summary
-from doubleml.double_ml_framework import concat
 
 
 class DoubleMLDIDMulti:
@@ -388,12 +387,11 @@ class DoubleMLDIDMulti:
         A summary for the estimated causal effect after calling :meth:`fit`.
         """
         if self.framework is None:
-            col_names = ['coef', 'std err', 't', 'P>|t|']
+            col_names = ["coef", "std err", "t", "P>|t|"]
             df_summary = pd.DataFrame(columns=col_names)
         else:
             ci = self.confint()
-            df_summary = generate_summary(self.coef, self.se, self.t_stat,
-                                          self.pval, ci, self._all_gt_labels)
+            df_summary = generate_summary(self.coef, self.se, self.t_stat, self.pval, ci, self._all_gt_labels)
         return df_summary
 
     @property
@@ -406,7 +404,7 @@ class DoubleMLDIDMulti:
             Summary for the sensitivity analysis.
         """
         if self._framework is None:
-            raise ValueError('Apply sensitivity_analysis() before sensitivity_summary.')
+            raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
         else:
             sensitivity_summary = self._framework.sensitivity_summary
         return sensitivity_summary
@@ -453,14 +451,9 @@ class DoubleMLDIDMulti:
             ext_pred_dict = None
 
         # parallel estimation of the models
-        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch='2*n_jobs')
+        parallel = Parallel(n_jobs=n_jobs_models, verbose=0, pre_dispatch="2*n_jobs")
         fitted_models = parallel(
-            delayed(self._fit_model)(
-                i_gt,
-                n_jobs_cv,
-                store_predictions,
-                store_models,
-                ext_pred_dict)
+            delayed(self._fit_model)(i_gt, n_jobs_cv, store_predictions, store_models, ext_pred_dict)
             for i_gt in range(self.n_gt_atts)
         )
 
@@ -497,14 +490,14 @@ class DoubleMLDIDMulti:
         """
 
         if self.framework is None:
-            raise ValueError('Apply fit() before confint().')
+            raise ValueError("Apply fit() before confint().")
 
         df_ci = self.framework.confint(joint=joint, level=level)
         df_ci.set_index(pd.Index(self._all_gt_labels), inplace=True)
 
         return df_ci
 
-    def bootstrap(self, method='normal', n_rep_boot=500):
+    def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
         Parameters
@@ -519,7 +512,7 @@ class DoubleMLDIDMulti:
         self : object
         """
         if self._framework is None:
-            raise ValueError('Apply fit() before bootstrap().')
+            raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
 
         return self
@@ -531,8 +524,12 @@ class DoubleMLDIDMulti:
             external_predictions = external_predictions_dict[self.all_gt_labels[i_gt]]
         else:
             external_predictions = None
-        model.fit(n_jobs_cv=n_jobs_cv, store_predictions=store_predictions, store_models=store_models,
-                  external_predictions=external_predictions)
+        model.fit(
+            n_jobs_cv=n_jobs_cv,
+            store_predictions=store_predictions,
+            store_models=store_models,
+            external_predictions=external_predictions,
+        )
         return model
 
     def _check_data(self, obj_dml_data):
