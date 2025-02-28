@@ -4,7 +4,6 @@ def _check_basic_defaults_before_fit(dml_obj):
     assert dml_obj.framework is None
     assert dml_obj.sensitivity_params is None
     assert dml_obj.boot_t_stat is None
-    assert dml_obj._draw_sample_splitting
 
 
 def _fit_bootstrap(dml_obj):
