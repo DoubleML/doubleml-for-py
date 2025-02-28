@@ -264,7 +264,7 @@ class DoubleMLAPOS:
                 "Sample splitting not specified. Draw samples via .draw_sample splitting(). "
                 + "External samples not implemented yet."
             )
-            raise ValueError(err_msg)
+            raise NotImplementedError(err_msg)
         return self._smpls
 
     @property
