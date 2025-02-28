@@ -448,9 +448,7 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
                 "Invalid partition provided. Tuple for train_ind and test_ind must consist of exactly two elements."
             )
         all_smpls = _check_smpl_split_tpl(all_smpls, n_obs)
-        if _check_is_partition([all_smpls], n_obs) & _check_is_partition(
-            [(all_smpls[1], all_smpls[0])], n_obs
-        ):
+        if _check_is_partition([all_smpls], n_obs) & _check_is_partition([(all_smpls[1], all_smpls[0])], n_obs):
             n_rep = 1
             n_folds = 1
             smpls = [[all_smpls]]

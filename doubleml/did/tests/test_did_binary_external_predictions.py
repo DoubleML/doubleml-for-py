@@ -4,13 +4,11 @@ import numpy as np
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml.did import DoubleMLDIDBinary
-from doubleml.did.datasets import make_did_SZ2020, make_did_CS2021
-from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 from doubleml.data import DoubleMLPanelData
-
-from doubleml.utils._did_utils import _get_id_positions
+from doubleml.did import DoubleMLDIDBinary
+from doubleml.did.datasets import make_did_CS2021, make_did_SZ2020
 from doubleml.tests._utils import draw_smpls
+from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
 @pytest.fixture(scope="module", params=["observational", "experimental"])
@@ -101,9 +99,7 @@ def doubleml_did_panel_fixture(did_score, n_rep):
 
     ext_predictions = {"d": {}}
     df = make_did_CS2021(n_obs=n_obs, dgp_type=dgp, time_type="float")
-    dml_panel_data = DoubleMLPanelData(
-        df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
-    )
+    dml_panel_data = DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     kwargs = {
         "obj_dml_data": dml_panel_data,
