@@ -500,6 +500,33 @@ class DoubleMLDIDMulti:
 
         return df_ci
 
+    def p_adjust(self, method="romano-wolf"):
+        """
+        Multiple testing adjustment for DoubleML models.
+
+        Parameters
+        ----------
+        method : str
+            A str (``'romano-wolf''``, ``'bonferroni'``, ``'holm'``, etc) specifying the adjustment method.
+            In addition to ``'romano-wolf''``, all methods implemented in
+            :py:func:`statsmodels.stats.multitest.multipletests` can be applied.
+            Default is ``'romano-wolf'``.
+
+        Returns
+        -------
+        p_val : pd.DataFrame
+            A data frame with adjusted p-values.
+        """
+
+        if self.framework is None:
+            raise ValueError("Apply fit() before p_adjust().")
+
+        p_val, _ = self.framework.p_adjust(method=method)
+        # TODO: Update for different combinations
+        p_val.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
+
+        return p_val
+
     def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.

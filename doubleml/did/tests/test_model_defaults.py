@@ -36,3 +36,4 @@ def test_did_multi_defaults():
     assert dml_did_multi_obj.pval is None
 
     _fit_bootstrap(dml_did_multi_obj)
+    _check_basic_defaults_after_fit(dml_did_multi_obj)

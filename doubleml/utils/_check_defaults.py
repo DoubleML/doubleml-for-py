@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from doubleml.double_ml import DoubleML
+
 
 def _check_basic_defaults_before_fit(dml_obj):
     # general parameters
@@ -48,8 +50,9 @@ def _check_basic_defaults_after_fit(dml_obj):
     assert isinstance(dml_obj.sensitivity_elements, dict)
 
     # fit method
-    assert dml_obj.predictions is not None
-    assert dml_obj.models is None
+    if isinstance(dml_obj, DoubleML):
+        assert dml_obj.predictions is not None
+        assert dml_obj.models is None
 
     # confint method
     assert dml_obj.confint().equals(dml_obj.confint(joint=False, level=0.95))
