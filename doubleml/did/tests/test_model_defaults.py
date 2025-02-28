@@ -26,4 +26,13 @@ def test_did_binary_defaults():
 @pytest.mark.ci
 def test_did_multi_defaults():
     _check_basic_defaults_before_fit(dml_did_multi_obj)
+
+    # coefs and se
+    assert dml_did_multi_obj.coef is None
+    assert dml_did_multi_obj.se is None
+    assert dml_did_multi_obj.all_coef is None
+    assert dml_did_multi_obj.all_se is None
+    assert dml_did_multi_obj.t_stat is None
+    assert dml_did_multi_obj.pval is None
+
     _fit_bootstrap(dml_did_multi_obj)
