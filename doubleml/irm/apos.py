@@ -261,7 +261,7 @@ class DoubleMLAPOS:
         """
         if self._smpls is None:
             err_msg = (
-                "Sample splitting not specified. Draw samples via .draw_sample splitting(). "
+                "Sample splitting not specified. Draw samples via .draw_sample_splitting(). "
                 + "External samples not implemented yet."
             )
             raise NotImplementedError(err_msg)
