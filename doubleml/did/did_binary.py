@@ -405,7 +405,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if external_predictions["ml_g0"] is not None:
             ml_g0_targets = np.full_like(y, np.nan, dtype="float64")
             ml_g0_targets[d == 0] = y[d == 0]
-            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": ml_g0_targets, "models": None}
+            ml_g0_pred = _get_id_positions(external_predictions["ml_g0"], self.id_positions)
+            g_hat0 = {"preds": ml_g0_pred, "targets": ml_g0_targets, "models": None}
         else:
             g_hat0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -427,7 +428,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if external_predictions["ml_g1"] is not None:
             ml_g1_targets = np.full_like(y, np.nan, dtype="float64")
             ml_g1_targets[d == 1] = y[d == 1]
-            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": ml_g1_targets, "models": None}
+            ml_g1_pred = _get_id_positions(external_predictions["ml_g1"], self.id_positions)
+            g_hat1 = {"preds": ml_g1_pred, "targets": ml_g1_targets, "models": None}
         else:
             g_hat1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -450,7 +452,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         if self.score == "observational":
             # nuisance m
             if external_predictions["ml_m"] is not None:
-                m_hat = {"preds": external_predictions["ml_m"], "targets": d, "models": None}
+                ml_m_pred = _get_id_positions(external_predictions["ml_m"], self.id_positions)
+                m_hat = {"preds": ml_m_pred, "targets": d, "models": None}
             else:
                 m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
