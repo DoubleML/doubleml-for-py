@@ -176,6 +176,13 @@ class DoubleML(ABC):
         return self._n_rep
 
     @property
+    def n_obs(self):
+        """
+        The number of observations used for estimation.
+        """
+        return self._dml_data.n_obs
+
+    @property
     def n_rep_boot(self):
         """
         The number of bootstrap replications.
@@ -1305,7 +1312,7 @@ class DoubleML(ABC):
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
         )
 
         (

@@ -279,6 +279,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._panel_data_wide
 
     @property
+    def id_positions(self):
+        """
+        The positions of the id values in the original data.
+        """
+        return self._id_positions
+
+    @property
     def in_sample_normalization(self):
         """
         Indicates whether the in sample normalization of weights are used.
@@ -298,6 +305,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Specifies the used trimming threshold.
         """
         return self._trimming_threshold
+
+    @property
+    def n_obs(self):
+        """
+        The number of observations used for estimation.
+        """
+        return self._n_subset
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
@@ -458,7 +472,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         extend_kwargs = {
             "n_obs": self._dml_data.n_obs,
-            "id_positions": self._id_positions,
+            "id_positions": self.id_positions,
         }
         psi_elements = {
             "psi_a": _set_id_positions(psi_a, fill_value=0.0, **extend_kwargs),
@@ -587,9 +601,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         y = self._y_panel
         d = self._g_panel
 
-        m_hat = _get_id_positions(preds["predictions"]["ml_m"], self._id_positions)
-        g_hat0 = _get_id_positions(preds["predictions"]["ml_g0"], self._id_positions)
-        g_hat1 = _get_id_positions(preds["predictions"]["ml_g1"], self._id_positions)
+        m_hat = _get_id_positions(preds["predictions"]["ml_m"], self.id_positions)
+        g_hat0 = _get_id_positions(preds["predictions"]["ml_g0"], self.id_positions)
+        g_hat1 = _get_id_positions(preds["predictions"]["ml_g1"], self.id_positions)
 
         g_hat = np.multiply(d, g_hat1) + np.multiply(1.0 - d, g_hat0)
         sigma2_score_element = np.square(y - g_hat)
@@ -624,7 +638,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # TODO: Check array extension & Scaling (not straightforward for riesz representer)
         extend_kwargs = {
             "n_obs": self._dml_data.n_obs,
-            "id_positions": self._id_positions,
+            "id_positions": self.id_positions,
             "fill_value": 0.0,
         }
 
