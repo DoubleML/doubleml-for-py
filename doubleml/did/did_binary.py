@@ -147,12 +147,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # check if post_treatment evaluation
         if g_value <= t_value_eval:
             post_treatment = True
-            if t_value_pre <= 0:
-                # TODO: What does this mean?
-                print(
-                    f"No pre-treatment period available for group first treated in {g_value}.\n\
-                        Units from this group are dropped."
-                )
         else:
             post_treatment = False
 
