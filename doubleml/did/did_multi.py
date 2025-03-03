@@ -163,6 +163,13 @@ class DoubleMLDIDMulti:
         # initialize all models if splits are known
         self._modellist = self._initialize_models()
 
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f"================== {class_name} Object ==================\n"
+        fit_summary = str(self.summary)
+        res = header + "\n------------------ Fit summary       ------------------\n" + fit_summary
+        return res
+
     @property
     def score(self):
         """
