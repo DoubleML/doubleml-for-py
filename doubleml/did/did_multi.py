@@ -757,6 +757,11 @@ class DoubleMLDIDMulti:
                     f"gt_combinations must be one of {valid_gt_combinations}. " + f"{gt_combinations} was passed."
                 )
 
+        if not isinstance(gt_combinations, list):
+            raise TypeError(
+                "gt_combinations must be a list. " + f"{str(gt_combinations)} of type {type(gt_combinations)} was passed."
+            )
+
         for gt_combination in gt_combinations:
             _check_gt_combination(
                 gt_combination,

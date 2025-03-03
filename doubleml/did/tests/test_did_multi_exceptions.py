@@ -79,3 +79,18 @@ def test_exception_learners():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"ml_g": LogisticRegression()}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+
+@pytest.mark.ci
+def test_exception_gt_combinations():
+    msg = r"gt_combinations must be one of \['standard'\]. test was passed."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"gt_combinations": "test"}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+    msg = "gt_combinations must be a list. 1 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        invalid_arguments = {"gt_combinations": 1}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+    
+    
