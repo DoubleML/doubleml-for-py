@@ -12,6 +12,8 @@ from doubleml.utils._checks import _check_score, _check_trimming
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils.gain_statistics import gain_statistics
 
+from doubleml.utils._did_utils import _check_control_group, _check_gt_combination, _check_gt_values, _get_never_treated_value
+
 
 class DoubleMLDIDMulti:
     """Double machine learning for multi-period difference-in-differences models.
@@ -99,16 +101,14 @@ class DoubleMLDIDMulti:
         self._is_cluster_data = False
         self._is_panel_data = isinstance(obj_dml_data, DoubleMLPanelData)
         self._check_data(self._dml_data)
+        self._g_values = self._dml_data.g_values
+        self._t_values = self._dml_data.t_values
         self._print_periods = print_periods
 
-        valid_control_groups = ["never_treated", "not_yet_treated"]
-        if control_group not in valid_control_groups:
-            raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
-        self._control_group = control_group
+        self._control_group = _check_control_group(control_group)
+        self._never_treated_value = _get_never_treated_value(self.g_values)
 
-        # TODO: Allow for different gt_combinations (use only combinations)
-        self._gt_combinations = gt_combinations
-        # TODO: ADD CHECKS FOR gt_combinations
+        self._gt_combinations = self._validate_gt_combinations(gt_combinations)
         self._gt_labels = [f"ATT({g},{t_pre},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
 
         # TODO: Check what to export and what not
@@ -193,6 +193,27 @@ class DoubleMLDIDMulti:
         The evaluated labels of the treatment effects 'ATT(g, t_pre, t_eval)' and the period.
         """
         return self._gt_labels
+
+    @property
+    def g_values(self):
+        """
+        The values of the treatment variable.
+        """
+        return self._g_values
+
+    @property
+    def t_values(self):
+        """
+        The values of the time periods.
+        """
+        return self._t_values
+
+    @property
+    def never_treated_value(self):
+        """
+        The value indicating that a unit was never treated.
+        """
+        return self._never_treated_value
 
     @property
     def in_sample_normalization(self):
@@ -721,7 +742,30 @@ class DoubleMLDIDMulti:
                 "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
                 "At the moment there are not DiD models with instruments implemented."
             )
+        _check_gt_values(obj_dml_data.g_values, obj_dml_data.t_values)
         return
+
+    def _validate_gt_combinations(self, gt_combinations):
+        """Validate all treatment-time combinations."""
+        if gt_combinations is None:
+            gt_combinations = "standard"
+
+        if isinstance(gt_combinations, str):
+            valid_gt_combinations = ["standard"]
+            if gt_combinations not in valid_gt_combinations:
+                raise ValueError(
+                    f"gt_combinations must be one of {valid_gt_combinations}. " + f"{gt_combinations} was passed."
+                )
+
+        for gt_combination in gt_combinations:
+            _check_gt_combination(
+                gt_combination,
+                self.g_values,
+                self.t_values,
+                self.never_treated_value
+            )
+
+        return gt_combinations
 
     def _check_external_predictions(self, external_predictions):
         expected_keys = self.gt_labels

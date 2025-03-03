@@ -122,14 +122,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
         self._check_data(self._dml_data)
-        _check_bool(print_periods, "print_periods")
-        self._print_periods = print_periods
-
-        # TODO: Check if we want to keep the g_values & t_values from the backend
-        # as they might differ from the ones processed in DoubleMLDIDMulti
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
-        _check_gt_values(g_values, t_values)
+
+        _check_bool(print_periods, "print_periods")
+        self._print_periods = print_periods
 
         self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(g_values)
@@ -330,6 +327,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 "To fit an DID model with DML "
                 "exactly one variable needs to be specified as treatment variable."
             )
+        _check_gt_values(obj_dml_data.g_values, obj_dml_data.t_values)
         return
 
     def _preprocess_data(self, g_value, pre_t, eval_t):
