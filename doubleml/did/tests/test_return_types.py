@@ -3,7 +3,7 @@ import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml.data import DoubleMLData, DoubleMLPanelData
-from doubleml.did import DoubleMLDID, DoubleMLDIDBinary, DoubleMLDIDCS
+from doubleml.did import DoubleMLDID, DoubleMLDIDBinary, DoubleMLDIDCS, DoubleMLDIDMulti
 from doubleml.did.datasets import make_did_CS2021, make_did_SZ2020
 from doubleml.utils._check_return_types import (
     check_basic_predictions_and_targets,
@@ -78,7 +78,7 @@ def test_sensitivity_return_types(fitted_dml_obj):
 
 
 # panel data
-df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=0, n_periods=3, time_type="float")
+df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
 df_panel["y_binary"] = np.random.binomial(n=1, p=0.5, size=df_panel.shape[0])
 datasets["did_panel"] = DoubleMLPanelData(
     df_panel, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
@@ -88,7 +88,7 @@ datasets["did_panel_binary_outcome"] = DoubleMLPanelData(
 )
 
 dml_panel_binary_args = dml_args | {
-    "g_value": 1,
+    "g_value": 2,
     "t_value_pre": 0,
     "t_value_eval": 1,
 }

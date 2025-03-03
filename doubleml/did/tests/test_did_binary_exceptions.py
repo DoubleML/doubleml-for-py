@@ -5,8 +5,6 @@ import doubleml as dml
 
 dml_data = dml.did.datasets.make_did_SZ2020(n_obs=500, dgp_type=1, return_type="DoubleMLPanelData")
 
-df = dml.did.datasets.make_did_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=0, n_periods=3, time_type="float")
-
 valid_arguments = {
     "obj_dml_data": dml_data,
     "ml_g": LinearRegression(),
@@ -39,6 +37,11 @@ def test_input():
         invalid_arguments = {"g_value": 0}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
 
+    msg = r"The never treated group is not allowed as treatment group \(g_value=0\)."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"g_value": 0.0}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
     # t values
     msg = r"The value test is not in the set of evaluation period values \[0 1\]."
     with pytest.raises(ValueError, match=msg):
@@ -47,3 +50,4 @@ def test_input():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"t_value_eval": "test"}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
