@@ -13,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._did_utils import _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions
+from doubleml.utils._did_utils import _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions, _check_control_group
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
@@ -122,10 +122,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
-        valid_control_groups = ["never_treated", "not_yet_treated"]
-        if control_group not in valid_control_groups:
-            raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
-        self._control_group = control_group
+        self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(g_values)
 
         # check if g_value and t_value are in the set of g_values and t_values

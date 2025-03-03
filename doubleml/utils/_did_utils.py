@@ -48,11 +48,29 @@ def _is_never_treated(x, never_treated_value):
         return x == 0
 
 
+def _check_control_group(control_group):
+    valid_control_groups = ["never_treated", "not_yet_treated"]
+    if control_group not in valid_control_groups:
+        raise ValueError(f"The control group has to be one of {valid_control_groups}. " + f"{control_group} was passed.")
+
+    return control_group
+
+
+def _check_g_t_value_combination(g_value, t_value):
+    pass
+
+
 def _check_g_t_values(g_values, t_values, control_group):
     # TODO: Implement specific possiblities (date, float, etc.) and checks
 
     g_values = _convert_to_numpy_arrray(g_values, "g_values", allow_nan=True)
     t_values = _convert_to_numpy_arrray(t_values, "t_values", allow_nan=False)
+
+    expected_dtypes = (np.floating, np.datetime64)
+    if g_values.dtype not in expected_dtypes:
+        raise ValueError(f"Invalid data type for g_values: expected one of {expected_dtypes}.")
+    if t_values.dtype not in expected_dtypes:
+        raise ValueError(f"Invalid data type for t_values: expected one of {expected_dtypes}.")
 
     if g_values.dtype != t_values.dtype:
         raise ValueError(f"g_values and t_values must have the same data type. Got {g_values.dtype} and {t_values.dtype}.")

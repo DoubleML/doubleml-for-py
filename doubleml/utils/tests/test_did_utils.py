@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .._did_utils import _check_g_t_values, _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions
+from .._did_utils import _check_g_t_values, _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions, _check_control_group
 
 valid_args = {
     "g_values": np.array([1, 2]),
@@ -46,6 +46,12 @@ def test_is_never_treated():
     )
     for x, never_treated_value, expected in arguments:
         assert np.all(_is_never_treated(x, never_treated_value) == expected)
+
+
+@pytest.mark.ci
+def test_check_control_group():
+    with pytest.raises(ValueError, match="The control group has to be one of"):
+        _check_control_group("invalid_control_group")
 
 
 @pytest.mark.ci
