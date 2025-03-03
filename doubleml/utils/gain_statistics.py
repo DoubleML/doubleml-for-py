@@ -20,7 +20,7 @@ def gain_statistics(dml_long, dml_short):
         Benchmarking dictionary (dict) with values for ``cf_d``, ``cf_y``, ``rho``, and ``delta_theta``.
     """
 
-    # set input for readability
+    # set input for readability, transpose to match expected shape of framework
     sensitivity_elements_long = dml_long.framework.sensitivity_elements
     sensitivity_elements_short = dml_short.framework.sensitivity_elements
 

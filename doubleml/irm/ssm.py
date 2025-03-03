@@ -6,11 +6,12 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_X_y
 
-from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLData
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_finite_predictions, _check_score, _check_trimming
-from ..utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity, _trimm
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_data import DoubleMLData
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_finite_predictions, _check_score, _check_trimming
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity
+from doubleml.utils._propensity_score import _trimm
 
 
 class DoubleMLSSM(LinearScoreMixin, DoubleML):

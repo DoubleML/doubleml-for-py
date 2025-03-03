@@ -30,3 +30,4 @@ MANIFEST
 *.idea
 *.vscode
 .flake8
+.coverage

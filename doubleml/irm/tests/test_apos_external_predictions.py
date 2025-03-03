@@ -72,8 +72,12 @@ def doubleml_apos_ext_fixture(n_rep, treatment_levels, set_ml_m_ext, set_ml_g_ex
 
     if set_ml_g_ext:
         for i_treatment_level, treatment_level in enumerate(treatment_levels):
-            ext_predictions[treatment_level]["ml_g0"] = dml_obj.modellist[i_treatment_level].predictions["ml_g0"][:, :, 0]
-            ext_predictions[treatment_level]["ml_g1"] = dml_obj.modellist[i_treatment_level].predictions["ml_g1"][:, :, 0]
+            ext_predictions[treatment_level]["ml_g_d_lvl0"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl0"][
+                :, :, 0
+            ]
+            ext_predictions[treatment_level]["ml_g_d_lvl1"] = dml_obj.modellist[i_treatment_level].predictions["ml_g_d_lvl1"][
+                :, :, 0
+            ]
         ml_g = DMLDummyRegressor()
     else:
         ml_g = LinearRegression()
@@ -105,7 +109,7 @@ def test_doubleml_apos_ext_coef(doubleml_apos_ext_fixture):
 @pytest.mark.ci
 def test_doubleml_apos_ext_pred_nuisance(doubleml_apos_ext_fixture):
     for i_level, _ in enumerate(doubleml_apos_ext_fixture["treatment_levels"]):
-        for nuisance_key in ["ml_g0", "ml_g1", "ml_m"]:
+        for nuisance_key in ["ml_g_d_lvl0", "ml_g_d_lvl1", "ml_m"]:
             assert np.allclose(
                 doubleml_apos_ext_fixture["dml_obj"].modellist[i_level].nuisance_loss[nuisance_key],
                 doubleml_apos_ext_fixture["dml_obj_ext"].modellist[i_level].nuisance_loss[nuisance_key],

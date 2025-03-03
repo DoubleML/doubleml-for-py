@@ -146,9 +146,11 @@ def test_apo_exception_weights():
             ml_m,
             treatment_level=0,
             weights={
-                "weights": -1
-                * np.ones(
-                    n,
+                "weights": (
+                    -1
+                    * np.ones(
+                        n,
+                    )
                 ),
                 "weights_bar": np.ones((n, 1)),
             },
