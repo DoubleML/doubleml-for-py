@@ -877,7 +877,7 @@ class DoubleMLDIDMulti:
 
     def _calc_nuisance_loss(self):
         nuisance_loss = {
-            learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.modellist[0].params_names
+            learner: np.full((self.n_rep, self.n_gt_atts), np.nan) for learner in self.modellist[0].params_names
         }
         for i_model, model in enumerate(self.modellist):
             for learner in self.modellist[0].params_names:
