@@ -778,14 +778,15 @@ class DoubleMLDIDMulti:
 
     def aggregate(self, aggregation="simple"):
         if not isinstance(aggregation, str):
-            raise TypeError(
-                "aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed."
-            )
+            raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
         valid_aggregations = ["simple"]
         if aggregation not in valid_aggregations:
-            raise ValueError(
-                f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed."
-            )
+            raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
+        if self.framework is None:
+            raise ValueError("Apply fit() before aggregate().")
+
+        if aggregation == "simple":
+            pass
         pass
 
     def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
@@ -888,9 +889,7 @@ class DoubleMLDIDMulti:
         return ext_pred_dict
 
     def _calc_nuisance_loss(self):
-        nuisance_loss = {
-            learner: np.full((self.n_rep, self.n_gt_atts), np.nan) for learner in self.modellist[0].params_names
-        }
+        nuisance_loss = {learner: np.full((self.n_rep, self.n_gt_atts), np.nan) for learner in self.modellist[0].params_names}
         for i_model, model in enumerate(self.modellist):
             for learner in self.modellist[0].params_names:
                 for i_rep in range(self.n_rep):

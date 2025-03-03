@@ -122,3 +122,8 @@ def test_exceptions_aggregate():
     msg = "aggregation must be one of \\['simple'\\]. invalid was passed."
     with pytest.raises(ValueError, match=msg):
         dml_obj.aggregate(aggregation="invalid")
+
+    # test without fit()
+    msg = r"Apply fit\(\) before aggregate\(\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.aggregate()
