@@ -776,6 +776,18 @@ class DoubleMLDIDMulti:
         df_benchmark = pd.DataFrame(benchmark_dict, index=self.gt_labels)
         return df_benchmark
 
+    def aggregate(self, aggregation="simple"):
+        if not isinstance(aggregation, str):
+            raise TypeError(
+                "aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed."
+            )
+        valid_aggregations = ["simple"]
+        if aggregation not in valid_aggregations:
+            raise ValueError(
+                f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed."
+            )
+        pass
+
     def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
 
         model = self.modellist[i_gt]

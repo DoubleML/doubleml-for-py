@@ -107,3 +107,18 @@ def test_exception_gt_combinations():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"gt_combinations": [(1, 0)]}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+
+@pytest.mark.ci
+def test_exceptions_aggregate():
+    dml_obj = dml.did.DoubleMLDIDMulti(**valid_arguments)
+
+    # Test non-string input
+    msg = "aggregation must be a string. 123 of type <class 'int'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        dml_obj.aggregate(aggregation=123)
+
+    # Test invalid string value
+    msg = "aggregation must be one of \\['simple'\\]. invalid was passed."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.aggregate(aggregation="invalid")
