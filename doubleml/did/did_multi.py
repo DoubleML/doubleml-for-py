@@ -10,9 +10,14 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
 from doubleml.utils._checks import _check_score, _check_trimming
 from doubleml.utils._descriptive import generate_summary
+from doubleml.utils._did_utils import (
+    _check_control_group,
+    _check_gt_combination,
+    _check_gt_values,
+    _construct_gt_combinations,
+    _get_never_treated_value,
+)
 from doubleml.utils.gain_statistics import gain_statistics
-
-from doubleml.utils._did_utils import _check_control_group, _check_gt_combination, _check_gt_values, _get_never_treated_value
 
 
 class DoubleMLDIDMulti:
@@ -85,7 +90,7 @@ class DoubleMLDIDMulti:
         obj_dml_data,
         ml_g,
         ml_m=None,
-        gt_combinations=None,
+        gt_combinations="standard",
         control_group="never_treated",
         n_folds=5,
         n_rep=1,
@@ -747,25 +752,22 @@ class DoubleMLDIDMulti:
 
     def _validate_gt_combinations(self, gt_combinations):
         """Validate all treatment-time combinations."""
-        if gt_combinations is None:
-            gt_combinations = "standard"
 
         if isinstance(gt_combinations, str):
-            valid_gt_combinations = ["standard"]
-            if gt_combinations not in valid_gt_combinations:
-                raise ValueError(
-                    f"gt_combinations must be one of {valid_gt_combinations}. " + f"{gt_combinations} was passed."
-                )
+            gt_combinations = _construct_gt_combinations(
+                gt_combinations, self.g_values, self.t_values, self.never_treated_value
+            )
 
         if not isinstance(gt_combinations, list):
             raise TypeError(
                 "gt_combinations must be a list. " + f"{str(gt_combinations)} of type {type(gt_combinations)} was passed."
             )
 
+        if len(gt_combinations) == 0:
+            raise ValueError("gt_combinations must not be empty.")
+
         if not all(isinstance(gt_combination, tuple) for gt_combination in gt_combinations):
-            raise TypeError(
-                "gt_combinations must be a list of tuples. At least one element is not a tuple."
-            )
+            raise TypeError("gt_combinations must be a list of tuples. At least one element is not a tuple.")
 
         if not all(len(gt_combination) == 3 for gt_combination in gt_combinations):
             raise ValueError(
@@ -773,12 +775,7 @@ class DoubleMLDIDMulti:
             )
 
         for gt_combination in gt_combinations:
-            _check_gt_combination(
-                gt_combination,
-                self.g_values,
-                self.t_values,
-                self.never_treated_value
-            )
+            _check_gt_combination(gt_combination, self.g_values, self.t_values, self.never_treated_value)
 
         return gt_combinations
 

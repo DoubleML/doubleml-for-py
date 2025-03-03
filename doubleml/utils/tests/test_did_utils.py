@@ -6,6 +6,7 @@ from .._did_utils import (
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
+    _construct_gt_combinations,
     _get_id_positions,
     _get_never_treated_value,
     _is_never_treated,
@@ -119,14 +120,18 @@ def test_input_check_gt_values():
         (
             {"g_values": np.array(["test", "test"])},
             ValueError,
-            ("Invalid data type for g_values: expected one of "
-             r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."),
+            (
+                "Invalid data type for g_values: expected one of "
+                r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."
+            ),
         ),
         (
             {"t_values": np.array(["test", "test"])},
             ValueError,
-            ("Invalid data type for t_values: expected one of "
-             r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."),
+            (
+                "Invalid data type for t_values: expected one of "
+                r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."
+            ),
         ),
         (
             {"g_values": np.array(["2024-01-01", "2024-01-02"], dtype="datetime64")},
@@ -138,6 +143,69 @@ def test_input_check_gt_values():
     for arg, error, msg in invalid_args:
         with pytest.raises(error, match=msg):
             _check_gt_values(**(valid_args | arg))
+
+
+@pytest.mark.ci
+def test_construct_gt_combinations():
+    msg = r"gt_combinations must be one of \['standard', 'all'\]. test was passed."
+    with pytest.raises(ValueError, match=msg):
+        _construct_gt_combinations(
+            setting="test",
+            g_values=np.array([2, 3]),
+            t_values=np.array([1, 2, 3, 4]),
+            control_group="never_treated",
+        )
+
+    msg = "g_values must be sorted in ascending order."
+    with pytest.raises(ValueError, match=msg):
+        _construct_gt_combinations(
+            setting="standard",
+            g_values=np.array([3, 2]),
+            t_values=np.array([1, 2, 3, 4]),
+            control_group="never_treated",
+        )
+
+    msg = "t_values must be sorted in ascending order."
+    with pytest.raises(ValueError, match=msg):
+        _construct_gt_combinations(
+            setting="standard",
+            g_values=np.array([1, 2]),
+            t_values=np.array([3, 2, 1]),
+            control_group="never_treated",
+        )
+
+    # Test standard setting
+    standard_combinations = _construct_gt_combinations(
+        setting="standard", g_values=np.array([2, 3]), t_values=np.array([0, 1, 2, 3]), control_group="never_treated"
+    )
+    expected_standard = [
+        (2, 0, 1),  # g=2, pre=0 (min of t_previous=0 and t_before_g=0), eval=1
+        (2, 1, 2),  # g=2, pre=1 (min of t_previous=1 and t_before_g=1), eval=2
+        (2, 1, 3),  # g=2, pre=1 (min of t_previous=2 and t_before_g=1), eval=3
+        (3, 0, 1),  # g=3, pre=0 (min of t_previous=0 and t_before_g=0), eval=1
+        (3, 1, 2),  # g=3, pre=1 (min of t_previous=1 and t_before_g=1), eval=2
+        (3, 2, 3),  # g=3, pre=2 (min of t_previous=2 and t_before_g=2), eval=3
+    ]
+    assert standard_combinations == expected_standard
+
+    # Test all setting
+    all_combinations = _construct_gt_combinations(
+        setting="all", g_values=np.array([2, 3]), t_values=np.array([0, 1, 2, 3]), control_group="never_treated"
+    )
+    expected_all = [
+        (2, 0, 1),  # g=2, all pre periods before t_eval=1
+        (2, 0, 2),  # g=2, all pre periods before t_eval=2
+        (2, 1, 2),
+        (2, 0, 3),  # g=2, all pre periods before t_eval=3
+        (2, 1, 3),
+        (3, 0, 1),  # g=3, all pre periods before t_eval=1
+        (3, 0, 2),  # g=3, all pre periods before t_eval=2
+        (3, 1, 2),
+        (3, 0, 3),  # g=3, all pre periods before t_eval=3
+        (3, 1, 3),
+        (3, 2, 3),
+    ]
+    assert all_combinations == expected_all
 
 
 @pytest.mark.ci

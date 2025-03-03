@@ -93,6 +93,11 @@ def test_exception_gt_combinations():
         invalid_arguments = {"gt_combinations": 1}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
 
+    msg = "gt_combinations must not be empty."
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"gt_combinations": []}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
     msg = "gt_combinations must be a list of tuples. At least one element is not a tuple."
     with pytest.raises(TypeError, match=msg):
         invalid_arguments = {"gt_combinations": [1]}
