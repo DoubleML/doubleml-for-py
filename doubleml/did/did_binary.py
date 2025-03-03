@@ -13,7 +13,15 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._did_utils import _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions, _check_control_group
+from doubleml.utils._did_utils import (
+    _check_control_group,
+    _check_gt_combination,
+    _check_gt_values,
+    _get_id_positions,
+    _get_never_treated_value,
+    _is_never_treated,
+    _set_id_positions,
+)
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm
 
@@ -121,22 +129,12 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # as they might differ from the ones processed in DoubleMLDIDMulti
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
+        _check_gt_values(g_values, t_values)
 
         self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(g_values)
 
-        # check if g_value and t_value are in the set of g_values and t_values
-        if g_value not in g_values:
-            raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
-        if _is_never_treated(g_value, self._never_treated_value):
-            raise ValueError(
-                f"The never treated group is not allowed as treatment group (g_value={self._never_treated_value})."
-            )
-        if t_value_pre not in t_values:
-            raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
-        if t_value_eval not in t_values:
-            raise ValueError(f"The value {t_value_eval} is not in the set of evaluation period values {t_values}.")
-
+        _check_gt_combination((g_value, t_value_pre, t_value_eval), g_values, t_values, self._never_treated_value)
         self._g_value = g_value
         self._t_value_pre = t_value_pre
         self._t_value_eval = t_value_eval

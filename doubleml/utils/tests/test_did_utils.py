@@ -2,13 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .._did_utils import _check_g_t_values, _get_id_positions, _get_never_treated_value, _is_never_treated, _set_id_positions, _check_control_group
-
-valid_args = {
-    "g_values": np.array([1, 2]),
-    "t_values": np.array([0, 1, 2]),
-    "control_group": "never_treated",
-}
+from .._did_utils import (
+    _check_control_group,
+    _check_gt_combination,
+    _check_gt_values,
+    _get_id_positions,
+    _get_never_treated_value,
+    _is_never_treated,
+    _set_id_positions,
+)
 
 
 @pytest.mark.ci
@@ -55,45 +57,90 @@ def test_check_control_group():
 
 
 @pytest.mark.ci
-def test_input_check_g_t_values():
+def test_check_gt_combination():
+    valid_args = {
+        "gt_combination": (1, 0, 1),
+        "g_values": np.array([1, 2, np.nan]),
+        "t_values": np.array([0, 1, 2]),
+        "never_treated_value": np.nan,
+    }
+    invalid_args = [
+        (
+            {"gt_combination": (3.0, 0, 1)},
+            ValueError,
+            r"The value 3.0 is not in the set of treatment group values \[ 1.  2. nan\].",
+        ),
+        ({"gt_combination": (1, 0, 3)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
+        ({"gt_combination": (1, 3, 1)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
+        (
+            {"gt_combination": (0, 0, 1), "g_values": np.array([1, 2, 0]), "never_treated_value": 0},
+            ValueError,
+            r"The never treated group is not allowed as treatment group \(g_value=0\).",
+        ),
+        (
+            {"gt_combination": (1, 1, 1)},
+            ValueError,
+            "The pre-treatment and evaluation period must be different. Got 1 for both.",
+        ),
+        (
+            {"gt_combination": (1, 1, 0)},
+            ValueError,
+            "The pre-treatment period must be before the evaluation period. Got t_value_pre 1 and t_value_eval 0.",
+        ),
+    ]
+    for arg, error, msg in invalid_args:
+        with pytest.raises(error, match=msg):
+            _check_gt_combination(**(valid_args | arg))
+
+    msg = "The treatment was assigned before the first pre-treatment period. Got t_value_pre 1 and g_value 1"
+    with pytest.warns(UserWarning, match=msg):
+        _check_gt_combination(**(valid_args | {"gt_combination": (1, 1, 2)}))
+
+
+@pytest.mark.ci
+def test_input_check_gt_values():
+    valid_args = {
+        "g_values": np.array([1.0, 2.0]),
+        "t_values": np.array([0.0, 1.0, 2.0]),
+    }
     invalid_args = [
         ({"g_values": ["test"]}, TypeError, r"Invalid type for g_values: expected one of \(<class 'int'>, <class 'float'>\)."),
         ({"t_values": ["test"]}, TypeError, r"Invalid type for t_values: expected one of \(<class 'int'>, <class 'float'>\)."),
-        ({"g_values": np.array([[1, 2]])}, ValueError, "g_values must be a vector. Number of dimensions is 2."),
-        ({"t_values": np.array([[0, 1, 2]])}, ValueError, "t_values must be a vector. Number of dimensions is 2."),
+        ({"g_values": np.array([[1.0, 2.0]])}, ValueError, "g_values must be a vector. Number of dimensions is 2."),
+        ({"t_values": np.array([[0.0, 1.0, 2.0]])}, ValueError, "t_values must be a vector. Number of dimensions is 2."),
         ({"g_values": None}, TypeError, "Invalid type for g_values."),
         ({"t_values": None}, TypeError, "Invalid type for t_values."),
-        ({"t_values": np.array([0, 1, np.nan])}, ValueError, "t_values contains missing values."),
+        ({"t_values": np.array([0.0, 1.0, np.nan])}, ValueError, "t_values contains missing values."),
         (
-            {"g_values": np.array([0, 1]), "t_values": np.array([0.0, 1.0, 2.0])},
+            {"t_values": np.array(["2024-01-01", "2024-01-02", "NaT"], dtype="datetime64")},
             ValueError,
-            "g_values and t_values must have the same data type. Got int64 and float64.",
+            "t_values contains missing values.",
+        ),
+        (
+            {"g_values": np.array(["test", "test"])},
+            ValueError,
+            ("Invalid data type for g_values: expected one of "
+             r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."),
+        ),
+        (
+            {"t_values": np.array(["test", "test"])},
+            ValueError,
+            ("Invalid data type for t_values: expected one of "
+             r"\(<class 'numpy.integer'>, <class 'numpy.floating'>, <class 'numpy.datetime64'>\)."),
+        ),
+        (
+            {"g_values": np.array(["2024-01-01", "2024-01-02"], dtype="datetime64")},
+            ValueError,
+            r"g_values and t_values must have the same data type. Got datetime64\[D\] for g_values and float64 for t_values.",
         ),
     ]
 
     for arg, error, msg in invalid_args:
         with pytest.raises(error, match=msg):
-            _check_g_t_values(**(valid_args | arg))
+            _check_gt_values(**(valid_args | arg))
 
 
 @pytest.mark.ci
-def test_modify_g_values_check_g_t_values():
-    arguments = [
-        ({"g_values": [0, 1]}, UserWarning, "The never treated group 0 is removed from g_values."),
-        ({"t_values": [1, 2]}, UserWarning, "Values before/equal the first period 1 are removed from g_values."),
-        ({"g_values": [1, 2, 3]}, UserWarning, "Values after the last period 2 are removed from g_values."),
-        (
-            {"g_values": [1, 2], "control_group": "not_yet_treated"},
-            UserWarning,
-            r"Individuals treated in the last period are excluded from the analysis \(no comparison group available\).",
-        ),
-    ]
-
-    for arg, error, msg in arguments:
-        with pytest.warns(error, match=msg):
-            _check_g_t_values(**(valid_args | arg))
-
-
 def test_get_id_positions():
     # Test case 1: Normal array with valid positions
     a = np.array([1, 2, 3, 4, 5])
@@ -116,6 +163,7 @@ def test_get_id_positions():
     assert result_none is None
 
 
+@pytest.mark.ci
 def test_set_id_positions():
     # Test case 1: Basic 1D array
     a = np.array([1, 2, 3])

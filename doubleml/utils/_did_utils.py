@@ -20,7 +20,10 @@ def _convert_to_numpy_arrray(x, input_name, allow_nan=False):
     else:
         raise TypeError(f"Invalid type for {input_name}.")
 
-    if not allow_nan and np.any(np.isnan(x)):
+    if np.issubdtype(x.dtype, np.floating) and not allow_nan and np.any(np.isnan(x)):
+        raise ValueError(f"{input_name} contains missing values.")
+
+    if np.issubdtype(x.dtype, np.datetime64) and not allow_nan and np.any(np.isnat(x)):
         raise ValueError(f"{input_name} contains missing values.")
 
     return x
@@ -56,61 +59,49 @@ def _check_control_group(control_group):
     return control_group
 
 
-def _check_g_t_value_combination(g_value, t_value):
-    pass
+def _check_gt_combination(gt_combination, g_values, t_values, never_treated_value):
+    g_value, t_value_pre, t_value_eval = gt_combination
+    if g_value not in g_values:
+        raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
+    if _is_never_treated(g_value, never_treated_value):
+        raise ValueError(f"The never treated group is not allowed as treatment group (g_value={never_treated_value}).")
+    if t_value_pre not in t_values:
+        raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
+    if t_value_eval not in t_values:
+        raise ValueError(f"The value {t_value_eval} is not in the set of evaluation period values {t_values}.")
+
+    if t_value_pre == t_value_eval:
+        raise ValueError(f"The pre-treatment and evaluation period must be different. Got {t_value_pre} for both.")
+
+    if t_value_pre > t_value_eval:
+        raise ValueError(
+            "The pre-treatment period must be before the evaluation period. "
+            f"Got t_value_pre {t_value_pre} and t_value_eval {t_value_eval}."
+        )
+
+    if t_value_pre >= g_value:
+        warnings.warn(
+            "The treatment was assigned before the first pre-treatment period. "
+            f"Got t_value_pre {t_value_pre} and g_value {g_value}."
+        )
 
 
-def _check_g_t_values(g_values, t_values, control_group):
-    # TODO: Implement specific possiblities (date, float, etc.) and checks
+def _check_gt_values(g_values, t_values):
 
     g_values = _convert_to_numpy_arrray(g_values, "g_values", allow_nan=True)
     t_values = _convert_to_numpy_arrray(t_values, "t_values", allow_nan=False)
 
-    expected_dtypes = (np.floating, np.datetime64)
-    if g_values.dtype not in expected_dtypes:
+    expected_dtypes = (np.integer, np.floating, np.datetime64)
+    if not any(np.issubdtype(g_values.dtype, dt) for dt in expected_dtypes):
         raise ValueError(f"Invalid data type for g_values: expected one of {expected_dtypes}.")
-    if t_values.dtype not in expected_dtypes:
+    if not any(np.issubdtype(t_values.dtype, dt) for dt in expected_dtypes):
         raise ValueError(f"Invalid data type for t_values: expected one of {expected_dtypes}.")
 
-    if g_values.dtype != t_values.dtype:
-        raise ValueError(f"g_values and t_values must have the same data type. Got {g_values.dtype} and {t_values.dtype}.")
-
-    g_values = np.sort(g_values)
-    t_values = np.sort(t_values)
-
-    # Don't evaluate always treated
-    never_treated_value = 0
-    never_treated_exist = False
-    if never_treated_value in g_values:
-        never_treated_exist = True
-        warnings.warn(f"The never treated group {never_treated_value} is removed from g_values.")
-        g_values = np.atleast_1d(g_values[g_values != never_treated_value])
-
-    # specify time horizon
-    t_last = np.max(t_values)
-    t_first = np.min(t_values)
-
-    valid_g_values = np.full_like(g_values, True, dtype=bool)
-
-    if np.any(g_values <= t_first):
-        warnings.warn(f"Values before/equal the first period {t_first} are removed from g_values.")
-        valid_g_values &= g_values > t_first
-
-    if np.any(g_values > t_last):
-        warnings.warn(f"Values after the last period {t_last} are removed from g_values.")
-        valid_g_values &= g_values <= t_last
-
-    # Don't evaluate those individuals treated in last period
-    if (control_group == "not_yet_treated") and (not never_treated_exist):
-        if np.any(g_values == t_last):
-            warnings.warn(
-                "Individuals treated in the last period are excluded from the analysis " + "(no comparison group available)."
-            )
-            valid_g_values &= g_values < t_last
-
-    g_values = np.atleast_1d(g_values[valid_g_values])
-
-    return g_values, t_values
+    if np.issubdtype(g_values.dtype, np.datetime64) != np.issubdtype(t_values.dtype, np.datetime64):
+        raise ValueError(
+            "g_values and t_values must have the same data type. "
+            f"Got {g_values.dtype} for g_values and {t_values.dtype} for t_values."
+        )
 
 
 def _check_preprocess_g_t(g_values, t_values, control_group):
