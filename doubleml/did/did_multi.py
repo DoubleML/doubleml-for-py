@@ -178,7 +178,7 @@ class DoubleMLDIDMulti:
             learner_info += f"Learner {key}: {str(value)}\n"
         if self.nuisance_loss is not None:
             learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
+            is_classifier = [value for value in self.modellist[0]._is_classifier.values()]
             is_regressor = [not value for value in is_classifier]
             if any(is_regressor):
                 learner_info += "Regression:\n"
