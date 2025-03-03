@@ -156,8 +156,7 @@ def _construct_gt_index(gt_combinations, g_values, t_values):
         in gt_combinations if it exists, masked otherwise
     """
     gt_index = np.ma.masked_array(
-        data=np.full(shape=(len(g_values), len(t_values), len(t_values)), fill_value=-1, dtype=np.int64),
-        mask=True
+        data=np.full(shape=(len(g_values), len(t_values), len(t_values)), fill_value=-1, dtype=np.int64), mask=True
     )
     for i_gt_combination, (g_val, t_pre, t_eval) in enumerate(gt_combinations):
         i_g = np.where(g_values == g_val)[0][0]

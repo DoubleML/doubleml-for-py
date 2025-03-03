@@ -219,11 +219,7 @@ def test_construct_gt_combinations():
 def test_construct_gt_index():
     g_values = np.array([0, 2, 3])
     t_values = np.array([1, 2, 3])
-    gt_combinations = [
-        (2, 1, 2),  # g_val, t_pre, t_eval
-        (2, 1, 3),
-        (3, 1, 2)
-    ]
+    gt_combinations = [(2, 1, 2), (2, 1, 3), (3, 1, 2)]  # g_val, t_pre, t_eval
     result = _construct_gt_index(gt_combinations, g_values, t_values)
     # Check dimensions
     assert result.shape == (3, 3, 3)

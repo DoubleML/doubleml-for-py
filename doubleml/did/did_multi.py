@@ -1,5 +1,6 @@
 import copy
 
+import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
@@ -164,12 +165,43 @@ class DoubleMLDIDMulti:
 
         # initialize all models if splits are known
         self._modellist = self._initialize_models()
+        self._nuisance_loss = None
 
     def __str__(self):
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
+        data_summary = self._dml_data._data_summary_str()
+        score_info = f"Score function: {str(self.score)}\n"
+        resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
+        learner_info = ""
+        for key, value in self._learner.items():
+            learner_info += f"Learner {key}: {str(value)}\n"
+        if self.nuisance_loss is not None:
+            learner_info += "Out-of-sample Performance:\n"
+            is_classifier = [value for value in self._is_classifier.values()]
+            is_regressor = [not value for value in is_classifier]
+            if any(is_regressor):
+                learner_info += "Regression:\n"
+                for learner in [key for key, value in self.modellist[0]._is_classifier.items() if value is False]:
+                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
+            if any(is_classifier):
+                learner_info += "Classification:\n"
+                for learner in [key for key, value in self.modellist[0]._is_classifier.items() if value is True]:
+                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
         fit_summary = str(self.summary)
-        res = header + "\n------------------ Fit summary       ------------------\n" + fit_summary
+        res = (
+            header
+            + "\n------------------ Data summary      ------------------\n"
+            + data_summary
+            + "\n------------------ Score & algorithm ------------------\n"
+            + score_info
+            + "\n------------------ Machine learner   ------------------\n"
+            + learner_info
+            + "\n------------------ Resampling        ------------------\n"
+            + resampling_info
+            + "\n------------------ Fit summary       ------------------\n"
+            + fit_summary
+        )
         return res
 
     @property
@@ -205,7 +237,7 @@ class DoubleMLDIDMulti:
         """
         The number of evaluated combinations of the treatment variable and the period.
         """
-        return len(self._gt_combinations)
+        return len(self.gt_combinations)
 
     @property
     def gt_labels(self):
@@ -386,6 +418,13 @@ class DoubleMLDIDMulti:
         return self._smpls
 
     @property
+    def nuisance_loss(self):
+        """
+        The losses of the nuisance models (root-mean-squared-errors or logloss).
+        """
+        return self._nuisance_loss
+
+    @property
     def framework(self):
         """
         The corresponding :class:`doubleml.DoubleMLFramework` object.
@@ -510,9 +549,10 @@ class DoubleMLDIDMulti:
 
         # aggregate all frameworks
         self._framework = concat(framework_list)
-
-        # set treatment names based on gt combinations
         self._framework.treatment_names = self._gt_labels
+
+        # store the nuisance losses
+        self._nuisance_loss = self._calc_nuisance_loss()
 
         return self
 
@@ -834,6 +874,18 @@ class DoubleMLDIDMulti:
                 ext_pred_dict[gt_combination][d_col]["ml_m"] = external_predictions[gt_combination]["ml_m"]
 
         return ext_pred_dict
+
+    def _calc_nuisance_loss(self):
+        nuisance_loss = {
+            learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.modellist[0].params_names
+        }
+        for i_model, model in enumerate(self.modellist):
+            for learner in self.modellist[0].params_names:
+                for i_rep in range(self.n_rep):
+                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep]
+                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep]
+
+        return nuisance_loss
 
     def _initialize_models(self):
         modellist = [None] * self.n_gt_atts
