@@ -7,6 +7,7 @@ from .._did_utils import (
     _check_gt_combination,
     _check_gt_values,
     _construct_gt_combinations,
+    _construct_gt_index,
     _get_id_positions,
     _get_never_treated_value,
     _is_never_treated,
@@ -212,6 +213,50 @@ def test_construct_gt_combinations():
         (3, 2, 3),
     ]
     assert all_combinations == expected_all
+
+
+@pytest.mark.ci
+def test_construct_gt_index():
+    g_values = np.array([0, 2, 3])
+    t_values = np.array([1, 2, 3])
+    gt_combinations = [
+        (2, 1, 2),  # g_val, t_pre, t_eval
+        (2, 1, 3),
+        (3, 1, 2)
+    ]
+    result = _construct_gt_index(gt_combinations, g_values, t_values)
+    # Check dimensions
+    assert result.shape == (3, 3, 3)
+
+    # Check valid entries
+    assert result[1, 0, 1] == 0  # First combination (2, 1, 2)
+    assert result[1, 0, 2] == 1  # Second combination (2, 1, 3)
+    assert result[2, 0, 1] == 2  # Third combination (3, 1, 2)
+    assert result.mask[1, 0, 1] == np.False_
+    assert result.mask[1, 0, 2] == np.False_
+    assert result.mask[2, 0, 1] == np.False_
+
+    # Check that other entries are masked and contain -1
+    assert result.mask[0, 0, 0] == np.True_
+    assert result.data[0, 0, 0] == -1
+
+    # Test case 2: Empty combinations
+    empty_result = _construct_gt_index([], g_values, t_values)
+    assert empty_result.shape == (3, 3, 3)
+    assert np.all(empty_result.mask)
+    assert np.all(empty_result.data == -1)
+
+    # Test case 3: Single combination
+    single_combination = [(2, 1, 2)]
+    single_result = _construct_gt_index(single_combination, g_values, t_values)
+    assert single_result[1, 0, 1] == 0
+    assert np.sum(~single_result.mask) == 1  # Only one unmasked entry
+
+    # Test case 4: Different dimensions
+    g_values_large = np.array([0, 1, 2, 3, 4])
+    t_values_large = np.array([1, 2, 3, 4])
+    large_result = _construct_gt_index(gt_combinations, g_values_large, t_values_large)
+    assert large_result.shape == (5, 4, 4)
 
 
 @pytest.mark.ci

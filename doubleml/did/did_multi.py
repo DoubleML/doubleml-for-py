@@ -15,6 +15,7 @@ from doubleml.utils._did_utils import (
     _check_gt_combination,
     _check_gt_values,
     _construct_gt_combinations,
+    _construct_gt_index,
     _get_never_treated_value,
 )
 from doubleml.utils.gain_statistics import gain_statistics
@@ -114,6 +115,7 @@ class DoubleMLDIDMulti:
         self._never_treated_value = _get_never_treated_value(self.g_values)
 
         self._gt_combinations = self._validate_gt_combinations(gt_combinations)
+        self._gt_index = _construct_gt_index(self.gt_combinations, self.g_values, self.t_values)
         self._gt_labels = [f"ATT({g},{t_pre},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
 
         # TODO: Check what to export and what not
@@ -184,13 +186,19 @@ class DoubleMLDIDMulti:
         """
         return self._control_group
 
-    # TODO: Define a setter for gt_combinations
     @property
     def gt_combinations(self):
         """
         The combinations of g and t values.
         """
         return self._gt_combinations
+
+    @property
+    def gt_index(self):
+        """
+        The index of the combinations of g and t values.
+        """
+        return self._gt_index
 
     @property
     def n_gt_atts(self):

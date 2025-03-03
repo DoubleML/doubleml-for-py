@@ -143,28 +143,30 @@ def _construct_gt_combinations(setting, g_values, t_values, never_treated_value)
     return gt_combinations
 
 
-def _check_preprocess_g_t(g_values, t_values, control_group):
-    # For each combination of g and t values, we need to find a pretreatment and evaluation period
-    # Here only varying base period (for universal t_fac would be 0)
-    t_fac = 1
-    # shift position of t values by t_fac
-    t_values_eval = t_values[t_fac:]
+def _construct_gt_index(gt_combinations, g_values, t_values):
+    """Construct a 3D array mapping group-time combinations to their indices.
 
-    # All combinations of g and t_pre and t_eval for evaluation
-    gt_combinations = []
+    Parameters:
+        gt_combinations: List of tuples (g_val, t_pre, t_eval)
+        g_values: Array of group values
+        t_values: Array of time values
 
-    for g_val in g_values:
-        for t_idx, t_eval in enumerate(t_values_eval):
-            t_pre = t_values[t_idx]
+    Returns:
+        3D numpy masked array where entry [i,j,k] contains the index of the combination
+        in gt_combinations if it exists, masked otherwise
+    """
+    gt_index = np.ma.masked_array(
+        data=np.full(shape=(len(g_values), len(t_values), len(t_values)), fill_value=-1, dtype=np.int64),
+        mask=True
+    )
+    for i_gt_combination, (g_val, t_pre, t_eval) in enumerate(gt_combinations):
+        i_g = np.where(g_values == g_val)[0][0]
+        i_t_pre = np.where(t_values == t_pre)[0][0]
+        i_t_eval = np.where(t_values == t_eval)[0][0]
+        gt_index[i_g, i_t_pre, i_t_eval] = i_gt_combination
+        gt_index.mask[i_g, i_t_pre, i_t_eval] = False
 
-            # if post_treatment, i.e., if g_val <= t_eval, take last pre-treatment period before g
-            if g_val < t_eval:
-                t_upd = np.where(t_values < g_val)[0][-1]
-                t_pre = t_values[t_upd]
-
-            gt_combinations.append((int(g_val), int(t_pre), int(t_eval)))
-
-    return gt_combinations
+    return gt_index
 
 
 def _set_id_positions(a, n_obs, id_positions, fill_value):
