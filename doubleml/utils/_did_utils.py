@@ -104,14 +104,13 @@ def _check_gt_values(g_values, t_values):
         )
 
 
-def _construct_gt_combinations(setting, g_values, t_values, control_group):
+def _construct_gt_combinations(setting, g_values, t_values, never_treated_value):
     """Construct treatment-time combinations for difference-in-differences analysis.
 
     Parameters:
         setting (str): Strategy for constructing combinations ('standard' only)
         g_values (array): Treatment group values, must be sorted
         t_values (array): Time period values, must be sorted
-        control_group (str): Control group specification
 
     Returns:
         list: List of (g_val, t_pre, t_eval) tuples
@@ -120,14 +119,15 @@ def _construct_gt_combinations(setting, g_values, t_values, control_group):
     if setting not in valid_settings:
         raise ValueError(f"gt_combinations must be one of {valid_settings}. {setting} was passed.")
 
-    if not np.all(np.diff(g_values) > 0):
-        raise ValueError("g_values must be sorted in ascending order.")
+    treatment_groups = g_values[~_is_never_treated(g_values, never_treated_value)]
+    if not np.all(np.diff(treatment_groups) > 0):
+        raise ValueError("g_values must be sorted in ascending order (Excluding never treated group).")
     if not np.all(np.diff(t_values) > 0):
         raise ValueError("t_values must be sorted in ascending order.")
 
     gt_combinations = []
     if setting == "standard":
-        for g_val in g_values:
+        for g_val in treatment_groups:
             for i_t_eval, t_eval in enumerate(t_values[1:]):
                 t_previous = t_values[i_t_eval]
                 t_before_g = t_values[t_values < g_val][-1]
@@ -135,7 +135,7 @@ def _construct_gt_combinations(setting, g_values, t_values, control_group):
                 gt_combinations.append((g_val, t_pre, t_eval))
 
     if setting == "all":
-        for g_val in g_values:
+        for g_val in treatment_groups:
             for t_eval in t_values[1:]:
                 for t_pre in t_values[t_values < min(g_val, t_eval)]:
                     gt_combinations.append((g_val, t_pre, t_eval))

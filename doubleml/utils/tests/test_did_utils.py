@@ -153,7 +153,7 @@ def test_construct_gt_combinations():
             setting="test",
             g_values=np.array([2, 3]),
             t_values=np.array([1, 2, 3, 4]),
-            control_group="never_treated",
+            never_treated_value=np.nan,
         )
 
     msg = "g_values must be sorted in ascending order."
@@ -162,7 +162,7 @@ def test_construct_gt_combinations():
             setting="standard",
             g_values=np.array([3, 2]),
             t_values=np.array([1, 2, 3, 4]),
-            control_group="never_treated",
+            never_treated_value=np.nan,
         )
 
     msg = "t_values must be sorted in ascending order."
@@ -171,12 +171,15 @@ def test_construct_gt_combinations():
             setting="standard",
             g_values=np.array([1, 2]),
             t_values=np.array([3, 2, 1]),
-            control_group="never_treated",
+            never_treated_value=np.nan,
         )
 
     # Test standard setting
     standard_combinations = _construct_gt_combinations(
-        setting="standard", g_values=np.array([2, 3]), t_values=np.array([0, 1, 2, 3]), control_group="never_treated"
+        setting="standard",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.nan,
     )
     expected_standard = [
         (2, 0, 1),  # g=2, pre=0 (min of t_previous=0 and t_before_g=0), eval=1
@@ -190,7 +193,10 @@ def test_construct_gt_combinations():
 
     # Test all setting
     all_combinations = _construct_gt_combinations(
-        setting="all", g_values=np.array([2, 3]), t_values=np.array([0, 1, 2, 3]), control_group="never_treated"
+        setting="all",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.nan,
     )
     expected_all = [
         (2, 0, 1),  # g=2, all pre periods before t_eval=1
