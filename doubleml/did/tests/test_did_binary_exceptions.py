@@ -50,4 +50,3 @@ def test_input():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"t_value_eval": "test"}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
-

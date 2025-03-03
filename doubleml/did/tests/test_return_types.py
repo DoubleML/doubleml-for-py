@@ -3,7 +3,7 @@ import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml.data import DoubleMLData, DoubleMLPanelData
-from doubleml.did import DoubleMLDID, DoubleMLDIDBinary, DoubleMLDIDCS, DoubleMLDIDMulti
+from doubleml.did import DoubleMLDID, DoubleMLDIDBinary, DoubleMLDIDCS
 from doubleml.did.datasets import make_did_CS2021, make_did_SZ2020
 from doubleml.utils._check_return_types import (
     check_basic_predictions_and_targets,
