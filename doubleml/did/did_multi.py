@@ -762,6 +762,16 @@ class DoubleMLDIDMulti:
                 "gt_combinations must be a list. " + f"{str(gt_combinations)} of type {type(gt_combinations)} was passed."
             )
 
+        if not all(isinstance(gt_combination, tuple) for gt_combination in gt_combinations):
+            raise TypeError(
+                "gt_combinations must be a list of tuples. At least one element is not a tuple."
+            )
+
+        if not all(len(gt_combination) == 3 for gt_combination in gt_combinations):
+            raise ValueError(
+                "gt_combinations must be a list of tuples with 3 elements. At least one tuple has not 3 elements."
+            )
+
         for gt_combination in gt_combinations:
             _check_gt_combination(
                 gt_combination,
