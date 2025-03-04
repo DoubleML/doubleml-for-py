@@ -105,7 +105,7 @@ def fit_nuisance_did(
 
     p_hat_list = []
     for train_index, _ in smpls:
-        p_hat_list.append(np.mean(d[train_index]))
+        p_hat_list.append(np.mean(d))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list
 

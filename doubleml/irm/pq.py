@@ -3,8 +3,8 @@ from sklearn.base import clone
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import check_X_y
 
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 from doubleml.utils._checks import (
     _check_contains_iv,

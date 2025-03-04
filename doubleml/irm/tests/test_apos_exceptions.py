@@ -86,8 +86,8 @@ def test_apos_exception_ipw_normalization():
 def test_apos_exception_properties_and_methods():
     # properties
     dml_obj = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0, draw_sample_splitting=False)
-    msg = r"Sample splitting not specified. Draw samples via .draw_sample splitting\(\). External samples not implemented yet."
-    with pytest.raises(ValueError, match=msg):
+    msg = r"Sample splitting not specified. Draw samples via .draw_sample_splitting\(\). External samples not implemented yet."
+    with pytest.raises(NotImplementedError, match=msg):
         _ = dml_obj.smpls
 
     # methods

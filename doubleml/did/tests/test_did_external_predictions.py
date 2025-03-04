@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml import DoubleMLDID
-from doubleml.datasets import make_did_SZ2020
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 from ...tests._utils import draw_smpls
@@ -42,11 +42,36 @@ def doubleml_did_fixture(did_score, n_rep):
     np.random.seed(3141)
     dml_did_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_did.coef[0], "coef_ext": dml_did_ext.coef[0]}
+    res_dict = {
+        "coef": dml_did.coef[0],
+        "coef_ext": dml_did_ext.coef[0],
+        "se": dml_did.se[0],
+        "se_ext": dml_did_ext.se[0],
+        "score": dml_did.psi,
+        "score_ext": dml_did_ext.psi,
+        "dml_did_nuisance_loss": dml_did.nuisance_loss,
+        "dml_did_ext_nuisance_loss": dml_did_ext.nuisance_loss,
+    }
 
     return res_dict
 
 
 @pytest.mark.ci
-def test_doubleml_did_coef(doubleml_did_fixture):
-    assert math.isclose(doubleml_did_fixture["coef_normal"], doubleml_did_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3)
+def test_coef(doubleml_did_fixture):
+    assert math.isclose(doubleml_did_fixture["coef"], doubleml_did_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3)
+
+
+@pytest.mark.ci
+def test_se(doubleml_did_fixture):
+    assert math.isclose(doubleml_did_fixture["se"], doubleml_did_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3)
+
+
+@pytest.mark.ci
+def test_score(doubleml_did_fixture):
+    assert np.allclose(doubleml_did_fixture["score"], doubleml_did_fixture["score_ext"], rtol=1e-9, atol=1e-3)
+
+
+@pytest.mark.ci
+def test_nuisance_loss(doubleml_did_fixture):
+    for key, value in doubleml_did_fixture["dml_did_nuisance_loss"].items():
+        assert np.allclose(value, doubleml_did_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)

@@ -7,8 +7,7 @@ from sklearn.utils import assert_all_finite
 from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_array, check_consistent_length, column_or_1d
 
-from .utils._checks import _check_set
-from .utils._estimation import _assure_2d_array
+from doubleml.utils._estimation import _assure_2d_array
 
 
 class DoubleMLBaseData(ABC):
@@ -127,6 +126,14 @@ class DoubleMLData(DoubleMLBaseData):
         in the covariates ``x``.
         Default is ``True``.
 
+    force_all_d_finite : bool or str
+        Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the model used allows for missing
+        and / or infinite values in the treatment variables ``d`` (e.g. panel data models).
+        Default is ``True``.
+
     Examples
     --------
     >>> from doubleml import DoubleMLData
@@ -150,6 +157,7 @@ class DoubleMLData(DoubleMLBaseData):
         s_col=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
+        force_all_d_finite=True,
     ):
         DoubleMLBaseData.__init__(self, data)
 
@@ -159,9 +167,10 @@ class DoubleMLData(DoubleMLBaseData):
         self.t_col = t_col
         self.s_col = s_col
         self.x_cols = x_cols
-        self._check_disjoint_sets_y_d_x_z_t_s()
+        self._check_disjoint_sets()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
+        self.force_all_d_finite = force_all_d_finite
         self._binary_treats = self._check_binary_treats()
         self._binary_outcome = self._check_binary_outcome()
         self._set_y_z_t_s()
@@ -197,7 +206,18 @@ class DoubleMLData(DoubleMLBaseData):
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, t=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True):
+    def from_arrays(
+        cls,
+        x,
+        y,
+        d,
+        z=None,
+        t=None,
+        s=None,
+        use_other_treat_as_covariate=True,
+        force_all_x_finite=True,
+        force_all_d_finite=True,
+    ):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
 
@@ -237,6 +257,14 @@ class DoubleMLData(DoubleMLBaseData):
             in the covariates ``x``.
             Default is ``True``.
 
+        force_all_d_finite : bool or str
+            Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the model used allows for missing
+            and / or infinite values in the treatment variables ``d`` (e.g. panel data models).
+            Default is ``True``.
+
         Examples
         --------
         >>> from doubleml import DoubleMLData
@@ -255,8 +283,19 @@ class DoubleMLData(DoubleMLBaseData):
         elif not isinstance(force_all_x_finite, bool):
             raise TypeError("Invalid force_all_x_finite. " + "force_all_x_finite must be True, False or 'allow-nan'.")
 
+        if isinstance(force_all_d_finite, str):
+            if force_all_d_finite != "allow-nan":
+                raise ValueError(
+                    "Invalid force_all_d_finite "
+                    + force_all_d_finite
+                    + ". "
+                    + "force_all_d_finite must be True, False or 'allow-nan'."
+                )
+        elif not isinstance(force_all_d_finite, bool):
+            raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
+
         x = check_array(x, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
-        d = check_array(d, ensure_2d=False, allow_nd=False)
+        d = check_array(d, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
         y = column_or_1d(y, warn=True)
 
         x = _assure_2d_array(x)
@@ -296,7 +335,7 @@ class DoubleMLData(DoubleMLBaseData):
 
         x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]
 
-        # basline version with features, outcome and treatments
+        # baseline version with features, outcome and treatments
         data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)
 
         if z is not None:
@@ -309,7 +348,18 @@ class DoubleMLData(DoubleMLBaseData):
         if s is not None:
             data[s_col] = s
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite)
+        return cls(
+            data,
+            y_col,
+            d_cols,
+            x_cols,
+            z_cols,
+            t_col,
+            s_col,
+            use_other_treat_as_covariate,
+            force_all_x_finite,
+            force_all_d_finite,
+        )
 
     @property
     def x(self):
@@ -431,14 +481,14 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError("Invalid covariates x_cols. At least one covariate is no data column.")
             assert set(value).issubset(set(self.all_variables))
             self._x_cols = value
+
         else:
-            excluded_cols = set.union({self.y_col}, set(self.d_cols))
-            if self.z_cols is not None:
-                excluded_cols = set.union(excluded_cols, set(self.z_cols))
-            for col in [self.t_col, self.s_col]:
-                col = _check_set(col)
-                excluded_cols = set.union(excluded_cols, col)
+            excluded_cols = {self.y_col} | set(self.d_cols)
+            optional_col_sets = self._get_optional_col_sets()
+            for optional_col_set in optional_col_sets:
+                excluded_cols |= optional_col_set
             self._x_cols = [col for col in self.data.columns if col not in excluded_cols]
+
         if reset_value:
             self._check_disjoint_sets()
             # by default, we initialize to the first treatment variable
@@ -612,26 +662,41 @@ class DoubleMLData(DoubleMLBaseData):
             # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
+    @property
+    def force_all_d_finite(self):
+        """
+        Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
+        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
+        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
+        """
+        return self._force_all_d_finite
+
+    @force_all_d_finite.setter
+    def force_all_d_finite(self, value):
+        reset_value = hasattr(self, "_force_all_d_finite")
+        if isinstance(value, str):
+            if value != "allow-nan":
+                raise ValueError(
+                    "Invalid force_all_d_finite " + value + ". " + "force_all_d_finite must be True, False or 'allow-nan'."
+                )
+        elif not isinstance(value, bool):
+            raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
+        self._force_all_d_finite = value
+        if reset_value:
+            # by default, we initialize to the first treatment variable
+            self.set_x_d(self.d_cols[0])
+
     def _set_y_z_t_s(self):
-        assert_all_finite(self.data.loc[:, self.y_col])
-        self._y = self.data.loc[:, self.y_col]
-        if self.z_cols is None:
-            self._z = None
-        else:
-            assert_all_finite(self.data.loc[:, self.z_cols])
-            self._z = self.data.loc[:, self.z_cols]
+        def _set_attr(col):
+            if col is None:
+                return None
+            assert_all_finite(self.data.loc[:, col])
+            return self.data.loc[:, col]
 
-        if self.t_col is None:
-            self._t = None
-        else:
-            assert_all_finite(self.data.loc[:, self.t_col])
-            self._t = self.data.loc[:, self.t_col]
-
-        if self.s_col is None:
-            self._s = None
-        else:
-            assert_all_finite(self.data.loc[:, self.s_col])
-            self._s = self.data.loc[:, self.s_col]
+        self._y = _set_attr(self.y_col)
+        self._z = _set_attr(self.z_cols)
+        self._t = _set_attr(self.t_col)
+        self._s = _set_attr(self.s_col)
 
     def set_x_d(self, treatment_var):
         """
@@ -655,19 +720,31 @@ class DoubleMLData(DoubleMLBaseData):
             xd_list.remove(treatment_var)
         else:
             xd_list = self.x_cols
-        assert_all_finite(self.data.loc[:, treatment_var])
+        if self.force_all_d_finite:
+            assert_all_finite(self.data.loc[:, self.d_cols], allow_nan=self.force_all_d_finite == "allow-nan")
         if self.force_all_x_finite:
             assert_all_finite(self.data.loc[:, xd_list], allow_nan=self.force_all_x_finite == "allow-nan")
         self._d = self.data.loc[:, treatment_var]
         self._X = self.data.loc[:, xd_list]
 
+    def _get_optional_col_sets(self):
+        # this function can be extended in inherited subclasses
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
+
+        return [z_cols_set, t_col_set, s_col_set]
+
     def _check_binary_treats(self):
         is_binary = pd.Series(dtype=bool, index=self.d_cols)
-        for treatment_var in self.d_cols:
-            this_d = self.data.loc[:, treatment_var]
-            binary_treat = type_of_target(this_d) == "binary"
-            zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
-            is_binary[treatment_var] = binary_treat & zero_one_treat
+        if not self.force_all_d_finite:
+            is_binary[:] = False  # if we allow infinite values, we cannot check for binary
+        else:
+            for treatment_var in self.d_cols:
+                this_d = self.data.loc[:, treatment_var]
+                binary_treat = type_of_target(this_d) == "binary"
+                zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
+                is_binary[treatment_var] = binary_treat & zero_one_treat
         return is_binary
 
     def _check_binary_outcome(self):
@@ -677,11 +754,18 @@ class DoubleMLData(DoubleMLBaseData):
         is_binary = binary_outcome & zero_one_outcome
         return is_binary
 
+    @staticmethod
+    def _check_disjoint(set1, set2, name1, arg1, name2, arg2):
+        """Helper method to check for disjoint sets."""
+        if not set1.isdisjoint(set2):
+            raise ValueError(f"At least one variable/column is set as {name1} ({arg1}) and {name2} ({arg2}).")
+
     def _check_disjoint_sets(self):
         # this function can be extended in inherited subclasses
-        self._check_disjoint_sets_y_d_x_z_t_s()
+        self._check_disjoint_sets_y_d_x()
+        self._check_disjoint_sets_z_t_s()
 
-    def _check_disjoint_sets_y_d_x_z_t_s(self):
+    def _check_disjoint_sets_y_d_x(self):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
@@ -700,396 +784,31 @@ class DoubleMLData(DoubleMLBaseData):
                 "(``x_cols``). Consider using parameter ``use_other_treat_as_covariate``."
             )
 
-        if self.z_cols is not None:
-            z_cols_set = set(self.z_cols)
-            if not y_col_set.isdisjoint(z_cols_set):
-                raise ValueError(
-                    f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and instrumental variable in ``z_cols``."
-                )
-            if not d_cols_set.isdisjoint(z_cols_set):
-                raise ValueError(
-                    "At least one variable/column is set as treatment variable (``d_cols``) and "
-                    "instrumental variable in ``z_cols``."
-                )
-            if not x_cols_set.isdisjoint(z_cols_set):
-                raise ValueError(
-                    "At least one variable/column is set as covariate (``x_cols``) and instrumental variable in ``z_cols``."
-                )
-
-        self._check_disjoint_sets_t_s()
-
-    def _check_disjoint_sets_t_s(self):
+    def _check_disjoint_sets_z_t_s(self):
         y_col_set = {self.y_col}
         x_cols_set = set(self.x_cols)
         d_cols_set = set(self.d_cols)
 
-        if self.t_col is not None:
-            t_col_set = {self.t_col}
-            if not t_col_set.isdisjoint(x_cols_set):
-                raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and covariate in ``x_cols``.")
-            if not t_col_set.isdisjoint(d_cols_set):
-                raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and treatment variable in ``d_cols``."
-                )
-            if not t_col_set.isdisjoint(y_col_set):
-                raise ValueError(f"{str(self.t_col)} cannot be set as time variable ``t_col`` and outcome variable ``y_col``.")
-            if self.z_cols is not None:
-                z_cols_set = set(self.z_cols)
-                if not t_col_set.isdisjoint(z_cols_set):
-                    raise ValueError(
-                        f"{str(self.t_col)} cannot be set as time variable ``t_col`` and instrumental variable in ``z_cols``."
-                    )
+        z_cols_set = set(self.z_cols or [])
+        t_col_set = {self.t_col} if self.t_col else set()
+        s_col_set = {self.s_col} if self.s_col else set()
 
-        if self.s_col is not None:
-            s_col_set = {self.s_col}
-            if not s_col_set.isdisjoint(x_cols_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and covariate in ``x_cols``."
-                )
-            if not s_col_set.isdisjoint(d_cols_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and treatment "
-                    "variable in ``d_cols``."
-                )
-            if not s_col_set.isdisjoint(y_col_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and outcome variable ``y_col``."
-                )
-            if self.z_cols is not None:
-                z_cols_set = set(self.z_cols)
-                if not s_col_set.isdisjoint(z_cols_set):
-                    raise ValueError(
-                        f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and "
-                        "instrumental variable in ``z_cols``."
-                    )
-            if self.t_col is not None:
-                t_col_set = {self.t_col}
-                if not s_col_set.isdisjoint(t_col_set):
-                    raise ValueError(
-                        f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and time "
-                        "variable ``t_col``."
-                    )
-
-
-class DoubleMLClusterData(DoubleMLData):
-    """Double machine learning data-backend for data with cluster variables.
-
-    :class:`DoubleMLClusterData` objects can be initialized from
-    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
-
-    Parameters
-    ----------
-    data : :class:`pandas.DataFrame`
-        The data.
-
-    y_col : str
-        The outcome variable.
-
-    d_cols : str or list
-        The treatment variable(s).
-
-    cluster_cols : str or list
-        The cluster variable(s).
-
-    x_cols : None, str or list
-        The covariates.
-        If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrumental variables ``z_cols`` are used as covariates.
-        Default is ``None``.
-
-    z_cols : None, str or list
-        The instrumental variable(s).
-        Default is ``None``.
-
-    t_col : None or str
-        The time variable (only relevant/used for DiD Estimators).
-        Default is ``None``.
-
-    s_col : None or str
-        The score or selection variable (only relevant/used for RDD and SSM Estimatiors).
-        Default is ``None``.
-
-    use_other_treat_as_covariate : bool
-        Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
-        Default is ``True``.
-
-    force_all_x_finite : bool or str
-        Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
-        Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
-        allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-        Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
-        for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
-        in the covariates ``x``.
-        Default is ``True``.
-
-    Examples
-    --------
-    >>> from doubleml import DoubleMLClusterData
-    >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
-    >>> # initialization from pandas.DataFrame
-    >>> df = make_pliv_multiway_cluster_CKMS2021(return_type='DataFrame')
-    >>> obj_dml_data_from_df = DoubleMLClusterData(df, 'Y', 'D', ['cluster_var_i', 'cluster_var_j'], z_cols='Z')
-    >>> # initialization from np.ndarray
-    >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
-    >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
-    """
-
-    def __init__(
-        self,
-        data,
-        y_col,
-        d_cols,
-        cluster_cols,
-        x_cols=None,
-        z_cols=None,
-        t_col=None,
-        s_col=None,
-        use_other_treat_as_covariate=True,
-        force_all_x_finite=True,
-    ):
-        DoubleMLBaseData.__init__(self, data)
-
-        # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
-        self.cluster_cols = cluster_cols
-        self._set_cluster_vars()
-        DoubleMLData.__init__(
-            self, data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite
-        )
-        self._check_disjoint_sets_cluster_cols()
-
-    def __str__(self):
-        data_summary = self._data_summary_str()
-        buf = io.StringIO()
-        self.data.info(verbose=False, buf=buf)
-        df_info = buf.getvalue()
-        res = (
-            "================== DoubleMLClusterData Object ==================\n"
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ DataFrame info    ------------------\n"
-            + df_info
-        )
-        return res
-
-    def _data_summary_str(self):
-        data_summary = (
-            f"Outcome variable: {self.y_col}\n"
-            f"Treatment variable(s): {self.d_cols}\n"
-            f"Cluster variable(s): {self.cluster_cols}\n"
-            f"Covariates: {self.x_cols}\n"
-            f"Instrument variable(s): {self.z_cols}\n"
-        )
-        if self.t_col is not None:
-            data_summary += f"Time variable: {self.t_col}\n"
-        if self.s_col is not None:
-            data_summary += f"Score/Selection variable: {self.s_col}\n"
-
-        data_summary += f"No. Observations: {self.n_obs}\n"
-        return data_summary
-
-    @classmethod
-    def from_arrays(
-        cls, x, y, d, cluster_vars, z=None, t=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True
-    ):
-        """
-        Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
-
-        Parameters
-        ----------
-        x : :class:`numpy.ndarray`
-            Array of covariates.
-
-        y : :class:`numpy.ndarray`
-            Array of the outcome variable.
-
-        d : :class:`numpy.ndarray`
-            Array of treatment variables.
-
-        cluster_vars : :class:`numpy.ndarray`
-            Array of cluster variables.
-
-        z : None or :class:`numpy.ndarray`
-            Array of instrumental variables.
-            Default is ``None``.
-
-        t : :class:`numpy.ndarray`
-            Array of the time variable (only relevant/used for DiD models).
-            Default is ``None``.
-
-        s : :class:`numpy.ndarray`
-            Array of the score or selection variable (only relevant/used for RDD or SSM models).
-            Default is ``None``.
-
-        use_other_treat_as_covariate : bool
-            Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
-            Default is ``True``.
-
-        force_all_x_finite : bool or str
-            Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
-            Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
-            allowed), ``False`` (missings and infinite values are allowed), ``'allow-nan'`` (only missings are allowed).
-            Note that the choice ``False`` and ``'allow-nan'`` are only reasonable if the machine learning methods used
-            for the nuisance functions are capable to provide valid predictions with missings and / or infinite values
-            in the covariates ``x``.
-            Default is ``True``.
-
-        Examples
-        --------
-        >>> from doubleml import DoubleMLClusterData
-        >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
-        >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
-        >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
-        """
-        dml_data = DoubleMLData.from_arrays(x, y, d, z, t, s, use_other_treat_as_covariate, force_all_x_finite)
-        cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
-        cluster_vars = _assure_2d_array(cluster_vars)
-        if cluster_vars.shape[1] == 1:
-            cluster_cols = ["cluster_var"]
-        else:
-            cluster_cols = [f"cluster_var{i + 1}" for i in np.arange(cluster_vars.shape[1])]
-
-        data = pd.concat((pd.DataFrame(cluster_vars, columns=cluster_cols), dml_data.data), axis=1)
-
-        return cls(
-            data,
-            dml_data.y_col,
-            dml_data.d_cols,
-            cluster_cols,
-            dml_data.x_cols,
-            dml_data.z_cols,
-            dml_data.t_col,
-            dml_data.s_col,
-            dml_data.use_other_treat_as_covariate,
-            dml_data.force_all_x_finite,
-        )
-
-    @property
-    def cluster_cols(self):
-        """
-        The cluster variable(s).
-        """
-        return self._cluster_cols
-
-    @cluster_cols.setter
-    def cluster_cols(self, value):
-        reset_value = hasattr(self, "_cluster_cols")
-        if isinstance(value, str):
-            value = [value]
-        if not isinstance(value, list):
-            raise TypeError(
-                "The cluster variable(s) cluster_cols must be of str or list type. "
-                f"{str(value)} of type {str(type(value))} was passed."
+        instrument_checks_args = [
+            (y_col_set, "outcome variable", "``y_col``"),
+            (d_cols_set, "treatment variable", "``d_cols``"),
+            (x_cols_set, "covariate", "``x_cols``"),
+        ]
+        for set1, name, argument in instrument_checks_args:
+            self._check_disjoint(
+                set1=set1, name1=name, arg1=argument, set2=z_cols_set, name2="instrumental variable", arg2="``z_cols``"
             )
-        if not len(set(value)) == len(value):
-            raise ValueError("Invalid cluster variable(s) cluster_cols: Contains duplicate values.")
-        if not set(value).issubset(set(self.all_variables)):
-            raise ValueError("Invalid cluster variable(s) cluster_cols. At least one cluster variable is no data column.")
-        self._cluster_cols = value
-        if reset_value:
-            self._check_disjoint_sets()
-            self._set_cluster_vars()
 
-    @property
-    def n_cluster_vars(self):
-        """
-        The number of cluster variables.
-        """
-        return len(self.cluster_cols)
+        time_check_args = instrument_checks_args + [(z_cols_set, "instrumental variable", "``z_cols``")]
+        for set1, name, argument in time_check_args:
+            self._check_disjoint(set1=set1, name1=name, arg1=argument, set2=t_col_set, name2="time variable", arg2="``t_col``")
 
-    @property
-    def cluster_vars(self):
-        """
-        Array of cluster variable(s).
-        """
-        return self._cluster_vars.values
-
-    @DoubleMLData.x_cols.setter
-    def x_cols(self, value):
-        if value is not None:
-            # this call might become much easier with https://github.com/python/cpython/pull/26194
-            super(self.__class__, self.__class__).x_cols.__set__(self, value)
-        else:
-            if self.s_col is None:
-                if (self.z_cols is not None) & (self.t_col is not None):
-                    y_d_z_t = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_t]
-                elif self.z_cols is not None:
-                    y_d_z = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z]
-                elif self.t_col is not None:
-                    y_d_t = set.union({self.y_col}, set(self.d_cols), {self.t_col}, set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_t]
-                else:
-                    y_d = set.union({self.y_col}, set(self.d_cols), set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d]
-            else:
-                if (self.z_cols is not None) & (self.t_col is not None):
-                    y_d_z_t_s = set.union(
-                        {self.y_col}, set(self.d_cols), set(self.z_cols), {self.t_col}, {self.s_col}, set(self.cluster_cols)
-                    )
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_t_s]
-                elif self.z_cols is not None:
-                    y_d_z_s = set.union({self.y_col}, set(self.d_cols), set(self.z_cols), {self.s_col}, set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_z_s]
-                elif self.t_col is not None:
-                    y_d_t_s = set.union({self.y_col}, set(self.d_cols), {self.t_col}, {self.s_col}, set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_t_s]
-                else:
-                    y_d_s = set.union({self.y_col}, set(self.d_cols), {self.s_col}, set(self.cluster_cols))
-                    x_cols = [col for col in self.data.columns if col not in y_d_s]
-            # this call might become much easier with https://github.com/python/cpython/pull/26194
-            super(self.__class__, self.__class__).x_cols.__set__(self, x_cols)
-
-    def _check_disjoint_sets(self):
-        # apply the standard checks from the DoubleMLData class
-        super(DoubleMLClusterData, self)._check_disjoint_sets()
-        self._check_disjoint_sets_cluster_cols()
-
-    def _check_disjoint_sets_cluster_cols(self):
-        # apply the standard checks from the DoubleMLData class
-        super(DoubleMLClusterData, self)._check_disjoint_sets()
-
-        # special checks for the additional cluster variables
-        cluster_cols_set = set(self.cluster_cols)
-        y_col_set = {self.y_col}
-        x_cols_set = set(self.x_cols)
-        d_cols_set = set(self.d_cols)
-        t_col_set = {self.t_col}
-        s_col_set = {self.s_col}
-
-        if not y_col_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                f"{str(self.y_col)} cannot be set as outcome variable ``y_col`` and cluster variable in ``cluster_cols``."
+        score_check_args = time_check_args + [(t_col_set, "time variable", "``t_col``")]
+        for set1, name, argument in score_check_args:
+            self._check_disjoint(
+                set1=set1, name1=name, arg1=argument, set2=s_col_set, name2="score or selection variable", arg2="``s_col``"
             )
-        if not d_cols_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                "At least one variable/column is set as treatment variable (``d_cols``) and "
-                "cluster variable in ``cluster_cols``."
-            )
-        # TODO: Is the following combination allowed, or not?
-        if not x_cols_set.isdisjoint(cluster_cols_set):
-            raise ValueError(
-                "At least one variable/column is set as covariate (``x_cols``) and cluster variable in ``cluster_cols``."
-            )
-        if self.z_cols is not None:
-            z_cols_set = set(self.z_cols)
-            if not z_cols_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    "At least one variable/column is set as instrumental variable (``z_cols``) and "
-                    "cluster variable in ``cluster_cols``."
-                )
-        if self.t_col is not None:
-            if not t_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    f"{str(self.t_col)} cannot be set as time variable ``t_col`` and cluster variable in ``cluster_cols``."
-                )
-        if self.s_col is not None:
-            if not s_col_set.isdisjoint(cluster_cols_set):
-                raise ValueError(
-                    f"{str(self.s_col)} cannot be set as score or selection variable ``s_col`` and "
-                    "cluster variable in ``cluster_cols``."
-                )
-
-    def _set_cluster_vars(self):
-        assert_all_finite(self.data.loc[:, self.cluster_cols])
-        self._cluster_vars = self.data.loc[:, self.cluster_cols]

@@ -24,7 +24,6 @@ from doubleml import (
     DoubleMLSSM,
 )
 from doubleml.datasets import (
-    make_did_SZ2020,
     make_iivm_data,
     make_irm_data,
     make_pliv_CHS2015,
@@ -32,6 +31,7 @@ from doubleml.datasets import (
     make_plr_CCDDHNR2018,
     make_ssm_data,
 )
+from doubleml.did.datasets import make_did_SZ2020
 
 np.random.seed(3141)
 n_obs = 200

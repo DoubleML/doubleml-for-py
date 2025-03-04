@@ -6,8 +6,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
+from doubleml.data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml_framework import concat
 from doubleml.irm.apo import DoubleMLAPO
 from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
@@ -261,10 +261,10 @@ class DoubleMLAPOS:
         """
         if self._smpls is None:
             err_msg = (
-                "Sample splitting not specified. Draw samples via .draw_sample splitting(). "
+                "Sample splitting not specified. Draw samples via .draw_sample_splitting(). "
                 + "External samples not implemented yet."
             )
-            raise ValueError(err_msg)
+            raise NotImplementedError(err_msg)
         return self._smpls
 
     @property

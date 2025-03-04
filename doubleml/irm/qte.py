@@ -3,7 +3,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from doubleml.double_ml_data import DoubleMLClusterData, DoubleMLData
+from doubleml.data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml_framework import concat
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ

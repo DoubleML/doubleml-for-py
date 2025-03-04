@@ -22,13 +22,13 @@ from doubleml import (
     DoubleMLQTE,
 )
 from doubleml.datasets import (
-    make_did_SZ2020,
     make_iivm_data,
     make_irm_data,
     make_pliv_CHS2015,
     make_pliv_multiway_cluster_CKMS2021,
     make_plr_CCDDHNR2018,
 )
+from doubleml.did.datasets import make_did_SZ2020
 
 from ._utils import DummyDataClass
 

@@ -7,13 +7,14 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from .double_ml_data import DoubleMLBaseData, DoubleMLClusterData
-from .double_ml_framework import DoubleMLFramework
-from .utils._checks import _check_external_predictions, _check_sample_splitting
-from .utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
-from .utils._sensitivity import _compute_sensitivity_bias
-from .utils.gain_statistics import gain_statistics
-from .utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
+from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
+from doubleml.data.base_data import DoubleMLBaseData
+from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
+from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils.gain_statistics import gain_statistics
+from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
 
@@ -33,6 +34,10 @@ class DoubleML(ABC):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
+        self._is_panel_data = False
+        if isinstance(obj_dml_data, DoubleMLPanelData):
+            self._is_panel_data = True
+
         self._dml_data = obj_dml_data
 
         # initialize framework which is constructed after the fit method is called
@@ -169,6 +174,13 @@ class DoubleML(ABC):
         Number of repetitions for the sample splitting.
         """
         return self._n_rep
+
+    @property
+    def n_obs(self):
+        """
+        The number of observations used for estimation.
+        """
+        return self._dml_data.n_obs
 
     @property
     def n_rep_boot(self):
@@ -1203,30 +1215,38 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
+    def draw_sample_splitting(self, n_obs=None):
         """
         Draw sample splitting for DoubleML models.
 
         The samples are drawn according to the attributes
         ``n_folds`` and ``n_rep``.
 
+        Parameters
+        ----------
+        n_obs : int or None
+            The number of observations. If ``None``, the number of observations is set to the number of observations in
+            the data set.
+
         Returns
         -------
         self : object
         """
+
+        if n_obs is None:
+            n_obs = self._dml_data.n_obs
+
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=self._dml_data.n_obs,
+                n_obs=n_obs,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._strata
-            )
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self
@@ -1292,7 +1312,7 @@ class DoubleML(ABC):
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
         )
 
         (

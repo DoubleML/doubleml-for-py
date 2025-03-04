@@ -5,8 +5,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLData, DoubleMLQTE
+from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.datasets import make_irm_data
-from doubleml.double_ml_data import DoubleMLBaseData
 
 np.random.seed(42)
 n = 100
