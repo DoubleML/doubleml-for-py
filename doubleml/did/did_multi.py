@@ -800,11 +800,14 @@ class DoubleMLDIDMulti:
                     ]
                     if len(frameworks_for_group) > 1:
                         agg_framework = reduce(add, frameworks_for_group)
+
                         group_weights.append((self._dml_data.d == group).mean())
                         all_agg_frameworks.append(agg_framework)
+                        agg_names.append(str(group))
 
                     elif len(frameworks_for_group) == 1:
                         agg_framework = frameworks_for_group[0]
+
                         group_weights.append((self._dml_data.d == group).mean())
                         all_agg_frameworks.append(agg_framework)
                         agg_names.append(str(group))
