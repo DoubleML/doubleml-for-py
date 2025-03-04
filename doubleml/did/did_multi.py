@@ -840,6 +840,8 @@ class DoubleMLDIDMulti:
             all_agg_frameworks.insert(0, overall_agg_framework)
             agg_names.insert(0, "Overall")
 
+            weight_masks = None
+
         if aggregation == "w_group":
             # get all gt_combinations with post_treatment
             selected_gt_combinations = [
@@ -859,21 +861,22 @@ class DoubleMLDIDMulti:
             )
 
             # write weight masks
-            for idx_agg in range(n_agg_effects):
+            for idx_weight_mask in range(n_agg_effects):
+                idx_current_g_value = idx_relevant_g_values[idx_weight_mask]
                 # set group name
-                agg_names.append(str(self.g_values[idx_relevant_g_values[idx_agg]]))
+                agg_names.append(str(self.g_values[idx_current_g_value]))
 
                 group_gt_positions = [
                     (idx_g_value, idx_t_pre, idx_t_eval) for idx_g_value, idx_t_pre, idx_t_eval in zip(*relevant_gt_positions)
-                    if idx_g_value == idx_relevant_g_values[idx_agg]
+                    if idx_g_value == idx_current_g_value
                 ]
 
                 for gt_position in group_gt_positions:
-                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_agg] = 1 / len(group_gt_positions)
+                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_weight_mask] = 1 / len(group_gt_positions)
 
             # ordered frameworks
             all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
-            for idx_weight_mask in range(weight_masks.shape[3]):
+            for idx_weight_mask in range(n_agg_effects):
                 weight_mask = weight_masks[..., idx_weight_mask]
                 weights = weight_mask.compressed()
                 weighted_frameworks = [w * f for w, f in zip(weights, all_frameworks)]
@@ -883,6 +886,9 @@ class DoubleMLDIDMulti:
 
         agg_framework = concat(all_agg_frameworks)
         agg_framework.treatment_names = agg_names
+
+        # add properties
+        agg_framework._weight_masks = weight_masks
         return agg_framework
 
     def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
