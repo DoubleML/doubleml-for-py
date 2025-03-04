@@ -781,7 +781,7 @@ class DoubleMLDIDMulti:
     def aggregate(self, aggregation="group"):
         if not isinstance(aggregation, str):
             raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
-        valid_aggregations = ["simple"]
+        valid_aggregations = ["group"]
         if aggregation not in valid_aggregations:
             raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
         if self.framework is None:
