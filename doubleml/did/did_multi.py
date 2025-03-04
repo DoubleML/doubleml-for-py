@@ -1,11 +1,11 @@
 import copy
+from functools import reduce
+from operator import add
 
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
-from functools import reduce
-from operator import add
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
@@ -790,6 +790,7 @@ class DoubleMLDIDMulti:
         all_agg_frameworks = []
         agg_names = []
         if aggregation == "group":
+            group_weights = []
             for i_group, group in enumerate(self.g_values):
                 # Get indices of non-masked values for this group
                 group_indices = self.gt_index[i_group, :, :].compressed()
@@ -799,8 +800,14 @@ class DoubleMLDIDMulti:
                     ]
                     agg_framework = reduce(add, frameworks_for_group)
 
-                all_agg_frameworks.append(agg_framework)
-                agg_names.append(group)
+                    group_weights.append((self._dml_data.d_cols[0] == group).mean())
+                    all_agg_frameworks.append(agg_framework)
+                    agg_names.append(group)
+
+            weighted_frameworks = [w * f for w, f in zip(group_weights, frameworks_for_group)]
+            overall_agg_framework = reduce(add, weighted_frameworks)
+            all_agg_frameworks.insert(0, overall_agg_framework)
+            agg_names.insert(0, "Overall")
 
         agg_framework = concat(all_agg_frameworks)
         agg_framework.treatment_names = agg_names
