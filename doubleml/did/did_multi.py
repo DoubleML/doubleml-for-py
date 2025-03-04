@@ -779,8 +779,23 @@ class DoubleMLDIDMulti:
         return df_benchmark
 
     def aggregate(self, aggregation="group"):
+        """
+        Aggregates treatment effects.
+
+        Parameters
+        ----------
+        aggregation : str
+            Method to aggregate treatment effects. Currently only "group" is supported.
+
+        Returns
+        -------
+        DoubleMLFramework
+            Aggregated treatment effects framework
+
+        """
         if not isinstance(aggregation, str):
             raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
+
         valid_aggregations = ["group"]
         if aggregation not in valid_aggregations:
             raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
@@ -815,7 +830,7 @@ class DoubleMLDIDMulti:
                         agg_names.append(str(group))
 
             rescaled_group_weights = [w / sum(group_weights) for w in group_weights]
-            weighted_frameworks = [w * f for w, f in zip(rescaled_group_weights, frameworks_for_group)]
+            weighted_frameworks = [w * f for w, f in zip(rescaled_group_weights, all_agg_frameworks)]
             if len(weighted_frameworks) > 1:
                 overall_agg_framework = reduce(add, weighted_frameworks)
             elif len(weighted_frameworks) == 1:
