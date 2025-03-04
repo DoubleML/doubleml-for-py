@@ -799,7 +799,9 @@ class DoubleMLDIDMulti:
                         self.modellist[idx].framework for idx in group_indices if self.modellist[idx].post_treatment
                     ]
                     if len(frameworks_for_group) > 1:
-                        agg_framework = reduce(add, frameworks_for_group)
+                        weight = 1/len(frameworks_for_group)
+                        weighted_frameworks_for_group = [weight * f for f in frameworks_for_group]
+                        agg_framework = reduce(add, weighted_frameworks_for_group)
 
                         group_weights.append((self._dml_data.d == group).mean())
                         all_agg_frameworks.append(agg_framework)
