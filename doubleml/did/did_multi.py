@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
+from functools import reduce
+from operator import add
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
@@ -776,7 +778,7 @@ class DoubleMLDIDMulti:
         df_benchmark = pd.DataFrame(benchmark_dict, index=self.gt_labels)
         return df_benchmark
 
-    def aggregate(self, aggregation="simple"):
+    def aggregate(self, aggregation="group"):
         if not isinstance(aggregation, str):
             raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
         valid_aggregations = ["simple"]
@@ -785,9 +787,24 @@ class DoubleMLDIDMulti:
         if self.framework is None:
             raise ValueError("Apply fit() before aggregate().")
 
-        if aggregation == "simple":
-            pass
-        pass
+        all_agg_frameworks = []
+        agg_names = []
+        if aggregation == "group":
+            for i_group, group in enumerate(self.g_values):
+                # Get indices of non-masked values for this group
+                group_indices = self.gt_index[i_group, :, :].compressed()
+                if len(group_indices) > 0:
+                    frameworks_for_group = [
+                        self.modellist[idx].framework for idx in group_indices if self.modellist[idx].post_treatment
+                    ]
+                    agg_framework = reduce(add, frameworks_for_group)
+
+                all_agg_frameworks.append(agg_framework)
+                agg_names.append(group)
+
+        agg_framework = concat(all_agg_frameworks)
+        agg_framework.treatment_names = agg_names
+        return agg_framework
 
     def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
 
