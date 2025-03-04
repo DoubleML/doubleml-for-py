@@ -798,14 +798,25 @@ class DoubleMLDIDMulti:
                     frameworks_for_group = [
                         self.modellist[idx].framework for idx in group_indices if self.modellist[idx].post_treatment
                     ]
-                    agg_framework = reduce(add, frameworks_for_group)
+                    if len(frameworks_for_group) > 1:
+                        agg_framework = reduce(add, frameworks_for_group)
+                        group_weights.append((self._dml_data.d == group).mean())
+                        all_agg_frameworks.append(agg_framework)
 
-                    group_weights.append((self._dml_data.d_cols[0] == group).mean())
-                    all_agg_frameworks.append(agg_framework)
-                    agg_names.append(group)
+                    elif len(frameworks_for_group) == 1:
+                        agg_framework = frameworks_for_group[0]
+                        group_weights.append((self._dml_data.d == group).mean())
+                        all_agg_frameworks.append(agg_framework)
+                        agg_names.append(str(group))
 
-            weighted_frameworks = [w * f for w, f in zip(group_weights, frameworks_for_group)]
-            overall_agg_framework = reduce(add, weighted_frameworks)
+            rescaled_group_weights = [w / sum(group_weights) for w in group_weights]
+            weighted_frameworks = [w * f for w, f in zip(rescaled_group_weights, frameworks_for_group)]
+            if len(weighted_frameworks) > 1:
+                overall_agg_framework = reduce(add, weighted_frameworks)
+            elif len(weighted_frameworks) == 1:
+                overall_agg_framework = weighted_frameworks[0]
+            else:
+                raise ValueError("No valid groups found for aggregation.")
             all_agg_frameworks.insert(0, overall_agg_framework)
             agg_names.insert(0, "Overall")
 
