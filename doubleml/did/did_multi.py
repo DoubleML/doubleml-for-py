@@ -796,7 +796,7 @@ class DoubleMLDIDMulti:
         if not isinstance(aggregation, str):
             raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
 
-        valid_aggregations = ["group"]
+        valid_aggregations = ["group", "w_group"]
         if aggregation not in valid_aggregations:
             raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
         if self.framework is None:
@@ -839,6 +839,47 @@ class DoubleMLDIDMulti:
                 raise ValueError("No valid groups found for aggregation.")
             all_agg_frameworks.insert(0, overall_agg_framework)
             agg_names.insert(0, "Overall")
+
+        if aggregation == "w_group":
+            # get all gt_combinations with post_treatment
+            selected_gt_combinations = [
+                gt_comb for idx, gt_comb in enumerate(self.gt_combinations) if self.modellist[idx].post_treatment
+            ]
+
+            relevant_g_values = np.unique([gt_comb[0] for gt_comb in selected_gt_combinations])
+            idx_relevant_g_values = [np.where(self.g_values == g_value)[0][0] for g_value in relevant_g_values]
+            relevant_gt_positions = np.where((~self.gt_index.mask)[idx_relevant_g_values])
+            n_agg_effects = len(relevant_g_values)
+
+            # create a weight mask (0 weights) for each of the groups
+            weight_masks = np.ma.masked_array(
+                data=np.zeros((*self.gt_index.shape, n_agg_effects)),
+                mask=np.broadcast_to(self.gt_index.mask[..., np.newaxis], (*self.gt_index.shape, n_agg_effects)),
+                dtype=np.float64,
+            )
+
+            # write weight masks
+            for idx_agg in range(n_agg_effects):
+                # set group name
+                agg_names.append(str(self.g_values[idx_relevant_g_values[idx_agg]]))
+
+                group_gt_positions = [
+                    (idx_g_value, idx_t_pre, idx_t_eval) for idx_g_value, idx_t_pre, idx_t_eval in zip(*relevant_gt_positions)
+                    if idx_g_value == idx_relevant_g_values[idx_agg]
+                ]
+
+                for gt_position in group_gt_positions:
+                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_agg] = 1 / len(group_gt_positions)
+
+            # ordered frameworks
+            all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
+            for idx_weight_mask in range(weight_masks.shape[3]):
+                weight_mask = weight_masks[..., idx_weight_mask]
+                weights = weight_mask.compressed()
+                weighted_frameworks = [w * f for w, f in zip(weights, all_frameworks)]
+                agg_framework = reduce(add, weighted_frameworks)
+
+                all_agg_frameworks.append(agg_framework)
 
         agg_framework = concat(all_agg_frameworks)
         agg_framework.treatment_names = agg_names
