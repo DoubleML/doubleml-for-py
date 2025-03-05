@@ -9,6 +9,7 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
+from doubleml.did.utils._aggregation import _check_aggregation_dict
 from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
@@ -803,6 +804,12 @@ class DoubleMLDIDMulti:
 
         # get aggregation weights
         weight_masks, agg_names, agg_weights = self._get_agg_weights(selected_gt_mask, aggregation)
+        aggregation_dict = {
+            "weight_masks": weight_masks,
+            "agg_names": agg_names,
+            "agg_weights": agg_weights,
+        }
+        aggregation_dict = _check_aggregation_dict(aggregation_dict, self.gt_index)
         n_agg_effects = weight_masks.shape[-1]
 
         # ordered frameworks
