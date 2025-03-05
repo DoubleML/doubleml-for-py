@@ -847,10 +847,11 @@ class DoubleMLDIDMulti:
         if aggregation == "w_group":
             # adjust for post-treatment
             selected_gt_combinations_mask = ~self.gt_index.mask & self._post_treatment_mask
-            selected_gt_positions = np.where(selected_gt_combinations_mask)
-            selected_unique_g_positions = np.unique(selected_gt_positions[0])
-            n_agg_effects = len(selected_unique_g_positions)
+            selected_gt_indicies = np.where(selected_gt_combinations_mask)
+            selected_unique_g_indices = np.unique(selected_gt_indicies[0])
+            n_agg_effects = len(selected_unique_g_indices)
 
+            agg_weights = [np.nan] * n_agg_effects
             # create a weight mask (0 weights) for each of the groups
             weight_masks = np.ma.masked_array(
                 data=np.zeros((*self.gt_index.shape, n_agg_effects)),
@@ -859,17 +860,23 @@ class DoubleMLDIDMulti:
             )
 
             # write weight masks
-            for idx_weight_mask, g_position in enumerate(selected_unique_g_positions):
+            for idx_weight_mask, g_idx in enumerate(selected_unique_g_indices):
                 # set group name
-                agg_names.append(str(self.g_values[g_position]))
-                group_gt_positions = [
-                    gt_position for gt_position in zip(*selected_gt_positions)
-                    if gt_position[0] == g_position
+                current_group = self.g_values[g_idx]
+                agg_names.append(str(current_group))
+                agg_weights[idx_weight_mask] = (self._dml_data.d == current_group).mean()
+
+                group_gt_indicies = [
+                    gt_idx for gt_idx in zip(*selected_gt_indicies)
+                    if gt_idx[0] == g_idx
                 ]
 
-                weight = 1 / len(group_gt_positions)
-                for gt_position in group_gt_positions:
-                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_weight_mask] = weight
+                weight = 1 / len(group_gt_indicies)
+                for gt_idx in group_gt_indicies:
+                    weight_masks.data[gt_idx[0], gt_idx[1], gt_idx[2], idx_weight_mask] = weight
+
+            # normalize weights
+            agg_weights = [w / sum(agg_weights) for w in agg_weights]
 
             # ordered frameworks
             all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
@@ -880,6 +887,12 @@ class DoubleMLDIDMulti:
                 agg_framework = reduce(add, weighted_frameworks)
 
                 all_agg_frameworks.append(agg_framework)
+
+            # overall framework
+            overall_weighted_frameworks = [w * f for w, f in zip(agg_weights, all_agg_frameworks)]
+            overall_agg_framework = reduce(add, overall_weighted_frameworks)
+            all_agg_frameworks.insert(0, overall_agg_framework)
+            agg_names.insert(0, "Overall")
 
         agg_framework = concat(all_agg_frameworks)
         agg_framework.treatment_names = agg_names
