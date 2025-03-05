@@ -846,7 +846,7 @@ class DoubleMLDIDMulti:
 
         if aggregation == "w_group":
             # adjust for post-treatment
-            selected_gt_combinations_mask = ~self.gt_index.mask and self._post_treatment_mask
+            selected_gt_combinations_mask = ~self.gt_index.mask & self._post_treatment_mask
             selected_gt_positions = np.where(selected_gt_combinations_mask)
             selected_unique_g_positions = np.unique(selected_gt_positions[0])
             n_agg_effects = len(selected_unique_g_positions)
