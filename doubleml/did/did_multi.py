@@ -19,6 +19,7 @@ from doubleml.utils._did_utils import (
     _check_gt_values,
     _construct_gt_combinations,
     _construct_gt_index,
+    _construct_post_treatment_mask,
     _get_never_treated_value,
 )
 from doubleml.utils.gain_statistics import gain_statistics
@@ -119,6 +120,7 @@ class DoubleMLDIDMulti:
 
         self._gt_combinations = self._validate_gt_combinations(gt_combinations)
         self._gt_index = _construct_gt_index(self.gt_combinations, self.g_values, self.t_values)
+        self._post_treatment_mask = _construct_post_treatment_mask(self.g_values, self.t_values)
         self._gt_labels = [f"ATT({g},{t_pre},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
 
         # TODO: Check what to export and what not
@@ -843,15 +845,11 @@ class DoubleMLDIDMulti:
             weight_masks = None
 
         if aggregation == "w_group":
-            # get all gt_combinations with post_treatment
-            selected_gt_combinations = [
-                gt_comb for idx, gt_comb in enumerate(self.gt_combinations) if self.modellist[idx].post_treatment
-            ]
-
-            relevant_g_values = np.unique([gt_comb[0] for gt_comb in selected_gt_combinations])
-            idx_relevant_g_values = [np.where(self.g_values == g_value)[0][0] for g_value in relevant_g_values]
-            relevant_gt_positions = np.where((~self.gt_index.mask)[idx_relevant_g_values])
-            n_agg_effects = len(relevant_g_values)
+            # adjust for post-treatment
+            selected_gt_combinations_mask = ~self.gt_index.mask and self._post_treatment_mask
+            selected_gt_positions = np.where(selected_gt_combinations_mask)
+            selected_unique_g_positions = np.unique(selected_gt_positions[0])
+            n_agg_effects = len(selected_unique_g_positions)
 
             # create a weight mask (0 weights) for each of the groups
             weight_masks = np.ma.masked_array(
@@ -861,18 +859,17 @@ class DoubleMLDIDMulti:
             )
 
             # write weight masks
-            for idx_weight_mask in range(n_agg_effects):
-                idx_current_g_value = idx_relevant_g_values[idx_weight_mask]
+            for idx_weight_mask, g_position in enumerate(selected_unique_g_positions):
                 # set group name
-                agg_names.append(str(self.g_values[idx_current_g_value]))
-
+                agg_names.append(str(self.g_values[g_position]))
                 group_gt_positions = [
-                    (idx_g_value, idx_t_pre, idx_t_eval) for idx_g_value, idx_t_pre, idx_t_eval in zip(*relevant_gt_positions)
-                    if idx_g_value == idx_current_g_value
+                    gt_position for gt_position in zip(*selected_gt_positions)
+                    if gt_position[0] == g_position
                 ]
 
+                weight = 1 / len(group_gt_positions)
                 for gt_position in group_gt_positions:
-                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_weight_mask] = 1 / len(group_gt_positions)
+                    weight_masks.data[gt_position[0], gt_position[1], gt_position[2], idx_weight_mask] = weight
 
             # ordered frameworks
             all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
