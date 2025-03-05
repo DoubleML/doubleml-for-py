@@ -4,6 +4,15 @@ import numpy as np
 from sklearn.utils import check_X_y
 
 from doubleml.data.panel_data import DoubleMLPanelData
+from doubleml.did.utils._did_utils import (
+    _check_control_group,
+    _check_gt_combination,
+    _check_gt_values,
+    _get_id_positions,
+    _get_never_treated_value,
+    _is_never_treated,
+    _set_id_positions,
+)
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import (
@@ -12,15 +21,6 @@ from doubleml.utils._checks import (
     _check_is_propensity,
     _check_score,
     _check_trimming,
-)
-from doubleml.utils._did_utils import (
-    _check_control_group,
-    _check_gt_combination,
-    _check_gt_values,
-    _get_id_positions,
-    _get_never_treated_value,
-    _is_never_treated,
-    _set_id_positions,
 )
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _trimm

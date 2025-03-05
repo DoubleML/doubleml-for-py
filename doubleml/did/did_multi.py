@@ -9,11 +9,7 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
-from doubleml.double_ml import DoubleML
-from doubleml.double_ml_framework import concat
-from doubleml.utils._checks import _check_score, _check_trimming
-from doubleml.utils._descriptive import generate_summary
-from doubleml.utils._did_utils import (
+from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
@@ -22,6 +18,10 @@ from doubleml.utils._did_utils import (
     _construct_post_treatment_mask,
     _get_never_treated_value,
 )
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_framework import concat
+from doubleml.utils._checks import _check_score, _check_trimming
+from doubleml.utils._descriptive import generate_summary
 from doubleml.utils.gain_statistics import gain_statistics
 
 
@@ -848,11 +848,9 @@ class DoubleMLDIDMulti:
         # Validate aggregation parameter
         valid_aggregations = ["group"]
         if not isinstance(aggregation, str):
-            raise TypeError("aggregation must be a string. "
-                            f"{str(aggregation)} of type {type(aggregation)} was passed.")
+            raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
         if aggregation not in valid_aggregations:
-            raise ValueError(f"aggregation must be one of {valid_aggregations}. "
-                             f"{str(aggregation)} was passed.")
+            raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
         if aggregation == "group":
             selected_gt_indicies = np.where(selected_gt_mask)
@@ -879,13 +877,10 @@ class DoubleMLDIDMulti:
                 agg_weights[idx_agg] = (self._dml_data.d == current_group).mean()
 
                 # group weights_masks
-                group_gt_indicies = [
-                    (i, j, k) for i, j, k in zip(*selected_gt_indicies)
-                    if i == g_idx
-                ]
+                group_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if i == g_idx]
 
                 weight = 1 / len(group_gt_indicies)
-                for (i, j, k) in group_gt_indicies:
+                for i, j, k in group_gt_indicies:
                     weight_masks.data[i, j, k, idx_agg] = weight
 
             # normalize weights

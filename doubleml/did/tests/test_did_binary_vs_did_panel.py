@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.did.datasets import make_did_CS2021
-from doubleml.utils._did_utils import _get_id_positions
+from doubleml.did.utils._did_utils import _get_id_positions
 
 
 @pytest.fixture(

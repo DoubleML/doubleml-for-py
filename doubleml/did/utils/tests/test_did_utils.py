@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from .._did_utils import (
+from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
     _construct_gt_combinations,
-    _construct_post_treatment_mask,
     _construct_gt_index,
+    _construct_post_treatment_mask,
     _get_id_positions,
     _get_never_treated_value,
     _is_never_treated,
@@ -302,8 +302,8 @@ def test_construct_post_treatment_mask():
     np.testing.assert_array_equal(result, np.array([[[True]], [[True]]]))
 
     # Test case 5: Datetime values
-    g_values = np.array(['2020-01-01', '2020-06-01'], dtype='datetime64[D]')
-    t_values = np.array(['2020-01-01', '2020-03-01', '2020-12-01'], dtype='datetime64[D]')
+    g_values = np.array(["2020-01-01", "2020-06-01"], dtype="datetime64[D]")
+    t_values = np.array(["2020-01-01", "2020-03-01", "2020-12-01"], dtype="datetime64[D]")
     result = _construct_post_treatment_mask(g_values, t_values)
 
     expected_g1 = np.array([[True, True, True]] * len(t_values))
