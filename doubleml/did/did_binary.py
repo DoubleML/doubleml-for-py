@@ -40,10 +40,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Default is ``None``. This implements the case for the smallest, non-zero value of G.
 
     t_value_pre : int
-        The value indicating the base period for evaluation.
+        The value indicating the baseline pre-treatment period.
 
     t_value_eval : int
-        The value indicating the pre-treatment period.
+        The value indicating the period for evaluation.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
