@@ -168,6 +168,36 @@ def _construct_gt_index(gt_combinations, g_values, t_values):
     return gt_index
 
 
+def _construct_post_treatment_mask(g_values, t_values):
+    """Constructs a mask indicating post-treatment periods for group-time combinations.
+
+    Creates a 3D boolean array where entry [i,j,k] is True if the evaluation time t_values[k]
+    is after the treatment time g_values[i], indicating a post-treatment period.
+
+    Parameters
+    ----------
+    g_values : numpy.ndarray
+        1D array of treatment group values (treatment times)
+    t_values : numpy.ndarray
+        1D array of time period values
+
+    Returns
+    -------
+    numpy.ndarray
+        3D boolean array of shape (len(g_values), len(t_values), len(t_values))
+        where True indicates post-treatment periods (t_eval > g_val)
+
+    """
+    # Reshape arrays for broadcasting
+    g_vals = g_values[:, np.newaxis, np.newaxis]  # Shape: (G, 1, 1)
+    t_evals = t_values[np.newaxis, np.newaxis, :]  # Shape: (1, 1, T)
+    t_evals = np.broadcast_to(t_evals, (1, len(t_values), len(t_values)))  # Shape: (1, T, T)
+
+    # Broadcasting creates a mask of shape (G, T, T)
+    post_treatment_mask = t_evals >= g_vals
+    return post_treatment_mask
+
+
 def _set_id_positions(a, n_obs, id_positions, fill_value):
     if a is not None:
         new_a = np.full((n_obs, *a.shape[1:]), fill_value=fill_value)

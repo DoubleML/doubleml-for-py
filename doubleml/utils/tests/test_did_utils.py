@@ -7,6 +7,7 @@ from .._did_utils import (
     _check_gt_combination,
     _check_gt_values,
     _construct_gt_combinations,
+    _construct_post_treatment_mask,
     _construct_gt_index,
     _get_id_positions,
     _get_never_treated_value,
@@ -253,6 +254,62 @@ def test_construct_gt_index():
     t_values_large = np.array([1, 2, 3, 4])
     large_result = _construct_gt_index(gt_combinations, g_values_large, t_values_large)
     assert large_result.shape == (5, 4, 4)
+
+
+@pytest.mark.ci
+def test_construct_post_treatment_mask():
+    # Test case 1: Basic case with integer values
+    g_values = np.array([2, 3])
+    t_values = np.array([1, 2, 3])
+    result = _construct_post_treatment_mask(g_values, t_values)
+
+    # Expected mask pattern for g=2:
+    # t_eval=1: False (1 not >= 2)
+    # t_eval=2: True (2 not >= 2)
+    # t_eval=3: True  (3 >= 2)
+    expected_g2 = np.array([[False, True, True]] * len(t_values))
+    np.testing.assert_array_equal(result[0], expected_g2)
+
+    # Expected mask pattern for g=3:
+    # t_eval=1: False (1 not > 3)
+    # t_eval=2: False (2 not > 3)
+    # t_eval=3: True (3 >= 3)
+    expected_g3 = np.array([[False, False, True]] * len(t_values))
+    np.testing.assert_array_equal(result[1], expected_g3)
+
+    # Test case 2: Float values with non-integer treatment times
+    g_values = np.array([1.5, 2.5])
+    t_values = np.array([1.0, 2.0, 3.0])
+    result = _construct_post_treatment_mask(g_values, t_values)
+
+    expected_g1_5 = np.array([[False, True, True]] * len(t_values))
+    expected_g2_5 = np.array([[False, False, True]] * len(t_values))
+    np.testing.assert_array_equal(result[0], expected_g1_5)
+    np.testing.assert_array_equal(result[1], expected_g2_5)
+
+    # Test case 3: Single group
+    g_values = np.array([2])
+    t_values = np.array([1, 2, 3])
+    result = _construct_post_treatment_mask(g_values, t_values)
+    assert result.shape == (1, 3, 3)
+    np.testing.assert_array_equal(result[0], expected_g2)
+
+    # Test case 4: Single time period
+    g_values = np.array([1, 2])
+    t_values = np.array([3])
+    result = _construct_post_treatment_mask(g_values, t_values)
+    assert result.shape == (2, 1, 1)
+    np.testing.assert_array_equal(result, np.array([[[True]], [[True]]]))
+
+    # Test case 5: Datetime values
+    g_values = np.array(['2020-01-01', '2020-06-01'], dtype='datetime64[D]')
+    t_values = np.array(['2020-01-01', '2020-03-01', '2020-12-01'], dtype='datetime64[D]')
+    result = _construct_post_treatment_mask(g_values, t_values)
+
+    expected_g1 = np.array([[True, True, True]] * len(t_values))
+    expected_g2 = np.array([[False, False, True]] * len(t_values))
+    np.testing.assert_array_equal(result[0], expected_g1)
+    np.testing.assert_array_equal(result[1], expected_g2)
 
 
 @pytest.mark.ci
