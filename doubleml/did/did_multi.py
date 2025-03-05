@@ -1005,8 +1005,8 @@ class DoubleMLDIDMulti:
         for i_model, model in enumerate(self.modellist):
             for learner in self.modellist[0].params_names:
                 for i_rep in range(self.n_rep):
-                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep]
-                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep]
+                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep].item()
+                    nuisance_loss[learner][i_rep, i_model] = model.nuisance_loss[learner][i_rep].item()
 
         return nuisance_loss
 
