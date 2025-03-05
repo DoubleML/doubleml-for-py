@@ -112,6 +112,12 @@ def test_exception_gt_combinations():
 @pytest.mark.ci
 def test_exceptions_aggregate():
     dml_obj = dml.did.DoubleMLDIDMulti(**valid_arguments)
+    # test without fit()
+    msg = r"Apply fit\(\) before aggregate\(\)."
+    with pytest.raises(ValueError, match=msg):
+        dml_obj.aggregate()
+
+    dml_obj.fit()
 
     # Test non-string input
     msg = "aggregation must be a string. 123 of type <class 'int'> was passed."
@@ -122,8 +128,3 @@ def test_exceptions_aggregate():
     msg = "aggregation must be one of \\['group'\\]. invalid was passed."
     with pytest.raises(ValueError, match=msg):
         dml_obj.aggregate(aggregation="invalid")
-
-    # test without fit()
-    msg = r"Apply fit\(\) before aggregate\(\)."
-    with pytest.raises(ValueError, match=msg):
-        dml_obj.aggregate()

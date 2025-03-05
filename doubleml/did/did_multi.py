@@ -795,19 +795,15 @@ class DoubleMLDIDMulti:
             Aggregated treatment effects framework
 
         """
-        if not isinstance(aggregation, str):
-            raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
-
-        valid_aggregations = ["group"]
-        if aggregation not in valid_aggregations:
-            raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
         if self.framework is None:
             raise ValueError("Apply fit() before aggregate().")
 
         # exclude pre-treatment combinations
         selected_gt_mask = ~self.gt_index.mask & self._post_treatment_mask
+
+        # get aggregation weights
         weight_masks, agg_names, agg_weights = self._get_agg_weights(selected_gt_mask, aggregation)
-        n_agg_effects = len(agg_names)
+        n_agg_effects = weight_masks.shape[-1]
 
         # ordered frameworks
         all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
@@ -820,9 +816,12 @@ class DoubleMLDIDMulti:
         # overall framework
         overall_weighted_frameworks = [w * f for w, f in zip(agg_weights, agg_frameworks)]
         overall_agg_framework = reduce(add, overall_weighted_frameworks)
+
+        # add overall framework
         agg_frameworks.insert(0, overall_agg_framework)
         agg_names.insert(0, "Overall")
 
+        # TODO: initialize separate class
         final_agg_framework = concat(agg_frameworks)
         final_agg_framework.treatment_names = agg_names
 
@@ -831,6 +830,30 @@ class DoubleMLDIDMulti:
         return final_agg_framework
 
     def _get_agg_weights(self, selected_gt_mask, aggregation):
+        """
+        Calculate weights for aggregating treatment effects.
+
+        Parameters
+        ----------
+        selected_gt_mask : numpy.ndarray
+            Boolean mask indicating which group-time combinations to include
+        aggregation : str
+            Method to aggregate treatment effects
+
+        Returns
+        -------
+        tuple
+            (weight_masks, agg_names, agg_weights)
+        """
+        # Validate aggregation parameter
+        valid_aggregations = ["group"]
+        if not isinstance(aggregation, str):
+            raise TypeError("aggregation must be a string. "
+                            f"{str(aggregation)} of type {type(aggregation)} was passed.")
+        if aggregation not in valid_aggregations:
+            raise ValueError(f"aggregation must be one of {valid_aggregations}. "
+                             f"{str(aggregation)} was passed.")
+
         if aggregation == "group":
             selected_gt_indicies = np.where(selected_gt_mask)
             selected_unique_g_indices = np.unique(selected_gt_indicies[0])
