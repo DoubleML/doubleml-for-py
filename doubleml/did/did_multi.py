@@ -838,7 +838,7 @@ class DoubleMLDIDMulti:
             aggregated_frameworks=final_agg_frameworks,
             overall_aggregated_framework=overall_agg_framework,
             weight_masks=weight_masks,
-            additional_info=additional_info,
+            additional_information=additional_info,
         )
         return agg_obj
 
