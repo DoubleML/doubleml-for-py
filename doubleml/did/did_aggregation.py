@@ -1,8 +1,9 @@
-import numpy as np
-from doubleml.double_ml_framework import DoubleMLFramework
 from functools import reduce
 from operator import add
-from doubleml.double_ml_framework import concat
+
+import numpy as np
+
+from doubleml.double_ml_framework import DoubleMLFramework, concat
 
 
 class DoubleMLDIDAggregation:
@@ -19,15 +20,11 @@ class DoubleMLDIDAggregation:
         self._base_frameworks = self._check_frameworks(frameworks)
 
         self._aggregation_weights, self._overall_aggregation_weights = self._check_weights(
-            aggregation_weights,
-            overall_aggregation_weights
+            aggregation_weights, overall_aggregation_weights
         )
         self._n_aggregations = self.aggregation_weights.shape[0]
 
-        self._aggregation_names, self._aggregation_method_name = self._check_names(
-            aggregation_names,
-            aggregation_method_name
-        )
+        self._aggregation_names, self._aggregation_method_name = self._check_names(aggregation_names, aggregation_method_name)
 
         if additional_information is not None and not isinstance(additional_information, dict):
             raise TypeError("'additional_information' must be a dictionary (or None)")
@@ -49,8 +46,7 @@ class DoubleMLDIDAggregation:
     def __str__(self):
         class_name = self.__class__.__name__
         header = (
-            f"================== {class_name} Object ==================\n"
-            f" {self.aggregation_method_name} Aggregation \n"
+            f"================== {class_name} Object ==================\n" f" {self.aggregation_method_name} Aggregation \n"
         )
         overall_summary = self.overall_summary.to_string(index=False)
         aggregated_effects_summary = self.aggregated_summary.to_string(index=True)
@@ -168,7 +164,8 @@ class DoubleMLDIDAggregation:
             raise ValueError("'overall_aggregation_weights' must be a 1-dimensional array")
         if not len(overall_aggregation_weights) == n_aggregations:
             raise ValueError(
-                "'overall_aggregation_weights' must have the same length as the number of aggregated frameworks (number of rows in 'aggregation_weights')"
+                "'overall_aggregation_weights' must have the same length as the number of aggregated frameworks "
+                "(number of rows in 'aggregation_weights')."
             )
 
         return aggregation_weights, overall_aggregation_weights

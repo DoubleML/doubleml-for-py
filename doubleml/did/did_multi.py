@@ -1,6 +1,4 @@
 import copy
-from functools import reduce
-from operator import add
 
 import numpy as np
 import pandas as pd
