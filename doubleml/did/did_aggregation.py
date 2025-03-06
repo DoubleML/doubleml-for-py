@@ -15,7 +15,7 @@ class DoubleMLDIDAggregation:
     def __str__(self):
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
-        overall_summary = self.overall_aggregated_framework.to_string(index=False)
+        overall_summary = self.overall_summary.to_string(index=False)
         aggregated_effects_summary = self.aggregated_summary.to_string(index=True)
 
         res = (
