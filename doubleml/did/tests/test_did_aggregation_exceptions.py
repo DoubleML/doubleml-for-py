@@ -177,3 +177,14 @@ def test_invalid_additional_information(frameworks, aggregation_weights):
             aggregation_weights=aggregation_weights,
             additional_information=[1, 2, 3],  # list instead of dict
         )
+
+
+@pytest.mark.ci
+def test_additional_parameters(frameworks, aggregation_weights):
+    # Test with invalid additional_parameters type
+    with pytest.raises(TypeError, match="'additional_parameters' must be a dictionary"):
+        DoubleMLDIDAggregation(
+            frameworks=frameworks,
+            aggregation_weights=aggregation_weights,
+            additional_parameters=[1, 2, 3],  # list instead of dict
+        )

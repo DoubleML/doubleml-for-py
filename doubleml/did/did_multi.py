@@ -805,15 +805,14 @@ class DoubleMLDIDMulti:
         # get aggregation weights
         aggregation_dict = self._get_agg_weights(selected_gt_mask, aggregation)
         aggregation_dict = _check_did_aggregation_dict(aggregation_dict, self.gt_index)
-
         # set elements for readability
         weight_masks = aggregation_dict["weight_masks"]
-        agg_names = aggregation_dict["agg_names"]
-        agg_weights = aggregation_dict["agg_weights"]
 
-        # ordered frameworks and weights
+        # ordered frameworks
         all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
-        weight_list = [weight_masks[..., idx_agg].compressed() for idx_agg in range(weight_masks.shape[-1])]
+        # ordered weights
+        n_aggregations = weight_masks.shape[-1]
+        weight_list = [weight_masks[..., idx_agg].compressed() for idx_agg in range(n_aggregations)]
         all_agg_weights = np.stack(weight_list, axis=0)
 
         additional_info = {
@@ -822,13 +821,20 @@ class DoubleMLDIDMulti:
             "Score": self.score,
         }
 
+        additional_params = {
+            "gt_combinations": self.gt_combinations,
+            "gt_index": self.gt_index,
+            "weight_masks": weight_masks,
+        }
+
         aggregation_args = {
             "frameworks": all_frameworks,
             "aggregation_weights": all_agg_weights,
-            "overall_aggregation_weights": agg_weights,
-            "aggregation_names": agg_names,
+            "overall_aggregation_weights": aggregation_dict.get("agg_weights", None),
+            "aggregation_names": aggregation_dict.get("agg_names", None),
             "aggregation_method_name": aggregation_dict["method"],
             "additional_information": additional_info,
+            "additional_parameters": additional_params,
         }
 
         agg_obj = DoubleMLDIDAggregation(**aggregation_args)

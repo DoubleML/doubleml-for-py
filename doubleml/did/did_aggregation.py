@@ -15,6 +15,7 @@ class DoubleMLDIDAggregation:
         aggregation_names=None,
         aggregation_method_name="Custom",
         additional_information=None,
+        additional_parameters=None,
     ):
 
         self._base_frameworks = self._check_frameworks(frameworks)
@@ -29,6 +30,9 @@ class DoubleMLDIDAggregation:
         if additional_information is not None and not isinstance(additional_information, dict):
             raise TypeError("'additional_information' must be a dictionary (or None)")
         self._additional_information = additional_information
+        if additional_parameters is not None and not isinstance(additional_parameters, dict):
+            raise TypeError("'additional_parameters' must be a dictionary (or None)")
+        self._additional_parameters = additional_parameters
 
         agg_frameworks = [None] * self._n_aggregations
         for idx_agg in range(self._n_aggregations):
@@ -128,6 +132,11 @@ class DoubleMLDIDAggregation:
             for key, value in self._additional_information.items():
                 add_info += f"{key}: {value}\n"
         return add_info
+
+    @property
+    def additional_parameters(self):
+        """Additional parameters"""
+        return self._additional_parameters
 
     def _check_frameworks(self, frameworks):
         msg = "The 'frameworks' must be a list of DoubleMLFramework objects"
