@@ -1,3 +1,7 @@
+import numpy as np
+from doubleml.double_ml_framework import DoubleMLFramework
+
+
 class DoubleMLDIDAggregation:
 
     def __init__(
@@ -7,6 +11,17 @@ class DoubleMLDIDAggregation:
         weight_masks,
         additional_information=None,
     ):
+        if not isinstance(aggregated_frameworks, DoubleMLFramework):
+            raise TypeError("'aggregated_frameworks' must be an instance of DoubleMLFramework")
+        if not isinstance(overall_aggregated_framework, DoubleMLFramework):
+            raise TypeError("'overall_aggregated_framework' must be an instance of DoubleMLFramework")
+
+        if not isinstance(weight_masks, np.ma.MaskedArray):
+            raise TypeError("'weight_masks' must be an instance of np.ma.MaskedArray")
+
+        if additional_information is not None and not isinstance(additional_information, dict):
+            raise TypeError("'additional_information' must be a dictionary (or None)")
+
         self._aggregated_frameworks = aggregated_frameworks
         self._overall_aggregated_framework = overall_aggregated_framework
         self._weight_masks = weight_masks
