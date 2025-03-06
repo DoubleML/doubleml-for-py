@@ -8,8 +8,8 @@ from joblib import Parallel, delayed
 from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
-from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
+from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.did.utils._aggregation import _check_aggregation_dict, _compute_group_aggregation_weights
 from doubleml.did.utils._did_utils import (
     _check_control_group,

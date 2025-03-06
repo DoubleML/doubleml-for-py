@@ -1,7 +1,4 @@
-from doubleml.double_ml_framework import DoubleMLFramework
-
-
-class DoubleMLDIDAggregation():
+class DoubleMLDIDAggregation:
 
     def __init__(
         self,
