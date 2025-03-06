@@ -811,22 +811,11 @@ class DoubleMLDIDMulti:
         weight_masks = aggregation_dict["weight_masks"]
         agg_names = aggregation_dict["agg_names"]
         agg_weights = aggregation_dict["agg_weights"]
-        n_agg_effects = weight_masks.shape[-1]
 
-        # ordered frameworks
+        # ordered frameworks and weights
         all_frameworks = [self.modellist[idx].framework for idx in self.gt_index.compressed()]
-        agg_frameworks = [None] * n_agg_effects
-        for idx_agg in range(n_agg_effects):
-            weights = weight_masks[..., idx_agg].compressed()
-            weighted_frameworks = [w * f for w, f in zip(weights, all_frameworks)]
-            agg_frameworks[idx_agg] = reduce(add, weighted_frameworks)
-
-        final_agg_frameworks = concat(agg_frameworks)
-        final_agg_frameworks.treatment_names = agg_names
-
-        # overall framework
-        overall_weighted_frameworks = [w * f for w, f in zip(agg_weights, agg_frameworks)]
-        overall_agg_framework = reduce(add, overall_weighted_frameworks)
+        weight_list = [weight_masks[..., idx_agg].compressed() for idx_agg in range(weight_masks.shape[-1])]
+        all_agg_weights = np.stack(weight_list, axis=0)
 
         additional_info = {
             "Control Group": self.control_group,
@@ -834,12 +823,16 @@ class DoubleMLDIDMulti:
             "Score": self.score,
         }
 
-        agg_obj = DoubleMLDIDAggregation(
-            aggregated_frameworks=final_agg_frameworks,
-            overall_aggregated_framework=overall_agg_framework,
-            weight_masks=weight_masks,
-            additional_information=additional_info,
-        )
+        aggregation_args = {
+            "frameworks": all_frameworks,
+            "aggregation_weights": all_agg_weights,
+            "overall_aggregation_weights": agg_weights,
+            "aggregation_names": agg_names,
+            "aggregation_method_name": aggregation_dict["method"],
+            "additional_information": additional_info,
+        }
+
+        agg_obj = DoubleMLDIDAggregation(**aggregation_args)
         return agg_obj
 
     def _get_agg_weights(self, selected_gt_mask, aggregation):
@@ -874,6 +867,7 @@ class DoubleMLDIDMulti:
                     d_values=self._dml_data.d,
                     selected_gt_mask=selected_gt_mask,
                 )
+                aggregation_dict["method"] = "Group Aggregation"
         else:
             raise TypeError(
                 "aggregation must be a string or dictionary. " f"{str(aggregation)} of type {type(aggregation)} was passed."
