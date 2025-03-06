@@ -40,14 +40,16 @@ class DoubleMLDIDAggregation:
         """Weight masks"""
         return self._weight_masks
 
+    @property
     def aggregated_summary(self):
         """
         A summary for the aggregated effects.
         """
-        return self.aggregated_frameworks.summary()
+        return self.aggregated_frameworks.summary
 
+    @property
     def overall_summary(self):
         """
         A summary for the overall aggregated effect.
         """
-        return self.overall_aggregated_framework.summary()
+        return self.overall_aggregated_framework.summary
