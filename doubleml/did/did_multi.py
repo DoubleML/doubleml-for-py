@@ -9,7 +9,7 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
-from doubleml.did.utils._aggregation import _check_aggregation_dict
+from doubleml.did.utils._aggregation import _check_aggregation_dict, _compute_group_aggregation_weights
 from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
@@ -803,13 +803,13 @@ class DoubleMLDIDMulti:
         selected_gt_mask = ~self.gt_index.mask & self._post_treatment_mask
 
         # get aggregation weights
-        weight_masks, agg_names, agg_weights = self._get_agg_weights(selected_gt_mask, aggregation)
-        aggregation_dict = {
-            "weight_masks": weight_masks,
-            "agg_names": agg_names,
-            "agg_weights": agg_weights,
-        }
+        aggregation_dict = self._get_agg_weights(selected_gt_mask, aggregation)
         aggregation_dict = _check_aggregation_dict(aggregation_dict, self.gt_index)
+
+        # set elements for readability
+        weight_masks = aggregation_dict["weight_masks"]
+        agg_names = aggregation_dict["agg_names"]
+        agg_weights = aggregation_dict["agg_weights"]
         n_agg_effects = weight_masks.shape[-1]
 
         # ordered frameworks
@@ -844,7 +844,7 @@ class DoubleMLDIDMulti:
         ----------
         selected_gt_mask : numpy.ndarray
             Boolean mask indicating which group-time combinations to include
-        aggregation : str
+        aggregation : str or dict
             Method to aggregate treatment effects
 
         Returns
@@ -852,48 +852,28 @@ class DoubleMLDIDMulti:
         tuple
             (weight_masks, agg_names, agg_weights)
         """
-        # Validate aggregation parameter
-        valid_aggregations = ["group"]
-        if not isinstance(aggregation, str):
-            raise TypeError("aggregation must be a string. " f"{str(aggregation)} of type {type(aggregation)} was passed.")
-        if aggregation not in valid_aggregations:
-            raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
-        if aggregation == "group":
-            selected_gt_indicies = np.where(selected_gt_mask)
-            selected_unique_g_indices = np.unique(selected_gt_indicies[0])
-            n_agg_effects = len(selected_unique_g_indices)
-            if n_agg_effects == 0:
-                raise ValueError("No valid groups found for aggregation.")
+        if isinstance(aggregation, dict):
+            aggregation_dict = aggregation
 
-            agg_names = [None] * n_agg_effects
-            agg_weights = [np.nan] * n_agg_effects
+        elif isinstance(aggregation, str):
+            valid_aggregations = ["group"]
+            if aggregation not in valid_aggregations:
+                raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
-            # create a weight mask (0 weights) for each of the groups
-            weight_masks = np.ma.masked_array(
-                data=np.zeros((*self.gt_index.shape, n_agg_effects)),
-                mask=np.broadcast_to(self.gt_index.mask[..., np.newaxis], (*self.gt_index.shape, n_agg_effects)),
-                dtype=np.float64,
+            if aggregation == "group":
+                aggregation_dict = _compute_group_aggregation_weights(
+                    gt_index=self.gt_index,
+                    g_values=self.g_values,
+                    d_values=self._dml_data.d,
+                    selected_gt_mask=selected_gt_mask,
+                )
+        else:
+            raise TypeError(
+                "aggregation must be a string or dictionary. " f"{str(aggregation)} of type {type(aggregation)} was passed."
             )
 
-            # write weight masks
-            for idx_agg, g_idx in enumerate(selected_unique_g_indices):
-                # set group name & weights
-                current_group = self.g_values[g_idx]
-                agg_names[idx_agg] = str(current_group)
-                agg_weights[idx_agg] = (self._dml_data.d == current_group).mean()
-
-                # group weights_masks
-                group_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if i == g_idx]
-
-                weight = 1 / len(group_gt_indicies)
-                for i, j, k in group_gt_indicies:
-                    weight_masks.data[i, j, k, idx_agg] = weight
-
-            # normalize weights
-            agg_weights = np.array(agg_weights) / sum(agg_weights)
-
-        return weight_masks, agg_names, agg_weights
+        return aggregation_dict
 
     def _fit_model(self, i_gt, n_jobs_cv=None, store_predictions=True, store_models=False, external_predictions_dict=None):
 

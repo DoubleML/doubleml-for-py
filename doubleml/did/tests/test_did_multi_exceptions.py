@@ -120,7 +120,7 @@ def test_exceptions_aggregate():
     dml_obj.fit()
 
     # Test non-string input
-    msg = "aggregation must be a string. 123 of type <class 'int'> was passed."
+    msg = "aggregation must be a string or dictionary. 123 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_obj.aggregate(aggregation=123)
 
