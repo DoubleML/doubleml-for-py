@@ -84,13 +84,13 @@ def dml_single_gt_aggregation(aggregation, time_type, learner, score, in_sample_
 def test_dml_single_gt_thetas(dml_single_gt_aggregation):
     assert math.isclose(
         dml_single_gt_aggregation["dml_obj"].coef[0],
-        dml_single_gt_aggregation["dml_obj_agg"].thetas[0],
+        dml_single_gt_aggregation["dml_obj_agg"].aggregated_frameworks.thetas[0],
         rel_tol=1e-9,
         abs_tol=1e-4,
     )
     assert math.isclose(
-        dml_single_gt_aggregation["dml_obj_agg"].thetas[0],
-        dml_single_gt_aggregation["dml_obj_agg"].thetas[1],
+        dml_single_gt_aggregation["dml_obj_agg"].aggregated_frameworks.thetas[0],
+        dml_single_gt_aggregation["dml_obj_agg"].overall_aggregated_framework.thetas[0],
         rel_tol=1e-9,
         abs_tol=1e-4,
     )
@@ -100,13 +100,13 @@ def test_dml_single_gt_thetas(dml_single_gt_aggregation):
 def test_dml_single_gt_ses(dml_single_gt_aggregation):
     assert math.isclose(
         dml_single_gt_aggregation["dml_obj"].se[0],
-        dml_single_gt_aggregation["dml_obj_agg"].ses[0],
+        dml_single_gt_aggregation["dml_obj_agg"].aggregated_frameworks.ses[0],
         rel_tol=1e-9,
         abs_tol=1e-4,
     )
     assert math.isclose(
-        dml_single_gt_aggregation["dml_obj_agg"].ses[0],
-        dml_single_gt_aggregation["dml_obj_agg"].ses[1],
+        dml_single_gt_aggregation["dml_obj_agg"].aggregated_frameworks.ses[0],
+        dml_single_gt_aggregation["dml_obj_agg"].overall_aggregated_framework.ses[0],
         rel_tol=1e-9,
         abs_tol=1e-4,
     )

@@ -9,6 +9,7 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_binary import DoubleMLDIDBinary
+from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.utils._aggregation import _check_aggregation_dict, _compute_group_aggregation_weights
 from doubleml.did.utils._did_utils import (
     _check_control_group,
@@ -820,21 +821,19 @@ class DoubleMLDIDMulti:
             weighted_frameworks = [w * f for w, f in zip(weights, all_frameworks)]
             agg_frameworks[idx_agg] = reduce(add, weighted_frameworks)
 
+        final_agg_frameworks = concat(agg_frameworks)
+        final_agg_frameworks.treatment_names = agg_names
+
         # overall framework
         overall_weighted_frameworks = [w * f for w, f in zip(agg_weights, agg_frameworks)]
         overall_agg_framework = reduce(add, overall_weighted_frameworks)
 
-        # add overall framework
-        agg_frameworks.insert(0, overall_agg_framework)
-        agg_names.insert(0, "Overall")
-
-        # TODO: initialize separate class
-        final_agg_framework = concat(agg_frameworks)
-        final_agg_framework.treatment_names = agg_names
-
-        # add properties
-        final_agg_framework._weight_masks = weight_masks
-        return final_agg_framework
+        agg_obj = DoubleMLDIDAggregation(
+            aggregated_frameworks=final_agg_frameworks,
+            overall_aggregated_framework=overall_agg_framework,
+            weight_masks=weight_masks,
+        )
+        return agg_obj
 
     def _get_agg_weights(self, selected_gt_mask, aggregation):
         """
