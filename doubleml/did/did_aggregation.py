@@ -14,8 +14,8 @@ class DoubleMLDIDAggregation:
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
 
-        overall_summary = str(self.overall_summary())
-        aggregated_effects_summary = str(self.aggregated_summary())
+        overall_summary = str(self.overall_summary)
+        aggregated_effects_summary = str(self.aggregated_summary)
         res = (
             header
             + "\n------------------ Overall Aggregated Effects ------------------\n"
