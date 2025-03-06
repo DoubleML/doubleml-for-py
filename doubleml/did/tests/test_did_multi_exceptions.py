@@ -128,3 +128,43 @@ def test_exceptions_aggregate():
     msg = "aggregation must be one of \\['group'\\]. invalid was passed."
     with pytest.raises(ValueError, match=msg):
         dml_obj.aggregate(aggregation="invalid")
+
+
+@pytest.mark.ci
+def test_check_external_predictions():
+    # Create DID instance
+    model = dml.did.DoubleMLDIDMulti(**valid_arguments)
+
+    # Test 1: Invalid type (not a dictionary)
+    invalid_pred = ["not a dict"]
+    with pytest.raises(TypeError, match="external_predictions must be a dictionary"):
+        model.fit(external_predictions=invalid_pred)
+
+    # Test 2: Invalid keys in top-level dictionary
+    invalid_keys = {"invalid_key": {}}
+    with pytest.raises(ValueError, match="external_predictions must be a subset of all gt_combinations"):
+        model.fit(external_predictions=invalid_keys)
+
+    # Test 3: Invalid type for nested prediction dictionary
+    invalid_nested = {model.gt_labels[0]: "not a dict"}
+    msg = r"external_predictions\[ATT\(1,0,1\)\] must be a dictionary\. Object of type <class 'str'> passed\."
+    with pytest.raises(TypeError, match=msg):
+        model.fit(external_predictions=invalid_nested)
+
+    # Test 4: Invalid keys in nested prediction dictionary
+    invalid_learner = {model.gt_labels[0]: {"invalid_learner": None}}
+    with pytest.raises(ValueError, match="must be a subset of "):
+        model.fit(external_predictions=invalid_learner)
+
+    # Test 5: Valid external predictions should not raise
+    valid_pred = {
+        model.gt_labels[0]: {
+            "ml_g0": None,
+            "ml_g1": None,
+            "ml_m": None
+        }
+    }
+    try:
+        model._check_external_predictions(valid_pred)
+    except Exception as e:
+        pytest.fail(f"Valid external predictions raised an exception: {e}")
