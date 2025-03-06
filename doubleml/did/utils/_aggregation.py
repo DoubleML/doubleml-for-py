@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def _check_aggregation_dict(aggregation_dict, gt_index):
+def _check_did_aggregation_dict(aggregation_dict, gt_index):
     if not isinstance(aggregation_dict, dict):
         raise ValueError("aggregation must be a dictionary")
 
@@ -32,31 +32,10 @@ def _check_aggregation_dict(aggregation_dict, gt_index):
         if not np.array_equal(weight_masks[..., i].mask, gt_index.mask):
             raise ValueError("weight_masks must have the same mask as gt_index")
 
-    # check if agg_names not exist use default names
-    if "agg_names" not in aggregation_dict.keys():
-        aggregation_dict["agg_names"] = [f"Aggregation_{i}" for i in range(n_aggregations)]
-
-    if "agg_weights" not in aggregation_dict.keys():
-        aggregation_dict["agg_weights"] = np.ones(n_aggregations) / n_aggregations
-
-    # check if agg_names is a list of strings
-    if not all(isinstance(name, str) for name in aggregation_dict["agg_names"]):
-        raise ValueError("agg_names must be a list of strings")
-    # check if agg_weights is a numpy array
-    if not isinstance(aggregation_dict["agg_weights"], np.ndarray):
-        raise ValueError("agg_weights must be a numpy array")
-
-    # check if length of agg_names equal to the number of aggregations
-    if len(aggregation_dict["agg_names"]) != n_aggregations:
-        raise ValueError("agg_names must have the same length as the number of aggregations")
-    # check if length of agg_weights equal to the number of aggregations
-    if len(aggregation_dict["agg_weights"]) != n_aggregations:
-        raise ValueError("agg_weights must have the same length as the number of aggregations")
-
     return aggregation_dict
 
 
-def _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask):
+def _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask):
     """
     Calculate weights for aggregating treatment effects by group.
 

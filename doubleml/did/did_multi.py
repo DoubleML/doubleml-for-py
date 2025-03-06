@@ -10,7 +10,7 @@ from sklearn.base import clone
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
-from doubleml.did.utils._aggregation import _check_aggregation_dict, _compute_group_aggregation_weights
+from doubleml.did.utils._aggregation import _check_did_aggregation_dict, _compute_did_group_aggregation_weights
 from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
@@ -788,8 +788,9 @@ class DoubleMLDIDMulti:
 
         Parameters
         ----------
-        aggregation : str
-            Method to aggregate treatment effects. Currently only "group" is supported.
+        aggregation : str or dict
+            Method to aggregate treatment effects or dictionary with aggregation weights (masked numpy array).
+            Default is ``'group'``.
 
         Returns
         -------
@@ -805,7 +806,7 @@ class DoubleMLDIDMulti:
 
         # get aggregation weights
         aggregation_dict = self._get_agg_weights(selected_gt_mask, aggregation)
-        aggregation_dict = _check_aggregation_dict(aggregation_dict, self.gt_index)
+        aggregation_dict = _check_did_aggregation_dict(aggregation_dict, self.gt_index)
 
         # set elements for readability
         weight_masks = aggregation_dict["weight_masks"]
@@ -861,7 +862,7 @@ class DoubleMLDIDMulti:
                 raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
             if aggregation == "group":
-                aggregation_dict = _compute_group_aggregation_weights(
+                aggregation_dict = _compute_did_group_aggregation_weights(
                     gt_index=self.gt_index,
                     g_values=self.g_values,
                     d_values=self._dml_data.d,

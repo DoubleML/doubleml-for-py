@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml.did.utils._aggregation import _compute_group_aggregation_weights
+from doubleml.did.utils._aggregation import _compute_did_group_aggregation_weights
 
 
 @pytest.mark.ci
@@ -12,7 +12,7 @@ def test_basic_functionality():
     d_values = np.array([1, 2, 1, 2, 1, 2])
     selected_gt_mask = np.ones((3, 2, 1), dtype=bool)
 
-    result = _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
+    result = _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
 
     assert isinstance(result, dict)
     assert set(result.keys()) == {"weight_masks", "agg_names", "agg_weights"}
@@ -30,7 +30,7 @@ def test_weight_computation():
     selected_gt_mask = gt_index.mask.copy()
     selected_gt_mask[:2, :2, 0] = True
 
-    result = _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
+    result = _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
 
     # check if the number of aggregations is 2 (in this case, group 1 and group 2)
     assert len(result["agg_names"]) == 2
@@ -59,7 +59,7 @@ def test_no_valid_groups():
     selected_gt_mask = np.zeros((2, 2, 1), dtype=bool)  # No groups selected
 
     with pytest.raises(ValueError, match="No valid groups found for aggregation."):
-        _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
+        _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
 
 
 @pytest.mark.ci
@@ -69,7 +69,7 @@ def test_single_group():
     d_values = np.array([1, 1])
     selected_gt_mask = np.ones((1, 2, 1), dtype=bool)
 
-    result = _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
+    result = _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
 
     assert len(result["agg_names"]) == 1
     assert result["weight_masks"].shape[-1] == 1
@@ -92,7 +92,7 @@ def test_masked_input():
     d_values = np.array([1, 2, 3] * 16)  # Treatment values matching the data size
     selected_gt_mask = ~mask  # Select all masked elements
 
-    result = _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
+    result = _compute_did_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask)
 
     # Check dimensions of output
     assert result["weight_masks"].shape == (3, 4, 4, 3)  # Last dimension is number of groups
