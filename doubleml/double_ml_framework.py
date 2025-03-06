@@ -307,7 +307,7 @@ class DoubleMLFramework:
             assert np.allclose(self._var_scaling_factors, other._var_scaling_factors)
             var_scaling_factors = self._var_scaling_factors
 
-            # compute standard errors
+            # compute standard errors (Uses factor 1/n for scaling!)
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
             thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
