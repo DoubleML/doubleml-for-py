@@ -13,7 +13,7 @@ class DoubleMLDIDAggregation:
         aggregation_weights,
         overall_aggregation_weights=None,
         aggregation_names=None,
-        aggregation_method_name="custom",
+        aggregation_method_name="Custom",
         additional_information=None,
     ):
 
@@ -46,7 +46,7 @@ class DoubleMLDIDAggregation:
     def __str__(self):
         class_name = self.__class__.__name__
         header = (
-            f"================== {class_name} Object ==================\n" f" {self.aggregation_method_name} Aggregation \n"
+            f"================== {class_name} Object ==================\n" + f" {self.aggregation_method_name} Aggregation \n"
         )
         overall_summary = self.overall_summary.to_string(index=False)
         aggregated_effects_summary = self.aggregated_summary.to_string(index=True)

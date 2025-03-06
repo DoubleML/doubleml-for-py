@@ -866,7 +866,7 @@ class DoubleMLDIDMulti:
                     d_values=self._dml_data.d,
                     selected_gt_mask=selected_gt_mask,
                 )
-                aggregation_dict["method"] = "Group Aggregation"
+                aggregation_dict["method"] = "Group"
         else:
             raise TypeError(
                 "aggregation must be a string or dictionary. " f"{str(aggregation)} of type {type(aggregation)} was passed."
