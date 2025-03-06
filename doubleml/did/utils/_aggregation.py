@@ -54,3 +54,63 @@ def _check_aggregation_dict(aggregation_dict, gt_index):
         raise ValueError("agg_weights must have the same length as the number of aggregations")
 
     return aggregation_dict
+
+
+def _compute_group_aggregation_weights(gt_index, g_values, d_values, selected_gt_mask):
+    """
+    Calculate weights for aggregating treatment effects by group.
+
+    Parameters
+    ----------
+    gt_index : numpy.ma.MaskedArray
+        Masked array containing group-time indices
+    g_values : array-like
+        Array of unique group values
+    d_values : array-like
+        Array of treatment values
+    selected_gt_mask : numpy.ndarray
+        Boolean mask indicating which group-time combinations to include
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - weight_masks: numpy.ma.MaskedArray with weights for each group
+        - agg_names: list of group names
+        - agg_weights: numpy.ndarray of aggregation weights
+    """
+    selected_gt_indicies = np.where(selected_gt_mask)
+    selected_unique_g_indices = np.unique(selected_gt_indicies[0])
+    n_agg_effects = len(selected_unique_g_indices)
+
+    if n_agg_effects == 0:
+        raise ValueError("No valid groups found for aggregation.")
+
+    agg_names = [None] * n_agg_effects
+    agg_weights = [np.nan] * n_agg_effects
+
+    # Create a weight mask (0 weights) for each of the groups
+    weight_masks = np.ma.masked_array(
+        data=np.zeros((*gt_index.shape, n_agg_effects)),
+        mask=np.broadcast_to(gt_index.mask[..., np.newaxis], (*gt_index.shape, n_agg_effects)),
+        dtype=np.float64,
+    )
+
+    # Write weight masks
+    for idx_agg, g_idx in enumerate(selected_unique_g_indices):
+        # Set group name & weights
+        current_group = g_values[g_idx]
+        agg_names[idx_agg] = str(current_group)
+        agg_weights[idx_agg] = (d_values == current_group).mean()
+
+        # Group weights_masks
+        group_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if i == g_idx]
+
+        weight = 1 / len(group_gt_indicies)
+        for i, j, k in group_gt_indicies:
+            weight_masks.data[i, j, k, idx_agg] = weight
+
+    # Normalize weights
+    agg_weights = np.array(agg_weights) / sum(agg_weights)
+
+    return {"weight_masks": weight_masks, "agg_names": agg_names, "agg_weights": agg_weights}
