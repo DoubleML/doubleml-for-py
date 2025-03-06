@@ -128,3 +128,32 @@ def test_additional_info_return_types(frameworks, aggregation_weights):
     )
     assert isinstance(aggregation2.additional_information, str)
     assert isinstance(aggregation2.additional_parameters, dict)
+
+
+@pytest.mark.ci
+def test_str_representation(frameworks, aggregation_weights):
+    # Test string representation without additional information
+    aggregation1 = DoubleMLDIDAggregation(
+        frameworks=frameworks, aggregation_weights=aggregation_weights, aggregation_method_name="TestMethod"
+    )
+    str_output = str(aggregation1)
+
+    # Check presence of all required sections
+    assert "================== DoubleMLDIDAggregation Object ==================" in str_output
+    assert "TestMethod Aggregation" in str_output
+    assert "------------------ Overall Aggregated Effects ------------------" in str_output
+    assert "------------------ Aggregated Effects         ------------------" in str_output
+    assert "------------------ Additional Information     ------------------" not in str_output
+
+    # Test string representation with additional information
+    aggregation2 = DoubleMLDIDAggregation(
+        frameworks=frameworks,
+        aggregation_weights=aggregation_weights,
+        aggregation_method_name="TestMethod",
+        additional_information={"key": "value"},
+    )
+    str_output_with_info = str(aggregation2)
+
+    # Check additional information section
+    assert "------------------ Additional Information     ------------------" in str_output_with_info
+    assert "key: value" in str_output_with_info
