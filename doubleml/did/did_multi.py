@@ -828,10 +828,17 @@ class DoubleMLDIDMulti:
         overall_weighted_frameworks = [w * f for w, f in zip(agg_weights, agg_frameworks)]
         overall_agg_framework = reduce(add, overall_weighted_frameworks)
 
+        additional_info = {
+            "Control Group": self.control_group,
+            "Anticipation Periods": 0,
+            "Score": self.score,
+        }
+
         agg_obj = DoubleMLDIDAggregation(
             aggregated_frameworks=final_agg_frameworks,
             overall_aggregated_framework=overall_agg_framework,
             weight_masks=weight_masks,
+            additional_info=additional_info,
         )
         return agg_obj
 

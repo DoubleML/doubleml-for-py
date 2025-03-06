@@ -5,17 +5,19 @@ class DoubleMLDIDAggregation:
         aggregated_frameworks,
         overall_aggregated_framework,
         weight_masks,
+        additional_information=None,
     ):
         self._aggregated_frameworks = aggregated_frameworks
         self._overall_aggregated_framework = overall_aggregated_framework
         self._weight_masks = weight_masks
+        self._additional_information = additional_information
 
     def __str__(self):
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
+        overall_summary = self.summary.to_string(index=False)
+        aggregated_effects_summary = self.aggregated_summary.to_string(index=True)
 
-        overall_summary = str(self.overall_summary)
-        aggregated_effects_summary = str(self.aggregated_summary)
         res = (
             header
             + "\n------------------ Overall Aggregated Effects ------------------\n"
@@ -23,6 +25,10 @@ class DoubleMLDIDAggregation:
             + "\n------------------ Aggregated Effects         ------------------\n"
             + aggregated_effects_summary
         )
+        if self.additional_information is not None:
+            res += "\n------------------ Additional Information     ------------------\n"
+            res += self.additional_information
+
         return res
 
     @property
@@ -53,3 +59,14 @@ class DoubleMLDIDAggregation:
         A summary for the overall aggregated effect.
         """
         return self.overall_aggregated_framework.summary
+
+    @property
+    def additional_information(self):
+        """Additional information"""
+        if self._additional_information is None:
+            add_info = None
+        else:
+            add_info = str()
+            for key, value in self._additional_information.items():
+                add_info += f"{key}: {value}\n"
+        return add_info
