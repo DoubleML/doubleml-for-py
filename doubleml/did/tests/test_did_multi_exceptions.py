@@ -1,6 +1,8 @@
+from unittest.mock import patch
+
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from unittest.mock import patch
+
 import doubleml as dml
 
 df = dml.did.datasets.make_did_CS2021(n_obs=500, dgp_type=1, n_pre_treat_periods=0, n_periods=3, time_type="float")
@@ -197,7 +199,7 @@ def test_exceptions_sensitivity_benchmark():
     dml_obj.fit()
 
     # Test 1: sensitivity_elements is None
-    with patch.object(dml_obj.__class__, 'sensitivity_elements', property(lambda self: None)):
+    with patch.object(dml_obj.__class__, "sensitivity_elements", property(lambda self: None)):
         msg = "Sensitivity analysis not yet implemented for"
         with pytest.raises(NotImplementedError, match=msg):
             dml_obj.sensitivity_benchmark(benchmarking_set=["Z1"])
@@ -215,7 +217,9 @@ def test_exceptions_sensitivity_benchmark():
         dml_obj.sensitivity_benchmark(benchmarking_set=[])
 
     # Test 4: benchmarking_set is not a subset of features
-    msg = r"benchmarking_set must be a subset of features \['Z1', 'Z2', 'Z3', 'Z4'\]. \['Z5', 'NonExistentFeature'\] was passed."
+    msg = (
+        r"benchmarking_set must be a subset of features \['Z1', 'Z2', 'Z3', 'Z4'\]. \['Z5', 'NonExistentFeature'\] was passed."
+    )
     with pytest.raises(ValueError, match=msg):
         dml_obj.sensitivity_benchmark(benchmarking_set=["Z5", "NonExistentFeature"])
 
