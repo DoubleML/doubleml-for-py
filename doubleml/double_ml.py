@@ -39,6 +39,7 @@ class DoubleML(ABC):
             self._is_panel_data = True
 
         self._dml_data = obj_dml_data
+        self._n_obs = self._dml_data.n_obs
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
@@ -180,7 +181,7 @@ class DoubleML(ABC):
         """
         The number of observations used for estimation.
         """
-        return self._dml_data.n_obs
+        return self._n_obs
 
     @property
     def n_rep_boot(self):
@@ -1215,7 +1216,7 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self, n_obs=None):
+    def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.
 
@@ -1232,21 +1233,19 @@ class DoubleML(ABC):
         -------
         self : object
         """
-
-        if n_obs is None:
-            n_obs = self._dml_data.n_obs
-
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=n_obs,
+                n_obs=self.n_obs,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata)
+            obj_dml_resampling = DoubleMLResampling(
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.n_obs, stratify=self._strata
+            )
             self._smpls = obj_dml_resampling.split_samples()
 
         return self

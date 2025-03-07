@@ -108,12 +108,12 @@ dml_objs_panel = [
 
 
 @pytest.mark.ci
-@pytest.mark.parametrize("dml_obj_panel, cls", dml_objs)
-def test_panel_return_types(dml_obj_panel, cls):
-    check_basic_return_types(dml_obj_panel, cls)
+@pytest.mark.parametrize("dml_obj, cls", dml_objs_panel)
+def test_panel_return_types(dml_obj, cls):
+    check_basic_return_types(dml_obj, cls)
 
     # further return type tests
-    assert isinstance(dml_obj_panel.get_params("ml_m"), dict)
+    assert isinstance(dml_obj.get_params("ml_m"), dict)
 
 
 @pytest.fixture(params=dml_objs_panel)

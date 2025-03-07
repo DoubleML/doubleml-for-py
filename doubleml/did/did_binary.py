@@ -167,6 +167,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
         self._n_subset = self._panel_data_wide.shape[0]
+        self._n_obs = self._n_subset  # Effective sample size used for resampling
         self._n_treated_subset = self._panel_data_wide["G_indicator"].sum()
 
         # TODO: Is this necessary?
@@ -188,8 +189,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # set stratication for resampling
         self._strata = self._panel_data_wide["G_indicator"]
         if draw_sample_splitting:
-            # TODO: Handle n_obs: n_obs_subset is likely smaller than n_obs!
-            self.draw_sample_splitting(n_obs=self._n_subset)
+            self.draw_sample_splitting()
 
         # check learners
         ml_g_is_classifier = self._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
