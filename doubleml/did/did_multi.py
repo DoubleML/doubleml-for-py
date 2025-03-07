@@ -608,7 +608,7 @@ class DoubleMLDIDMulti:
 
         p_val, _ = self.framework.p_adjust(method=method)
         # TODO: Update for different combinations
-        p_val.set_index(pd.Index(self._dml_data.d_cols), inplace=True)
+        p_val.set_index(pd.Index(self.gt_labels), inplace=True)
 
         return p_val
 

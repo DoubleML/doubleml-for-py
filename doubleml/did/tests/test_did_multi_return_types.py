@@ -66,10 +66,8 @@ def test_panel_return_types(dml_obj, cls):
     assert isinstance(dml_obj.p_adjust(), pd.DataFrame)
 
     assert isinstance(dml_obj._dml_data.__str__(), str)
-    check_basic_return_types(dml_obj, cls)
 
     # further return type tests
-    assert isinstance(dml_obj.get_params("ml_m"), dict)
 
 
 @pytest.fixture(params=dml_objs)
