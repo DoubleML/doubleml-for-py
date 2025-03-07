@@ -158,7 +158,29 @@ def test_check_external_predictions():
 
     # Test 5: Valid external predictions should not raise
     valid_pred = {model.gt_labels[0]: {"ml_g0": None, "ml_g1": None, "ml_m": None}}
-    try:
-        model._check_external_predictions(valid_pred)
-    except Exception as e:
-        pytest.fail(f"Valid external predictions raised an exception: {e}")
+    model._check_external_predictions(valid_pred)
+
+
+@pytest.mark.ci
+def test_exceptions_before_fit():
+    """Test exception handling for confint() and p_adjust() methods when fit() hasn't been called."""
+    dml_obj = dml.did.DoubleMLDIDMulti(**valid_arguments)
+
+    msg = r"Apply fit\(\) before {}."
+    with pytest.raises(ValueError, match=msg.format("confint")):
+        dml_obj.confint()
+
+    with pytest.raises(ValueError, match=msg.format("p_adjust")):
+        dml_obj.p_adjust()
+
+    with pytest.raises(ValueError, match=msg.format("bootstrap")):
+        dml_obj.bootstrap()
+
+    with pytest.raises(ValueError, match=msg.format("sensitivity_analysis")):
+        dml_obj.sensitivity_analysis()
+
+    with pytest.raises(ValueError, match=msg.format("sensitivity_plot")):
+        dml_obj.sensitivity_plot()
+
+    with pytest.raises(ValueError, match=msg.format("aggregate")):
+        dml_obj.aggregate()
