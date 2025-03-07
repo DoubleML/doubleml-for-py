@@ -409,19 +409,6 @@ class DoubleMLDIDMulti:
         return boot_t_stat
 
     @property
-    def smpls(self):
-        """
-        The partition used for cross-fitting.
-        """
-        if self._smpls is None:
-            err_msg = (
-                "Sample splitting not specified. Draw samples via .draw_sample_splitting(). "
-                + "External samples not implemented yet."
-            )
-            raise NotImplementedError(err_msg)
-        return self._smpls
-
-    @property
     def nuisance_loss(self):
         """
         The losses of the nuisance models (root-mean-squared-errors or logloss).
