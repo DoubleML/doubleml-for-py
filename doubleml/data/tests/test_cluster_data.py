@@ -187,3 +187,44 @@ def test_dml_datatype():
     data_array = np.zeros((100, 10))
     with pytest.raises(TypeError):
         _ = DoubleMLClusterData(data_array, y_col="y", d_cols=["d"], cluster_cols=["X3", "X2"])
+
+
+@pytest.mark.ci
+def test_cluster_data_str():
+    np.random.seed(3141)
+    dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
+
+    # Convert the object to string
+    dml_str = str(dml_data)
+
+    # Check that all important sections are present in the string
+    assert "================== DoubleMLClusterData Object ==================" in dml_str
+    assert "------------------ Data summary      ------------------" in dml_str
+    assert "------------------ DataFrame info    ------------------" in dml_str
+
+    # Check that specific data attributes are correctly included
+    assert "Outcome variable: Y" in dml_str
+    assert "Treatment variable(s): ['D']" in dml_str
+    assert "Cluster variable(s): ['cluster_var_i', 'cluster_var_j']" in dml_str
+    assert "Covariates: " in dml_str
+    assert "Instrument variable(s): ['Z']" in dml_str
+    assert "No. Observations:" in dml_str
+
+    # Test with additional optional attributes
+    df = dml_data.data.copy()
+    df["time_var"] = 1
+    df["score_var"] = 0.5
+
+    dml_data_with_optional = DoubleMLClusterData(
+        data=df,
+        y_col="Y",
+        d_cols="D",
+        cluster_cols=["cluster_var_i", "cluster_var_j"],
+        z_cols="Z",
+        t_col="time_var",
+        s_col="score_var",
+    )
+
+    dml_str_optional = str(dml_data_with_optional)
+    assert "Time variable: time_var" in dml_str_optional
+    assert "Score/Selection variable: score_var" in dml_str_optional
