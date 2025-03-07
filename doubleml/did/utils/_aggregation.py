@@ -138,15 +138,6 @@ def _compute_did_time_aggregation_weights(gt_index, g_values, t_values, d_values
         dtype=np.float64,
     )
 
-    # group weights (requires balanced panel)
-    group_weights = np.zeros(len(g_values))
-    selected_unique_g_indices = np.unique(selected_gt_indicies[0])
-    for g_idx in selected_unique_g_indices:
-        group_weights[g_idx] = (d_values == g_values[g_idx]).mean()
-
-    # Normalize group weights
-    group_weights = group_weights / group_weights.sum()
-
     # Write weight masks
     for idx_agg, t_eval_idx in enumerate(selected_unique_t_eval_indices):
         # Set time period name
@@ -155,6 +146,13 @@ def _compute_did_time_aggregation_weights(gt_index, g_values, t_values, d_values
 
         # time weights_masks
         time_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if k == t_eval_idx]
+
+        group_weights = np.zeros(len(g_values))
+        selected_unique_g_indices = np.unique(selected_gt_indicies[0])
+        for g_idx in selected_unique_g_indices:
+            group_weights[g_idx] = (d_values == g_values[g_idx]).mean()  # (requires balanced panel)
+        # normalize weights
+        group_weights = group_weights / group_weights.sum()
 
         for i, j, k in time_gt_indicies:
             weight_masks.data[i, j, k, idx_agg] = group_weights[i]
