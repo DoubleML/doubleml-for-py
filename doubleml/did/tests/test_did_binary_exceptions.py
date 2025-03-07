@@ -55,6 +55,18 @@ def test_input():
         invalid_arguments = {"t_value_eval": "test"}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
 
+    # in-sample normalization
+    msg = "in_sample_normalization indicator has to be boolean. Object of type <class 'str'> passed."
+    with pytest.raises(TypeError, match=msg):
+        invalid_arguments = {"in_sample_normalization": "test"}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
+    # ml_g classifier
+    msg = r"The ml_g learner LogisticRegression\(\) was identified as"
+    with pytest.raises(ValueError, match=msg):
+        invalid_arguments = {"ml_g": LogisticRegression()}
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
 
 @pytest.mark.ci
 def test_check_data_exceptions():

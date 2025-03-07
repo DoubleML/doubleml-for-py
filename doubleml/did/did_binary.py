@@ -170,7 +170,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._n_obs = self._n_subset  # Effective sample size used for resampling
         self._n_treated_subset = self._panel_data_wide["G_indicator"].sum()
 
-        # TODO: Is this necessary?
         # Save x and y for later ML estimation
         self._x_panel = self._panel_data_wide.loc[:, self._dml_data.x_cols].values
         self._y_panel = self._panel_data_wide.loc[:, "y_diff"].values
