@@ -8,7 +8,7 @@ from sklearn.base import clone
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
-from doubleml.did.utils._aggregation import _check_did_aggregation_dict, _compute_did_group_aggregation_weights
+from doubleml.did.utils._aggregation import _check_did_aggregation_dict, _compute_did_group_aggregation_weights, _compute_did_time_aggregation_weights
 from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
@@ -847,7 +847,7 @@ class DoubleMLDIDMulti:
             aggregation_dict = aggregation
 
         elif isinstance(aggregation, str):
-            valid_aggregations = ["group"]
+            valid_aggregations = ["group", "time"]
             if aggregation not in valid_aggregations:
                 raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
@@ -859,6 +859,16 @@ class DoubleMLDIDMulti:
                     selected_gt_mask=selected_gt_mask,
                 )
                 aggregation_dict["method"] = "Group"
+            elif aggregation == "time":
+                aggregation_dict = _compute_did_time_aggregation_weights(
+                    gt_index=self.gt_index,
+                    g_values=self.g_values,
+                    t_values=self.t_values,
+                    d_values=self._dml_data.d,
+                    selected_gt_mask=selected_gt_mask,
+                )
+                aggregation_dict["method"] = "Time"
+
         else:
             raise TypeError(
                 "aggregation must be a string or dictionary. " f"{str(aggregation)} of type {type(aggregation)} was passed."
