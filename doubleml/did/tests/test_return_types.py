@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
@@ -114,6 +115,39 @@ def test_panel_return_types(dml_obj, cls):
 
     # further return type tests
     assert isinstance(dml_obj.get_params("ml_m"), dict)
+
+    assert isinstance(dml_obj.g_value, (int, np.integer))
+    assert isinstance(dml_obj.t_value_eval, (int, np.integer, float, np.floating))
+    assert isinstance(dml_obj.t_value_pre, (int, np.integer, float, np.floating))
+    assert isinstance(dml_obj.post_treatment, bool)
+
+    # Test panel_data_wide property
+    assert isinstance(dml_obj.panel_data_wide, pd.DataFrame)
+    assert dml_obj.panel_data_wide.shape[0] <= N_OBS
+    assert "G_indicator" in dml_obj.panel_data_wide.columns
+    assert "C_indicator" in dml_obj.panel_data_wide.columns
+    assert "y_diff" in dml_obj.panel_data_wide.columns
+
+    # Test id_positions property
+    assert isinstance(dml_obj.id_positions, np.ndarray)
+    assert dml_obj.id_positions.ndim == 1
+    
+    # propensity score properties
+    assert isinstance(dml_obj.in_sample_normalization, bool)
+    assert isinstance(dml_obj.trimming_rule, str)
+    assert dml_obj.trimming_rule in ["truncate"]
+    assert isinstance(dml_obj.trimming_threshold, (float, np.floating))
+    assert 0 <= dml_obj.trimming_threshold <= 0.5
+    
+    # Test n_obs property
+    assert isinstance(dml_obj.n_obs, (int, np.integer))
+    assert dml_obj.n_obs <= N_OBS
+    
+    # Test consistency between properties
+    if dml_obj.post_treatment:
+        assert dml_obj.g_value <= dml_obj.t_value_eval
+    else:
+        assert dml_obj.g_value > dml_obj.t_value_eval
 
 
 @pytest.fixture(params=dml_objs_panel)
