@@ -8,7 +8,11 @@ from sklearn.base import clone
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
-from doubleml.did.utils._aggregation import _check_did_aggregation_dict, _compute_did_group_aggregation_weights, _compute_did_time_aggregation_weights
+from doubleml.did.utils._aggregation import (
+    _check_did_aggregation_dict,
+    _compute_did_group_aggregation_weights,
+    _compute_did_time_aggregation_weights,
+)
 from doubleml.did.utils._did_utils import (
     _check_control_group,
     _check_gt_combination,
