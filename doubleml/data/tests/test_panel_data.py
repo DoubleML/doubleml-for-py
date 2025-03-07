@@ -157,3 +157,21 @@ def test_panel_data_str():
     assert "Time variable: t" in dml_str
     assert "Id variable: id" in dml_str
     assert "No. Observations:" in dml_str
+
+
+@pytest.mark.ci
+def test_panel_data_properties():
+    np.random.seed(3141)
+    df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
+    dml_data = DoubleMLPanelData(
+        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+    )
+
+    assert np.array_equal(dml_data.id_var, df["id"].values)
+    assert np.array_equal(dml_data.id_var_unique, np.unique(df["id"].values))
+    assert dml_data.n_obs == len(np.unique(df["id"].values))
+    assert dml_data.g_col == "d"
+    assert np.array_equal(dml_data.g_values, np.sort(np.unique(df["d"].values)))
+    assert dml_data.n_groups == len(np.unique(df["d"].values))
+    assert np.array_equal(dml_data.t_values, np.sort(np.unique(df["t"].values)))
+    assert dml_data.n_t_periods == len(np.unique(df["t"].values))
