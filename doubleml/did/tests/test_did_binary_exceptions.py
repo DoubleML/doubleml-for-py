@@ -1,3 +1,7 @@
+from unittest.mock import patch
+
+import numpy as np
+import pandas as pd
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
@@ -50,3 +54,58 @@ def test_input():
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"t_value_eval": "test"}
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
+
+@pytest.mark.ci
+def test_check_data_exceptions():
+    """Test exception handling for _check_data method in DoubleMLDIDBinary"""
+    df = pd.DataFrame(np.random.normal(size=(10, 5)), columns=[f"Col_{i}" for i in range(5)])
+
+    # Test 1: Data has to be DoubleMLPanelData
+    invalid_data_types = [
+        dml.data.DoubleMLData(df, y_col="Col_0", d_cols="Col_1"),
+    ]
+
+    for invalid_data in invalid_data_types:
+        msg = r"For repeated outcomes the data must be of DoubleMLPanelData type\."
+        with pytest.raises(TypeError, match=msg):
+            _ = dml.did.DoubleMLDIDBinary(
+                obj_dml_data=invalid_data,
+                ml_g=LinearRegression(),
+                ml_m=LogisticRegression(),
+                g_value=1,
+                t_value_pre=0,
+                t_value_eval=1,
+            )
+
+    # Test 2: Data cannot have instrumental variables
+    df_with_z = dml_data.data.copy()
+    dml_data_with_z = dml.data.DoubleMLPanelData(
+        df_with_z, y_col="y", d_cols="d", id_col="id", t_col="t", z_cols=["Z1"], x_cols=["Z2", "Z3", "Z4"]
+    )
+
+    msg = r"Incompatible data. Z1 have been set as instrumental variable\(s\)."
+    with pytest.raises(NotImplementedError, match=msg):
+        _ = dml.did.DoubleMLDIDBinary(
+            obj_dml_data=dml_data_with_z,
+            ml_g=LinearRegression(),
+            ml_m=LogisticRegression(),
+            g_value=1,
+            t_value_pre=0,
+            t_value_eval=1,
+        )
+
+    # Test 3: Data must have exactly one treatment variable (using mock)
+    with patch.object(dml_data.__class__, "n_treat", property(lambda self: 2)):
+        msg = (
+            "Incompatible data. To fit an DID model with DML exactly one variable needs to be specified as treatment variable."
+        )
+        with pytest.raises(ValueError, match=msg):
+            _ = dml.did.DoubleMLDIDBinary(
+                obj_dml_data=dml_data,
+                ml_g=LinearRegression(),
+                ml_m=LogisticRegression(),
+                g_value=1,
+                t_value_pre=0,
+                t_value_eval=1,
+            )

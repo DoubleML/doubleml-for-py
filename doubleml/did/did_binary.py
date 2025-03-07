@@ -331,7 +331,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return
 
     def _preprocess_data(self, g_value, pre_t, eval_t):
-        # TODO: Check if copy is necessary
         data = self._dml_data.data
 
         y_col = self._dml_data.y_col
