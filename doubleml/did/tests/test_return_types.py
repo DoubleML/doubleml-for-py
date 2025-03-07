@@ -131,18 +131,18 @@ def test_panel_return_types(dml_obj, cls):
     # Test id_positions property
     assert isinstance(dml_obj.id_positions, np.ndarray)
     assert dml_obj.id_positions.ndim == 1
-    
+
     # propensity score properties
     assert isinstance(dml_obj.in_sample_normalization, bool)
     assert isinstance(dml_obj.trimming_rule, str)
     assert dml_obj.trimming_rule in ["truncate"]
     assert isinstance(dml_obj.trimming_threshold, (float, np.floating))
     assert 0 <= dml_obj.trimming_threshold <= 0.5
-    
+
     # Test n_obs property
     assert isinstance(dml_obj.n_obs, (int, np.integer))
     assert dml_obj.n_obs <= N_OBS
-    
+
     # Test consistency between properties
     if dml_obj.post_treatment:
         assert dml_obj.g_value <= dml_obj.t_value_eval
