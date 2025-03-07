@@ -319,7 +319,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 "At the moment there are not DiD models with instruments implemented."
             )
 
-        # TODO: Update checks!
         one_treat = obj_dml_data.n_treat == 1
         if not (one_treat):
             raise ValueError(
