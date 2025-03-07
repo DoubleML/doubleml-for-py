@@ -607,7 +607,6 @@ class DoubleMLDIDMulti:
             raise ValueError("Apply fit() before p_adjust().")
 
         p_val, _ = self.framework.p_adjust(method=method)
-        # TODO: Update for different combinations
         p_val.set_index(pd.Index(self.gt_labels), inplace=True)
 
         return p_val

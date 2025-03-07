@@ -8,9 +8,6 @@ from doubleml.data import DoubleMLPanelData
 from doubleml.did import DoubleMLDIDMulti
 from doubleml.did.datasets import make_did_CS2021
 from doubleml.double_ml_framework import DoubleMLFramework
-from doubleml.utils._check_return_types import (
-    check_basic_return_types,
-)
 
 # Test constants
 N_OBS = 200
