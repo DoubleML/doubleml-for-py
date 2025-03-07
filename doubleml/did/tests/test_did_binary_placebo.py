@@ -19,9 +19,9 @@ def n_rep(request):
 
 @pytest.fixture(scope="module")
 def doubleml_did_fixture(did_score, n_rep):
-
     n_obs = 500
-    df = make_did_CS2021(n_obs=n_obs, n_pre_treat_periods=3)
+    dgp = 5  # has to be experimental (for experimental score to be valid)
+    df = make_did_CS2021(n_obs=n_obs, dgp=dgp, n_pre_treat_periods=3)
     dml_data = DoubleMLPanelData(df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     kwargs = {
