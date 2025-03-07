@@ -131,3 +131,29 @@ def test_disjoint_sets():
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLPanelData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", z_cols=["zz"], id_col="zz")
+
+
+@pytest.mark.ci
+def test_panel_data_str():
+    np.random.seed(3141)
+    df = make_did_SZ2020(n_obs=100, return_type="DoubleMLPanelData")._data
+    dml_data = DoubleMLPanelData(
+        data=df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=[f"Z{i + 1}" for i in np.arange(4)]
+    )
+
+    # Convert the object to string
+    dml_str = str(dml_data)
+
+    # Check that all important sections are present in the string
+    assert "================== DoubleMLPanelData Object ==================" in dml_str
+    assert "------------------ Data summary      ------------------" in dml_str
+    assert "------------------ DataFrame info    ------------------" in dml_str
+
+    # Check that specific data attributes are correctly included
+    assert "Outcome variable: y" in dml_str
+    assert "Treatment variable(s): ['d']" in dml_str
+    assert "Covariates: ['Z1', 'Z2', 'Z3', 'Z4']" in dml_str
+    assert "Instrument variable(s): None" in dml_str
+    assert "Time variable: t" in dml_str
+    assert "Id variable: id" in dml_str
+    assert "No. Observations:" in dml_str

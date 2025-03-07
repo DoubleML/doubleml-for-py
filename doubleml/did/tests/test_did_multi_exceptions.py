@@ -157,13 +157,7 @@ def test_check_external_predictions():
         model.fit(external_predictions=invalid_learner)
 
     # Test 5: Valid external predictions should not raise
-    valid_pred = {
-        model.gt_labels[0]: {
-            "ml_g0": None,
-            "ml_g1": None,
-            "ml_m": None
-        }
-    }
+    valid_pred = {model.gt_labels[0]: {"ml_g0": None, "ml_g1": None, "ml_m": None}}
     try:
         model._check_external_predictions(valid_pred)
     except Exception as e:
