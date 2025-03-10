@@ -192,7 +192,7 @@ def _compute_did_eventstudy_aggregation_weights(gt_index, g_values, t_values, d_
     eventtime = time_values - d_values
     e_values = np.unique(eventtime)
     selected_unique_e_values = np.unique([g_values[i]-t_values[k] for i, _, k in zip(*selected_gt_indicies)])
-    assert selected_unique_e_values in e_values
+    assert np.all(np.isin(selected_unique_e_values, e_values))
     n_agg_effects = len(selected_unique_e_values)
 
     if n_agg_effects == 0:
