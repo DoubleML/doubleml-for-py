@@ -180,7 +180,7 @@ class DoubleMLDIDMulti:
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
         score_info = (f"Score function: {str(self.score)}\n"
-                      f"GT combinations: {str(self.gt_combinations)}\n"
+                      f"GT combinations: {[f'({g},{t_pre},{t_eval})' for g, t_pre, t_eval in self.gt_combinations]}\n"
                       f"Control group: {str(self.control_group)}\n"
                       f"Anticipation periods: 0"
                       )
