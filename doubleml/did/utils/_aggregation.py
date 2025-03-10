@@ -191,7 +191,7 @@ def _compute_did_eventstudy_aggregation_weights(gt_index, g_values, t_values, d_
     selected_gt_indicies = np.where(selected_gt_mask)
     eventtime = time_values - d_values
     e_values = np.unique(eventtime)
-    selected_unique_e_values = np.unique([g_values[i]-t_values[k] for i, _, k in zip(*selected_gt_indicies)])
+    selected_unique_e_values = np.unique([t_values[k] - g_values[i] for i, _, k in zip(*selected_gt_indicies)])
     assert np.all(np.isin(selected_unique_e_values, e_values))
     n_agg_effects = len(selected_unique_e_values)
 
@@ -220,7 +220,7 @@ def _compute_did_eventstudy_aggregation_weights(gt_index, g_values, t_values, d_
         agg_names[idx_agg] = str(e_val)
 
         # time weights_masks
-        eventtime_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if g_values[i] - t_values[k] == e_val]
+        eventtime_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if t_values[k] - g_values[i] == e_val]
 
         for i, j, k in eventtime_gt_indicies:
             weight_masks.data[i, j, k, idx_agg] = group_weights[i]
