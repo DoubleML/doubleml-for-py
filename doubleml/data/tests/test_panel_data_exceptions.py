@@ -94,11 +94,20 @@ def test_from_arrays_not_implemented():
             y=np.random.normal(size=10),
             d=np.random.binomial(1, 0.5, size=10),
             t=np.arange(10),
-            id=np.arange(10),
+            identifier=np.arange(10),
+        )
+
+
+@pytest.mark.ci
+def test_invalid_datetime_unit(sample_data):
+    with pytest.raises(ValueError, match="Invalid datetime unit."):
+        DoubleMLPanelData(
+            data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="id", datetime_unit="invalid_unit"
         )
 
 
 # test if no exception is raised
+@pytest.mark.ci
 def test_no_exception(sample_data):
     DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="id")
     assert True

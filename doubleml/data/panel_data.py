@@ -1,9 +1,11 @@
 import io
 
 import numpy as np
+import pandas as pd
 from sklearn.utils import assert_all_finite
 
 from doubleml.data.base_data import DoubleMLBaseData, DoubleMLData
+from doubleml.data.utils.panel_data_utils import _is_valid_datetime_unit
 
 
 class DoubleMLPanelData(DoubleMLData):
@@ -52,6 +54,9 @@ class DoubleMLPanelData(DoubleMLData):
         in the covariates ``x``.
         Default is ``True``.
 
+    datetime_unit : str
+        The unit of the time and treatment variable (if datetime type).
+
     Examples
     --------
     # TODO: Add examples
@@ -68,11 +73,13 @@ class DoubleMLPanelData(DoubleMLData):
         z_cols=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
+        datetime_unit="M",
     ):
         DoubleMLBaseData.__init__(self, data)
 
         # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
         self.id_col = id_col
+        self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
         self._set_id_var()
 
         DoubleMLData.__init__(
@@ -129,6 +136,36 @@ class DoubleMLPanelData(DoubleMLData):
     def from_arrays(cls, x, y, d, t, identifier, z=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True):
         # TODO: Implement initialization from arrays
         raise NotImplementedError("from_arrays is not implemented for DoubleMLPanelData")
+
+    @property
+    def datetime_unit(self):
+        """
+        The unit of the time variable.
+        """
+        return self._datetime_unit
+
+    @property
+    def d(self):
+        """
+        Array of treatment variable;
+        Dynamic! Depends on the currently set treatment variable;
+        To get an array of all treatment variables (independent of the currently set treatment variable)
+        call ``obj.data[obj.d_cols].values``.
+        """
+        if pd.api.types.is_datetime64_any_dtype(self._d):
+            return self._d.values.astype(f"datetime64[{self.datetime_unit}]")
+        else:
+            return self._d.values
+
+    @property
+    def t(self):
+        """
+        Array of time variable.
+        """
+        if pd.api.types.is_datetime64_any_dtype(self._d):
+            return self._t.values.astype(f"datetime64[{self.datetime_unit}]")
+        else:
+            return self._t.values
 
     @property
     def id_col(self):

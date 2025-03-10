@@ -377,7 +377,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
-        # TODO: Decide whether to do preprocessing here or before?
         # Here: d is a binary treatment indicator
         x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
         x, d = check_X_y(x, self._g_panel, force_all_finite=False)
