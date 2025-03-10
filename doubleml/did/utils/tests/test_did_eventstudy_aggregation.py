@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from doubleml.did.utils._aggregation import _compute_did_time_aggregation_weights, _compute_did_eventstudy_aggregation_weights
+from doubleml.did.utils._aggregation import _compute_did_eventstudy_aggregation_weights
 
 
 @pytest.mark.ci
@@ -20,7 +20,7 @@ def test_basic_functionality_eventstudy():
     assert set(result.keys()) == {"weight_masks", "agg_names", "agg_weights"}
     assert isinstance(result["weight_masks"], np.ma.MaskedArray)
     assert result["weight_masks"].shape == (*gt_index.shape, 4)  # 3 time periods
-    assert result["agg_names"] == ['-2', "-1", "0", "1"]
+    assert result["agg_names"] == ["-2", "-1", "0", "1"]
 
 
 @pytest.mark.ci
@@ -39,7 +39,7 @@ def test_weight_computation_eventstudy():
 
     # Check if number of aggregations is 3
     assert len(result["agg_names"]) == 3
-    assert result["agg_names"] == ['-2', "-1", "0"]
+    assert result["agg_names"] == ["-2", "-1", "0"]
 
     # Check weights sum to 1 for each time period
     assert np.allclose(np.sum(result["agg_weights"]), 1.0)
@@ -122,7 +122,7 @@ def test_masked_input_eventstudy():
             assert np.isclose(weights.sum(), 1.0)  # Weights should sum to 1 for each time period
 
     # Check agg_names
-    assert result["agg_names"] == ['-2', '-1', '0', '1', '2']
+    assert result["agg_names"] == ["-2", "-1", "0", "1", "2"]
 
     # Check agg_weights sum to 1
     assert np.isclose(sum(result["agg_weights"]), 1.0)
