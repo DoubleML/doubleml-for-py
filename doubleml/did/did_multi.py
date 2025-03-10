@@ -168,7 +168,6 @@ class DoubleMLDIDMulti:
 
         # perform sample splitting
         self._smpls = None
-
         # TODO: Check draw_sample_splitting here vs. DoubleMLDIDBINARY
         self._draw_sample_splitting = draw_sample_splitting
 
@@ -180,7 +179,11 @@ class DoubleMLDIDMulti:
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
-        score_info = f"Score function: {str(self.score)}\n"
+        score_info = (f"Score function: {str(self.score)}\n"
+                      f"GT combinations: {str(self.gt_combinations)}\n"
+                      f"Control group: {str(self.control_group)}\n"
+                      f"Anticipation periods: 0"
+                      )
         resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
         learner_info = ""
         for key, value in self._learner.items():
