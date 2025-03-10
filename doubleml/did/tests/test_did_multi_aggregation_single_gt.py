@@ -7,7 +7,7 @@ import doubleml as dml
 from doubleml.did.datasets import make_did_CS2021
 
 
-@pytest.fixture(scope="module", params=["group", "time"])
+@pytest.fixture(scope="module", params=["group", "time", "eventstudy"])
 def aggregation(request):
     return request.param
 

@@ -12,6 +12,7 @@ from doubleml.did.utils._aggregation import (
     _check_did_aggregation_dict,
     _compute_did_group_aggregation_weights,
     _compute_did_time_aggregation_weights,
+    _compute_did_eventstudy_aggregation_weights,
 )
 from doubleml.did.utils._did_utils import (
     _check_control_group,
@@ -789,8 +790,8 @@ class DoubleMLDIDMulti:
         if self.framework is None:
             raise ValueError("Apply fit() before aggregate().")
 
-        # exclude pre-treatment combinations
-        selected_gt_mask = ~self.gt_index.mask & self._post_treatment_mask
+        # select all non-masked values
+        selected_gt_mask = ~self.gt_index.mask
 
         # get aggregation weights
         aggregation_dict = self._get_agg_weights(selected_gt_mask, aggregation)
@@ -851,11 +852,13 @@ class DoubleMLDIDMulti:
             aggregation_dict = aggregation
 
         elif isinstance(aggregation, str):
-            valid_aggregations = ["group", "time"]
+            valid_aggregations = ["group", "time", "eventstudy"]
             if aggregation not in valid_aggregations:
                 raise ValueError(f"aggregation must be one of {valid_aggregations}. " f"{str(aggregation)} was passed.")
 
             if aggregation == "group":
+                # exclude pre-treatment combinations
+                selected_gt_mask = selected_gt_mask & self._post_treatment_mask
                 aggregation_dict = _compute_did_group_aggregation_weights(
                     gt_index=self.gt_index,
                     g_values=self.g_values,
@@ -864,6 +867,8 @@ class DoubleMLDIDMulti:
                 )
                 aggregation_dict["method"] = "Group"
             elif aggregation == "time":
+                # exclude pre-treatment combinations
+                selected_gt_mask = selected_gt_mask & self._post_treatment_mask
                 aggregation_dict = _compute_did_time_aggregation_weights(
                     gt_index=self.gt_index,
                     g_values=self.g_values,
@@ -872,7 +877,16 @@ class DoubleMLDIDMulti:
                     selected_gt_mask=selected_gt_mask,
                 )
                 aggregation_dict["method"] = "Time"
-
+            elif aggregation == "eventstudy":
+                aggregation_dict = _compute_did_eventstudy_aggregation_weights(
+                    gt_index=self.gt_index,
+                    g_values=self.g_values,
+                    t_values=self.t_values,
+                    d_values=self._dml_data.d,
+                    time_values=self._dml_data.t,
+                    selected_gt_mask=selected_gt_mask,
+                )
+                aggregation_dict["method"] = "Event Study"
         else:
             raise TypeError(
                 "aggregation must be a string or dictionary. " f"{str(aggregation)} of type {type(aggregation)} was passed."

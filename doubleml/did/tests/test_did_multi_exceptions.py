@@ -127,7 +127,7 @@ def test_exceptions_aggregate():
         dml_obj.aggregate(aggregation=123)
 
     # Test invalid string value
-    msg = "aggregation must be one of \\['group', 'time'\\]. invalid was passed."
+    msg = "aggregation must be one of \\['group', 'time', 'eventstudy'\\]. invalid was passed."
     with pytest.raises(ValueError, match=msg):
         dml_obj.aggregate(aggregation="invalid")
 

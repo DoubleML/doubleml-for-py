@@ -159,3 +159,73 @@ def _compute_did_time_aggregation_weights(gt_index, g_values, t_values, d_values
         weight_masks.data[..., idx_agg] = weight_masks.data[..., idx_agg] / np.sum(weight_masks.data[..., idx_agg])
 
     return {"weight_masks": weight_masks, "agg_names": agg_names, "agg_weights": agg_weights}
+
+
+def _compute_did_eventstudy_aggregation_weights(gt_index, g_values, t_values, d_values, time_values, selected_gt_mask):
+    """
+    Calculate weights for aggregating treatment effects over time periods.
+
+    Parameters
+    ----------
+    gt_index : numpy.ma.MaskedArray
+        Masked array containing group-time indices
+    g_values : array-like
+        Array of unique group values
+    t_values : array-like
+        Array of unique evaluation time values
+    d_values : array-like
+        Array of treatment values (g_values for each id)
+    time_values : array-like
+        Array of evaluation time values (t_values for each id)
+    selected_gt_mask : numpy.ndarray
+        Boolean mask indicating which group-time combinations to include
+
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - weight_masks: numpy.ma.MaskedArray with weights for each group
+        - agg_names: list of group names
+        - agg_weights: numpy.ndarray of aggregation weights
+    """
+    selected_gt_indicies = np.where(selected_gt_mask)
+    eventtime = time_values - d_values
+    e_values = np.unique(eventtime)
+    selected_unique_e_values = np.unique([g_values[i]-t_values[k] for i, _, k in zip(*selected_gt_indicies)])
+    assert selected_unique_e_values in e_values
+    n_agg_effects = len(selected_unique_e_values)
+
+    if n_agg_effects == 0:
+        raise ValueError("No time periods found for aggregation.")
+
+    agg_names = [None] * n_agg_effects
+    # equal weight due to balanced panel
+    agg_weights = np.ones(n_agg_effects) / n_agg_effects
+
+    # Create a weight mask (0 weights) for each of the groups
+    weight_masks = np.ma.masked_array(
+        data=np.zeros((*gt_index.shape, n_agg_effects)),
+        mask=np.broadcast_to(gt_index.mask[..., np.newaxis], (*gt_index.shape, n_agg_effects)),
+        dtype=np.float64,
+    )
+
+    group_weights = np.zeros(len(g_values))
+    selected_unique_g_indices = np.unique(selected_gt_indicies[0])
+    for g_idx in selected_unique_g_indices:
+        group_weights[g_idx] = (d_values == g_values[g_idx]).mean()  # (requires balanced panel)
+
+    # Write weight masks
+    for idx_agg, e_val in enumerate(selected_unique_e_values):
+        # Set time period name
+        agg_names[idx_agg] = str(e_val)
+
+        # time weights_masks
+        eventtime_gt_indicies = [(i, j, k) for i, j, k in zip(*selected_gt_indicies) if g_values[i] - t_values[k] == e_val]
+
+        for i, j, k in eventtime_gt_indicies:
+            weight_masks.data[i, j, k, idx_agg] = group_weights[i]
+
+        # normalize weights
+        weight_masks.data[..., idx_agg] = weight_masks.data[..., idx_agg] / np.sum(weight_masks.data[..., idx_agg])
+
+    return {"weight_masks": weight_masks, "agg_names": agg_names, "agg_weights": agg_weights}
