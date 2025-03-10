@@ -126,7 +126,7 @@ class DoubleMLPanelData(DoubleMLData):
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, t, id, z=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True):
+    def from_arrays(cls, x, y, d, t, identifier, z=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True):
         # TODO: Implement initialization from arrays
         raise NotImplementedError("from_arrays is not implemented for DoubleMLPanelData")
 
