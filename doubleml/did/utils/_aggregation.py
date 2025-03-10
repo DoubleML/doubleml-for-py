@@ -199,8 +199,8 @@ def _compute_did_eventstudy_aggregation_weights(gt_index, g_values, t_values, d_
         raise ValueError("No time periods found for aggregation.")
 
     agg_names = [None] * n_agg_effects
-    # equal weight due to balanced panel
-    agg_weights = np.ones(n_agg_effects) / n_agg_effects
+    agg_weights = np.zeros(n_agg_effects)
+    agg_weights[selected_unique_e_values >= 0] = 1 / np.sum(selected_unique_e_values >= 0)
 
     # Create a weight mask (0 weights) for each of the groups
     weight_masks = np.ma.masked_array(
