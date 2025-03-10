@@ -4,7 +4,7 @@ from scipy.stats import norm
 from sklearn.base import clone
 from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
 
-from ..double_ml_data import DoubleMLBaseData
+from ..data.base_data import DoubleMLBaseData
 from ..utils._estimation import _aggregate_coefs_and_ses, _var_est
 
 
