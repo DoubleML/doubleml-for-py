@@ -305,7 +305,7 @@ class DoubleMLDIDAggregation:
         if self.additional_parameters is None:
             color_idx = default_color_idx
         else:
-            color_idx = self.additional_parameters.get("agg_color_idx", default_color_idx)
+            color_idx = self.additional_parameters.get("aggregation_color_idx", default_color_idx)
         # Create DataFrame
         result_df = pd.DataFrame(
             {
