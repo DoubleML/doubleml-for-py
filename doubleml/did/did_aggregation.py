@@ -1,3 +1,4 @@
+import warnings
 from functools import reduce
 from operator import add
 
@@ -290,6 +291,14 @@ class DoubleMLDIDAggregation:
             - Color indices for plotting
         """
 
+        if joint and self.aggregated_frameworks.boot_t_stat is None:
+            self.aggregated_frameworks.bootstrap()
+            warnings.warn(
+                "Joint confidence intervals require bootstrapping which hasn't been performed yet. "
+                "Automatically applying '.bootstrap(method=\"normal\", n_rep_boot=500)' with default values. "
+                "For different bootstrap settings, call bootstrap() explicitly before plotting.",
+                UserWarning,
+            )
         ci = self.aggregated_frameworks.confint(level=level, joint=joint)
 
         default_color_idx = [0] * self._n_aggregations

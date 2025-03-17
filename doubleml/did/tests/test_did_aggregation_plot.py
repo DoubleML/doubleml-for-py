@@ -1,3 +1,5 @@
+import warnings
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -143,3 +145,47 @@ def test_plot_effects_custom_colors(simple_aggregation):
     # Named palette
     fig, _ = simple_aggregation.plot_effects(color_palette="Set1")
     plt.close(fig)
+
+
+@pytest.mark.ci
+def test_joint_ci_bootstrap_warning(mock_framework):
+    """Test that requesting joint confidence intervals without bootstrapping issues a warning."""
+    # Create a new aggregation object without bootstrapping
+    fw1 = mock_framework
+    fw2 = mock_framework
+
+    # Set treatment names
+    fw1.treatment_names = ["Treatment 1"]
+    fw2.treatment_names = ["Treatment 2"]
+
+    # Weights for aggregation
+    agg_weights = np.array([[1.0, 0.0], [0.0, 1.0]])
+    overall_weights = np.array([0.7, 0.3])
+
+    # Create aggregation without bootstrapping
+    aggregation = DoubleMLDIDAggregation(
+        frameworks=[fw1, fw2],
+        aggregation_weights=agg_weights,
+        overall_aggregation_weights=overall_weights,
+        aggregation_names=["Group A", "Group B"],
+        additional_parameters={"aggregation_color_idx": [0, 1]},
+    )
+
+    # Ensure no bootstrapping exists
+    aggregation.aggregated_frameworks._boot_t_stat = None
+
+    # Check that a warning is raised with the expected message
+    with pytest.warns(UserWarning, match="Joint confidence intervals require bootstrapping"):
+        fig, ax = aggregation.plot_effects(joint=True)
+        plt.close(fig)
+
+    # Verify that bootstrap was performed
+    assert aggregation.aggregated_frameworks.boot_t_stat is not None
+
+    # No warning should be raised when plotting again
+    with warnings.catch_warnings(record=True) as recorded_warnings:
+        warnings.simplefilter("always")  # Ensure all warnings are recorded
+        fig, ax = aggregation.plot_effects(joint=True)
+        plt.close(fig)
+
+    assert len(recorded_warnings) == 0

@@ -1,9 +1,10 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
+
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.tests._utils import generate_dml_dict
@@ -175,14 +176,14 @@ def test_plot_effects_return_type(frameworks, aggregation_weights):
 
     # Test with parameters
     fig, ax = aggregation.plot_effects(
-        level=0.9, 
+        level=0.9,
         joint=False,
         figsize=(10, 5),
         sort_by="estimate",
         ascending=False,
         color_palette="Set2",
         title="Custom Title",
-        y_label="Custom Y-Label"
+        y_label="Custom Y-Label",
     )
     assert isinstance(fig, Figure)
     assert isinstance(ax, Axes)
