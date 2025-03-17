@@ -3,10 +3,10 @@ The :mod:`doubleml.did` module implements double machine learning estimates base
 """
 
 from .did import DoubleMLDID
+from .did_aggregation import DoubleMLDIDAggregation
 from .did_binary import DoubleMLDIDBinary
 from .did_cs import DoubleMLDIDCS
 from .did_multi import DoubleMLDIDMulti
-from .did_aggregation import DoubleMLDIDAggregation
 
 __all__ = [
     "DoubleMLDIDAggregation",

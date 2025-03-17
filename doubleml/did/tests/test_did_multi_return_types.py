@@ -1,11 +1,14 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly
 import pytest
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml.data import DoubleMLPanelData
-from doubleml.did import DoubleMLDIDMulti
+from doubleml.did import DoubleMLDIDAggregation, DoubleMLDIDMulti
 from doubleml.did.datasets import make_did_CS2021
 from doubleml.double_ml_framework import DoubleMLFramework
 
@@ -155,3 +158,23 @@ def test_panel_sensitivity_return_types(fitted_dml_obj):
     )
     benchmark = dml_obj.sensitivity_benchmark(benchmarking_set=benchmarking_set)
     assert isinstance(benchmark, pd.DataFrame)
+
+
+@pytest.fixture(scope="module", params=["eventstudy", "group", "time"])
+def aggregation(request):
+    return request.param
+
+
+@pytest.mark.ci
+def test_panel_agg_return_types(fitted_dml_obj, aggregation):
+    agg_obj = fitted_dml_obj.aggregate(aggregation=aggregation)
+    agg_obj.aggregated_frameworks.bootstrap(n_rep_boot=10)
+
+    assert isinstance(agg_obj, DoubleMLDIDAggregation)
+    assert isinstance(agg_obj.__str__(), str)
+
+    # test plotting
+    fig, ax = agg_obj.plot_effects()
+    assert isinstance(fig, Figure)
+    assert isinstance(ax, Axes)
+    plt.close(fig)

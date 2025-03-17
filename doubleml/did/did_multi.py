@@ -832,6 +832,12 @@ class DoubleMLDIDMulti:
             "weight_masks": weight_masks,
         }
 
+        # set plotting colors for eventstudy
+        if aggregation_dict["method"] == "Event Study":
+            additional_params["aggregation_color_idx"] = [0 if "-" in name else 1 for name in aggregation_dict["agg_names"]]
+        else:
+            additional_params["aggregation_color_idx"] = [1] * n_aggregations
+
         aggregation_args = {
             "frameworks": all_frameworks,
             "aggregation_weights": all_agg_weights,
