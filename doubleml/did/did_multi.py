@@ -1,4 +1,5 @@
 import copy
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -158,6 +159,15 @@ class DoubleMLDIDMulti:
             self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
         else:
             assert self.score == "experimental"
+            if ml_m is not None:
+                warnings.warn(
+                    (
+                        'A learner ml_m has been provided for score = "experimental" but will be ignored. '
+                        "A learner ml_m is not required for estimation."
+                    )
+                )
+            self._learner = {"ml_g": ml_g, "ml_m": None}
+
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
@@ -182,10 +192,9 @@ class DoubleMLDIDMulti:
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
-        score_info = (f"Score function: {str(self.score)}\n"
-                      f"Control group: {str(self.control_group)}\n"
-                      f"Anticipation periods: 0\n"
-                      )
+        score_info = (
+            f"Score function: {str(self.score)}\n" f"Control group: {str(self.control_group)}\n" f"Anticipation periods: 0\n"
+        )
         resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
         learner_info = ""
         for key, value in self._learner.items():

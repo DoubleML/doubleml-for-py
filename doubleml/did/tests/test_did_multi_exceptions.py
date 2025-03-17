@@ -82,6 +82,14 @@ def test_exception_learners():
         invalid_arguments = {"ml_g": LogisticRegression()}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
 
+    msg = (
+        'A learner ml_m has been provided for score = "experimental" but will be ignored. '
+        "A learner ml_m is not required for estimation."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        invalid_arguments = {"score": "experimental"}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
 
 @pytest.mark.ci
 def test_exception_gt_combinations():

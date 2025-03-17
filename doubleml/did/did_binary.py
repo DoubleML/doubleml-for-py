@@ -232,13 +232,14 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
-        score_info = (f"Score function: {str(self.score)}\n"
-                      f"Treatment group: {str(self.g_value)}\n"
-                      f"Pre-treatment period: {str(self.t_value_pre)}\n"
-                      f"Evaluation period: {str(self.t_value_eval)}\n"
-                      f"Control group: {str(self.control_group)}\n"
-                      f"Effective sample size: {str(self.n_obs)}\n"
-                      )
+        score_info = (
+            f"Score function: {str(self.score)}\n"
+            f"Treatment group: {str(self.g_value)}\n"
+            f"Pre-treatment period: {str(self.t_value_pre)}\n"
+            f"Evaluation period: {str(self.t_value_eval)}\n"
+            f"Control group: {str(self.control_group)}\n"
+            f"Effective sample size: {str(self.n_obs)}\n"
+        )
         learner_info = ""
         for key, value in self.learner.items():
             learner_info += f"Learner {key}: {str(value)}\n"
