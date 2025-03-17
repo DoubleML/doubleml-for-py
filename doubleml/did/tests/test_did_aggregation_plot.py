@@ -87,13 +87,13 @@ def test_plot_effects_sorting(simple_aggregation):
     df = simple_aggregation._create_ci_dataframe()
 
     # Test name sorting
-    fig, ax = simple_aggregation.plot_effects(sort_by="name")
+    _, ax = simple_aggregation.plot_effects(sort_by="name")
     labels = [text.get_text() for text in ax.get_xticklabels()]
     expected = sorted(df["Aggregation_Names"])
     assert labels == expected
 
     # Test estimate sorting
-    fig, ax = simple_aggregation.plot_effects(sort_by="estimate")
+    _, ax = simple_aggregation.plot_effects(sort_by="estimate")
     labels = [text.get_text() for text in ax.get_xticklabels()]
     expected = df.sort_values("Estimate", ascending=False)["Aggregation_Names"].tolist()
     assert labels == expected
@@ -178,7 +178,7 @@ def test_joint_ci_bootstrap_warning(mock_framework):
 
     # Check that a warning is raised with the expected message
     with pytest.warns(UserWarning, match="Joint confidence intervals require bootstrapping"):
-        fig, ax = aggregation.plot_effects(joint=True)
+        _ = aggregation.plot_effects(joint=True)
 
     # Verify that bootstrap was performed
     assert aggregation.aggregated_frameworks.boot_t_stat is not None
@@ -186,7 +186,7 @@ def test_joint_ci_bootstrap_warning(mock_framework):
     # No warning should be raised when plotting again
     with warnings.catch_warnings(record=True) as recorded_warnings:
         warnings.simplefilter("always")  # Ensure all warnings are recorded
-        fig, ax = aggregation.plot_effects(joint=True)
+        _ = aggregation.plot_effects(joint=True)
 
     assert len(recorded_warnings) == 0
     plt.close("all")

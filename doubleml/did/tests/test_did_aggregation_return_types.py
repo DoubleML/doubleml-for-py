@@ -180,7 +180,6 @@ def test_plot_effects_return_type(frameworks, aggregation_weights):
         joint=False,
         figsize=(10, 5),
         sort_by="estimate",
-        ascending=False,
         color_palette="Set2",
         title="Custom Title",
         y_label="Custom Y-Label",
