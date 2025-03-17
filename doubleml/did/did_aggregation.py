@@ -147,27 +147,49 @@ class DoubleMLDIDAggregation:
         level=0.95,
         joint=True,
         figsize=(12, 6),
-        sort_by="name",
-        ascending=True,
+        sort_by=None,
         color_palette="colorblind",
         title="Aggregated Treatment Effects",
         y_label="Effect",
     ):
         """
-        Plots aggregated treatment effect estimates with confidence intervals.
+        Plot aggregated treatment effect estimates with confidence intervals.
 
-        Args:
-            level (float): Confidence level for the intervals (default 0.95).
-            joint (bool): Whether to use joint confidence intervals (default True).
-            figsize (tuple): Figure size as (width, height) (default (12, 6)).
-            sort_by (str): How to sort the results - 'estimate', 'name', or None.
-            ascending (bool): Sort order (True for ascending, False for descending).
-            color_palette (str or list): Seaborn color palette name or list of colors.
-            title (str): Title for the plot.
-            y_label (str): Label for y-axis.
+        Parameters
+        ----------
+        level : float
+            Confidence level for the intervals.
+            Default is ``0.95``.
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``True``.
+        figsize : tuple
+            Figure size as (width, height).
+            Default is ``(12, 6)``.
+        sort_by : str or None
+            How to sort the results - 'estimate', 'name', or None.
+            Default is ``None``.
+        color_palette : str or list
+            Seaborn color palette name or list of colors.
+            Default is ``"colorblind"``.
+        title : str
+            Title for the plot.
+            Default is ``"Aggregated Treatment Effects"``.
+        y_label : str
+            Label for y-axis.
+            Default is ``"Effect"``.
 
-        Returns:
-            fig, ax: The created figure and axis object for further customization.
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The created figure object.
+        ax : matplotlib.axes.Axes
+            The axes object for further customization.
+
+        Notes
+        -----
+        If ``joint=True`` and bootstrapping hasn't been performed, this method will automatically
+        perform bootstrapping with default parameters and issue a warning.
         """
         df = self._create_ci_dataframe(level=level, joint=joint)
 
@@ -178,9 +200,9 @@ class DoubleMLDIDAggregation:
 
         # Sort data if requested
         if sort_by == "estimate":
-            df = df.sort_values(by="Estimate", ascending=ascending)
+            df = df.sort_values(by="Estimate", ascending=False)
         elif sort_by == "name":
-            df = df.sort_values(by="Aggregation_Names", ascending=ascending)
+            df = df.sort_values(by="Aggregation_Names", ascending=True)
 
         # Handle color palette
         colors = sns.color_palette(color_palette) if isinstance(color_palette, str) else color_palette
