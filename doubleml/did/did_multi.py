@@ -1046,3 +1046,55 @@ class DoubleMLDIDMulti:
             modellist[i_model] = model
 
         return modellist
+
+    def _create_ci_dataframe(self, level=0.95, joint=True):
+        """
+        Create a DataFrame with coefficient estimates and confidence intervals for treatment effects.
+
+        Parameters
+        ----------
+        level : float, default=0.95
+            Confidence level for intervals (between 0 and 1).
+        joint : bool, default=True
+            Whether to use joint confidence intervals. If True and bootstrapping hasn't been 
+            performed yet, will automatically call bootstrap() with default parameters.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing:
+            - 'First Treated': First treatment time for each group
+            - 'Pre-treatment Period': Pre-treatment time period
+            - 'Evaluation Period': Evaluation time period
+            - 'Estimate': Treatment effect estimates
+            - 'CI Lower': Lower bound of confidence intervals
+            - 'CI Upper': Upper bound of confidence intervals
+            - 'Pre-Treatment': Boolean indicating if evaluation period is before treatment
+
+        Notes
+        -----
+        If joint=True and bootstrapping hasn't been performed, this method will automatically
+        perform bootstrapping with default parameters and issue a warning.
+        """
+
+        if joint and self.framework.boot_t_stat is None:
+            self.bootstrap()
+            warnings.warn(
+                "Joint confidence intervals require bootstrapping which hasn't been performed yet. "
+                "Automatically applying '.bootstrap(method=\"normal\", n_rep_boot=500)' with default values. "
+                "For different bootstrap settings, call bootstrap() explicitly before plotting.",
+                UserWarning,
+            )
+
+        ci = self.confint(level=level, joint=joint)
+        df = pd.DataFrame({
+            'First Treated': [gt_combination[0] for gt_combination in self.gt_combinations],
+            'Pre-treatment Period': [gt_combination[1] for gt_combination in self.gt_combinations],
+            'Evaluation Period': [gt_combination[2] for gt_combination in self.gt_combinations],
+            'Estimate': self.framework.thetas,
+            'CI Lower': ci.iloc[:, 0],
+            'CI Upper': ci.iloc[:, 1],
+            'Pre-Treatment': [gt_combination[2] < gt_combination[0] for gt_combination in self.gt_combinations],
+        })
+
+        return df

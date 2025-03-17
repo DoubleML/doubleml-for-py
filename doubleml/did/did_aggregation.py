@@ -306,8 +306,8 @@ class DoubleMLDIDAggregation:
             color_idx = default_color_idx
         else:
             color_idx = self.additional_parameters.get("aggregation_color_idx", default_color_idx)
-        # Create DataFrame
-        result_df = pd.DataFrame(
+
+        df = pd.DataFrame(
             {
                 "Aggregation_Names": self.aggregation_names,
                 "Estimate": self.aggregated_frameworks.thetas,
@@ -316,4 +316,4 @@ class DoubleMLDIDAggregation:
                 "color_idx": color_idx,
             }
         )
-        return result_df
+        return df
