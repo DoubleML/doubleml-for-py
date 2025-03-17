@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.tests._utils import generate_dml_dict
@@ -157,3 +159,31 @@ def test_str_representation(frameworks, aggregation_weights):
     # Check additional information section
     assert "------------------ Additional Information     ------------------" in str_output_with_info
     assert "key: value" in str_output_with_info
+
+
+@pytest.mark.ci
+def test_plot_effects_return_type(frameworks, aggregation_weights):
+    """Test that plot_effects method returns matplotlib Figure and Axes objects."""
+    aggregation = DoubleMLDIDAggregation(frameworks=frameworks, aggregation_weights=aggregation_weights)
+    aggregation.aggregated_frameworks.bootstrap(n_rep_boot=10)
+
+    # Test basic call without parameters
+    fig, ax = aggregation.plot_effects()
+    assert isinstance(fig, Figure)
+    assert isinstance(ax, Axes)
+    plt.close(fig)
+
+    # Test with parameters
+    fig, ax = aggregation.plot_effects(
+        level=0.9, 
+        joint=False,
+        figsize=(10, 5),
+        sort_by="estimate",
+        ascending=False,
+        color_palette="Set2",
+        title="Custom Title",
+        y_label="Custom Y-Label"
+    )
+    assert isinstance(fig, Figure)
+    assert isinstance(ax, Axes)
+    plt.close(fig)

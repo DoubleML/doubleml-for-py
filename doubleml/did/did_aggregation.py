@@ -1,7 +1,10 @@
 from functools import reduce
 from operator import add
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 from doubleml.double_ml_framework import DoubleMLFramework, concat
 
@@ -138,6 +141,75 @@ class DoubleMLDIDAggregation:
         """Additional parameters"""
         return self._additional_parameters
 
+    def plot_effects(
+        self,
+        level=0.95,
+        joint=True,
+        figsize=(12, 6),
+        sort_by="name",
+        ascending=True,
+        color_palette="colorblind",
+        title="Aggregated Treatment Effects",
+        y_label="Effect",
+    ):
+        """
+        Plots aggregated treatment effect estimates with confidence intervals.
+
+        Args:
+            level (float): Confidence level for the intervals (default 0.95).
+            joint (bool): Whether to use joint confidence intervals (default True).
+            figsize (tuple): Figure size as (width, height) (default (12, 6)).
+            sort_by (str): How to sort the results - 'estimate', 'name', or None.
+            ascending (bool): Sort order (True for ascending, False for descending).
+            color_palette (str or list): Seaborn color palette name or list of colors.
+            title (str): Title for the plot.
+            y_label (str): Label for y-axis.
+
+        Returns:
+            fig, ax: The created figure and axis object for further customization.
+        """
+        df = self._create_ci_dataframe(level=level, joint=joint)
+
+        # Validate sorting column
+        valid_sort_options = {"estimate", "name", None}
+        if sort_by not in valid_sort_options:
+            raise ValueError(f"Invalid sort_by value. Choose from {valid_sort_options}.")
+
+        # Sort data if requested
+        if sort_by == "estimate":
+            df = df.sort_values(by="Estimate", ascending=ascending)
+        elif sort_by == "name":
+            df = df.sort_values(by="Aggregation_Names", ascending=ascending)
+
+        # Handle color palette
+        colors = sns.color_palette(color_palette) if isinstance(color_palette, str) else color_palette
+        selected_colors = [colors[idx] for idx in df["color_idx"]]
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=figsize)
+
+        # Plot zero reference line
+        ax.axhline(y=0, color="black", linestyle="--", alpha=0.5, label="Zero effect")
+
+        # Plot point estimates and CIs
+        x_positions = np.arange(len(df))
+        ax.scatter(x_positions, df["Estimate"], color=selected_colors, s=80, zorder=3)
+        for i, row in enumerate(df.itertuples()):
+            ax.plot([i, i], [row.CI_Lower, row.CI_Upper], color=selected_colors[i], linewidth=2)
+            ax.plot([i - 0.1, i + 0.1], [row.CI_Lower, row.CI_Lower], color=selected_colors[i], linewidth=2)
+            ax.plot([i - 0.1, i + 0.1], [row.CI_Upper, row.CI_Upper], color=selected_colors[i], linewidth=2)
+
+        # Set labels and title
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(df["Aggregation_Names"])
+        ax.set_ylabel(y_label)
+        ax.set_title(title)
+
+        ax.grid(axis="y", alpha=0.3)
+        plt.tight_layout()
+
+        return fig, ax
+
     def _check_frameworks(self, frameworks):
         msg = "The 'frameworks' must be a list of DoubleMLFramework objects"
         is_list = isinstance(frameworks, list)
@@ -196,3 +268,43 @@ class DoubleMLDIDAggregation:
             raise TypeError("'aggregation_method_name' must be a string")
 
         return aggregation_names, aggregation_method_name
+
+    def _create_ci_dataframe(self, level=0.95, joint=True):
+        """
+        Create a DataFrame with coefficient estimates and confidence intervals.
+
+        Parameters
+        ----------
+        level : float, default=0.95
+            Confidence level for intervals.
+        joint : bool, default=True
+            Whether to use joint confidence intervals.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing:
+            - Aggregation names
+            - Coefficient estimates
+            - Lower and upper confidence interval bounds
+            - Color indices for plotting
+        """
+
+        ci = self.aggregated_frameworks.confint(level=level, joint=joint)
+
+        default_color_idx = [0] * self._n_aggregations
+        if self.additional_parameters is None:
+            color_idx = default_color_idx
+        else:
+            color_idx = self.additional_parameters.get("agg_color_idx", default_color_idx)
+        # Create DataFrame
+        result_df = pd.DataFrame(
+            {
+                "Aggregation_Names": self.aggregation_names,
+                "Estimate": self.aggregated_frameworks.thetas,
+                "CI_Lower": ci.iloc[:, 0],
+                "CI_Upper": ci.iloc[:, 1],
+                "color_idx": color_idx,
+            }
+        )
+        return result_df
