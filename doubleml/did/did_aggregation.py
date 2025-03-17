@@ -295,8 +295,8 @@ class DoubleMLDIDAggregation:
             self.aggregated_frameworks.bootstrap()
             warnings.warn(
                 "Joint confidence intervals require bootstrapping which hasn't been performed yet. "
-                "Automatically applying '.bootstrap(method=\"normal\", n_rep_boot=500)' with default values. "
-                "For different bootstrap settings, call bootstrap() explicitly before plotting.",
+                "Automatically applying '.aggregated_frameworks.bootstrap(method=\"normal\", n_rep_boot=500)' "
+                "with default values. For different bootstrap settings, call bootstrap() explicitly before plotting.",
                 UserWarning,
             )
         ci = self.aggregated_frameworks.confint(level=level, joint=joint)
