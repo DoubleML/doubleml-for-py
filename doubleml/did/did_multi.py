@@ -153,8 +153,11 @@ class DoubleMLDIDMulti:
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         ml_g_is_classifier = DoubleML._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
-        _ = DoubleML._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
-        self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
+        if self.score == "observational":
+            _ = DoubleML._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+            self._learner = {"ml_g": clone(ml_g), "ml_m": clone(ml_m)}
+        else:
+            assert self.score == "experimental"
         if ml_g_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {"ml_g": "predict_proba", "ml_m": "predict_proba"}
