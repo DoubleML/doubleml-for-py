@@ -1055,7 +1055,10 @@ class DoubleMLDIDMulti:
             )
 
         # Format axes
-        period_str = period.astype(f"datetime64[{self._dml_data.datetime_unit}]")
+        if is_datetime:
+            period_str = np.datetime64(period, self._dml_data.datetime_unit)
+        else:
+            period_str = period
         ax.set_title(f"First Treated: {period_str}")
         ax.grid(True, alpha=0.3)
 
