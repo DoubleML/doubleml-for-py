@@ -87,13 +87,13 @@ def test_plot_effects_sorting(simple_aggregation):
     df = simple_aggregation._create_ci_dataframe()
 
     # Test name sorting
-    fig, ax = simple_aggregation.plot_effects(sort_by="name", ascending=True)
+    fig, ax = simple_aggregation.plot_effects(sort_by="name")
     labels = [text.get_text() for text in ax.get_xticklabels()]
     expected = sorted(df["Aggregation_Names"])
     assert labels == expected
 
     # Test estimate sorting
-    fig, ax = simple_aggregation.plot_effects(sort_by="estimate", ascending=False)
+    fig, ax = simple_aggregation.plot_effects(sort_by="estimate")
     labels = [text.get_text() for text in ax.get_xticklabels()]
     expected = df.sort_values("Estimate", ascending=False)["Aggregation_Names"].tolist()
     assert labels == expected

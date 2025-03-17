@@ -935,12 +935,20 @@ class DoubleMLDIDMulti:
         if n_periods == 1:
             axes = [axes]
 
+        # Auto-calculate jitter if not specified
+        if jitter_value is None:
+            all_values = self.t_values
+            if is_datetime:
+                jitter_value = (all_values[1] - all_values[0]).total_seconds() * default_jitter
+            else:
+                jitter_value = (all_values[1] - all_values[0]) * default_jitter
+
         # Plot each treatment group
         for idx, period in enumerate(first_treated_periods):
             period_df = df[df["First Treated"] == period]
             ax = axes[idx]
 
-            self._plot_single_group(ax, period_df, period, colors, is_datetime, jitter_value, default_jitter)
+            self._plot_single_group(ax, period_df, period, colors, is_datetime, jitter_value)
 
             # Set axis labels
             if idx == n_periods - 1:  # Only bottom plot gets x label
@@ -969,7 +977,7 @@ class DoubleMLDIDMulti:
 
         return fig, axes
 
-    def _plot_single_group(self, ax, period_df, period, colors, is_datetime, jitter_value, default_jitter):
+    def _plot_single_group(self, ax, period_df, period, colors, is_datetime, jitter_value):
         """
         Plot estimates for a single treatment group on the given axis.
 
@@ -988,9 +996,6 @@ class DoubleMLDIDMulti:
         jitter_value : float
             Amount of jitter to apply to points.
             Default is ``None``.
-        default_jitter : float
-            Default amount of jitter to apply when jitter_value is None.
-            Default is ``0.1``.
 
         Returns
         -------
@@ -1008,14 +1013,12 @@ class DoubleMLDIDMulti:
             "Evaluation Period",
             is_datetime=is_datetime,
             jitter_value=jitter_value,
-            default_jitter=default_jitter,
         )
         post_treatment = add_jitter(
             period_df[~period_df["Pre-Treatment"]],
             "Evaluation Period",
             is_datetime=is_datetime,
             jitter_value=jitter_value,
-            default_jitter=default_jitter,
         )
 
         # Plot pre-treatment points

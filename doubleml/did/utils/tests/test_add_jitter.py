@@ -47,7 +47,7 @@ def test_add_jitter_numeric_no_duplicates(numeric_df_no_duplicates):
 @pytest.mark.ci
 def test_add_jitter_numeric_with_duplicates(numeric_df_with_duplicates):
     """Test that jitter is added correctly to numeric values with duplicates."""
-    result = add_jitter(numeric_df_with_duplicates, "x")
+    result = add_jitter(numeric_df_with_duplicates, "x", jitter_value=0.1)
 
     # Check that all original x-values have jitter applied
     for x_val in numeric_df_with_duplicates["x"].unique():
@@ -64,7 +64,7 @@ def test_add_jitter_numeric_with_duplicates(numeric_df_with_duplicates):
 @pytest.mark.ci
 def test_add_jitter_datetime(datetime_df_with_duplicates):
     """Test that jitter is added correctly to datetime values."""
-    result = add_jitter(datetime_df_with_duplicates, "x")
+    result = add_jitter(datetime_df_with_duplicates, "x", jitter_value=20)
 
     # Check that result contains jittered_x column with datetime type
     assert pd.api.types.is_datetime64_dtype(result["jittered_x"])
@@ -105,7 +105,7 @@ def test_add_jitter_explicit_value(numeric_df_with_duplicates):
 def test_add_jitter_single_unique_value():
     """Test with DataFrame having only one unique x value."""
     df = pd.DataFrame({"x": [5, 5, 5], "y": [1, 2, 3]})
-    result = add_jitter(df, "x")
+    result = add_jitter(df, "x", jitter_value=0.1)
 
     # Check that jitter was applied
     assert not (result["jittered_x"] == 5).all()
