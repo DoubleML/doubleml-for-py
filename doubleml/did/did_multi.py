@@ -923,8 +923,10 @@ class DoubleMLDIDMulti:
         # Set up colors
         colors = dict(zip(["pre", "post"], sns.color_palette(color_palette)[:2]))
 
-        # Check if x-axis is datetime
+        # Check if x-axis is datetime or convert to float
         is_datetime = pd.api.types.is_datetime64_any_dtype(df["Evaluation Period"])
+        if pd.api.types.is_integer_dtype(df["Evaluation Period"]):
+            df["Evaluation Period"] = df["Evaluation Period"].astype(float)
 
         # Create figure and subplots
         fig = plt.figure(figsize=figsize)

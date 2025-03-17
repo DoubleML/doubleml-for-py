@@ -63,7 +63,7 @@ def test_plot_effects_default(doubleml_did_fixture):
     assert isinstance(fig, plt.Figure)
     assert isinstance(axes, list)
     assert all(isinstance(ax, plt.Axes) for ax in axes)
-    plt.close(fig)
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -79,7 +79,7 @@ def test_plot_effects_confidence_level(doubleml_did_fixture):
     fig_default, _ = dml_obj.plot_effects()
     assert fig_default != fig
 
-    plt.close(fig)
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -95,7 +95,7 @@ def test_plot_effects_joint_ci(doubleml_did_fixture):
     fig_default, _ = dml_obj.plot_effects()
     assert fig_default != fig
 
-    plt.close(fig)
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -111,7 +111,7 @@ def test_plot_effects_figure_size(doubleml_did_fixture):
     width, height = fig.get_size_inches()
     assert (width, height) == custom_figsize
 
-    plt.close(fig)
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -122,13 +122,13 @@ def test_plot_effects_color_palette(doubleml_did_fixture):
     # Test with a different seaborn palette
     fig, _ = dml_obj.plot_effects(color_palette="Set1")
     assert isinstance(fig, plt.Figure)
-    plt.close(fig)
 
     # Test with a custom color list
     custom_colors = [(1, 0, 0), (0, 1, 0)]  # Red and green
     fig, _ = dml_obj.plot_effects(color_palette=custom_colors)
     assert isinstance(fig, plt.Figure)
-    plt.close(fig)
+
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -148,7 +148,7 @@ def test_plot_effects_labels_and_title(doubleml_did_fixture):
     # Check if y_label is set correctly (at least on the first axis)
     assert axes[0].get_ylabel() == custom_ylabel
 
-    plt.close(fig)
+    plt.close('all')
 
 
 @pytest.mark.ci
@@ -164,8 +164,6 @@ def test_plot_effects_jitter(doubleml_did_fixture):
     fig_default, _ = dml_obj.plot_effects()
     assert fig_default != fig
 
-    plt.close(fig)
-
     # Test with custom default_jitter
     fig, _ = dml_obj.plot_effects(default_jitter=0.05)
     assert isinstance(fig, plt.Figure)
@@ -174,4 +172,4 @@ def test_plot_effects_jitter(doubleml_did_fixture):
     fig_default, _ = dml_obj.plot_effects()
     assert fig_default != fig
 
-    plt.close(fig)
+    plt.close('all')
