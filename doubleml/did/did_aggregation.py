@@ -192,13 +192,23 @@ class DoubleMLDIDAggregation:
         # Plot zero reference line
         ax.axhline(y=0, color="black", linestyle="--", alpha=0.5, label="Zero effect")
 
-        # Plot point estimates and CIs
+        # Calculate asymmetric error bars
         x_positions = np.arange(len(df))
-        ax.scatter(x_positions, df["Estimate"], color=selected_colors, s=80, zorder=3)
-        for i, row in enumerate(df.itertuples()):
-            ax.plot([i, i], [row.CI_Lower, row.CI_Upper], color=selected_colors[i], linewidth=2)
-            ax.plot([i - 0.1, i + 0.1], [row.CI_Lower, row.CI_Lower], color=selected_colors[i], linewidth=2)
-            ax.plot([i - 0.1, i + 0.1], [row.CI_Upper, row.CI_Upper], color=selected_colors[i], linewidth=2)
+        yerr = np.array([df["Estimate"] - df["CI_Lower"], df["CI_Upper"] - df["Estimate"]])  # lower error  # upper error
+
+        for i, (x, y, color) in enumerate(zip(x_positions, df["Estimate"], selected_colors)):
+            ax.errorbar(
+                x,
+                y,
+                yerr=[[yerr[0, i]], [yerr[1, i]]],
+                fmt="o",
+                capsize=4,
+                color=color,
+                ecolor=color,
+                markersize=8,
+                markeredgewidth=1.5,
+                linewidth=1.5,
+            )
 
         # Set labels and title
         ax.set_xticks(x_positions)

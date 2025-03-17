@@ -64,7 +64,7 @@ def test_plot_effects_returns_fig_ax(simple_aggregation):
 
     assert isinstance(fig, Figure)
     assert isinstance(ax, Axes)
-    plt.close('all')
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -75,9 +75,9 @@ def test_plot_effects_invalid_sort_by(simple_aggregation):
 
     # These should not raise
     for valid_value in ["name", "estimate", None]:
-        fig, _ = simple_aggregation.plot_effects(sort_by=valid_value)
-    
-    plt.close('all')
+        _ = simple_aggregation.plot_effects(sort_by=valid_value)
+
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -97,8 +97,8 @@ def test_plot_effects_sorting(simple_aggregation):
     labels = [text.get_text() for text in ax.get_xticklabels()]
     expected = df.sort_values("Estimate", ascending=False)["Aggregation_Names"].tolist()
     assert labels == expected
-    
-    plt.close('all')
+
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -120,7 +120,7 @@ def test_plot_effects_elements(simple_aggregation):
     # Check we have the correct number of x-ticks
     assert len(ax.get_xticks()) == 2  # We have 2 groups in our fixture
 
-    plt.close('all')
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -132,8 +132,8 @@ def test_plot_effects_custom_figsize(simple_aggregation):
     # Convert to inches for comparison (matplotlib uses inches)
     width, height = fig.get_size_inches()
     assert (width, height) == custom_figsize
-    
-    plt.close('all')
+
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -145,8 +145,8 @@ def test_plot_effects_custom_colors(simple_aggregation):
 
     # Named palette
     fig, _ = simple_aggregation.plot_effects(color_palette="Set1")
-    
-    plt.close('all')
+
+    plt.close("all")
 
 
 @pytest.mark.ci
@@ -189,4 +189,4 @@ def test_joint_ci_bootstrap_warning(mock_framework):
         fig, ax = aggregation.plot_effects(joint=True)
 
     assert len(recorded_warnings) == 0
-    plt.close('all')
+    plt.close("all")

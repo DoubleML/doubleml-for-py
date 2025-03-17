@@ -1028,10 +1028,12 @@ class DoubleMLDIDMulti:
                     pre_treatment["Estimate"] - pre_treatment["CI Lower"],
                     pre_treatment["CI Upper"] - pre_treatment["Estimate"],
                 ],
-                fmt="none",
-                color=colors["pre"],
-                alpha=0.7,
+                fmt="o",
                 capsize=3,
+                color=colors["pre"],
+                markersize=4,
+                markeredgewidth=1,
+                linewidth=1,
             )
 
         # Plot post-treatment points
@@ -1044,10 +1046,12 @@ class DoubleMLDIDMulti:
                     post_treatment["Estimate"] - post_treatment["CI Lower"],
                     post_treatment["CI Upper"] - post_treatment["Estimate"],
                 ],
-                fmt="none",
-                color=colors["post"],
-                alpha=0.7,
+                fmt="o",
                 capsize=3,
+                color=colors["post"],
+                markersize=4,
+                markeredgewidth=1,
+                linewidth=1,
             )
 
         # Format axes
