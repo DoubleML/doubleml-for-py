@@ -160,6 +160,19 @@ def test_panel_sensitivity_return_types(fitted_dml_obj):
     assert isinstance(benchmark, pd.DataFrame)
 
 
+@pytest.mark.ci
+def test_panel_plot_effects(fitted_dml_obj):
+    fig, axes = fitted_dml_obj.plot_effects()
+    assert isinstance(fig, Figure)
+
+    # list of axes objects
+    assert isinstance(axes, list)
+    for ax in axes:
+        assert isinstance(ax, Axes)
+
+    plt.close(fig)
+
+
 @pytest.fixture(scope="module", params=["eventstudy", "group", "time"])
 def aggregation(request):
     return request.param

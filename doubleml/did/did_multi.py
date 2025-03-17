@@ -1,9 +1,12 @@
 import copy
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from joblib import Parallel, delayed
+from matplotlib.lines import Line2D
 from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
@@ -24,6 +27,7 @@ from doubleml.did.utils._did_utils import (
     _construct_post_treatment_mask,
     _get_never_treated_value,
 )
+from doubleml.did.utils._plot import add_jitter
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
 from doubleml.utils._checks import _check_score, _check_trimming
@@ -851,6 +855,206 @@ class DoubleMLDIDMulti:
         agg_obj = DoubleMLDIDAggregation(**aggregation_args)
         return agg_obj
 
+    def plot_effects(
+        self,
+        level=0.95,
+        joint=True,
+        figsize=(12, 8),
+        color_palette="colorblind",
+        date_format=None,
+        y_label="Effect",
+        title="Estimated ATTs by Group",
+        jitter_value=None,
+        default_jitter=0.1,
+    ):
+        """
+        Plots coefficient estimates with confidence intervals over time, grouped by first treated period.
+
+        Parameters
+        ----------
+        level : float
+            The confidence level for the intervals.
+            Default is ``0.95``.
+        joint : bool
+            Indicates whether joint confidence intervals are computed.
+            Default is ``True``.
+        figsize : tuple
+            Figure size as (width, height).
+            Default is ``(12, 8)``.
+        color_palette : str
+            Name of seaborn color palette to use for distinguishing pre and post treatment effects.
+            Default is ``"colorblind"``.
+        date_format : str
+            Format string for date ticks if x-axis contains datetime values.
+            Default is ``None``.
+        y_label : str
+            Label for y-axis.
+            Default is ``"Effect"``.
+        title : str
+            Title for the entire plot.
+            Default is ``"Estimated ATTs by Group"``.
+        jitter_value : float
+            Amount of jitter to apply to points.
+            Default is ``None``.
+        default_jitter : float
+            Default amount of jitter to apply to points.
+            Default is ``0.1``.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The created figure object
+        axes : list
+            List of matplotlib axis objects for further customization
+
+        Notes
+        -----
+        If joint=True and bootstrapping hasn't been performed, this method will automatically
+        perform bootstrapping with default parameters and issue a warning.
+        """
+        if self.framework is None:
+            raise ValueError("Apply fit() before plot_effects().")
+        df = self._create_ci_dataframe(level=level, joint=joint)
+
+        # Sort time periods and treatment groups
+        first_treated_periods = sorted(df["First Treated"].unique())
+        n_periods = len(first_treated_periods)
+
+        # Set up colors
+        colors = dict(zip(["pre", "post"], sns.color_palette(color_palette)[:2]))
+
+        # Check if x-axis is datetime
+        is_datetime = pd.api.types.is_datetime64_any_dtype(df["Evaluation Period"])
+
+        # Create figure and subplots
+        fig = plt.figure(figsize=figsize)
+        gs = fig.add_gridspec(n_periods + 1, 1, height_ratios=[3] * n_periods + [0.5])
+        axes = [fig.add_subplot(gs[i]) for i in range(n_periods)]
+        if n_periods == 1:
+            axes = [axes]
+
+        # Plot each treatment group
+        for idx, period in enumerate(first_treated_periods):
+            period_df = df[df["First Treated"] == period]
+            ax = axes[idx]
+
+            self._plot_single_group(ax, period_df, period, colors, is_datetime, jitter_value, default_jitter)
+
+            # Set axis labels
+            if idx == n_periods - 1:  # Only bottom plot gets x label
+                ax.set_xlabel("Evaluation Period")
+            ax.set_ylabel(y_label)
+
+            # Format date ticks if needed
+            if is_datetime and date_format:
+                ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter(date_format))
+                plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+
+        # Add legend
+        legend_ax = fig.add_subplot(gs[-1])
+        legend_ax.axis("off")
+        legend_elements = [
+            Line2D([0], [0], color="red", linestyle=":", alpha=0.7, label="Treatment start"),
+            Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label="Zero effect"),
+            Line2D([0], [0], marker="o", color=colors["pre"], linestyle="None", label="Pre-treatment", markersize=5),
+            Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5),
+        ]
+        legend_ax.legend(handles=legend_elements, loc="center", ncol=4, mode="expand", borderaxespad=0.0)
+
+        # Set title and layout
+        plt.suptitle(title, y=1.02)
+        plt.tight_layout()
+
+        return fig, axes
+
+    def _plot_single_group(self, ax, period_df, period, colors, is_datetime, jitter_value, default_jitter):
+        """
+        Plot estimates for a single treatment group on the given axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Matplotlib axis to plot on.
+        period_df : pandas.DataFrame
+            DataFrame containing estimates for a specific time period.
+        period : int or datetime
+            Treatment period for this group.
+        colors : dict
+            Dictionary with 'pre' and 'post' color values.
+        is_datetime : bool
+            Whether the x-axis represents datetime values.
+        jitter_value : float
+            Amount of jitter to apply to points.
+            Default is ``None``.
+        default_jitter : float
+            Default amount of jitter to apply when jitter_value is None.
+            Default is ``0.1``.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The updated axis object.
+        """
+
+        # Plot reference lines
+        ax.axvline(x=period, color="red", linestyle=":", alpha=0.7)
+        ax.axhline(y=0, color="black", linestyle="--", alpha=0.5)
+
+        # Split and jitter data
+        pre_treatment = add_jitter(
+            period_df[period_df["Pre-Treatment"]],
+            "Evaluation Period",
+            is_datetime=is_datetime,
+            jitter_value=jitter_value,
+            default_jitter=default_jitter,
+        )
+        post_treatment = add_jitter(
+            period_df[~period_df["Pre-Treatment"]],
+            "Evaluation Period",
+            is_datetime=is_datetime,
+            jitter_value=jitter_value,
+            default_jitter=default_jitter,
+        )
+
+        # Plot pre-treatment points
+        if not pre_treatment.empty:
+            ax.scatter(pre_treatment["jittered_x"], pre_treatment["Estimate"], color=colors["pre"], alpha=0.8, s=30)
+            ax.errorbar(
+                pre_treatment["jittered_x"],
+                pre_treatment["Estimate"],
+                yerr=[
+                    pre_treatment["Estimate"] - pre_treatment["CI Lower"],
+                    pre_treatment["CI Upper"] - pre_treatment["Estimate"],
+                ],
+                fmt="none",
+                color=colors["pre"],
+                alpha=0.7,
+                capsize=3,
+            )
+
+        # Plot post-treatment points
+        if not post_treatment.empty:
+            ax.scatter(post_treatment["jittered_x"], post_treatment["Estimate"], color=colors["post"], alpha=0.8, s=30)
+            ax.errorbar(
+                post_treatment["jittered_x"],
+                post_treatment["Estimate"],
+                yerr=[
+                    post_treatment["Estimate"] - post_treatment["CI Lower"],
+                    post_treatment["CI Upper"] - post_treatment["Estimate"],
+                ],
+                fmt="none",
+                color=colors["post"],
+                alpha=0.7,
+                capsize=3,
+            )
+
+        # Format axes
+        period_str = period.astype(f"datetime64[{self._dml_data.datetime_unit}]")
+        ax.set_title(f"First Treated: {period_str}")
+        ax.grid(True, alpha=0.3)
+
+        return ax
+
     def _get_agg_weights(self, selected_gt_mask, aggregation):
         """
         Calculate weights for aggregating treatment effects.
@@ -1056,7 +1260,7 @@ class DoubleMLDIDMulti:
         level : float, default=0.95
             Confidence level for intervals (between 0 and 1).
         joint : bool, default=True
-            Whether to use joint confidence intervals. If True and bootstrapping hasn't been 
+            Whether to use joint confidence intervals. If True and bootstrapping hasn't been
             performed yet, will automatically call bootstrap() with default parameters.
 
         Returns
@@ -1087,14 +1291,16 @@ class DoubleMLDIDMulti:
             )
 
         ci = self.confint(level=level, joint=joint)
-        df = pd.DataFrame({
-            'First Treated': [gt_combination[0] for gt_combination in self.gt_combinations],
-            'Pre-treatment Period': [gt_combination[1] for gt_combination in self.gt_combinations],
-            'Evaluation Period': [gt_combination[2] for gt_combination in self.gt_combinations],
-            'Estimate': self.framework.thetas,
-            'CI Lower': ci.iloc[:, 0],
-            'CI Upper': ci.iloc[:, 1],
-            'Pre-Treatment': [gt_combination[2] < gt_combination[0] for gt_combination in self.gt_combinations],
-        })
+        df = pd.DataFrame(
+            {
+                "First Treated": [gt_combination[0] for gt_combination in self.gt_combinations],
+                "Pre-treatment Period": [gt_combination[1] for gt_combination in self.gt_combinations],
+                "Evaluation Period": [gt_combination[2] for gt_combination in self.gt_combinations],
+                "Estimate": self.framework.thetas,
+                "CI Lower": ci.iloc[:, 0],
+                "CI Upper": ci.iloc[:, 1],
+                "Pre-Treatment": [gt_combination[2] < gt_combination[0] for gt_combination in self.gt_combinations],
+            }
+        )
 
         return df
