@@ -948,7 +948,7 @@ class DoubleMLDIDMulti:
             # Format date ticks if needed
             if is_datetime and date_format:
                 ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter(date_format))
-                plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
+                plt.setp(ax.xaxis.get_majorticklabels())
 
         # Add legend
         legend_ax = fig.add_subplot(gs[-1])
