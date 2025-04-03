@@ -939,7 +939,7 @@ class DoubleMLDIDMulti:
         if jitter_value is None:
             all_values = self.t_values
             if is_datetime:
-                jitter_value = (all_values[1] - all_values[0]).astype('timedelta64[s]').astype(int) * default_jitter
+                jitter_value = (all_values[1] - all_values[0]).astype("timedelta64[s]").astype(int) * default_jitter
             else:
                 jitter_value = (all_values[1] - all_values[0]) * default_jitter
 
