@@ -197,7 +197,7 @@ def test_exceptions_before_fit():
 
     msg = r"Apply sensitivity_analysis\(\) before sensitivity_summary."
     with pytest.raises(ValueError, match=msg):
-        dml_obj.sensitivity_summary
+        _ = dml_obj.sensitivity_summary
 
 
 @pytest.mark.ci

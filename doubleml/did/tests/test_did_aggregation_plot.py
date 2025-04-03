@@ -141,11 +141,11 @@ def test_plot_effects_custom_colors(simple_aggregation):
     """Test that color_palette parameter works."""
     # Custom color list
     custom_colors = [(1, 0, 0), (0, 1, 0)]  # Red and green
-    fig, _ = simple_aggregation.plot_effects(color_palette=custom_colors)
+    _, _ = simple_aggregation.plot_effects(color_palette=custom_colors)
+    plt.close("all")
 
     # Named palette
-    fig, _ = simple_aggregation.plot_effects(color_palette="Set1")
-
+    _, _ = simple_aggregation.plot_effects(color_palette="Set1")
     plt.close("all")
 
 
