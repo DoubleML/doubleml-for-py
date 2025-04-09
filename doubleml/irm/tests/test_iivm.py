@@ -100,6 +100,7 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, normalize_ipw, trimming
         "se": dml_iivm_obj.se.item(),
         "se_manual": res_manual["se"],
         "boot_methods": boot_methods,
+        "uniform_confset": dml_iivm_obj.uniform_confset()
     }
 
     for bootstrap in boot_methods:
@@ -149,3 +150,8 @@ def test_dml_iivm_boot(dml_iivm_fixture):
             rtol=1e-9,
             atol=1e-4,
         )
+
+
+@pytest.mark.ci
+def test_dml_iivm_unifconfset(dml_iivm_fixture):
+    print(dml_iivm_fixture["uniform_confset"])

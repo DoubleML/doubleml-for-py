@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import norm
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -550,3 +551,57 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
     def _sensitivity_element_est(self, preds):
         pass
+
+    def uniform_confset(self, level=0.95):
+        """
+        Confidence sets for non-parametric instrumental variable models that are uniformly valid under weak instruments.
+
+        Parameters
+        ----------
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        list_confset : List
+            A list that contains tuples. Each tuple contains the lower and upper
+            bounds of an interval. The union of this intervals forms the confidence set.
+        """
+
+        if not isinstance(level, float):
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
+        if (level <= 0) | (level >= 1):
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
+
+        # compute critical values
+        alpha = 1 - level
+        critical_value = norm.ppf(1.0 - alpha / 2)
+
+        # We need to find the thetas that solve the equation
+        # n * np.mean(score(theta))/np.mean(score(theta)**2) <= critical_value**2.
+        # This is equivalent to solving the equation
+        # a theta^2 + b theta + c <= 0
+        # for some a, b, c, which we calculate next, and then solve the equation.
+        n = self.psi_elements['psi_a'].shape[0] 
+        a = n * np.mean(self.psi_elements['psi_a'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_a']))
+        b = 2 * n * np.mean(self.psi_elements['psi_a']) * np.mean(self.psi_elements['psi_b']) - 2 * critical_value**2 * np.mean(np.multiply(self.psi_elements['psi_a'], self.psi_elements['psi_b']))
+        c = n * np.mean(self.psi_elements['psi_b'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_b']))
+        determinant = b**2 - 4 * a * c
+        list_confset = []
+        if determinant > 0:
+            root2 = (-b + np.sqrt(determinant)) / (2 * a)
+            root1 = (-b - np.sqrt(determinant)) / (2 * a)
+            if a > 0: # happy quadratic
+                list_confset = [(root1, root2)]
+            else: # sad quadratic
+                list_confset = [(-np.inf, root1), (root2, np.inf)]
+        elif determinant < 0:
+            if a > 0:
+                list_confset = []
+            else:
+                list_confset = [(-np.inf, np.inf)]
+        elif determinant == 0:
+            root = -b / (2 * a)
+            list_confset = [(root, root)]
+        return list_confset
