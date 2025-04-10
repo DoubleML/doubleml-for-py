@@ -104,7 +104,7 @@ def test_plot_effects_sorting(simple_aggregation):
 @pytest.mark.ci
 def test_plot_effects_elements(simple_aggregation):
     """Test that the plot contains expected elements."""
-    fig, ax = simple_aggregation.plot_effects(title="Test Title", y_label="Test Label")
+    _, ax = simple_aggregation.plot_effects(title="Test Title", y_label="Test Label")
 
     # Check title and y-label
     assert ax.get_title() == "Test Title"
