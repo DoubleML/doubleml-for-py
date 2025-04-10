@@ -50,7 +50,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     else:
         assert time_type == "float"
         time_periods = np.arange(n_periods)
-        never_treated_value = np.nan
+        never_treated_value = np.inf
     n_time_periods = len(time_periods)
 
     # set treatment values for time periods greater than n_pre_treat_periods
