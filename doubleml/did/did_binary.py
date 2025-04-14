@@ -246,6 +246,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             f"Pre-treatment period: {str(self.t_value_pre)}\n"
             f"Evaluation period: {str(self.t_value_eval)}\n"
             f"Control group: {str(self.control_group)}\n"
+            f"Anticipation periods: {str(self.anticipation_periods)}\n"
             f"Effective sample size: {str(self.n_obs)}\n"
         )
         learner_info = ""

@@ -202,7 +202,9 @@ class DoubleMLDIDMulti:
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
         score_info = (
-            f"Score function: {str(self.score)}\n" f"Control group: {str(self.control_group)}\n" f"Anticipation periods: 0\n"
+            f"Score function: {str(self.score)}\n"
+            f"Control group: {str(self.control_group)}\n"
+            f"Anticipation periods: {str(self.anticipation_periods)}\n"
         )
         resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
         learner_info = ""
