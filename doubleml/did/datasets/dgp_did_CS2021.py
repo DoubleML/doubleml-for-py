@@ -130,7 +130,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
         # filter time periods
         df = df[df["t"] >= time_periods[anticipation_periods]]
         # filter treatment after anticipation periods
-        df = df[df["d"] <= time_periods[-(anticipation_periods + 1)]]
+        df = df[(df["d"] <= time_periods[-(anticipation_periods + 1)]) | (df["d"] == never_treated_value)]
 
         # update time periods by subtracting time delta
         if time_type == "datetime":
