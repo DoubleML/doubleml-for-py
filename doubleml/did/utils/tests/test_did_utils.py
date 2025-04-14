@@ -178,6 +178,7 @@ def test_construct_gt_combinations():
             g_values=np.array([2, 3]),
             t_values=np.array([1, 2, 3, 4]),
             never_treated_value=np.inf,
+            anticipation_periods=0,
         )
 
     msg = "g_values must be sorted in ascending order."
@@ -187,6 +188,7 @@ def test_construct_gt_combinations():
             g_values=np.array([3, 2]),
             t_values=np.array([1, 2, 3, 4]),
             never_treated_value=np.inf,
+            anticipation_periods=0,
         )
 
     msg = "t_values must be sorted in ascending order."
@@ -196,6 +198,21 @@ def test_construct_gt_combinations():
             g_values=np.array([1, 2]),
             t_values=np.array([3, 2, 1]),
             never_treated_value=np.inf,
+            anticipation_periods=0,
+        )
+
+    # too large anticipation periods (no valid combinations)
+    msg = (
+        "No valid group-time combinations found. "
+        r"Please check the treatment group values and time period values \(and anticipation\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _construct_gt_combinations(
+            setting="standard",
+            g_values=np.array([2, 3]),
+            t_values=np.array([0, 1, 2, 3]),
+            never_treated_value=np.inf,
+            anticipation_periods=3,
         )
 
     # Test standard setting
@@ -204,6 +221,7 @@ def test_construct_gt_combinations():
         g_values=np.array([2, 3]),
         t_values=np.array([0, 1, 2, 3]),
         never_treated_value=np.inf,
+        anticipation_periods=0,
     )
     expected_standard = [
         (2, 0, 1),  # g=2, pre=0 (min of t_previous=0 and t_before_g=0), eval=1
@@ -221,6 +239,7 @@ def test_construct_gt_combinations():
         g_values=np.array([2, 3]),
         t_values=np.array([0, 1, 2, 3]),
         never_treated_value=np.inf,
+        anticipation_periods=0,
     )
     expected_all = [
         (2, 0, 1),  # g=2, all pre periods before t_eval=1
@@ -236,6 +255,32 @@ def test_construct_gt_combinations():
         (3, 2, 3),
     ]
     assert all_combinations == expected_all
+
+    # Test standard setting with anticipation periods
+    standard_combinations_anticipation = _construct_gt_combinations(
+        setting="standard",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.inf,
+        anticipation_periods=2,
+    )
+    expected_standard_anticipation = [
+        (3, 0, 3),  # g=3, pre=0 (min of t_previous=0 and t_before_g=0), eval=3 with anticipation 2
+    ]
+    assert standard_combinations_anticipation == expected_standard_anticipation
+
+    # Test all setting with anticipation periods
+    all_combinations_anticipation = _construct_gt_combinations(
+        setting="all",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.inf,
+        anticipation_periods=2,
+    )
+    expected_all_anticipation = [
+        (3, 0, 3),  # g=3, all pre periods before t_eval=3 with anticipation 2
+    ]
+    assert all_combinations_anticipation == expected_all_anticipation
 
 
 @pytest.mark.ci

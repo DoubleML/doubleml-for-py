@@ -117,7 +117,7 @@ def _check_gt_values(g_values, t_values):
         )
 
 
-def _construct_gt_combinations(setting, g_values, t_values, never_treated_value):
+def _construct_gt_combinations(setting, g_values, t_values, never_treated_value, anticipation_periods):
     """Construct treatment-time combinations for difference-in-differences analysis.
 
     Parameters:
@@ -141,17 +141,33 @@ def _construct_gt_combinations(setting, g_values, t_values, never_treated_value)
     gt_combinations = []
     if setting == "standard":
         for g_val in treatment_groups:
-            for i_t_eval, t_eval in enumerate(t_values[1:]):
-                t_previous = t_values[i_t_eval]
-                t_before_g = t_values[t_values < g_val][-1]
-                t_pre = min(t_previous, t_before_g)
-                gt_combinations.append((g_val, t_pre, t_eval))
+            t_values_before_g = t_values[t_values < g_val]
+            if len(t_values_before_g) > anticipation_periods:
+                first_eval_index = anticipation_periods + 1  # first relevant evaluation period index
+                t_before_g = t_values_before_g[-first_eval_index]
+
+                # collect all evaluation periods
+                for i_t_eval, t_eval in enumerate(t_values[first_eval_index:]):
+                    t_previous = t_values[i_t_eval]  # refers to t-anticipation_periods-1
+                    t_pre = min(t_previous, t_before_g)  # if t_previous larger than g_val, use t_before_g
+                    gt_combinations.append((g_val, t_pre, t_eval))
 
     if setting == "all":
         for g_val in treatment_groups:
-            for t_eval in t_values[1:]:
-                for t_pre in t_values[t_values < min(g_val, t_eval)]:
-                    gt_combinations.append((g_val, t_pre, t_eval))
+            t_values_before_g = t_values[t_values < g_val]
+            if len(t_values_before_g) > anticipation_periods:
+                first_eval_index = anticipation_periods + 1  # first relevant evaluation period index
+                for t_eval in t_values[first_eval_index:]:
+                    # all t-values before g_val - anticipation_periods
+                    valid_t_pre_values = t_values[t_values <= min(g_val, t_eval)][:-first_eval_index]
+                    for t_pre in valid_t_pre_values:
+                        gt_combinations.append((g_val, t_pre, t_eval))
+
+    if len(gt_combinations) == 0:
+        raise ValueError(
+            "No valid group-time combinations found. "
+            "Please check the treatment group values and time period values (and anticipation)."
+        )
 
     return gt_combinations
 

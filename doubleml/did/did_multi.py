@@ -1176,7 +1176,7 @@ class DoubleMLDIDMulti:
 
         if isinstance(gt_combinations, str):
             gt_combinations = _construct_gt_combinations(
-                gt_combinations, self.g_values, self.t_values, self.never_treated_value
+                gt_combinations, self.g_values, self.t_values, self.never_treated_value, self.anticipation_periods
             )
 
         if not isinstance(gt_combinations, list):
