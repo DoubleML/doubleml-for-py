@@ -138,7 +138,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
 
         _check_gt_combination(
-            (g_value, t_value_pre, t_value_eval), g_values, t_values, self._never_treated_value, self.anticipation_periods
+            (g_value, t_value_pre, t_value_eval), g_values, t_values, self.never_treated_value, self.anticipation_periods
         )
         self._g_value = g_value
         self._t_value_pre = t_value_pre
@@ -310,6 +310,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._t_value_pre
 
     @property
+    def never_treated_value(self):
+        """
+        The value indicating that a unit was never treated.
+        """
+        return self._never_treated_value
+
+    @property
     def post_treatment(self):
         """
         Indicates whether the evaluation period is after the treatment period.
@@ -418,7 +425,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         G_indicator = (data_subset[g_col] == g_value).astype(int)
 
         # Construct C (control group) indicating never treated or not yet treated
-        never_treated = _is_never_treated(data_subset[g_col], self._never_treated_value).reshape(-1)
+        never_treated = _is_never_treated(data_subset[g_col], self.never_treated_value).reshape(-1)
         if self.control_group == "never_treated":
             C_indicator = never_treated.astype(int)
 
