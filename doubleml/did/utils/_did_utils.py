@@ -68,7 +68,7 @@ def _check_anticipation_periods(anticipation_periods):
     return anticipation_periods
 
 
-def _check_gt_combination(gt_combination, g_values, t_values, never_treated_value):
+def _check_gt_combination(gt_combination, g_values, t_values, never_treated_value, anticipation_periods):
     g_value, t_value_pre, t_value_eval = gt_combination
     if g_value not in g_values:
         raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
@@ -90,10 +90,12 @@ def _check_gt_combination(gt_combination, g_values, t_values, never_treated_valu
             f"Got t_value_pre {t_value_pre} and t_value_eval {t_value_eval}."
         )
 
-    if t_value_pre >= g_value:
+    # get t_value equal to g_value and adjust for anticipation periods
+    maximal_t_pre = t_values[max(np.where(t_values == g_value)[0] - anticipation_periods, 0)]
+    if t_value_pre >= maximal_t_pre:
         warnings.warn(
-            "The treatment was assigned before the first pre-treatment period. "
-            f"Got t_value_pre {t_value_pre} and g_value {g_value}."
+            "The treatment was assigned before the first pre-treatment period (including anticipation). "
+            f"Got t_value_pre {t_value_pre} and g_value {g_value} with {anticipation_periods} anticipation_periods."
         )
 
 

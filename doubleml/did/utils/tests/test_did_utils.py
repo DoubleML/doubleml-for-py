@@ -79,6 +79,7 @@ def test_check_gt_combination():
         "g_values": np.array([-1, 1, 2, np.inf]),
         "t_values": np.array([0, 1, 2]),
         "never_treated_value": np.inf,
+        "anticipation_periods": 0,
     }
     invalid_args = [
         (
@@ -113,9 +114,11 @@ def test_check_gt_combination():
         with pytest.raises(error, match=msg):
             _check_gt_combination(**(valid_args | arg))
 
-    msg = "The treatment was assigned before the first pre-treatment period. Got t_value_pre 1 and g_value 1"
+    msg = r"The treatment was assigned before the first pre-treatment period \(including anticipation\)."
     with pytest.warns(UserWarning, match=msg):
         _check_gt_combination(**(valid_args | {"gt_combination": (1, 1, 2)}))
+    with pytest.warns(UserWarning, match=msg):
+        _check_gt_combination(**(valid_args | {"gt_combination": (1, 0, 1), "anticipation_periods": 1}))
 
 
 @pytest.mark.ci
