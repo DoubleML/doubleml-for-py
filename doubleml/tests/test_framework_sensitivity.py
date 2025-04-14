@@ -24,15 +24,21 @@ def dml_framework_sensitivity_fixture(n_rep, generate_data_simple):
 
     # add objects
     dml_framework_obj_add_obj = dml_framework_obj + dml_framework_obj
+    dml_framework_obj_add_obj.sensitivity_analysis()
 
     # substract objects
     dml_irm_obj_2 = DoubleMLIRM(dml_data_2, ml_g, ml_m, n_rep=n_rep)
     dml_irm_obj_2.fit()
     dml_framework_obj_2 = dml_irm_obj_2.construct_framework()
     dml_framework_obj_sub_obj = dml_framework_obj - dml_framework_obj_2
+    dml_framework_obj_sub_obj2 = dml_framework_obj - dml_framework_obj
+    dml_framework_obj_sub_obj2.sensitivity_analysis()
 
     # multiply objects
     dml_framework_obj_mul_obj = dml_framework_obj * 2
+    dml_framework_obj_mul_obj.sensitivity_analysis()
+    dml_framework_obj_mul_zero_obj = 0 * dml_framework_obj
+    dml_framework_obj_mul_zero_obj.sensitivity_analysis()
 
     # concat objects
     dml_framework_obj_concat = concat([dml_framework_obj, dml_framework_obj])
@@ -44,7 +50,9 @@ def dml_framework_sensitivity_fixture(n_rep, generate_data_simple):
         "dml_framework_obj_2": dml_framework_obj_2,
         "dml_framework_obj_add_obj": dml_framework_obj_add_obj,
         "dml_framework_obj_sub_obj": dml_framework_obj_sub_obj,
+        "dml_framework_obj_sub_obj2": dml_framework_obj_sub_obj2,
         "dml_framework_obj_mul_obj": dml_framework_obj_mul_obj,
+        "dml_framework_obj_mul_zero_obj": dml_framework_obj_mul_zero_obj,
         "dml_framework_obj_concat": dml_framework_obj_concat,
         "n_rep": n_rep,
     }
@@ -104,3 +112,28 @@ def test_dml_framework_sensitivity_summary(dml_framework_sensitivity_fixture):
     ]
     for substring in substrings:
         assert substring in sensitivity_summary
+
+
+@pytest.mark.ci
+def test_dml_framework_sensitivity_operations(dml_framework_sensitivity_fixture):
+    add_obj = dml_framework_sensitivity_fixture["dml_framework_obj_add_obj"]
+    mul_obj = dml_framework_sensitivity_fixture["dml_framework_obj_mul_obj"]
+    mul_zero_obj = dml_framework_sensitivity_fixture["dml_framework_obj_mul_zero_obj"]
+
+    for key in ["theta", "se", "ci"]:
+        assert add_obj.sensitivity_params[key]["upper"] == mul_obj.sensitivity_params[key]["upper"]
+        assert add_obj.sensitivity_params[key]["lower"] == mul_obj.sensitivity_params[key]["lower"]
+
+        assert mul_zero_obj.sensitivity_params[key]["upper"] == 0
+        assert mul_zero_obj.sensitivity_params[key]["lower"] == 0
+
+    assert add_obj.sensitivity_params["rv"] == mul_obj.sensitivity_params["rv"]
+    assert mul_zero_obj.sensitivity_params["rv"] > 0.99  # due to degenerated variance
+    assert mul_zero_obj.sensitivity_params["rva"] > 0.99  # due to degenerated variance
+
+    sub_obj = dml_framework_sensitivity_fixture["dml_framework_obj_sub_obj2"]
+    assert sub_obj.sensitivity_params["theta"]["upper"] == -1 * sub_obj.sensitivity_params["theta"]["lower"]
+    assert sub_obj.sensitivity_params["se"]["upper"] == sub_obj.sensitivity_params["se"]["lower"]
+    assert sub_obj.sensitivity_params["ci"]["upper"] == -1 * sub_obj.sensitivity_params["ci"]["lower"]
+    assert sub_obj.sensitivity_params["rv"] < 0.01
+    assert sub_obj.sensitivity_params["rva"] < 0.01

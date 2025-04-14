@@ -20,8 +20,8 @@ def _convert_to_numpy_arrray(x, input_name, allow_nan=False):
     else:
         raise TypeError(f"Invalid type for {input_name}.")
 
-    if np.issubdtype(x.dtype, np.floating) and not allow_nan and np.any(np.isnan(x)):
-        raise ValueError(f"{input_name} contains missing values.")
+    if np.issubdtype(x.dtype, np.floating) and not allow_nan and (np.any(np.isnan(x)) or np.any(np.isinf(x))):
+        raise ValueError(f"{input_name} contains missing or infinite values.")
 
     if np.issubdtype(x.dtype, np.datetime64) and not allow_nan and np.any(np.isnat(x)):
         raise ValueError(f"{input_name} contains missing values.")
@@ -32,7 +32,7 @@ def _convert_to_numpy_arrray(x, input_name, allow_nan=False):
 def _get_never_treated_value(g_values):
     never_treated_value = 0
     if np.issubdtype(g_values.dtype, np.floating):
-        never_treated_value = np.nan
+        never_treated_value = np.inf
     elif np.issubdtype(g_values.dtype, np.datetime64):
         never_treated_value = pd.NaT
     return never_treated_value
@@ -42,8 +42,8 @@ def _is_never_treated(x, never_treated_value):
     if not isinstance(x, np.ndarray):
         x = np.array([x])
 
-    if never_treated_value is np.nan:
-        return np.isnan(x)
+    if never_treated_value is np.inf:
+        return np.isinf(x)
     elif never_treated_value is pd.NaT:
         return pd.isna(x)
     else:

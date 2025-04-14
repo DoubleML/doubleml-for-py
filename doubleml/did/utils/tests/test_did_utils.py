@@ -20,8 +20,8 @@ from doubleml.did.utils._did_utils import (
 @pytest.mark.ci
 def test_get_never_treated_value():
     assert _get_never_treated_value(np.array([1, 2])) == 0
-    assert np.isnan(_get_never_treated_value(np.array([1.0, 2.0])))
-    assert np.isnan(_get_never_treated_value(np.array([1.0, 2])))
+    assert np.isinf(_get_never_treated_value(np.array([1.0, 2.0])))
+    assert np.isinf(_get_never_treated_value(np.array([1.0, 2])))
     assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"], dtype="datetime64")) is pd.NaT
     assert _get_never_treated_value(np.array(["2024-01-01", "2024-01-02"])) == 0
 
@@ -32,8 +32,9 @@ def test_is_never_treated():
     arguments = (
         (0, 0, True),
         (1, 0, False),
-        (np.nan, np.nan, True),
-        (0, np.nan, False),
+        (np.inf, np.inf, True),
+        (0, np.inf, False),
+        (np.nan, np.inf, False),
         (pd.NaT, pd.NaT, True),
         (0, pd.NaT, False),
     )
@@ -43,10 +44,10 @@ def test_is_never_treated():
     # check arrays
     arguments = (
         (np.array([0, 1]), 0, np.array([True, False])),
-        (np.array([0, 1]), np.nan, np.array([False, False])),
+        (np.array([0, 1]), np.inf, np.array([False, False])),
         (np.array([0, 1]), pd.NaT, np.array([False, False])),
-        (np.array([0, np.nan]), 0, np.array([True, False])),
-        (np.array([0, np.nan]), np.nan, np.array([False, True])),
+        (np.array([0, np.inf]), 0, np.array([True, False])),
+        (np.array([0, np.inf]), np.inf, np.array([False, True])),
         (np.array([0, pd.NaT]), 0, np.array([True, False])),
         (np.array([0, pd.NaT]), pd.NaT, np.array([False, True])),
     )
@@ -75,15 +76,15 @@ def test_check_anticipation_periods():
 def test_check_gt_combination():
     valid_args = {
         "gt_combination": (1, 0, 1),
-        "g_values": np.array([1, 2, np.nan]),
+        "g_values": np.array([1, 2, np.inf]),
         "t_values": np.array([0, 1, 2]),
-        "never_treated_value": np.nan,
+        "never_treated_value": np.inf,
     }
     invalid_args = [
         (
             {"gt_combination": (3.0, 0, 1)},
             ValueError,
-            r"The value 3.0 is not in the set of treatment group values \[ 1.  2. nan\].",
+            r"The value 3.0 is not in the set of treatment group values \[ 1.  2. inf\].",
         ),
         ({"gt_combination": (1, 0, 3)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
         ({"gt_combination": (1, 3, 1)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
@@ -125,7 +126,8 @@ def test_input_check_gt_values():
         ({"t_values": np.array([[0.0, 1.0, 2.0]])}, ValueError, "t_values must be a vector. Number of dimensions is 2."),
         ({"g_values": None}, TypeError, "Invalid type for g_values."),
         ({"t_values": None}, TypeError, "Invalid type for t_values."),
-        ({"t_values": np.array([0.0, 1.0, np.nan])}, ValueError, "t_values contains missing values."),
+        ({"t_values": np.array([0.0, 1.0, np.nan])}, ValueError, "t_values contains missing or infinite values."),
+        ({"t_values": np.array([0.0, 1.0, np.inf])}, ValueError, "t_values contains missing or infinite values."),
         (
             {"t_values": np.array(["2024-01-01", "2024-01-02", "NaT"], dtype="datetime64")},
             ValueError,
@@ -167,7 +169,7 @@ def test_construct_gt_combinations():
             setting="test",
             g_values=np.array([2, 3]),
             t_values=np.array([1, 2, 3, 4]),
-            never_treated_value=np.nan,
+            never_treated_value=np.inf,
         )
 
     msg = "g_values must be sorted in ascending order."
@@ -176,7 +178,7 @@ def test_construct_gt_combinations():
             setting="standard",
             g_values=np.array([3, 2]),
             t_values=np.array([1, 2, 3, 4]),
-            never_treated_value=np.nan,
+            never_treated_value=np.inf,
         )
 
     msg = "t_values must be sorted in ascending order."
@@ -185,7 +187,7 @@ def test_construct_gt_combinations():
             setting="standard",
             g_values=np.array([1, 2]),
             t_values=np.array([3, 2, 1]),
-            never_treated_value=np.nan,
+            never_treated_value=np.inf,
         )
 
     # Test standard setting
@@ -193,7 +195,7 @@ def test_construct_gt_combinations():
         setting="standard",
         g_values=np.array([2, 3]),
         t_values=np.array([0, 1, 2, 3]),
-        never_treated_value=np.nan,
+        never_treated_value=np.inf,
     )
     expected_standard = [
         (2, 0, 1),  # g=2, pre=0 (min of t_previous=0 and t_before_g=0), eval=1
@@ -210,7 +212,7 @@ def test_construct_gt_combinations():
         setting="all",
         g_values=np.array([2, 3]),
         t_values=np.array([0, 1, 2, 3]),
-        never_treated_value=np.nan,
+        never_treated_value=np.inf,
     )
     expected_all = [
         (2, 0, 1),  # g=2, all pre periods before t_eval=1
