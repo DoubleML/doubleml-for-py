@@ -1196,7 +1196,9 @@ class DoubleMLDIDMulti:
             )
 
         for gt_combination in gt_combinations:
-            _check_gt_combination(gt_combination, self.g_values, self.t_values, self.never_treated_value)
+            _check_gt_combination(
+                gt_combination, self.g_values, self.t_values, self.never_treated_value, self.anticipation_periods
+            )
 
         return gt_combinations
 

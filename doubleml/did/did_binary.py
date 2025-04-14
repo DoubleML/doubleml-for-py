@@ -137,7 +137,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._never_treated_value = _get_never_treated_value(g_values)
         self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
 
-        _check_gt_combination((g_value, t_value_pre, t_value_eval), g_values, t_values, self._never_treated_value)
+        _check_gt_combination(
+            (g_value, t_value_pre, t_value_eval), g_values, t_values, self._never_treated_value, self.anticipation_periods
+        )
         self._g_value = g_value
         self._t_value_pre = t_value_pre
         self._t_value_eval = t_value_eval
@@ -403,10 +405,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _preprocess_data(self, g_value, pre_t, eval_t):
         data = self._dml_data.data
 
-        y_col = data.y_col
-        t_col = data.t_col
-        id_col = data.id_col
-        g_col = data.g_col
+        y_col = self._dml_data.y_col
+        t_col = self._dml_data.t_col
+        id_col = self._dml_data.id_col
+        g_col = self._dml_data.g_col
 
         # relevent data subset
         data_subset_indicator = data[t_col].isin([pre_t, eval_t])
