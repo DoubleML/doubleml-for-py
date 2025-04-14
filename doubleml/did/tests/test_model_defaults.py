@@ -19,6 +19,11 @@ dml_did_binary_obj = DoubleMLDIDBinary(
 @pytest.mark.ci
 def test_did_binary_defaults():
     _check_basic_defaults_before_fit(dml_did_binary_obj)
+
+    # specific parameters
+    assert dml_did_binary_obj.control_group == "never_treated"
+    assert dml_did_binary_obj.anticipation_periods == 0
+
     _fit_bootstrap(dml_did_binary_obj)
     _check_basic_defaults_after_fit(dml_did_binary_obj)
 
@@ -34,6 +39,10 @@ def test_did_multi_defaults():
     assert dml_did_multi_obj.all_se is None
     assert dml_did_multi_obj.t_stat is None
     assert dml_did_multi_obj.pval is None
+
+    # specific parameters
+    assert dml_did_binary_obj.control_group == "never_treated"
+    assert dml_did_binary_obj.anticipation_periods == 0
 
     _fit_bootstrap(dml_did_multi_obj)
     _check_basic_defaults_after_fit(dml_did_multi_obj)
