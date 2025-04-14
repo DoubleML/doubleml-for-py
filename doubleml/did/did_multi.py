@@ -839,9 +839,9 @@ class DoubleMLDIDMulti:
         all_agg_weights = np.stack(weight_list, axis=0)
 
         additional_info = {
-            "Control Group": self.control_group,
-            "Anticipation Periods": 0,
-            "Score": self.score,
+            "Score function": self.score,
+            "Control group": self.control_group,
+            "Anticipation periods": self.anticipation_periods,
         }
 
         additional_params = {
