@@ -76,7 +76,7 @@ def test_check_anticipation_periods():
 def test_check_gt_combination():
     valid_args = {
         "gt_combination": (1, 0, 1),
-        "g_values": np.array([1, 2, np.inf]),
+        "g_values": np.array([-1, 1, 2, np.inf]),
         "t_values": np.array([0, 1, 2]),
         "never_treated_value": np.inf,
     }
@@ -84,7 +84,7 @@ def test_check_gt_combination():
         (
             {"gt_combination": (3.0, 0, 1)},
             ValueError,
-            r"The value 3.0 is not in the set of treatment group values \[ 1.  2. inf\].",
+            r"The value 3.0 is not in the set of treatment group values \[-1.  1.  2. inf\].",
         ),
         ({"gt_combination": (1, 0, 3)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
         ({"gt_combination": (1, 3, 1)}, ValueError, r"The value 3 is not in the set of evaluation period values \[0 1 2\]."),
@@ -102,6 +102,11 @@ def test_check_gt_combination():
             {"gt_combination": (1, 1, 0)},
             ValueError,
             "The pre-treatment period must be before the evaluation period. Got t_value_pre 1 and t_value_eval 0.",
+        ),
+        (
+            {"gt_combination": (-1, 0, 1)},
+            ValueError,
+            r"The value -1 \(group value\) is not in the set of evaluation period values \[0 1 2\].",
         ),
     ]
     for arg, error, msg in invalid_args:

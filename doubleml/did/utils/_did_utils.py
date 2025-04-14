@@ -74,6 +74,8 @@ def _check_gt_combination(gt_combination, g_values, t_values, never_treated_valu
         raise ValueError(f"The value {g_value} is not in the set of treatment group values {g_values}.")
     if _is_never_treated(g_value, never_treated_value):
         raise ValueError(f"The never treated group is not allowed as treatment group (g_value={never_treated_value}).")
+    if g_value not in t_values:
+        raise ValueError(f"The value {g_value} (group value) is not in the set of evaluation period values {t_values}.")
     if t_value_pre not in t_values:
         raise ValueError(f"The value {t_value_pre} is not in the set of evaluation period values {t_values}.")
     if t_value_eval not in t_values:
