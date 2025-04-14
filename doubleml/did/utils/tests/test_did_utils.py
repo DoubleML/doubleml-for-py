@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from doubleml.did.utils._did_utils import (
+    _check_anticipation_periods,
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
@@ -57,6 +58,17 @@ def test_is_never_treated():
 def test_check_control_group():
     with pytest.raises(ValueError, match="The control group has to be one of"):
         _check_control_group("invalid_control_group")
+
+
+@pytest.mark.ci
+def test_check_anticipation_periods():
+    with pytest.raises(TypeError, match="The anticipation periods must be an integer."):
+        _check_anticipation_periods("invalid_type")
+    with pytest.raises(ValueError, match="The anticipation periods must be non-negative."):
+        _check_anticipation_periods(-1)
+
+    assert _check_anticipation_periods(0) == 0
+    assert _check_anticipation_periods(1) == 1
 
 
 @pytest.mark.ci

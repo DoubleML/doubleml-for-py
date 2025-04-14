@@ -59,6 +59,15 @@ def _check_control_group(control_group):
     return control_group
 
 
+def _check_anticipation_periods(anticipation_periods):
+    if not isinstance(anticipation_periods, int):
+        raise TypeError("The anticipation periods must be an integer.")
+    if anticipation_periods < 0:
+        raise ValueError("The anticipation periods must be non-negative.")
+
+    return anticipation_periods
+
+
 def _check_gt_combination(gt_combination, g_values, t_values, never_treated_value):
     g_value, t_value_pre, t_value_eval = gt_combination
     if g_value not in g_values:
