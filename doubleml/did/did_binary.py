@@ -403,10 +403,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _preprocess_data(self, g_value, pre_t, eval_t):
         data = self._dml_data.data
 
-        y_col = self._dml_data.y_col
-        t_col = self._dml_data.t_col
-        id_col = self._dml_data.id_col
-        g_col = self._dml_data.g_col
+        y_col = data.y_col
+        t_col = data.t_col
+        id_col = data.id_col
+        g_col = data.g_col
 
         # relevent data subset
         data_subset_indicator = data[t_col].isin([pre_t, eval_t])
@@ -421,8 +421,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             C_indicator = never_treated.astype(int)
 
         elif self.control_group == "not_yet_treated":
+            # adjust max_g_value for anticipation periods
+            t_values = data.t_values
+            max_g_value = t_values[min(np.where(t_values == eval_t)[0] + self.anticipation_periods, len(t_values))]
             # not in G just as a additional check
-            later_treated = (data_subset[g_col] > max(pre_t, eval_t)) & (G_indicator == 0)
+            later_treated = (data_subset[g_col] > max_g_value) & (G_indicator == 0)
             not_yet_treated = never_treated | later_treated
             C_indicator = not_yet_treated.astype(int)
 
