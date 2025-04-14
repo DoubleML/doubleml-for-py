@@ -54,10 +54,21 @@ def time_type(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=[0, 2])
+def anticipation_periods(request):
+    return request.param
+
+
 @pytest.mark.ci
-def test_make_did_CS2021_return_types(dgp_type, include_never_treated, time_type):
+def test_make_did_CS2021_return_types(dgp_type, include_never_treated, time_type, anticipation_periods):
     np.random.seed(3141)
-    df = make_did_CS2021(n_obs=100, dgp_type=dgp_type, include_never_treated=include_never_treated, time_type=time_type)
+    df = make_did_CS2021(
+        n_obs=100,
+        dgp_type=dgp_type,
+        include_never_treated=include_never_treated,
+        time_type=time_type,
+        anticipation_periods=anticipation_periods,
+    )
     assert isinstance(df, pd.DataFrame)
 
 

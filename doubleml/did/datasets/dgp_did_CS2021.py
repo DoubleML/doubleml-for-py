@@ -33,8 +33,12 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     dim_x = kwargs.get("dim_x", 4)
     xi = kwargs.get("xi", 0.9)
     n_periods = kwargs.get("n_periods", 5)
+    anticipation_periods = kwargs.get("anticipation_periods", 0)
     n_pre_treat_periods = kwargs.get("n_pre_treat_periods", 2)
     start_date = kwargs.get("start_date", "2025-01")
+
+    if anticipation_periods > 0:
+        n_periods += anticipation_periods  # increase number of periods
 
     expected_time_types = ("datetime", "float")
     if time_type not in expected_time_types:
@@ -122,5 +126,15 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
             **{f"Z{i + 1}": z[:, i].repeat(n_time_periods) for i in range(dim_x)},
         }
     )
+    if anticipation_periods > 0:
+        # filter time periods
+        df = df[df["t"] >= time_periods[anticipation_periods]]
+
+        # update time periods by subtracting time delta
+        if time_type == "datetime":
+            df["t"] = df["t"].apply(lambda x: x - pd.DateOffset(months=anticipation_periods))
+        else:
+            assert time_type == "float"
+            df["t"] = df["t"] - anticipation_periods
 
     return df
