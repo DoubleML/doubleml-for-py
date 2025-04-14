@@ -69,6 +69,17 @@ def test_input():
 
 
 @pytest.mark.ci
+def test_no_control_group_exception():
+    msg = "No observations in the control group."
+    with pytest.raises(ValueError, match=msg):
+        invalid_data = dml.did.datasets.make_did_SZ2020(n_obs=500, dgp_type=1, return_type="DoubleMLPanelData")
+        invalid_data.data["d"] = 1.0
+        invalid_arguments = {"obj_dml_data": invalid_data, "control_group": "not_yet_treated"}
+        # mock _is_never_treated
+        _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
+
+
+@pytest.mark.ci
 def test_check_data_exceptions():
     """Test exception handling for _check_data method in DoubleMLDIDBinary"""
     df = pd.DataFrame(np.random.normal(size=(10, 5)), columns=[f"Col_{i}" for i in range(5)])

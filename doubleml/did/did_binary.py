@@ -426,6 +426,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             not_yet_treated = never_treated | later_treated
             C_indicator = not_yet_treated.astype(int)
 
+        if np.sum(C_indicator) == 0:
+            raise ValueError("No observations in the control group.")
+
         data_subset = data_subset.assign(C_indicator=C_indicator, G_indicator=G_indicator)
         # reduce to relevant subset
         data_subset = data_subset[(data_subset["G_indicator"] == 1) | (data_subset["C_indicator"] == 1)]
