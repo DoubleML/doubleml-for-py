@@ -19,6 +19,7 @@ from doubleml.did.utils._aggregation import (
     _compute_did_time_aggregation_weights,
 )
 from doubleml.did.utils._did_utils import (
+    _check_anticipation_periods,
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
@@ -60,6 +61,9 @@ class DoubleMLDIDMulti:
     control_group : str
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
         Default is ``'never_treated'``.
+
+    anticipation_periods : int
+        Number of anticipation periods. Default is ``0``.
 
     n_folds : int
         Number of folds for cross-fitting.
@@ -107,6 +111,7 @@ class DoubleMLDIDMulti:
         ml_m=None,
         gt_combinations="standard",
         control_group="never_treated",
+        anticipation_periods=0,
         n_folds=5,
         n_rep=1,
         score="observational",
@@ -127,13 +132,13 @@ class DoubleMLDIDMulti:
 
         self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(self.g_values)
+        self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
 
         self._gt_combinations = self._validate_gt_combinations(gt_combinations)
         self._gt_index = _construct_gt_index(self.gt_combinations, self.g_values, self.t_values)
         self._post_treatment_mask = _construct_post_treatment_mask(self.g_values, self.t_values)
         self._gt_labels = [f"ATT({g},{t_pre},{t_eval})" for g, t_pre, t_eval in self.gt_combinations]
 
-        # TODO: Check what to export and what not
         self._in_sample_normalization = in_sample_normalization
         if not isinstance(self.in_sample_normalization, bool):
             raise TypeError(
@@ -244,6 +249,13 @@ class DoubleMLDIDMulti:
         The control group.
         """
         return self._control_group
+
+    @property
+    def anticipation_periods(self):
+        """
+        The number of anticipation periods.
+        """
+        return self._anticipation_periods
 
     @property
     def gt_combinations(self):

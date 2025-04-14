@@ -5,6 +5,7 @@ from sklearn.utils import check_X_y
 
 from doubleml.data.panel_data import DoubleMLPanelData
 from doubleml.did.utils._did_utils import (
+    _check_anticipation_periods,
     _check_control_group,
     _check_gt_combination,
     _check_gt_values,
@@ -61,6 +62,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
         Default is ``'never_treated'``.
 
+    anticipation_periods : int
+        Number of anticipation periods. Default is ``0``.
+
     n_folds : int
         Number of folds.
         Default is ``5``.
@@ -109,6 +113,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         ml_g,
         ml_m=None,
         control_group="never_treated",
+        anticipation_periods=0,
         n_folds=5,
         n_rep=1,
         score="observational",
@@ -130,6 +135,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(g_values)
+        self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
 
         _check_gt_combination((g_value, t_value_pre, t_value_eval), g_values, t_values, self._never_treated_value)
         self._g_value = g_value
@@ -314,6 +320,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         The control group.
         """
         return self._control_group
+
+    @property
+    def anticipation_periods(self):
+        """
+        The number of anticipation periods.
+        """
+        return self._anticipation_periods
 
     @property
     def panel_data_wide(self):
