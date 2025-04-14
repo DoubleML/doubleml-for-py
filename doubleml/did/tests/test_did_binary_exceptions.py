@@ -75,7 +75,6 @@ def test_no_control_group_exception():
         invalid_data = dml.did.datasets.make_did_SZ2020(n_obs=500, dgp_type=1, return_type="DoubleMLPanelData")
         invalid_data.data["d"] = 1.0
         invalid_arguments = {"obj_dml_data": invalid_data, "control_group": "not_yet_treated"}
-        # mock _is_never_treated
         _ = dml.did.DoubleMLDIDBinary(**(valid_arguments | invalid_arguments))
 
 
