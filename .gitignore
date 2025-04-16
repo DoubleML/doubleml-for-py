@@ -31,3 +31,5 @@ MANIFEST
 *.vscode
 .flake8
 .coverage
+
+.conda
