@@ -1066,11 +1066,11 @@ class DoubleMLDIDMulti:
                     linewidth=1,
                 )
             else:
-                ax.scatter(pre_treatment["jittered_x"], pre_treatment["RVa"], color=colors["pre"], alpha=0.8, s=30)
+                ax.scatter(pre_treatment["jittered_x"], pre_treatment["RVa"], color=colors["pre"], alpha=0.8, s=30, marker="s")
 
         # Plot post-treatment points
         if not post_treatment.empty:
-            ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=30, marker="s")
+            ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=30)
 
             if result_type == "effect":
                 ax.errorbar(
