@@ -1354,7 +1354,7 @@ class DoubleMLDIDMulti:
             }
         )
 
-        if self._framework is None:
+        if self._framework.sensitivity_params is None:
             raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
         
         else:
