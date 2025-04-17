@@ -1354,10 +1354,7 @@ class DoubleMLDIDMulti:
             }
         )
 
-        if self._framework.sensitivity_params is None:
-            raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
-        
-        else:
+        if self._framework.sensitivity_params is not None:
             df["RV"] = self.framework.sensitivity_params["rv"]
             df["RVa"] = self.framework.sensitivity_params["rva"]
         return df
