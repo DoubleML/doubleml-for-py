@@ -873,6 +873,7 @@ class DoubleMLDIDMulti:
         self,
         level=0.95,
         joint=True,
+        result_type = "effect",
         figsize=(12, 8),
         color_palette="colorblind",
         date_format=None,
@@ -892,6 +893,8 @@ class DoubleMLDIDMulti:
         joint : bool
             Indicates whether joint confidence intervals are computed.
             Default is ``True``.
+        result_type : str
+            Type of result to plot. Either ``'effect'`` or ``'rv'``.
         figsize : tuple
             Figure size as (width, height).
             Default is ``(12, 8)``.
@@ -926,6 +929,9 @@ class DoubleMLDIDMulti:
         If joint=True and bootstrapping hasn't been performed, this method will automatically
         perform bootstrapping with default parameters and issue a warning.
         """
+        if result_type not in ["effect", "rv"]:
+            raise ValueError("result_type must be either 'effect' or 'rv'.")
+
         if self.framework is None:
             raise ValueError("Apply fit() before plot_effects().")
         df = self._create_ci_dataframe(level=level, joint=joint)
@@ -960,7 +966,7 @@ class DoubleMLDIDMulti:
             period_df = df[df["First Treated"] == period]
             ax = axes[idx]
 
-            self._plot_single_group(ax, period_df, period, colors, is_datetime, jitter_value)
+            self._plot_single_group(ax, period_df, period, result_type, colors, is_datetime, jitter_value)
 
             # Set axis labels
             if idx == n_periods - 1:  # Only bottom plot gets x label
@@ -977,7 +983,7 @@ class DoubleMLDIDMulti:
         legend_ax.axis("off")
         legend_elements = [
             Line2D([0], [0], color="red", linestyle=":", alpha=0.7, label="Treatment start"),
-            Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label="Zero effect"),
+            Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label=f"Zero {result_type}"),
             Line2D([0], [0], marker="o", color=colors["pre"], linestyle="None", label="Pre-treatment", markersize=5),
             Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5),
         ]
@@ -989,7 +995,7 @@ class DoubleMLDIDMulti:
 
         return fig, axes
 
-    def _plot_single_group(self, ax, period_df, period, colors, is_datetime, jitter_value):
+    def _plot_single_group(self, ax, period_df, period, result_type, colors, is_datetime, jitter_value):
         """
         Plot estimates for a single treatment group on the given axis.
 
@@ -1001,6 +1007,8 @@ class DoubleMLDIDMulti:
             DataFrame containing estimates for a specific time period.
         period : int or datetime
             Treatment period for this group.
+        result_type : str
+            Type of result to plot. Either ``'effect'`` or ``'rv'``.
         colors : dict
             Dictionary with 'pre' and 'post' color values.
         is_datetime : bool
@@ -1033,41 +1041,55 @@ class DoubleMLDIDMulti:
             jitter_value=jitter_value,
         )
 
+        if result_type == "effect":
+            plot_col = "Estimate" 
+        else:     
+            plot_col = "RV"
+
         # Plot pre-treatment points
         if not pre_treatment.empty:
-            ax.scatter(pre_treatment["jittered_x"], pre_treatment["Estimate"], color=colors["pre"], alpha=0.8, s=30)
-            ax.errorbar(
-                pre_treatment["jittered_x"],
-                pre_treatment["Estimate"],
-                yerr=[
-                    pre_treatment["Estimate"] - pre_treatment["CI Lower"],
-                    pre_treatment["CI Upper"] - pre_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["pre"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
-            )
+            ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col], color=colors["pre"], alpha=0.8, s=30)
+
+            if result_type == "effect":
+                ax.errorbar(
+                    pre_treatment["jittered_x"],
+                    pre_treatment["Estimate"],
+                    yerr=[
+                        pre_treatment["Estimate"] - pre_treatment["CI Lower"],
+                        pre_treatment["CI Upper"] - pre_treatment["Estimate"],
+                    ],
+                    fmt="o",
+                    capsize=3,
+                    color=colors["pre"],
+                    markersize=4,
+                    markeredgewidth=1,
+                    linewidth=1,
+                )
+            else:
+                ax.scatter(pre_treatment["jittered_x"], pre_treatment["RVa"], color=colors["pre"], alpha=0.8, s=30)
 
         # Plot post-treatment points
         if not post_treatment.empty:
-            ax.scatter(post_treatment["jittered_x"], post_treatment["Estimate"], color=colors["post"], alpha=0.8, s=30)
-            ax.errorbar(
-                post_treatment["jittered_x"],
-                post_treatment["Estimate"],
-                yerr=[
-                    post_treatment["Estimate"] - post_treatment["CI Lower"],
-                    post_treatment["CI Upper"] - post_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["post"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
-            )
+            ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=30, marker="s")
+
+            if result_type == "effect":
+                ax.errorbar(
+                    post_treatment["jittered_x"],
+                    post_treatment["Estimate"],
+                    yerr=[
+                        post_treatment["Estimate"] - post_treatment["CI Lower"],
+                        post_treatment["CI Upper"] - post_treatment["Estimate"],
+                    ],
+                    fmt="o",
+                    capsize=3,
+                    color=colors["post"],
+                    markersize=4,
+                    markeredgewidth=1,
+                    linewidth=1,
+                )
+            else:
+                # use different shape for RVa
+                ax.scatter(post_treatment["jittered_x"], post_treatment["RVa"], color=colors["post"], alpha=0.8, s=30, marker="s")
 
         # Format axes
         if is_datetime:
@@ -1301,6 +1323,8 @@ class DoubleMLDIDMulti:
             - 'CI Lower': Lower bound of confidence intervals
             - 'CI Upper': Upper bound of confidence intervals
             - 'Pre-Treatment': Boolean indicating if evaluation period is before treatment
+            - 'RV': Robustness values (if sensitivity_analysis() has been called before)
+            - 'RVa': Robustness values for (1-a) confidence bounds (if sensitivity_analysis() has been called before)
 
         Notes
         -----
@@ -1330,4 +1354,10 @@ class DoubleMLDIDMulti:
             }
         )
 
+        if self._framework is None:
+            raise ValueError("Apply sensitivity_analysis() before sensitivity_summary.")
+        
+        else:
+            df["RV"] = self.framework.sensitivity_params["rv"]
+            df["RVa"] = self.framework.sensitivity_params["rva"]
         return df
