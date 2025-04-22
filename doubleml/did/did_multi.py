@@ -811,6 +811,7 @@ class DoubleMLDIDMulti:
         ----------
         aggregation : str or dict
             Method to aggregate treatment effects or dictionary with aggregation weights (masked numpy array).
+            Has to one of ``'group'``, ``'time'``, ``'eventstudy'`` or a masked numpy array.
             Default is ``'group'``.
 
         Returns
