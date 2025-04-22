@@ -970,8 +970,6 @@ class DoubleMLDIDMulti:
         fig = plt.figure(figsize=figsize)
         gs = fig.add_gridspec(n_periods + 1, 1, height_ratios=[3] * n_periods + [0.5])
         axes = [fig.add_subplot(gs[i]) for i in range(n_periods)]
-        if n_periods == 1:
-            axes = [axes]
 
         # Auto-calculate jitter if not specified
         if jitter_value is None:
