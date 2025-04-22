@@ -99,9 +99,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Indicates whether to print information about the evaluated periods.
         Default is ``False``.
 
-    Examples
-    --------
-    TODO: Add example
     """
 
     def __init__(
