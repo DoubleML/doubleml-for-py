@@ -24,12 +24,10 @@ class DoubleMLPanelData(DoubleMLData):
         The treatment variable(s) indicating the treatment groups in terms of first time of treatment exposure.
 
     t_col : str
-        The time variable.
-        # TODO: Extend docstring
+        The time variable indicating the time.
 
     id_col : str
-        The id variable.
-        # TODO: Extend docstring
+        Unique unit identifier.
 
     x_cols : None, str or list
         The covariates.
@@ -59,7 +57,18 @@ class DoubleMLPanelData(DoubleMLData):
 
     Examples
     --------
-    # TODO: Add examples
+    >>> from doubleml.did.datasets import make_did_CS2021
+    >>> from doubleml import DoubleMLPanelData
+    >>> df = make_did_CS2021(n_obs=500)
+    >>> dml_data = dml.data.DoubleMLPanelData(
+    >>>     df,
+    >>>     y_col="y",
+    >>>     d_cols="d",
+    >>>     id_col="id",
+    >>>     t_col="t",
+    >>>     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    >>>     datetime_unit="M"
+    >>>     )
     """
 
     def __init__(
@@ -95,7 +104,6 @@ class DoubleMLPanelData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
         )
-        # TODO: Do we want to allow for multiple treatment columns (for multiple treatments? -> implications for g_col)
         if self.n_treat != 1:
             raise ValueError("Only one treatment column is allowed for panel data.")
 
