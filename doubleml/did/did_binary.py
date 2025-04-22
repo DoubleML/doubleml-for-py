@@ -706,7 +706,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
-        # TODO: Check array extension & Scaling (not straightforward for riesz representer)
         extend_kwargs = {
             "n_obs": self._dml_data.n_obs,
             "id_positions": self.id_positions,
