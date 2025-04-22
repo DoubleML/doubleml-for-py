@@ -60,15 +60,15 @@ class DoubleMLPanelData(DoubleMLData):
     >>> from doubleml.did.datasets import make_did_CS2021
     >>> from doubleml import DoubleMLPanelData
     >>> df = make_did_CS2021(n_obs=500)
-    >>> dml_data = dml.data.DoubleMLPanelData(
-    >>>     df,
-    >>>     y_col="y",
-    >>>     d_cols="d",
-    >>>     id_col="id",
-    >>>     t_col="t",
-    >>>     x_cols=["Z1", "Z2", "Z3", "Z4"],
-    >>>     datetime_unit="M"
-    >>>     )
+    >>> dml_data = DoubleMLPanelData(
+    ...     df,
+    ...     y_col="y",
+    ...     d_cols="d",
+    ...     id_col="id",
+    ...     t_col="t",
+    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    ...     datetime_unit="M"
+    ... )
     """
 
     def __init__(
