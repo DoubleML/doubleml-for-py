@@ -56,7 +56,7 @@ class DoubleMLDIDMulti:
         Only relevant for ``score='observational'``. Default is ``None``.
 
     gt_combinations : array-like
-        TODO: Add description
+        A list of tuples with the group-time combinations to be evaluated.
 
     control_group : str
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
@@ -101,7 +101,31 @@ class DoubleMLDIDMulti:
 
     Examples
     --------
-    TODO: Add example
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.did.datasets import make_did_CS2021
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(42)
+    >>> df = make_did_CS2021(n_obs=500)
+    >>> dml_data = dml.data.DoubleMLPanelData(
+    ...     df,
+    ...     y_col="y",
+    ...     d_cols="d",
+    ...     id_col="id",
+    ...     t_col="t",
+    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    ...     datetime_unit="M"
+    ... )
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5)
+    >>> dml_did_obj = dml.did.DoubleMLDIDMulti(
+    ...     obj_dml_data=dml_data,
+    ...     ml_g=ml_g,
+    ...     ml_m=ml_m,
+    ...     gt_combinations="standard",
+    ...     control_group="never_treated",
+    ... )
+    >>> print(dml_did_obj.fit())
     """
 
     def __init__(
@@ -190,7 +214,6 @@ class DoubleMLDIDMulti:
 
         # perform sample splitting
         self._smpls = None
-        # TODO: Check draw_sample_splitting here vs. DoubleMLDIDBINARY
         self._draw_sample_splitting = draw_sample_splitting
 
         # initialize all models if splits are known
