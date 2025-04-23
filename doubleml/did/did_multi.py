@@ -610,6 +610,7 @@ class DoubleMLDIDMulti:
     def confint(self, joint=False, level=0.95):
         """
         Confidence intervals for DoubleML models.
+
         Parameters
         ----------
         joint : bool
@@ -618,6 +619,7 @@ class DoubleMLDIDMulti:
         level : float
             The confidence level.
             Default is ``0.95``.
+
         Returns
         -------
         df_ci : pd.DataFrame
@@ -661,6 +663,7 @@ class DoubleMLDIDMulti:
     def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
+
         Parameters
         ----------
         method : str
@@ -668,6 +671,7 @@ class DoubleMLDIDMulti:
             Default is ``'normal'``
         n_rep_boot : int
             The number of bootstrap replications.
+
         Returns
         -------
         self : object
@@ -682,6 +686,7 @@ class DoubleMLDIDMulti:
         """
         Performs a sensitivity analysis to account for unobserved confounders.
         The evaluated scenario is stored as a dictionary in the property ``sensitivity_params``.
+
         Parameters
         ----------
         cf_y : float
@@ -703,6 +708,7 @@ class DoubleMLDIDMulti:
             If it is a single float uses the same null hypothesis for all estimated parameters.
             Else the array has to be of shape (n_coefs,).
             Default is ``0.0``.
+
         Returns
         -------
         self : object
@@ -729,6 +735,7 @@ class DoubleMLDIDMulti:
     ):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
+
         Parameters
         ----------
         idx_gt_atte : int
@@ -763,6 +770,7 @@ class DoubleMLDIDMulti:
         grid_size : int
             Determines the number of evaluation points of the grid.
             Default is ``100``.
+
         Returns
         -------
         fig : object
@@ -789,6 +797,7 @@ class DoubleMLDIDMulti:
         """
         Computes a benchmark for a given set of features.
         Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
         Returns
         -------
         benchmark_results : pandas.DataFrame

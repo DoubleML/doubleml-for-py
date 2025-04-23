@@ -48,7 +48,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     - DGP 6: Outcome is nonlinear, propensity score is constant (experimental setting)
 
     Mathematical Specification
-    -------------------------
+    ----------------------------
     Let :math:`X= (X_1, X_2, X_3, X_4)^T \\sim \\mathcal{N}(0, \\Sigma)`, where :math:`\\Sigma` is a matrix with entries
     :math:`\\Sigma_{kj} = c^{|j-k|}`. The default value is :math:`c = 0`, corresponding to the identity matrix.
 
