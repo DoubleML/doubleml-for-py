@@ -61,11 +61,13 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     1. Time-varying outcome regression function for each time period :math:`t`:
 
        .. math::
+
            f_{reg,t}(W) = 210 + \\frac{t}{T} \\cdot (27.4 \\cdot W_1 + 13.7 \\cdot W_2 + 13.7 \\cdot W_3 + 13.7 \\cdot W_4)
 
     2. Group-specific propensity function for each treatment group :math:`g`:
 
        .. math::
+
            f_{ps,g}(W) = \\xi \\cdot \\left(1-\\frac{g}{G}\\right) \\cdot
            (-W_1 + 0.5 \\cdot W_2 - 0.25 \\cdot W_3 - 0.2\\cdot W_4)
 
@@ -81,6 +83,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     3. Treatment effects: For a unit in treatment group :math:`g`, the effect in period :math:`t` is:
 
        .. math::
+
            \\theta_{i,t,g} = \\max(t - t_g + 1, 0) + 0.1 \\cdot X_{i,1} \\cdot \\max(t - t_g + 1, 0)
 
        where :math:`t_g` is the first treatment period for group :math:`g`, :math:`X_{i,1}` is the first covariate for unit
@@ -89,7 +92,9 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     4. Potential outcomes for unit :math:`i` in period :math:`t`:
 
        .. math::
+
            Y_{i,t}(0) &= f_{reg,t}(W_{reg}) + \\delta_t + \\eta_i + \\varepsilon_{i,0,t} \\\\
+
            Y_{i,t}(1) &= Y_{i,t}(0) + \\theta_{i,t,g} + (\\varepsilon_{i,1,t} - \\varepsilon_{i,0,t})
 
        where :math:`\\varepsilon_{i,0,t}, \\varepsilon_{i,1,t} \\sim \\mathcal{N}(0, 1)`.
@@ -97,6 +102,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     5. Observed outcomes:
 
        .. math::
+
            Y_{i,t} = Y_{i,t}(1) \\cdot 1\\{t \\geq t_g\\} + Y_{i,t}(0) \\cdot 1\\{t < t_g\\}
 
     6. Treatment assignment:
@@ -104,16 +110,19 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
        For non-experimental settings (DGP 1-4), the probability of being in treatment group :math:`g` is:
 
        .. math::
+
            P(G_i = g) = \\frac{\\exp(f_{ps,g}(W_{ps}))}{\\sum_{g'} \\exp(f_{ps,g'}(W_{ps}))}
 
        For experimental settings (DGP 5-6), each treatment group (including never-treated) has equal probability:
 
        .. math::
+
            P(G_i = g) = \\frac{1}{G} \\text{ for all } g
 
     The variables :math:`W_{reg}` and :math:`W_{ps}` are selected based on the DGP type:
 
     .. math::
+
         DGP1:\\quad W_{reg} &= Z \\quad W_{ps} = Z
 
         DGP2:\\quad W_{reg} &= Z \\quad W_{ps} = X
