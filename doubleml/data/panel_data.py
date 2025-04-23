@@ -10,8 +10,10 @@ from doubleml.data.utils.panel_data_utils import _is_valid_datetime_unit
 
 class DoubleMLPanelData(DoubleMLData):
     """Double machine learning data-backend for panel data in long format.
+
     :class:`DoubleMLPanelData` objects can be initialized from
-    :class:`pandas.DataFrame`'s as well as :class:`numpy.ndarray`'s.
+    :class:`pandas.DataFrame` as well as :class:`numpy.ndarray` objects.
+
     Parameters
     ----------
     data : :class:`pandas.DataFrame`
