@@ -152,13 +152,13 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
 
     **kwargs
         Additional keyword arguments. Accepts the following parameters:
-        'c' (float, default=0.0): Parameter for correlation structure in X.
-        'dim_x' (int, default=4): Dimension of feature vectors.
-        'xi' (float, default=0.9): Scale parameter for the propensity score function.
-        'n_periods' (int, default=5): Number of time periods.
-        'anticipation_periods' (int, default=0): Number of periods before treatment where anticipation effects might occur.
-        'n_pre_treat_periods' (int, default=2): Number of pre-treatment periods.
-        'start_date' (str, default="2025-01"): Start date for datetime time variables.
+        `c` (float, default=0.0): Parameter for correlation structure in X.
+        `dim_x` (int, default=4): Dimension of feature vectors.
+        `xi` (float, default=0.9): Scale parameter for the propensity score function.
+        `n_periods` (int, default=5): Number of time periods.
+        `anticipation_periods` (int, default=0): Number of periods before treatment where anticipation effects occur.
+        `n_pre_treat_periods` (int, default=2): Number of pre-treatment periods.
+        `start_date` (str, default="2025-01"): Start date for datetime time variables.
 
     Returns
     -------
