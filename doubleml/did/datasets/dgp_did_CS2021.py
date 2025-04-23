@@ -37,7 +37,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     and optionally a never-treated group that serves as a control. The true average treatment effect on the
     treated (ATT) has a heterogeneous structure dependent on covariates and exposure time.
 
-    The data generating process offers six variations (dgp_type 1-6) that differ in how the regression features
+    The data generating process offers six variations (``dgp_type`` 1-6) that differ in how the regression features
     and propensity score features are derived:
 
     - DGP 1: Outcome and propensity score are linear (in Z)
@@ -56,7 +56,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     where :math:`\\tilde{Z}_1 = \\exp(0.5 \\cdot X_1)`, :math:`\\tilde{Z}_2 = 10 + X_2/(1 + \\exp(X_1))`,
     :math:`\\tilde{Z}_3 = (0.6 + X_1 \\cdot X_3 / 25)^3` and :math:`\\tilde{Z}_4 = (20 + X_2 + X_4)^2`.
 
-    For a feature vector :math:`W=(W_1, W_2, W_3, W_4)^T` (either X or Z based on dgp_type), the core functions are:
+    For a feature vector :math:`W=(W_1, W_2, W_3, W_4)^T` (either X or Z based on ``dgp_type``), the core functions are:
 
     1. Time-varying outcome regression function for each time period :math:`t`:
 
@@ -66,8 +66,8 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
     2. Group-specific propensity function for each treatment group :math:`g`:
 
        .. math::
-           f_{ps,g}(W) = \\xi \\cdot \\left(1-\\frac{g}{G}\\right) \\cdot (-W_1 + 0.5 \\cdot W_2 - 0.25 \\cdot W_3 - 0.2
-           \\cdot W_4)
+           f_{ps,g}(W) = \\xi \\cdot \\left(1-\\frac{g}{G}\\right) \\cdot
+           (-W_1 + 0.5 \\cdot W_2 - 0.25 \\cdot W_3 - 0.2\\cdot W_4)
 
     where :math:`T` is the number of time periods, :math:`G` is the number of treatment groups, and :math:`\\xi` is a
     scale parameter (default: 0.9).
@@ -111,7 +111,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
        .. math::
            P(G_i = g) = \\frac{1}{G} \\text{ for all } g
 
-    The variables W_{reg} and W_{ps} are selected based on the DGP type:
+    The variables :math:`W_{reg}` and :math:`W_{ps}` are selected based on the DGP type:
 
     .. math::
         DGP1:\\quad W_{reg} &= Z \\quad W_{ps} = Z
@@ -127,6 +127,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
         DGP6:\\quad W_{reg} &= X \\quad W_{ps} = 0
 
     where settings 5-6 correspond to experimental designs with equal probability across treatment groups.
+
 
     Parameters
     ----------
