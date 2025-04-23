@@ -47,7 +47,7 @@ class DoubleMLDIDMulti:
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
         :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
-        :math:`g_0(0,X) = E[Y_{t_\text{eval}}-Y_{t_\text{pre}}|X, C__{t_\text{eval} + \delta} = 1]`.
+        :math:`g_0(0,X) = E[Y_{t_\text{eval}}-Y_{t_\text{pre}}|X, C__{t_\text{eval} + \\delta} = 1]`.
         For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
         ``predict_proba()`` can also be specified.
 

@@ -51,6 +51,7 @@ class DoubleMLDIDAggregation:
         For example, can contain 'aggregation_color_idx' for plot_effects().
         Default is None.
     """
+
     def __init__(
         self,
         frameworks,
