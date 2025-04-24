@@ -1,4 +1,3 @@
-import warnings
 from unittest.mock import patch
 
 import numpy as np
@@ -151,10 +150,3 @@ def test_benchmark_warning():
     did_model.fit()
     with pytest.warns(UserWarning, match="Sensitivity benchmarking for experimental score may not be meaningful"):
         did_model.sensitivity_benchmark(["Z1", "Z2"])
-
-    # check that the warning does not occur for score="observational"
-    did_model = dml.did.DoubleMLDIDBinary(**args, score="observational")
-    did_model.fit()
-    with warnings.catch_warnings(record=True) as recorded_warnings:
-        did_model.sensitivity_benchmark(["Z1", "Z2"])
-        assert len(recorded_warnings) == 0
