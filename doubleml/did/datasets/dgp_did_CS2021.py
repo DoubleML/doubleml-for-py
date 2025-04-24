@@ -91,7 +91,7 @@ def make_did_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, time_typ
 
        .. math::
 
-           Y_{i,t}(0) &= f_{reg,t}(W_{reg}) + \\delta_t + \\eta_i + \\varepsilon_{i,0,t} \\\\
+           Y_{i,t}(0) &= f_{reg,t}(W_{reg}) + \\delta_t + \\eta_i + \\varepsilon_{i,0,t}
 
            Y_{i,t}(1) &= Y_{i,t}(0) + \\theta_{i,t,g} + (\\varepsilon_{i,1,t} - \\varepsilon_{i,0,t})
 
