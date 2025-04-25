@@ -4,8 +4,8 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d
@@ -664,3 +664,31 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
+        Parameters
+        ----------
+        benchmarking_set : list
+            List of features to be used for benchmarking.
+
+        fit_args : dict, optional
+            Additional arguments for the fit method.
+            Default is None.
+
+        Returns
+        -------
+        benchmark_results : pandas.DataFrame
+            Benchmark results.
+        """
+        if self.score == "experimental":
+            warnings.warn(
+                "Sensitivity benchmarking for experimental score may not be meaningful. "
+                "Consider using score='observational' for conditional treatment assignment.",
+                UserWarning,
+            )
+
+        return super().sensitivity_benchmark(benchmarking_set, fit_args)

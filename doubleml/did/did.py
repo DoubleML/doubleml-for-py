@@ -4,8 +4,8 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
@@ -209,7 +209,9 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         # nuisance g for d==0
         if external_predictions["ml_g0"] is not None:
-            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": None, "models": None}
+            ml_g0_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g0_targets[d == 0] = y[d == 0]
+            g_hat0 = {"preds": external_predictions["ml_g0"], "targets": ml_g0_targets, "models": None}
         else:
             g_hat0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -229,7 +231,9 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
         # nuisance g for d==1
         if external_predictions["ml_g1"] is not None:
-            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": None, "models": None}
+            ml_g1_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g1_targets[d == 1] = y[d == 1]
+            g_hat1 = {"preds": external_predictions["ml_g1"], "targets": ml_g1_targets, "models": None}
         else:
             g_hat1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -252,7 +256,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         if self.score == "observational":
             # nuisance m
             if external_predictions["ml_m"] is not None:
-                m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
+                m_hat = {"preds": external_predictions["ml_m"], "targets": d, "models": None}
             else:
                 m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
@@ -269,10 +273,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
-
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
         psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
@@ -432,3 +433,31 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
+        """
+        Computes a benchmark for a given set of features.
+        Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
+        Parameters
+        ----------
+        benchmarking_set : list
+            List of features to be used for benchmarking.
+
+        fit_args : dict, optional
+            Additional arguments for the fit method.
+            Default is None.
+
+        Returns
+        -------
+        benchmark_results : pandas.DataFrame
+            Benchmark results.
+        """
+        if self.score == "experimental":
+            warnings.warn(
+                "Sensitivity benchmarking for experimental score may not be meaningful. "
+                "Consider using score='observational' for conditional treatment assignment.",
+                UserWarning,
+            )
+
+        return super().sensitivity_benchmark(benchmarking_set, fit_args)
