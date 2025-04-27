@@ -341,3 +341,48 @@ def _set_external_predictions(external_predictions, learners, treatment, i_rep):
         else:
             ext_prediction_dict[learner] = None
     return ext_prediction_dict
+
+
+def _solve_quadratic_inequation(a: float, b: float, c: float):
+    """
+    Solves the quadratic inequation a*x^2 + b*x + c <= 0 and returns the intervals.
+
+    Parameters
+    ----------
+    a : float
+        Coefficient of x^2.
+    b : float
+        Coefficient of x.
+    c : float
+        Constant term.
+
+    Returns
+    -------
+    List[Tuple[float, float]]
+        A list of intervals where the inequation holds.
+    """
+    determinant = b**2 - 4 * a * c
+
+    if determinant > 0:
+        root2 = (-b + np.sqrt(determinant)) / (2 * a)
+        root1 = (-b - np.sqrt(determinant)) / (2 * a)
+        if a > 0:  # happy quadratic (parabola opens upwards)
+            return [(root1, root2)]
+        else:  # sad quadratic (parabola opens downwards)
+            # TODO: eze, check this is correct, I think original implentation is wrong
+            # return [(-np.inf, root1), (root2, np.inf)]
+            # if a < 0 and b = 0, for instance, root1 > root2 (x^2 + 4 < 0)
+            return [(-np.inf, min(root1, root2)), (max(root1, root2), np.inf)]
+    elif determinant < 0:
+        if a > 0:  # parabola opens upwards, no real roots
+            return []
+        else:  # parabola opens downwards, always <= 0
+            return [(-np.inf, np.inf)]
+    elif determinant == 0:
+        root = -b / (2 * a)
+        if a > 0:  # parabola touches x-axis at one point
+            return [(root, root)]
+        else:  # parabola is always <= 0
+            # TODO: eze, check this is correct, should we remove a point?
+            # return [(-np.inf, root), (root, np.inf)]
+            return [(-np.inf, np.inf)]
