@@ -13,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequation
 from doubleml.utils._propensity_score import _normalize_ipw, _trimm
 
 
@@ -587,21 +587,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         a = n * np.mean(self.psi_elements['psi_a'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_a']))
         b = 2 * n * np.mean(self.psi_elements['psi_a']) * np.mean(self.psi_elements['psi_b']) - 2 * critical_value**2 * np.mean(np.multiply(self.psi_elements['psi_a'], self.psi_elements['psi_b']))
         c = n * np.mean(self.psi_elements['psi_b'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_b']))
-        determinant = b**2 - 4 * a * c
-        list_confset = []
-        if determinant > 0:
-            root2 = (-b + np.sqrt(determinant)) / (2 * a)
-            root1 = (-b - np.sqrt(determinant)) / (2 * a)
-            if a > 0: # happy quadratic
-                list_confset = [(root1, root2)]
-            else: # sad quadratic
-                list_confset = [(-np.inf, root1), (root2, np.inf)]
-        elif determinant < 0:
-            if a > 0:
-                list_confset = []
-            else:
-                list_confset = [(-np.inf, np.inf)]
-        elif determinant == 0:
-            root = -b / (2 * a)
-            list_confset = [(root, root)]
-        return list_confset
+        return _solve_quadratic_inequation(a, b, c)
+
+

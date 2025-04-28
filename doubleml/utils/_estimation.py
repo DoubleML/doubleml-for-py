@@ -341,3 +341,43 @@ def _set_external_predictions(external_predictions, learners, treatment, i_rep):
         else:
             ext_prediction_dict[learner] = None
     return ext_prediction_dict
+
+
+def _solve_quadratic_inequation(a: float, b: float, c: float):
+    """
+    Solves the quadratic inequation a*x^2 + b*x + c <= 0 and returns the intervals.
+
+    Parameters
+    ----------
+    a : float
+        Coefficient of x^2.
+    b : float
+        Coefficient of x.
+    c : float
+        Constant term.
+
+    Returns
+    -------
+    List[Tuple[float, float]]
+        A list of intervals where the inequation holds.
+    """
+    determinant = b**2 - 4 * a * c
+
+    if determinant > 0:
+        root2 = (-b + np.sqrt(determinant)) / (2 * a)
+        root1 = (-b - np.sqrt(determinant)) / (2 * a)
+        if a > 0:  # happy quadratic (parabola opens upwards)
+            return [(root1, root2)]
+        else:  # sad quadratic (parabola opens downwards)
+            return [(-np.inf, root2), (root1, np.inf)]
+    elif determinant < 0:
+        if a > 0:  # parabola opens upwards, no real roots
+            return []
+        else:  # parabola opens downwards, always <= 0
+            return [(-np.inf, np.inf)]
+    elif determinant == 0:
+        root = -b / (2 * a)
+        if a > 0:  # parabola touches x-axis at one point
+            return [(root, root)]
+        else:  # parabola is always <= 0
+            return [(-np.inf, np.inf)]
