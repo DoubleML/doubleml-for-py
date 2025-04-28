@@ -369,10 +369,7 @@ def _solve_quadratic_inequation(a: float, b: float, c: float):
         if a > 0:  # happy quadratic (parabola opens upwards)
             return [(root1, root2)]
         else:  # sad quadratic (parabola opens downwards)
-            # TODO: eze, check this is correct, I think original implentation is wrong
-            # return [(-np.inf, root1), (root2, np.inf)]
-            # if a < 0 and b = 0, for instance, root1 > root2 (x^2 + 4 < 0)
-            return [(-np.inf, min(root1, root2)), (max(root1, root2), np.inf)]
+            return [(-np.inf, root2), (root1, np.inf)]
     elif determinant < 0:
         if a > 0:  # parabola opens upwards, no real roots
             return []
@@ -383,6 +380,4 @@ def _solve_quadratic_inequation(a: float, b: float, c: float):
         if a > 0:  # parabola touches x-axis at one point
             return [(root, root)]
         else:  # parabola is always <= 0
-            # TODO: eze, check this is correct, should we remove a point?
-            # return [(-np.inf, root), (root, np.inf)]
             return [(-np.inf, np.inf)]
