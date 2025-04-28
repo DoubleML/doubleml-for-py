@@ -46,7 +46,7 @@ dev = [
     "lightgbm",
     "black>=25.1.0",
     "ruff>=0.11.1",
-    "pre-commit>=5.0.0",
+    "pre-commit>=4.2.0",
 ]
 
 [tool.black]
