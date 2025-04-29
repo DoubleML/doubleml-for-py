@@ -1080,21 +1080,25 @@ class DoubleMLDIDMulti:
             plot_col = "Estimate" 
             err_col_upper = "CI Upper"
             err_col_lower = "CI Lower"
+            s_val = 30
         elif result_type == "rv":    
             plot_col = "RV"
             plot_col_2 = "RVa"
+            s_val = 50
         elif result_type == "est_bounds":
             plot_col = "Estimate" 
             err_col_lower = "Estimate Lower Bound"
             err_col_upper = "Estimate Upper Bound"
+            s_val = 30
         elif result_type == "ci_bounds":
             plot_col = "Estimate"
             err_col_upper = "CI Upper Bound"
             err_col_lower = "CI Lower Bound"
+            s_val = 30
 
         # Plot pre-treatment points
         if not pre_treatment.empty:
-            ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col], color=colors["pre"], alpha=0.8, s=30)
+            ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col], color=colors["pre"], alpha=0.8, s=s_val)
             if result_type in ["effect", "est_bounds", "ci_bounds"]:
                 ax.errorbar(
                     pre_treatment["jittered_x"],
@@ -1112,11 +1116,11 @@ class DoubleMLDIDMulti:
                 )
                 
             else:
-                ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col_2], color=colors["pre"], alpha=0.8, s=30, marker="s")
+                ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col_2], color=colors["pre"], alpha=0.8, s=s_val, marker="s")
 
         # Plot post-treatment points
         if not post_treatment.empty:
-            ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=30)
+            ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=s_val)
 
             if result_type in ["effect", "est_bounds", "ci_bounds"]:
                 ax.errorbar(
@@ -1152,7 +1156,7 @@ class DoubleMLDIDMulti:
 
             else:
                 # use different shape for RVa
-                ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col_2], color=colors["post"], alpha=0.8, s=30, marker="s")
+                ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col_2], color=colors["post"], alpha=0.8, s=s_val, marker="s")
 
         # Format axes
         if is_datetime:
