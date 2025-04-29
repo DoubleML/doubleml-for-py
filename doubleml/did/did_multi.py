@@ -1043,7 +1043,7 @@ class DoubleMLDIDMulti:
         period : int or datetime
             Treatment period for this group.
         result_type : str
-            Type of result to plot. Either ``'effect'``, ``'rv'``, ``est_bounds`` or ``lower_bounds``.
+            Type of result to plot. Either ``'effect'``, ``'rv'``, ``est_bounds`` or ``ci_bounds``.
         colors : dict
             Dictionary with 'pre' and 'post' color values.
         is_datetime : bool
