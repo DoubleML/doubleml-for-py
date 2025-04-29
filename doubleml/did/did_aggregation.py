@@ -11,6 +11,47 @@ from doubleml.double_ml_framework import DoubleMLFramework, concat
 
 
 class DoubleMLDIDAggregation:
+    """
+    Class for aggregating multiple difference-in-differences (DID) frameworks.
+
+    This class enables weighted aggregation of multiple DoubleMLFramework objects, allowing for
+    both multiple separate aggregations and an overall aggregation across them. It provides
+    methods for summarizing and visualizing aggregated treatment effects.
+
+    Parameters
+    ----------
+    frameworks : list
+        List of DoubleMLFramework objects to aggregate. Each framework must be one-dimensional
+        (n_thetas = 1).
+
+    aggregation_weights : numpy.ndarray
+        2D array of weights for aggregating frameworks. Shape should be (n_aggregations, n_frameworks),
+        where each row corresponds to a separate aggregation of the frameworks.
+
+    overall_aggregation_weights : numpy.ndarray, optional
+        1D array of weights for aggregating across the aggregated frameworks. Length should
+        equal the number of rows in aggregation_weights. If None, equal weights are used.
+        Default is None.
+
+    aggregation_names : list of str, optional
+        Names for each aggregation. Length should equal the number of rows in aggregation_weights.
+        If None, default names like "Aggregation_0", "Aggregation_1", etc. are used.
+        Default is None.
+
+    aggregation_method_name : str, optional
+        Name describing the aggregation method used.
+        Default is "Custom".
+
+    additional_information : dict, optional
+        Dictionary containing additional information to display in the string representation.
+        Default is None.
+
+    additional_parameters : dict, optional
+        Dictionary containing additional parameters used by the class methods.
+        For example, can contain 'aggregation_color_idx' for plot_effects().
+        Default is None.
+    """
+
     def __init__(
         self,
         frameworks,
@@ -21,7 +62,6 @@ class DoubleMLDIDAggregation:
         additional_information=None,
         additional_parameters=None,
     ):
-
         self._base_frameworks = self._check_frameworks(frameworks)
 
         self._aggregation_weights, self._overall_aggregation_weights = self._check_weights(

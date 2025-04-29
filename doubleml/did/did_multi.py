@@ -46,7 +46,8 @@ class DoubleMLDIDMulti:
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
+        :math:`g_0(0,X) = E[Y_{t_{\\text{eval}}}-Y_{t_{\\text{pre}}}|X, C_{t_{\text{eval}} + \\delta} = 1]`.
         For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
         ``predict_proba()`` can also be specified.
 
@@ -56,7 +57,7 @@ class DoubleMLDIDMulti:
         Only relevant for ``score='observational'``. Default is ``None``.
 
     gt_combinations : array-like
-        TODO: Add description
+        A list of tuples with the group-time combinations to be evaluated.
 
     control_group : str
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
@@ -101,7 +102,31 @@ class DoubleMLDIDMulti:
 
     Examples
     --------
-    TODO: Add example
+    >>> import numpy as np
+    >>> import doubleml as dml
+    >>> from doubleml.did.datasets import make_did_CS2021
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    >>> np.random.seed(42)
+    >>> df = make_did_CS2021(n_obs=500)
+    >>> dml_data = dml.data.DoubleMLPanelData(
+    ...     df,
+    ...     y_col="y",
+    ...     d_cols="d",
+    ...     id_col="id",
+    ...     t_col="t",
+    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    ...     datetime_unit="M"
+    ... )
+    >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5)
+    >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5)
+    >>> dml_did_obj = dml.did.DoubleMLDIDMulti(
+    ...     obj_dml_data=dml_data,
+    ...     ml_g=ml_g,
+    ...     ml_m=ml_m,
+    ...     gt_combinations="standard",
+    ...     control_group="never_treated",
+    ... )
+    >>> print(dml_did_obj.fit())
     """
 
     def __init__(
@@ -190,7 +215,6 @@ class DoubleMLDIDMulti:
 
         # perform sample splitting
         self._smpls = None
-        # TODO: Check draw_sample_splitting here vs. DoubleMLDIDBINARY
         self._draw_sample_splitting = draw_sample_splitting
 
         # initialize all models if splits are known
@@ -587,6 +611,7 @@ class DoubleMLDIDMulti:
     def confint(self, joint=False, level=0.95):
         """
         Confidence intervals for DoubleML models.
+
         Parameters
         ----------
         joint : bool
@@ -595,6 +620,7 @@ class DoubleMLDIDMulti:
         level : float
             The confidence level.
             Default is ``0.95``.
+
         Returns
         -------
         df_ci : pd.DataFrame
@@ -638,6 +664,7 @@ class DoubleMLDIDMulti:
     def bootstrap(self, method="normal", n_rep_boot=500):
         """
         Multiplier bootstrap for DoubleML models.
+
         Parameters
         ----------
         method : str
@@ -645,6 +672,7 @@ class DoubleMLDIDMulti:
             Default is ``'normal'``
         n_rep_boot : int
             The number of bootstrap replications.
+
         Returns
         -------
         self : object
@@ -659,6 +687,7 @@ class DoubleMLDIDMulti:
         """
         Performs a sensitivity analysis to account for unobserved confounders.
         The evaluated scenario is stored as a dictionary in the property ``sensitivity_params``.
+
         Parameters
         ----------
         cf_y : float
@@ -680,6 +709,7 @@ class DoubleMLDIDMulti:
             If it is a single float uses the same null hypothesis for all estimated parameters.
             Else the array has to be of shape (n_coefs,).
             Default is ``0.0``.
+
         Returns
         -------
         self : object
@@ -706,6 +736,7 @@ class DoubleMLDIDMulti:
     ):
         """
         Contour plot of the sensivity with respect to latent/confounding variables.
+
         Parameters
         ----------
         idx_gt_atte : int
@@ -740,6 +771,7 @@ class DoubleMLDIDMulti:
         grid_size : int
             Determines the number of evaluation points of the grid.
             Default is ``100``.
+
         Returns
         -------
         fig : object
@@ -766,6 +798,7 @@ class DoubleMLDIDMulti:
         """
         Computes a benchmark for a given set of features.
         Returns a DataFrame containing the corresponding values for cf_y, cf_d, rho and the change in estimates.
+
         Returns
         -------
         benchmark_results : pandas.DataFrame
@@ -811,6 +844,7 @@ class DoubleMLDIDMulti:
         ----------
         aggregation : str or dict
             Method to aggregate treatment effects or dictionary with aggregation weights (masked numpy array).
+            Has to one of ``'group'``, ``'time'``, ``'eventstudy'`` or a masked numpy array.
             Default is ``'group'``.
 
         Returns

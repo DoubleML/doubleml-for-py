@@ -131,3 +131,22 @@ def test_check_data_exceptions():
                 t_value_pre=0,
                 t_value_eval=1,
             )
+
+
+@pytest.mark.ci
+def test_benchmark_warning():
+    """Test warning when sensitivity_benchmark is called with experimental score"""
+    args = {
+        "obj_dml_data": dml_data,
+        "ml_g": LinearRegression(),
+        "ml_m": LogisticRegression(),
+        "g_value": 1,
+        "t_value_pre": 0,
+        "t_value_eval": 1,
+        "n_rep": 1,
+    }
+    # Create a DID model with experimental score
+    did_model = dml.did.DoubleMLDIDBinary(**args, score="experimental")
+    did_model.fit()
+    with pytest.warns(UserWarning, match="Sensitivity benchmarking for experimental score may not be meaningful"):
+        did_model.sensitivity_benchmark(["Z1", "Z2"])
