@@ -894,7 +894,8 @@ class DoubleMLDIDMulti:
             Indicates whether joint confidence intervals are computed.
             Default is ``True``.
         result_type : str
-            Type of result to plot. Either ``'effect'`` or ``'rv'``.
+            Type of result to plot. Either ``'effect'``, ``'rv'``, ``'est_bounds'`` or ``'ci_bounds'``.
+            Default is ``'effect'``.
         figsize : tuple
             Figure size as (width, height).
             Default is ``(12, 8)``.
@@ -929,8 +930,8 @@ class DoubleMLDIDMulti:
         If joint=True and bootstrapping hasn't been performed, this method will automatically
         perform bootstrapping with default parameters and issue a warning.
         """
-        if result_type not in ["effect", "rv"]:
-            raise ValueError("result_type must be either 'effect' or 'rv'.")
+        if result_type not in ["effect", "rv", "est_bounds", "ci_bounds"]:
+            raise ValueError("result_type must be either 'effect', 'rv', 'upper_bounds' or 'lower_bounds'.")
 
         if self.framework is None:
             raise ValueError("Apply fit() before plot_effects().")
@@ -1008,7 +1009,7 @@ class DoubleMLDIDMulti:
         period : int or datetime
             Treatment period for this group.
         result_type : str
-            Type of result to plot. Either ``'effect'`` or ``'rv'``.
+            Type of result to plot. Either ``'effect'``, ``'rv'``, ``est_bounds`` or ``lower_bounds``.
         colors : dict
             Dictionary with 'pre' and 'post' color values.
         is_datetime : bool
@@ -1043,20 +1044,30 @@ class DoubleMLDIDMulti:
 
         if result_type == "effect":
             plot_col = "Estimate" 
-        else:     
+            err_col_upper = "CI Upper"
+            err_col_lower = "CI Lower"
+        elif result_type == "rv":    
             plot_col = "RV"
+            plot_col_2 = "RVa"
+        elif result_type == "est_bounds":
+            plot_col = "Estimate" 
+            err_col_lower = "Estimate Lower Bound"
+            err_col_upper = "Estimate Upper Bound"
+        elif result_type == "ci_bounds":
+            plot_col = "Estimate"
+            err_col_upper = "CI Upper Bound"
+            err_col_lower = "CI Lower Bound"
 
         # Plot pre-treatment points
         if not pre_treatment.empty:
             ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col], color=colors["pre"], alpha=0.8, s=30)
-
-            if result_type == "effect":
+            if result_type in ["effect", "est_bounds", "ci_bounds"]:
                 ax.errorbar(
                     pre_treatment["jittered_x"],
-                    pre_treatment["Estimate"],
+                    pre_treatment[plot_col],
                     yerr=[
-                        pre_treatment["Estimate"] - pre_treatment["CI Lower"],
-                        pre_treatment["CI Upper"] - pre_treatment["Estimate"],
+                        pre_treatment[plot_col] - pre_treatment[err_col_lower],
+                        pre_treatment[err_col_upper] - pre_treatment[plot_col],
                     ],
                     fmt="o",
                     capsize=3,
@@ -1065,20 +1076,21 @@ class DoubleMLDIDMulti:
                     markeredgewidth=1,
                     linewidth=1,
                 )
+                
             else:
-                ax.scatter(pre_treatment["jittered_x"], pre_treatment["RVa"], color=colors["pre"], alpha=0.8, s=30, marker="s")
+                ax.scatter(pre_treatment["jittered_x"], pre_treatment[plot_col_2], color=colors["pre"], alpha=0.8, s=30, marker="s")
 
         # Plot post-treatment points
         if not post_treatment.empty:
             ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col], color=colors["post"], alpha=0.8, s=30)
 
-            if result_type == "effect":
+            if result_type in ["effect", "est_bounds", "ci_bounds"]:
                 ax.errorbar(
                     post_treatment["jittered_x"],
-                    post_treatment["Estimate"],
+                    post_treatment[plot_col],
                     yerr=[
-                        post_treatment["Estimate"] - post_treatment["CI Lower"],
-                        post_treatment["CI Upper"] - post_treatment["Estimate"],
+                        post_treatment[plot_col] - post_treatment[err_col_lower],
+                        post_treatment[err_col_upper] - post_treatment[plot_col],
                     ],
                     fmt="o",
                     capsize=3,
@@ -1087,9 +1099,26 @@ class DoubleMLDIDMulti:
                     markeredgewidth=1,
                     linewidth=1,
                 )
+
+            elif result_type in ["upper_bounds", "lower_bounds"]:
+                ax.errorbar(
+                post_treatment["jittered_x"],
+                post_treatment[plot_col_2],
+                yerr=[
+                    post_treatment[err_col],
+                    pd.Series([0] * len(post_treatment), index=post_treatment.index),
+                ],
+                fmt="o",
+                capsize=3,
+                color=colors["post"],
+                markersize=4,
+                markeredgewidth=1,
+                linewidth=1,
+            )
+
             else:
                 # use different shape for RVa
-                ax.scatter(post_treatment["jittered_x"], post_treatment["RVa"], color=colors["post"], alpha=0.8, s=30, marker="s")
+                ax.scatter(post_treatment["jittered_x"], post_treatment[plot_col_2], color=colors["post"], alpha=0.8, s=30, marker="s")
 
         # Format axes
         if is_datetime:
@@ -1357,4 +1386,8 @@ class DoubleMLDIDMulti:
         if self._framework.sensitivity_params is not None:
             df["RV"] = self.framework.sensitivity_params["rv"]
             df["RVa"] = self.framework.sensitivity_params["rva"]
+            df["CI Lower Bound"] = self.framework.sensitivity_params["ci"]["lower"]
+            df["CI Upper Bound"] = self.framework.sensitivity_params["ci"]["upper"]
+            df["Estimate Lower Bound"] = self.framework.sensitivity_params["theta"]["lower"]
+            df["Estimate Upper Bound"] = self.framework.sensitivity_params["theta"]["upper"]
         return df
