@@ -150,8 +150,3 @@ def test_dml_iivm_boot(dml_iivm_fixture):
             rtol=1e-9,
             atol=1e-4,
         )
-
-
-@pytest.mark.ci
-def test_dml_iivm_unifconfset(dml_iivm_fixture):
-    print(dml_iivm_fixture["uniform_confset"])
