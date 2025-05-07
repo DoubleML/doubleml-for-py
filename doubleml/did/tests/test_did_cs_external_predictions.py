@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml import DoubleMLDIDCS
-from doubleml.datasets import make_did_SZ2020
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 from ...tests._utils import draw_smpls

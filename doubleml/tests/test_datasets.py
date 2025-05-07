@@ -9,7 +9,6 @@ from doubleml.datasets import (
     fetch_bonus,
     make_confounded_irm_data,
     make_confounded_plr_data,
-    make_did_SZ2020,
     make_heterogeneous_data,
     make_iivm_data,
     make_irm_data,
@@ -163,42 +162,6 @@ def test_make_pliv_multiway_cluster_CKMS2021_return_types():
     assert isinstance(z, np.ndarray)
     with pytest.raises(ValueError, match=msg_inv_return_type):
         _ = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type="matrix")
-
-
-@pytest.fixture(scope="function", params=[False, True])
-def cross_sectional(request):
-    return request.param
-
-
-@pytest.fixture(scope="function", params=[1, 2, 3, 4, 5, 6])
-def dgp_type(request):
-    return request.param
-
-
-@pytest.mark.ci
-def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
-    np.random.seed(3141)
-    res = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=DoubleMLData)
-    assert isinstance(res, DoubleMLData)
-    res = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=pd.DataFrame)
-    assert isinstance(res, pd.DataFrame)
-    if cross_sectional:
-        x, y, d, t = make_did_SZ2020(
-            n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=np.ndarray
-        )
-        assert isinstance(t, np.ndarray)
-    else:
-        x, y, d, _ = make_did_SZ2020(
-            n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=np.ndarray
-        )
-    assert isinstance(x, np.ndarray)
-    assert isinstance(y, np.ndarray)
-    assert isinstance(d, np.ndarray)
-    with pytest.raises(ValueError, match=msg_inv_return_type):
-        _ = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type="matrix")
-    msg = "The dgp_type is not valid."
-    with pytest.raises(ValueError, match=msg):
-        _ = make_did_SZ2020(n_obs=100, dgp_type="5", cross_sectional_data=cross_sectional, return_type="matrix")
 
 
 @pytest.fixture(scope="function", params=[True, False])

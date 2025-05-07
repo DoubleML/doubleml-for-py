@@ -4,8 +4,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
-from doubleml.double_ml_data import DoubleMLData
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 from doubleml.utils._checks import _check_quantile, _check_score, _check_treatment, _check_trimming, _check_zero_one_treatment
 from doubleml.utils._estimation import (

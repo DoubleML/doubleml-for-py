@@ -5,8 +5,8 @@ import pandas as pd
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 
+from ..data.base_data import DoubleMLData
 from ..double_ml import DoubleML
-from ..double_ml_data import DoubleMLData
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
 from ..utils._estimation import _dml_cv_predict, _dml_tune
