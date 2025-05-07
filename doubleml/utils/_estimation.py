@@ -343,7 +343,7 @@ def _set_external_predictions(external_predictions, learners, treatment, i_rep):
     return ext_prediction_dict
 
 
-def _solve_quadratic_inequation(a: float, b: float, c: float):
+def _solve_quadratic_inequality(a: float, b: float, c: float):
     """
     Solves the quadratic inequation a*x^2 + b*x + c <= 0 and returns the intervals.
 
