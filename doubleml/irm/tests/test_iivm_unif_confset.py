@@ -57,10 +57,11 @@ def test_coverage(iivm_obj, true_ATE, n_simulations):
         # Get the confidence set
         conf_set = iivm_obj.uniform_confset()
 
-        ate_in_confset = any(x[0] < true_ATE < x[1] for x in conf_set)
-
         # Check if the true ATE is in the confidence set
+        ate_in_confset = any(x[0] < true_ATE < x[1] for x in conf_set)
         coverage.append(ate_in_confset)
+    
+    # Calculate the coverage rate
     coverage_rate = np.mean(coverage)
     assert coverage_rate >= 0.9, f"Coverage rate {coverage_rate} is below 0.9"
 
