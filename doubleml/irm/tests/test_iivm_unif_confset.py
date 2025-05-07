@@ -37,7 +37,7 @@ def weakiv_data(n_samples, instrument_size, true_ATE):
 
 @pytest.fixture(scope="module")
 def iivm_obj(weakiv_data):
-    # Set machine learning methods for m & g
+    # Set machine learning methods for m, r & g
     learner_g = LinearRegression()
     classifier_m = LogisticRegression()
     classifier_r = RandomForestClassifier(n_estimators=20, max_depth=5)
