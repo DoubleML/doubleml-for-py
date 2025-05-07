@@ -100,7 +100,6 @@ def dml_iivm_fixture(generate_data_iivm, learner, score, normalize_ipw, trimming
         "se": dml_iivm_obj.se.item(),
         "se_manual": res_manual["se"],
         "boot_methods": boot_methods,
-        "uniform_confset": dml_iivm_obj.uniform_confset()
     }
 
     for bootstrap in boot_methods:

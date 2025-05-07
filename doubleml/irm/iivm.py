@@ -13,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequation
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequality
 from doubleml.utils._propensity_score import _normalize_ipw, _trimm
 
 
@@ -583,10 +583,10 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         # This is equivalent to solving the equation
         # a theta^2 + b theta + c <= 0
         # for some a, b, c, which we calculate next, and then solve the equation.
-        n = self.psi_elements['psi_a'].shape[0] 
-        a = n * np.mean(self.psi_elements['psi_a'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_a']))
-        b = 2 * n * np.mean(self.psi_elements['psi_a']) * np.mean(self.psi_elements['psi_b']) - 2 * critical_value**2 * np.mean(np.multiply(self.psi_elements['psi_a'], self.psi_elements['psi_b']))
-        c = n * np.mean(self.psi_elements['psi_b'])**2 - critical_value**2 * np.mean(np.square(self.psi_elements['psi_b']))
-        return _solve_quadratic_inequation(a, b, c)
-
-
+        n = self.psi_elements["psi_a"].shape[0]
+        a = n * np.mean(self.psi_elements["psi_a"]) ** 2 - critical_value**2 * np.mean(np.square(self.psi_elements["psi_a"]))
+        b = 2 * n * np.mean(self.psi_elements["psi_a"]) * np.mean(
+            self.psi_elements["psi_b"]
+        ) - 2 * critical_value**2 * np.mean(np.multiply(self.psi_elements["psi_a"], self.psi_elements["psi_b"]))
+        c = n * np.mean(self.psi_elements["psi_b"]) ** 2 - critical_value**2 * np.mean(np.square(self.psi_elements["psi_b"]))
+        return _solve_quadratic_inequality(a, b, c)
