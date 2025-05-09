@@ -70,6 +70,16 @@ jobs:
         pip install pytest-cov
         pytest --cov=./ --cov-report=xml
 
+    - name: Archive code coverage results
+      if: |
+        matrix.config.os == 'ubuntu-latest' &&
+        matrix.config.python-version == '3.9'
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-coverage-report
+        path: coverage.xml
+        retention-days: 5
+
     - name: Upload coverage to Codecov
       if: |
         matrix.config.os == 'ubuntu-latest' &&
