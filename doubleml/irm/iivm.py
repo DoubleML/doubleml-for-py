@@ -197,6 +197,23 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         self.subgroups = subgroups
         self._external_predictions_implemented = True
 
+    def __str__(self):
+        parent_str = super().__str__()
+
+        # add robust confset
+        if self.framework is None:
+            confset_str = ""
+        else:
+            confset = self.robust_confset()
+            formatted_confset = ", ".join([f"[{lower:.4f}, {upper:.4f}]" for lower, upper in confset])
+            confset_str = (
+                "\n\n--------------- Additional Information ----------------\n"
+                + f"Robust Confidence Set: {formatted_confset}\n"
+            )
+
+        res = parent_str + confset_str
+        return res
+
     @property
     def normalize_ipw(self):
         """

@@ -76,6 +76,11 @@ def test_exceptions_robust_confset():
     with pytest.raises(ValueError, match=msg):
         dml_iivm_obj.robust_confset()
 
+    # Check if str representation of the object is working
+    str_repr = str(dml_iivm_obj)
+    assert isinstance(str_repr, str)
+    assert "Robust" not in str_repr
+
     # Fit the model
     dml_iivm_obj.fit()
 
@@ -86,3 +91,8 @@ def test_exceptions_robust_confset():
     msg = r"The confidence level must be in \(0,1\). 1.5 was passed."
     with pytest.raises(ValueError, match=msg):
         dml_iivm_obj.robust_confset(level=1.5)
+
+    # Check if str representation of the object is working
+    str_repr = str(dml_iivm_obj)
+    assert isinstance(str_repr, str)
+    assert "Robust Confidence Set" in str_repr
