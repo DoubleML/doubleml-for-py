@@ -86,12 +86,12 @@ jobs:
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.9'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        flags: unittests
         fail_ci_if_error: false
+        files: ./coverage.xml
+        flags: unittests
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to codacy
       if: |
