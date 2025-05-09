@@ -570,6 +570,8 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             bounds of an interval. The union of this intervals forms the confidence set.
         """
 
+        if self.framework is None:
+            raise ValueError("Apply fit() before robust_confset().")
         if not isinstance(level, float):
             raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
         if (level <= 0) | (level >= 1):
