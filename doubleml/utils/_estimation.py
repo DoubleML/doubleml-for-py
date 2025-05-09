@@ -361,23 +361,33 @@ def _solve_quadratic_inequality(a: float, b: float, c: float):
     List[Tuple[float, float]]
         A list of intervals where the inequation holds.
     """
-    determinant = b**2 - 4 * a * c
 
-    if determinant > 0:
-        root2 = (-b + np.sqrt(determinant)) / (2 * a)
-        root1 = (-b - np.sqrt(determinant)) / (2 * a)
-        if a > 0:  # happy quadratic (parabola opens upwards)
-            return [(root1, root2)]
-        else:  # sad quadratic (parabola opens downwards)
-            return [(-np.inf, root2), (root1, np.inf)]
-    elif determinant < 0:
+    # Handle special cases
+    if abs(a) < 1e-12:  # a is effectively zero
+        if abs(b) < 1e-12:  # constant case
+            return [(-np.inf, np.inf)] if c <= 0 else []
+        # Linear case:
+        else:
+            root = -c / b
+            return [(-np.inf, root)] if b > 0 else [(root, np.inf)]
+
+    # Standard case: quadratic equation
+    roots = np.polynomial.polynomial.polyroots([c, b, a])
+    real_roots = np.sort(roots[np.isreal(roots)].real)
+
+    if len(real_roots) == 0:  # No real roots
         if a > 0:  # parabola opens upwards, no real roots
             return []
         else:  # parabola opens downwards, always <= 0
             return [(-np.inf, np.inf)]
-    elif determinant == 0:
-        root = -b / (2 * a)
-        if a > 0:  # parabola touches x-axis at one point
-            return [(root, root)]
-        else:  # parabola is always <= 0
-            return [(-np.inf, np.inf)]
+    elif len(real_roots) == 1 or np.allclose(real_roots[0], real_roots[1]):  # One real root
+        if a > 0:
+            return [(real_roots[0], real_roots[0])]  # parabola touches x-axis at one point
+        else:
+            return [(-np.inf, np.inf)]  # parabola is always <= 0
+    else:
+        assert len(real_roots) == 2
+        if a > 0:  # happy quadratic (parabola opens upwards)
+            return [(real_roots[0], real_roots[1])]
+        else:  # sad quadratic (parabola opens downwards)
+            return [(-np.inf, real_roots[0]), (real_roots[1], np.inf)]

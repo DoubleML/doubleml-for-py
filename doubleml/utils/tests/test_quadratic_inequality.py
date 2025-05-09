@@ -20,6 +20,10 @@ from doubleml.utils._estimation import _solve_quadratic_inequality
         (-1, 3, -4, [(-np.inf, np.inf)]),  # sad quadratic, determinant < 0
         (1, 4, 4, [(-2.0, -2.0)]),  # happy quadratic, determinant = 0
         (-1, 4, -4, [(-np.inf, np.inf)]),  # sad quadratic, determinant = 0
+        (0, 0, 0, [(-np.inf, np.inf)]),  # constant and equal to zero
+        (0, 0, 1, []),  # constant and larger than zero
+        (0, 1, 0, [(-np.inf, 0.0)]),  # increasing linear function
+        (0, -1, -1, [(-1.0, np.inf)]),  # decreasing linear function
     ],
 )
 def test_solve_quadratic_inequation(a, b, c, expected):
