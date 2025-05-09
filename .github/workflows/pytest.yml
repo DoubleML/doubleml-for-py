@@ -68,21 +68,36 @@ jobs:
         matrix.config.python-version == '3.9'
       run: |
         pip install pytest-cov
-        pytest --cov=./ --cov-report=xml
+        pytest --cov=./ --cov-report=xml --cov-report=html
+
+    - name: Archive code coverage results
+      if: |
+        matrix.config.os == 'ubuntu-latest' &&
+        matrix.config.python-version == '3.9'
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report
+        path: |
+          coverage.xml
+          htmlcov/
+        retention-days: 5
 
     - name: Upload coverage to Codecov
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.9'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        fail_ci_if_error: false
+        files: ./coverage.xml
         flags: unittests
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload coverage to codacy
       if: |
         matrix.config.os == 'ubuntu-latest' &&
         matrix.config.python-version == '3.9'
+      continue-on-error: true
       uses: codacy/codacy-coverage-reporter-action@v1
       with:
         project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
