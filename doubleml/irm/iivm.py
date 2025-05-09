@@ -552,7 +552,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     def _sensitivity_element_est(self, preds):
         pass
 
-    def uniform_confset(self, level=0.95):
+    def robust_confset(self, level=0.95):
         """
         Confidence sets for non-parametric instrumental variable models that are uniformly valid under weak instruments.
         These are obtained by inverting a score-like test statistic based on estimated influence function.

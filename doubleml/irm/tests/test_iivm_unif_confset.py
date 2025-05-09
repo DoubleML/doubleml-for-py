@@ -60,7 +60,7 @@ def test_coverage(iivm_obj, true_ATE, n_simulations):
         iivm_obj.fit()
 
         # Get the confidence set
-        conf_set = iivm_obj.uniform_confset()
+        conf_set = iivm_obj.robust_confset()
 
         # Check if the true ATE is in the confidence set
         ate_in_confset = any(x[0] < true_ATE < x[1] for x in conf_set)
