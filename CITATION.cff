@@ -31,3 +31,44 @@ authors:
 repository-code: 'https://github.com/DoubleML/doubleml-for-py'
 url: 'https://docs.doubleml.org/stable/index.html'
 license: BSD-3-Clause
+references:
+  - type: article
+    authors:
+      - given-names: Philipp
+        family-names: Bach
+      - given-names: Victor
+        family-names: Chernozhukov
+      - given-names: Malte S.
+        family-names: Kurz
+      - given-names: Martin
+        family-names: Spindler
+    title: "DoubleML - An Object-Oriented Implementation of Double Machine Learning in Python"
+    journal: Journal of Machine Learning Research
+    year: 2022
+    volume: 23
+    issue: 53
+    start: 1
+    end: 6
+    url: http://jmlr.org/papers/v23/21-0862.html
+
+  - type: article
+    authors:
+      - given-names: Philipp
+        family-names: Bach
+      - given-names: Malte S.
+        family-names: Kurz
+      - given-names: Victor
+        family-names: Chernozhukov
+      - given-names: Martin
+        family-names: Spindler
+      - given-names: Sven
+        family-names: Klaassen
+    title: "DoubleML: An Object-Oriented Implementation of Double Machine Learning in R"
+    journal: Journal of Statistical Software
+    year: 2024
+    volume: 108
+    issue: 3
+    start: 1
+    end: 56
+    doi: 10.18637/jss.v108.i03
+    url: https://www.jstatsoft.org/index.php/jss/article/view/v108i03
