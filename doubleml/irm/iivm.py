@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import norm
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
@@ -12,7 +13,7 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequality
 from doubleml.utils._propensity_score import _normalize_ipw, _trimm
 
 
@@ -195,6 +196,23 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 raise TypeError(f"subgroups['never_takers'] must be True or False. Got {str(subgroups['never_takers'])}.")
         self.subgroups = subgroups
         self._external_predictions_implemented = True
+
+    def __str__(self):
+        parent_str = super().__str__()
+
+        # add robust confset
+        if self.framework is None:
+            confset_str = ""
+        else:
+            confset = self.robust_confset()
+            formatted_confset = ", ".join([f"[{lower:.4f}, {upper:.4f}]" for lower, upper in confset])
+            confset_str = (
+                "\n\n--------------- Additional Information ----------------\n"
+                + f"Robust Confidence Set: {formatted_confset}\n"
+            )
+
+        res = parent_str + confset_str
+        return res
 
     @property
     def normalize_ipw(self):
@@ -550,3 +568,45 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
 
     def _sensitivity_element_est(self, preds):
         pass
+
+    def robust_confset(self, level=0.95):
+        """
+        Confidence sets for non-parametric instrumental variable models that are uniformly valid under weak instruments.
+        These are obtained by inverting a score-like test statistic based on estimated influence function.
+
+        Parameters
+        ----------
+        level : float
+            The confidence level.
+            Default is ``0.95``.
+
+        Returns
+        -------
+        list_confset : List
+            A list that contains tuples. Each tuple contains the lower and upper
+            bounds of an interval. The union of this intervals forms the confidence set.
+        """
+
+        if self.framework is None:
+            raise ValueError("Apply fit() before robust_confset().")
+        if not isinstance(level, float):
+            raise TypeError(f"The confidence level must be of float type. {str(level)} of type {str(type(level))} was passed.")
+        if (level <= 0) | (level >= 1):
+            raise ValueError(f"The confidence level must be in (0,1). {str(level)} was passed.")
+
+        # compute critical values
+        alpha = 1 - level
+        critical_value = norm.ppf(1.0 - alpha / 2)
+
+        # We need to find the thetas that solve the equation
+        # n * np.mean(score(theta))/np.mean(score(theta)**2) <= critical_value**2.
+        # This is equivalent to solving the equation
+        # a theta^2 + b theta + c <= 0
+        # for some a, b, c, which we calculate next, and then solve the equation.
+        n = self.psi_elements["psi_a"].shape[0]
+        a = n * np.mean(self.psi_elements["psi_a"]) ** 2 - critical_value**2 * np.mean(np.square(self.psi_elements["psi_a"]))
+        b = 2 * n * np.mean(self.psi_elements["psi_a"]) * np.mean(
+            self.psi_elements["psi_b"]
+        ) - 2 * critical_value**2 * np.mean(np.multiply(self.psi_elements["psi_a"], self.psi_elements["psi_b"]))
+        c = n * np.mean(self.psi_elements["psi_b"]) ** 2 - critical_value**2 * np.mean(np.square(self.psi_elements["psi_b"]))
+        return _solve_quadratic_inequality(a, b, c)
