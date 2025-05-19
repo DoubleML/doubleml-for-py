@@ -121,10 +121,10 @@ def dml_pliv_multiway_cluster_fixture(generate_data_iv, learner, score):
         ses[i_rep] = se[0]
 
     theta = np.median(thetas)
-    n_clusters1 = len(np.unique(obj_dml_cluster_data.cluster_vars[:, 0]))
-    n_clusters2 = len(np.unique(obj_dml_cluster_data.cluster_vars[:, 1]))
-    var_scaling_factor = min(n_clusters1, n_clusters2)
-    se = np.sqrt(np.median(np.power(ses, 2) * var_scaling_factor + np.power(thetas - theta, 2)) / var_scaling_factor)
+
+    all_upper_bounds = thetas + 1.96 * ses
+    upper_bound = np.median(all_upper_bounds, axis=0)
+    se = (upper_bound - theta) / 1.96
 
     res_dict = {
         "coef": dml_pliv_obj.coef,
