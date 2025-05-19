@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
@@ -121,19 +122,19 @@ def test_dml_framework_sensitivity_operations(dml_framework_sensitivity_fixture)
     mul_zero_obj = dml_framework_sensitivity_fixture["dml_framework_obj_mul_zero_obj"]
 
     for key in ["theta", "se", "ci"]:
-        assert add_obj.sensitivity_params[key]["upper"] == mul_obj.sensitivity_params[key]["upper"]
-        assert add_obj.sensitivity_params[key]["lower"] == mul_obj.sensitivity_params[key]["lower"]
+        assert np.allclose(add_obj.sensitivity_params[key]["upper"], mul_obj.sensitivity_params[key]["upper"])
+        assert np.allclose(add_obj.sensitivity_params[key]["lower"], mul_obj.sensitivity_params[key]["lower"])
 
         assert mul_zero_obj.sensitivity_params[key]["upper"] == 0
         assert mul_zero_obj.sensitivity_params[key]["lower"] == 0
 
-    assert add_obj.sensitivity_params["rv"] == mul_obj.sensitivity_params["rv"]
+    assert np.allclose(add_obj.sensitivity_params["rv"], mul_obj.sensitivity_params["rv"])
     assert mul_zero_obj.sensitivity_params["rv"] > 0.99  # due to degenerated variance
     assert mul_zero_obj.sensitivity_params["rva"] > 0.99  # due to degenerated variance
 
     sub_obj = dml_framework_sensitivity_fixture["dml_framework_obj_sub_obj2"]
-    assert sub_obj.sensitivity_params["theta"]["upper"] == -1 * sub_obj.sensitivity_params["theta"]["lower"]
-    assert sub_obj.sensitivity_params["se"]["upper"] == sub_obj.sensitivity_params["se"]["lower"]
-    assert sub_obj.sensitivity_params["ci"]["upper"] == -1 * sub_obj.sensitivity_params["ci"]["lower"]
+    assert np.allclose(sub_obj.sensitivity_params["theta"]["upper"], -1 * sub_obj.sensitivity_params["theta"]["lower"])
+    assert np.allclose(sub_obj.sensitivity_params["se"]["upper"], sub_obj.sensitivity_params["se"]["lower"])
+    assert np.allclose(sub_obj.sensitivity_params["ci"]["upper"], -1 * sub_obj.sensitivity_params["ci"]["lower"])
     assert sub_obj.sensitivity_params["rv"] < 0.01
     assert sub_obj.sensitivity_params["rva"] < 0.01
