@@ -244,11 +244,12 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
     coefs = np.median(all_coefs, 1)
 
-    # construct the upper bounds for one std & aggregate
-    all_upper_bounds = all_coefs + all_ses
+    # construct the upper bounds & aggregate
+    critical_value = 1.96
+    all_upper_bounds = all_coefs + critical_value * all_ses
     agg_upper_bounds = np.median(all_upper_bounds, axis=1)
     # reverse to calculate the standard errors
-    ses = agg_upper_bounds - coefs
+    ses = (agg_upper_bounds - coefs) / critical_value
     return coefs, ses
 
 
