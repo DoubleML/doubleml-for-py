@@ -54,14 +54,12 @@ def test_var_est_and_aggr_fixture(n_rep, n_coefs, level):
     theta, se = _aggregate_coefs_and_ses(
         all_coefs=all_thetas,
         all_ses=all_ses,
-        var_scaling_factors=all_var_scaling_factors[:, 0],
     )
 
     # with n_rep
     theta_2, se_2 = _aggregate_coefs_and_ses(
         all_coefs=all_thetas,
         all_ses=all_ses,
-        var_scaling_factors=all_var_scaling_factors,
     )
 
     result_dict = {

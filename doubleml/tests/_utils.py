@@ -101,7 +101,6 @@ def generate_dml_dict(psi_a, psi_b):
     thetas, ses = _aggregate_coefs_and_ses(
         all_coefs=all_thetas,
         all_ses=all_ses,
-        var_scaling_factors=var_scaling_factors,
     )
     scaled_psi = psi_b / np.mean(psi_a, axis=0)
 

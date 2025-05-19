@@ -239,7 +239,7 @@ def _solve_ipw_score(ipw_score, bracket_guess):
     return ipw_est
 
 
-def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
+def _aggregate_coefs_and_ses(all_coefs, all_ses):
     # already expects equally scaled variances over all repetitions
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
     coefs = np.median(all_coefs, 1)

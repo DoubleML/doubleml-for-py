@@ -537,7 +537,7 @@ class DoubleML(ABC):
                 self._fit_sensitivity_elements(nuisance_predictions)
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se)
 
         # validate sensitivity elements (e.g., re-estimate nu2 if negative)
         self._validate_sensitivity_elements()
@@ -1392,7 +1392,7 @@ class DoubleML(ABC):
                 self._all_se[self._i_treat, self._i_rep], self._var_scaling_factors[self._i_treat] = self._se_causal_pars()
 
         # aggregated parameter estimates and standard errors from repeated cross-fitting
-        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se, self._var_scaling_factors)
+        self.coef, self.se = _aggregate_coefs_and_ses(self._all_coef, self._all_se)
 
     # Score estimation and elements
     @abstractmethod
