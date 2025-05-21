@@ -96,6 +96,9 @@ and our
 
 If you use the DoubleML package a citation is highly appreciated:
 
+You can click the **"Cite this repository"** button at the top of the GitHub page to cite the package directly.
+Alternatively, you can cite the following paper:
+
 Bach, P., Chernozhukov, V., Kurz, M. S., and Spindler, M. (2022), DoubleML - An
 Object-Oriented Implementation of Double Machine Learning in Python,
 Journal of Machine Learning Research, 23(53): 1-6,
