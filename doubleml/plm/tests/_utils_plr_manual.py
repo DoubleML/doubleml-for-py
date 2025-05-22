@@ -21,7 +21,6 @@ def fit_plr_multitreat(
     g_params=None,
     use_other_treat_as_covariate=True,
 ):
-    n_obs = len(y)
     n_d = d.shape[1]
 
     thetas = list()
@@ -62,7 +61,9 @@ def fit_plr_multitreat(
         theta_vec = np.array([xx[i_d] for xx in thetas])
         se_vec = np.array([xx[i_d] for xx in ses])
         theta[i_d] = np.median(theta_vec)
-        se[i_d] = np.sqrt(np.median(np.power(se_vec, 2) * n_obs + np.power(theta_vec - theta[i_d], 2)) / n_obs)
+        upper_bound_vec = theta_vec + 1.96 * se_vec
+        upper_bound = np.median(upper_bound_vec)
+        se[i_d] = (upper_bound - theta[i_d]) / 1.96
 
     res = {
         "theta": theta,
@@ -78,7 +79,6 @@ def fit_plr_multitreat(
 
 
 def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, score, n_rep=1, l_params=None, m_params=None, g_params=None):
-    n_obs = len(y)
 
     thetas = np.zeros(n_rep)
     ses = np.zeros(n_rep)
@@ -95,7 +95,9 @@ def fit_plr(y, x, d, learner_l, learner_m, learner_g, all_smpls, score, n_rep=1,
         all_g_hat.append(g_hat)
 
     theta = np.median(thetas)
-    se = np.sqrt(np.median(np.power(ses, 2) * n_obs + np.power(thetas - theta, 2)) / n_obs)
+    upper_bound_vec = thetas + 1.96 * ses
+    upper_bound = np.median(upper_bound_vec)
+    se = (upper_bound - theta) / 1.96
 
     res = {
         "theta": theta,

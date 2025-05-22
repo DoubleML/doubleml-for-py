@@ -31,8 +31,8 @@ def doubleml_sensitivity_manual(sensitivity_elements, all_coefs, psi, psi_deriv,
     all_sigma_lower = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_lower), axis=0), var_scaling_factor)))
     all_sigma_upper = np.transpose(np.sqrt(np.divide(np.mean(np.square(psi_upper), axis=0), var_scaling_factor)))
 
-    theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, var_scaling_factor)
-    theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, var_scaling_factor)
+    theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower)
+    theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper)
 
     quant = norm.ppf(level)
 

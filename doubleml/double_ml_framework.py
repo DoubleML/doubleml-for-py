@@ -310,7 +310,7 @@ class DoubleMLFramework:
             # compute standard errors (Uses factor 1/n for scaling!)
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
+            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
                 "thetas": thetas,
@@ -358,7 +358,7 @@ class DoubleMLFramework:
             # compute standard errors
             sigma2_hat = np.divide(np.mean(np.square(scaled_psi), axis=0), var_scaling_factors.reshape(-1, 1))
             all_ses = np.sqrt(sigma2_hat)
-            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses, var_scaling_factors)
+            thetas, ses = _aggregate_coefs_and_ses(all_thetas, all_ses)
 
             doubleml_dict = {
                 "thetas": thetas,
@@ -507,8 +507,8 @@ class DoubleMLFramework:
                 all_sigma_upper[i_theta, i_rep] = np.sqrt(sigma2_upper_hat)
 
         # aggregate coefs and ses over n_rep
-        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower, self._var_scaling_factors)
-        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper, self._var_scaling_factors)
+        theta_lower, sigma_lower = _aggregate_coefs_and_ses(all_theta_lower, all_sigma_lower)
+        theta_upper, sigma_upper = _aggregate_coefs_and_ses(all_theta_upper, all_sigma_upper)
 
         # per repetition confidence intervals
         quant = norm.ppf(level)

@@ -239,20 +239,17 @@ def _solve_ipw_score(ipw_score, bracket_guess):
     return ipw_est
 
 
-def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
-    if var_scaling_factors.shape == (all_coefs.shape[0],):
-        scaling_factors = np.repeat(var_scaling_factors[:, np.newaxis], all_coefs.shape[1], axis=1)
-    else:
-        scaling_factors = var_scaling_factors
+def _aggregate_coefs_and_ses(all_coefs, all_ses):
+    # already expects equally scaled variances over all repetitions
     # aggregation is done over dimension 1, such that the coefs and ses have to be of shape (n_coefs, n_rep)
     coefs = np.median(all_coefs, 1)
 
-    coefs_deviations = np.square(all_coefs - coefs.reshape(-1, 1))
-    scaled_coef_deviations = np.divide(coefs_deviations, scaling_factors)
-    all_variances = np.square(all_ses) + scaled_coef_deviations
-
-    var = np.median(all_variances, 1)
-    ses = np.sqrt(var)
+    # construct the upper bounds & aggregate
+    critical_value = 1.96
+    all_upper_bounds = all_coefs + critical_value * all_ses
+    agg_upper_bounds = np.median(all_upper_bounds, axis=1)
+    # reverse to calculate the standard errors
+    ses = (agg_upper_bounds - coefs) / critical_value
     return coefs, ses
 
 
