@@ -1005,7 +1005,7 @@ class DoubleML(ABC):
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
                 valid_learners=self.params_names,
-                n_obs=self._dml_data.n_obs,
+                n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
         elif not self._external_predictions_implemented and external_predictions is not None:
