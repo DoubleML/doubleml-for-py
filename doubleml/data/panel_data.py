@@ -106,6 +106,8 @@ class DoubleMLPanelData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
         )
+        # reset index to ensure a simple RangeIndex
+        self.data.reset_index(drop=True, inplace=True)
         if self.n_treat != 1:
             raise ValueError("Only one treatment column is allowed for panel data.")
 
