@@ -1,0 +1,592 @@
+import warnings
+
+import numpy as np
+from sklearn.utils import check_X_y
+
+from doubleml.data.panel_data import DoubleMLPanelData
+from doubleml.did.utils._did_utils import (
+    _check_anticipation_periods,
+    _check_control_group,
+    _check_gt_combination,
+    _check_gt_values,
+    _get_id_positions,
+    _get_never_treated_value,
+    _is_never_treated,
+    _set_id_positions,
+)
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import (
+    _check_bool,
+    _check_finite_predictions,
+    _check_is_propensity,
+    _check_score,
+    _check_trimming,
+)
+from doubleml.utils._estimation import _dml_cv_predict, _get_cond_smpls_2d
+from doubleml.utils._propensity_score import _trimm
+
+
+class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
+
+    def __init__(
+        self,
+        obj_dml_data,
+        g_value,
+        t_value_pre,
+        t_value_eval,
+        ml_g,
+        ml_m=None,
+        control_group="never_treated",
+        anticipation_periods=0,
+        n_folds=5,
+        n_rep=1,
+        score="observational",
+        in_sample_normalization=True,
+        trimming_rule="truncate",
+        trimming_threshold=1e-2,
+        draw_sample_splitting=True,
+        print_periods=False,
+    ):
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
+
+        self._check_data(self._dml_data)
+        g_values = self._dml_data.g_values
+        t_values = self._dml_data.t_values
+
+        _check_bool(print_periods, "print_periods")
+        self._print_periods = print_periods
+        self._control_group = _check_control_group(control_group)
+        self._never_treated_value = _get_never_treated_value(g_values)
+        self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
+
+        _check_gt_combination(
+            (g_value, t_value_pre, t_value_eval), g_values, t_values, self.never_treated_value, self.anticipation_periods
+        )
+        self._g_value = g_value
+        self._t_value_pre = t_value_pre
+        self._t_value_eval = t_value_eval
+
+        # check if post_treatment evaluation
+        if g_value <= t_value_eval:
+            post_treatment = True
+        else:
+            post_treatment = False
+
+        self._post_treatment = post_treatment
+
+        if self._print_periods:
+            print(
+                f"Evaluation of ATT({g_value}, {t_value_eval}), with pre-treatment period {t_value_pre},\n"
+                + f"post-treatment: {post_treatment}. Control group: {control_group}.\n"
+            )
+
+        # Preprocess data
+        self._data_subset = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
+
+        # Handling id values to match pairwise evaluation & simultaneous inference
+        if not np.all(np.isin(self.data_subset.index, self._dml_data.data.index)):
+            raise ValueError("The index values in the data subset are not a subset of the original index values.")
+
+        # Find position of data subset in original data
+        # These entries should be replaced by nuisance predictions, all others should be set to 0.
+        self._id_positions = self.data_subset.index
+
+        # Numeric values for positions of the entries in id_panel_data inside id_original
+        # np.nonzero(np.isin(id_original, id_panel_data))
+        self._n_subset = self.data_subset.shape[0]
+        self._n_obs = self._n_subset  # Effective sample size used for resampling
+
+        # Save x and y for later ML estimation
+        self._x_data = self.data_subset.loc[:, self._dml_data.x_cols].values
+        self._y_data = self.data_subset.loc[:, self._dml_data.y_col].values
+        self._g_data = self.data_subset.loc[:, "G_indicator"].values
+        self._t_data = self.data_subset.loc[:, "t_indicator"].values
+
+        valid_scores = ["observational", "experimental"]
+        _check_score(self.score, valid_scores, allow_callable=False)
+
+        self._in_sample_normalization = in_sample_normalization
+        if not isinstance(self.in_sample_normalization, bool):
+            raise TypeError(
+                "in_sample_normalization indicator has to be boolean. "
+                + f"Object of type {str(type(self.in_sample_normalization))} passed."
+            )
+
+        # set stratication for resampling
+        self._strata = self.data_subset["G_indicator"] + 2 * self.data_subset["t_indicator"]
+        if draw_sample_splitting:
+            self.draw_sample_splitting()
+
+        # check learners
+        ml_g_is_classifier = self._check_learner(ml_g, "ml_g", regressor=True, classifier=True)
+        if self.score == "observational":
+            _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
+            self._learner = {"ml_g": ml_g, "ml_m": ml_m}
+        else:
+            assert self.score == "experimental"
+            if ml_m is not None:
+                warnings.warn(
+                    (
+                        'A learner ml_m has been provided for score = "experimental" but will be ignored. '
+                        "A learner ml_m is not required for estimation."
+                    )
+                )
+            self._learner = {"ml_g": ml_g}
+
+        if ml_g_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {"ml_g": "predict_proba"}
+            else:
+                raise ValueError(
+                    f"The ml_g learner {str(ml_g)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
+        else:
+            self._predict_method = {"ml_g": "predict"}
+
+        if "ml_m" in self._learner:
+            self._predict_method["ml_m"] = "predict_proba"
+        self._initialize_ml_nuisance_params()
+
+        self._trimming_rule = trimming_rule
+        self._trimming_threshold = trimming_threshold
+        _check_trimming(self._trimming_rule, self._trimming_threshold)
+
+        self._sensitivity_implemented = False
+        self._external_predictions_implemented = True
+
+    @property
+    def g_value(self):
+        """
+        The value indicating the treatment group (first period with treatment).
+        """
+        return self._g_value
+
+    @property
+    def t_value_eval(self):
+        """
+        The value indicating the evaluation period.
+        """
+        return self._t_value_eval
+
+    @property
+    def t_value_pre(self):
+        """
+        The value indicating the pre-treatment period.
+        """
+        return self._t_value_pre
+
+    @property
+    def never_treated_value(self):
+        """
+        The value indicating that a unit was never treated.
+        """
+        return self._never_treated_value
+
+    @property
+    def post_treatment(self):
+        """
+        Indicates whether the evaluation period is after the treatment period.
+        """
+        return self._post_treatment
+
+    @property
+    def control_group(self):
+        """
+        The control group.
+        """
+        return self._control_group
+
+    @property
+    def anticipation_periods(self):
+        """
+        The number of anticipation periods.
+        """
+        return self._anticipation_periods
+
+    @property
+    def data_subset(self):
+        """
+        The preprocessed data subset.
+        """
+        return self._data_subset
+
+    @property
+    def id_positions(self):
+        """
+        The positions of the id values in the original data.
+        """
+        return self._id_positions
+
+    @property
+    def in_sample_normalization(self):
+        """
+        Indicates whether the in sample normalization of weights are used.
+        """
+        return self._in_sample_normalization
+
+    @property
+    def trimming_rule(self):
+        """
+        Specifies the used trimming rule.
+        """
+        return self._trimming_rule
+
+    @property
+    def trimming_threshold(self):
+        """
+        Specifies the used trimming threshold.
+        """
+        return self._trimming_threshold
+
+    @property
+    def n_obs(self):
+        """
+        The number of observations used for estimation.
+        """
+        return self._n_subset
+
+    def _initialize_ml_nuisance_params(self):
+        if self.score == "observational":
+            valid_learner = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1", "ml_m"]
+        else:
+            assert self.score == "experimental"
+            valid_learner = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
+        self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
+
+    def _check_data(self, obj_dml_data):
+        if not isinstance(obj_dml_data, DoubleMLPanelData):
+            raise TypeError(
+                "For repeated outcomes the data must be of DoubleMLPanelData type. "
+                f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+            )
+        if obj_dml_data.z_cols is not None:
+            raise NotImplementedError(
+                "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
+                "At the moment there are not DiD models with instruments implemented."
+            )
+
+        one_treat = obj_dml_data.n_treat == 1
+        if not (one_treat):
+            raise ValueError(
+                "Incompatible data. "
+                "To fit an DID model with DML "
+                "exactly one variable needs to be specified as treatment variable."
+            )
+        _check_gt_values(obj_dml_data.g_values, obj_dml_data.t_values)
+        return
+
+    def _preprocess_data(self, g_value, pre_t, eval_t):
+        data = self._dml_data.data
+
+        t_col = self._dml_data.t_col
+        id_col = self._dml_data.id_col
+        g_col = self._dml_data.g_col
+
+        # relevant data subset
+        data_subset_indicator = data[t_col].isin([pre_t, eval_t])
+        data_subset = data[data_subset_indicator].sort_values(by=[id_col, t_col])
+
+        # Construct G (treatment group) indicating treatment period in g
+        G_indicator = (data_subset[g_col] == g_value).astype(int)
+
+        # Construct C (control group) indicating never treated or not yet treated
+        never_treated = _is_never_treated(data_subset[g_col], self.never_treated_value).reshape(-1)
+        if self.control_group == "never_treated":
+            C_indicator = never_treated.astype(int)
+
+        elif self.control_group == "not_yet_treated":
+            # adjust max_g_value for anticipation periods
+            t_values = self._dml_data.t_values
+            max_g_value = t_values[min(np.where(t_values == eval_t)[0][0] + self.anticipation_periods, len(t_values) - 1)]
+            # not in G just as a additional check
+            later_treated = (data_subset[g_col] > max_g_value) & (G_indicator == 0)
+            not_yet_treated = never_treated | later_treated
+            C_indicator = not_yet_treated.astype(int)
+
+        if np.sum(C_indicator) == 0:
+            raise ValueError("No observations in the control group.")
+
+        data_subset = data_subset.assign(C_indicator=C_indicator, G_indicator=G_indicator)
+        # reduce to relevant subset
+        data_subset = data_subset[(data_subset["G_indicator"] == 1) | (data_subset["C_indicator"] == 1)]
+        # check if G and C are disjoint
+        assert sum(G_indicator & C_indicator) == 0
+
+        # add time indicator
+        data_subset = data_subset.assign(t_indicator=data_subset[t_col] == eval_t)
+        return data_subset
+
+    def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
+
+        # Here: d is a binary treatment indicator
+        x, y = check_X_y(X=self._x_data, y=self._y_data, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data, force_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data, force_all_finite=False)
+
+        # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
+        # nuisance estimates of the uncond. treatment prob.
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
+        lambda_hat = np.full_like(t, t.mean(), dtype="float64")
+
+        # nuisance g
+        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
+
+        # nuisance g for d==0 & t==0
+        if external_predictions["ml_g_d0_t0"] is not None:
+            ml_g_d0_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_d0_t0_targets[((d == 0) & (t == 0))] = y[((d == 0) & (t == 0))]
+            ml_d0_t0_pred = _get_id_positions(external_predictions["ml_g_d0_t0"], self.id_positions)
+            g_hat_d0_t0 = {"preds": ml_d0_t0_pred, "targets": ml_g_d0_t0_targets, "models": None}
+        else:
+            g_hat_d0_t0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_d0_t0,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d0_t0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+
+            _check_finite_predictions(g_hat_d0_t0["preds"], self._learner["ml_g"], "ml_g", smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat_d0_t0["targets"] = g_hat_d0_t0["targets"].astype(float)
+            g_hat_d0_t0["targets"][np.invert((d == 0) & (t == 0))] = np.nan
+
+        # nuisance g for d==0 & t==1
+        if external_predictions["ml_g_d0_t1"] is not None:
+            ml_g_d0_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_d0_t1_targets[((d == 0) & (t == 1))] = y[((d == 0) & (t == 1))]
+            ml_d0_t1_pred = _get_id_positions(external_predictions["ml_g_d0_t1"], self.id_positions)
+            g_hat_d0_t1 = {"preds": ml_d0_t1_pred, "targets": ml_g_d0_t1_targets, "models": None}
+        else:
+            g_hat_d0_t1 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_d0_t1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d0_t1"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+
+            _check_finite_predictions(g_hat_d0_t1["preds"], self._learner["ml_g"], "ml_g", smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat_d0_t1["targets"] = g_hat_d0_t1["targets"].astype(float)
+            g_hat_d0_t1["targets"][np.invert((d == 0) & (t == 1))] = np.nan
+
+        # nuisance g for d==1 & t==0
+        if external_predictions["ml_g_d1_t0"] is not None:
+            ml_g_d1_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_d1_t0_targets[((d == 1) & (t == 0))] = y[((d == 1) & (t == 0))]
+            ml_d1_t0_pred = _get_id_positions(external_predictions["ml_g_d1_t0"], self.id_positions)
+            g_hat_d1_t0 = {"preds": ml_d1_t0_pred, "targets": ml_g_d1_t0_targets, "models": None}
+        else:
+            g_hat_d1_t0 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_d1_t0,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d1_t0"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+
+            _check_finite_predictions(g_hat_d1_t0["preds"], self._learner["ml_g"], "ml_g", smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat_d1_t0["targets"] = g_hat_d1_t0["targets"].astype(float)
+            g_hat_d1_t0["targets"][np.invert((d == 1) & (t == 0))] = np.nan
+
+        # nuisance g for d==1 & t==1
+        if external_predictions["ml_g_d1_t1"] is not None:
+            ml_g_d1_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_d1_t1_targets[((d == 1) & (t == 1))] = y[((d == 1) & (t == 1))]
+            ml_d1_t1_pred = _get_id_positions(external_predictions["ml_g_d1_t1"], self.id_positions)
+            g_hat_d1_t1 = {"preds": ml_d1_t1_pred, "targets": ml_g_d1_t1_targets, "models": None}
+        else:
+            g_hat_d1_t1 = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_d1_t1,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_g_d1_t1"),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+
+            _check_finite_predictions(g_hat_d1_t1["preds"], self._learner["ml_g"], "ml_g", smpls)
+            # adjust target values to consider only compatible subsamples
+            g_hat_d1_t1["targets"] = g_hat_d1_t1["targets"].astype(float)
+            g_hat_d1_t1["targets"][np.invert((d == 1) & (t == 1))] = np.nan
+
+        # only relevant for observational setting
+        m_hat = {"preds": None, "targets": None, "models": None}
+        if self.score == "observational":
+            # nuisance m
+            if external_predictions["ml_m"] is not None:
+                ml_m_pred = _get_id_positions(external_predictions["ml_m"], self.id_positions)
+                m_hat = {"preds": ml_m_pred, "targets": d, "models": None}
+            else:
+                m_hat = _dml_cv_predict(
+                    self._learner["ml_m"],
+                    x,
+                    d,
+                    smpls=smpls,
+                    n_jobs=n_jobs_cv,
+                    est_params=self._get_params("ml_m"),
+                    method=self._predict_method["ml_m"],
+                    return_models=return_models,
+                )
+
+            _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
+            _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
+            m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
+
+        psi_a, psi_b = self._score_elements(
+            y,
+            d,
+            t,
+            g_hat_d0_t0["preds"],
+            g_hat_d0_t1["preds"],
+            g_hat_d1_t0["preds"],
+            g_hat_d1_t1["preds"],
+            m_hat["preds"],
+            p_hat,
+            lambda_hat,
+        )
+
+        extend_kwargs = {
+            "n_obs": self._dml_data.data.shape[0],
+            "id_positions": self.id_positions,
+        }
+        psi_elements = {
+            "psi_a": _set_id_positions(psi_a, fill_value=0.0, **extend_kwargs),
+            "psi_b": _set_id_positions(psi_b, fill_value=0.0, **extend_kwargs),
+        }
+        preds = {
+            "predictions": {
+                "ml_g_d0_t0": _set_id_positions(g_hat_d0_t0["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t1": _set_id_positions(g_hat_d0_t1["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t0": _set_id_positions(g_hat_d1_t0["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t1": _set_id_positions(g_hat_d1_t1["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_m": _set_id_positions(m_hat["preds"], fill_value=np.nan, **extend_kwargs),
+            },
+            "targets": {
+                "ml_g_d0_t0": _set_id_positions(g_hat_d0_t0["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t1": _set_id_positions(g_hat_d0_t1["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t0": _set_id_positions(g_hat_d1_t0["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t1": _set_id_positions(g_hat_d1_t1["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_m": _set_id_positions(m_hat["targets"], fill_value=np.nan, **extend_kwargs),
+            },
+            "models": {
+                "ml_g_d0_t0": g_hat_d0_t0["models"],
+                "ml_g_d0_t1": g_hat_d0_t1["models"],
+                "ml_g_d1_t0": g_hat_d1_t0["models"],
+                "ml_g_d1_t1": g_hat_d1_t1["models"],
+                "ml_m": m_hat["models"],
+            },
+        }
+
+        return psi_elements, preds
+
+    def _score_elements(self, y, d, t, g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1, m_hat, p_hat, lambda_hat):
+        # calculate residuals
+        resid_d0_t0 = y - g_hat_d0_t0
+        resid_d0_t1 = y - g_hat_d0_t1
+        resid_d1_t0 = y - g_hat_d1_t0
+        resid_d1_t1 = y - g_hat_d1_t1
+
+        d1t1 = np.multiply(d, t)
+        d1t0 = np.multiply(d, 1.0 - t)
+        d0t1 = np.multiply(1.0 - d, t)
+        d0t0 = np.multiply(1.0 - d, 1.0 - t)
+
+        if self.score == "observational":
+            if self.in_sample_normalization:
+                weight_psi_a = np.divide(d, np.mean(d))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
+
+                prop_weighting = np.divide(m_hat, 1.0 - m_hat)
+                unscaled_d0_t1 = np.multiply(d0t1, prop_weighting)
+                weight_resid_d0_t1 = -1.0 * np.divide(unscaled_d0_t1, np.mean(unscaled_d0_t1))
+
+                unscaled_d0_t0 = np.multiply(d0t0, prop_weighting)
+                weight_resid_d0_t0 = np.divide(unscaled_d0_t0, np.mean(unscaled_d0_t0))
+            else:
+                weight_psi_a = np.divide(d, p_hat)
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0 - lambda_hat))
+
+                prop_weighting = np.divide(m_hat, 1.0 - m_hat)
+                weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(d0t1, np.multiply(p_hat, lambda_hat)), prop_weighting)
+                weight_resid_d0_t0 = np.multiply(np.divide(d0t0, np.multiply(p_hat, 1.0 - lambda_hat)), prop_weighting)
+        else:
+            assert self.score == "experimental"
+            if self.in_sample_normalization:
+                weight_psi_a = np.ones_like(y)
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.mean(d0t1))
+                weight_resid_d0_t0 = np.divide(d0t0, np.mean(d0t0))
+            else:
+                weight_psi_a = np.ones_like(y)
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0 - lambda_hat))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.multiply(1.0 - p_hat, lambda_hat))
+                weight_resid_d0_t0 = np.divide(d0t0, np.multiply(1.0 - p_hat, 1.0 - lambda_hat))
+
+        # set score elements
+        psi_a = -1.0 * weight_psi_a
+
+        # psi_b
+        psi_b_1 = (
+            np.multiply(weight_g_d1_t1, g_hat_d1_t1)
+            + np.multiply(weight_g_d1_t0, g_hat_d1_t0)
+            + np.multiply(weight_g_d0_t0, g_hat_d0_t0)
+            + np.multiply(weight_g_d0_t1, g_hat_d0_t1)
+        )
+        psi_b_2 = (
+            np.multiply(weight_resid_d1_t1, resid_d1_t1)
+            + np.multiply(weight_resid_d1_t0, resid_d1_t0)
+            + np.multiply(weight_resid_d0_t0, resid_d0_t0)
+            + np.multiply(weight_resid_d0_t1, resid_d0_t1)
+        )
+
+        psi_b = psi_b_1 + psi_b_2
+
+        return psi_a, psi_b
+
+    def _nuisance_tuning(
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    ):
+        pass
+
+    def _sensitivity_element_est(self, preds):
+        pass
