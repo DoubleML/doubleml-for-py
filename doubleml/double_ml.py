@@ -101,6 +101,7 @@ class DoubleML(ABC):
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
+        self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
         # initialize arrays according to obj_dml_data and the resampling settings
         (
             self._psi,
@@ -1021,9 +1022,7 @@ class DoubleML(ABC):
             self._initialize_models()
 
         if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements(
-                (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
-            )
+            self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
@@ -1076,30 +1075,26 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         # scores
-        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
+        psi = np.full(self._score_dim, np.nan)
+        psi_deriv = np.full(self._score_dim, np.nan)
+        psi_elements = self._initialize_score_elements(self._score_dim)
 
-        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+        n_rep = self._score_dim[1]
+        n_thetas = self._score_dim[2]
 
+        var_scaling_factors = np.full(n_thetas, np.nan)
         # coefficients and ses
-        coef = np.full(self._dml_data.n_coefs, np.nan)
-        se = np.full(self._dml_data.n_coefs, np.nan)
+        coef = np.full(n_thetas, np.nan)
+        se = np.full(n_thetas, np.nan)
 
-        all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-        all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
+        all_coef = np.full((n_thetas, n_rep), np.nan)
+        all_se = np.full((n_thetas, n_rep), np.nan)
 
         return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
-        self._nuisance_targets = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
