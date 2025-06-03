@@ -50,6 +50,20 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
     ):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
+        self._n_obs = obj_dml_data.data.shape[0]
+        self._score_dim = (self._n_obs, self.n_rep, self._dml_data.n_treat)
+        # reinitialze arrays
+        (
+            self._psi,
+            self._psi_deriv,
+            self._psi_elements,
+            self._var_scaling_factors,
+            self._coef,
+            self._se,
+            self._all_coef,
+            self._all_se,
+        ) = self._initialize_arrays()
+
         self._check_data(self._dml_data)
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
