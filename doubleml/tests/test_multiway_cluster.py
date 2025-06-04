@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from ..plm.tests._utils_pliv_manual import compute_pliv_residuals, fit_pliv
 from ._utils import _clone

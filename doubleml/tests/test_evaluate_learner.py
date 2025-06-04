@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data
+from doubleml.irm.datasets import make_irm_data
 from doubleml.utils._estimation import _logloss
 
 np.random.seed(3141)

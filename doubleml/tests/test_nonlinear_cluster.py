@@ -7,7 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import DoubleMLClusterData, make_pliv_multiway_cluster_CKMS2021
+from doubleml import DoubleMLClusterData
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from .test_nonlinear_score_mixin import DoubleMLPLRWithNonLinearScoreMixin
 
