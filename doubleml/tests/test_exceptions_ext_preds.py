@@ -2,7 +2,7 @@ import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from doubleml import DoubleMLCVAR, DoubleMLData, DoubleMLIRM, DoubleMLQTE
-from doubleml.datasets import make_irm_data
+from doubleml.irm.datasets import make_irm_data
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 df_irm = make_irm_data(n_obs=10, dim_x=2, theta=0.5, return_type="DataFrame")

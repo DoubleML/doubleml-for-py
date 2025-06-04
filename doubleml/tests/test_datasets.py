@@ -3,21 +3,22 @@ import pandas as pd
 import pytest
 
 from doubleml import DoubleMLClusterData, DoubleMLData
-from doubleml.datasets import (
-    _make_pliv_data,
-    fetch_401K,
-    fetch_bonus,
+from doubleml.datasets import fetch_401K, fetch_bonus
+from doubleml.irm.datasets import (
     make_confounded_irm_data,
-    make_confounded_plr_data,
     make_heterogeneous_data,
     make_iivm_data,
     make_irm_data,
     make_irm_data_discrete_treatments,
+    make_ssm_data,
+)
+from doubleml.plm.datasets import (
+    _make_pliv_data,
+    make_confounded_plr_data,
     make_pliv_CHS2015,
     make_pliv_multiway_cluster_CKMS2021,
     make_plr_CCDDHNR2018,
     make_plr_turrell2018,
-    make_ssm_data,
 )
 
 msg_inv_return_type = "Invalid return_type."

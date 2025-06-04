@@ -3,7 +3,8 @@ import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from doubleml import DoubleMLCVAR, DoubleMLIIVM, DoubleMLIRM, DoubleMLLPQ, DoubleMLPLIV, DoubleMLPLR, DoubleMLPQ
-from doubleml.datasets import make_iivm_data, make_irm_data, make_pliv_CHS2015, make_plr_CCDDHNR2018
+from doubleml.irm.datasets import make_iivm_data, make_irm_data
+from doubleml.plm.datasets import make_pliv_CHS2015, make_plr_CCDDHNR2018
 
 # set default and test values
 n_est_default = 100
