@@ -1167,10 +1167,9 @@ class DoubleML(ABC):
 
         Examples
         --------
-        >>> import numpy as np
-        >>> import doubleml as dml
+        >>> import numpy as np        >>> import doubleml as dml
         >>> from sklearn.metrics import mean_absolute_error
-        >>> from doubleml.datasets import make_irm_data
+        >>> from doubleml.irm.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
         >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -1284,10 +1283,9 @@ class DoubleML(ABC):
         self : object
 
         Examples
-        --------
-        >>> import numpy as np
+        --------        >>> import numpy as np
         >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
         >>> from sklearn.ensemble import RandomForestRegressor
         >>> from sklearn.base import clone
         >>> np.random.seed(3141)

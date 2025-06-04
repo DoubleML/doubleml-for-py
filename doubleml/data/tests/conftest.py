@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from doubleml.datasets import make_irm_data, make_plr_turrell2018
+from doubleml.irm.datasets import make_irm_data
+from doubleml.plm.datasets import make_plr_turrell2018
 
 
 @pytest.fixture(scope="session", params=[(500, 10), (1000, 20), (1000, 100)])

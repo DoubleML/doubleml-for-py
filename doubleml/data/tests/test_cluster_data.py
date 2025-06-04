@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from doubleml import DoubleMLClusterData
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
 
 
 @pytest.mark.ci

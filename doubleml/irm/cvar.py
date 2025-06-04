@@ -82,7 +82,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
+    >>> from doubleml.irm.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)

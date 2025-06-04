@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_iivm_data, make_irm_data, make_irm_data_discrete_treatments
+from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_irm_data_discrete_treatments
 
 n = 100
 data_apo = make_irm_data_discrete_treatments(n_obs=n)

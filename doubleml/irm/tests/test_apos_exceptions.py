@@ -4,7 +4,7 @@ import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLAPOS, DoubleMLData
-from doubleml.datasets import make_iivm_data, make_irm_data_discrete_treatments
+from doubleml.irm.datasets import make_iivm_data, make_irm_data_discrete_treatments
 
 n = 100
 data = make_irm_data_discrete_treatments(n_obs=n)

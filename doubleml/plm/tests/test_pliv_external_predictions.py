@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression
 
 from doubleml import DoubleMLData, DoubleMLPLIV
-from doubleml.datasets import make_pliv_CHS2015
+from doubleml.plm.datasets import make_pliv_CHS2015
 from doubleml.utils import DMLDummyRegressor
 
 
