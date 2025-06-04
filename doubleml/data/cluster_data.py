@@ -171,9 +171,8 @@ class DoubleMLClusterData(DoubleMLData):
             Default is ``True``.
 
         Examples
-        --------
-        >>> from doubleml import DoubleMLClusterData
-        >>> from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+        --------        >>> from doubleml import DoubleMLClusterData
+        >>> from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
         >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
