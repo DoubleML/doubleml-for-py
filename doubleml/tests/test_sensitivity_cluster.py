@@ -17,7 +17,7 @@ dim_x = 10  # dimension of x
 
 
 (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
-obj_dml_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, cluster_vars=cluster_vars, is_cluster_data=True)
 
 (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(
     N,
@@ -29,7 +29,7 @@ obj_dml_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars
     omega_V=np.array([0.25, 0]),
     return_type="array",
 )
-obj_dml_oneway_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_oneway_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, cluster_vars=cluster_vars, is_cluster_data=True)
 # only the first cluster variable is relevant with the weight setting above
 obj_dml_oneway_cluster_data.cluster_cols = "cluster_var1"
 

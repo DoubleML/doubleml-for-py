@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from doubleml.data import DoubleMLClusterData
+from doubleml.data import DoubleMLData
 from doubleml.utils._aliases import _array_alias, _data_frame_alias, _dml_cluster_data_alias
 
 
@@ -184,9 +184,7 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return
     y = d * theta + np.matmul(x, zeta_0) + eps
 
     cluster_cols = ["cluster_var_i", "cluster_var_j"]
-    cluster_vars = pd.MultiIndex.from_product([range(N), range(M)]).to_frame(name=cluster_cols).reset_index(drop=True)
-
-    if return_type in _array_alias:
+    cluster_vars = pd.MultiIndex.from_product([range(N), range(M)]).to_frame(name=cluster_cols).reset_index(drop=True)    if return_type in _array_alias:
         return x, y, d, cluster_vars.values, z
     elif return_type in _data_frame_alias + _dml_cluster_data_alias:
         x_cols = [f"X{i + 1}" for i in np.arange(dim_X)]
@@ -194,6 +192,6 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLClusterData(data, "Y", "D", cluster_cols, x_cols, "Z")
+            return DoubleMLData(data, "Y", "D", x_cols, "Z", cluster_cols, is_cluster_data=True)
     else:
         raise ValueError("Invalid return_type.")

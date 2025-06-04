@@ -84,13 +84,11 @@ class DoubleMLClusterData(DoubleMLData):
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
     ):
-        DoubleMLBaseData.__init__(self, data)
-
-        # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
+        DoubleMLBaseData.__init__(self, data)        # we need to set cluster_cols (needs _data) before call to the super __init__ because of the x_cols setter
         self.cluster_cols = cluster_cols
         self._set_cluster_vars()
         DoubleMLData.__init__(
-            self, data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite
+            self, data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite, is_cluster_data=True
         )
         self._check_disjoint_sets_cluster_cols()
 
@@ -176,7 +174,7 @@ class DoubleMLClusterData(DoubleMLData):
         >>> (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars, z)
         """
-        dml_data = DoubleMLData.from_arrays(x, y, d, z, t, s, use_other_treat_as_covariate, force_all_x_finite)
+        dml_data = DoubleMLData.from_arrays(x, y, d, z, t, s, use_other_treat_as_covariate, force_all_x_finite, is_cluster_data=True)
         cluster_vars = check_array(cluster_vars, ensure_2d=False, allow_nd=False)
         cluster_vars = _assure_2d_array(cluster_vars)
         if cluster_vars.shape[1] == 1:

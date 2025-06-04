@@ -83,15 +83,15 @@ class DoubleMLPanelData(DoubleMLData):
         x_cols=None,
         z_cols=None,
         use_other_treat_as_covariate=True,
-        force_all_x_finite=True,
-        datetime_unit="M",
+        force_all_x_finite=True,        datetime_unit="M",
     ):
         DoubleMLBaseData.__init__(self, data)
 
         # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
         self.id_col = id_col
         self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
-        self._set_id_var()
+        self._set_id_var()        # Set t_col first before calling parent constructor
+        self.t_col = t_col
 
         DoubleMLData.__init__(
             self,
@@ -100,8 +100,6 @@ class DoubleMLPanelData(DoubleMLData):
             d_cols=d_cols,
             x_cols=x_cols,
             z_cols=z_cols,
-            t_col=t_col,
-            s_col=None,
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
@@ -110,6 +108,7 @@ class DoubleMLPanelData(DoubleMLData):
             raise ValueError("Only one treatment column is allowed for panel data.")
 
         self._check_disjoint_sets_id_col()
+        self._set_t()
 
         # intialize the unique values of g and t
         self._g_values = np.sort(np.unique(self.d))  # unique values of g
@@ -217,9 +216,7 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The number of observations. For panel data, the number of unique values for id_col.
         """
-        return len(self._id_var_unique)
-
-    @property
+        return len(self._id_var_unique)    @property
     def g_col(self):
         """
         The treatment variable indicating the time of treatment exposure.
@@ -235,8 +232,7 @@ class DoubleMLPanelData(DoubleMLData):
     @property
     def g_values(self):
         """
-        The unique values of the treatment variable (groups) ``d``.
-        """
+        The unique values of the treatment variable (groups) ``d``.        """
         return self._g_values
 
     @property
@@ -246,13 +242,36 @@ class DoubleMLPanelData(DoubleMLData):
         """
         return len(self.g_values)
 
-    @DoubleMLData.t_col.setter
+    @property
+    def t_col(self):
+        """
+        The time variable.
+        """
+        return self._t_col
+
+    @t_col.setter
     def t_col(self, value):
         if value is None:
             raise TypeError("Invalid time variable t_col. Time variable required for panel data.")
-        super(self.__class__, self.__class__).t_col.__set__(self, value)
-        if hasattr(self, "_t_values"):
-            self._t_values = np.sort(np.unique(self.t))  # update unique values of t
+        reset_value = hasattr(self, "_t_col")
+        if not isinstance(value, str):
+            raise TypeError(
+                f"The time variable t_col must be of str type. {str(value)} of type {str(type(value))} was passed."
+            )
+        if value not in self.all_variables:
+            raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
+        self._t_col = value
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_t()
+            if hasattr(self, "_t_values"):
+                self._t_values = np.sort(np.unique(self.t))  # update unique values of t
+
+    def _set_t(self):
+        """Set time variable."""
+        if self.t_col is not None:
+            assert_all_finite(self.data.loc[:, self.t_col])
+            self._t = self.data.loc[:, self.t_col]
 
     @property
     def t_values(self):
@@ -271,7 +290,8 @@ class DoubleMLPanelData(DoubleMLData):
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
         id_col_set = {self.id_col}
-        return [id_col_set] + base_optional_col_sets
+        t_col_set = {self.t_col}  # t_col is not None for panel data
+        return [id_col_set, t_col_set] + base_optional_col_sets
 
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class

@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from doubleml.data import DoubleMLClusterData, DoubleMLData
+from doubleml.data import DoubleMLData
 
 _array_alias = ["array", "np.ndarray", "np.array", np.ndarray]
 _data_frame_alias = ["DataFrame", "pd.DataFrame", pd.DataFrame]
 _dml_data_alias = ["DoubleMLData", DoubleMLData]
-_dml_cluster_data_alias = ["DoubleMLClusterData", DoubleMLClusterData]
+# For backwards compatibility, DoubleMLClusterData is now an alias for DoubleMLData with is_cluster_data=True
+_dml_cluster_data_alias = ["DoubleMLClusterData", "DoubleMLData"]
 
 
 def _get_array_alias():
