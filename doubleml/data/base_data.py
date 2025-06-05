@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pandas as pd
 from sklearn.utils import assert_all_finite
+from sklearn.utils.multiclass import type_of_target
 from sklearn.utils.validation import check_array, check_consistent_length, column_or_1d
 
 from doubleml.utils._estimation import _assure_2d_array
@@ -11,8 +12,9 @@ from doubleml.utils._estimation import _assure_2d_array
 
 class DoubleMLBaseData(ABC):
     """Bas        x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]
-        # baseline version with features, outcome and treatments
-        data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)Class Double machine learning data-backends"""
+    # baseline version with features, outcome and treatments
+    data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)Class Double machine learning data-backends
+    """
 
     def __init__(self, data):
         if not isinstance(data, pd.DataFrame):
@@ -108,11 +110,11 @@ class DoubleMLData(DoubleMLBaseData):
         Default is ``None``.    cluster_cols : None, str or list
         The cluster variable(s).
         Default is ``None``.
-        
+
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
-        
+
     is_cluster_data : bool
         Flag indicating whether this data object is being used for cluster data.
         Default is ``False``.
@@ -191,7 +193,7 @@ class DoubleMLData(DoubleMLBaseData):
             + "\n------------------ DataFrame info    ------------------\n"
             + df_info
         )
-        return res    
+        return res
 
     def _data_summary_str(self):
         data_summary = (
@@ -204,7 +206,7 @@ class DoubleMLData(DoubleMLBaseData):
         if self.cluster_cols is not None:
             data_summary += f"Cluster variable(s): {self.cluster_cols}\n"
 
-        if hasattr(self, 'is_cluster_data') and self.is_cluster_data:
+        if hasattr(self, "is_cluster_data") and self.is_cluster_data:
             data_summary += f"Is cluster data: {self.is_cluster_data}\n"
         data_summary += f"No. Observations: {self.n_obs}\n"
         return data_summary
@@ -328,7 +330,7 @@ class DoubleMLData(DoubleMLBaseData):
         else:
             d_cols = [f"d{i + 1}" for i in np.arange(d.shape[1])]
 
-        x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]        # baseline version with features, outcome and treatments
+        x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]  # baseline version with features, outcome and treatments
         data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)
         if z is not None:
             df_z = pd.DataFrame(z, columns=z_cols)
@@ -707,6 +709,31 @@ class DoubleMLData(DoubleMLBaseData):
         z_cols_set = set(self.z_cols or [])
         cluster_cols_set = set(self.cluster_cols or [])
         return [cluster_cols_set, z_cols_set]
+
+    def _check_binary_treats(self):
+        is_binary = pd.Series(dtype=bool, index=self.d_cols)
+        if not self.force_all_d_finite:
+            is_binary[:] = False  # if we allow infinite values, we cannot check for binary
+        else:
+            for treatment_var in self.d_cols:
+                this_d = self.data.loc[:, treatment_var]
+                binary_treat = type_of_target(this_d) == "binary"
+                zero_one_treat = np.all((np.power(this_d, 2) - this_d) == 0)
+                is_binary[treatment_var] = binary_treat & zero_one_treat
+        return is_binary
+
+    def _check_binary_outcome(self):
+        y = self.data.loc[:, self.y_col]
+        binary_outcome = type_of_target(y) == "binary"
+        zero_one_outcome = np.all((np.power(y, 2) - y) == 0)
+        is_binary = binary_outcome & zero_one_outcome
+        return is_binary
+
+    @staticmethod
+    def _check_disjoint(set1, set2, name1, arg1, name2, arg2):
+        """Helper method to check for disjoint sets."""
+        if not set1.isdisjoint(set2):
+            raise ValueError(f"At least one variable/column is set as {name1} ({arg1}) and {name2} ({arg2}).")
 
     def _check_disjoint_sets(self):
         # this function can be extended in inherited subclasses

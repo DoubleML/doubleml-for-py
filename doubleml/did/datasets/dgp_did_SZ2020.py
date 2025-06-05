@@ -12,6 +12,7 @@ _dml_did_data_alias = _get_dml_did_data_alias()
 _dml_panel_data_alias = _get_dml_panel_data_alias()
 
 
+
 def _generate_features(n_obs, c, dim_x=4):
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=n_obs)
@@ -182,16 +183,13 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         if return_type in _array_alias:
             return z, y, d, None
-        elif return_type in _data_frame_alias + _dml_did_data_alias + _dml_panel_data_alias:
+        elif return_type in _data_frame_alias + _dml_did_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d)), columns=z_cols + ["y", "d"])
             if return_type in _data_frame_alias:
                 return data
-            elif return_type in _dml_did_data_alias:
-                return DoubleMLDIDData(data, "y", "d", z_cols=z_cols, t_col="t")
             else:
-                assert return_type in _dml_panel_data_alias
-                return DoubleMLPanelData(data, "y", "d", t_col="t", id_col="id", x_cols=z_cols)
+                return DoubleMLDIDData(data, "y", "d", x_cols=z_cols)
         elif return_type == "DoubleMLPanelData":
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             df0 = (
@@ -231,15 +229,12 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         if return_type in _array_alias:
             return z, y, d, t
-        elif return_type in _data_frame_alias + _dml_did_data_alias + _dml_panel_data_alias:
+        elif return_type in _data_frame_alias + _dml_did_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d, t)), columns=z_cols + ["y", "d", "t"])
             if return_type in _data_frame_alias:
                 return data
             elif return_type in _dml_did_data_alias:
-                return DoubleMLDIDData(data, "y", "d", z_cols=z_cols, t_col="t")
-            else:
-                assert return_type in _dml_panel_data_alias
-                return DoubleMLPanelData(data, "y", "d", t_col="t", id_col="id", x_cols=z_cols)
+                return DoubleMLDIDData(data, "y", "d", x_cols=z_cols, t_col="t")
         else:
             raise ValueError("Invalid return_type.")

@@ -1,6 +1,7 @@
 import io
 import pandas as pd
 from sklearn.utils.validation import check_array
+from sklearn.utils import assert_all_finite
 
 from doubleml.data.base_data import DoubleMLData
 from doubleml.utils._estimation import _assure_2d_array
@@ -66,8 +67,7 @@ class DoubleMLSSMData(DoubleMLData):
     >>> df = make_ssm_data(return_type='DataFrame')
     >>> obj_dml_data_from_df = DoubleMLSSMData(df, 'y', 'd', 's')
     >>> # initialization from np.ndarray
-    >>> (x, y, d, s) = make_ssm_data(return_type='array')
-    >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
+    >>> (x, y, d, s) = make_ssm_data(return_type='array')    >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
     """
 
     def __init__(
@@ -83,8 +83,11 @@ class DoubleMLSSMData(DoubleMLData):
         force_all_x_finite=True,
         force_all_d_finite=True,
     ):
-        # Set selection column before calling parent constructor
-        self.s_col = s_col
+        # Initialize _s_col to None first to avoid AttributeError during parent init
+        self._s_col = None
+
+        # Store whether x_cols was originally None to reset it later
+        x_cols_was_none = x_cols is None
 
         # Call parent constructor
         super().__init__(
@@ -98,6 +101,26 @@ class DoubleMLSSMData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=force_all_d_finite,
         )
+
+        # Set selection column directly to avoid triggering checks during init
+        if s_col is not None:
+            if not isinstance(s_col, str):
+                raise TypeError(
+                    "The selection variable s_col must be of str type (or None). "
+                    f"{str(s_col)} of type {str(type(s_col))} was passed."
+                )
+            if s_col not in self.all_variables:
+                raise ValueError(f"Invalid selection variable s_col. {s_col} is no data column.")
+        self._s_col = s_col
+
+        # If x_cols was originally None, reset it to exclude the selection column
+        if x_cols_was_none and s_col is not None:
+            self.x_cols = None
+
+        # Now run the checks and set variables
+        if s_col is not None:
+            self._check_disjoint_sets()
+            self._set_y_z_s()
 
         # Set selection variable array after data is loaded
         self._set_selection_var()
@@ -193,6 +216,14 @@ class DoubleMLSSMData(DoubleMLData):
         )
 
     @property
+    def s(self):
+        """
+        Array of score or selection variable.
+        """
+        if self.s_col is not None:
+            return self._s.values
+        else:
+            return None    @property
     def s_col(self):
         """
         The selection variable.
@@ -201,30 +232,29 @@ class DoubleMLSSMData(DoubleMLData):
 
     @s_col.setter
     def s_col(self, value):
-        if not isinstance(value, str):
-            raise TypeError(
-                "The selection variable s_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
-            )
-        # Check if data exists (during initialization it might not)
-        if hasattr(self, "_data") and value not in self.all_variables:
-            raise ValueError("Invalid selection variable s_col. The selection variable is no data column.")
-        self._s_col = value
-        # Update selection variable array if data is already loaded
-        if hasattr(self, "_data"):
-            self._set_selection_var()
-
-    @property
-    def s(self):
-        """
-        Array of selection variable.
-        """
-        return self._s.values
+        reset_value = hasattr(self, "_s_col")
+        if value is not None:
+            if not isinstance(value, str):
+                raise TypeError(
+                    "The selection variable s_col must be of str type (or None). "
+                    f"{str(value)} of type {str(type(value))} was passed."
+                )
+            if value not in self.all_variables:
+                raise ValueError(f"Invalid selection variable s_col. {value} is no data column.")
+            self._s_col = value
+        else:
+            self._s_col = None
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_s()
 
     def _get_optional_col_sets(self):
         """Get optional column sets including selection column."""
         base_optional_col_sets = super()._get_optional_col_sets()
-        s_col_set = {self.s_col}
-        return [s_col_set] + base_optional_col_sets
+        if self.s_col is not None:
+            s_col_set = {self.s_col}
+            return [s_col_set] + base_optional_col_sets
+        return base_optional_col_sets
 
     def _check_disjoint_sets(self):
         """Check that selection column doesn't overlap with other variables."""
@@ -262,6 +292,17 @@ class DoubleMLSSMData(DoubleMLData):
         """Set the selection variable array."""
         if hasattr(self, "_data") and self.s_col in self.data.columns:
             self._s = self.data.loc[:, [self.s_col]]
+
+    def _set_y_z_s(self):
+        def _set_attr(col):
+            if col is None:
+                return None
+            assert_all_finite(self.data.loc[:, col])
+            return self.data.loc[:, col]
+
+        self._y = _set_attr(self.y_col)
+        self._z = _set_attr(self.z_cols)
+        self._s = _set_attr(self.s_col)
 
     def __str__(self):
         """String representation."""
