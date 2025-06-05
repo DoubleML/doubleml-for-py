@@ -2,6 +2,7 @@
 The :mod:`doubleml.data` module implements data classes for double machine learning.
 """
 
+from .base_data import DoubleMLData
 import warnings
 
 from .base_data import DoubleMLData
@@ -14,11 +15,10 @@ from .ssm_data import DoubleMLSSMData
 class DoubleMLClusterData(DoubleMLData):
     """
     Backwards compatibility wrapper for DoubleMLData with is_cluster_data=True.
-    
     This class is deprecated and will be removed in a future version.
     Use DoubleMLData with is_cluster_data=True instead.
     """
-    
+
     def __init__(
         self,
         data,
@@ -33,15 +33,14 @@ class DoubleMLClusterData(DoubleMLData):
         force_all_x_finite=True,
     ):
         warnings.warn(
-            "DoubleMLClusterData is deprecated. "
-            "Use DoubleMLData with is_cluster_data=True instead.",
+            "DoubleMLClusterData is deprecated. " "Use DoubleMLData with is_cluster_data=True instead.",
             FutureWarning,
             stacklevel=2,
         )
         super().__init__(
             data=data,
             y_col=y_col,
-            d_cols=d_cols, 
+            d_cols=d_cols,
             x_cols=x_cols,
             z_cols=z_cols,
             cluster_cols=cluster_cols,
@@ -50,7 +49,7 @@ class DoubleMLClusterData(DoubleMLData):
             force_all_d_finite=True,
             is_cluster_data=True,
         )
-    
+
     @classmethod
     def from_arrays(
         cls, x, y, d, cluster_vars, z=None, t=None, s=None, use_other_treat_as_covariate=True, force_all_x_finite=True
@@ -60,15 +59,14 @@ class DoubleMLClusterData(DoubleMLData):
         This method is deprecated, use DoubleMLData.from_arrays with is_cluster_data=True instead.
         """
         warnings.warn(
-            "DoubleMLClusterData is deprecated. "
-            "Use DoubleMLData.from_arrays with is_cluster_data=True instead.",
+            "DoubleMLClusterData is deprecated. " "Use DoubleMLData.from_arrays with is_cluster_data=True instead.",
             FutureWarning,
             stacklevel=2,
         )
         return DoubleMLData.from_arrays(
-            x=x, 
-            y=y, 
-            d=d, 
+            x=x,
+            y=y,
+            d=d,
             z=z,
             cluster_vars=cluster_vars,
             use_other_treat_as_covariate=use_other_treat_as_covariate,
@@ -78,11 +76,4 @@ class DoubleMLClusterData(DoubleMLData):
         )
 
 
-__all__ = [
-    "DoubleMLData",
-    "DoubleMLClusterData",
-    "DoubleMLDIDData",
-    "DoubleMLPanelData",
-    "DoubleMLRDDData",
-    "DoubleMLSSMData",
-]
+__all__ = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLPanelData", "DoubleMLRDDData", "DoubleMLSSMData"]

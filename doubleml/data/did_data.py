@@ -1,5 +1,4 @@
 import io
-import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_array
 
@@ -30,7 +29,8 @@ class DoubleMLDIDData(DoubleMLData):
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor time variable ``t_col`` are used as covariates.
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor time variable ``t_col``
+        are used as covariates.
         Default is ``None``.
 
     z_cols : None, str or list
@@ -56,10 +56,9 @@ class DoubleMLDIDData(DoubleMLData):
 
     force_all_d_finite : bool
         Indicates whether to raise an error on infinite values and / or missings in the treatment variables ``d``.
-        Default is ``True``.
-
-    Examples
-    --------    >>> from doubleml import DoubleMLDIDData
+        Default is ``True``.    Examples
+    --------
+    >>> from doubleml import DoubleMLDIDData
     >>> from doubleml.did.datasets import make_did_SZ2020
     >>> # initialization from pandas.DataFrame
     >>> df = make_did_SZ2020(return_type='DataFrame')
@@ -74,18 +73,18 @@ class DoubleMLDIDData(DoubleMLData):
         data,
         y_col,
         d_cols,
-        t_col,
         x_cols=None,
         z_cols=None,
+        t_col=None,
         cluster_cols=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         force_all_d_finite=True,
     ):
-        # Set time column before calling parent constructor
-        self.t_col = t_col
+        # Initialize _t_col to None first to avoid AttributeError during parent init
+        self._t_col = None
         
-        # Call parent constructor
+        # Call parent constructor first to set _data
         super().__init__(
             data=data,
             y_col=y_col,
@@ -97,7 +96,10 @@ class DoubleMLDIDData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=force_all_d_finite,
         )
-        
+
+        # Set time column after parent constructor (which sets _data)
+        self.t_col = t_col
+
         # Set time variable array after data is loaded
         self._set_time_var()
 
@@ -168,15 +170,15 @@ class DoubleMLDIDData(DoubleMLData):
         if t.shape[1] != 1:
             raise ValueError("t must be a single column.")
         t_col = "t"
-        
+
         # Create base data using parent class method
         base_data = DoubleMLData.from_arrays(
             x, y, d, z, cluster_vars, use_other_treat_as_covariate, force_all_x_finite, force_all_d_finite
         )
-        
+
         # Add time variable to the DataFrame
         data = pd.concat((base_data.data, pd.DataFrame(t, columns=[t_col])), axis=1)
-        
+
         return cls(
             data,
             base_data.y_col,
@@ -201,15 +203,14 @@ class DoubleMLDIDData(DoubleMLData):
     def t_col(self, value):
         if not isinstance(value, str):
             raise TypeError(
-                "The time variable t_col must be of str type. "
-                f"{str(value)} of type {str(type(value))} was passed."
+                "The time variable t_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
             )
         # Check if data exists (during initialization it might not)
-        if hasattr(self, '_data') and value not in self.all_variables:
+        if hasattr(self, "_data") and value not in self.all_variables:
             raise ValueError("Invalid time variable t_col. The time variable is no data column.")
         self._t_col = value
         # Update time variable array if data is already loaded
-        if hasattr(self, '_data'):
+        if hasattr(self, "_data"):
             self._set_time_var()
 
     @property
@@ -217,13 +218,37 @@ class DoubleMLDIDData(DoubleMLData):
         """
         Array of time variable.
         """
-        return self._t.values
+        if self.t_col is not None:
+            return self._t.values
+        else:
+            return None
+
+    @t_col.setter
+    def t_col(self, value):
+        reset_value = hasattr(self, "_t_col")
+        if value is not None:
+            if not isinstance(value, str):
+                raise TypeError(
+                    "The time variable t_col must be of str type (or None). "
+                    f"{str(value)} of type {str(type(value))} was passed."
+                )
+            if value not in self.all_variables:
+                raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
+            self._t_col = value
+        else:
+            self._t_col = None
+        if reset_value:
+            self._check_disjoint_sets()
+            self._set_y_z_t_s()
+
 
     def _get_optional_col_sets(self):
         """Get optional column sets including time column."""
         base_optional_col_sets = super()._get_optional_col_sets()
-        t_col_set = {self.t_col}
-        return [t_col_set] + base_optional_col_sets
+        if self.t_col is not None:
+            t_col_set = {self.t_col}
+            return [t_col_set] + base_optional_col_sets
+        return base_optional_col_sets
 
     def _check_disjoint_sets(self):
         """Check that time column doesn't overlap with other variables."""
@@ -259,7 +284,7 @@ class DoubleMLDIDData(DoubleMLData):
 
     def _set_time_var(self):
         """Set the time variable array."""
-        if hasattr(self, '_data') and self.t_col in self.data.columns:
+        if hasattr(self, "_data") and self.t_col in self.data.columns:
             self._t = self.data.loc[:, [self.t_col]]
 
     def __str__(self):

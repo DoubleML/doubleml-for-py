@@ -3,7 +3,8 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM, DoubleMLDIDData, DoubleMLSSMData
+
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.plm.datasets import (
     _make_pliv_data,
@@ -102,7 +103,7 @@ def test_obj_vs_from_arrays():
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
     dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
-    dml_data_from_array = DoubleMLData.from_arrays(
+    dml_data_from_array = DoubleMLDIDData.from_arrays(
         x=dml_data.data[dml_data.x_cols],
         y=dml_data.data[dml_data.y_col],
         d=dml_data.data[dml_data.d_cols],
@@ -113,7 +114,7 @@ def test_obj_vs_from_arrays():
     # check with instrument and time variable
     dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
     dml_data.data["z"] = dml_data.data["t"]
-    dml_data_from_array = DoubleMLData.from_arrays(
+    dml_data_from_array = DoubleMLDIDData.from_arrays(
         x=dml_data.data[dml_data.x_cols],
         y=dml_data.data[dml_data.y_col],
         d=dml_data.data[dml_data.d_cols],
@@ -146,14 +147,11 @@ def test_dml_data_no_instr_no_time_no_selection():
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
-    assert dml_data.t is None
 
     x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type="array")
     dml_data = DoubleMLData.from_arrays(x, y, d)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
-    assert dml_data.t is None
-    assert dml_data.s is None
 
 
 @pytest.mark.ci
@@ -324,7 +322,7 @@ def test_t_col_setter():
     np.random.seed(3141)
     df = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=pd.DataFrame)
     df["t_new"] = np.ones(shape=(100,))
-    dml_data = DoubleMLData(df, "y", "d", [f"Z{i + 1}" for i in np.arange(4)], t_col="t")
+    dml_data = DoubleMLDIDData(df, "y", "d", z_cols=[f"Z{i + 1}" for i in np.arange(4)], t_col="t")
 
     # check that after changing t_col, the t array gets updated
     t_comp = dml_data.data["t_new"].values
@@ -349,7 +347,7 @@ def test_s_col_setter():
     np.random.seed(3141)
     df = make_ssm_data(n_obs=100, return_type=pd.DataFrame)
     df["s_new"] = np.ones(shape=(100,))
-    dml_data = DoubleMLData(df, "y", "d", [f"X{i + 1}" for i in np.arange(4)], s_col="s")
+    dml_data = DoubleMLSSMData(df, "y", "d", x_cols=[f"X{i + 1}" for i in np.arange(4)], s_col="s")
 
     # check that after changing s_col, the s array gets updated
     s_comp = dml_data.data["s_new"].values

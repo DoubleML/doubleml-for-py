@@ -67,8 +67,7 @@ class DoubleMLPanelData(DoubleMLData):
     ...     y_col="y",
     ...     d_cols="d",
     ...     id_col="id",
-    ...     t_col="t",
-    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    ...     t_col="t",    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
     ...     datetime_unit="M"
     ... )
     """
@@ -83,16 +82,20 @@ class DoubleMLPanelData(DoubleMLData):
         x_cols=None,
         z_cols=None,
         use_other_treat_as_covariate=True,
-        force_all_x_finite=True,        datetime_unit="M",
+        force_all_x_finite=True,
+        datetime_unit="M",
     ):
         DoubleMLBaseData.__init__(self, data)
 
         # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
         self.id_col = id_col
         self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
-        self._set_id_var()        # Set t_col first before calling parent constructor
+        self._set_id_var()
+
+        # Set time column before calling parent constructor
         self.t_col = t_col
 
+        # Call parent constructor
         DoubleMLData.__init__(
             self,
             data=data,
@@ -104,11 +107,14 @@ class DoubleMLPanelData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
         )
+
+        # Set time variable array after data is loaded
+        self._set_time_var()
+
         if self.n_treat != 1:
             raise ValueError("Only one treatment column is allowed for panel data.")
 
         self._check_disjoint_sets_id_col()
-        self._set_t()
 
         # intialize the unique values of g and t
         self._g_values = np.sort(np.unique(self.d))  # unique values of g
@@ -151,9 +157,8 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The unit of the time variable.
         """
-        return self._datetime_unit
+        return self._datetime_unit @ property
 
-    @property
     def d(self):
         """
         Array of treatment variable;
@@ -171,7 +176,7 @@ class DoubleMLPanelData(DoubleMLData):
         """
         Array of time variable.
         """
-        if pd.api.types.is_datetime64_any_dtype(self._d):
+        if pd.api.types.is_datetime64_any_dtype(self._t):
             return self._t.values.astype(f"datetime64[{self.datetime_unit}]")
         else:
             return self._t.values
@@ -216,14 +221,15 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The number of observations. For panel data, the number of unique values for id_col.
         """
-        return len(self._id_var_unique)    @property
+        return len(self._id_var_unique)
+
+    @property
     def g_col(self):
         """
         The treatment variable indicating the time of treatment exposure.
         """
-        return self._d_cols[0]
+        return self._d_cols[0] @ DoubleMLData.d_cols.setter
 
-    @DoubleMLData.d_cols.setter
     def d_cols(self, value):
         super(self.__class__, self.__class__).d_cols.__set__(self, value)
         if hasattr(self, "_g_values"):
@@ -232,7 +238,8 @@ class DoubleMLPanelData(DoubleMLData):
     @property
     def g_values(self):
         """
-        The unique values of the treatment variable (groups) ``d``.        """
+        The unique values of the treatment variable (groups) ``d``.
+        """
         return self._g_values
 
     @property
@@ -253,25 +260,19 @@ class DoubleMLPanelData(DoubleMLData):
     def t_col(self, value):
         if value is None:
             raise TypeError("Invalid time variable t_col. Time variable required for panel data.")
-        reset_value = hasattr(self, "_t_col")
         if not isinstance(value, str):
             raise TypeError(
-                f"The time variable t_col must be of str type. {str(value)} of type {str(type(value))} was passed."
+                "The time variable t_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
             )
-        if value not in self.all_variables:
-            raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
+        # Check if data exists (during initialization it might not)
+        if hasattr(self, "_data") and value not in self.all_variables:
+            raise ValueError("Invalid time variable t_col. The time variable is no data column.")
         self._t_col = value
-        if reset_value:
-            self._check_disjoint_sets()
-            self._set_t()
-            if hasattr(self, "_t_values"):
-                self._t_values = np.sort(np.unique(self.t))  # update unique values of t
-
-    def _set_t(self):
-        """Set time variable."""
-        if self.t_col is not None:
-            assert_all_finite(self.data.loc[:, self.t_col])
-            self._t = self.data.loc[:, self.t_col]
+        # Update time variable array if data is already loaded
+        if hasattr(self, "_data"):
+            self._set_time_var()
+        if hasattr(self, "_t_values"):
+            self._t_values = np.sort(np.unique(self.t))  # update unique values of t
 
     @property
     def t_values(self):
@@ -290,13 +291,14 @@ class DoubleMLPanelData(DoubleMLData):
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
         id_col_set = {self.id_col}
-        t_col_set = {self.t_col}  # t_col is not None for panel data
+        t_col_set = {self.t_col}
         return [id_col_set, t_col_set] + base_optional_col_sets
 
     def _check_disjoint_sets(self):
         # apply the standard checks from the DoubleMLData class
         super(DoubleMLPanelData, self)._check_disjoint_sets()
         self._check_disjoint_sets_id_col()
+        self._check_disjoint_sets_t_col()
 
     def _check_disjoint_sets_id_col(self):
         # apply the standard checks from the DoubleMLData class
@@ -329,7 +331,38 @@ class DoubleMLPanelData(DoubleMLData):
                 arg2="``id_col``",
             )
 
+    def _check_disjoint_sets_t_col(self):
+        """Check that time column is disjoint from other variable sets."""
+        t_col_set = {self.t_col}
+        y_col_set = {self.y_col}
+        x_cols_set = set(self.x_cols)
+        d_cols_set = set(self.d_cols)
+        z_cols_set = set(self.z_cols or [])
+        id_col_set = {self.id_col}
+
+        t_checks_args = [
+            (y_col_set, "outcome variable", "``y_col``"),
+            (d_cols_set, "treatment variable", "``d_cols``"),
+            (x_cols_set, "covariate", "``x_cols``"),
+            (z_cols_set, "instrumental variable", "``z_cols``"),
+            (id_col_set, "identifier variable", "``id_col``"),
+        ]
+        for set1, name, argument in t_checks_args:
+            self._check_disjoint(
+                set1=set1,
+                name1=name,
+                arg1=argument,
+                set2=t_col_set,
+                name2="time variable",
+                arg2="``t_col``",
+            )
+
     def _set_id_var(self):
         assert_all_finite(self.data.loc[:, self.id_col])
         self._id_var = self.data.loc[:, self.id_col]
         self._id_var_unique = np.unique(self._id_var.values)
+
+    def _set_time_var(self):
+        """Set the time variable array."""
+        if hasattr(self, "_data") and self.t_col in self.data.columns:
+            self._t = self.data.loc[:, self.t_col]

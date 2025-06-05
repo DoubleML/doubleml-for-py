@@ -18,10 +18,9 @@ N = 25  # number of observations (first dimension)
 M = 25  # number of observations (second dimension)
 dim_x = 100  # dimension of x
 
-(x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
-obj_dml_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, cluster_vars=cluster_vars, is_cluster_data=True)
+obj_dml_cluster_data = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x)
 
-(x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(
+obj_dml_oneway_cluster_data = make_pliv_multiway_cluster_CKMS2021(
     N,
     M,
     dim_x,
@@ -29,11 +28,9 @@ obj_dml_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, cluster_vars=c
     omega_epsilon=np.array([0.25, 0]),
     omega_v=np.array([0.25, 0]),
     omega_V=np.array([0.25, 0]),
-    return_type="array"
 )
-obj_dml_oneway_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, cluster_vars=cluster_vars, is_cluster_data=True)
 # only the first cluster variable is relevant with the weight setting above
-obj_dml_oneway_cluster_data.cluster_cols = "cluster_var1"
+obj_dml_oneway_cluster_data.cluster_cols = "cluster_var_i"
 
 
 @pytest.fixture(

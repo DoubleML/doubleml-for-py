@@ -1,5 +1,4 @@
 import io
-import numpy as np
 import pandas as pd
 from sklearn.utils.validation import check_array
 
@@ -30,7 +29,8 @@ class DoubleMLSSMData(DoubleMLData):
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor selection variable ``s_col`` are used as covariates.
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor selection variable ``s_col``
+        are used as covariates.
         Default is ``None``.
 
     z_cols : None, str or list
@@ -203,15 +203,14 @@ class DoubleMLSSMData(DoubleMLData):
     def s_col(self, value):
         if not isinstance(value, str):
             raise TypeError(
-                "The selection variable s_col must be of str type. "
-                f"{str(value)} of type {str(type(value))} was passed."
+                "The selection variable s_col must be of str type. " f"{str(value)} of type {str(type(value))} was passed."
             )
         # Check if data exists (during initialization it might not)
-        if hasattr(self, '_data') and value not in self.all_variables:
+        if hasattr(self, "_data") and value not in self.all_variables:
             raise ValueError("Invalid selection variable s_col. The selection variable is no data column.")
         self._s_col = value
         # Update selection variable array if data is already loaded
-        if hasattr(self, '_data'):
+        if hasattr(self, "_data"):
             self._set_selection_var()
 
     @property
@@ -261,7 +260,7 @@ class DoubleMLSSMData(DoubleMLData):
 
     def _set_selection_var(self):
         """Set the selection variable array."""
-        if hasattr(self, '_data') and self.s_col in self.data.columns:
+        if hasattr(self, "_data") and self.s_col in self.data.columns:
             self._s = self.data.loc[:, [self.s_col]]
 
     def __str__(self):

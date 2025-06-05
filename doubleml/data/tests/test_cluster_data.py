@@ -9,15 +9,13 @@ from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021, make_plr_
 @pytest.mark.ci
 def test_obj_vs_from_arrays():
     np.random.seed(3141)
-    (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type="array")
-    dml_data = DoubleMLData.from_arrays(x, y, d, z=z, cluster_vars=cluster_vars, is_cluster_data=True)
+    dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
     dml_data_from_array = DoubleMLData.from_arrays(
         dml_data.data[dml_data.x_cols],
         dml_data.data[dml_data.y_col],
         dml_data.data[dml_data.d_cols],
-        z=dml_data.data[dml_data.z_cols],
-        cluster_vars=dml_data.data[dml_data.cluster_cols],
-        is_cluster_data=True
+        dml_data.data[dml_data.cluster_cols],
+        dml_data.data[dml_data.z_cols],
     )
     df = dml_data.data.copy()
     df.rename(
@@ -30,9 +28,8 @@ def test_obj_vs_from_arrays():
         dml_data.data[dml_data.x_cols],
         dml_data.data[dml_data.y_col],
         dml_data.data[dml_data.d_cols],
-        z=dml_data.data[dml_data.z_cols],
-        cluster_vars=dml_data.data[dml_data.cluster_cols[1]],
-        is_cluster_data=True
+        dml_data.data[dml_data.cluster_cols[1]],
+        dml_data.data[dml_data.z_cols],
     )
     df = dml_data.data.copy().drop(columns="cluster_var_i")
     df.rename(columns={"cluster_var_j": "cluster_var", "Y": "y", "D": "d", "Z": "z"}, inplace=True)
@@ -42,7 +39,7 @@ def test_obj_vs_from_arrays():
 @pytest.mark.ci
 def test_x_cols_setter_defaults_w_cluster():
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "xx3", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", is_cluster_data=True)
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1")
     assert dml_data.x_cols == ["xx1", "xx2", "xx3"]
     dml_data.x_cols = ["xx1", "xx3"]
     assert dml_data.x_cols == ["xx1", "xx3"]
@@ -51,53 +48,48 @@ def test_x_cols_setter_defaults_w_cluster():
 
     # with instrument
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "z", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="z", is_cluster_data=True)
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="z")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # without instrument and with time
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "tt", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "tt"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", t_col="tt")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument and with time
     df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "tt"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", t_col="tt")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
     # without instrument and with selection
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "ss"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", s_col="ss")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument and with selection
     df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "ss"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", s_col="ss")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
     # without instrument with time with selection
     df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "tt", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "tt", "ss"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", t_col="tt", s_col="ss")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument with time with selection
     df = pd.DataFrame(np.tile(np.arange(8), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", is_cluster_data=True)
-    assert dml_data.x_cols == ["xx1", "xx2", "tt", "ss"]
+    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", t_col="tt", s_col="ss")
+    assert dml_data.x_cols == ["xx1", "xx2"]
 
 
 @pytest.mark.ci
 def test_cluster_cols_setter():
     np.random.seed(3141)
-    (x, y, d) = make_plr_CCDDHNR2018(n_obs=100, return_type="array")
-    # Create a pandas DataFrame with X, y, and d columns
-    df = pd.DataFrame(np.column_stack((x[:, :7], y, d)), 
-                     columns=[f"X{i + 1}" for i in np.arange(7)] + ["y", "d1", "d2"])
-
+    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+    df = dml_data.data.copy().iloc[:, :10]
+    df.columns = [f"X{i + 1}" for i in np.arange(7)] + ["y", "d1", "d2"]
     dml_data = DoubleMLData(
-        df, "y", ["d1", "d2"], 
-        x_cols=[f"X{i + 1}" for i in np.arange(5)],
-        cluster_cols=[f"X{i + 1}" for i in [5, 6]],
-        is_cluster_data=True
+        df, "y", ["d1", "d2"], cluster_cols=[f"X{i + 1}" for i in [5, 6]], x_cols=[f"X{i + 1}" for i in np.arange(5)]
     )
 
     cluster_vars = df[["X6", "X7"]].values
@@ -137,49 +129,56 @@ def test_disjoint_sets():
         r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="yy", is_cluster_data=True)
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="yy")
     msg = (
         r"At least one variable/column is set as treatment variable \(``d_cols``\) "
         r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="dd1", is_cluster_data=True)
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="dd1")
     msg = (
         r"At least one variable/column is set as covariate \(``x_cols``\) " r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="xx2", is_cluster_data=True)
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], cluster_cols="xx2")
 
     msg = (
         r"At least one variable/column is set as instrumental variable \(``z_cols``\) "
         r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], z_cols=["xx2"], cluster_cols="xx2", is_cluster_data=True)
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], z_cols=["xx2"], cluster_cols="xx2")
+
+    msg = (
+        r"At least one variable/column is set as time variable \(``t_col``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], t_col="xx2", cluster_cols="xx2")
+
+    msg = (
+        r"At least one variable/column is set as score or selection variable \(``s_col``\) "
+        r"and cluster variable\(s\) \(``cluster_cols``\)."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], s_col="xx2", cluster_cols="xx2")
 
 
 @pytest.mark.ci
 def test_duplicates():
     np.random.seed(3141)
-    (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type="array")
-    df = pd.DataFrame(np.column_stack((x, y, d, z)), 
-                     columns=[f"X{i+1}" for i in range(x.shape[1])] + ["Y", "D", "Z"])
-    cluster_df = pd.DataFrame(cluster_vars, columns=["cluster_var_i", "cluster_var_j"])
-    data = pd.concat([df, cluster_df], axis=1)
+    dml_cluster_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 
     msg = r"Invalid cluster variable\(s\) cluster_cols: Contains duplicate values."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(data, y_col="Y", d_cols=["D"], cluster_cols=["X3", "X2", "X3"], is_cluster_data=True)
-
-    dml_data = DoubleMLData(data, y_col="Y", d_cols=["D"], cluster_cols=["X3", "X2"], is_cluster_data=True)
+        _ = DoubleMLData(dml_cluster_data.data, y_col="y", d_cols=["d"], cluster_cols=["X3", "X2", "X3"])
     with pytest.raises(ValueError, match=msg):
-        dml_data.cluster_cols = ["X3", "X2", "X3"]
+        dml_cluster_data.cluster_cols = ["X3", "X2", "X3"]
 
     msg = "Invalid pd.DataFrame: Contains duplicate column names."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(
-            pd.DataFrame(np.zeros((100, 5)), columns=["y", "d", "X3", "X2", "y"]), 
-            y_col="y", d_cols=["d"], cluster_cols=["X2"], is_cluster_data=True
+            pd.DataFrame(np.zeros((100, 5)), columns=["y", "d", "X3", "X2", "y"]), y_col="y", d_cols=["d"], cluster_cols=["X2"]
         )
 
 
@@ -187,14 +186,13 @@ def test_duplicates():
 def test_dml_datatype():
     data_array = np.zeros((100, 10))
     with pytest.raises(TypeError):
-        _ = DoubleMLData(data_array, y_col="y", d_cols=["d"], cluster_cols=["X3", "X2"], is_cluster_data=True)
+        _ = DoubleMLData(data_array, y_col="y", d_cols=["d"], cluster_cols=["X3", "X2"])
 
 
 @pytest.mark.ci
 def test_cluster_data_str():
     np.random.seed(3141)
-    (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N=10, M=10, return_type="array")
-    dml_data = DoubleMLData.from_arrays(x, y, d, z=z, cluster_vars=cluster_vars, is_cluster_data=True)
+    dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 
     # Convert the object to string
     dml_str = str(dml_data)
@@ -205,11 +203,28 @@ def test_cluster_data_str():
     assert "------------------ DataFrame info    ------------------" in dml_str
 
     # Check that specific data attributes are correctly included
-    assert "Outcome variable: y" in dml_str
-    assert "Treatment variable(s): ['d']" in dml_str
-    assert "Cluster variable(s): ['cluster_var1', 'cluster_var2']" in dml_str
+    assert "Outcome variable: Y" in dml_str
+    assert "Treatment variable(s): ['D']" in dml_str
+    assert "Cluster variable(s): ['cluster_var_i', 'cluster_var_j']" in dml_str
     assert "Covariates: " in dml_str
-    assert "Instrument variable(s): ['z']" in dml_str
-    assert "Is cluster data: True" in dml_str
-    assert "No. Observations:" in dml_str    # There's no TimeData or ScoreData here anymore, so the test is complete
-    # The specialized data classes will be tested in their own test files
+    assert "Instrument variable(s): ['Z']" in dml_str
+    assert "No. Observations:" in dml_str
+
+    # Test with additional optional attributes
+    df = dml_data.data.copy()
+    df["time_var"] = 1
+    df["score_var"] = 0.5
+
+    dml_data_with_optional = DoubleMLData(
+        data=df,
+        y_col="Y",
+        d_cols="D",
+        cluster_cols=["cluster_var_i", "cluster_var_j"],
+        z_cols="Z",
+        t_col="time_var",
+        s_col="score_var",
+    )
+
+    dml_str_optional = str(dml_data_with_optional)
+    assert "Time variable: time_var" in dml_str_optional
+    assert "Score/Selection variable: score_var" in dml_str_optional
