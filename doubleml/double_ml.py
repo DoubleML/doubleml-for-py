@@ -98,6 +98,7 @@ class DoubleML(ABC):
         # perform sample splitting
         self._smpls = None
         self._smpls_cluster = None
+        self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -1200,37 +1201,30 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self, n_obs=None):
+    def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.
 
         The samples are drawn according to the attributes
         ``n_folds`` and ``n_rep``.
 
-        Parameters
-        ----------
-        n_obs : int or None
-            The number of observations to resample. If ``None``, the number of observations is set to the number
-            of observations in the data set.
-
         Returns
         -------
         self : object
         """
-        if n_obs is None:
-            n_obs = self.n_obs
-
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=n_obs,
+                n_obs=self._n_obs_sample_splitting,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata)
+            obj_dml_resampling = DoubleMLResampling(
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
+            )
             self._smpls = obj_dml_resampling.split_samples()
 
         return self
