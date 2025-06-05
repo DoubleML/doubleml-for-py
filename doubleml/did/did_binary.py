@@ -171,8 +171,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
-        self._n_subset = self._panel_data_wide.shape[0]
-        self._n_obs = self._n_subset  # Effective sample size used for resampling
+        self._n_obs_subset = self._panel_data_wide.shape[0]  # Effective sample size used for resampling
         self._n_treated_subset = self._panel_data_wide["G_indicator"].sum()
 
         # Save x and y for later ML estimation
@@ -192,6 +191,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # set stratication for resampling
         self._strata = self._panel_data_wide["G_indicator"]
+        self._n_obs_sample_splitting = self.n_obs_subset
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -244,7 +244,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             f"Evaluation period: {str(self.t_value_eval)}\n"
             f"Control group: {str(self.control_group)}\n"
             f"Anticipation periods: {str(self.anticipation_periods)}\n"
-            f"Effective sample size: {str(self.n_obs)}\n"
+            f"Effective sample size: {str(self.n_obs_subset)}\n"
         )
         learner_info = ""
         for key, value in self.learner.items():
@@ -371,11 +371,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     @property
-    def n_obs(self):
+    def n_obs_subset(self):
         """
         The number of observations used for estimation.
         """
-        return self._n_subset
+        return self._n_obs_subset
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
@@ -713,7 +713,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         }
 
         # add scaling to make variance estimation consistent (sample size difference)
-        scaling = self._dml_data.n_obs / self._n_subset
+        scaling = self._dml_data.n_obs / self._n_obs_subset
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,

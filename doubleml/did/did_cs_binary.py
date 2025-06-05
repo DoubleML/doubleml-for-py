@@ -53,16 +53,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         self._n_obs = obj_dml_data.data.shape[0]
         self._score_dim = (self._n_obs, self.n_rep, self._dml_data.n_treat)
         # reinitialze arrays
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        self._initialize_arrays()
 
         self._check_data(self._dml_data)
         g_values = self._dml_data.g_values
@@ -108,8 +99,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
-        self._n_subset = self.data_subset.shape[0]
-        self._n_obs = self._n_subset  # Effective sample size used for resampling
+        self._n_obs_subset = self.data_subset.shape[0]  # Effective sample size used for resampling
 
         # Save x and y for later ML estimation
         self._x_data = self.data_subset.loc[:, self._dml_data.x_cols].values
@@ -129,6 +119,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
         # set stratication for resampling
         self._strata = self.data_subset["G_indicator"] + 2 * self.data_subset["t_indicator"]
+        self._n_obs_sample_splitting = self.n_obs_subset
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -255,11 +246,11 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     @property
-    def n_obs(self):
+    def n_obs_subset(self):
         """
         The number of observations used for estimation.
         """
-        return self._n_subset
+        return self._n_obs_subset
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
