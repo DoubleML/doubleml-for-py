@@ -103,16 +103,7 @@ class DoubleML(ABC):
 
         self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
         # initialize arrays according to obj_dml_data and the resampling settings
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        self._initialize_arrays()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -1075,22 +1066,20 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         # scores
-        psi = np.full(self._score_dim, np.nan)
-        psi_deriv = np.full(self._score_dim, np.nan)
-        psi_elements = self._initialize_score_elements(self._score_dim)
+        self._psi = np.full(self._score_dim, np.nan)
+        self._psi_deriv = np.full(self._score_dim, np.nan)
+        self._psi_elements = self._initialize_score_elements(self._score_dim)
 
         n_rep = self._score_dim[1]
         n_thetas = self._score_dim[2]
 
-        var_scaling_factors = np.full(n_thetas, np.nan)
+        self._var_scaling_factors = np.full(n_thetas, np.nan)
         # coefficients and ses
-        coef = np.full(n_thetas, np.nan)
-        se = np.full(n_thetas, np.nan)
+        self._coef = np.full(n_thetas, np.nan)
+        self._se = np.full(n_thetas, np.nan)
 
-        all_coef = np.full((n_thetas, n_rep), np.nan)
-        all_se = np.full((n_thetas, n_rep), np.nan)
-
-        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
+        self._all_coef = np.full((n_thetas, n_rep), np.nan)
+        self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
         self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
@@ -1211,7 +1200,7 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
+    def draw_sample_splitting(self, n_obs=None):
         """
         Draw sample splitting for DoubleML models.
 
@@ -1221,26 +1210,27 @@ class DoubleML(ABC):
         Parameters
         ----------
         n_obs : int or None
-            The number of observations. If ``None``, the number of observations is set to the number of observations in
-            the data set.
+            The number of observations to resample. If ``None``, the number of observations is set to the number
+            of observations in the data set.
 
         Returns
         -------
         self : object
         """
+        if n_obs is None:
+            n_obs = self.n_obs
+
         if self._is_cluster_data:
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=self.n_obs,
+                n_obs=n_obs,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.n_obs, stratify=self._strata
-            )
+            obj_dml_resampling = DoubleMLResampling(n_folds=self.n_folds, n_rep=self.n_rep, n_obs=n_obs, stratify=self._strata)
             self._smpls = obj_dml_resampling.split_samples()
 
         return self
@@ -1309,16 +1299,9 @@ class DoubleML(ABC):
             all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
         )
 
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        # set sample splitting can update the number of repetitions
+        self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
+        self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self
