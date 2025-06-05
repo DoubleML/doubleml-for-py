@@ -344,11 +344,11 @@ def test_s_col_setter():
     dml_data.s_col = "s_new"
     assert np.array_equal(dml_data.s, s_comp)
 
-    msg = r"Invalid score or selection variable s_col. a13 is no data column."
+    msg = r"Invalid selection variable s_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):
         dml_data.s_col = "a13"
 
-    msg = r"The score or selection variable s_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
+    msg = r"The selection variable s_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.s_col = 5
 

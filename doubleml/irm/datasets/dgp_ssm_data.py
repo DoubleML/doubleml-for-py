@@ -2,15 +2,15 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from doubleml.data import DoubleMLData
-from doubleml.utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_data_alias
+from doubleml.data import DoubleMLSSMData
+from doubleml.utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_ssm_data_alias
 
 _array_alias = _get_array_alias()
 _data_frame_alias = _get_data_frame_alias()
-_dml_data_alias = _get_dml_data_alias()
+_dml_ssm_data_alias = _get_dml_ssm_data_alias()
 
 
-def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type="DoubleMLData"):
+def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type="DoubleMLSSMData"):
     """
     Generates data from a sample selection model (SSM).
     The data generating process is defined as
@@ -86,7 +86,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type="DoubleM
 
     if return_type in _array_alias:
         return x, y, d, z, s
-    elif return_type in _data_frame_alias + _dml_data_alias:
+    elif return_type in _data_frame_alias + _dml_ssm_data_alias:
         x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
         if mar:
             data = pd.DataFrame(np.column_stack((x, y, d, s)), columns=x_cols + ["y", "d", "s"])
@@ -96,7 +96,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type="DoubleM
             return data
         else:
             if mar:
-                return DoubleMLData(data, "y", "d", x_cols, None, None, "s")
-            return DoubleMLData(data, "y", "d", x_cols, "z", None, "s")
+                return DoubleMLSSMData(data, "y", "d", x_cols, z_cols=None, s_col="s")
+            return DoubleMLSSMData(data, "y", "d", x_cols, z_cols="z", s_col="s")
     else:
         raise ValueError("Invalid return_type.")

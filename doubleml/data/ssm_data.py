@@ -75,9 +75,9 @@ class DoubleMLSSMData(DoubleMLData):
         data,
         y_col,
         d_cols,
-        s_col,
         x_cols=None,
         z_cols=None,
+        s_col=None,
         cluster_cols=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
@@ -131,8 +131,8 @@ class DoubleMLSSMData(DoubleMLData):
         x,
         y,
         d,
-        s,
         z=None,
+        s=None,
         cluster_vars=None,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
@@ -206,9 +206,9 @@ class DoubleMLSSMData(DoubleMLData):
             data,
             base_data.y_col,
             base_data.d_cols,
-            s_col,
             base_data.x_cols,
             base_data.z_cols,
+            s_col,
             base_data.cluster_cols,
             base_data.use_other_treat_as_covariate,
             base_data.force_all_x_finite,
@@ -223,7 +223,10 @@ class DoubleMLSSMData(DoubleMLData):
         if self.s_col is not None:
             return self._s.values
         else:
-            return None    @property
+            return None
+
+
+    @property
     def s_col(self):
         """
         The selection variable.
