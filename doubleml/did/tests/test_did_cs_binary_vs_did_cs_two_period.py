@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_did_cs_manual import fit_did_cs
+from ._utils_did_cs_manual import fit_did_cs, fit_sensitivity_elements_did_cs
 from ._utils_did_manual import boot_did
 
 
@@ -148,6 +148,30 @@ def dml_did_cs_binary_vs_did_cs_fixture(generate_data_did_binary, learner, score
         res_dict["boot_t_stat" + bootstrap + "_binary"] = dml_did_binary_obj.boot_t_stat
         res_dict["boot_t_stat" + bootstrap + "_manual"] = boot_t_stat.reshape(-1, 1, 1)
 
+    # sensitivity tests
+    res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
+    res_dict["sensitivity_elements_binary"] = dml_did_binary_obj.sensitivity_elements
+    res_dict["sensitivity_elements_manual"] = fit_sensitivity_elements_did_cs(
+        y,
+        d,
+        t,
+        all_coef=dml_did_obj.all_coef,
+        predictions=dml_did_obj.predictions,
+        score=score,
+        in_sample_normalization=in_sample_normalization,
+        n_rep=1,
+    )
+
+    # sensitivity tests
+    res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
+    res_dict["sensitivity_elements_binary"] = dml_did_binary_obj.sensitivity_elements
+
+    dml_did_obj.sensitivity_analysis()
+    dml_did_binary_obj.sensitivity_analysis()
+
+    res_dict["sensitivity_params"] = dml_did_obj.sensitivity_params
+    res_dict["sensitivity_params_binary"] = dml_did_binary_obj.sensitivity_params
+
     return res_dict
 
 
@@ -206,3 +230,53 @@ def test_nuisance_loss(dml_did_cs_binary_vs_did_cs_fixture):
     )
     for key, value in dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss"].items():
         assert np.allclose(value, dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss_binary"][key], rtol=1e-9, atol=1e-3)
+
+
+@pytest.mark.ci
+def test_sensitivity_elements(dml_did_cs_binary_vs_did_cs_fixture):
+    sensitivity_element_names = ["sigma2", "nu2", "psi_sigma2", "psi_nu2"]
+    for sensitivity_element in sensitivity_element_names:
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements"][sensitivity_element],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements_manual"][sensitivity_element],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements"][sensitivity_element],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements_binary"][sensitivity_element],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+    for sensitivity_element in ["riesz_rep"]:
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements"][sensitivity_element],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_elements_binary"][sensitivity_element],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+
+
+@pytest.mark.ci
+def test_sensitivity_params(dml_did_cs_binary_vs_did_cs_fixture):
+    for key in ["theta", "se", "ci"]:
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params"][key]["lower"],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params_binary"][key]["lower"],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params"][key]["upper"],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params_binary"][key]["upper"],
+            rtol=1e-9,
+            atol=1e-4,
+        )
+
+    for key in ["rv", "rva"]:
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params"][key],
+            dml_did_cs_binary_vs_did_cs_fixture["sensitivity_params_binary"][key],
+            rtol=1e-9,
+            atol=1e-4,
+        )
