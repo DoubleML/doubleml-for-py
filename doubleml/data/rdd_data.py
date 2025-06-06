@@ -59,7 +59,8 @@ class DoubleMLRDDData(DoubleMLData):
         Default is ``True``.
 
     Examples
-    --------    >>> from doubleml import DoubleMLRDDData
+    --------
+    >>> from doubleml import DoubleMLRDDData
     >>> from doubleml.rdd.datasets import make_rdd_data
     >>> # initialization from pandas.DataFrame
     >>> df = make_rdd_data(return_type='DataFrame')

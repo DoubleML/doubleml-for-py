@@ -181,7 +181,8 @@ class DoubleMLDIDData(DoubleMLData):
             Default is ``True``.
 
         Examples
-        --------        >>> from doubleml import DoubleMLDIDData
+        --------
+        >>> from doubleml import DoubleMLDIDData
         >>> from doubleml.did.datasets import make_did_SZ2020
         >>> (x, y, d, t) = make_did_SZ2020(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLDIDData.from_arrays(x, y, d, t=t)
