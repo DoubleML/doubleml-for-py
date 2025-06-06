@@ -17,6 +17,7 @@ N_OBS = 200
 N_REP = 1
 N_FOLDS = 3
 N_REP_BOOT = 314
+N_PERIODS = 5
 
 dml_args = {
     "n_rep": N_REP,
@@ -30,7 +31,7 @@ np.random.seed(3141)
 datasets = {}
 
 # panel data
-df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
+df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=N_PERIODS, time_type="float")
 df_panel["y_binary"] = np.random.binomial(n=1, p=0.5, size=df_panel.shape[0])
 datasets["did_panel"] = DoubleMLPanelData(
     df_panel, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
@@ -89,7 +90,7 @@ def test_panel_property_types_and_shapes(fitted_dml_obj):
     assert dml_obj.n_gt_atts == n_treat
     assert dml_obj.n_rep == N_REP
     assert dml_obj.n_folds == N_FOLDS
-    assert dml_obj._dml_data.n_obs == N_OBS
+    assert dml_obj._dml_data.n_obs == N_OBS * N_PERIODS
     assert dml_obj.n_rep_boot == N_REP_BOOT
 
     assert isinstance(dml_obj.all_coef, np.ndarray)

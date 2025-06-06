@@ -98,20 +98,13 @@ class DoubleML(ABC):
         # perform sample splitting
         self._smpls = None
         self._smpls_cluster = None
+        self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
+        self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
         # initialize arrays according to obj_dml_data and the resampling settings
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        self._initialize_arrays()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -855,7 +848,7 @@ class DoubleML(ABC):
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
                     smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
@@ -1004,7 +997,7 @@ class DoubleML(ABC):
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
                 valid_learners=self.params_names,
-                n_obs=self._dml_data.n_obs,
+                n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
         elif not self._external_predictions_implemented and external_predictions is not None:
@@ -1021,9 +1014,7 @@ class DoubleML(ABC):
             self._initialize_models()
 
         if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements(
-                (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
-            )
+            self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
@@ -1076,30 +1067,24 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         # scores
-        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
+        self._psi = np.full(self._score_dim, np.nan)
+        self._psi_deriv = np.full(self._score_dim, np.nan)
+        self._psi_elements = self._initialize_score_elements(self._score_dim)
 
-        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+        n_rep = self._score_dim[1]
+        n_thetas = self._score_dim[2]
 
+        self._var_scaling_factors = np.full(n_thetas, np.nan)
         # coefficients and ses
-        coef = np.full(self._dml_data.n_coefs, np.nan)
-        se = np.full(self._dml_data.n_coefs, np.nan)
+        self._coef = np.full(n_thetas, np.nan)
+        self._se = np.full(n_thetas, np.nan)
 
-        all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-        all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-
-        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
+        self._all_coef = np.full((n_thetas, n_rep), np.nan)
+        self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
-        self._nuisance_targets = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
@@ -1223,12 +1208,6 @@ class DoubleML(ABC):
         The samples are drawn according to the attributes
         ``n_folds`` and ``n_rep``.
 
-        Parameters
-        ----------
-        n_obs : int or None
-            The number of observations. If ``None``, the number of observations is set to the number of observations in
-            the data set.
-
         Returns
         -------
         self : object
@@ -1237,14 +1216,14 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=self.n_obs,
+                n_obs=self._n_obs_sample_splitting,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.n_obs, stratify=self._strata
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
             )
             self._smpls = obj_dml_resampling.split_samples()
 
@@ -1311,19 +1290,12 @@ class DoubleML(ABC):
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self._n_obs_sample_splitting
         )
 
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        # set sample splitting can update the number of repetitions
+        self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
+        self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self

@@ -219,14 +219,10 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
 
         # nuisance estimates of the uncond. time prob.
-        lambda_hat = np.full_like(t, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            lambda_hat[test_index] = np.mean(t[train_index])
+        lambda_hat = np.full_like(t, t.mean(), dtype="float64")
 
         # nuisance g
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
