@@ -462,7 +462,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         )
 
         extend_kwargs = {
-            "n_obs": self._dml_data.data.shape[0],
+            "n_obs": self._dml_data.n_obs,
             "id_positions": self.id_positions,
         }
         psi_elements = {

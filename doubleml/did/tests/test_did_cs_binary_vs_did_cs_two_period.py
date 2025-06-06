@@ -51,10 +51,14 @@ def dml_did_cs_binary_vs_did_cs_fixture(generate_data_did_binary, learner, score
     # collect data
     dml_panel_data = generate_data_did_binary
     df = dml_panel_data._data.sort_values(by=["id", "t"])
+    # Reorder data before to make both approaches compatible
+    dml_panel_data = dml.data.DoubleMLPanelData(
+        df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
+    )
+    obj_dml_data = dml.DoubleMLData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     n_obs = df.shape[0]
     all_smpls = draw_smpls(n_obs, n_folds)
-    obj_dml_data = dml.DoubleMLData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])
@@ -161,3 +165,44 @@ def test_coefs(dml_did_cs_binary_vs_did_cs_fixture):
         rel_tol=1e-9,
         abs_tol=1e-4,
     )
+
+
+@pytest.mark.ci
+def test_ses(dml_did_cs_binary_vs_did_cs_fixture):
+    assert math.isclose(
+        dml_did_cs_binary_vs_did_cs_fixture["se"][0],
+        dml_did_cs_binary_vs_did_cs_fixture["se_manual"],
+        rel_tol=1e-9,
+        abs_tol=1e-4,
+    )
+    assert math.isclose(
+        dml_did_cs_binary_vs_did_cs_fixture["se_binary"][0],
+        dml_did_cs_binary_vs_did_cs_fixture["se"][0],
+        rel_tol=1e-9,
+        abs_tol=1e-4,
+    )
+
+
+@pytest.mark.ci
+def test_boot(dml_did_cs_binary_vs_did_cs_fixture):
+    for bootstrap in dml_did_cs_binary_vs_did_cs_fixture["boot_methods"]:
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["boot_t_stat" + bootstrap],
+            dml_did_cs_binary_vs_did_cs_fixture["boot_t_stat" + bootstrap + "_manual"],
+            atol=1e-4,
+        )
+        assert np.allclose(
+            dml_did_cs_binary_vs_did_cs_fixture["boot_t_stat" + bootstrap],
+            dml_did_cs_binary_vs_did_cs_fixture["boot_t_stat" + bootstrap + "_binary"],
+            atol=1e-4,
+        )
+
+
+@pytest.mark.ci
+def test_nuisance_loss(dml_did_cs_binary_vs_did_cs_fixture):
+    assert (
+        dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss"].keys()
+        == dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss_binary"].keys()
+    )
+    for key, value in dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss"].items():
+        assert np.allclose(value, dml_did_cs_binary_vs_did_cs_fixture["nuisance_loss_binary"][key], rtol=1e-9, atol=1e-3)
