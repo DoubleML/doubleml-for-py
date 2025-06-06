@@ -318,6 +318,34 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         data_subset = data_subset.assign(t_indicator=data_subset[t_col] == eval_t)
         return data_subset
 
+    def _estimate_conditional_g(
+        self, x, y, d_val, t_val, d_arr, t_arr, smpls_cond, external_prediction, learner_param_key, n_jobs_cv, return_models
+    ):
+        """Helper function to estimate conditional g_hat for fixed d and t."""
+        g_hat_cond = {}
+        condition = (d_arr == d_val) & (t_arr == t_val)
+
+        if external_prediction is not None:
+            ml_g_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_targets[condition] = y[condition]
+            ml_pred = _get_id_positions(external_prediction, self.id_positions)
+            g_hat_cond = {"preds": ml_pred, "targets": ml_g_targets, "models": None}
+        else:
+            g_hat_cond = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_cond,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params(learner_param_key),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(g_hat_cond["preds"], self._learner["ml_g"], "ml_g", smpls_cond)
+            g_hat_cond["targets"] = g_hat_cond["targets"].astype(float)
+            g_hat_cond["targets"][~condition] = np.nan
+        return g_hat_cond
+
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
         # Here: d is a binary treatment indicator
@@ -333,97 +361,18 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         # nuisance g
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
 
-        # nuisance g for d==0 & t==0
-        if external_predictions["ml_g_d0_t0"] is not None:
-            ml_g_d0_t0_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g_d0_t0_targets[((d == 0) & (t == 0))] = y[((d == 0) & (t == 0))]
-            ml_d0_t0_pred = _get_id_positions(external_predictions["ml_g_d0_t0"], self.id_positions)
-            g_hat_d0_t0 = {"preds": ml_d0_t0_pred, "targets": ml_g_d0_t0_targets, "models": None}
-        else:
-            g_hat_d0_t0 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls_d0_t0,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g_d0_t0"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat_d0_t0["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat_d0_t0["targets"] = g_hat_d0_t0["targets"].astype(float)
-            g_hat_d0_t0["targets"][np.invert((d == 0) & (t == 0))] = np.nan
-
-        # nuisance g for d==0 & t==1
-        if external_predictions["ml_g_d0_t1"] is not None:
-            ml_g_d0_t1_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g_d0_t1_targets[((d == 0) & (t == 1))] = y[((d == 0) & (t == 1))]
-            ml_d0_t1_pred = _get_id_positions(external_predictions["ml_g_d0_t1"], self.id_positions)
-            g_hat_d0_t1 = {"preds": ml_d0_t1_pred, "targets": ml_g_d0_t1_targets, "models": None}
-        else:
-            g_hat_d0_t1 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls_d0_t1,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g_d0_t1"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat_d0_t1["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat_d0_t1["targets"] = g_hat_d0_t1["targets"].astype(float)
-            g_hat_d0_t1["targets"][np.invert((d == 0) & (t == 1))] = np.nan
-
-        # nuisance g for d==1 & t==0
-        if external_predictions["ml_g_d1_t0"] is not None:
-            ml_g_d1_t0_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g_d1_t0_targets[((d == 1) & (t == 0))] = y[((d == 1) & (t == 0))]
-            ml_d1_t0_pred = _get_id_positions(external_predictions["ml_g_d1_t0"], self.id_positions)
-            g_hat_d1_t0 = {"preds": ml_d1_t0_pred, "targets": ml_g_d1_t0_targets, "models": None}
-        else:
-            g_hat_d1_t0 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls_d1_t0,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g_d1_t0"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat_d1_t0["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat_d1_t0["targets"] = g_hat_d1_t0["targets"].astype(float)
-            g_hat_d1_t0["targets"][np.invert((d == 1) & (t == 0))] = np.nan
-
-        # nuisance g for d==1 & t==1
-        if external_predictions["ml_g_d1_t1"] is not None:
-            ml_g_d1_t1_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g_d1_t1_targets[((d == 1) & (t == 1))] = y[((d == 1) & (t == 1))]
-            ml_d1_t1_pred = _get_id_positions(external_predictions["ml_g_d1_t1"], self.id_positions)
-            g_hat_d1_t1 = {"preds": ml_d1_t1_pred, "targets": ml_g_d1_t1_targets, "models": None}
-        else:
-            g_hat_d1_t1 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls_d1_t1,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g_d1_t1"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat_d1_t1["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat_d1_t1["targets"] = g_hat_d1_t1["targets"].astype(float)
-            g_hat_d1_t1["targets"][np.invert((d == 1) & (t == 1))] = np.nan
+        g_hat_d0_t0 = self._estimate_conditional_g(
+            x, y, 0, 0, d, t, smpls_d0_t0, external_predictions["ml_g_d0_t0"], "ml_g_d0_t0", n_jobs_cv, return_models
+        )
+        g_hat_d0_t1 = self._estimate_conditional_g(
+            x, y, 0, 1, d, t, smpls_d0_t1, external_predictions["ml_g_d0_t1"], "ml_g_d0_t1", n_jobs_cv, return_models
+        )
+        g_hat_d1_t0 = self._estimate_conditional_g(
+            x, y, 1, 0, d, t, smpls_d1_t0, external_predictions["ml_g_d1_t0"], "ml_g_d1_t0", n_jobs_cv, return_models
+        )
+        g_hat_d1_t1 = self._estimate_conditional_g(
+            x, y, 1, 1, d, t, smpls_d1_t1, external_predictions["ml_g_d1_t1"], "ml_g_d1_t1", n_jobs_cv, return_models
+        )
 
         # only relevant for observational setting
         m_hat = {"preds": None, "targets": None, "models": None}
