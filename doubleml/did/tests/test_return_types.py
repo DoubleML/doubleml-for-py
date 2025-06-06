@@ -79,7 +79,8 @@ def test_sensitivity_return_types(fitted_dml_obj):
 
 
 # panel data
-df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
+N_PERIODS = 5
+df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=N_PERIODS, time_type="float")
 df_panel["y_binary"] = np.random.binomial(n=1, p=0.5, size=df_panel.shape[0])
 datasets["did_panel"] = DoubleMLPanelData(
     df_panel, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
@@ -160,7 +161,15 @@ def fitted_panel_dml_obj(request):
 
 @pytest.mark.ci
 def test_panel_property_types_and_shapes(fitted_panel_dml_obj):
-    check_basic_property_types_and_shapes(fitted_panel_dml_obj, N_OBS, N_TREAT, N_REP, N_FOLDS, N_REP_BOOT)
+    check_basic_property_types_and_shapes(
+        fitted_panel_dml_obj,
+        n_obs=N_PERIODS * N_OBS,
+        n_treat=N_TREAT,
+        n_rep=N_REP,
+        n_folds=N_FOLDS,
+        n_rep_boot=N_REP_BOOT,
+        score_dim=(N_OBS, N_REP, N_TREAT),
+    )
     check_basic_predictions_and_targets(fitted_panel_dml_obj, N_OBS, N_TREAT, N_REP)
 
 

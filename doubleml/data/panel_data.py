@@ -215,9 +215,9 @@ class DoubleMLPanelData(DoubleMLData):
         return self._id_var_unique
 
     @property
-    def n_obs(self):
+    def n_ids(self):
         """
-        The number of observations. For panel data, the number of unique values for id_col.
+        The number of unique values for id_col.
         """
         return len(self._id_var_unique)
 

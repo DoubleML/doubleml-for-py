@@ -124,6 +124,12 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
         self._check_data(self._dml_data)
+        # for did panel data the scores are based on the number of unique ids
+        self._n_obs = obj_dml_data.n_ids
+        self._score_dim = (self._n_obs, self.n_rep, self._dml_data.n_treat)
+        # reinitialze arrays
+        self._initialize_arrays()
+
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
@@ -542,7 +548,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_obs,
+            "n_obs": self._dml_data.n_ids,
             "id_positions": self.id_positions,
         }
         psi_elements = {
@@ -707,13 +713,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         psi_nu2 = nu2_score_element - nu2
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_obs,
+            "n_obs": self._dml_data.n_ids,
             "id_positions": self.id_positions,
             "fill_value": 0.0,
         }
 
         # add scaling to make variance estimation consistent (sample size difference)
-        scaling = self._dml_data.n_obs / self._n_obs_subset
+        scaling = self._dml_data.n_ids / self._n_obs_subset
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,

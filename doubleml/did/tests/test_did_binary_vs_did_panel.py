@@ -178,7 +178,7 @@ def test_sensitivity_elements(dml_did_binary_vs_did_fixture):
         )
     for sensitivity_element in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
         dml_binary_obj = dml_did_binary_vs_did_fixture["dml_did_binary_obj"]
-        scaling = dml_binary_obj.n_obs_subset / dml_binary_obj._dml_data.n_obs
+        scaling = dml_binary_obj.n_obs_subset / dml_binary_obj._dml_data.n_ids
         binary_sensitivity_element = scaling * _get_id_positions(
             dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element], dml_binary_obj._id_positions
         )

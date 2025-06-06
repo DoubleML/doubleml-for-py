@@ -100,3 +100,10 @@ def test_coef(doubleml_did_multi_ext_fixture):
     assert math.isclose(
         doubleml_did_multi_ext_fixture["coef"], doubleml_did_multi_ext_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3
     )
+
+
+@pytest.mark.ci
+def test_se(doubleml_did_multi_ext_fixture):
+    assert math.isclose(
+        doubleml_did_multi_ext_fixture["se"], doubleml_did_multi_ext_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3
+    )
