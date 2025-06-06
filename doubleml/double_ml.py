@@ -848,7 +848,7 @@ class DoubleML(ABC):
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
                     smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
