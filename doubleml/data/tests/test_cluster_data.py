@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLData, DoubleMLDIDData, DoubleMLSSMData
 from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
 
 
@@ -11,29 +11,29 @@ def test_obj_vs_from_arrays():
     np.random.seed(3141)
     dml_data = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
     dml_data_from_array = DoubleMLData.from_arrays(
-        dml_data.data[dml_data.x_cols],
-        dml_data.data[dml_data.y_col],
-        dml_data.data[dml_data.d_cols],
-        dml_data.data[dml_data.cluster_cols],
-        dml_data.data[dml_data.z_cols],
+        x=dml_data.data[dml_data.x_cols],
+        y=dml_data.data[dml_data.y_col],
+        d=dml_data.data[dml_data.d_cols],
+        cluster_vars=dml_data.data[dml_data.cluster_cols],
+        z=dml_data.data[dml_data.z_cols],
     )
     df = dml_data.data.copy()
     df.rename(
         columns={"cluster_var_i": "cluster_var1", "cluster_var_j": "cluster_var2", "Y": "y", "D": "d", "Z": "z"}, inplace=True
     )
-    assert dml_data_from_array.data.equals(df)
+    assert dml_data_from_array.data[list(df.columns)].equals(df)
 
     # with a single cluster variable
     dml_data_from_array = DoubleMLData.from_arrays(
-        dml_data.data[dml_data.x_cols],
-        dml_data.data[dml_data.y_col],
-        dml_data.data[dml_data.d_cols],
-        dml_data.data[dml_data.cluster_cols[1]],
-        dml_data.data[dml_data.z_cols],
+        x=dml_data.data[dml_data.x_cols],
+        y=dml_data.data[dml_data.y_col],
+        d=dml_data.data[dml_data.d_cols],
+        cluster_vars=dml_data.data[dml_data.cluster_cols[1]],
+        z=dml_data.data[dml_data.z_cols],
     )
     df = dml_data.data.copy().drop(columns="cluster_var_i")
     df.rename(columns={"cluster_var_j": "cluster_var", "Y": "y", "D": "d", "Z": "z"}, inplace=True)
-    assert dml_data_from_array.data.equals(df)
+    assert dml_data_from_array.data[list(df.columns)].equals(df)
 
 
 @pytest.mark.ci
@@ -53,32 +53,22 @@ def test_x_cols_setter_defaults_w_cluster():
 
     # without instrument and with time
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "tt", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", t_col="tt")
+    dml_data = DoubleMLDIDData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", t_col="tt")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument and with time
     df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", t_col="tt")
+    dml_data = DoubleMLDIDData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", t_col="tt")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # without instrument and with selection
     df = pd.DataFrame(np.tile(np.arange(6), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", s_col="ss")
+    dml_data = DoubleMLSSMData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", s_col="ss")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument and with selection
     df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", s_col="ss")
-    assert dml_data.x_cols == ["xx1", "xx2"]
-
-    # without instrument with time with selection
-    df = pd.DataFrame(np.tile(np.arange(7), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "tt", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", t_col="tt", s_col="ss")
-    assert dml_data.x_cols == ["xx1", "xx2"]
-
-    # with instrument with time with selection
-    df = pd.DataFrame(np.tile(np.arange(8), (6, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt", "ss", "cluster1"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", t_col="tt", s_col="ss")
+    dml_data = DoubleMLSSMData(df, y_col="yy", d_cols="dd", cluster_cols="cluster1", z_cols="zz", s_col="ss")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
 
@@ -107,7 +97,7 @@ def test_cluster_cols_setter():
     with pytest.raises(ValueError, match=msg):
         dml_data.cluster_cols = "X13"
 
-    msg = r"The cluster variable\(s\) cluster_cols must be of str or list type. " "5 of type <class 'int'> was passed."
+    msg = r"The cluster variable\(s\) cluster_cols must be of str or list type (or None). " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.cluster_cols = 5
 
@@ -154,14 +144,14 @@ def test_disjoint_sets():
         r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], t_col="xx2", cluster_cols="xx2")
+        _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], t_col="xx2", cluster_cols="xx2")
 
     msg = (
         r"At least one variable/column is set as score or selection variable \(``s_col``\) "
         r"and cluster variable\(s\) \(``cluster_cols``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], s_col="xx2", cluster_cols="xx2")
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], s_col="xx2", cluster_cols="xx2")
 
 
 @pytest.mark.ci
@@ -215,14 +205,13 @@ def test_cluster_data_str():
     df["time_var"] = 1
     df["score_var"] = 0.5
 
-    dml_data_with_optional = DoubleMLData(
+    dml_data_with_optional = DoubleMLDIDData(
         data=df,
         y_col="Y",
         d_cols="D",
         cluster_cols=["cluster_var_i", "cluster_var_j"],
         z_cols="Z",
         t_col="time_var",
-        s_col="score_var",
     )
 
     dml_str_optional = str(dml_data_with_optional)
