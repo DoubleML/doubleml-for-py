@@ -18,6 +18,7 @@ valid_arguments = {
     "ml_g": LinearRegression(),
     "ml_m": LogisticRegression(),
     "gt_combinations": [(1, 0, 1)],
+    "panel": True,
 }
 
 
@@ -41,6 +42,12 @@ def test_input():
     msg = r"The control group has to be one of \['never_treated', 'not_yet_treated'\]. 0 was passed."
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"control_group": 0}
+        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
+
+    # non boolean panel
+    msg = "panel has to be boolean. test of type <class 'str'> was passed."
+    with pytest.raises(TypeError, match=msg):
+        invalid_arguments = {"panel": "test"}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
 
     # propensity score adjustments
@@ -169,6 +176,12 @@ def test_check_external_predictions():
     # Test 5: Valid external predictions should not raise
     valid_pred = {model.gt_labels[0]: {"ml_g0": None, "ml_g1": None, "ml_m": None}}
     model._check_external_predictions(valid_pred)
+
+    model_cs = dml.did.DoubleMLDIDMulti(**valid_arguments | {"panel": False})
+    valid_pred = {
+        model.gt_labels[0]: {"ml_g_d0_t0": None, "ml_g_d0_t1": None, "ml_g_d1_t0": None, "ml_g_d1_t1": None, "ml_m": None}
+    }
+    model_cs._check_external_predictions(valid_pred)
 
 
 @pytest.mark.ci
