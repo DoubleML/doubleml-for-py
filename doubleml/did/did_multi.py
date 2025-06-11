@@ -187,6 +187,11 @@ class DoubleMLDIDMulti:
 
         _check_bool(panel, "panel")
         self._panel = panel
+        # set score dim (n_elements, n_thetas, n_rep), just for checking purposes
+        if self.panel:
+            self._score_dim = (self._dml_data.n_ids, self.n_gt_atts, self.n_rep)
+        else:
+            self._score_dim = (self._dml_data.n_obs, self.n_gt_atts, self.n_rep)
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
