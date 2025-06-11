@@ -12,6 +12,7 @@ from sklearn.base import clone
 from doubleml.data import DoubleMLPanelData
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
+from doubleml.did.did_cs_binary import DoubleMLDIDCSBinary
 from doubleml.did.utils._aggregation import (
     _check_did_aggregation_dict,
     _compute_did_eventstudy_aggregation_weights,
@@ -31,7 +32,7 @@ from doubleml.did.utils._did_utils import (
 from doubleml.did.utils._plot import add_jitter
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
-from doubleml.utils._checks import _check_score, _check_trimming
+from doubleml.utils._checks import _check_bool, _check_score, _check_trimming
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils.gain_statistics import gain_statistics
 
@@ -79,6 +80,10 @@ class DoubleMLDIDMulti:
         The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
         from the pretreatment covariates.
         Default is ``'observational'``.
+
+    panel : bool
+        Indicates whether to rely on panel data structure (``True``) or repeated cross sections (``False``).
+        Default is ``True``.
 
     in_sample_normalization : bool
         Indicates whether to use in-sample normalization of weights.
@@ -140,6 +145,7 @@ class DoubleMLDIDMulti:
         n_folds=5,
         n_rep=1,
         score="observational",
+        panel=True,
         in_sample_normalization=True,
         trimming_rule="truncate",
         trimming_threshold=1e-2,
@@ -178,6 +184,9 @@ class DoubleMLDIDMulti:
         self._score = score
         valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
+
+        _check_bool(panel, "panel")
+        self._panel = panel
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
@@ -331,6 +340,13 @@ class DoubleMLDIDMulti:
         The value indicating that a unit was never treated.
         """
         return self._never_treated_value
+
+    @property
+    def panel(self):
+        """
+        Indicates whether to rely on panel data structure (``True``) or repeated cross sections (``False``).
+        """
+        return self._panel
 
     @property
     def in_sample_normalization(self):
@@ -1250,7 +1266,10 @@ class DoubleMLDIDMulti:
                 + f"Passed keys: {set(external_predictions.keys())}."
             )
 
-        expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
+        if self.panel:
+            expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
+        else:
+            expected_learner_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1", "ml_m"]
         for key, value in external_predictions.items():
             if not isinstance(value, dict):
                 raise TypeError(
@@ -1268,12 +1287,7 @@ class DoubleMLDIDMulti:
         d_col = self._dml_data.d_cols[0]
         ext_pred_dict = {gt_combination: {d_col: {}} for gt_combination in self.gt_labels}
         for gt_combination in self.gt_labels:
-            if "ml_g0" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_g0"] = external_predictions[gt_combination]["ml_g0"]
-            if "ml_g1" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_g1"] = external_predictions[gt_combination]["ml_g1"]
-            if "ml_m" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_m"] = external_predictions[gt_combination]["ml_m"]
+            ext_pred_dict[gt_combination][d_col].update(external_predictions[gt_combination])
 
         return ext_pred_dict
 
@@ -1304,9 +1318,15 @@ class DoubleMLDIDMulti:
             "draw_sample_splitting": True,
             "print_periods": self._print_periods,
         }
+        if self.panel:
+            ModelClass = DoubleMLDIDBinary
+        else:
+            ModelClass = DoubleMLDIDCSBinary
+
+        # iterate over all group-time combinations
         for i_model, (g_value, t_value_pre, t_value_eval) in enumerate(self.gt_combinations):
             # initialize models for all levels
-            model = DoubleMLDIDBinary(g_value=g_value, t_value_pre=t_value_pre, t_value_eval=t_value_eval, **kwargs)
+            model = ModelClass(g_value=g_value, t_value_pre=t_value_pre, t_value_eval=t_value_eval, **kwargs)
 
             modellist[i_model] = model
 
