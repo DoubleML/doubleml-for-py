@@ -157,8 +157,9 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The unit of the time variable.
         """
-        return self._datetime_unit @ property
+        return self._datetime_unit
 
+    @property
     def d(self):
         """
         Array of treatment variable;
@@ -228,9 +229,13 @@ class DoubleMLPanelData(DoubleMLData):
         """
         The treatment variable indicating the time of treatment exposure.
         """
-        return self._d_cols[0] @ DoubleMLData.d_cols.setter
+        return self._d_cols[0] 
 
+
+    @ DoubleMLData.d_cols.setter
     def d_cols(self, value):
+        if isinstance(value, str):
+            value = [value]
         super(self.__class__, self.__class__).d_cols.__set__(self, value)
         if hasattr(self, "_g_values"):
             self._g_values = np.sort(np.unique(self.d))  # update unique values of g
@@ -266,7 +271,7 @@ class DoubleMLPanelData(DoubleMLData):
             )
         # Check if data exists (during initialization it might not)
         if hasattr(self, "_data") and value not in self.all_variables:
-            raise ValueError("Invalid time variable t_col. The time variable is no data column.")
+            raise ValueError(f"Invalid time variable t_col. {value} is no data column.")
         self._t_col = value
         # Update time variable array if data is already loaded
         if hasattr(self, "_data"):
@@ -301,8 +306,8 @@ class DoubleMLPanelData(DoubleMLData):
         self._check_disjoint_sets_t_col()
 
     def _check_disjoint_sets_id_col(self):
-        # apply the standard checks from the DoubleMLData class
-        super(DoubleMLPanelData, self)._check_disjoint_sets()
+        # The call to super()._check_disjoint_sets() is removed from here as it's redundant
+        # and called in the main _check_disjoint_sets method of this class.
 
         # special checks for the additional id variable (and the time variable)
         id_col_set = {self.id_col}
