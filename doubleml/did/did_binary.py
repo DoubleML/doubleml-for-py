@@ -421,9 +421,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         id_col = self._dml_data.id_col
         g_col = self._dml_data.g_col
 
-        # relevent data subset
-        data_subset_indicator = data[t_col].isin([pre_t, eval_t])
-        data_subset = data[data_subset_indicator].sort_values(by=[id_col, t_col])
+        # relevent data subset: Only include units which are observed in both periods
+        relevant_time_data = data[data[t_col].isin([pre_t, eval_t])]
+        ids_with_both_periods_filter = relevant_time_data.groupby(id_col)[t_col].transform("nunique") == 2
+        data_subset = relevant_time_data[ids_with_both_periods_filter].sort_values(by=[id_col, t_col])
 
         # Construct G (treatment group) indicating treatment period in g
         G_indicator = (data_subset[g_col] == g_value).astype(int)
