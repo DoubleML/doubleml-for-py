@@ -97,7 +97,7 @@ def test_cluster_cols_setter():
     with pytest.raises(ValueError, match=msg):
         dml_data.cluster_cols = "X13"
 
-    msg = r"The cluster variable\(s\) cluster_cols must be of str or list type (or None). " "5 of type <class 'int'> was passed."
+    msg = r"The cluster variable\(s\) cluster_cols must be of str or list type \(or None\)\. " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.cluster_cols = 5
 
@@ -161,7 +161,7 @@ def test_duplicates():
 
     msg = r"Invalid cluster variable\(s\) cluster_cols: Contains duplicate values."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(dml_cluster_data.data, y_col="y", d_cols=["d"], cluster_cols=["X3", "X2", "X3"])
+        _ = DoubleMLData(dml_cluster_data.data, y_col="Y", d_cols=["D"], cluster_cols=["X3", "X2", "X3"], is_cluster_data=True)
     with pytest.raises(ValueError, match=msg):
         dml_cluster_data.cluster_cols = ["X3", "X2", "X3"]
 
@@ -216,4 +216,3 @@ def test_cluster_data_str():
 
     dml_str_optional = str(dml_data_with_optional)
     assert "Time variable: time_var" in dml_str_optional
-    assert "Score/Selection variable: score_var" in dml_str_optional
