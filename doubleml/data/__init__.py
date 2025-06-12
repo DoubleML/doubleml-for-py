@@ -2,7 +2,6 @@
 The :mod:`doubleml.data` module implements data classes for double machine learning.
 """
 
-from .base_data import DoubleMLData
 import warnings
 
 from .base_data import DoubleMLData
@@ -33,7 +32,8 @@ class DoubleMLClusterData(DoubleMLData):
         force_all_x_finite=True,
     ):
         warnings.warn(
-            "DoubleMLClusterData is deprecated. " "Use DoubleMLData with is_cluster_data=True instead.",
+            "DoubleMLClusterData is deprecated and will be removed with version 0.12.0. "
+            "Use DoubleMLData with is_cluster_data=True instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -56,10 +56,12 @@ class DoubleMLClusterData(DoubleMLData):
     ):
         """
         Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
-        This method is deprecated, use DoubleMLData.from_arrays with is_cluster_data=True instead.
+        This method is deprecated and will be removed with version 0.12.0,
+        use DoubleMLData.from_arrays with is_cluster_data=True instead.
         """
         warnings.warn(
-            "DoubleMLClusterData is deprecated. " "Use DoubleMLData.from_arrays with is_cluster_data=True instead.",
+            "DoubleMLClusterData is deprecated and will be removed with version 0.12.0. "
+            "Use DoubleMLData.from_arrays with is_cluster_data=True instead.",
             FutureWarning,
             stacklevel=2,
         )
