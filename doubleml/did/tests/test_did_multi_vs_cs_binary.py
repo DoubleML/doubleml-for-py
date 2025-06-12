@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.did.datasets import make_did_CS2021
+from doubleml.did.datasets import make_did_cs_CS2021
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
@@ -44,15 +44,20 @@ def time_type(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[0.5, 0.1])
+def lambda_t(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def dml_did_binary_vs_did_multi_fixture(time_type, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_multi_fixture(time_type, lambda_t, learner, score, in_sample_normalization, trimming_threshold):
     n_obs = 500
     dpg = 1
     boot_methods = ["normal"]
     n_rep_boot = 500
 
     # collect data
-    df = make_did_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type)
+    df = make_did_cs_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type, lambda_t=lambda_t)
     dml_panel_data = dml.data.DoubleMLPanelData(
         df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
     )
