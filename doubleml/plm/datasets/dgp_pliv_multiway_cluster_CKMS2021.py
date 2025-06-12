@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from doubleml.data import DoubleMLClusterData
-from doubleml.utils._aliases import _array_alias, _data_frame_alias, _dml_cluster_data_alias
+from doubleml.data import DoubleMLData
+from doubleml.utils._aliases import _array_alias, _data_frame_alias, _dml_data_alias
 
 
-def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return_type="DoubleMLClusterData", **kwargs):
+def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return_type="DoubleMLData", **kwargs):
     """
     Generates data from a partially linear IV regression model with multiway cluster sample used in Chiang et al.
     (2021). The data generating process is defined as
@@ -188,12 +188,14 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return
 
     if return_type in _array_alias:
         return x, y, d, cluster_vars.values, z
-    elif return_type in _data_frame_alias + _dml_cluster_data_alias:
+    elif return_type in _data_frame_alias + _dml_data_alias:
         x_cols = [f"X{i + 1}" for i in np.arange(dim_X)]
         data = pd.concat((cluster_vars, pd.DataFrame(np.column_stack((x, y, d, z)), columns=x_cols + ["Y", "D", "Z"])), axis=1)
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLClusterData(data, "Y", "D", cluster_cols, x_cols, "Z")
+            return DoubleMLData(
+                data, y_col="Y", d_cols="D", cluster_cols=cluster_cols, x_cols=x_cols, z_cols="Z", is_cluster_data=True
+            )
     else:
         raise ValueError("Invalid return_type.")
