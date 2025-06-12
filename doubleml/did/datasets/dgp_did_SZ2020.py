@@ -189,7 +189,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLDIDData(data, "y", "d", x_cols=z_cols)
+                return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols)
         elif return_type == "DoubleMLPanelData":
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             df0 = (
@@ -218,7 +218,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             )
             df = pd.concat([df0, df1], axis=0)
 
-            return DoubleMLPanelData(df, "y", "d", t_col="t", id_col="id", x_cols=z_cols)
+            return DoubleMLPanelData(df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=z_cols)
         else:
             raise ValueError("Invalid return_type.")
 
@@ -235,6 +235,6 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             if return_type in _data_frame_alias:
                 return data
             elif return_type in _dml_did_data_alias:
-                return DoubleMLDIDData(data, "y", "d", x_cols=z_cols, t_col="t")
+                return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols, t_col="t")
         else:
             raise ValueError("Invalid return_type.")
