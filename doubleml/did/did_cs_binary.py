@@ -90,7 +90,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
         # Find position of data subset in original data
         # These entries should be replaced by nuisance predictions, all others should be set to 0.
-        self._id_positions = self.data_subset.index
+        self._id_positions = self.data_subset.index.values
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
