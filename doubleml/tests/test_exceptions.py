@@ -8,7 +8,7 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import (
     DoubleMLBLP,
-    DoubleMLClusterData,
+    DoubleMLDIDData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
@@ -265,11 +265,11 @@ def test_doubleml_exception_data():
     df_did_cs["d"] = df_did_cs["d"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
     df_did_cs = dml_data_did_cs.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
 
     # DIDCS time exceptions
     msg = (
@@ -280,7 +280,7 @@ def test_doubleml_exception_data():
     df_did_cs["t"] = df_did_cs["t"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary t for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
 
 
 @pytest.mark.ci
