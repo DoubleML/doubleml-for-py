@@ -140,15 +140,15 @@ def test_disjoint_sets():
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], z_cols=["xx2"], cluster_cols="xx2")
 
     msg = (
-        r"At least one variable/column is set as time variable \(``t_col``\) "
-        r"and cluster variable\(s\) \(``cluster_cols``\)."
+        r"At least one variable/column is set as cluster variable\(s\) \(``cluster_cols``\) "
+        r"and time variable \(``t_col``\)."
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], t_col="xx2", cluster_cols="xx2")
 
     msg = (
-        r"At least one variable/column is set as score or selection variable \(``s_col``\) "
-        r"and cluster variable\(s\) \(``cluster_cols``\)."
+        r"At least one variable/column is set as cluster variable\(s\) \(``cluster_cols``\) "
+        r"and selection variable \(``s_col``\)."
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1"], s_col="xx2", cluster_cols="xx2")
