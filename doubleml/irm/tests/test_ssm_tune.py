@@ -76,7 +76,7 @@ def dml_ssm_fixture(
 
     np.random.seed(42)
     if score == "missing-at-random":
-        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, s=s)
+        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=None, s=s)
         dml_sel_obj = dml.DoubleMLSSM(
             obj_dml_data,
             ml_g,
@@ -89,7 +89,7 @@ def dml_ssm_fixture(
         )
     else:
         assert score == "nonignorable"
-        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, s=s)
+        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=z, s=s)
         dml_sel_obj = dml.DoubleMLSSM(
             obj_dml_data,
             ml_g,
