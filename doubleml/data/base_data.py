@@ -11,10 +11,7 @@ from doubleml.utils._estimation import _assure_2d_array
 
 
 class DoubleMLBaseData(ABC):
-    """Bas        x_cols = [f"X{i + 1}" for i in np.arange(x.shape[1])]
-    # baseline version with features, outcome and treatments
-    data = pd.DataFrame(np.column_stack((x, y, d)), columns=x_cols + [y_col] + d_cols)Class Double machine learning data-backends
-    """
+    """Base Class Double machine learning data-backends"""
 
     def __init__(self, data):
         if not isinstance(data, pd.DataFrame):
