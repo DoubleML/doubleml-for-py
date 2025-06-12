@@ -122,12 +122,12 @@ def test_panel_return_types(dml_obj, cls):
     assert isinstance(dml_obj.t_value_pre, (int, np.integer, float, np.floating))
     assert isinstance(dml_obj.post_treatment, bool)
 
-    # Test panel_data_wide property
-    assert isinstance(dml_obj.panel_data_wide, pd.DataFrame)
-    assert dml_obj.panel_data_wide.shape[0] <= N_OBS
-    assert "G_indicator" in dml_obj.panel_data_wide.columns
-    assert "C_indicator" in dml_obj.panel_data_wide.columns
-    assert "y_diff" in dml_obj.panel_data_wide.columns
+    # Test data_subset property
+    assert isinstance(dml_obj.data_subset, pd.DataFrame)
+    assert dml_obj.data_subset.shape[0] <= N_OBS
+    assert "G_indicator" in dml_obj.data_subset.columns
+    assert "C_indicator" in dml_obj.data_subset.columns
+    assert "y_diff" in dml_obj.data_subset.columns
 
     # Test id_positions property
     assert isinstance(dml_obj.id_positions, np.ndarray)

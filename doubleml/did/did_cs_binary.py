@@ -97,10 +97,10 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         self._n_obs_subset = self.data_subset.shape[0]  # Effective sample size used for resampling
 
         # Save x and y for later ML estimation
-        self._x_data = self.data_subset.loc[:, self._dml_data.x_cols].values
-        self._y_data = self.data_subset.loc[:, self._dml_data.y_col].values
-        self._g_data = self.data_subset.loc[:, "G_indicator"].values
-        self._t_data = self.data_subset.loc[:, "t_indicator"].values
+        self._x_data_subset = self.data_subset.loc[:, self._dml_data.x_cols].values
+        self._y_data_subset = self.data_subset.loc[:, self._dml_data.y_col].values
+        self._g_data_subset = self.data_subset.loc[:, "G_indicator"].values
+        self._t_data_subset = self.data_subset.loc[:, "t_indicator"].values
 
         valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
@@ -402,9 +402,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
         # Here: d is a binary treatment indicator
-        x, y = check_X_y(X=self._x_data, y=self._y_data, force_all_finite=False)
-        _, d = check_X_y(x, self._g_data, force_all_finite=False)  # (d is the G_indicator)
-        _, t = check_X_y(x, self._t_data, force_all_finite=False)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
 
         # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
         # nuisance estimates of the uncond. treatment prob.
@@ -588,9 +588,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(X=self._x_data, y=self._y_data, force_all_finite=False)
-        _, d = check_X_y(x, self._g_data, force_all_finite=False)  # (d is the G_indicator)
-        _, t = check_X_y(x, self._t_data, force_all_finite=False)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}
@@ -702,9 +702,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         return res
 
     def _sensitivity_element_est(self, preds):
-        y = self._y_data
-        d = self._g_data
-        t = self._t_data
+        y = self._y_data_subset
+        d = self._g_data_subset
+        t = self._t_data_subset
 
         m_hat = _get_id_positions(preds["predictions"]["ml_m"], self.id_positions)
         g_hat_d0_t0 = _get_id_positions(preds["predictions"]["ml_g_d0_t0"], self.id_positions)

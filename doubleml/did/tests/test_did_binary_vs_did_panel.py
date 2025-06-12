@@ -78,7 +78,7 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     )
     dml_did_binary_obj.fit()
 
-    df_wide = dml_did_binary_obj._panel_data_wide.copy()
+    df_wide = dml_did_binary_obj.data_subset.copy()
     dml_data = dml.data.DoubleMLData(df_wide, y_col="y_diff", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"])
     dml_did_obj = dml.DoubleMLDID(
         dml_data,
