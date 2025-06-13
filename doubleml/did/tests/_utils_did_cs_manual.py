@@ -178,12 +178,12 @@ def fit_nuisance_did_cs(
             m_hat_list.append(np.zeros_like(g_hat_d1_t1_list[idx], dtype="float64"))
 
     p_hat_list = []
-    for train_index, _ in smpls:
-        p_hat_list.append(np.mean(d[train_index]))
+    for _ in smpls:
+        p_hat_list.append(np.mean(d))
 
     lambda_hat_list = []
-    for train_index, _ in smpls:
-        lambda_hat_list.append(np.mean(t[train_index]))
+    for _ in smpls:
+        lambda_hat_list.append(np.mean(t))
 
     return g_hat_d0_t0_list, g_hat_d0_t1_list, g_hat_d1_t0_list, g_hat_d1_t1_list, m_hat_list, p_hat_list, lambda_hat_list
 
