@@ -10,6 +10,7 @@ from matplotlib.lines import Line2D
 from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
+from doubleml.data.utils.panel_data_utils import _subtract_periods_safe
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
 from doubleml.did.did_cs_binary import DoubleMLDIDCSBinary
@@ -989,8 +990,9 @@ class DoubleMLDIDMulti:
         first_treated_periods = sorted(df["First Treated"].unique())
         n_periods = len(first_treated_periods)
 
-        # Set up colors
-        colors = dict(zip(["pre", "post"], sns.color_palette(color_palette)[:2]))
+        # Set up colors - ensure 'post' always gets the second color
+        palette_colors = sns.color_palette(color_palette)
+        colors = {"pre": palette_colors[0], "post": palette_colors[1], "anticipation": palette_colors[2]}
 
         # Check if x-axis is datetime or convert to float
         is_datetime = pd.api.types.is_datetime64_any_dtype(df["Evaluation Period"])
@@ -1034,9 +1036,20 @@ class DoubleMLDIDMulti:
             Line2D([0], [0], color="red", linestyle=":", alpha=0.7, label="Treatment start"),
             Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label="Zero effect"),
             Line2D([0], [0], marker="o", color=colors["pre"], linestyle="None", label="Pre-treatment", markersize=5),
-            Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5),
         ]
-        legend_ax.legend(handles=legend_elements, loc="center", ncol=4, mode="expand", borderaxespad=0.0)
+
+        if self.anticipation_periods > 0:
+            legend_elements.append(
+                Line2D(
+                    [0], [0], marker="o", color=colors["anticipation"], linestyle="None", label="Anticipation", markersize=5
+                )
+            )
+
+        legend_elements.append(
+            Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5)
+        )
+
+        legend_ax.legend(handles=legend_elements, loc="center", ncol=len(legend_elements), mode="expand", borderaxespad=0.0)
 
         # Set title and layout
         plt.suptitle(title, y=1.02)
@@ -1057,7 +1070,7 @@ class DoubleMLDIDMulti:
         period : int or datetime
             Treatment period for this group.
         colors : dict
-            Dictionary with 'pre' and 'post' color values.
+            Dictionary with 'pre', 'anticipation' (if applicable), and 'post' color values.
         is_datetime : bool
             Whether the x-axis represents datetime values.
         jitter_value : float
@@ -1074,55 +1087,63 @@ class DoubleMLDIDMulti:
         ax.axvline(x=period, color="red", linestyle=":", alpha=0.7)
         ax.axhline(y=0, color="black", linestyle="--", alpha=0.5)
 
-        # Split and jitter data
-        pre_treatment = add_jitter(
-            period_df[period_df["Pre-Treatment"]],
-            "Evaluation Period",
-            is_datetime=is_datetime,
-            jitter_value=jitter_value,
-        )
-        post_treatment = add_jitter(
-            period_df[~period_df["Pre-Treatment"]],
-            "Evaluation Period",
-            is_datetime=is_datetime,
-            jitter_value=jitter_value,
-        )
-
-        # Plot pre-treatment points
-        if not pre_treatment.empty:
-            ax.scatter(pre_treatment["jittered_x"], pre_treatment["Estimate"], color=colors["pre"], alpha=0.8, s=30)
-            ax.errorbar(
-                pre_treatment["jittered_x"],
-                pre_treatment["Estimate"],
-                yerr=[
-                    pre_treatment["Estimate"] - pre_treatment["CI Lower"],
-                    pre_treatment["CI Upper"] - pre_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["pre"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
+        # Categorize periods
+        if is_datetime:
+            # For datetime, use safe period arithmetic that handles both timedelta-compatible and period-only units
+            anticipation_ge_mask = _subtract_periods_safe(
+                period_df["Evaluation Period"], period, self.anticipation_periods, self._dml_data.datetime_unit
+            )
+            anticipation_mask = (
+                (self.anticipation_periods > 0)
+                & period_df["Pre-Treatment"]
+                & anticipation_ge_mask
+                & (period_df["Evaluation Period"] < period)
+            )
+        else:
+            # For numeric periods, simple arithmetic works
+            anticipation_mask = (
+                (self.anticipation_periods > 0)
+                & period_df["Pre-Treatment"]
+                & (period_df["Evaluation Period"] >= period - self.anticipation_periods)
+                & (period_df["Evaluation Period"] < period)
             )
 
-        # Plot post-treatment points
-        if not post_treatment.empty:
-            ax.scatter(post_treatment["jittered_x"], post_treatment["Estimate"], color=colors["post"], alpha=0.8, s=30)
-            ax.errorbar(
-                post_treatment["jittered_x"],
-                post_treatment["Estimate"],
-                yerr=[
-                    post_treatment["Estimate"] - post_treatment["CI Lower"],
-                    post_treatment["CI Upper"] - post_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["post"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
+        pre_treatment_mask = period_df["Pre-Treatment"] & ~anticipation_mask
+        post_treatment_mask = ~period_df["Pre-Treatment"]
+
+        # Define category mappings
+        categories = [("pre", pre_treatment_mask), ("anticipation", anticipation_mask), ("post", post_treatment_mask)]
+
+        # Plot each category
+        for category_name, mask in categories:
+            if not mask.any():
+                continue
+
+            category_data = add_jitter(
+                period_df[mask],
+                "Evaluation Period",
+                is_datetime=is_datetime,
+                jitter_value=jitter_value,
             )
+
+            if not category_data.empty:
+                ax.scatter(
+                    category_data["jittered_x"], category_data["Estimate"], color=colors[category_name], alpha=0.8, s=30
+                )
+                ax.errorbar(
+                    category_data["jittered_x"],
+                    category_data["Estimate"],
+                    yerr=[
+                        category_data["Estimate"] - category_data["CI Lower"],
+                        category_data["CI Upper"] - category_data["Estimate"],
+                    ],
+                    fmt="o",
+                    capsize=3,
+                    color=colors[category_name],
+                    markersize=4,
+                    markeredgewidth=1,
+                    linewidth=1,
+                )
 
         # Format axes
         if is_datetime:

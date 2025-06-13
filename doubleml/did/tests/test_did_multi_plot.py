@@ -130,7 +130,7 @@ def test_plot_effects_color_palette(doubleml_did_fixture):
     assert isinstance(fig, plt.Figure)
 
     # Test with a custom color list
-    custom_colors = [(1, 0, 0), (0, 1, 0)]  # Red and green
+    custom_colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]  # Red, Green, Blue
     fig, _ = dml_obj.plot_effects(color_palette=custom_colors)
     assert isinstance(fig, plt.Figure)
 
