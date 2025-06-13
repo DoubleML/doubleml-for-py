@@ -97,7 +97,7 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
 
            P(G_i = g) = \\frac{1}{G} \\text{ for all } g
 
-    7. Steps 1-6 generate panel data. To obtain repeated cross-sectional data, the number of generated indivials is increased
+    7. Steps 1-6 generate panel data. To obtain repeated cross-sectional data, the number of generated individuals is increased
     to `n_obs/lambda_t`, where `lambda_t` denotes the pobability to observe a unit at each time period (time constant).
     for each
 
