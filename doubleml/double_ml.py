@@ -121,39 +121,39 @@ class DoubleML(ABC):
         learner_info = ""
         if self.learner is not None:
             for key, value in self.learner.items():
-                learner_info += f"Learner {key}: {str(value)}\\n"
+                learner_info += f"Learner {key}: {str(value)}\n"
         if self.nuisance_loss is not None:
-            learner_info += "Out-of-sample Performance:\\n"
+            learner_info += "Out-of-sample Performance:\n"
             # Check if _is_classifier is populated, otherwise, it might be called before fit
             if self._is_classifier:
                 is_classifier_any = any(self._is_classifier.values())
                 is_regressor_any = any(not v for v in self._is_classifier.values())
 
                 if is_regressor_any:
-                    learner_info += "Regression:\\n"
+                    learner_info += "Regression:\n"
                     for learner_name in self.params_names:  # Iterate through known learners
                         if not self._is_classifier.get(learner_name, True):  # Default to not regressor if not found
                             loss_val = self.nuisance_loss.get(learner_name, "N/A")
-                            learner_info += f"Learner {learner_name} RMSE: {loss_val}\\n"
+                            learner_info += f"Learner {learner_name} RMSE: {loss_val}\n"
                 if is_classifier_any:
-                    learner_info += "Classification:\\n"
+                    learner_info += "Classification:\n"
                     for learner_name in self.params_names:  # Iterate through known learners
                         if self._is_classifier.get(learner_name, False):  # Default to not classifier if not found
                             loss_val = self.nuisance_loss.get(learner_name, "N/A")
-                            learner_info += f"Learner {learner_name} Log Loss: {loss_val}\\n"
+                            learner_info += f"Learner {learner_name} Log Loss: {loss_val}\n"
             else:
-                learner_info += " (Run .fit() to see out-of-sample performance)\\n"
+                learner_info += " (Run .fit() to see out-of-sample performance)\n"
         return learner_info.strip()
 
     def _format_resampling_info_str(self):
         if self._is_cluster_data:
             return (
-                f"No. folds per cluster: {self._n_folds_per_cluster}\\\\n"
-                f"No. folds: {self.n_folds}\\\\n"
+                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
+                f"No. folds: {self.n_folds}\n"
                 f"No. repeated sample splits: {self.n_rep}"
             )
         else:
-            return f"No. folds: {self.n_folds}\\\\nNo. repeated sample splits: {self.n_rep}"
+            return f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}"
 
     def _format_additional_info_str(self):
         """
@@ -174,22 +174,22 @@ class DoubleML(ABC):
         fit_summary = str(self.summary)  # Assumes self.summary is well-formed
 
         representation = (
-            f"{header}\\n"
-            f"\\n------------------ Data Summary      ------------------\\n"
-            f"{data_summary}\\n"
-            f"\\n------------------ Score & Algorithm ------------------\\n"
-            f"{score_info}\\n"
-            f"\\n------------------ Machine Learner   ------------------\\n"
-            f"{learner_info}\\n"
-            f"\\n------------------ Resampling        ------------------\\n"
-            f"{resampling_info}\\n"
-            f"\\n------------------ Fit Summary       ------------------\\n"
+            f"{header}\n"
+            f"\n------------------ Data Summary      ------------------\n"
+            f"{data_summary}\n"
+            f"\n------------------ Score & Algorithm ------------------\n"
+            f"{score_info}\n"
+            f"\n------------------ Machine Learner   ------------------\n"
+            f"{learner_info}\n"
+            f"\n------------------ Resampling        ------------------\n"
+            f"{resampling_info}\n"
+            f"\n------------------ Fit Summary       ------------------\n"
             f"{fit_summary}"
         )
 
         additional_info = self._format_additional_info_str()
         if additional_info:
-            representation += f"\\n\\n------------------ Additional Information ------------------\\n" f"{additional_info}"
+            representation += f"\n\n------------------ Additional Information ------------------\n" f"{additional_info}"
         return representation
 
     @property
