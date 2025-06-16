@@ -156,58 +156,19 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
-    def __str__(self):
-        class_name = self.__class__.__name__
-        header = f"================== {class_name} Object ==================\n"
-        data_summary = self._dml_data._data_summary_str()
-        score_info = (
-            f"Score function: {str(self.score)}\n"
-            f"Treatment group: {str(self.g_value)}\n"
-            f"Pre-treatment period: {str(self.t_value_pre)}\n"
-            f"Evaluation period: {str(self.t_value_eval)}\n"
-            f"Control group: {str(self.control_group)}\n"
-            f"Anticipation periods: {str(self.anticipation_periods)}\n"
-            f"Effective sample size: {str(self.n_obs_subset)}\n"
-        )
-        learner_info = ""
-        for key, value in self.learner.items():
-            learner_info += f"Learner {key}: {str(value)}\n"
-        if self.nuisance_loss is not None:
-            learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
-            is_regressor = [not value for value in is_classifier]
-            if any(is_regressor):
-                learner_info += "Regression:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
-            if any(is_classifier):
-                learner_info += "Classification:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
+    def _format_score_info_str(self):
+        lines = [
+            f"Score function: {str(self.score)}",
+            f"Treatment group: {str(self.g_value)}",
+            f"Pre-treatment period: {str(self.t_value_pre)}",
+            f"Evaluation period: {str(self.t_value_eval)}",
+            f"Control group: {str(self.control_group)}",
+            f"Anticipation periods: {str(self.anticipation_periods)}",
+            f"Effective sample size: {str(self.n_obs_subset)}",
+        ]
+        return "\n".join(lines)
 
-        if self._is_cluster_data:
-            resampling_info = (
-                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
-                f"No. folds: {self.n_folds}\n"
-                f"No. repeated sample splits: {self.n_rep}\n"
-            )
-        else:
-            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
-        fit_summary = str(self.summary)
-        res = (
-            header
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ Score & algorithm ------------------\n"
-            + score_info
-            + "\n------------------ Machine learner   ------------------\n"
-            + learner_info
-            + "\n------------------ Resampling        ------------------\n"
-            + resampling_info
-            + "\n------------------ Fit summary       ------------------\n"
-            + fit_summary
-        )
-        return res
+    # _format_learner_info_str method is inherited from DoubleML base class.
 
     @property
     def g_value(self):
