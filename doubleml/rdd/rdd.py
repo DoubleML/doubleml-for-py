@@ -115,7 +115,7 @@ class RDFlex:
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
 
-        self._score = self._dml_data.s - cutoff
+        self._score = self._dml_data.score - cutoff
         self._cutoff = cutoff
         self._intendend_treatment = (self._score >= 0).astype(bool)
         self._fuzzy = fuzzy
