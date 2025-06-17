@@ -17,8 +17,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLDIDData` object
+        The :class:`DoubleMLDIDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -71,7 +71,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', t_col='t')
+    >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
            coef   std err         t     P>|t|      2.5 %     97.5 %
