@@ -22,8 +22,8 @@ class RDFlex:
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLRDDData` object
+        The :class:`DoubleMLRDDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods and support ``sample_weights`` (e.g.
