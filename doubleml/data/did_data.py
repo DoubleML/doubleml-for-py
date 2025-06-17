@@ -300,7 +300,7 @@ class DoubleMLDIDData(DoubleMLData):
     def _set_time_var(self):
         """Set the time variable array."""
         if hasattr(self, "_data") and self.t_col in self.data.columns:
-            self._t = self.data.loc[:, [self.t_col]]
+            self._t = self.data.loc[:, self.t_col]
 
     def _set_y_z_t(self):
         def _set_attr(col):

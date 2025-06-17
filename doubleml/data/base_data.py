@@ -263,7 +263,8 @@ class DoubleMLData(DoubleMLBaseData):
             Default is ``True``.
 
         Examples
-        --------        >>> from doubleml import DoubleMLData
+        --------
+        >>> from doubleml import DoubleMLData
         >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
         >>> (x, y, d) = make_plr_CCDDHNR2018(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLData.from_arrays(x, y, d)
