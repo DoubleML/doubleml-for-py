@@ -10,7 +10,7 @@ from doubleml import (
     DoubleMLAPO,
     DoubleMLData,
     DoubleMLCVAR,
-    DoubleMLData,
+    DoubleMLDIDData,
     DoubleMLDID,
     DoubleMLDIDCS,
     DoubleMLFramework,
@@ -38,8 +38,8 @@ dml_data_did = make_did_SZ2020(n_obs=n_obs)
 dml_data_did_cs = make_did_SZ2020(n_obs=n_obs, cross_sectional_data=True)
 (x, y, d, t) = make_did_SZ2020(n_obs=n_obs, cross_sectional_data=True, return_type="array")
 binary_outcome = np.random.binomial(n=1, p=0.5, size=n_obs)
-dml_data_did_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d)
-dml_data_did_cs_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d, t=t)
+dml_data_did_binary_outcome = DoubleMLDIDData.from_arrays(x, binary_outcome, d)
+dml_data_did_cs_binary_outcome = DoubleMLDIDData.from_arrays(x, binary_outcome, d, t=t)
 dml_data_ssm = make_ssm_data(n_obs=n_obs)
 
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())

@@ -75,10 +75,10 @@ def test_doubleml_exception_data():
         _ = DoubleMLCVAR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLQTE(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
-    msg = "For repeated outcomes the data must be of DoubleMLData type."
+    msg = "For repeated outcomes the data must be of DoubleMLDIDData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
-    msg = "For repeated cross sections the data must be of DoubleMLData type. "
+    msg = "For repeated cross sections the data must be of DoubleMLDIDData type. "
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDIDCS(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
 
