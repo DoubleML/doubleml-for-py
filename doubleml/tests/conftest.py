@@ -4,7 +4,7 @@ import pytest
 from sklearn.datasets import make_classification, make_regression, make_spd_matrix
 
 from doubleml import DoubleMLData
-from doubleml.datasets import make_pliv_CHS2015, make_plr_turrell2018
+from doubleml.plm.datasets import make_pliv_CHS2015, make_plr_turrell2018
 
 
 def _g(x):
