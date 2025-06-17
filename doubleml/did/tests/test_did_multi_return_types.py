@@ -13,10 +13,11 @@ from doubleml.did.datasets import make_did_CS2021
 from doubleml.double_ml_framework import DoubleMLFramework
 
 # Test constants
-N_OBS = 200
+N_IDS = 200
 N_REP = 1
 N_FOLDS = 3
 N_REP_BOOT = 314
+N_PERIODS = 5
 
 dml_args = {
     "n_rep": N_REP,
@@ -30,7 +31,7 @@ np.random.seed(3141)
 datasets = {}
 
 # panel data
-df_panel = make_did_CS2021(n_obs=N_OBS, dgp_type=1, n_pre_treat_periods=2, n_periods=5, time_type="float")
+df_panel = make_did_CS2021(n_obs=N_IDS, dgp_type=1, n_pre_treat_periods=2, n_periods=N_PERIODS, time_type="float")
 df_panel["y_binary"] = np.random.binomial(n=1, p=0.5, size=df_panel.shape[0])
 datasets["did_panel"] = DoubleMLPanelData(
     df_panel, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
@@ -41,10 +42,23 @@ datasets["did_panel_binary_outcome"] = DoubleMLPanelData(
 
 
 dml_objs = [
-    (DoubleMLDIDMulti(datasets["did_panel"], ml_g=Lasso(), ml_m=LogisticRegression(), **dml_args), DoubleMLDIDMulti),
+    (
+        DoubleMLDIDMulti(datasets["did_panel"], panel=True, ml_g=Lasso(), ml_m=LogisticRegression(), **dml_args),
+        DoubleMLDIDMulti,
+    ),
+    (
+        DoubleMLDIDMulti(datasets["did_panel"], panel=False, ml_g=Lasso(), ml_m=LogisticRegression(), **dml_args),
+        DoubleMLDIDMulti,
+    ),
     (
         DoubleMLDIDMulti(
-            datasets["did_panel_binary_outcome"], ml_g=LogisticRegression(), ml_m=LogisticRegression(), **dml_args
+            datasets["did_panel_binary_outcome"], panel=True, ml_g=LogisticRegression(), ml_m=LogisticRegression(), **dml_args
+        ),
+        DoubleMLDIDMulti,
+    ),
+    (
+        DoubleMLDIDMulti(
+            datasets["did_panel_binary_outcome"], panel=False, ml_g=LogisticRegression(), ml_m=LogisticRegression(), **dml_args
         ),
         DoubleMLDIDMulti,
     ),
@@ -83,13 +97,20 @@ def test_panel_property_types_and_shapes(fitted_dml_obj):
     n_treat = len(fitted_dml_obj.gt_combinations)
     dml_obj = fitted_dml_obj
 
+    if dml_obj.panel:
+        score_dim = (N_IDS, n_treat, N_REP)
+    else:
+        score_dim = (df_panel.shape[0], n_treat, N_REP)
+
+    assert dml_obj._score_dim == score_dim
+
     # check_basic_property_types_and_shapes
     # check that the setting is still in line with the hard-coded values
     assert dml_obj._dml_data.n_treat == 1
     assert dml_obj.n_gt_atts == n_treat
     assert dml_obj.n_rep == N_REP
     assert dml_obj.n_folds == N_FOLDS
-    assert dml_obj._dml_data.n_obs == N_OBS
+    assert dml_obj._dml_data.n_obs == df_panel.shape[0]
     assert dml_obj.n_rep_boot == N_REP_BOOT
 
     assert isinstance(dml_obj.all_coef, np.ndarray)
@@ -111,11 +132,7 @@ def test_panel_property_types_and_shapes(fitted_dml_obj):
     assert dml_obj.t_stat.shape == (n_treat,)
 
     assert isinstance(dml_obj.framework.scaled_psi, np.ndarray)
-    assert dml_obj.framework.scaled_psi.shape == (
-        N_OBS,
-        n_treat,
-        N_REP,
-    )
+    assert dml_obj.framework.scaled_psi.shape == score_dim
 
     assert isinstance(dml_obj.framework, DoubleMLFramework)
     assert isinstance(dml_obj.pval, np.ndarray)
@@ -125,7 +142,10 @@ def test_panel_property_types_and_shapes(fitted_dml_obj):
     assert len(dml_obj._dml_data.binary_treats) == 1
 
     # check_basic_predictions_and_targets
-    expected_keys = ["ml_g0", "ml_g1", "ml_m"]
+    if dml_obj.panel:
+        expected_keys = ["ml_g0", "ml_g1", "ml_m"]
+    else:
+        expected_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1", "ml_m"]
     for key in expected_keys:
         assert isinstance(dml_obj.nuisance_loss[key], np.ndarray)
         assert dml_obj.nuisance_loss[key].shape == (N_REP, n_treat)
@@ -136,6 +156,10 @@ def test_panel_sensitivity_return_types(fitted_dml_obj):
     n_treat = len(fitted_dml_obj.gt_combinations)
     benchmarking_set = [fitted_dml_obj._dml_data.x_cols[0]]
     dml_obj = fitted_dml_obj
+    if dml_obj.panel:
+        score_dim = (N_IDS, n_treat, N_REP)
+    else:
+        score_dim = (df_panel.shape[0], n_treat, N_REP)
 
     assert isinstance(dml_obj.sensitivity_elements, dict)
     for key in ["sigma2", "nu2", "max_bias"]:
@@ -143,7 +167,7 @@ def test_panel_sensitivity_return_types(fitted_dml_obj):
         assert dml_obj.sensitivity_elements[key].shape == (1, n_treat, N_REP)
     for key in ["psi_max_bias"]:
         assert isinstance(dml_obj.sensitivity_elements[key], np.ndarray)
-        assert dml_obj.sensitivity_elements[key].shape == (N_OBS, n_treat, N_REP)
+        assert dml_obj.sensitivity_elements[key].shape == score_dim
 
     assert isinstance(dml_obj.sensitivity_summary, str)
     dml_obj.sensitivity_analysis()

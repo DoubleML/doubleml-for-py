@@ -107,69 +107,99 @@ class DoubleML(ABC):
         # perform sample splitting
         self._smpls = None
         self._smpls_cluster = None
+        self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
+        self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
         # initialize arrays according to obj_dml_data and the resampling settings
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        self._initialize_arrays()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
         self._i_treat = None
 
-    def __str__(self):
+    def _format_header_str(self):
         class_name = self.__class__.__name__
-        header = f"================== {class_name} Object ==================\n"
-        data_summary = self._dml_data._data_summary_str()
-        score_info = f"Score function: {str(self.score)}\n"
+        return f"================== {class_name} Object =================="
+
+    def _format_score_info_str(self):
+        return f"Score function: {str(self.score)}"
+
+    def _format_learner_info_str(self):
         learner_info = ""
-        for key, value in self.learner.items():
-            learner_info += f"Learner {key}: {str(value)}\n"
+        if self.learner is not None:
+            for key, value in self.learner.items():
+                learner_info += f"Learner {key}: {str(value)}\n"
         if self.nuisance_loss is not None:
             learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
-            is_regressor = [not value for value in is_classifier]
-            if any(is_regressor):
-                learner_info += "Regression:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
-            if any(is_classifier):
-                learner_info += "Classification:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
+            # Check if _is_classifier is populated, otherwise, it might be called before fit
+            if self._is_classifier:
+                is_classifier_any = any(self._is_classifier.values())
+                is_regressor_any = any(not v for v in self._is_classifier.values())
 
+                if is_regressor_any:
+                    learner_info += "Regression:\n"
+                    for learner_name in self.params_names:  # Iterate through known learners
+                        if not self._is_classifier.get(learner_name, True):  # Default to not regressor if not found
+                            loss_val = self.nuisance_loss.get(learner_name, "N/A")
+                            learner_info += f"Learner {learner_name} RMSE: {loss_val}\n"
+                if is_classifier_any:
+                    learner_info += "Classification:\n"
+                    for learner_name in self.params_names:  # Iterate through known learners
+                        if self._is_classifier.get(learner_name, False):  # Default to not classifier if not found
+                            loss_val = self.nuisance_loss.get(learner_name, "N/A")
+                            learner_info += f"Learner {learner_name} Log Loss: {loss_val}\n"
+            else:
+                learner_info += " (Run .fit() to see out-of-sample performance)\n"
+        return learner_info.strip()
+
+    def _format_resampling_info_str(self):
         if self._is_cluster_data:
-            resampling_info = (
+            return (
                 f"No. folds per cluster: {self._n_folds_per_cluster}\n"
                 f"No. folds: {self.n_folds}\n"
-                f"No. repeated sample splits: {self.n_rep}\n"
+                f"No. repeated sample splits: {self.n_rep}"
             )
         else:
-            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
-        fit_summary = str(self.summary)
-        res = (
-            header
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ Score & algorithm ------------------\n"
-            + score_info
-            + "\n------------------ Machine learner   ------------------\n"
-            + learner_info
-            + "\n------------------ Resampling        ------------------\n"
-            + resampling_info
-            + "\n------------------ Fit summary       ------------------\n"
-            + fit_summary
+            return f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}"
+
+    def _format_additional_info_str(self):
+        """
+        Hook for subclasses to add additional information to the string representation.
+        Returns an empty string by default.
+        Subclasses should override this method to provide content.
+        The content should not include the 'Additional Information' header itself.
+        """
+        return ""
+
+    def __str__(self):
+        header = self._format_header_str()
+        # Assumes self._dml_data._data_summary_str() exists and is well-formed
+        data_summary = self._dml_data._data_summary_str()
+        score_info = self._format_score_info_str()
+        learner_info = self._format_learner_info_str()
+        resampling_info = self._format_resampling_info_str()
+        fit_summary = str(self.summary)  # Assumes self.summary is well-formed
+
+        representation = (
+            f"{header}\n"
+            f"\n------------------ Data Summary      ------------------\n"
+            f"{data_summary}\n"
+            f"\n------------------ Score & Algorithm ------------------\n"
+            f"{score_info}\n"
+            f"\n------------------ Machine Learner   ------------------\n"
+            f"{learner_info}\n"
+            f"\n------------------ Resampling        ------------------\n"
+            f"{resampling_info}\n"
+            f"\n------------------ Fit Summary       ------------------\n"
+            f"{fit_summary}"
         )
-        return res
+
+        additional_info = self._format_additional_info_str()
+        if additional_info:
+            representation += f"\n\n------------------ Additional Information ------------------\n" f"{additional_info}"
+        return representation
 
     @property
     def n_folds(self):
@@ -864,7 +894,7 @@ class DoubleML(ABC):
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
                     smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
@@ -1013,7 +1043,7 @@ class DoubleML(ABC):
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
                 valid_learners=self.params_names,
-                n_obs=self._dml_data.n_obs,
+                n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
         elif not self._external_predictions_implemented and external_predictions is not None:
@@ -1030,9 +1060,7 @@ class DoubleML(ABC):
             self._initialize_models()
 
         if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements(
-                (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
-            )
+            self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
@@ -1085,30 +1113,24 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         # scores
-        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
+        self._psi = np.full(self._score_dim, np.nan)
+        self._psi_deriv = np.full(self._score_dim, np.nan)
+        self._psi_elements = self._initialize_score_elements(self._score_dim)
 
-        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+        n_rep = self._score_dim[1]
+        n_thetas = self._score_dim[2]
 
+        self._var_scaling_factors = np.full(n_thetas, np.nan)
         # coefficients and ses
-        coef = np.full(self._dml_data.n_coefs, np.nan)
-        se = np.full(self._dml_data.n_coefs, np.nan)
+        self._coef = np.full(n_thetas, np.nan)
+        self._se = np.full(n_thetas, np.nan)
 
-        all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-        all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-
-        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
+        self._all_coef = np.full((n_thetas, n_rep), np.nan)
+        self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
-        self._nuisance_targets = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
@@ -1231,12 +1253,6 @@ class DoubleML(ABC):
         The samples are drawn according to the attributes
         ``n_folds`` and ``n_rep``.
 
-        Parameters
-        ----------
-        n_obs : int or None
-            The number of observations. If ``None``, the number of observations is set to the number of observations in
-            the data set.
-
         Returns
         -------
         self : object
@@ -1245,14 +1261,14 @@ class DoubleML(ABC):
             obj_dml_resampling = DoubleMLClusterResampling(
                 n_folds=self._n_folds_per_cluster,
                 n_rep=self.n_rep,
-                n_obs=self.n_obs,
+                n_obs=self._n_obs_sample_splitting,
                 n_cluster_vars=self._dml_data.n_cluster_vars,
                 cluster_vars=self._dml_data.cluster_vars,
             )
             self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
         else:
             obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.n_obs, stratify=self._strata
+                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
             )
             self._smpls = obj_dml_resampling.split_samples()
 
@@ -1318,19 +1334,12 @@ class DoubleML(ABC):
         >>> dml_plr_obj.set_sample_splitting(smpls)
         """
         self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
+            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self._n_obs_sample_splitting
         )
 
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        # set sample splitting can update the number of repetitions
+        self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
+        self._initialize_arrays()
         self._initialize_ml_nuisance_params()
 
         return self

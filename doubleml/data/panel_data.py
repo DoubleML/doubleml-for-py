@@ -107,6 +107,9 @@ class DoubleMLPanelData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
         )
+        
+        # reset index to ensure a simple RangeIndex
+        self.data.reset_index(drop=True, inplace=True)
 
         # Set time variable array after data is loaded
         self._set_time_var()
@@ -144,7 +147,7 @@ class DoubleMLPanelData(DoubleMLData):
             f"Id variable: {self.id_col}\n"
         )
 
-        data_summary += f"No. Observations: {self.n_obs}\n"
+        data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}\n"
         return data_summary
 
     @classmethod
@@ -218,9 +221,9 @@ class DoubleMLPanelData(DoubleMLData):
         return self._id_var_unique
 
     @property
-    def n_obs(self):
+    def n_ids(self):
         """
-        The number of observations. For panel data, the number of unique values for id_col.
+        The number of unique values for id_col.
         """
         return len(self._id_var_unique)
 
