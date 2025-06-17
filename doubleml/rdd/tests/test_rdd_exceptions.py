@@ -6,7 +6,7 @@ import pytest
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLRDDData
 from doubleml.rdd import RDFlex
 from doubleml.rdd.datasets import make_simple_rdd_data
 
@@ -17,7 +17,7 @@ df = pd.DataFrame(
     columns=["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])],
 )
 
-dml_data = DoubleMLData(df, y_col="y", d_cols="d", s_col="score")
+dml_data = DoubleMLRDDData(df, y_col="y", d_cols="d", s_col="score")
 
 ml_g = Lasso()
 ml_m = LogisticRegression()
@@ -58,8 +58,8 @@ class DummyClassifierNoSampleWeight(BaseEstimator, ClassifierMixin):
 
 @pytest.mark.ci_rdd
 def test_rdd_exception_data():
-    # DoubleMLData
-    msg = r"The data must be of DoubleMLData type. \[\] of type <class 'list'> was passed."
+    # DoubleMLRDDData
+    msg = r"The data must be of DoubleMLRDDData type. \[\] of type <class 'list'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex([], ml_g)
 
