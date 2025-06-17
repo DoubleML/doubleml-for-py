@@ -35,7 +35,7 @@ def predict_dummy():
             msg = "rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'"
             raise ImportError(msg)
 
-        rdrobust_model = rdrobust.rdrobust(y=data.y, x=data.s, c=cutoff, level=100 * (1 - alpha), p=p)
+        rdrobust_model = rdrobust.rdrobust(y=data.y, x=data.score, c=cutoff, level=100 * (1 - alpha), p=p)
 
         reference = {
             "model": rdrobust_model,

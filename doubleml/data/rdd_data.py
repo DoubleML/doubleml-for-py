@@ -261,7 +261,7 @@ class DoubleMLRDDData(DoubleMLData):
     def _set_score_var(self):
         """Set the score variable array."""
         if hasattr(self, "_data") and self.score_col in self.data.columns:
-            self._score = self.data.loc[:, [self.score_col]]
+            self._score = self.data.loc[:, self.score_col]
 
     def __str__(self):
         """String representation."""
