@@ -54,7 +54,7 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
+    msg = "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or DoubleMLRDDData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 
@@ -1351,13 +1351,14 @@ def test_doubleml_cluster_not_yet_implemented():
 
     df = dml_cluster_data_pliv.data.copy()
     df["cluster_var_k"] = df["cluster_var_i"] + df["cluster_var_j"] - 2
-    dml_cluster_data_multiway = DoubleMLClusterData(
+    dml_cluster_data_multiway = DoubleMLData(
         df,
         y_col="Y",
         d_cols="D",
         x_cols=["X1", "X5"],
         z_cols="Z",
         cluster_cols=["cluster_var_i", "cluster_var_j", "cluster_var_k"],
+        is_cluster_data=True,
     )
     assert dml_cluster_data_multiway.n_cluster_vars == 3
     msg = r"Multi-way \(n_ways > 2\) clustering not yet implemented."

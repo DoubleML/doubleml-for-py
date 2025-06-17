@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from doubleml import DoubleMLClusterData, DoubleMLData
+from doubleml import DoubleMLData
 from doubleml.datasets import fetch_401K, fetch_bonus
 from doubleml.irm.datasets import (
     make_confounded_irm_data,

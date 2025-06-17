@@ -16,7 +16,7 @@ from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
 from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
-_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
+_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
 
 
 class DoubleML(ABC):

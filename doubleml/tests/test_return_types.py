@@ -8,7 +8,7 @@ from sklearn.svm import LinearSVR
 
 from doubleml import (
     DoubleMLAPO,
-    DoubleMLClusterData,
+    DoubleMLData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
@@ -86,14 +86,14 @@ def test_return_types(dml_obj, cls):
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers
     assert isinstance(dml_obj.summary, pd.DataFrame)  # called again after fit, now with numbers
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.bootstrap(), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.confint(), pd.DataFrame)
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.p_adjust(), pd.DataFrame)

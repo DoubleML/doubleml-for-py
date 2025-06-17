@@ -3,7 +3,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from doubleml.data import DoubleMLClusterData, DoubleMLData
+from doubleml.data import DoubleMLData
 from doubleml.double_ml_framework import concat
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ
@@ -125,8 +125,7 @@ class DoubleMLQTE:
 
         # check data
         self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
-            self._is_cluster_data = True
+        self._is_cluster_data = obj_dml_data.is_cluster_data
         self._check_data(self._dml_data)
 
         # initialize framework which is constructed after the fit method is called

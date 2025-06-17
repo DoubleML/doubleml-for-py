@@ -62,8 +62,8 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return
     theta :
         The value of the causal parameter.
     return_type :
-        If ``'DoubleMLClusterData'`` or ``DoubleMLClusterData``, returns a ``DoubleMLClusterData`` object where
-        ``DoubleMLClusterData.data`` is a ``pd.DataFrame``.
+        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object where
+        ``DoubleMLData.data`` is a ``pd.DataFrame``.
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
 

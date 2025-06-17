@@ -22,7 +22,7 @@ ml_m = LogisticRegression()
 
 @pytest.mark.ci
 def test_apo_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
+    msg = "The data must be of DoubleMLData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPO(pd.DataFrame(), ml_g, ml_m, treatment_level=0)
 

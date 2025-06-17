@@ -30,7 +30,7 @@ class DummyDataClass(DoubleMLBaseData):
 
 @pytest.mark.ci
 def test_ssm_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
+    msg = "The data must be of DoubleMLData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(pd.DataFrame(), ml_g, ml_pi, ml_m)
 
