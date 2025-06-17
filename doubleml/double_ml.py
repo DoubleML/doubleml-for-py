@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
+from doubleml.data import DoubleMLPanelData, DoubleMLDIDData, DoubleMLSSMData, DoubleMLRDDData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
@@ -30,13 +30,22 @@ class DoubleML(ABC):
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
+        if obj_dml_data.is_cluster_data:
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
         self._is_panel_data = False
         if isinstance(obj_dml_data, DoubleMLPanelData):
             self._is_panel_data = True
+        self._is_did_data = False
+        if isinstance(obj_dml_data, DoubleMLDIDData):
+            self._is_did_data = True
+        self._is_ssm_data = False
+        if isinstance(obj_dml_data, DoubleMLSSMData):
+            self._is_ssm_data = True
+        self._is_rdd_data = False
+        if isinstance(obj_dml_data, DoubleMLRDDData):
+            self._is_rdd_data = True
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
