@@ -56,7 +56,7 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
 
     n_obs = df_panel.shape[0]
     all_smpls = draw_smpls(n_obs, n_folds)
-    obj_dml_data = dml.DoubleMLData(df_panel, y_col="y", d_cols="d", x_cols=["Z1", "Z2", "Z3", "Z4"])
+    obj_dml_data = dml.DoubleMLDIDData(df_panel, y_col="y", d_cols="d", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     # Set machine learning methods for m & g
     ml_g = clone(learner[0])

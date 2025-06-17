@@ -62,7 +62,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_pliv_CHS2015
+    >>> from doubleml.plm.datasets import make_pliv_CHS2015
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)

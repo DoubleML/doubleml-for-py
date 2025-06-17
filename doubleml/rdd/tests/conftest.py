@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.dummy import DummyClassifier, DummyRegressor
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLRDDData
 from doubleml.rdd import RDFlex
 from doubleml.rdd._utils import _is_rdrobust_available
 from doubleml.rdd.datasets import make_simple_rdd_data
@@ -24,7 +24,7 @@ def predict_dummy():
     - make predictions using rdrobust as a reference
     """
 
-    def _predict_dummy(data: DoubleMLData, cutoff, alpha, n_rep, p, fs_specification, ml_g=ml_g_dummy):
+    def _predict_dummy(data: DoubleMLRDDData, cutoff, alpha, n_rep, p, fs_specification, ml_g=ml_g_dummy):
         dml_rdflex = RDFlex(
             data, ml_g=ml_g, ml_m=ml_m_dummy, cutoff=cutoff, n_rep=n_rep, p=p, fs_specification=fs_specification
         )
@@ -35,7 +35,7 @@ def predict_dummy():
             msg = "rdrobust is not installed. Please install it using 'pip install DoubleML[rdd]'"
             raise ImportError(msg)
 
-        rdrobust_model = rdrobust.rdrobust(y=data.y, x=data.s, c=cutoff, level=100 * (1 - alpha), p=p)
+        rdrobust_model = rdrobust.rdrobust(y=data.y, x=data.score, c=cutoff, level=100 * (1 - alpha), p=p)
 
         reference = {
             "model": rdrobust_model,
@@ -81,7 +81,7 @@ def generate_data(n_obs: int, fuzzy: str, cutoff: float, binary_outcome: bool = 
 
     columns = ["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])]
     df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=columns)
-    return DoubleMLData(df, y_col="y", d_cols="d", s_col="score")
+    return DoubleMLRDDData(df, y_col="y", d_cols="d", score_col="score")
 
 
 @pytest.fixture(scope="module")

@@ -80,7 +80,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_iivm_data
+    >>> from doubleml.irm.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -197,22 +197,13 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         self.subgroups = subgroups
         self._external_predictions_implemented = True
 
-    def __str__(self):
-        parent_str = super().__str__()
-
-        # add robust confset
+    def _format_additional_info_str(self):
         if self.framework is None:
-            confset_str = ""
+            return ""
         else:
             confset = self.robust_confset()
             formatted_confset = ", ".join([f"[{lower:.4f}, {upper:.4f}]" for lower, upper in confset])
-            confset_str = (
-                "\n\n--------------- Additional Information ----------------\n"
-                + f"Robust Confidence Set: {formatted_confset}\n"
-            )
-
-        res = parent_str + confset_str
-        return res
+            return f"Robust Confidence Set: {formatted_confset}"
 
     @property
     def normalize_ipw(self):

@@ -85,7 +85,7 @@ def test_check_data_exceptions():
 
     # Test 1: Data has to be DoubleMLPanelData
     invalid_data_types = [
-        dml.data.DoubleMLData(df, y_col="Col_0", d_cols="Col_1"),
+        dml.data.DoubleMLDIDData(df, y_col="Col_0", d_cols="Col_1"),
     ]
 
     for invalid_data in invalid_data_types:

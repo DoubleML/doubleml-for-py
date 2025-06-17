@@ -21,7 +21,7 @@ def test_control_groups_different():
     dml_did_never_treated = dml.did.DoubleMLDIDBinary(control_group="never_treated", **args)
     dml_did_not_yet_treated = dml.did.DoubleMLDIDBinary(control_group="not_yet_treated", **args)
 
-    assert dml_did_never_treated._n_subset != dml_did_not_yet_treated._n_subset
+    assert dml_did_never_treated.n_obs_subset != dml_did_not_yet_treated.n_obs_subset
     # same treatment group
     assert dml_did_never_treated._n_treated_subset == dml_did_not_yet_treated._n_treated_subset
 

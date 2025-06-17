@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLAPO, DoubleMLData
-from doubleml.datasets import make_iivm_data, make_irm_data, make_irm_data_discrete_treatments
+from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_irm_data_discrete_treatments
 
 n = 100
 data_apo = make_irm_data_discrete_treatments(n_obs=n)
@@ -22,7 +22,7 @@ ml_m = LogisticRegression()
 
 @pytest.mark.ci
 def test_apo_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
+    msg = "The data must be of DoubleMLData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPO(pd.DataFrame(), ml_g, ml_m, treatment_level=0)
 

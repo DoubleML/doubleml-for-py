@@ -13,13 +13,18 @@ def did_score(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[True, False])
+def panel(request):
+    return request.param
+
+
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def doubleml_did_fixture(did_score, n_rep):
+def doubleml_did_fixture(did_score, panel, n_rep):
     n_obs = 1000
     dgp = 5  # has to be experimental (for experimental score to be valid)
     np.random.seed(42)
@@ -32,6 +37,7 @@ def doubleml_did_fixture(did_score, n_rep):
         "ml_m": LogisticRegression(),
         "gt_combinations": "all",
         "score": did_score,
+        "panel": panel,
         "n_rep": n_rep,
         "n_folds": 2,
         "draw_sample_splitting": True,
@@ -124,7 +130,7 @@ def test_plot_effects_color_palette(doubleml_did_fixture):
     assert isinstance(fig, plt.Figure)
 
     # Test with a custom color list
-    custom_colors = [(1, 0, 0), (0, 1, 0)]  # Red and green
+    custom_colors = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]  # Red, Green, Blue
     fig, _ = dml_obj.plot_effects(color_palette=custom_colors)
     assert isinstance(fig, plt.Figure)
 

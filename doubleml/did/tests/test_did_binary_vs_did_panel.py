@@ -78,8 +78,8 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     )
     dml_did_binary_obj.fit()
 
-    df_wide = dml_did_binary_obj._panel_data_wide.copy()
-    dml_data = dml.data.DoubleMLData(df_wide, y_col="y_diff", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"])
+    df_wide = dml_did_binary_obj.data_subset.copy()
+    dml_data = dml.data.DoubleMLDIDData(df_wide, y_col="y_diff", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"])
     dml_did_obj = dml.DoubleMLDID(
         dml_data,
         **dml_args,
@@ -178,7 +178,7 @@ def test_sensitivity_elements(dml_did_binary_vs_did_fixture):
         )
     for sensitivity_element in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
         dml_binary_obj = dml_did_binary_vs_did_fixture["dml_did_binary_obj"]
-        scaling = dml_binary_obj._n_subset / dml_binary_obj._dml_data.n_obs
+        scaling = dml_binary_obj.n_obs_subset / dml_binary_obj._dml_data.n_ids
         binary_sensitivity_element = scaling * _get_id_positions(
             dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element], dml_binary_obj._id_positions
         )
