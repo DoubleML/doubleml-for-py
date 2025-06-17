@@ -63,7 +63,7 @@ def dml_did_fixture(generate_data_did_binary, learner_g, learner_m, score, in_sa
     dml_panel_data = dml.data.DoubleMLPanelData(
         df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
     )
-    obj_dml_data = dml.DoubleMLData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
+    obj_dml_data = dml.DoubleMLDIDData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     n_obs = df.shape[0]
     strata = df["d"] + 2 * df["t"]  # only valid since it values are binary

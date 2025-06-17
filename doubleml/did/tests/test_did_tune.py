@@ -65,7 +65,7 @@ def dml_did_fixture(generate_data_did, learner_g, learner_m, score, in_sample_no
     ml_m = clone(learner_m)
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+    obj_dml_data = dml.DoubleMLDIDData.from_arrays(x, y, d)
     dml_did_obj = dml.DoubleMLDID(
         obj_dml_data,
         ml_g,

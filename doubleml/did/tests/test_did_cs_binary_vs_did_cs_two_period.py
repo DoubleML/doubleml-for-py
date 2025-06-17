@@ -55,7 +55,7 @@ def dml_did_cs_binary_vs_did_cs_fixture(generate_data_did_binary, learner, score
     dml_panel_data = dml.data.DoubleMLPanelData(
         df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
     )
-    obj_dml_data = dml.DoubleMLData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
+    obj_dml_data = dml.DoubleMLDIDData(df, y_col="y", d_cols="d", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     n_obs = df.shape[0]
     all_smpls = draw_smpls(n_obs, n_folds)
