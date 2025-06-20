@@ -115,9 +115,11 @@ def _construct_gt_combinations(setting, g_values, t_values, never_treated_value,
     """Construct treatment-time combinations for difference-in-differences analysis.
 
     Parameters:
-        setting (str): Strategy for constructing combinations ('standard' only)
+        setting (str): Strategy for constructing combinations. One of 'standard', 'all', 'universal'.
         g_values (array): Treatment group values, must be sorted
         t_values (array): Time period values, must be sorted
+        never_treated_value (int, float or pd.NaT): Value indicating never-treated units.
+        anticipation_periods (int): Number of anticipation periods.
 
     Returns:
         list: List of (g_val, t_pre, t_eval) tuples
@@ -133,38 +135,34 @@ def _construct_gt_combinations(setting, g_values, t_values, never_treated_value,
         raise ValueError("t_values must be sorted in ascending order.")
 
     gt_combinations = []
-    if setting == "standard":
-        for g_val in treatment_groups:
-            t_values_before_g = t_values[t_values < g_val]
-            if len(t_values_before_g) > anticipation_periods:
-                first_eval_index = anticipation_periods + 1  # first relevant evaluation period index
-                t_before_g = t_values_before_g[-first_eval_index]
+    for g_val in treatment_groups:
+        t_values_before_g = t_values[t_values < g_val]
+        if len(t_values_before_g) <= anticipation_periods:
+            continue
+        first_eval_index = anticipation_periods + 1  # first relevant evaluation period index
 
-                # collect all evaluation periods
-                for i_t_eval, t_eval in enumerate(t_values[first_eval_index:]):
-                    t_previous = t_values[i_t_eval]  # refers to t-anticipation_periods-1
-                    t_pre = min(t_previous, t_before_g)  # if t_previous larger than g_val, use t_before_g
-                    gt_combinations.append((g_val, t_pre, t_eval))
+        if setting == "standard":
+            t_before_g = t_values_before_g[-first_eval_index]
+            combinations = [
+                (g_val, min(t_values[i_t_eval], t_before_g), t_eval)
+                for i_t_eval, t_eval in enumerate(t_values[first_eval_index:])
+            ]
+            gt_combinations.extend(combinations)
 
-    if setting == "all":
-        for g_val in treatment_groups:
-            t_values_before_g = t_values[t_values < g_val]
-            if len(t_values_before_g) > anticipation_periods:
-                first_eval_index = anticipation_periods + 1  # first relevant evaluation period index
-                for t_eval in t_values[first_eval_index:]:
-                    # all t-values before g_val - anticipation_periods
-                    valid_t_pre_values = t_values[t_values <= min(g_val, t_eval)][:-first_eval_index]
-                    for t_pre in valid_t_pre_values:
-                        gt_combinations.append((g_val, t_pre, t_eval))
+        elif setting == "all":
+            combinations = [
+                (g_val, t_pre, t_eval)
+                for t_eval in t_values[first_eval_index:]
+                for t_pre in t_values[t_values <= min(g_val, t_eval)][:-first_eval_index]
+            ]
+            gt_combinations.extend(combinations)
 
-    if setting == "universal":
-        for g_val in treatment_groups:
-            t_values_before_g = t_values[t_values < g_val]
-            if len(t_values_before_g) > anticipation_periods:
-                base_period = g_val - anticipation_periods - 1
-                for t_eval in t_values:
-                    if t_eval != base_period:
-                        gt_combinations.append((g_val, base_period, t_eval))
+        elif setting == "universal":
+            # The base period is the last period before treatment, accounting for anticipation.
+            # `g_val - anticipation_periods - 1` is not robust for non-integer or non-consecutive periods.
+            base_period = t_values_before_g[-first_eval_index]
+            combinations = [(g_val, base_period, t_eval) for t_eval in t_values if t_eval != base_period]
+            gt_combinations.extend(combinations)
 
     if len(gt_combinations) == 0:
         raise ValueError(
