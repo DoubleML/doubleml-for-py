@@ -23,8 +23,13 @@ def n_rep(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=["standard", "all", "universal"])
+def gt_comb(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def doubleml_did_fixture(did_score, panel, n_rep):
+def doubleml_did_fixture(did_score, panel, n_rep, gt_comb):
     n_obs = 1000
     dgp = 5  # has to be experimental (for experimental score to be valid)
     np.random.seed(42)
@@ -35,7 +40,7 @@ def doubleml_did_fixture(did_score, panel, n_rep):
         "obj_dml_data": dml_data,
         "ml_g": LinearRegression(),
         "ml_m": LogisticRegression(),
-        "gt_combinations": "all",
+        "gt_combinations": gt_comb,
         "score": did_score,
         "panel": panel,
         "n_rep": n_rep,
