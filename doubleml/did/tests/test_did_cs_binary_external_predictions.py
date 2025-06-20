@@ -5,8 +5,8 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml.data import DoubleMLPanelData
-from doubleml.did import DoubleMLDIDBinary
-from doubleml.did.datasets import make_did_CS2021, make_did_SZ2020
+from doubleml.did import DoubleMLDIDCSBinary
+from doubleml.did.datasets import make_did_cs_CS2021, make_did_SZ2020
 from doubleml.tests._utils import draw_smpls
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
@@ -22,7 +22,7 @@ def n_rep(request):
 
 
 @pytest.fixture(scope="module")
-def doubleml_did_fixture(did_score, n_rep):
+def doubleml_did_cs_fixture(did_score, n_rep):
     n_obs = 500
     n_folds = 5
 
@@ -39,19 +39,21 @@ def doubleml_did_fixture(did_score, n_rep):
         "draw_sample_splitting": False,
     }
 
-    dml_did = DoubleMLDIDBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=n_rep, groups=dml_did._g_data_subset)
+    dml_did = DoubleMLDIDCSBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    strata = dml_did.data_subset["G_indicator"] + 2 * dml_did.data_subset["t_indicator"]
+    all_smpls = draw_smpls(2 * n_obs, n_folds, n_rep=n_rep, groups=strata)
     dml_did.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
     dml_did.fit(store_predictions=True)
 
-    ext_predictions["d"]["ml_g0"] = dml_did.predictions["ml_g0"][:, :, 0]
-    ext_predictions["d"]["ml_g1"] = dml_did.predictions["ml_g1"][:, :, 0]
+    all_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
+    for key in all_keys:
+        ext_predictions["d"][key] = dml_did.predictions[key][:, :, 0]
     if did_score == "observational":
         ext_predictions["d"]["ml_m"] = dml_did.predictions["ml_m"][:, :, 0]
 
-    dml_did_ext = DoubleMLDIDBinary(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
+    dml_did_ext = DoubleMLDIDCSBinary(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
     dml_did_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
     dml_did_ext.fit(external_predictions=ext_predictions)
@@ -71,34 +73,34 @@ def doubleml_did_fixture(did_score, n_rep):
 
 
 @pytest.mark.ci
-def test_coef(doubleml_did_fixture):
-    assert math.isclose(doubleml_did_fixture["coef"], doubleml_did_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3)
+def test_coef(doubleml_did_cs_fixture):
+    assert math.isclose(doubleml_did_cs_fixture["coef"], doubleml_did_cs_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3)
 
 
 @pytest.mark.ci
-def test_se(doubleml_did_fixture):
-    assert math.isclose(doubleml_did_fixture["se"], doubleml_did_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3)
+def test_se(doubleml_did_cs_fixture):
+    assert math.isclose(doubleml_did_cs_fixture["se"], doubleml_did_cs_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3)
 
 
 @pytest.mark.ci
-def test_score(doubleml_did_fixture):
-    assert np.allclose(doubleml_did_fixture["score"], doubleml_did_fixture["score_ext"], rtol=1e-9, atol=1e-3)
+def test_score(doubleml_did_cs_fixture):
+    assert np.allclose(doubleml_did_cs_fixture["score"], doubleml_did_cs_fixture["score_ext"], rtol=1e-9, atol=1e-3)
 
 
 @pytest.mark.ci
-def test_nuisance_loss(doubleml_did_fixture):
-    for key, value in doubleml_did_fixture["dml_did_nuisance_loss"].items():
-        assert np.allclose(value, doubleml_did_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)
+def test_nuisance_loss(doubleml_did_cs_fixture):
+    for key, value in doubleml_did_cs_fixture["dml_did_nuisance_loss"].items():
+        assert np.allclose(value, doubleml_did_cs_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)
 
 
 @pytest.fixture(scope="module")
-def doubleml_did_panel_fixture(did_score, n_rep):
+def doubleml_did_cs_panel_fixture(did_score, n_rep):
     n_obs = 500
     n_folds = 5
     dgp = 1
 
     ext_predictions = {"d": {}}
-    df = make_did_CS2021(n_obs=n_obs, dgp_type=dgp, time_type="float")
+    df = make_did_cs_CS2021(n_obs=n_obs, dgp_type=dgp, time_type="float")
     dml_panel_data = DoubleMLPanelData(df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"])
 
     kwargs = {
@@ -111,19 +113,19 @@ def doubleml_did_panel_fixture(did_score, n_rep):
         "draw_sample_splitting": False,
     }
 
-    dml_did = DoubleMLDIDBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
+    dml_did = DoubleMLDIDCSBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
     all_smpls = draw_smpls(n_obs=dml_did.n_obs_subset, n_folds=n_folds, n_rep=n_rep, groups=dml_did._g_data_subset)
     dml_did.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
     dml_did.fit(store_predictions=True)
 
-    pred = dml_did.predictions
-    ext_predictions["d"]["ml_g0"] = pred["ml_g0"][:, :, 0]
-    ext_predictions["d"]["ml_g1"] = pred["ml_g1"][:, :, 0]
+    all_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
+    for key in all_keys:
+        ext_predictions["d"][key] = dml_did.predictions[key][:, :, 0]
     if did_score == "observational":
-        ext_predictions["d"]["ml_m"] = pred["ml_m"][:, :, 0]
-    dml_did_ext = DoubleMLDIDBinary(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
+        ext_predictions["d"]["ml_m"] = dml_did.predictions["ml_m"][:, :, 0]
+    dml_did_ext = DoubleMLDIDCSBinary(ml_g=DMLDummyRegressor(), ml_m=DMLDummyClassifier(), **kwargs)
     dml_did_ext.set_sample_splitting(all_smpls)
     np.random.seed(3141)
     dml_did_ext.fit(external_predictions=ext_predictions)
@@ -143,21 +145,27 @@ def doubleml_did_panel_fixture(did_score, n_rep):
 
 
 @pytest.mark.ci
-def test_panel_coef(doubleml_did_panel_fixture):
-    assert math.isclose(doubleml_did_panel_fixture["coef"], doubleml_did_panel_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3)
+def test_panel_coef(doubleml_did_cs_panel_fixture):
+    assert math.isclose(
+        doubleml_did_cs_panel_fixture["coef"], doubleml_did_cs_panel_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3
+    )
 
 
 @pytest.mark.ci
-def test_panel_se(doubleml_did_panel_fixture):
-    assert math.isclose(doubleml_did_panel_fixture["se"], doubleml_did_panel_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3)
+def test_panel_se(doubleml_did_cs_panel_fixture):
+    assert math.isclose(
+        doubleml_did_cs_panel_fixture["se"], doubleml_did_cs_panel_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3
+    )
 
 
 @pytest.mark.ci
-def test_panel_score(doubleml_did_panel_fixture):
-    assert np.allclose(doubleml_did_panel_fixture["score"], doubleml_did_panel_fixture["score_ext"], rtol=1e-9, atol=1e-3)
+def test_panel_score(doubleml_did_cs_panel_fixture):
+    assert np.allclose(
+        doubleml_did_cs_panel_fixture["score"], doubleml_did_cs_panel_fixture["score_ext"], rtol=1e-9, atol=1e-3
+    )
 
 
 @pytest.mark.ci
-def test_panel_nuisance_loss(doubleml_did_panel_fixture):
-    for key, value in doubleml_did_panel_fixture["dml_did_nuisance_loss"].items():
-        assert np.allclose(value, doubleml_did_panel_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)
+def test_panel_nuisance_loss(doubleml_did_cs_panel_fixture):
+    for key, value in doubleml_did_cs_panel_fixture["dml_did_nuisance_loss"].items():
+        assert np.allclose(value, doubleml_did_cs_panel_fixture["dml_did_ext_nuisance_loss"][key], rtol=1e-9, atol=1e-3)

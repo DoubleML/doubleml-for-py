@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.did.datasets import make_did_CS2021
+from doubleml.did.datasets import make_did_cs_CS2021
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 
@@ -44,15 +44,20 @@ def time_type(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[0.5, 0.1])
+def lambda_t(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def dml_did_binary_vs_did_multi_fixture(time_type, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_multi_fixture(time_type, lambda_t, learner, score, in_sample_normalization, trimming_threshold):
     n_obs = 500
     dpg = 1
     boot_methods = ["normal"]
     n_rep_boot = 500
 
     # collect data
-    df = make_did_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type)
+    df = make_did_cs_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type, lambda_t=lambda_t)
     dml_panel_data = dml.data.DoubleMLPanelData(
         df, y_col="y", d_cols="d", id_col="id", t_col="t", x_cols=["Z1", "Z2", "Z3", "Z4"]
     )
@@ -70,18 +75,20 @@ def dml_did_binary_vs_did_multi_fixture(time_type, learner, score, in_sample_nor
         ml_g=learner[0],
         ml_m=learner[1],
         gt_combinations=gt_combination,
+        panel=False,
         **dml_args,
     )
     dml_did_multi_obj.fit()
 
     treatment_col = dml_panel_data.d_cols[0]
     ext_pred_dict = {treatment_col: {}}
-    ext_pred_dict[treatment_col]["ml_g0"] = dml_did_multi_obj.modellist[0].predictions["ml_g0"][:, :, 0]
-    ext_pred_dict[treatment_col]["ml_g1"] = dml_did_multi_obj.modellist[0].predictions["ml_g1"][:, :, 0]
+    all_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
+    for key in all_keys:
+        ext_pred_dict["d"][key] = dml_did_multi_obj.modellist[0].predictions[key][:, :, 0]
     if score == "observational":
         ext_pred_dict[treatment_col]["ml_m"] = dml_did_multi_obj.modellist[0].predictions["ml_m"][:, :, 0]
 
-    dml_did_binary_obj = dml.did.DoubleMLDIDBinary(
+    dml_did_binary_obj = dml.did.DoubleMLDIDCSBinary(
         dml_panel_data,
         g_value=gt_combination[0][0],
         t_value_pre=gt_combination[0][1],

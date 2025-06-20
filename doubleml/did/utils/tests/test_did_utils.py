@@ -100,11 +100,6 @@ def test_check_gt_combination():
             "The pre-treatment and evaluation period must be different. Got 1 for both.",
         ),
         (
-            {"gt_combination": (1, 1, 0)},
-            ValueError,
-            "The pre-treatment period must be before the evaluation period. Got t_value_pre 1 and t_value_eval 0.",
-        ),
-        (
             {"gt_combination": (-1, 0, 1)},
             ValueError,
             r"The value -1 \(group value\) is not in the set of evaluation period values \[0 1 2\].",
@@ -171,7 +166,7 @@ def test_input_check_gt_values():
 
 @pytest.mark.ci
 def test_construct_gt_combinations():
-    msg = r"gt_combinations must be one of \['standard', 'all'\]. test was passed."
+    msg = r"gt_combinations must be one of \['standard', 'all', 'universal'\]. test was passed."
     with pytest.raises(ValueError, match=msg):
         _construct_gt_combinations(
             setting="test",
@@ -256,6 +251,24 @@ def test_construct_gt_combinations():
     ]
     assert all_combinations == expected_all
 
+    # Test universal setting
+    universal_combinations = _construct_gt_combinations(
+        setting="universal",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.inf,
+        anticipation_periods=0,
+    )
+    expected_universal = [
+        (2, 1, 0),  # g=2, pre=1, eval=0
+        (2, 1, 2),  # g=2, pre=1, eval=2
+        (2, 1, 3),  # g=2, pre=1, eval=3
+        (3, 2, 0),  # g=3, pre=2, eval=0
+        (3, 2, 1),  # g=3, pre=2, eval=1
+        (3, 2, 3),  # g=3, pre=2, eval=3
+    ]
+    assert universal_combinations == expected_universal
+
     # Test standard setting with anticipation periods
     standard_combinations_anticipation = _construct_gt_combinations(
         setting="standard",
@@ -281,6 +294,21 @@ def test_construct_gt_combinations():
         (3, 0, 3),  # g=3, all pre periods before t_eval=3 with anticipation 2
     ]
     assert all_combinations_anticipation == expected_all_anticipation
+
+    # Test universal setting with anticipation periods
+    universal_combinations_anticipation = _construct_gt_combinations(
+        setting="universal",
+        g_values=np.array([2, 3]),
+        t_values=np.array([0, 1, 2, 3]),
+        never_treated_value=np.inf,
+        anticipation_periods=2,
+    )
+    expected_universal_anticipation = [
+        (3, 0, 1),  # g=3, pre=0, eval=1 with anticipation 2
+        (3, 0, 2),
+        (3, 0, 3),
+    ]
+    assert universal_combinations_anticipation == expected_universal_anticipation
 
 
 @pytest.mark.ci

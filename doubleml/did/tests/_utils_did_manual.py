@@ -104,7 +104,7 @@ def fit_nuisance_did(
         m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls, trimming_threshold=trimming_threshold)
 
     p_hat_list = []
-    for train_index, _ in smpls:
+    for _ in smpls:
         p_hat_list.append(np.mean(d))
 
     return g_hat0_list, g_hat1_list, m_hat_list, p_hat_list

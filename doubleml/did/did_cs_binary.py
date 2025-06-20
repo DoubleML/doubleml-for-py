@@ -23,83 +23,11 @@ from doubleml.utils._checks import (
     _check_score,
     _check_trimming,
 )
-from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d
 from doubleml.utils._propensity_score import _trimm
 
 
-class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
-    """Double machine learning for difference-in-differences models with panel data (binary setting in terms of group and time
-     combinations).
-
-    Parameters
-    ----------
-    obj_dml_data : :class:`DoubleMLPanelData` object
-        The :class:`DoubleMLPanelData` object providing the data and specifying the variables for the causal model.
-
-    g_value : int
-        The value indicating the treatment group (first period with treatment).
-        Default is ``None``. This implements the case for the smallest, non-zero value of G.
-
-    t_value_pre : int
-        The value indicating the baseline pre-treatment period.
-
-    t_value_eval : int
-        The value indicating the period for evaluation.
-
-    ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
-        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
-        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
-        ``predict_proba()`` is used otherwise ``predict()``.
-
-    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
-        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
-        Only relevant for ``score='observational'``.
-
-    control_group : str
-        Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
-        Default is ``'never_treated'``.
-
-    anticipation_periods : int
-        Number of anticipation periods. Default is ``0``.
-
-    n_folds : int
-        Number of folds.
-        Default is ``5``.
-
-    n_rep : int
-        Number of repetitons for the sample splitting.
-        Default is ``1``.
-
-    score : str
-        A str (``'observational'`` or ``'experimental'``) specifying the score function.
-        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
-        from the pretreatment covariates.
-        Default is ``'observational'``.
-
-    in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
-        Default is ``True``.
-
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
-
-    trimming_threshold : float
-        The threshold used for trimming.
-        Default is ``1e-2``.
-
-    draw_sample_splitting : bool
-        Indicates whether the sample splitting should be drawn during initialization of the object.
-        Default is ``True``.
-
-    print_periods : bool
-        Indicates whether to print information about the evaluated periods.
-        Default is ``False``.
-
-    """
+class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
     def __init__(
         self,
@@ -120,22 +48,14 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         draw_sample_splitting=True,
         print_periods=False,
     ):
-
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
         self._check_data(self._dml_data)
-        # for did panel data the scores are based on the number of unique ids
-        self._n_obs = obj_dml_data.n_ids
-        self._score_dim = (self._n_obs, self.n_rep, self._dml_data.n_treat)
-        # reinitialze arrays
-        self._initialize_arrays()
-
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
         _check_bool(print_periods, "print_periods")
         self._print_periods = print_periods
-
         self._control_group = _check_control_group(control_group)
         self._never_treated_value = _get_never_treated_value(g_values)
         self._anticipation_periods = _check_anticipation_periods(anticipation_periods)
@@ -162,28 +82,25 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             )
 
         # Preprocess data
-        # Y1, Y0 might be needed if we want to support custom estimators and scores; currently only output y_diff
         self._data_subset = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
 
         # Handling id values to match pairwise evaluation & simultaneous inference
-        id_panel_data = self._data_subset[self._dml_data.id_col].values
-        id_original = self._dml_data.id_var_unique
-        if not np.all(np.isin(id_panel_data, id_original)):
-            raise ValueError("The id values in the panel data are not a subset of the original id values.")
+        if not np.all(np.isin(self.data_subset.index, self._dml_data.data.index)):
+            raise ValueError("The index values in the data subset are not a subset of the original index values.")
 
-        # Find position of id_panel_data in original data
+        # Find position of data subset in original data
         # These entries should be replaced by nuisance predictions, all others should be set to 0.
-        self._id_positions = np.searchsorted(id_original, id_panel_data)
+        self._id_positions = self.data_subset.index.values
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
-        self._n_obs_subset = self._data_subset.shape[0]  # Effective sample size used for resampling
-        self._n_treated_subset = self._data_subset["G_indicator"].sum()
+        self._n_obs_subset = self.data_subset.shape[0]  # Effective sample size used for resampling
 
         # Save x and y for later ML estimation
-        self._x_data_subset = self._data_subset.loc[:, self._dml_data.x_cols].values
-        self._y_data_subset = self._data_subset.loc[:, "y_diff"].values
-        self._g_data_subset = self._data_subset.loc[:, "G_indicator"].values
+        self._x_data_subset = self.data_subset.loc[:, self._dml_data.x_cols].values
+        self._y_data_subset = self.data_subset.loc[:, self._dml_data.y_col].values
+        self._g_data_subset = self.data_subset.loc[:, "G_indicator"].values
+        self._t_data_subset = self.data_subset.loc[:, "t_indicator"].values
 
         valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
@@ -196,7 +113,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             )
 
         # set stratication for resampling
-        self._strata = self._data_subset["G_indicator"]
+        self._strata = self.data_subset["G_indicator"] + 2 * self.data_subset["t_indicator"]
         self._n_obs_sample_splitting = self.n_obs_subset
         if draw_sample_splitting:
             self.draw_sample_splitting()
@@ -249,7 +166,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             f"Anticipation periods: {str(self.anticipation_periods)}",
             f"Effective sample size: {str(self.n_obs_subset)}",
         ]
-        return "\\n".join(lines)
+        return "\n".join(lines)
+
+    # _format_learner_info_str method is inherited from DoubleML base class.
 
     @property
     def g_value(self):
@@ -303,7 +222,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     @property
     def data_subset(self):
         """
-        The preprocessed panel data in wide format.
+        The preprocessed data subset.
         """
         return self._data_subset
 
@@ -344,10 +263,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
-            valid_learner = ["ml_g0", "ml_g1", "ml_m"]
+            valid_learner = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1", "ml_m"]
         else:
             assert self.score == "experimental"
-            valid_learner = ["ml_g0", "ml_g1"]
+            valid_learner = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
@@ -375,15 +294,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _preprocess_data(self, g_value, pre_t, eval_t):
         data = self._dml_data.data
 
-        y_col = self._dml_data.y_col
         t_col = self._dml_data.t_col
         id_col = self._dml_data.id_col
         g_col = self._dml_data.g_col
 
-        # relevent data subset: Only include units which are observed in both periods
-        relevant_time_data = data[data[t_col].isin([pre_t, eval_t])]
-        ids_with_both_periods_filter = relevant_time_data.groupby(id_col)[t_col].transform("nunique") == 2
-        data_subset = relevant_time_data[ids_with_both_periods_filter].sort_values(by=[id_col, t_col])
+        # relevant data subset
+        data_subset_indicator = data[t_col].isin([pre_t, eval_t])
+        data_subset = data[data_subset_indicator].sort_values(by=[id_col, t_col])
 
         # Construct G (treatment group) indicating treatment period in g
         G_indicator = (data_subset[g_col] == g_value).astype(int)
@@ -411,75 +328,65 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         # check if G and C are disjoint
         assert sum(G_indicator & C_indicator) == 0
 
-        # Alternatively, use .shift() (check if time ordering is correct)
-        # y_diff = this_data.groupby(id_col)[y_col].shift(-1)
-        y_diff = (
-            data_subset[data_subset[t_col] == eval_t][y_col].values - data_subset[data_subset[t_col] == pre_t][y_col].values
-        )
+        # add time indicator
+        data_subset = data_subset.assign(t_indicator=data_subset[t_col] == eval_t)
+        return data_subset
 
-        # keep covariates only observations from the first period
-        # Data processing from long to wide format
-        select_cols = [id_col, "G_indicator", "C_indicator"] + self._dml_data.x_cols
-        first_period = data_subset[t_col].min()
-        wide_data = data_subset[select_cols][data_subset[t_col] == first_period]
-        wide_data = wide_data.assign(y_diff=y_diff)
+    def _estimate_conditional_g(
+        self, x, y, d_val, t_val, d_arr, t_arr, smpls_cond, external_prediction, learner_param_key, n_jobs_cv, return_models
+    ):
+        """Helper function to estimate conditional g_hat for fixed d and t."""
+        g_hat_cond = {}
+        condition = (d_arr == d_val) & (t_arr == t_val)
 
-        return wide_data
+        if external_prediction is not None:
+            ml_g_targets = np.full_like(y, np.nan, dtype="float64")
+            ml_g_targets[condition] = y[condition]
+            ml_pred = _get_id_positions(external_prediction, self.id_positions)
+            g_hat_cond = {"preds": ml_pred, "targets": ml_g_targets, "models": None}
+        else:
+            g_hat_cond = _dml_cv_predict(
+                self._learner["ml_g"],
+                x,
+                y,
+                smpls_cond,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params(learner_param_key),
+                method=self._predict_method["ml_g"],
+                return_models=return_models,
+            )
+            _check_finite_predictions(g_hat_cond["preds"], self._learner["ml_g"], "ml_g", smpls_cond)
+            g_hat_cond["targets"] = g_hat_cond["targets"].astype(float)
+            g_hat_cond["targets"][~condition] = np.nan
+        return g_hat_cond
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
         # Here: d is a binary treatment indicator
-        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
-        x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
+
+        # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
+        # nuisance estimates of the uncond. treatment prob.
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
+        lambda_hat = np.full_like(t, t.mean(), dtype="float64")
+
         # nuisance g
-        # get train indices for d == 0
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
 
-        # nuisance g for d==0
-        if external_predictions["ml_g0"] is not None:
-            ml_g0_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g0_targets[d == 0] = y[d == 0]
-            ml_g0_pred = _get_id_positions(external_predictions["ml_g0"], self.id_positions)
-            g_hat0 = {"preds": ml_g0_pred, "targets": ml_g0_targets, "models": None}
-        else:
-            g_hat0 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls=smpls_d0,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g0"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat0["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat0["targets"] = g_hat0["targets"].astype(float)
-            g_hat0["targets"][d == 1] = np.nan
-
-        # nuisance g for d==1
-        if external_predictions["ml_g1"] is not None:
-            ml_g1_targets = np.full_like(y, np.nan, dtype="float64")
-            ml_g1_targets[d == 1] = y[d == 1]
-            ml_g1_pred = _get_id_positions(external_predictions["ml_g1"], self.id_positions)
-            g_hat1 = {"preds": ml_g1_pred, "targets": ml_g1_targets, "models": None}
-        else:
-            g_hat1 = _dml_cv_predict(
-                self._learner["ml_g"],
-                x,
-                y,
-                smpls=smpls_d1,
-                n_jobs=n_jobs_cv,
-                est_params=self._get_params("ml_g1"),
-                method=self._predict_method["ml_g"],
-                return_models=return_models,
-            )
-
-            _check_finite_predictions(g_hat1["preds"], self._learner["ml_g"], "ml_g", smpls)
-            # adjust target values to consider only compatible subsamples
-            g_hat1["targets"] = g_hat1["targets"].astype(float)
-            g_hat1["targets"][d == 0] = np.nan
+        g_hat_d0_t0 = self._estimate_conditional_g(
+            x, y, 0, 0, d, t, smpls_d0_t0, external_predictions["ml_g_d0_t0"], "ml_g_d0_t0", n_jobs_cv, return_models
+        )
+        g_hat_d0_t1 = self._estimate_conditional_g(
+            x, y, 0, 1, d, t, smpls_d0_t1, external_predictions["ml_g_d0_t1"], "ml_g_d0_t1", n_jobs_cv, return_models
+        )
+        g_hat_d1_t0 = self._estimate_conditional_g(
+            x, y, 1, 0, d, t, smpls_d1_t0, external_predictions["ml_g_d1_t0"], "ml_g_d1_t0", n_jobs_cv, return_models
+        )
+        g_hat_d1_t1 = self._estimate_conditional_g(
+            x, y, 1, 1, d, t, smpls_d1_t1, external_predictions["ml_g_d1_t1"], "ml_g_d1_t1", n_jobs_cv, return_models
+        )
 
         # only relevant for observational setting
         m_hat = {"preds": None, "targets": None, "models": None}
@@ -499,16 +406,26 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                     method=self._predict_method["ml_m"],
                     return_models=return_models,
                 )
+
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
             _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
             m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
 
-        # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, d.mean(), dtype="float64")
-        psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
+        psi_a, psi_b = self._score_elements(
+            y,
+            d,
+            t,
+            g_hat_d0_t0["preds"],
+            g_hat_d0_t1["preds"],
+            g_hat_d1_t0["preds"],
+            g_hat_d1_t1["preds"],
+            m_hat["preds"],
+            p_hat,
+            lambda_hat,
+        )
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_ids,
+            "n_obs": self._dml_data.n_obs,
             "id_positions": self.id_positions,
         }
         psi_elements = {
@@ -517,99 +434,184 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         }
         preds = {
             "predictions": {
-                "ml_g0": _set_id_positions(g_hat0["preds"], fill_value=np.nan, **extend_kwargs),
-                "ml_g1": _set_id_positions(g_hat1["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t0": _set_id_positions(g_hat_d0_t0["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t1": _set_id_positions(g_hat_d0_t1["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t0": _set_id_positions(g_hat_d1_t0["preds"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t1": _set_id_positions(g_hat_d1_t1["preds"], fill_value=np.nan, **extend_kwargs),
                 "ml_m": _set_id_positions(m_hat["preds"], fill_value=np.nan, **extend_kwargs),
             },
             "targets": {
-                "ml_g0": _set_id_positions(g_hat0["targets"], fill_value=np.nan, **extend_kwargs),
-                "ml_g1": _set_id_positions(g_hat1["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t0": _set_id_positions(g_hat_d0_t0["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d0_t1": _set_id_positions(g_hat_d0_t1["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t0": _set_id_positions(g_hat_d1_t0["targets"], fill_value=np.nan, **extend_kwargs),
+                "ml_g_d1_t1": _set_id_positions(g_hat_d1_t1["targets"], fill_value=np.nan, **extend_kwargs),
                 "ml_m": _set_id_positions(m_hat["targets"], fill_value=np.nan, **extend_kwargs),
             },
-            "models": {"ml_g0": g_hat0["models"], "ml_g1": g_hat1["models"], "ml_m": m_hat["models"]},
+            "models": {
+                "ml_g_d0_t0": g_hat_d0_t0["models"],
+                "ml_g_d0_t1": g_hat_d0_t1["models"],
+                "ml_g_d1_t0": g_hat_d1_t0["models"],
+                "ml_g_d1_t1": g_hat_d1_t1["models"],
+                "ml_m": m_hat["models"],
+            },
         }
 
         return psi_elements, preds
 
-    def _score_elements(self, y, d, g_hat0, g_hat1, m_hat, p_hat):
-        # calc residuals
-        resid_d0 = y - g_hat0
+    def _score_elements(self, y, d, t, g_hat_d0_t0, g_hat_d0_t1, g_hat_d1_t0, g_hat_d1_t1, m_hat, p_hat, lambda_hat):
+        # calculate residuals
+        resid_d0_t0 = y - g_hat_d0_t0
+        resid_d0_t1 = y - g_hat_d0_t1
+        resid_d1_t0 = y - g_hat_d1_t0
+        resid_d1_t1 = y - g_hat_d1_t1
+
+        d1t1 = np.multiply(d, t)
+        d1t0 = np.multiply(d, 1.0 - t)
+        d0t1 = np.multiply(1.0 - d, t)
+        d0t0 = np.multiply(1.0 - d, 1.0 - t)
 
         if self.score == "observational":
             if self.in_sample_normalization:
                 weight_psi_a = np.divide(d, np.mean(d))
-                propensity_weight = np.multiply(1.0 - d, np.divide(m_hat, 1.0 - m_hat))
-                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(propensity_weight, np.mean(propensity_weight))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
+
+                prop_weighting = np.divide(m_hat, 1.0 - m_hat)
+                unscaled_d0_t1 = np.multiply(d0t1, prop_weighting)
+                weight_resid_d0_t1 = -1.0 * np.divide(unscaled_d0_t1, np.mean(unscaled_d0_t1))
+
+                unscaled_d0_t0 = np.multiply(d0t0, prop_weighting)
+                weight_resid_d0_t0 = np.divide(unscaled_d0_t0, np.mean(unscaled_d0_t0))
             else:
                 weight_psi_a = np.divide(d, p_hat)
-                weight_resid_d0 = np.divide(d - m_hat, np.multiply(p_hat, 1.0 - m_hat))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
 
-            psi_b_1 = np.zeros_like(y)
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0 - lambda_hat))
 
+                prop_weighting = np.divide(m_hat, 1.0 - m_hat)
+                weight_resid_d0_t1 = -1.0 * np.multiply(np.divide(d0t1, np.multiply(p_hat, lambda_hat)), prop_weighting)
+                weight_resid_d0_t0 = np.multiply(np.divide(d0t0, np.multiply(p_hat, 1.0 - lambda_hat)), prop_weighting)
         else:
             assert self.score == "experimental"
             if self.in_sample_normalization:
                 weight_psi_a = np.ones_like(y)
-                weight_g0 = np.divide(d, np.mean(d)) - 1.0
-                weight_g1 = 1.0 - np.divide(d, np.mean(d))
-                weight_resid_d0 = np.divide(d, np.mean(d)) - np.divide(1.0 - d, np.mean(1.0 - d))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
+
+                weight_resid_d1_t1 = np.divide(d1t1, np.mean(d1t1))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.mean(d1t0))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.mean(d0t1))
+                weight_resid_d0_t0 = np.divide(d0t0, np.mean(d0t0))
             else:
                 weight_psi_a = np.ones_like(y)
-                weight_g0 = np.divide(d, p_hat) - 1.0
-                weight_g1 = 1.0 - np.divide(d, p_hat)
-                weight_resid_d0 = np.divide(d - p_hat, np.multiply(p_hat, 1.0 - p_hat))
+                weight_g_d1_t1 = weight_psi_a
+                weight_g_d1_t0 = -1.0 * weight_psi_a
+                weight_g_d0_t1 = -1.0 * weight_psi_a
+                weight_g_d0_t0 = weight_psi_a
 
-            psi_b_1 = np.multiply(weight_g0, g_hat0) + np.multiply(weight_g1, g_hat1)
+                weight_resid_d1_t1 = np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                weight_resid_d1_t0 = -1.0 * np.divide(d1t0, np.multiply(p_hat, 1.0 - lambda_hat))
+                weight_resid_d0_t1 = -1.0 * np.divide(d0t1, np.multiply(1.0 - p_hat, lambda_hat))
+                weight_resid_d0_t0 = np.divide(d0t0, np.multiply(1.0 - p_hat, 1.0 - lambda_hat))
 
         # set score elements
         psi_a = -1.0 * weight_psi_a
-        psi_b = psi_b_1 + np.multiply(weight_resid_d0, resid_d0)
+
+        # psi_b
+        psi_b_1 = (
+            np.multiply(weight_g_d1_t1, g_hat_d1_t1)
+            + np.multiply(weight_g_d1_t0, g_hat_d1_t0)
+            + np.multiply(weight_g_d0_t0, g_hat_d0_t0)
+            + np.multiply(weight_g_d0_t1, g_hat_d0_t1)
+        )
+        psi_b_2 = (
+            np.multiply(weight_resid_d1_t1, resid_d1_t1)
+            + np.multiply(weight_resid_d1_t0, resid_d1_t0)
+            + np.multiply(weight_resid_d0_t0, resid_d0_t0)
+            + np.multiply(weight_resid_d0_t1, resid_d0_t1)
+        )
+
+        psi_b = psi_b_1 + psi_b_2
 
         return psi_a, psi_b
 
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
-        x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
-
-        # get train indices for d == 0 and d == 1
-        smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}
 
+        # nuisance training sets conditional on d and t
+        smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
         train_inds = [train_index for (train_index, _) in smpls]
-        train_inds_d0 = [train_index for (train_index, _) in smpls_d0]
-        train_inds_d1 = [train_index for (train_index, _) in smpls_d1]
-        g0_tune_res = _dml_tune(
+        train_inds_d0_t0 = [train_index for (train_index, _) in smpls_d0_t0]
+        train_inds_d0_t1 = [train_index for (train_index, _) in smpls_d0_t1]
+        train_inds_d1_t0 = [train_index for (train_index, _) in smpls_d1_t0]
+        train_inds_d1_t1 = [train_index for (train_index, _) in smpls_d1_t1]
+
+        tune_args = {
+            "n_folds_tune": n_folds_tune,
+            "n_jobs_cv": n_jobs_cv,
+            "search_mode": search_mode,
+            "n_iter_randomized_search": n_iter_randomized_search,
+        }
+
+        g_d0_t0_tune_res = _dml_tune(
             y,
             x,
-            train_inds_d0,
+            train_inds_d0_t0,
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
+            **tune_args,
         )
-        g1_tune_res = _dml_tune(
+
+        g_d0_t1_tune_res = _dml_tune(
             y,
             x,
-            train_inds_d1,
+            train_inds_d0_t1,
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
+            **tune_args,
         )
 
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        g_d1_t0_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d1_t0,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            **tune_args,
+        )
 
+        g_d1_t1_tune_res = _dml_tune(
+            y,
+            x,
+            train_inds_d1_t1,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            **tune_args,
+        )
+
+        m_tune_res = list()
         if self.score == "observational":
             m_tune_res = _dml_tune(
                 d,
@@ -618,17 +620,43 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 self._learner["ml_m"],
                 param_grids["ml_m"],
                 scoring_methods["ml_m"],
-                n_folds_tune,
-                n_jobs_cv,
-                search_mode,
-                n_iter_randomized_search,
+                **tune_args,
             )
+
+        g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
+        g_d0_t1_best_params = [xx.best_params_ for xx in g_d0_t1_tune_res]
+        g_d1_t0_best_params = [xx.best_params_ for xx in g_d1_t0_tune_res]
+        g_d1_t1_best_params = [xx.best_params_ for xx in g_d1_t1_tune_res]
+
+        if self.score == "observational":
             m_best_params = [xx.best_params_ for xx in m_tune_res]
-            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
-            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
+            params = {
+                "ml_g_d0_t0": g_d0_t0_best_params,
+                "ml_g_d0_t1": g_d0_t1_best_params,
+                "ml_g_d1_t0": g_d1_t0_best_params,
+                "ml_g_d1_t1": g_d1_t1_best_params,
+                "ml_m": m_best_params,
+            }
+            tune_res = {
+                "g_d0_t0_tune": g_d0_t0_tune_res,
+                "g_d0_t1_tune": g_d0_t1_tune_res,
+                "g_d1_t0_tune": g_d1_t0_tune_res,
+                "g_d1_t1_tune": g_d1_t1_tune_res,
+                "m_tune": m_tune_res,
+            }
         else:
-            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params}
-            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res}
+            params = {
+                "ml_g_d0_t0": g_d0_t0_best_params,
+                "ml_g_d0_t1": g_d0_t1_best_params,
+                "ml_g_d1_t0": g_d1_t0_best_params,
+                "ml_g_d1_t1": g_d1_t1_best_params,
+            }
+            tune_res = {
+                "g_d0_t0_tune": g_d0_t0_tune_res,
+                "g_d0_t1_tune": g_d0_t1_tune_res,
+                "g_d1_t0_tune": g_d1_t0_tune_res,
+                "g_d1_t1_tune": g_d1_t1_tune_res,
+            }
 
         res = {"params": params, "tune_res": tune_res}
 
@@ -637,49 +665,102 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _sensitivity_element_est(self, preds):
         y = self._y_data_subset
         d = self._g_data_subset
+        t = self._t_data_subset
 
         m_hat = _get_id_positions(preds["predictions"]["ml_m"], self.id_positions)
-        g_hat0 = _get_id_positions(preds["predictions"]["ml_g0"], self.id_positions)
-        g_hat1 = _get_id_positions(preds["predictions"]["ml_g1"], self.id_positions)
+        g_hat_d0_t0 = _get_id_positions(preds["predictions"]["ml_g_d0_t0"], self.id_positions)
+        g_hat_d0_t1 = _get_id_positions(preds["predictions"]["ml_g_d0_t1"], self.id_positions)
+        g_hat_d1_t0 = _get_id_positions(preds["predictions"]["ml_g_d1_t0"], self.id_positions)
+        g_hat_d1_t1 = _get_id_positions(preds["predictions"]["ml_g_d1_t1"], self.id_positions)
 
-        g_hat = np.multiply(d, g_hat1) + np.multiply(1.0 - d, g_hat0)
+        d0t0 = np.multiply(1.0 - d, 1.0 - t)
+        d0t1 = np.multiply(1.0 - d, t)
+        d1t0 = np.multiply(d, 1.0 - t)
+        d1t1 = np.multiply(d, t)
+
+        g_hat = (
+            np.multiply(d0t0, g_hat_d0_t0)
+            + np.multiply(d0t1, g_hat_d0_t1)
+            + np.multiply(d1t0, g_hat_d1_t0)
+            + np.multiply(d1t1, g_hat_d1_t1)
+        )
         sigma2_score_element = np.square(y - g_hat)
         sigma2 = np.mean(sigma2_score_element)
         psi_sigma2 = sigma2_score_element - sigma2
 
         # calc m(W,alpha) and Riesz representer
         p_hat = np.mean(d)
+        lambda_hat = np.mean(t)
         if self.score == "observational":
             propensity_weight_d0 = np.divide(m_hat, 1.0 - m_hat)
             if self.in_sample_normalization:
-                weight_d0 = np.multiply(1.0 - d, propensity_weight_d0)
-                mean_weight_d0 = np.mean(weight_d0)
+                weight_d0t1 = np.multiply(d0t1, propensity_weight_d0)
+                weight_d0t0 = np.multiply(d0t0, propensity_weight_d0)
+                mean_weight_d0t1 = np.mean(weight_d0t1)
+                mean_weight_d0t0 = np.mean(weight_d0t0)
 
                 m_alpha = np.multiply(
-                    np.divide(d, p_hat), np.divide(1.0, p_hat) + np.divide(propensity_weight_d0, mean_weight_d0)
+                    np.divide(d, p_hat),
+                    np.divide(1.0, np.mean(d1t1))
+                    + np.divide(1.0, np.mean(d1t0))
+                    + np.divide(propensity_weight_d0, mean_weight_d0t1)
+                    + np.divide(propensity_weight_d0, mean_weight_d0t0),
                 )
-                rr = np.divide(d, p_hat) - np.divide(weight_d0, mean_weight_d0)
+
+                rr = (
+                    np.divide(d1t1, np.mean(d1t1))
+                    - np.divide(d1t0, np.mean(d1t0))
+                    - np.divide(weight_d0t1, mean_weight_d0t1)
+                    + np.divide(weight_d0t0, mean_weight_d0t0)
+                )
             else:
-                m_alpha = np.multiply(np.divide(d, np.square(p_hat)), (1.0 + propensity_weight_d0))
-                rr = np.divide(d, p_hat) - np.multiply(np.divide(1.0 - d, p_hat), propensity_weight_d0)
+                m_alpha_1 = np.divide(1.0, lambda_hat) + np.divide(1.0, 1.0 - lambda_hat)
+                m_alpha = np.multiply(np.divide(d, np.square(p_hat)), np.multiply(m_alpha_1, 1.0 + propensity_weight_d0))
+
+                rr_1 = np.divide(t, np.multiply(p_hat, lambda_hat)) + np.divide(1.0 - t, np.multiply(p_hat, 1.0 - lambda_hat))
+                rr_2 = d + np.multiply(1.0 - d, propensity_weight_d0)
+                rr = np.multiply(rr_1, rr_2)
         else:
             assert self.score == "experimental"
-            # the same with or without self-normalization
-            m_alpha = np.divide(1.0, p_hat) + np.divide(1.0, 1.0 - p_hat)
-            rr = np.divide(d, p_hat) - np.divide(1.0 - d, 1.0 - p_hat)
+            if self.in_sample_normalization:
+                m_alpha = (
+                    np.divide(1.0, np.mean(d1t1))
+                    + np.divide(1.0, np.mean(d1t0))
+                    + np.divide(1.0, np.mean(d0t1))
+                    + np.divide(1.0, np.mean(d0t0))
+                )
+                rr = (
+                    np.divide(d1t1, np.mean(d1t1))
+                    - np.divide(d1t0, np.mean(d1t0))
+                    - np.divide(d0t1, np.mean(d0t1))
+                    + np.divide(d0t0, np.mean(d0t0))
+                )
+            else:
+                m_alpha = (
+                    np.divide(1.0, np.multiply(p_hat, lambda_hat))
+                    + np.divide(1.0, np.multiply(p_hat, 1.0 - lambda_hat))
+                    + np.divide(1.0, np.multiply(1.0 - p_hat, lambda_hat))
+                    + np.divide(1.0, np.multiply(1.0 - p_hat, 1.0 - lambda_hat))
+                )
+                rr = (
+                    np.divide(d1t1, np.multiply(p_hat, lambda_hat))
+                    - np.divide(d1t0, np.multiply(p_hat, 1.0 - lambda_hat))
+                    - np.divide(d0t1, np.multiply(1.0 - p_hat, lambda_hat))
+                    + np.divide(d0t0, np.multiply(1.0 - p_hat, 1.0 - lambda_hat))
+                )
 
         nu2_score_element = np.multiply(2.0, m_alpha) - np.square(rr)
         nu2 = np.mean(nu2_score_element)
         psi_nu2 = nu2_score_element - nu2
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_ids,
+            "n_obs": self._dml_data.n_obs,
             "id_positions": self.id_positions,
             "fill_value": 0.0,
         }
 
         # add scaling to make variance estimation consistent (sample size difference)
-        scaling = self._dml_data.n_ids / self._n_obs_subset
+        scaling = self._dml_data.n_obs / self._n_obs_subset
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,
