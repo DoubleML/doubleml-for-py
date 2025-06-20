@@ -6,7 +6,7 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLData, DoubleMLQTE
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.irm.datasets import make_irm_data
+from doubleml.datasets import make_irm_data
 
 np.random.seed(42)
 n = 100

@@ -6,7 +6,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from doubleml.data import DoubleMLData
+from doubleml.data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
 from doubleml.irm.apo import DoubleMLAPO
@@ -36,7 +36,7 @@ class DoubleMLAPOS:
         draw_sample_splitting=True,
     ):
         self._dml_data = obj_dml_data
-        self._is_cluster_data = obj_dml_data.is_cluster_data
+        self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
 
         self._all_treatment_levels = np.unique(self._dml_data.d)
@@ -673,7 +673,7 @@ class DoubleMLAPOS:
         --------
         >>> import numpy as np
         >>> import doubleml as dml
-        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
         >>> from sklearn.ensemble import RandomForestRegressor
         >>> from sklearn.base import clone
         >>> np.random.seed(3141)
@@ -824,7 +824,7 @@ class DoubleMLAPOS:
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError("The data must be of DoubleMLData type.")
+            raise TypeError("The data must be of DoubleMLData or DoubleMLClusterData type.")
         if obj_dml_data.z is not None:
             raise ValueError("The data must not contain instrumental variables.")
         return

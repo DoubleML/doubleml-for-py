@@ -6,7 +6,7 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_X_y
 
-from doubleml.data.ssm_data import DoubleMLSSMData
+from doubleml.data.base_data import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score, _check_trimming
@@ -19,8 +19,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLSSMData` object
-        The :class:`DoubleMLSSMData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLData` object
+        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -66,7 +66,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml import DoubleMLSSMData
+    >>> from doubleml import DoubleMLData
     >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV()
     >>> from sklearn.base import clone
     >>> np.random.seed(3146)
@@ -82,7 +82,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> s = np.where(np.dot(X, beta) + 0.25 * d + z + e[0] > 0, 1, 0)
     >>> y = np.dot(X, beta) + 0.5 * d + e[1]
     >>> y[s == 0] = 0
-    >>> simul_data = DoubleMLSSMData.from_arrays(X, y, d, z=None, s=s)
+    >>> simul_data = DoubleMLData.from_arrays(X, y, d, z=None, t=s)
     >>> learner = LassoCV()
     >>> learner_class = LogisticRegressionCV()
     >>> ml_g_sim = clone(learner)
@@ -183,9 +183,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLSSMData):
+        if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                f"The data must be of DoubleMLSSMData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None and self._score == "missing-at-random":
             warnings.warn(

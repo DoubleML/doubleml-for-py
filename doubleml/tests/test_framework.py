@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
-from doubleml.irm.datasets import make_irm_data
+from doubleml.datasets import make_irm_data
 from doubleml.double_ml_framework import DoubleMLFramework, concat
 from doubleml.irm.irm import DoubleMLIRM
 

@@ -4,7 +4,7 @@ import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLAPOS, DoubleMLData
-from doubleml.irm.datasets import make_iivm_data, make_irm_data_discrete_treatments
+from doubleml.datasets import make_iivm_data, make_irm_data_discrete_treatments
 
 n = 100
 data = make_irm_data_discrete_treatments(n_obs=n)
@@ -20,7 +20,7 @@ ml_m = LogisticRegression()
 
 @pytest.mark.ci
 def test_apos_exception_data():
-    msg = "The data must be of DoubleMLData type."
+    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLAPOS(pd.DataFrame(), ml_g, ml_m, treatment_levels=0)
 

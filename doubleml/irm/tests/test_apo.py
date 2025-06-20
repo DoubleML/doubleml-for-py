@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.irm.datasets import make_irm_data, make_irm_data_discrete_treatments
+from doubleml.datasets import make_irm_data, make_irm_data_discrete_treatments
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import boot_apo, fit_apo, fit_sensitivity_elements_apo

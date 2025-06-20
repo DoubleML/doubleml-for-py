@@ -54,11 +54,11 @@ def dml_selection_fixture(
 
     np.random.seed(42)
     if score == "missing-at-random":
-        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=None, s=s)
+        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, s=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data, ml_g, ml_pi, ml_m, n_folds=n_folds, score=score)
     else:
         assert score == "nonignorable"
-        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=z, s=s)
+        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, s=s)
         dml_sel_obj = dml.DoubleMLSSM(obj_dml_data, ml_g, ml_pi, ml_m, n_folds=n_folds, score=score)
 
     np.random.seed(42)

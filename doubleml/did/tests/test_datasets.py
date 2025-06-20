@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from doubleml import DoubleMLData
 from doubleml.did.datasets import make_did_CS2021, make_did_cs_CS2021, make_did_SZ2020
-from doubleml import DoubleMLDIDData
-
 
 msg_inv_return_type = "Invalid return_type."
 
@@ -22,8 +21,8 @@ def dgp_type(request):
 @pytest.mark.ci
 def test_make_did_SZ2020_return_types(cross_sectional, dgp_type):
     np.random.seed(3141)
-    res = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=DoubleMLDIDData)
-    assert isinstance(res, DoubleMLDIDData)
+    res = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=DoubleMLData)
+    assert isinstance(res, DoubleMLData)
     res = make_did_SZ2020(n_obs=100, dgp_type=dgp_type, cross_sectional_data=cross_sectional, return_type=pd.DataFrame)
     assert isinstance(res, pd.DataFrame)
     if cross_sectional:

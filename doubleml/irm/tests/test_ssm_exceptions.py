@@ -6,7 +6,7 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLSSM
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.irm.datasets import make_ssm_data
+from doubleml.datasets import make_ssm_data
 
 np.random.seed(3141)
 n = 100
@@ -30,7 +30,7 @@ class DummyDataClass(DoubleMLBaseData):
 
 @pytest.mark.ci
 def test_ssm_exception_data():
-    msg = "The data must be of DoubleMLData type."
+    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLSSM(pd.DataFrame(), ml_g, ml_pi, ml_m)
 

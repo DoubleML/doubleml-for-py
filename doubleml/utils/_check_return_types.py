@@ -3,6 +3,7 @@ import pandas as pd
 import plotly
 
 from doubleml import DoubleMLFramework
+from doubleml.data import DoubleMLClusterData
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
 
@@ -14,14 +15,14 @@ def check_basic_return_types(dml_obj, cls):
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
     else:
-        assert dml_obj._dml_data.is_cluster_data
+        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers
     assert isinstance(dml_obj.summary, pd.DataFrame)  # called again after fit, now with numbers
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.bootstrap(), cls)
     else:
-        assert dml_obj._dml_data.is_cluster_data
+        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
     assert isinstance(dml_obj.confint(), pd.DataFrame)
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.p_adjust(), pd.DataFrame)

@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from doubleml.data import DoubleMLPanelData, DoubleMLDIDData, DoubleMLSSMData, DoubleMLRDDData
+from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
@@ -16,7 +16,7 @@ from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
 from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
-_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
+_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
 
 
 class DoubleML(ABC):
@@ -30,22 +30,13 @@ class DoubleML(ABC):
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         self._is_cluster_data = False
-        if obj_dml_data.is_cluster_data:
+        if isinstance(obj_dml_data, DoubleMLClusterData):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
         self._is_panel_data = False
         if isinstance(obj_dml_data, DoubleMLPanelData):
             self._is_panel_data = True
-        self._is_did_data = False
-        if isinstance(obj_dml_data, DoubleMLDIDData):
-            self._is_did_data = True
-        self._is_ssm_data = False
-        if isinstance(obj_dml_data, DoubleMLSSMData):
-            self._is_ssm_data = True
-        self._is_rdd_data = False
-        if isinstance(obj_dml_data, DoubleMLRDDData):
-            self._is_rdd_data = True
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
@@ -1198,9 +1189,10 @@ class DoubleML(ABC):
 
         Examples
         --------
-        >>> import numpy as np        >>> import doubleml as dml
+        >>> import numpy as np
+        >>> import doubleml as dml
         >>> from sklearn.metrics import mean_absolute_error
-        >>> from doubleml.irm.datasets import make_irm_data
+        >>> from doubleml.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
         >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -1308,9 +1300,10 @@ class DoubleML(ABC):
         self : object
 
         Examples
-        --------        >>> import numpy as np
+        --------
+        >>> import numpy as np
         >>> import doubleml as dml
-        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
         >>> from sklearn.ensemble import RandomForestRegressor
         >>> from sklearn.base import clone
         >>> np.random.seed(3141)

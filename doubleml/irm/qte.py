@@ -3,7 +3,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from doubleml.data import DoubleMLData
+from doubleml.data import DoubleMLClusterData, DoubleMLData
 from doubleml.double_ml_framework import concat
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ
@@ -72,7 +72,7 @@ class DoubleMLQTE:
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.irm.datasets import make_irm_data
+    >>> from doubleml.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
@@ -125,7 +125,8 @@ class DoubleMLQTE:
 
         # check data
         self._is_cluster_data = False
-        self._is_cluster_data = obj_dml_data.is_cluster_data
+        if isinstance(obj_dml_data, DoubleMLClusterData):
+            self._is_cluster_data = True
         self._check_data(self._dml_data)
 
         # initialize framework which is constructed after the fit method is called
@@ -498,7 +499,7 @@ class DoubleMLQTE:
         --------
         >>> import numpy as np
         >>> import doubleml as dml
-        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
         >>> from sklearn.ensemble import RandomForestRegressor
         >>> from sklearn.base import clone
         >>> np.random.seed(3141)

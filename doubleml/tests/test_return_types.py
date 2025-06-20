@@ -8,7 +8,7 @@ from sklearn.svm import LinearSVR
 
 from doubleml import (
     DoubleMLAPO,
-    DoubleMLData,
+    DoubleMLClusterData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
@@ -23,8 +23,14 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLSSM,
 )
-from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_ssm_data
-from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
+from doubleml.datasets import (
+    make_iivm_data,
+    make_irm_data,
+    make_pliv_CHS2015,
+    make_pliv_multiway_cluster_CKMS2021,
+    make_plr_CCDDHNR2018,
+    make_ssm_data,
+)
 from doubleml.did.datasets import make_did_SZ2020
 
 np.random.seed(3141)
@@ -86,14 +92,14 @@ def test_return_types(dml_obj, cls):
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
     else:
-        assert dml_obj._dml_data.is_cluster_data
+        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers
     assert isinstance(dml_obj.summary, pd.DataFrame)  # called again after fit, now with numbers
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.bootstrap(), cls)
     else:
-        assert dml_obj._dml_data.is_cluster_data
+        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
     assert isinstance(dml_obj.confint(), pd.DataFrame)
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.p_adjust(), pd.DataFrame)

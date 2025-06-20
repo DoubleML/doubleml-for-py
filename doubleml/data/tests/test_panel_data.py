@@ -33,7 +33,7 @@ def test_t_col_setter():
     with pytest.raises(ValueError, match=msg):
         dml_data.t_col = "a13"
 
-    msg = r"The time variable t_col must be of str type. " "5 of type <class 'int'> was passed."
+    msg = r"The time variable t_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.t_col = 5
 

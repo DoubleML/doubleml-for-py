@@ -8,7 +8,7 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import (
     DoubleMLBLP,
-    DoubleMLDIDData,
+    DoubleMLClusterData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
@@ -21,8 +21,13 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLQTE,
 )
-from doubleml.irm.datasets import make_iivm_data, make_irm_data
-from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
+from doubleml.datasets import (
+    make_iivm_data,
+    make_irm_data,
+    make_pliv_CHS2015,
+    make_pliv_multiway_cluster_CKMS2021,
+    make_plr_CCDDHNR2018,
+)
 from doubleml.did.datasets import make_did_SZ2020
 
 from ._utils import DummyDataClass
@@ -54,7 +59,7 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or DoubleMLRDDData type."
+    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 
@@ -265,11 +270,11 @@ def test_doubleml_exception_data():
     df_did_cs["d"] = df_did_cs["d"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
     df_did_cs = dml_data_did_cs.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
 
     # DIDCS time exceptions
     msg = (
@@ -280,7 +285,7 @@ def test_doubleml_exception_data():
     df_did_cs["t"] = df_did_cs["t"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary t for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
 
 
 @pytest.mark.ci
@@ -1351,14 +1356,13 @@ def test_doubleml_cluster_not_yet_implemented():
 
     df = dml_cluster_data_pliv.data.copy()
     df["cluster_var_k"] = df["cluster_var_i"] + df["cluster_var_j"] - 2
-    dml_cluster_data_multiway = DoubleMLData(
+    dml_cluster_data_multiway = DoubleMLClusterData(
         df,
         y_col="Y",
         d_cols="D",
         x_cols=["X1", "X5"],
         z_cols="Z",
         cluster_cols=["cluster_var_i", "cluster_var_j", "cluster_var_k"],
-        is_cluster_data=True,
     )
     assert dml_cluster_data_multiway.n_cluster_vars == 3
     msg = r"Multi-way \(n_ways > 2\) clustering not yet implemented."

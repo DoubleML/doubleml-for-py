@@ -83,7 +83,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.irm.datasets import make_iivm_data
+    >>> from doubleml.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)

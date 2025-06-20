@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
-from doubleml.irm.datasets import make_irm_data_discrete_treatments
+from doubleml.datasets import make_irm_data_discrete_treatments
 
 from ...tests._utils import confint_manual
 from ._utils_apos_manual import boot_apos, fit_apos
