@@ -10,7 +10,7 @@ from ..double_ml import DoubleML
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
 from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils.blp import DoubleMLBLP
+# from ..utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLPR(LinearScoreMixin, DoubleML):
@@ -119,7 +119,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             self._predict_method["ml_m"] = "predict"
 
         self._initialize_ml_nuisance_params()
-        self._sensitivity_implemented = False
+        self._sensitivity_implemented = False ###
         self._external_predictions_implemented = True
 
     def _initialize_ml_nuisance_params(self):
@@ -137,10 +137,10 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             )
         return
     
-    def _check_pdml_approach(pdml_approach, valid_pdml_approach):
+    def _check_pdml_approach(self, pdml_approach, valid_pdml_approach):
         if isinstance(pdml_approach, str):
             if pdml_approach not in valid_pdml_approach:
-                raise ValueError("Invalid pdml_approach " + pdml_approach + ". " + "pdml_approach score " + " or ".join(pdml_approach) + ".")
+                raise ValueError("Invalid pdml_approach " + pdml_approach + ". " + "Valid approach " + " or ".join(valid_pdml_approach) + ".")
         else:
             raise TypeError(f"score should be a string. {str(pdml_approach)} was passed.")
         return
@@ -262,38 +262,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
         return psi_a, psi_b
 
-    # def _sensitivity_element_est(self, preds):
-    #     # set elments for readability
-    #     y = self._dml_data.y
-    #     d = self._dml_data.d
-
-    #     m_hat = preds["predictions"]["ml_m"]
-    #     theta = self.all_coef[self._i_treat, self._i_rep]
-
-    #     if self.score == "partialling out":
-    #         l_hat = preds["predictions"]["ml_l"]
-    #         sigma2_score_element = np.square(y - l_hat - np.multiply(theta, d - m_hat))
-    #     else:
-    #         assert self.score == "IV-type"
-    #         g_hat = preds["predictions"]["ml_g"]
-    #         sigma2_score_element = np.square(y - g_hat - np.multiply(theta, d))
-
-    #     sigma2 = np.mean(sigma2_score_element)
-    #     psi_sigma2 = sigma2_score_element - sigma2
-
-    #     treatment_residual = d - m_hat
-    #     nu2 = np.divide(1.0, np.mean(np.square(treatment_residual)))
-    #     psi_nu2 = nu2 - np.multiply(np.square(treatment_residual), np.square(nu2))
-    #     rr = np.multiply(treatment_residual, nu2)
-
-    #     element_dict = {
-    #         "sigma2": sigma2,
-    #         "nu2": nu2,
-    #         "psi_sigma2": psi_sigma2,
-    #         "psi_nu2": psi_nu2,
-    #         "riesz_rep": rr,
-    #     }
-    #     return element_dict
+    def _sensitivity_element_est(self, preds):
+        pass
 
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search

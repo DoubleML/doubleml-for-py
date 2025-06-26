@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1'):
+def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type='dgp1', x_var=5, a_var=0.95):
     """
     Generates static panel data from the simulation dgp in Clarke and Polselli (2025).
 
@@ -18,7 +18,11 @@ def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type=
         The value of the causal parameter.
     dgp_type :
         The type of DGP design to be used. Default is ``'dgp1'``, other options are ``'dgp2'`` and ``'dgp3'``.
-    
+    x_var : 
+        The variance of the covariates.
+    a_var :
+        The variance of the individual fixed effect on outcome
+
     Returns
     -------
     pandas.DataFrame
@@ -28,8 +32,6 @@ def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type=
     # parameters
     a = 0.25
     b = 0.5
-    x_var = 5
-    a_var = 0.95
 
     # id and time vectors
     id = np.repeat(np.arange(1, num_n+1), num_t)
@@ -40,7 +42,8 @@ def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type=
     c_i = np.repeat(np.random.standard_normal(num_n), num_t)
 
     # covariates and errors
-    x_it = np.random.normal(loc=0, scale=np.sqrt(x_var), size=(num_n*num_t, dim_x))
+    x_mean = 0
+    x_it = np.random.normal(loc=x_mean, scale=np.sqrt(x_var), size=(num_n*num_t, dim_x))
     u_it = np.random.standard_normal(num_n*num_t)
     v_it = np.random.standard_normal(num_n*num_t)
 
