@@ -453,10 +453,12 @@ class RDFlex:
     def _fit_rdd(self, h=None, b=None):
         if self.fuzzy:
             rdd_res = rdrobust.rdrobust(
-                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=self._M_D[:, self._i_rep], h=h, b=b, c=0, **self.kwargs
+                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=self._M_D[:, self._i_rep],
+                c=0, **{{"h": h, "b": b} | self.kwargs}
             )
         else:
-            rdd_res = rdrobust.rdrobust(y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=None, h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=None,
+                                        c=0, **{{"h": h, "b": b} | self.kwargs})
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):
