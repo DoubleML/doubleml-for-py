@@ -143,7 +143,10 @@ class RDFlex:
 
         self._check_effect_sign()
 
-        # TODO: Add further input checks
+        if ("h", "b") & kwargs.keys():
+            warnings.warn(f"Key-worded arguments contain: {('h', 'b') & kwargs.keys()}. \n \
+                            Iterative bandwidth selection will be overwritten by provided values.")
+
         self.kwargs = kwargs
 
         self._smpls = DoubleMLResampling(
@@ -454,11 +457,11 @@ class RDFlex:
         if self.fuzzy:
             rdd_res = rdrobust.rdrobust(
                 y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=self._M_D[:, self._i_rep],
-                c=0, **{{"h": h, "b": b} | self.kwargs}
+                c=0, **({"h": h, "b": b} | self.kwargs)
             )
         else:
             rdd_res = rdrobust.rdrobust(y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=None,
-                                        c=0, **{{"h": h, "b": b} | self.kwargs})
+                                        c=0, **({"h": h, "b": b} | self.kwargs))
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):
