@@ -47,7 +47,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
