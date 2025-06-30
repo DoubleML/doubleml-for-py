@@ -133,7 +133,8 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
         Whether to include units that are never treated.
 
     lambda_t : float, default=0.5
-        Probability of observing a unit at each time period.
+        Probability of observing a unit at each time period. Note that internally `n_obs/lambda_t` individuals are
+        generated of which only a fraction `lambda_t` is observed at each time period (see Step 7 in the DGP description).
 
     time_type : str, default="datetime"
         Type of time variable. Either "datetime" or "float".
