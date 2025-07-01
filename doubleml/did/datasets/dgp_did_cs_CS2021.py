@@ -97,8 +97,8 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
 
            P(G_i = g) = \\frac{1}{G} \\text{ for all } g
 
-    7. Steps 1-6 generate panel data. To obtain repeated cross-sectional data, the number of generated indivials is increased
-    to `n_obs/lambda_t`, where `lambda_t` denotes the pobability to observe a unit at each time period (time constant).
+    7. Steps 1-6 generate panel data. To obtain repeated cross-sectional data, the number of generated individuals is increased
+    to `n_obs/lambda_t`, where `lambda_t` denotes the probability to observe a unit at each time period (time constant).
     for each
 
 
@@ -133,7 +133,8 @@ def make_did_cs_CS2021(n_obs=1000, dgp_type=1, include_never_treated=True, lambd
         Whether to include units that are never treated.
 
     lambda_t : float, default=0.5
-        Probability of observing a unit at each time period.
+        Probability of observing a unit at each time period. Note that internally `n_obs/lambda_t` individuals are
+        generated of which only a fraction `lambda_t` is observed at each time period (see Step 7 in the DGP description).
 
     time_type : str, default="datetime"
         Type of time variable. Either "datetime" or "float".
