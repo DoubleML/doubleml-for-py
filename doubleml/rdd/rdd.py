@@ -114,6 +114,7 @@ class RDFlex:
 
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         self._score = self._dml_data.score - cutoff
         self._cutoff = cutoff

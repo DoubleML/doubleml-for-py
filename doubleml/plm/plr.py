@@ -93,6 +93,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
 

@@ -108,6 +108,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         self.partialX = True
         self.partialZ = False
         self._check_score(self.score)

@@ -124,9 +124,8 @@ class DoubleMLQTE:
         _check_score(self.score, valid_scores, allow_callable=False)
 
         # check data
-        self._is_cluster_data = False
-        self._is_cluster_data = obj_dml_data.is_cluster_data
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
