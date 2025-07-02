@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data
+from doubleml.irm.datasets import make_irm_data
 
 from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual, doubleml_sensitivity_manual
 

@@ -90,7 +90,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
+    >>> from doubleml.irm.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
@@ -132,6 +132,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         self._normalize_ipw = normalize_ipw
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         valid_score = ["PQ"]
         _check_score(self.score, valid_score, allow_callable=False)

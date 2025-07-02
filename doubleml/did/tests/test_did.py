@@ -57,7 +57,7 @@ def dml_did_fixture(generate_data_did, learner, score, in_sample_normalization, 
     np.random.seed(3141)
     n_obs = len(y)
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+    obj_dml_data = dml.DoubleMLDIDData.from_arrays(x, y, d)
 
     np.random.seed(3141)
     dml_did_obj = dml.DoubleMLDID(
@@ -182,7 +182,7 @@ def test_dml_did_experimental(generate_data_did, in_sample_normalization, learne
     ml_m = clone(learner[1])
 
     np.random.seed(3141)
-    obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
+    obj_dml_data = dml.DoubleMLDIDData.from_arrays(x, y, d)
 
     np.random.seed(3141)
     dml_did_obj_without_ml_m = dml.DoubleMLDID(

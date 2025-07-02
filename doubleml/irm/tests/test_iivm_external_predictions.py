@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml import DoubleMLData, DoubleMLIIVM
-from doubleml.datasets import make_iivm_data
+from doubleml.irm.datasets import make_iivm_data
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 

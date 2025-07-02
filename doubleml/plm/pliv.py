@@ -62,7 +62,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_pliv_CHS2015
+    >>> from doubleml.plm.datasets import make_pliv_CHS2015
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
@@ -108,6 +108,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         self.partialX = True
         self.partialZ = False
         self._check_score(self.score)

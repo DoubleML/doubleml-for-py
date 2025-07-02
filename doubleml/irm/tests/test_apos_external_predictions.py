@@ -6,7 +6,7 @@ import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 from doubleml import DoubleMLAPOS, DoubleMLData
-from doubleml.datasets import make_irm_data_discrete_treatments
+from doubleml.irm.datasets import make_irm_data_discrete_treatments
 from doubleml.utils import DMLDummyClassifier, DMLDummyRegressor
 
 from ...tests._utils import draw_smpls

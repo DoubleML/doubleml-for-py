@@ -9,8 +9,9 @@ from ..utils._estimation import _aggregate_coefs_and_ses, _var_est
 
 
 class DummyDataClass(DoubleMLBaseData):
-    def __init__(self, data):
+    def __init__(self, data, is_cluster_data=False):
         DoubleMLBaseData.__init__(self, data)
+        self.is_cluster_data = is_cluster_data
 
     @property
     def n_coefs(self):

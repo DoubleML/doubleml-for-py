@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression
 
 from doubleml import DoubleMLData, DoubleMLPLR
-from doubleml.datasets import make_plr_CCDDHNR2018
+from doubleml.plm.datasets import make_plr_CCDDHNR2018
 from doubleml.utils import DMLDummyRegressor
 
 
