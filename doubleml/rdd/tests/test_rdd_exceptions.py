@@ -17,7 +17,7 @@ df = pd.DataFrame(
     columns=["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])],
 )
 
-dml_data = DoubleMLRDDData(df, y_col="y", d_cols="d", s_col="score")
+dml_data = DoubleMLRDDData(df, y_col="y", d_cols="d", score_col="score")
 
 ml_g = Lasso()
 ml_m = LogisticRegression()
