@@ -42,7 +42,7 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_l, ml_m, ml_r)
 
 dml_data_irm = make_irm_data(n_obs=n)
 dml_data_iivm = make_iivm_data(n_obs=n)
-dml_data_iivm_did = DoubleMLDIDData(dml_data_iivm.data, y_col="y", d_cols="d")
+dml_data_iivm_did = DoubleMLDIDData(dml_data_iivm.data, y_col="y", d_cols="d", z_cols="z")
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 dml_data_did = make_did_SZ2020(n_obs=n)
 dml_data_did_cs = make_did_SZ2020(n_obs=n, cross_sectional_data=True)
@@ -246,16 +246,16 @@ def test_doubleml_exception_data():
     df_irm["d"] = df_irm["d"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for DID
-        _ = DoubleMLDID(DoubleMLData(df_irm, "y", "d"), Lasso(), LogisticRegression())
+        _ = DoubleMLDID(DoubleMLDIDData(df_irm, "y", "d"), Lasso(), LogisticRegression())
     df_irm = dml_data_irm.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for DID
-        _ = DoubleMLDID(DoubleMLData(df_irm, "y", ["d", "X1"]), Lasso(), LogisticRegression())
+        _ = DoubleMLDID(DoubleMLDIDData(df_irm, "y", ["d", "X1"]), Lasso(), LogisticRegression())
 
     # DIDCS with IV
     msg = r"Incompatible data. z have been set as instrumental variable\(s\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDIDCS(dml_data_iivm, Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(dml_data_iivm_did, Lasso(), LogisticRegression())
 
     # DIDCS treatment exceptions
     msg = (
