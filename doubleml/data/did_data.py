@@ -1,12 +1,10 @@
 import io
+
 import pandas as pd
-from sklearn.utils.validation import check_array
 from sklearn.utils import assert_all_finite
+from sklearn.utils.validation import check_consistent_length, column_or_1d
 
 from doubleml.data.base_data import DoubleMLData
-# Line removed as `_assure_2d_array` is unused.
-from sklearn.utils.validation import check_consistent_length, column_or_1d
-from sklearn.utils.multiclass import type_of_target
 
 
 class DoubleMLDIDData(DoubleMLData):

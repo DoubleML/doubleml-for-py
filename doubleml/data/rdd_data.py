@@ -1,5 +1,5 @@
 import io
-import numpy as np
+
 import pandas as pd
 from sklearn.utils.validation import check_array
 
@@ -30,7 +30,8 @@ class DoubleMLRDDData(DoubleMLData):
     x_cols : None, str or list
         The covariates.
         If ``None``, all variables (columns of ``data``) which are neither specified as outcome variable ``y_col``, nor
-        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor score variable ``score_col`` are used as covariates.
+        treatment variables ``d_cols``, nor instrumental variables ``z_cols``, nor score variable ``score_col`` are
+        used as covariates.
         Default is ``None``.
 
     z_cols : None, str or list

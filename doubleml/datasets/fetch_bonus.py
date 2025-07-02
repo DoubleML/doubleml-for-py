@@ -5,6 +5,7 @@ Data set on the Pennsylvania Reemployment Bonus experiment.
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures
+
 from doubleml import DoubleMLData
 
 
@@ -44,7 +45,7 @@ def fetch_bonus(return_type="DoubleMLData", polynomial_features=False):
     """
     _data_frame_alias = _get_data_frame_alias()
     _dml_data_alias = _get_dml_data_alias()
-    
+
     url = "https://raw.githubusercontent.com/VC2015/DMLonGitHub/master/penn_jae.dat"
     raw_data = pd.read_csv(url, sep=r"\s+")
 

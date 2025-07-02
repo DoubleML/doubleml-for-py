@@ -3,6 +3,7 @@ Data set on financial wealth and 401(k) plan participation.
 """
 
 import pandas as pd
+
 from doubleml import DoubleMLData
 
 
@@ -42,7 +43,7 @@ def fetch_401K(return_type="DoubleMLData", polynomial_features=False):
     """
     _data_frame_alias = _get_data_frame_alias()
     _dml_data_alias = _get_dml_data_alias()
-    
+
     url = "https://github.com/VC2015/DMLonGitHub/raw/master/sipp1991.dta"
     raw_data = pd.read_stata(url)
 
