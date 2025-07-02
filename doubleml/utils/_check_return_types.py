@@ -60,6 +60,8 @@ def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_fold
     assert isinstance(dml_obj.psi, np.ndarray)
     assert dml_obj.psi.shape == score_dim
 
+    assert isinstance(dml_obj.psi_deriv, np.ndarray)
+    assert dml_obj.psi_deriv.shape == score_dim
     is_nonlinear = isinstance(dml_obj, NonLinearScoreMixin)
     if is_nonlinear:
         for score_element in dml_obj._score_element_names:
