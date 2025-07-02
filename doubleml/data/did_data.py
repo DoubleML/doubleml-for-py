@@ -5,7 +5,7 @@ from sklearn.utils import assert_all_finite
 
 from doubleml.data.base_data import DoubleMLData
 from doubleml.utils._estimation import _assure_2d_array
-from sklearn.utils.validation import check_array, check_consistent_length, column_or_1d
+from sklearn.utils.validation import check_consistent_length, column_or_1d
 from sklearn.utils.multiclass import type_of_target
 
 
