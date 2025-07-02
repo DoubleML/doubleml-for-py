@@ -42,7 +42,7 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_l, ml_m, ml_r)
 
 dml_data_irm = make_irm_data(n_obs=n)
 dml_data_iivm = make_iivm_data(n_obs=n)
-dml_data_iivm_did = DoubleMLDIDData.from_arrays(dml_data_iivm.data, y_col="y", d_cols="d", t_col="t")
+dml_data_iivm_did = DoubleMLDIDData(dml_data_iivm.data, y_col="y", d_cols="d")
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 dml_data_did = make_did_SZ2020(n_obs=n)
 dml_data_did_cs = make_did_SZ2020(n_obs=n, cross_sectional_data=True)
