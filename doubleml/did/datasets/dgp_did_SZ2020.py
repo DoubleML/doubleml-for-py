@@ -238,3 +238,4 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
                 return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols, t_col="t")
         else:
             raise ValueError("Invalid return_type.")
+    return None
