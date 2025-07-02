@@ -67,12 +67,12 @@ def test_rdd_exception_data():
     msg = "Incompatible data. Score variable has not been set. "
     with pytest.raises(ValueError, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s_col = None
+        tmp_dml_data._score_col = None
         _ = RDFlex(tmp_dml_data, ml_g)
     msg = "Incompatible data. Score variable has to be continuous. "
     with pytest.raises(ValueError, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s = tmp_dml_data._d
+        tmp_dml_data._score = tmp_dml_data._d
         _ = RDFlex(tmp_dml_data, ml_g)
 
     # existing instruments
@@ -128,7 +128,7 @@ def test_rdd_warning_treatment_assignment():
     )
     with pytest.warns(UserWarning, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s = -1.0 * tmp_dml_data._s
+        tmp_dml_data._score = -1.0 * tmp_dml_data._score
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=True)
 
 
@@ -169,7 +169,7 @@ def test_rdd_exception_learner():
     )
     with pytest.warns(UserWarning, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._data["sharp_d"] = tmp_dml_data.s >= 0
+        tmp_dml_data._data["sharp_d"] = tmp_dml_data.score >= 0
         tmp_dml_data.d_cols = "sharp_d"
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=False)
 
