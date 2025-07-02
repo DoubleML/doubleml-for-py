@@ -42,7 +42,6 @@ def fetch_bonus(return_type="DoubleMLData", polynomial_features=False):
     Double/debiased machine learning for treatment and structural parameters. The Econometrics Journal, 21: C1-C68.
     doi:`10.1111/ectj.12097 <https://doi.org/10.1111/ectj.12097>`_.
     """
-    _array_alias = _get_array_alias()
     _data_frame_alias = _get_data_frame_alias()
     _dml_data_alias = _get_dml_data_alias()
     
