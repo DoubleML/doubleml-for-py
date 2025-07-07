@@ -70,7 +70,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -80,7 +80,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
@@ -124,6 +124,12 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting=False)
 
         self._check_data(self._dml_data)
+        # for did panel data the scores are based on the number of unique ids
+        self._n_obs = obj_dml_data.n_ids
+        self._score_dim = (self._n_obs, self.n_rep, self._dml_data.n_treat)
+        # reinitialze arrays
+        self._initialize_arrays()
+
         g_values = self._dml_data.g_values
         t_values = self._dml_data.t_values
 
@@ -157,10 +163,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # Preprocess data
         # Y1, Y0 might be needed if we want to support custom estimators and scores; currently only output y_diff
-        self._panel_data_wide = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
+        self._data_subset = self._preprocess_data(self._g_value, self._t_value_pre, self._t_value_eval)
 
         # Handling id values to match pairwise evaluation & simultaneous inference
-        id_panel_data = self._panel_data_wide[self._dml_data.id_col].values
+        id_panel_data = self._data_subset[self._dml_data.id_col].values
         id_original = self._dml_data.id_var_unique
         if not np.all(np.isin(id_panel_data, id_original)):
             raise ValueError("The id values in the panel data are not a subset of the original id values.")
@@ -171,14 +177,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
         # Numeric values for positions of the entries in id_panel_data inside id_original
         # np.nonzero(np.isin(id_original, id_panel_data))
-        self._n_subset = self._panel_data_wide.shape[0]
-        self._n_obs = self._n_subset  # Effective sample size used for resampling
-        self._n_treated_subset = self._panel_data_wide["G_indicator"].sum()
+        self._n_obs_subset = self._data_subset.shape[0]  # Effective sample size used for resampling
+        self._n_treated_subset = self._data_subset["G_indicator"].sum()
 
         # Save x and y for later ML estimation
-        self._x_panel = self._panel_data_wide.loc[:, self._dml_data.x_cols].values
-        self._y_panel = self._panel_data_wide.loc[:, "y_diff"].values
-        self._g_panel = self._panel_data_wide.loc[:, "G_indicator"].values
+        self._x_data_subset = self._data_subset.loc[:, self._dml_data.x_cols].values
+        self._y_data_subset = self._data_subset.loc[:, "y_diff"].values
+        self._g_data_subset = self._data_subset.loc[:, "G_indicator"].values
 
         valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
@@ -191,7 +196,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             )
 
         # set stratication for resampling
-        self._strata = self._panel_data_wide["G_indicator"]
+        self._strata = self._data_subset["G_indicator"]
+        self._n_obs_sample_splitting = self.n_obs_subset
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
@@ -233,58 +239,17 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
-    def __str__(self):
-        class_name = self.__class__.__name__
-        header = f"================== {class_name} Object ==================\n"
-        data_summary = self._dml_data._data_summary_str()
-        score_info = (
-            f"Score function: {str(self.score)}\n"
-            f"Treatment group: {str(self.g_value)}\n"
-            f"Pre-treatment period: {str(self.t_value_pre)}\n"
-            f"Evaluation period: {str(self.t_value_eval)}\n"
-            f"Control group: {str(self.control_group)}\n"
-            f"Anticipation periods: {str(self.anticipation_periods)}\n"
-            f"Effective sample size: {str(self.n_obs)}\n"
-        )
-        learner_info = ""
-        for key, value in self.learner.items():
-            learner_info += f"Learner {key}: {str(value)}\n"
-        if self.nuisance_loss is not None:
-            learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
-            is_regressor = [not value for value in is_classifier]
-            if any(is_regressor):
-                learner_info += "Regression:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
-            if any(is_classifier):
-                learner_info += "Classification:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
-
-        if self._is_cluster_data:
-            resampling_info = (
-                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
-                f"No. folds: {self.n_folds}\n"
-                f"No. repeated sample splits: {self.n_rep}\n"
-            )
-        else:
-            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
-        fit_summary = str(self.summary)
-        res = (
-            header
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ Score & algorithm ------------------\n"
-            + score_info
-            + "\n------------------ Machine learner   ------------------\n"
-            + learner_info
-            + "\n------------------ Resampling        ------------------\n"
-            + resampling_info
-            + "\n------------------ Fit summary       ------------------\n"
-            + fit_summary
-        )
-        return res
+    def _format_score_info_str(self):
+        lines = [
+            f"Score function: {str(self.score)}",
+            f"Treatment group: {str(self.g_value)}",
+            f"Pre-treatment period: {str(self.t_value_pre)}",
+            f"Evaluation period: {str(self.t_value_eval)}",
+            f"Control group: {str(self.control_group)}",
+            f"Anticipation periods: {str(self.anticipation_periods)}",
+            f"Effective sample size: {str(self.n_obs_subset)}",
+        ]
+        return "\\n".join(lines)
 
     @property
     def g_value(self):
@@ -336,11 +301,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._anticipation_periods
 
     @property
-    def panel_data_wide(self):
+    def data_subset(self):
         """
         The preprocessed panel data in wide format.
         """
-        return self._panel_data_wide
+        return self._data_subset
 
     @property
     def id_positions(self):
@@ -371,11 +336,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return self._trimming_threshold
 
     @property
-    def n_obs(self):
+    def n_obs_subset(self):
         """
         The number of observations used for estimation.
         """
-        return self._n_subset
+        return self._n_obs_subset
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
@@ -415,9 +380,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         id_col = self._dml_data.id_col
         g_col = self._dml_data.g_col
 
-        # relevent data subset
-        data_subset_indicator = data[t_col].isin([pre_t, eval_t])
-        data_subset = data[data_subset_indicator].sort_values(by=[id_col, t_col])
+        # relevent data subset: Only include units which are observed in both periods
+        relevant_time_data = data[data[t_col].isin([pre_t, eval_t])]
+        ids_with_both_periods_filter = relevant_time_data.groupby(id_col)[t_col].transform("nunique") == 2
+        data_subset = relevant_time_data[ids_with_both_periods_filter].sort_values(by=[id_col, t_col])
 
         # Construct G (treatment group) indicating treatment period in g
         G_indicator = (data_subset[g_col] == g_value).astype(int)
@@ -463,8 +429,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
         # Here: d is a binary treatment indicator
-        x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
-        x, d = check_X_y(x, self._g_panel, force_all_finite=False)
+        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
+        x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
         # nuisance g
         # get train indices for d == 0
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
@@ -542,7 +508,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], p_hat)
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_obs,
+            "n_obs": self._dml_data.n_ids,
             "id_positions": self.id_positions,
         }
         psi_elements = {
@@ -604,8 +570,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._x_panel, self._y_panel, force_all_finite=False)
-        x, d = check_X_y(x, self._g_panel, force_all_finite=False)
+        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
+        x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
 
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
@@ -669,8 +635,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return res
 
     def _sensitivity_element_est(self, preds):
-        y = self._y_panel
-        d = self._g_panel
+        y = self._y_data_subset
+        d = self._g_data_subset
 
         m_hat = _get_id_positions(preds["predictions"]["ml_m"], self.id_positions)
         g_hat0 = _get_id_positions(preds["predictions"]["ml_g0"], self.id_positions)
@@ -707,13 +673,13 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         psi_nu2 = nu2_score_element - nu2
 
         extend_kwargs = {
-            "n_obs": self._dml_data.n_obs,
+            "n_obs": self._dml_data.n_ids,
             "id_positions": self.id_positions,
             "fill_value": 0.0,
         }
 
         # add scaling to make variance estimation consistent (sample size difference)
-        scaling = self._dml_data.n_obs / self._n_subset
+        scaling = self._dml_data.n_ids / self._n_obs_subset
         element_dict = {
             "sigma2": sigma2,
             "nu2": nu2,

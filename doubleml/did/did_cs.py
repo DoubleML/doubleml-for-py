@@ -37,7 +37,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -47,7 +47,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
@@ -219,19 +219,17 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
         # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
 
         # nuisance estimates of the uncond. time prob.
-        lambda_hat = np.full_like(t, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            lambda_hat[test_index] = np.mean(t[train_index])
+        lambda_hat = np.full_like(t, t.mean(), dtype="float64")
 
         # nuisance g
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
         if external_predictions["ml_g_d0_t0"] is not None:
-            g_hat_d0_t0 = {"preds": external_predictions["ml_g_d0_t0"], "targets": None, "models": None}
+            g_hat_d0_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d0_t0_targets[(d == 0) & (t == 0)] = y[(d == 0) & (t == 0)]
+            g_hat_d0_t0 = {"preds": external_predictions["ml_g_d0_t0"], "targets": g_hat_d0_t0_targets, "models": None}
         else:
             g_hat_d0_t0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -247,7 +245,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d0_t0["targets"] = g_hat_d0_t0["targets"].astype(float)
             g_hat_d0_t0["targets"][np.invert((d == 0) & (t == 0))] = np.nan
         if external_predictions["ml_g_d0_t1"] is not None:
-            g_hat_d0_t1 = {"preds": external_predictions["ml_g_d0_t1"], "targets": None, "models": None}
+            g_hat_d0_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d0_t1_targets[(d == 0) & (t == 1)] = y[(d == 0) & (t == 1)]
+            g_hat_d0_t1 = {"preds": external_predictions["ml_g_d0_t1"], "targets": g_hat_d0_t1_targets, "models": None}
         else:
             g_hat_d0_t1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -262,7 +262,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d0_t1["targets"] = g_hat_d0_t1["targets"].astype(float)
             g_hat_d0_t1["targets"][np.invert((d == 0) & (t == 1))] = np.nan
         if external_predictions["ml_g_d1_t0"] is not None:
-            g_hat_d1_t0 = {"preds": external_predictions["ml_g_d1_t0"], "targets": None, "models": None}
+            g_hat_d1_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d1_t0_targets[(d == 1) & (t == 0)] = y[(d == 1) & (t == 0)]
+            g_hat_d1_t0 = {"preds": external_predictions["ml_g_d1_t0"], "targets": g_hat_d1_t0_targets, "models": None}
         else:
             g_hat_d1_t0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -277,7 +279,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d1_t0["targets"] = g_hat_d1_t0["targets"].astype(float)
             g_hat_d1_t0["targets"][np.invert((d == 1) & (t == 0))] = np.nan
         if external_predictions["ml_g_d1_t1"] is not None:
-            g_hat_d1_t1 = {"preds": external_predictions["ml_g_d1_t1"], "targets": None, "models": None}
+            g_hat_d1_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d1_t1_targets[(d == 1) & (t == 1)] = y[(d == 1) & (t == 1)]
+            g_hat_d1_t1 = {"preds": external_predictions["ml_g_d1_t1"], "targets": g_hat_d1_t1_targets, "models": None}
         else:
             g_hat_d1_t1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -297,7 +301,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         if self.score == "observational":
             # nuisance m
             if external_predictions["ml_m"] is not None:
-                m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
+                m_hat = {"preds": external_predictions["ml_m"], "targets": d, "models": None}
             else:
                 m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
