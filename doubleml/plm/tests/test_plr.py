@@ -304,7 +304,7 @@ def test_dml_plr_cate_gate(score, cov_type):
 
     # collect data
     np.random.seed(42)
-    obj_dml_data = dml.datasets.make_plr_CCDDHNR2018(n_obs=n)
+    obj_dml_data = dml.plm.datasets.make_plr_CCDDHNR2018(n_obs=n)
     ml_l = LinearRegression()
     ml_g = LinearRegression()
     ml_m = LinearRegression()

@@ -102,6 +102,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         self._treated = self._dml_data.d == self._treatment_level
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["APO"]
         _check_score(self.score, valid_scores, allow_callable=False)
 

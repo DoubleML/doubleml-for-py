@@ -14,6 +14,11 @@ def did_score(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[True, False])
+def panel(request):
+    return request.param
+
+
 @pytest.fixture(scope="module", params=[1, 3])
 def n_rep(request):
     return request.param
@@ -30,7 +35,7 @@ def set_ml_g_ext(request):
 
 
 @pytest.fixture(scope="module")
-def doubleml_did_multi_ext_fixture(did_score, n_rep, set_ml_m_ext, set_ml_g_ext):
+def doubleml_did_multi_ext_fixture(did_score, panel, n_rep, set_ml_m_ext, set_ml_g_ext):
     n_obs = 500
     n_folds = 5
     dgp = 1
@@ -47,6 +52,7 @@ def doubleml_did_multi_ext_fixture(did_score, n_rep, set_ml_m_ext, set_ml_g_ext)
         "obj_dml_data": dml_panel_data,
         "gt_combinations": [(2, 0, 1)],
         "score": did_score,
+        "panel": panel,
         "n_rep": n_rep,
         "n_folds": n_folds,
     }
@@ -69,9 +75,12 @@ def doubleml_did_multi_ext_fixture(did_score, n_rep, set_ml_m_ext, set_ml_g_ext)
         ml_m_ext = ml_m
 
     if set_ml_g_ext:
+        g_keys = ["ml_g0", "ml_g1"] if panel else ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1"]
         for i_gt_combination, gt_label in enumerate(dml_obj.gt_labels):
-            ext_pred_dict[gt_label]["ml_g0"] = dml_obj.modellist[i_gt_combination].predictions["ml_g0"][:, :, 0]
-            ext_pred_dict[gt_label]["ml_g1"] = dml_obj.modellist[i_gt_combination].predictions["ml_g1"][:, :, 0]
+            predictions = dml_obj.modellist[i_gt_combination].predictions
+            for key in g_keys:
+                ext_pred_dict[gt_label][key] = predictions[key][:, :, 0]
+
         ml_g_ext = DMLDummyRegressor()
     else:
         ml_g_ext = ml_g
@@ -99,4 +108,11 @@ def doubleml_did_multi_ext_fixture(did_score, n_rep, set_ml_m_ext, set_ml_g_ext)
 def test_coef(doubleml_did_multi_ext_fixture):
     assert math.isclose(
         doubleml_did_multi_ext_fixture["coef"], doubleml_did_multi_ext_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-3
+    )
+
+
+@pytest.mark.ci
+def test_se(doubleml_did_multi_ext_fixture):
+    assert math.isclose(
+        doubleml_did_multi_ext_fixture["se"], doubleml_did_multi_ext_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-3
     )

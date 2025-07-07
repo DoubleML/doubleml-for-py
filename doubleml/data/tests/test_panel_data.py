@@ -33,7 +33,7 @@ def test_t_col_setter():
     with pytest.raises(ValueError, match=msg):
         dml_data.t_col = "a13"
 
-    msg = r"The time variable t_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
+    msg = r"The time variable t_col must be of str type. " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.t_col = 5
 
@@ -56,7 +56,7 @@ def test_id_col_setter():
     dml_data.id_col = "id_new"
     assert np.array_equal(dml_data.id_var, id_comp)
     assert dml_data._id_var_unique == np.unique(id_comp)
-    assert dml_data.n_obs == 1
+    assert dml_data.n_ids == 1
 
     msg = "Invalid id variable id_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):
@@ -169,7 +169,8 @@ def test_panel_data_properties():
 
     assert np.array_equal(dml_data.id_var, df["id"].values)
     assert np.array_equal(dml_data.id_var_unique, np.unique(df["id"].values))
-    assert dml_data.n_obs == len(np.unique(df["id"].values))
+    assert dml_data.n_obs == df.shape[0]
+    assert dml_data.n_ids == len(np.unique(df["id"].values))
     assert dml_data.g_col == "d"
     assert np.array_equal(dml_data.g_values, np.sort(np.unique(df["d"].values)))
     assert dml_data.n_groups == len(np.unique(df["d"].values))

@@ -6,6 +6,7 @@ from .did import DoubleMLDID
 from .did_aggregation import DoubleMLDIDAggregation
 from .did_binary import DoubleMLDIDBinary
 from .did_cs import DoubleMLDIDCS
+from .did_cs_binary import DoubleMLDIDCSBinary
 from .did_multi import DoubleMLDIDMulti
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "DoubleMLDID",
     "DoubleMLDIDCS",
     "DoubleMLDIDBinary",
+    "DoubleMLDIDCSBinary",
     "DoubleMLDIDMulti",
 ]
