@@ -70,7 +70,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -80,7 +80,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
