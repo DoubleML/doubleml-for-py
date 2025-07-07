@@ -50,9 +50,6 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     n_obs = 500
     dpg = 1
 
-    boot_methods = ["normal"]
-    n_rep_boot = 50000
-
     # collect data
     df = make_did_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type)
     dml_panel_data = dml.data.DoubleMLPanelData(
@@ -69,7 +66,7 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
         "draw_sample_splitting": True,
     }
 
-    dml_did_binary_obj = dml.did.DoubleMLDIDBinary(
+    dml_did_binary_obj = dml.did.DoubleMLDIDCSBinary(
         dml_panel_data,
         g_value=dml_panel_data.g_values[0],
         t_value_pre=dml_panel_data.t_values[0],
@@ -78,20 +75,28 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     )
     dml_did_binary_obj.fit()
 
-    df_wide = dml_did_binary_obj.data_subset.copy()
-    dml_data = dml.data.DoubleMLData(df_wide, y_col="y_diff", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"])
-    dml_did_obj = dml.DoubleMLDID(
+    df_subset = dml_did_binary_obj.data_subset.copy()
+    dml_data = dml.data.DoubleMLData(
+        df_subset, y_col="y", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"], t_col="t_indicator"
+    )
+    dml_did_obj = dml.DoubleMLDIDCS(
         dml_data,
         **dml_args,
     )
 
     # use external predictions (sample splitting is hard to synchronize)
     ext_predictions = {"G_indicator": {}}
-    ext_predictions["G_indicator"]["ml_g0"] = _get_id_positions(
-        dml_did_binary_obj.predictions["ml_g0"][:, :, 0], dml_did_binary_obj._id_positions
+    ext_predictions["G_indicator"]["ml_g_d0_t0"] = _get_id_positions(
+        dml_did_binary_obj.predictions["ml_g_d0_t0"][:, :, 0], dml_did_binary_obj._id_positions
     )
-    ext_predictions["G_indicator"]["ml_g1"] = _get_id_positions(
-        dml_did_binary_obj.predictions["ml_g1"][:, :, 0], dml_did_binary_obj._id_positions
+    ext_predictions["G_indicator"]["ml_g_d0_t1"] = _get_id_positions(
+        dml_did_binary_obj.predictions["ml_g_d0_t1"][:, :, 0], dml_did_binary_obj._id_positions
+    )
+    ext_predictions["G_indicator"]["ml_g_d1_t0"] = _get_id_positions(
+        dml_did_binary_obj.predictions["ml_g_d1_t0"][:, :, 0], dml_did_binary_obj._id_positions
+    )
+    ext_predictions["G_indicator"]["ml_g_d1_t1"] = _get_id_positions(
+        dml_did_binary_obj.predictions["ml_g_d1_t1"][:, :, 0], dml_did_binary_obj._id_positions
     )
     if score == "observational":
         ext_predictions["G_indicator"]["ml_m"] = _get_id_positions(
@@ -106,19 +111,8 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
         "se_binary": dml_did_binary_obj.se,
         "nuisance_loss": dml_did_obj.nuisance_loss,
         "nuisance_loss_binary": dml_did_binary_obj.nuisance_loss,
-        "boot_methods": boot_methods,
         "dml_did_binary_obj": dml_did_binary_obj,
     }
-
-    for bootstrap in boot_methods:
-        np.random.seed(3141)
-        dml_did_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-        np.random.seed(3141)
-        dml_did_binary_obj.bootstrap(method=bootstrap, n_rep_boot=n_rep_boot)
-
-        # approximately same ci (bootstrap not identical due to size of score)
-        res_dict["boot_ci" + bootstrap] = dml_did_obj.confint(joint=True)
-        res_dict["boot_ci" + bootstrap + "_binary"] = dml_did_binary_obj.confint(joint=True)
 
     # sensitivity tests
     res_dict["sensitivity_elements"] = dml_did_obj.sensitivity_elements
@@ -147,14 +141,7 @@ def test_ses(dml_did_binary_vs_did_fixture):
     )
 
 
-@pytest.mark.ci
-def test_boot(dml_did_binary_vs_did_fixture):
-    for bootstrap in dml_did_binary_vs_did_fixture["boot_methods"]:
-        assert np.allclose(
-            dml_did_binary_vs_did_fixture["boot_ci" + bootstrap].values,
-            dml_did_binary_vs_did_fixture["boot_ci" + bootstrap + "_binary"].values,
-            atol=1e-2,
-        )
+# No Boostrap Tests as the observations are not ordered in the same way
 
 
 @pytest.mark.ci
@@ -178,7 +165,7 @@ def test_sensitivity_elements(dml_did_binary_vs_did_fixture):
         )
     for sensitivity_element in ["psi_sigma2", "psi_nu2", "riesz_rep"]:
         dml_binary_obj = dml_did_binary_vs_did_fixture["dml_did_binary_obj"]
-        scaling = dml_binary_obj.n_obs_subset / dml_binary_obj._dml_data.n_ids
+        scaling = dml_binary_obj.n_obs_subset / dml_binary_obj._dml_data.n_obs
         binary_sensitivity_element = scaling * _get_id_positions(
             dml_did_binary_vs_did_fixture["sensitivity_elements_binary"][sensitivity_element], dml_binary_obj._id_positions
         )

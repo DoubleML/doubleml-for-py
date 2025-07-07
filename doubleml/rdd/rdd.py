@@ -50,7 +50,7 @@ class RDFlex:
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     cutoff : float or int
@@ -143,7 +143,14 @@ class RDFlex:
 
         self._check_effect_sign()
 
-        # TODO: Add further input checks
+        if found_keys := {"h", "b"} & kwargs.keys():
+            warnings.warn(
+                (
+                    f"Key-worded arguments contain: {found_keys}.\n"
+                    "Iterative bandwidth selection will be overwritten by provided values."
+                )
+            )
+
         self.kwargs = kwargs
 
         self._smpls = DoubleMLResampling(
@@ -453,10 +460,16 @@ class RDFlex:
     def _fit_rdd(self, h=None, b=None):
         if self.fuzzy:
             rdd_res = rdrobust.rdrobust(
-                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=self._M_D[:, self._i_rep], h=h, b=b, **self.kwargs
+                y=self._M_Y[:, self._i_rep],
+                x=self._score,
+                fuzzy=self._M_D[:, self._i_rep],
+                c=0,
+                **({"h": h, "b": b} | self.kwargs),
             )
         else:
-            rdd_res = rdrobust.rdrobust(y=self._M_Y[:, self._i_rep], x=self._score, h=h, b=b, **self.kwargs)
+            rdd_res = rdrobust.rdrobust(
+                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=None, c=0, **({"h": h, "b": b} | self.kwargs)
+            )
         return rdd_res
 
     def _set_coefs(self, rdd_res, h):
