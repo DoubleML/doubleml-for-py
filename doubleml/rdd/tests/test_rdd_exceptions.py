@@ -237,3 +237,22 @@ def test_rdd_exception_fit():
     msg = "The number of iterations for the iterative bandwidth fitting has to be positive. 0 was passed."
     with pytest.raises(ValueError, match=msg):
         rdd_model.fit(n_iterations=0)
+
+
+@pytest.mark.ci_rdd
+def test_rdd_warning_kwargs():
+    msg = r"Key-worded arguments contain: {'h'}.\n" "Iterative bandwidth selection will be overwritten by provided values."
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, h=0.1)
+
+    msg = r"Key-worded arguments contain: {'b'}.\n" "Iterative bandwidth selection will be overwritten by provided values."
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, b=0.1)
+
+    # The order in the set is not guaranteed
+    msg = (
+        r"Key-worded arguments contain: {'[hb]', '[hb]'}.\n"
+        "Iterative bandwidth selection will be overwritten by provided values."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, h=0.1, b=0.1)
