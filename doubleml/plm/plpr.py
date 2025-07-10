@@ -6,6 +6,7 @@ from sklearn.base import clone
 from sklearn.utils import check_X_y
 
 from ..data.base_data import DoubleMLData
+from ..data.cluster_data import DoubleMLClusterData
 from ..double_ml import DoubleML
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
@@ -122,18 +123,74 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = False ###
         self._external_predictions_implemented = True
 
+    def __str__(self):
+        class_name = self.__class__.__name__
+        header = f"================== {class_name} Object ==================\n"
+        data_summary = self._dml_data._data_summary_str()
+        score_pdml_approach_info = (
+            f"Score function: {str(self.score)}\n"
+            f"Static panel model approach: {str(self.pdml_approach)}\n"
+        )
+        learner_info = ""
+        for key, value in self.learner.items():
+            learner_info += f"Learner {key}: {str(value)}\n"
+        if self.nuisance_loss is not None:
+            learner_info += "Out-of-sample Performance:\n"
+            is_classifier = [value for value in self._is_classifier.values()]
+            is_regressor = [not value for value in is_classifier]
+            if any(is_regressor):
+                learner_info += "Regression:\n"
+                for learner in [key for key, value in self._is_classifier.items() if value is False]:
+                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
+            if any(is_classifier):
+                learner_info += "Classification:\n"
+                for learner in [key for key, value in self._is_classifier.items() if value is True]:
+                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
+
+        if self._is_cluster_data:
+            resampling_info = (
+                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
+                f"No. folds: {self.n_folds}\n"
+                f"No. repeated sample splits: {self.n_rep}\n"
+            )
+        else:
+            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
+        fit_summary = str(self.summary)
+        res = (
+            header
+            + "\n------------------ Data summary      ------------------\n"
+            + data_summary
+            + "\n------------------ Score & algorithm ------------------\n"
+            + score_pdml_approach_info
+            + "\n------------------ Machine learner   ------------------\n"
+            + learner_info
+            + "\n------------------ Resampling        ------------------\n"
+            + resampling_info
+            + "\n------------------ Fit summary       ------------------\n"
+            + fit_summary
+        )
+        return res
+    
+    @property
+    def pdml_approach(self):
+        """
+        The score function.
+        """
+        return self._pdml_approach
+
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
+    # DoubleML init check for type already?
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLClusterData):
             raise TypeError(
-                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLClusterData type. {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
             raise ValueError(
                 "Incompatible data. " + " and ".join(obj_dml_data.z_cols) + " have been set as instrumental variable(s). "
-                "To fit a partially linear IV regression model use DoubleMLPLIV instead of DoubleMLPLR."
+                "DoubleMLPLPR currently does not support instrumental variables."
             )
         return
     
