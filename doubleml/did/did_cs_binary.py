@@ -28,78 +28,78 @@ from doubleml.utils._propensity_score import _trimm
 
 
 class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
-    """Double machine learning for difference-in-differences models with repeated cross sections (binary setting in terms of group and time
-        combinations).
+    """Double machine learning for difference-in-differences models with repeated cross sections
+    (binary setting in terms of group and time combinations).
 
-        Parameters
-        ----------
-        obj_dml_data : :class:`DoubleMLPanelData` object
-            The :class:`DoubleMLPanelData` object providing the data and specifying the variables for the causal model.
+    Parameters
+    ----------
+    obj_dml_data : :class:`DoubleMLPanelData` object
+        The :class:`DoubleMLPanelData` object providing the data and specifying the variables for the causal model.
 
-        g_value : int
-            The value indicating the treatment group (first period with treatment).
-            Default is ``None``. This implements the case for the smallest, non-zero value of G.
+    g_value : int
+        The value indicating the treatment group (first period with treatment).
+        Default is ``None``. This implements the case for the smallest, non-zero value of G.
 
-        t_value_pre : int
-            The value indicating the baseline pre-treatment period.
+    t_value_pre : int
+        The value indicating the baseline pre-treatment period.
 
-        t_value_eval : int
-            The value indicating the period for evaluation.
+    t_value_eval : int
+        The value indicating the period for evaluation.
 
-        ml_g : estimator implementing ``fit()`` and ``predict()``
-            A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-            :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
-            For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
-            ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
-            ``predict_proba()`` is used otherwise ``predict()``.
+    ml_g : estimator implementing ``fit()`` and ``predict()``
+        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`g_0(d,X) = E[Y_1-Y_0|D=d, X]`.
+        For a binary outcome variable :math:`Y` (with values 0 and 1), a classifier implementing ``fit()`` and
+        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
+        ``predict_proba()`` is used otherwise ``predict()``.
 
-        ml_m : classifier implementing ``fit()`` and ``predict_proba()``
-            A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
-            :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
-            Only relevant for ``score='observational'``.
+    ml_m : classifier implementing ``fit()`` and ``predict_proba()``
+        A machine learner implementing ``fit()`` and ``predict_proba()`` methods (e.g.
+        :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
+        Only relevant for ``score='observational'``.
 
-        control_group : str
-            Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
-            Default is ``'never_treated'``.
+    control_group : str
+        Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
+        Default is ``'never_treated'``.
 
-        anticipation_periods : int
-            Number of anticipation periods. Default is ``0``.
+    anticipation_periods : int
+        Number of anticipation periods. Default is ``0``.
 
-        n_folds : int
-            Number of folds.
-            Default is ``5``.
+    n_folds : int
+        Number of folds.
+        Default is ``5``.
 
-        n_rep : int
-            Number of repetitions for the sample splitting.
-            Default is ``1``.
+    n_rep : int
+        Number of repetitions for the sample splitting.
+        Default is ``1``.
 
-        score : str
-            A str (``'observational'`` or ``'experimental'``) specifying the score function.
-            The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
-            from the pretreatment covariates.
-            Default is ``'observational'``.
+    score : str
+        A str (``'observational'`` or ``'experimental'``) specifying the score function.
+        The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
+        from the pretreatment covariates.
+        Default is ``'observational'``.
 
-        in_sample_normalization : bool
-            Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
-            Default is ``True``.
+    in_sample_normalization : bool
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
+        Default is ``True``.
 
-        trimming_rule : str
-            A str (``'truncate'`` is the only choice) specifying the trimming approach.
-            Default is ``'truncate'``.
+    trimming_rule : str
+        A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Default is ``'truncate'``.
 
-        trimming_threshold : float
-            The threshold used for trimming.
-            Default is ``1e-2``.
+    trimming_threshold : float
+        The threshold used for trimming.
+        Default is ``1e-2``.
 
-        draw_sample_splitting : bool
-            Indicates whether the sample splitting should be drawn during initialization of the object.
-            Default is ``True``.
+    draw_sample_splitting : bool
+        Indicates whether the sample splitting should be drawn during initialization of the object.
+        Default is ``True``.
 
-        print_periods : bool
-            Indicates whether to print information about the evaluated periods.
-            Default is ``False``.
+    print_periods : bool
+        Indicates whether to print information about the evaluated periods.
+        Default is ``False``.
 
-        """
+    """
 
     def __init__(
         self,
