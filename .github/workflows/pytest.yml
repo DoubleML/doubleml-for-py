@@ -34,27 +34,26 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 2
+
     - name: Set up Python ${{ matrix.config.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.config.python-version }}
+
     - name: Install OpenMP runtime for unit tests with xgboost learners
       if: matrix.config.os == 'macOS-latest'
       run: brew install libomp
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev,rdd]
-    - name: Lint with ruff
+
+    - name: Run pre-commit checks
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        ruff check . --select E9,F63,F7,F82 --output-format=full --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        ruff check . --exit-zero --line-length 127 --output-format=full --statistics
-    - name: Check code formatting with black
-      run: |
-        black --check --verbose . || echo "Warning: Code is not formatted according to black"
-        exit 0
+        pip install pre-commit
+        pre-commit run --all-files --show-diff-on-failure
+
     - name: Test with pytest
       if: |
         matrix.config.os != 'ubuntu-latest' ||
