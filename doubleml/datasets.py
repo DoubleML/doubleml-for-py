@@ -4,6 +4,7 @@ import warnings
 
 from scipy.linalg import toeplitz
 from scipy.optimize import minimize_scalar
+from scipy.special import expit
 
 from sklearn.preprocessing import PolynomialFeatures, OneHotEncoder
 from sklearn.datasets import make_spd_matrix
@@ -126,7 +127,7 @@ def _g(x):
 
 
 def _m(x, nu=0., gamma=1.):
-    return 0.5/np.pi*(np.sinh(gamma))/(np.cosh(gamma)-np.cos(x-nu))
+    return 0.5 / np.pi * (np.sinh(gamma)) / (np.cosh(gamma) - np.cos(x - nu))
 
 
 def make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
@@ -333,13 +334,13 @@ def make_irm_data(n_obs=500, dim_x=20, theta=0, R2_d=0.5, R2_y=0.5, return_type=
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    beta = [1 / (k ** 2) for k in range(1, dim_x + 1)]
     b_sigma_b = np.dot(np.dot(cov_mat, beta), beta)
-    c_y = np.sqrt(R2_y/((1-R2_y) * b_sigma_b))
-    c_d = np.sqrt(np.pi**2 / 3. * R2_d/((1-R2_d) * b_sigma_b))
+    c_y = np.sqrt(R2_y / ((1 - R2_y) * b_sigma_b))
+    c_d = np.sqrt(np.pi ** 2 / 3. * R2_d / ((1 - R2_d) * b_sigma_b))
 
     xx = np.exp(np.dot(x, np.multiply(beta, c_d)))
-    d = 1. * ((xx/(1+xx)) > v)
+    d = 1. * ((xx / (1 + xx)) > v)
 
     y = d * theta + d * np.dot(x, np.multiply(beta, c_y)) + zeta
 
@@ -414,7 +415,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    beta = [1 / (k ** 2) for k in range(1, dim_x + 1)]
 
     z = np.random.binomial(p=0.5, n=1, size=[n_obs, ])
     d = 1. * (alpha_x * z + v > 0)
@@ -436,7 +437,7 @@ def make_iivm_data(n_obs=500, dim_x=20, theta=1., alpha_x=0.2, return_type='Doub
 
 
 def _make_pliv_data(n_obs=100, dim_x=20, theta=0.5, gamma_z=0.4, return_type='DoubleMLData'):
-    b = [1/k for k in range(1, dim_x+1)]
+    b = [1 / k for k in range(1, dim_x + 1)]
     sigma = make_spd_matrix(dim_x)
 
     x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=[n_obs, ])
@@ -526,13 +527,13 @@ def make_pliv_CHS2015(n_obs, alpha=1., dim_x=200, dim_z=150, return_type='Double
 
     I_z = np.eye(dim_z)
     xi = np.random.multivariate_normal(np.zeros(dim_z),
-                                       0.25*I_z,
+                                       0.25 * I_z,
                                        size=[n_obs, ])
 
-    beta = [1 / (k**2) for k in range(1, dim_x + 1)]
+    beta = [1 / (k ** 2) for k in range(1, dim_x + 1)]
     gamma = beta
-    delta = [1 / (k**2) for k in range(1, dim_z + 1)]
-    Pi = np.hstack((I_z, np.zeros((dim_z, dim_x-dim_z))))
+    delta = [1 / (k ** 2) for k in range(1, dim_z + 1)]
+    Pi = np.hstack((I_z, np.zeros((dim_z, dim_x - dim_z))))
 
     z = np.dot(x, np.transpose(Pi)) + xi
     d = np.dot(x, gamma) + np.dot(z, delta) + u
@@ -679,7 +680,7 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1., return_
         + omega_X[0] * alpha_X_i + omega_X[1] * alpha_X_j
 
     eps = (1 - omega_epsilon[0] - omega_epsilon[1]) * alpha_eps \
-        + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
+          + omega_epsilon[0] * alpha_eps_i + omega_epsilon[1] * alpha_eps_j
 
     v = (1 - omega_v[0] - omega_v[1]) * alpha_v \
         + omega_v[0] * alpha_v_i + omega_v[1] * alpha_v_j
@@ -800,21 +801,21 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     lambda_t = kwargs.get('lambda_t', 0.5)
 
     def f_reg(w):
-        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
         return res
 
     def f_ps(w, xi):
-        res = xi*(-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
 
     dim_x = 4
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0]*x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -855,11 +856,11 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     d = 1.0 * (p >= u)
 
     # potential outcomes
-    nu = np.random.normal(loc=d*f_reg(features_reg), scale=1, size=n_obs)
+    nu = np.random.normal(loc=d * f_reg(features_reg), scale=1, size=n_obs)
     y0 = f_reg(features_reg) + nu + epsilon_0
     y1_d0 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 0]
     y1_d1 = 2 * f_reg(features_reg) + nu + epsilon_1[:, 1]
-    y1 = d * y1_d1 + (1-d) * y1_d0
+    y1 = d * y1_d1 + (1 - d) * y1_d0
 
     if not cross_sectional_data:
         y = y1 - y0
@@ -880,7 +881,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     else:
         u_t = np.random.uniform(low=0, high=1, size=n_obs)
         t = 1.0 * (u_t <= lambda_t)
-        y = t * y1 + (1-t)*y0
+        y = t * y1 + (1 - t) * y0
 
         if return_type in _array_alias:
             return z, y, d, t
@@ -1007,20 +1008,21 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
 
     # Specification of main regression function
     def f_reg(w):
-        res = 2.5 + 0.74*w[:, 0] + 0.25 * w[:, 1] + 0.137*(w[:, 2] + w[:, 3])
+        res = 2.5 + 0.74 * w[:, 0] + 0.25 * w[:, 1] + 0.137 * (w[:, 2] + w[:, 3])
         return res
 
     # Specification of prop score function
     def f_ps(w, xi):
-        res = xi*(-w[:, 0] + 0.1*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.1 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
+
     # observed covariates
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
     z_tilde_5 = x[:, 4]
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, z_tilde_5))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1041,36 +1043,36 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
 
     p = np.exp(f_ps(features_ps, xi)) / (1 + np.exp(f_ps(features_ps, xi)))
     # compute short and long form of propensity score
-    m_long = p + gamma_a*a
+    m_long = p + gamma_a * a
     m_short = p
     # check propensity score bounds
     if np.any(m_long < trimming_threshold) or np.any(m_long > 1.0 - trimming_threshold):
         m_long = np.clip(m_long, trimming_threshold, 1.0 - trimming_threshold)
         m_short = np.clip(m_short, trimming_threshold, 1.0 - trimming_threshold)
         warnings.warn(f'Propensity score is close to 0 or 1. '
-                      f'Trimming is at {trimming_threshold} and {1.0-trimming_threshold} is applied')
+                      f'Trimming is at {trimming_threshold} and {1.0 - trimming_threshold} is applied')
     # generate treatment based on long form
     u = np.random.uniform(low=0, high=1, size=n_obs)
     d = 1.0 * (m_long >= u)
     # add treatment heterogeneity
     d1x = z[:, 4] + 1
-    var_dx = np.var(d*(d1x))
+    var_dx = np.var(d * (d1x))
     cov_adx = gamma_a * var_a
     # Outcome regression
     g_partial_reg = f_reg(features_reg)
     # short model
     g_short_d0 = g_partial_reg
     g_short_d1 = (theta + beta_a * cov_adx / var_dx) * d1x + g_partial_reg
-    g_short = d * g_short_d1 + (1.0-d) * g_short_d0
+    g_short = d * g_short_d1 + (1.0 - d) * g_short_d0
     # long model
     g_long_d0 = g_partial_reg + beta_a * a
     g_long_d1 = theta * d1x + g_partial_reg + beta_a * a
-    g_long = d * g_long_d1 + (1.0-d) * g_long_d0
+    g_long = d * g_long_d1 + (1.0 - d) * g_long_d0
     # Potential outcomes
     y_0 = g_long_d0 + eps_y
     y_1 = g_long_d1 + eps_y
     # Realized outcome
-    y = d * y_1 + (1.0-d) * y_0
+    y = d * y_1 + (1.0 - d) * y_0
     # In-sample values for confounding strength
     explained_residual_variance = np.square(g_long - g_short)
     residual_variance = np.square(y - g_short)
@@ -1085,7 +1087,8 @@ def make_confounded_irm_data(n_obs=500, theta=0.0, gamma_a=0.127, beta_a=0.58, l
     propensity_ratio_short = m_short / (1.0 - m_short)
     rr_short_ate = d / m_short - (1.0 - d) / (1.0 - m_short)
     rr_short_atte = treated_weight - np.multiply(untreated_weight, propensity_ratio_short)
-    cf_d_ate = (np.mean(1/(m_long * (1 - m_long))) - np.mean(1/(m_short * (1 - m_short)))) / np.mean(1/(m_long * (1 - m_long)))
+    cf_d_ate = (np.mean(1 / (m_long * (1 - m_long))) - np.mean(1 / (m_short * (1 - m_short)))) / np.mean(
+        1 / (m_long * (1 - m_long)))
     cf_d_atte = (np.mean(propensity_ratio_long) - np.mean(propensity_ratio_short)) / np.mean(propensity_ratio_long)
     if (beta_a == 0) | (gamma_a == 0):
         rho_ate = 0.0
@@ -1215,10 +1218,10 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    z_tilde_1 = np.exp(0.5*x[:, 0])
+    z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1235,32 +1238,32 @@ def make_confounded_plr_data(n_obs=500, theta=5.0, cf_y=0.04, cf_d=0.04, **kwarg
     var_a = np.square(a_bounds[1] - a_bounds[0]) / 12
 
     # get the required impact of the confounder on the propensity score
-    m_short = -z[:, 0] + 0.5*z[:, 1] - 0.25*z[:, 2] - 0.1*z[:, 3]
+    m_short = -z[:, 0] + 0.5 * z[:, 1] - 0.25 * z[:, 2] - 0.1 * z[:, 3]
 
     def f_m(gamma_a):
         rr_long = eps_d / var_eps_d
-        rr_short = (gamma_a * a + eps_d) / (gamma_a**2 * var_a + var_eps_d)
+        rr_short = (gamma_a * a + eps_d) / (gamma_a ** 2 * var_a + var_eps_d)
         C2_D = (np.mean(np.square(rr_long)) - np.mean(np.square(rr_short))) / np.mean(np.square(rr_short))
         return np.square(C2_D / (1 + C2_D) - cf_d)
 
     gamma_a = minimize_scalar(f_m).x
-    m_long = m_short + gamma_a*a
+    m_long = m_short + gamma_a * a
     d = m_long + eps_d
 
     # short and long version of g
-    g_partial_reg = 210 + 27.4*z[:, 0] + 13.7*(z[:, 1] + z[:, 2] + z[:, 3])
+    g_partial_reg = 210 + 27.4 * z[:, 0] + 13.7 * (z[:, 1] + z[:, 2] + z[:, 3])
 
     var_d = np.var(d)
 
     def f_g(beta_a):
-        g_diff = beta_a * (a - gamma_a * (var_a/var_d) * d)
+        g_diff = beta_a * (a - gamma_a * (var_a / var_d) * d)
         y_diff = eps_y + g_diff
         return np.square(np.mean(np.square(g_diff)) / np.mean(np.square(y_diff)) - cf_y)
 
     beta_a = minimize_scalar(f_g).x
 
-    g_long = theta*d + g_partial_reg + beta_a*a
-    g_short = (theta + gamma_a*beta_a * var_a / var_d)*d + g_partial_reg
+    g_long = theta * d + g_partial_reg + beta_a * a
+    g_short = (theta + gamma_a * beta_a * var_a / var_d) * d + g_partial_reg
 
     y = g_long + eps_y
 
@@ -1458,7 +1461,7 @@ def make_ssm_data(n_obs=8000, dim_x=100, theta=1, mar=True, return_type='DoubleM
     cov_mat = toeplitz([np.power(0.5, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
-    beta = [0.4 / (k**2) for k in range(1, dim_x + 1)]
+    beta = [0.4 / (k ** 2) for k in range(1, dim_x + 1)]
 
     d = np.where(np.dot(x, beta) + np.random.randn(n_obs) > 0, 1, 0)
     z = np.random.randn(n_obs)
@@ -1587,11 +1590,11 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=[n_obs, ])
 
     def f_reg(w):
-        res = 210 + 27.4*w[:, 0] + 13.7*(w[:, 1] + w[:, 2] + w[:, 3])
+        res = 210 + 27.4 * w[:, 0] + 13.7 * (w[:, 1] + w[:, 2] + w[:, 3])
         return res
 
     def f_treatment(w, xi):
-        res = xi * (-w[:, 0] + 0.5*w[:, 1] - 0.25*w[:, 2] - 0.1*w[:, 3])
+        res = xi * (-w[:, 0] + 0.5 * w[:, 1] - 0.25 * w[:, 2] - 0.1 * w[:, 3])
         return res
 
     def treatment_effect(d, scale=15):
@@ -1599,8 +1602,8 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
 
     z_tilde_1 = np.exp(0.5 * x[:, 0])
     z_tilde_2 = 10 + x[:, 1] / (1 + np.exp(x[:, 0]))
-    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2]/25)**3
-    z_tilde_4 = (20 + x[:, 1] + x[:, 3])**2
+    z_tilde_3 = (0.6 + x[:, 0] * x[:, 2] / 25) ** 3
+    z_tilde_4 = (20 + x[:, 1] + x[:, 3]) ** 2
 
     z_tilde = np.column_stack((z_tilde_1, z_tilde_2, z_tilde_3, z_tilde_4, x[:, 4:]))
     z = (z_tilde - np.mean(z_tilde, axis=0)) / np.std(z_tilde, axis=0)
@@ -1623,7 +1626,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     level_bounds = np.quantile(cont_d, q=np.linspace(0, 1, n_levels + 1))
     potential_level = sum([1.0 * (cont_d >= bound) for bound in level_bounds[1:-1]]) + 1
     eta = np.random.uniform(0, 1, size=n_obs)
-    d = 1.0 * (eta >= 1/n_levels) * potential_level
+    d = 1.0 * (eta >= 1 / n_levels) * potential_level
 
     ite = treatment_effect(cont_d)
     y0 = g + eps_y
@@ -1646,3 +1649,105 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     }
 
     return resul_dict
+
+
+def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
+    """
+    Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
+    designed for use in double/debiased machine learning applications.
+
+    The data generating process is defined as follows:
+
+    - Covariates \( x_i \sim \mathcal{N}(0, \Sigma) \), where \( \Sigma_{kj} = 0.7^{|j-k|} \).
+    - Treatment \( d_i = a_0(x_i) \).
+    - Propensity score \( p_i = \sigma(\alpha d_i + r_0(x_i)) \), where \( \sigma(\cdot) \) is the logistic function.
+    - Outcome \( y_i \sim \text{Bernoulli}(p_i) \).
+
+    The nuisance functions are defined as:
+
+    .. math::
+
+        a_0(x_i) &= \frac{2}{1 + \exp(x_{i,1})} - \frac{2}{1 + \exp(x_{i,2})} + \sin(x_{i,3}) + \cos(x_{i,4}) \\
+        &+ 0.5 \cdot \mathbb{1}(x_{i,5} > 0) - 0.5 \cdot \mathbb{1}(x_{i,6} > 0) + 0.2 x_{i,7} x_{i,8} - 0.2 x_{i,9} x_{i,10} \\
+
+        r_0(x_i) &= 0.1 x_{i,1} x_{i,2} x_{i,3} + 0.1 x_{i,4} x_{i,5} + 0.1 x_{i,6}^3 - 0.5 \sin^2(x_{i,7}) \\
+        &+ 0.5 \cos(x_{i,8}) + \frac{1}{1 + x_{i,9}^2} - \frac{1}{1 + \exp(x_{i,10})} \\
+        &+ 0.25 \cdot \mathbb{1}(x_{i,11} > 0) - 0.25 \cdot \mathbb{1}(x_{i,13} > 0)
+
+    Parameters
+    ----------
+    n_obs : int
+        Number of observations to simulate.
+    dim_x : int
+        Number of covariates.
+    alpha : float
+        Value of the causal parameter.
+    return_type : str
+        Determines the return format. One of:
+
+        - 'DoubleMLData' or DoubleMLData: returns a ``DoubleMLData`` object.
+        - 'DataFrame', 'pd.DataFrame' or pd.DataFrame: returns a ``pandas.DataFrame``.
+        - 'array', 'np.ndarray', 'np.array' or np.ndarray: returns tuple of numpy arrays (x, y, d, p).
+
+    **kwargs
+        Optional keyword arguments (currently unused in this implementation).
+
+    Returns
+    -------
+    Union[DoubleMLData, pd.DataFrame, Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
+        The generated data in the specified format.
+
+    References
+    ----------
+    Liu, Molei, Yi Zhang, and Doudou Zhou. 2021.
+    "Double/Debiased Machine Learning for Logistic Partially Linear Model."
+    The Econometrics Journal 24 (3): 559–88. https://doi.org/10.1093/ectj/utab019.
+
+    """
+
+    def r_0(X):
+        return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
+            0.1 * X[:, 3] * X[:, 4] + \
+            0.1 * X[:, 5] ** 3 + \
+            -0.5 * np.sin(X[:, 6]) ** 2 + \
+            0.5 * np.cos(X[:, 7]) + \
+            1 / (1 + X[:, 8] ** 2) + \
+            -1 / (1 + np.exp(X[:, 9])) + \
+            0.25 * np.where(X[:, 10] > 0, 1, 0) + \
+            -0.25 * np.where(X[:, 12] > 0, 1, 0)
+
+    def a_0(X):
+        return 2 / (1 + np.exp(X[:, 0])) + \
+            -2 / (1 + np.exp(X[:, 1])) + \
+            1 * np.sin(X[:, 2]) + \
+            1 * np.cos(X[:, 3]) + \
+            0.5 * np.where(X[:, 4] > 0, 1, 0) + \
+            -0.5 * np.where(X[:, 5] > 0, 1, 0) + \
+            0.2 * X[:, 6] * X[:, 7] + \
+            -0.2 * X[:, 8] * X[:, 9]
+
+
+    sigma = np.full((dim_x, dim_x), 0.2)
+    np.fill_diagonal(sigma, 1)
+
+    x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=n_obs)
+    np.clip(x, -2, 2, out=x)
+
+    d = a_0(x)
+
+    p = expit(alpha * d[:] + r_0(x))
+
+    y = np.random.binomial(1, p)
+
+    if return_type in _array_alias:
+        return x, y, d, p
+    elif return_type in _data_frame_alias + _dml_data_alias:
+        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d, p)),
+                            columns=x_cols + ['y', 'd', 'p'])
+        if return_type in _data_frame_alias:
+            return data
+        else:
+            return DoubleMLData(data, 'y', 'd', x_cols, p_cols='p')
+    else:
+        raise ValueError('Invalid return_type.')

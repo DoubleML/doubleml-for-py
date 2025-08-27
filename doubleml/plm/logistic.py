@@ -1,5 +1,9 @@
+import inspect
+
 import numpy as np
-from ..utils._estimation import (
+from torch.sparse import sampled_addmm
+
+from doubleml.utils._estimation import (
     _dml_cv_predict,
     _trimm,
     _predict_zero_one_propensity,
@@ -15,12 +19,12 @@ from sklearn.utils import check_X_y
 import scipy
 from sklearn.utils.multiclass import type_of_target
 
-from .. import DoubleMLData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import NonLinearScoreMixin
-from ..utils import DoubleMLClusterResampling
-from ..utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
-from ..utils.resampling import DoubleMLDoubleResampling
+from doubleml import DoubleMLData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import NonLinearScoreMixin
+from doubleml.utils import DoubleMLClusterResampling
+from doubleml.utils._checks import _check_score, _check_finite_predictions, _check_is_propensity
+from doubleml.utils.resampling import DoubleMLDoubleResampling
 
 
 
@@ -61,7 +65,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         Default is ``1``.
 
     score : str or callable
-        A str (``'partialling out'`` or ``'IV-type'``) specifying the score function
+        A str (``'nuisance_space'`` or ``'instrument'``) specifying the score function
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
@@ -103,14 +107,14 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     def __init__(self,
                  obj_dml_data,
-                 ml_m,
                  ml_M,
                  ml_t,
+                 ml_m,
                  ml_a=None,
                  n_folds=5,
                  n_folds_inner=5,
                  n_rep=1,
-                 score='logistic',
+                 score='nuisance_space',
                  draw_sample_splitting=True):
         self.n_folds_inner = n_folds_inner
         super().__init__(obj_dml_data,
@@ -122,12 +126,16 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         self._coef_start_val = 1.0
 
         self._check_data(self._dml_data)
-        valid_scores = ['logistic']
+        valid_scores = ['nuisance_space', 'instrument']
         _check_score(self.score, valid_scores, allow_callable=True)
 
         _ = self._check_learner(ml_t, 'ml_t', regressor=True, classifier=False)
         _ = self._check_learner(ml_M, 'ml_M', regressor=False, classifier=True)
-        ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=True)
+
+        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
+            ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=False, classifier=True)
+        else:
+            ml_m_is_classifier = self._check_learner(ml_m, 'ml_m', regressor=True, classifier=False)
         self._learner = {'ml_m': ml_m, 'ml_t': ml_t, 'ml_M': ml_M}
 
         if ml_a is not None:
@@ -157,6 +165,11 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         else:
             self._predict_method['ml_a'] = 'predict'
 
+        if score == 'instrument':
+            sig = inspect.signature(self.learner['ml_a'].fit)
+            if not 'sample_weight' in sig.parameters:
+                raise ValueError('Learner \"ml_a\" who supports sample_weight is required for score type \"instrument\"')
+
         self._initialize_ml_nuisance_params()
         self._external_predictions_implemented = True
 
@@ -174,7 +187,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
 
     def _double_dml_cv_predict(self, estimator, estimator_name,  x, y, smpls=None, smpls_inner=None,
-                    n_jobs=None, est_params=None, method='predict'):
+                    n_jobs=None, est_params=None, method='predict', sample_weights=None):
         res = {}
         res['preds'] = np.zeros(y.shape, dtype=float)
         res['preds_inner'] = []
@@ -182,7 +195,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
             res_inner = _dml_cv_predict(estimator, x, y, smpls=smpls_double_split, n_jobs=n_jobs,
                                     est_params=est_params, method=method,
-                                    return_models=True, smpls_is_partition=True)
+                                    return_models=True, smpls_is_partition=True, sample_weights=sample_weights)
             _check_finite_predictions(res_inner['preds'], estimator, estimator_name, smpls_double_split)
 
             res['preds_inner'].append(res_inner['preds'])
@@ -214,19 +227,41 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         else:
             a_external = False
 
+        if M_external:
+            M_hat = {'preds': external_predictions['ml_M'],
+                     'targets': None,
+                     'models': None}
+        else:
+            M_hat = (self._double_dml_cv_predict(self._learner['ml_M'], 'ml_M', x_d_concat, y, smpls=smpls, smpls_inner=self.__smpls__inner,
+                                                n_jobs=n_jobs_cv,
+                                    est_params=self._get_params('ml_M'), method=self._predict_method['ml_M']))
+
+        # TODO
+        #if self._score_type == "instrument":
+
+
         # nuisance m
         if m_external:
             m_hat = {'preds': external_predictions['ml_m'],
                      'targets': None,
                      'models': None}
         else:
-            filtered_smpls = []
-            for train, test in smpls:
-                train_filtered = train[y[train] == 0]
-                filtered_smpls.append((train_filtered, test))
-            m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=filtered_smpls, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                    return_models=return_models)
+            if self.score == 'instrument':
+                weights = []
+                for i, (train, test) in enumerate(smpls):
+                    weights.append( M_hat['preds_inner'][i][train] * (1-M_hat['preds_inner'][i][train]))
+                m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                        return_models=return_models, weights=weights)
+
+            else:
+                filtered_smpls = []
+                for train, test in smpls:
+                    train_filtered = train[y[train] == 0]
+                    filtered_smpls.append((train_filtered, test))
+                m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=filtered_smpls, n_jobs=n_jobs_cv,
+                                        est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
+                                        return_models=return_models)
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         if self._check_learner(self._learner['ml_m'], 'ml_m', regressor=True, classifier=True):
@@ -242,14 +277,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                  'probabilities and not labels are predicted.')
 
 
-        if M_external:
-            M_hat = {'preds': external_predictions['ml_M'],
-                     'targets': None,
-                     'models': None}
-        else:
-            M_hat = (self._double_dml_cv_predict(self._learner['ml_M'], 'ml_M', x_d_concat, y, smpls=smpls, smpls_inner=self.__smpls__inner,
-                                                n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_M'), method=self._predict_method['ml_M']))
+
 
         if a_external:
             a_hat = {'preds': external_predictions['ml_a'],
@@ -456,15 +484,22 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     def _compute_score(self, psi_elements, coef):
 
-        score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d_tilde"]
+        if self._score_type == 'nuisance_space':
+            score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d_tilde"]
+            score = psi_elements["psi_hat"] * (score_1 - psi_elements["score_const"])
+        else:
+            score = (psi_elements["y"] - np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"])) * psi_elements["d_tilde"]
 
-
-        return psi_elements["psi_hat"] * (score_1 - psi_elements["score_const"])
+        return score
 
     def _compute_score_deriv(self, psi_elements, coef, inds=None):
-        deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d"]
+        if self._score_type == 'nuisance_space':
+            deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d"]
+            deriv = psi_elements["psi_hat"] * psi_elements["d_tilde"] *  deriv_1
+        else:
+            deriv = - psi_elements["d"] * np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"]) * psi_elements["d_tilde"]
 
-        return psi_elements["psi_hat"] * psi_elements["d_tilde"] *  deriv_1
+        return deriv
 
 
     def cate(self, basis, is_gate=False):

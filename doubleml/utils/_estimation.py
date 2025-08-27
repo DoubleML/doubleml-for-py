@@ -47,7 +47,8 @@ def _fit(estimator, x, y, train_index, idx=None):
 
 
 def _dml_cv_predict(estimator, x, y, smpls=None,
-                    n_jobs=None, est_params=None, method='predict', return_train_preds=False, return_models=False, smpls_is_partition=None):
+                    n_jobs=None, est_params=None, method='predict', return_train_preds=False, return_models=False,
+                    smpls_is_partition=None, sample_weights=None):
     n_obs = x.shape[0]
 
     # TODO: Better name for smples_is_partition
@@ -56,7 +57,8 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
     manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target \
-        | return_models
+                        | return_models | bool(sample_weights)
+    #TODO: Check if cross_val_predict supports weights
 
     res = {'models': None}
     if not manual_cv_predict:
@@ -193,9 +195,9 @@ def _trimm(preds, trimming_rule, trimming_threshold):
 
 def _normalize_ipw(propensity, treatment):
     mean_treat1 = np.mean(np.divide(treatment, propensity))
-    mean_treat0 = np.mean(np.divide(1.0-treatment, 1.0-propensity))
+    mean_treat0 = np.mean(np.divide(1.0 - treatment, 1.0 - propensity))
     normalized_weights = np.multiply(treatment, np.multiply(propensity, mean_treat1)) \
-        + np.multiply(1.0-treatment, 1.0 - np.multiply(1.0-propensity, mean_treat0))
+                         + np.multiply(1.0 - treatment, 1.0 - np.multiply(1.0 - propensity, mean_treat0))
 
     return normalized_weights
 
@@ -275,7 +277,6 @@ def _aggregate_coefs_and_ses(all_coefs, all_ses, var_scaling_factors):
 
 def _var_est(psi, psi_deriv, smpls, is_cluster_data,
              cluster_vars=None, smpls_cluster=None, n_folds_per_cluster=None):
-
     if not is_cluster_data:
         # psi and psi_deriv should be of shape (n_obs, ...)
         var_scaling_factor = psi.shape[0]

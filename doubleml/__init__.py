@@ -16,7 +16,7 @@ from .irm.pq import DoubleMLPQ
 from .irm.lpq import DoubleMLLPQ
 from .irm.cvar import DoubleMLCVAR
 from .irm.ssm import DoubleMLSSM
-from .logistic.logistic import DoubleMLLogit
+from doubleml.plm.logistic import DoubleMLLogit
 
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree

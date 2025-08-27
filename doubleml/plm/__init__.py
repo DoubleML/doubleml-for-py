@@ -8,4 +8,5 @@ from .pliv import DoubleMLPLIV
 __all__ = [
     "DoubleMLPLR",
     "DoubleMLPLIV",
+    "DoubleMLLogit"
 ]
