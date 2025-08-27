@@ -215,9 +215,9 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         # TODO: How to deal with smpls_inner?
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
-                         force_all_finite=False)
+                         ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
-                         force_all_finite=False)
+                         ensure_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1,1), x))
         m_external = external_predictions['ml_m'] is not None
         M_external = external_predictions['ml_M'] is not None
@@ -236,9 +236,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                                 n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_M'), method=self._predict_method['ml_M']))
 
-        # TODO
-        #if self._score_type == "instrument":
-
 
         # nuisance m
         if m_external:
@@ -254,7 +251,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                         est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                         return_models=return_models, weights=weights)
 
-            else:
+            elif self.score == 'nuisance_space':
                 filtered_smpls = []
                 for train, test in smpls:
                     train_filtered = train[y[train] == 0]
@@ -262,6 +259,8 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                 m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=filtered_smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
                                         return_models=return_models)
+            else:
+                raise NotImplementedError
             _check_finite_predictions(m_hat['preds'], self._learner['ml_m'], 'ml_m', smpls)
 
         if self._check_learner(self._learner['ml_m'], 'ml_m', regressor=True, classifier=True):
@@ -288,31 +287,32 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                                 n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_a'), method=self._predict_method['ml_a']))
 
-        # r_legacy = np.zeros_like(y)
-        # smpls_inner = self.__smpls__inner
-        # M_hat = {}
-        # a_hat = {}
-        # M_hat['preds_inner'] = []
-        # M_hat['preds'] = np.full_like(y, np.nan)
-        # a_hat['preds_inner'] = []
-        # a_hat['preds'] = np.full_like(y, np.nan)
-        # for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
-        #     test = smpls_single_split[1]
-        #     train = smpls_single_split[0]
-        #     # r_legacy[test] =
-        #     Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
-        #                                                       self._learner['ml_m'], self._learner['ml_M'],
-        #                                                       smpls_single_split, smpls_double_split, y, x, d,
-        #                                                       x_d_concat, n_jobs_cv)
-        #     Mtemp = np.full_like(y, np.nan)
-        #     Mtemp[train] = Mleg
-        #     Atemp = np.full_like(y, np.nan)
-        #     Atemp[train] = aleg
-        #     M_hat['preds_inner'].append(Mtemp)
-        #     a_hat['preds_inner'].append(Atemp)
-        #     a_hat['preds'][test] = a_nf_leg
-        #
-        # #r_hat['preds'] = r_legacy
+
+        r_legacy = np.zeros_like(y)
+        smpls_inner = self.__smpls__inner
+        M_hat_l = {}
+        a_hat_l = {}
+        M_hat_l['preds_inner'] = []
+        M_hat_l['preds'] = np.full_like(y, np.nan)
+        a_hat_l['preds_inner'] = []
+        a_hat_l['preds'] = np.full_like(y, np.nan)
+        for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+            test = smpls_single_split[1]
+            train = smpls_single_split[0]
+            # r_legacy[test] =
+            Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
+                                                              self._learner['ml_m'], self._learner['ml_M'],
+                                                              smpls_single_split, smpls_double_split, y, x, d,
+                                                              x_d_concat, n_jobs_cv)
+            Mtemp = np.full_like(y, np.nan)
+            Mtemp[train] = Mleg
+            Atemp = np.full_like(y, np.nan)
+            Atemp[train] = aleg
+            M_hat_l['preds_inner'].append(Mtemp)
+            a_hat_l['preds_inner'].append(Atemp)
+            a_hat_l['preds'][test] = a_nf_leg
+
+        #r_hat['preds'] = r_legacy
 
 
 
@@ -342,10 +342,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
         r_hat = {}
         r_hat['preds'] = t_hat['preds'] - beta * a_hat['preds']
-
-
-
-
 
         psi_elements = self._score_elements(y, d, r_hat['preds'], m_hat['preds'])
 
@@ -484,124 +480,23 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
     def _compute_score(self, psi_elements, coef):
 
-        if self._score_type == 'nuisance_space':
+        if self.score == 'nuisance_space':
             score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d_tilde"]
             score = psi_elements["psi_hat"] * (score_1 - psi_elements["score_const"])
-        else:
+        elif self.score == 'instrument':
             score = (psi_elements["y"] - np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"])) * psi_elements["d_tilde"]
+        else:
+            raise NotImplementedError
 
         return score
 
     def _compute_score_deriv(self, psi_elements, coef, inds=None):
-        if self._score_type == 'nuisance_space':
+        if self.score == 'nuisance_space':
             deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d"]
             deriv = psi_elements["psi_hat"] * psi_elements["d_tilde"] *  deriv_1
-        else:
+        elif self.score == 'instrument':
             deriv = - psi_elements["d"] * np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"]) * psi_elements["d_tilde"]
+        else:
+            raise NotImplementedError
 
         return deriv
-
-
-    def cate(self, basis, is_gate=False):
-        """
-        Calculate conditional average treatment effects (CATE) for a given basis.
-
-        Parameters
-        ----------
-        basis : :class:`pandas.DataFrame`
-            The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
-            where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
-        is_gate : bool
-            Indicates whether the basis is constructed for GATEs (dummy-basis).
-            Default is ``False``.
-
-        Returns
-        -------
-        model : :class:`doubleML.DoubleMLBLP`
-            Best linear Predictor model.
-        """
-        if self._dml_data.n_treat > 1:
-            raise NotImplementedError('Only implemented for single treatment. ' +
-                                      f'Number of treatments is {str(self._dml_data.n_treat)}.')
-        if self.n_rep != 1:
-            raise NotImplementedError('Only implemented for one repetition. ' +
-                                      f'Number of repetitions is {str(self.n_rep)}.')
-
-        Y_tilde, D_tilde = self._partial_out()
-
-        D_basis = basis * D_tilde
-        model = DoublelMLBLP(
-            orth_signal=Y_tilde.reshape(-1),
-            basis=D_basis,
-            is_gate=is_gate,
-        )
-        model.fit()
-
-        ## TODO: Solve score
-
-
-        return model
-
-    def gate(self, groups):
-        """
-        Calculate group average treatment effects (GATE) for groups.
-
-        Parameters
-        ----------
-        groups : :class:`pandas.DataFrame`
-            The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
-            Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
-            and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
-
-        Returns
-        -------
-        model : :class:`doubleML.DoubleMLBLP`
-            Best linear Predictor model for Group Effects.
-        """
-
-        if not isinstance(groups, pd.DataFrame):
-            raise TypeError('Groups must be of DataFrame type. '
-                            f'Groups of type {str(type(groups))} was passed.')
-        if not all(groups.dtypes == bool) or all(groups.dtypes == int):
-            if groups.shape[1] == 1:
-                groups = pd.get_dummies(groups, prefix='Group', prefix_sep='_')
-            else:
-                raise TypeError('Columns of groups must be of bool type or int type (dummy coded). '
-                                'Alternatively, groups should only contain one column.')
-
-        if any(groups.sum(0) <= 5):
-            warnings.warn('At least one group effect is estimated with less than 6 observations.')
-
-        model = self.cate(groups, is_gate=True)
-        return model
-
-    def _partial_out(self):
-        """
-        Helper function. Returns the partialled out quantities of Y and D.
-        Works with multiple repetitions.
-
-        Returns
-        -------
-        Y_tilde : :class:`numpy.ndarray`
-            The residual of the regression of Y on X.
-        D_tilde : :class:`numpy.ndarray`
-            The residual of the regression of D on X.
-        """
-        if self.predictions is None:
-            raise ValueError('predictions are None. Call .fit(store_predictions=True) to store the predictions.')
-
-        y = self._dml_data.y.reshape(-1, 1)
-        d = self._dml_data.d.reshape(-1, 1)
-        ml_m = self.predictions["ml_m"].squeeze(axis=2)
-
-        if self.score == "partialling out":
-            ml_l = self.predictions["ml_l"].squeeze(axis=2)
-            Y_tilde = y - ml_l
-            D_tilde = d - ml_m
-        else:
-            assert self.score == "IV-type"
-            ml_g = self.predictions["ml_g"].squeeze(axis=2)
-            Y_tilde = y - (self.coef * ml_m) - ml_g
-            D_tilde = d - ml_m
-
-        return Y_tilde, D_tilde

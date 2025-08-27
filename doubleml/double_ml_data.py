@@ -288,6 +288,15 @@ class DoubleMLData(DoubleMLBaseData):
             check_consistent_length(x, y, d, s)
             s_col = 's'
 
+
+        if p is None:
+            p_cols = None
+        else:
+            if p.shape[1] == 1:
+                p_cols = ['p']
+            else:
+                p_cols = [f'p{i + 1}' for i in np.arange(p.shape[1])]
+
         if d.shape[1] == 1:
             d_cols = ['d']
         else:
@@ -310,10 +319,7 @@ class DoubleMLData(DoubleMLBaseData):
             data[s_col] = s
 
         if p is not None:
-            if p.shape[1] == 1:
-                d_cols = ['p']
-            else:
-                d_cols = [f'p{i + 1}' for i in np.arange(p.shape[1])]
+            data[p_cols] = p
 
         return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, p_cols, use_other_treat_as_covariate, force_all_x_finite)
 
