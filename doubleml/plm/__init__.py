@@ -8,4 +8,5 @@ from .plr import DoubleMLPLR
 __all__ = [
     "DoubleMLPLR",
     "DoubleMLPLIV",
+    "DoubleMLLogit"
 ]

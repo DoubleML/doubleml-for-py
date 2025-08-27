@@ -2,8 +2,8 @@ import numpy as np
 import scipy
 from sklearn.base import clone, is_classifier
 
-from ...tests._utils_boot import boot_manual, draw_weights
-from ...tests._utils import fit_predict, fit_predict_proba, tune_grid_search
+from doubleml.tests._utils_boot import boot_manual, draw_weights
+from doubleml.tests._utils import fit_predict, fit_predict_proba, tune_grid_search
 
 
 def fit_logistic_multitreat(y, x, d, learner_l, learner_m, learner_g, all_smpls, score,
@@ -155,32 +155,6 @@ def fit_nuisance_logistic_classifier(y, x, d, learner_l, learner_m, learner_g, s
     return l_hat, m_hat, g_hat
 
 
-def tune_nuisance_plr(y, x, d, ml_l, ml_m, ml_g, smpls, n_folds_tune, param_grid_l, param_grid_m, param_grid_g, tune_g=True):
-    l_tune_res = tune_grid_search(y, x, ml_l, smpls, param_grid_l, n_folds_tune)
-
-    m_tune_res = tune_grid_search(d, x, ml_m, smpls, param_grid_m, n_folds_tune)
-
-    if tune_g:
-        l_hat = np.full_like(y, np.nan)
-        m_hat = np.full_like(d, np.nan)
-        for idx, (train_index, _) in enumerate(smpls):
-            l_hat[train_index] = l_tune_res[idx].predict(x[train_index, :])
-            m_hat[train_index] = m_tune_res[idx].predict(x[train_index, :])
-        psi_a = -np.multiply(d - m_hat, d - m_hat)
-        psi_b = np.multiply(d - m_hat, y - l_hat)
-        theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
-
-        g_tune_res = tune_grid_search(y - theta_initial*d, x, ml_g, smpls, param_grid_g, n_folds_tune)
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-    else:
-        g_best_params = []
-
-    l_best_params = [xx.best_params_ for xx in l_tune_res]
-    m_best_params = [xx.best_params_ for xx in m_tune_res]
-
-    return l_best_params, m_best_params, g_best_params
-
-
 def compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls):
     y_minus_l_hat = np.full_like(y, np.nan, dtype='float64')
     d_minus_m_hat = np.full_like(d, np.nan, dtype='float64')
@@ -193,13 +167,6 @@ def compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls):
     return y_minus_l_hat, d_minus_m_hat, y_minus_g_hat
 
 
-def plr_dml2(y, x, d, l_hat, m_hat, g_hat, smpls, score):
-    n_obs = len(y)
-    y_minus_l_hat, d_minus_m_hat, y_minus_g_hat = compute_plr_residuals(y, d, l_hat, m_hat, g_hat, smpls)
-    theta_hat = plr_orth(y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, d, score)
-    se = np.sqrt(var_plr(theta_hat, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs))
-
-    return theta_hat, se
 
 
 def var_plr(theta, d, y_minus_l_hat, d_minus_m_hat, y_minus_g_hat, score, n_obs):

@@ -43,9 +43,9 @@ def _fit(estimator, x, y, train_index, idx=None):
     return estimator, idx
 
 
-def _dml_cv_predict(
-    estimator, x, y, smpls=None, n_jobs=None, est_params=None, method="predict", return_train_preds=False, return_models=False
-, smpls_is_partition=None):
+def _dml_cv_predict(estimator, x, y, smpls=None,
+                    n_jobs=None, est_params=None, method='predict', return_train_preds=False, return_models=False,
+                    smpls_is_partition=None, sample_weights=None):
     n_obs = x.shape[0]
 
     # TODO: Better name for smples_is_partition
@@ -53,9 +53,9 @@ def _dml_cv_predict(
         smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
-    manual_cv_predict = (
-        (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target | return_models
-    )
+    manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target \
+                        | return_models | bool(sample_weights)
+    #TODO: Check if cross_val_predict supports weights
 
     res = {"models": None}
     if not manual_cv_predict:
@@ -187,6 +187,22 @@ def _draw_weights(method, n_rep_boot, n_obs):
     return weights
 
 
+def _trimm(preds, trimming_rule, trimming_threshold):
+    if trimming_rule == 'truncate':
+        preds[preds < trimming_threshold] = trimming_threshold
+        preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
+    return preds
+
+
+def _normalize_ipw(propensity, treatment):
+    mean_treat1 = np.mean(np.divide(treatment, propensity))
+    mean_treat0 = np.mean(np.divide(1.0 - treatment, 1.0 - propensity))
+    normalized_weights = np.multiply(treatment, np.multiply(propensity, mean_treat1)) \
+                         + np.multiply(1.0 - treatment, 1.0 - np.multiply(1.0 - propensity, mean_treat0))
+
+    return normalized_weights
+
+
 def _rmse(y_true, y_pred):
     subset = np.logical_not(np.isnan(y_true))
     rmse = root_mean_squared_error(y_true[subset], y_pred[subset])
@@ -302,7 +318,7 @@ def _var_est(psi, psi_deriv, smpls, is_cluster_data, cluster_vars=None, smpls_cl
                 J_l = test_cluster_inds[1]
                 const = np.divide(min(len(I_k), len(J_l)), (np.square(len(I_k) * len(J_l))))
                 for cluster_value in I_k:
-                    ind_cluster = (first_cluster_var == cluster_value) & np.isin(second_cluster_var, J_l)
+                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
                 for cluster_value in J_l:
                     ind_cluster = (second_cluster_var == cluster_value) & np.isin(first_cluster_var, I_k)

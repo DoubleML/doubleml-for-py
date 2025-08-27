@@ -11,8 +11,8 @@ from sklearn.ensemble import RandomForestRegressor
 
 import doubleml as dml
 
-from ...tests._utils import draw_smpls
-from ._utils_logistic_manual import fit_logistic, , boot_plr
+from doubleml.tests._utils import draw_smpls
+from ._utils_logistic_manual import fit_logistic, boot_plr
 
 
 @pytest.fixture(scope='module',
@@ -305,48 +305,3 @@ def test_dml_plr_ols_manual_boot(dml_plr_ols_manual_fixture):
                 params=["nonrobust", "HC0", "HC1", "HC2", "HC3"])
 def cov_type(request):
     return request.param
-
-
-@pytest.mark.ci
-def test_dml_plr_cate_gate(score, cov_type):
-    n = 9
-
-    # collect data
-    np.random.seed(42)
-    obj_dml_data = dml.datasets.make_plr_CCDDHNR2018(n_obs=n)
-    ml_l = LinearRegression()
-    ml_g = LinearRegression()
-    ml_m = LinearRegression()
-
-    dml_plr_obj = dml.DoubleMLPLR(obj_dml_data,
-                                  ml_g, ml_m, ml_l,
-                                  n_folds=2,
-                                  score=score)
-    dml_plr_obj.fit()
-    random_basis = pd.DataFrame(np.random.normal(0, 1, size=(n, 5)))
-    cate = dml_plr_obj.cate(random_basis, cov_type=cov_type)
-    assert isinstance(cate, dml.DoubleMLBLP)
-    assert isinstance(cate.confint(), pd.DataFrame)
-    assert cate.blp_model.cov_type == cov_type
-
-    groups_1 = pd.DataFrame(
-        np.column_stack([obj_dml_data.data['X1'] <= 0,
-                         obj_dml_data.data['X1'] > 0.2]),
-        columns=['Group 1', 'Group 2'])
-    msg = ('At least one group effect is estimated with less than 6 observations.')
-    with pytest.warns(UserWarning, match=msg):
-        gate_1 = dml_plr_obj.gate(groups_1, cov_type=cov_type)
-    assert isinstance(gate_1, dml.utils.blp.DoubleMLBLP)
-    assert isinstance(gate_1.confint(), pd.DataFrame)
-    assert all(gate_1.confint().index == groups_1.columns.tolist())
-    assert gate_1.blp_model.cov_type == cov_type
-
-    np.random.seed(42)
-    groups_2 = pd.DataFrame(np.random.choice(["1", "2"], n))
-    msg = ('At least one group effect is estimated with less than 6 observations.')
-    with pytest.warns(UserWarning, match=msg):
-        gate_2 = dml_plr_obj.gate(groups_2, cov_type=cov_type)
-    assert isinstance(gate_2, dml.utils.blp.DoubleMLBLP)
-    assert isinstance(gate_2.confint(), pd.DataFrame)
-    assert all(gate_2.confint().index == ["Group_1", "Group_2"])
-    assert gate_2.blp_model.cov_type == cov_type

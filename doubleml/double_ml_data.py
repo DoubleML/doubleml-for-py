@@ -113,6 +113,10 @@ class DoubleMLData(DoubleMLBaseData):
         The score or selection variable (only relevant/used for RDD or SSM Estimatiors).
         Default is ``None``.
 
+    p_cols : None, str or list, optional
+        The column(s) containing the probabilities of the outcome (only for simulated, binary data).
+        Default is ``None``.
+
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
@@ -145,6 +149,7 @@ class DoubleMLData(DoubleMLBaseData):
                  z_cols=None,
                  t_col=None,
                  s_col=None,
+                 p_cols=None,
                  use_other_treat_as_covariate=True,
                  force_all_x_finite=True):
         DoubleMLBaseData.__init__(self, data)
@@ -155,6 +160,7 @@ class DoubleMLData(DoubleMLBaseData):
         self.t_col = t_col
         self.s_col = s_col
         self.x_cols = x_cols
+        self.p_cols = p_cols
         self._check_disjoint_sets_y_d_x_z_t_s()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
@@ -187,7 +193,7 @@ class DoubleMLData(DoubleMLBaseData):
         return data_summary
 
     @classmethod
-    def from_arrays(cls, x, y, d, z=None, t=None, s=None, use_other_treat_as_covariate=True,
+    def from_arrays(cls, x, y, d, z=None, t=None, s=None, p=None, use_other_treat_as_covariate=True,
                     force_all_x_finite=True):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
@@ -213,6 +219,10 @@ class DoubleMLData(DoubleMLBaseData):
 
         s : :class:`numpy.ndarray`
             Array of the score or selection variable (only relevant/used for RDD and SSM models).
+            Default is ``None``.
+
+        p : None or :class:`numpy.ndarray`
+            Array of the probabilities of the outcome (only for simulated, binary data).
             Default is ``None``.
 
         use_other_treat_as_covariate : bool
@@ -299,7 +309,13 @@ class DoubleMLData(DoubleMLBaseData):
         if s is not None:
             data[s_col] = s
 
-        return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, use_other_treat_as_covariate, force_all_x_finite)
+        if p is not None:
+            if p.shape[1] == 1:
+                d_cols = ['p']
+            else:
+                d_cols = [f'p{i + 1}' for i in np.arange(p.shape[1])]
+
+        return cls(data, y_col, d_cols, x_cols, z_cols, t_col, s_col, p_cols, use_other_treat_as_covariate, force_all_x_finite)
 
     @property
     def x(self):
@@ -355,6 +371,41 @@ class DoubleMLData(DoubleMLBaseData):
         """
         if self.s_col is not None:
             return self._s.values
+        else:
+            return None
+
+    @property
+    def p_cols(self):
+        """
+        The column(s) containing the probabilities of the outcome (only for simulated data).
+        """
+        return self._p_cols
+
+    @p_cols.setter
+    def p_cols(self, value):
+        if value is not None:
+            if isinstance(value, str):
+                value = [value]
+            if not isinstance(value, list):
+                raise TypeError('The probability column(s) p_cols must be of str or list type (or None). '
+                                f'{str(value)} of type {str(type(value))} was passed.')
+            if not len(set(value)) == len(value):
+                raise ValueError('Invalid probability column(s) p_cols: '
+                                 'Contains duplicate values.')
+            if not set(value).issubset(set(self.all_variables)):
+                raise ValueError('Invalid probability column(s) p_cols. '
+                                 'At least one probability column is not a data column.')
+            self._p_cols = value
+        else:
+            self._p_cols = None
+
+    @property
+    def p(self):
+        """
+        Array of probabilities of the outcome (only for simulated data).
+        """
+        if self.p_cols is not None:
+            return self._p.values
         else:
             return None
 
