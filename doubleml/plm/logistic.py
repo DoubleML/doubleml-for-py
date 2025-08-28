@@ -249,7 +249,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                     weights.append( M_hat['preds_inner'][i][train] * (1-M_hat['preds_inner'][i][train]))
                 m_hat = _dml_cv_predict(self._learner['ml_m'], x, d, smpls=smpls, n_jobs=n_jobs_cv,
                                         est_params=self._get_params('ml_m'), method=self._predict_method['ml_m'],
-                                        return_models=return_models, weights=weights)
+                                        return_models=return_models, sample_weights=weights)
 
             elif self.score == 'nuisance_space':
                 filtered_smpls = []
@@ -288,29 +288,29 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                     est_params=self._get_params('ml_a'), method=self._predict_method['ml_a']))
 
 
-        r_legacy = np.zeros_like(y)
-        smpls_inner = self.__smpls__inner
-        M_hat_l = {}
-        a_hat_l = {}
-        M_hat_l['preds_inner'] = []
-        M_hat_l['preds'] = np.full_like(y, np.nan)
-        a_hat_l['preds_inner'] = []
-        a_hat_l['preds'] = np.full_like(y, np.nan)
-        for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
-            test = smpls_single_split[1]
-            train = smpls_single_split[0]
-            # r_legacy[test] =
-            Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
-                                                              self._learner['ml_m'], self._learner['ml_M'],
-                                                              smpls_single_split, smpls_double_split, y, x, d,
-                                                              x_d_concat, n_jobs_cv)
-            Mtemp = np.full_like(y, np.nan)
-            Mtemp[train] = Mleg
-            Atemp = np.full_like(y, np.nan)
-            Atemp[train] = aleg
-            M_hat_l['preds_inner'].append(Mtemp)
-            a_hat_l['preds_inner'].append(Atemp)
-            a_hat_l['preds'][test] = a_nf_leg
+        # r_legacy = np.zeros_like(y)
+        # smpls_inner = self.__smpls__inner
+        # M_hat_l = {}
+        # a_hat_l = {}
+        # M_hat_l['preds_inner'] = []
+        # M_hat_l['preds'] = np.full_like(y, np.nan)
+        # a_hat_l['preds_inner'] = []
+        # a_hat_l['preds'] = np.full_like(y, np.nan)
+        # for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
+        #     test = smpls_single_split[1]
+        #     train = smpls_single_split[0]
+        #     # r_legacy[test] =
+        #     Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
+        #                                                       self._learner['ml_m'], self._learner['ml_M'],
+        #                                                       smpls_single_split, smpls_double_split, y, x, d,
+        #                                                       x_d_concat, n_jobs_cv)
+        #     Mtemp = np.full_like(y, np.nan)
+        #     Mtemp[train] = Mleg
+        #     Atemp = np.full_like(y, np.nan)
+        #     Atemp[train] = aleg
+        #     M_hat_l['preds_inner'].append(Mtemp)
+        #     a_hat_l['preds_inner'].append(Atemp)
+        #     a_hat_l['preds'][test] = a_nf_leg
 
         #r_hat['preds'] = r_legacy
 
@@ -484,7 +484,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             score_1 = psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d_tilde"]
             score = psi_elements["psi_hat"] * (score_1 - psi_elements["score_const"])
         elif self.score == 'instrument':
-            score = (psi_elements["y"] - np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"])) * psi_elements["d_tilde"]
+            score = (psi_elements["y"] - scipy.special.expit(coef * psi_elements["d"]+ psi_elements["r_hat"])) * psi_elements["d_tilde"]
         else:
             raise NotImplementedError
 
@@ -495,7 +495,8 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             deriv_1 = - psi_elements["y"] * np.exp(-coef * psi_elements["d"]) * psi_elements["d"]
             deriv = psi_elements["psi_hat"] * psi_elements["d_tilde"] *  deriv_1
         elif self.score == 'instrument':
-            deriv = - psi_elements["d"] * np.exp(coef * psi_elements["d"]+ psi_elements["r_hat"]) * psi_elements["d_tilde"]
+            expit = scipy.special.expit(coef * psi_elements["d"]+ psi_elements["r_hat"])
+            deriv = - psi_elements["d"] * expit * (1-expit) * psi_elements["d_tilde"]
         else:
             raise NotImplementedError
 
