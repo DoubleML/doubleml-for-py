@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from doubleml.data import DoubleMLPanelData, DoubleMLDIDData, DoubleMLSSMData, DoubleMLRDDData
+from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting

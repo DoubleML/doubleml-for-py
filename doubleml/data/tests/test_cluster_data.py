@@ -97,7 +97,10 @@ def test_cluster_cols_setter():
     with pytest.raises(ValueError, match=msg):
         dml_data.cluster_cols = "X13"
 
-    msg = r"The cluster variable\(s\) cluster_cols must be of str or list type \(or None\)\. " "5 of type <class 'int'> was passed."
+    msg = (
+        r"The cluster variable\(s\) cluster_cols must be of str or list type \(or None\)\. "
+        "5 of type <class 'int'> was passed."
+    )
     with pytest.raises(TypeError, match=msg):
         dml_data.cluster_cols = 5
 

@@ -82,7 +82,12 @@ class RDFlex:
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(123)
     >>> data_dict = make_simple_rdd_data(fuzzy=True)
-    >>> obj_dml_data = dml.DoubleMLRDDData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> obj_dml_data = dml.DoubleMLRDDData.from_arrays(
+    ...     x=data_dict["X"],
+    ...     y=data_dict["Y"],
+    ...     d=data_dict["D"],
+    ...     s=data_dict["score"]
+    ... )
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
     >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)

@@ -1,7 +1,8 @@
 import io
+
 import pandas as pd
-from sklearn.utils.validation import check_array
 from sklearn.utils import assert_all_finite
+from sklearn.utils.validation import check_array
 
 from doubleml.data.base_data import DoubleMLData
 from doubleml.utils._estimation import _assure_2d_array
@@ -67,7 +68,8 @@ class DoubleMLSSMData(DoubleMLData):
     >>> df = make_ssm_data(return_type='DataFrame')
     >>> obj_dml_data_from_df = DoubleMLSSMData(df, 'y', 'd', 's')
     >>> # initialization from np.ndarray
-    >>> (x, y, d, s) = make_ssm_data(return_type='array')    >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
+    >>> (x, y, d, s) = make_ssm_data(return_type='array')
+    >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
     """
 
     def __init__(
@@ -224,7 +226,6 @@ class DoubleMLSSMData(DoubleMLData):
             return self._s.values
         else:
             return None
-
 
     @property
     def s_col(self):

@@ -8,11 +8,11 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import (
     DoubleMLBLP,
-    DoubleMLDIDData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
     DoubleMLDIDCS,
+    DoubleMLDIDData,
     DoubleMLIIVM,
     DoubleMLIRM,
     DoubleMLLPQ,
@@ -21,9 +21,9 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLQTE,
 )
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_iivm_data, make_irm_data
 from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
-from doubleml.did.datasets import make_did_SZ2020
 
 from ._utils import DummyDataClass
 
@@ -55,7 +55,10 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or DoubleMLRDDData type."
+    msg = (
+        "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or "
+        "DoubleMLSSMData or DoubleMLRDDData type."
+    )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 

@@ -234,8 +234,7 @@ class DoubleMLPanelData(DoubleMLData):
         """
         return self._d_cols[0]
 
-
-    @ DoubleMLData.d_cols.setter
+    @DoubleMLData.d_cols.setter
     def d_cols(self, value):
         if isinstance(value, str):
             value = [value]

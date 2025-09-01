@@ -8,11 +8,10 @@ from sklearn.svm import LinearSVR
 
 from doubleml import (
     DoubleMLAPO,
-    DoubleMLData,
     DoubleMLCVAR,
-    DoubleMLDIDData,
     DoubleMLDID,
     DoubleMLDIDCS,
+    DoubleMLDIDData,
     DoubleMLFramework,
     DoubleMLIIVM,
     DoubleMLIRM,
@@ -23,9 +22,9 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLSSM,
 )
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_ssm_data
 from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
-from doubleml.did.datasets import make_did_SZ2020
 
 np.random.seed(3141)
 n_obs = 200

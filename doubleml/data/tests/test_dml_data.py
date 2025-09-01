@@ -3,16 +3,15 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM, DoubleMLDIDData, DoubleMLSSMData
-
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
+from doubleml.did.datasets import make_did_SZ2020
+from doubleml.irm.datasets import make_ssm_data
 from doubleml.plm.datasets import (
     _make_pliv_data,
     make_pliv_CHS2015,
     make_plr_CCDDHNR2018,
 )
-from doubleml.irm.datasets import make_ssm_data
-from doubleml.did.datasets import make_did_SZ2020
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -462,15 +461,10 @@ def test_disjoint_sets():
         _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", t_col="zz")
 
     # score or selection variable
-    msg = (
-        r"At least one variable/column is set as outcome variable \(``y_col``\) and selection variable \(``s_col``\)."
-    )
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
-    msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
-        r"and selection variable \(``s_col``\)."
-    )
+    msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) " r"and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
     msg = r"At least one variable/column is set as covariate \(``x_cols``\) and selection variable \(``s_col``\)."
@@ -482,6 +476,7 @@ def test_disjoint_sets():
     )
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", s_col="zz")
+
 
 @pytest.mark.ci
 def test_duplicates():

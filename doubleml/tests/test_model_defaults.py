@@ -4,9 +4,9 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
+from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_ssm_data
 from doubleml.plm.datasets import make_pliv_CHS2015, make_plr_CCDDHNR2018
-from doubleml.did.datasets import make_did_SZ2020
 
 np.random.seed(3141)
 dml_data_plr = make_plr_CCDDHNR2018(n_obs=100)

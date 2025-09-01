@@ -81,7 +81,7 @@ class DoubleMLDIDData(DoubleMLData):
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         force_all_d_finite=True,
-    ):        # Initialize _t_col to None first to avoid AttributeError during parent init
+    ):  # Initialize _t_col to None first to avoid AttributeError during parent init
         self._t_col = None
 
         # Store whether x_cols was originally None to reset it later
@@ -242,7 +242,6 @@ class DoubleMLDIDData(DoubleMLData):
         if reset_value:
             self._check_disjoint_sets()
             self._set_y_z_t()
-
 
     @property
     def t(self):
