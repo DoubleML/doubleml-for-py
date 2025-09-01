@@ -109,5 +109,5 @@ def test_invalid_datetime_unit(sample_data):
 # test if no exception is raised
 @pytest.mark.ci
 def test_no_exception(sample_data):
-    DoubleMLPanelData(data=sample_data, y_col="y", d_cols=["treatment"], t_col="time", id_col="id")
+    DoubleMLPanelData(data=sample_data, y_col="y", d_cols="treatment", t_col="time", id_col="id")
     assert True

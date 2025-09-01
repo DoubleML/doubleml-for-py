@@ -58,8 +58,10 @@ class DoubleMLDIDMulti:
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
         Only relevant for ``score='observational'``. Default is ``None``.
 
-    gt_combinations : array-like
-        A list of tuples with the group-time combinations to be evaluated.
+    gt_combinations : array-like or str
+        A list of tuples with the group-time combinations to be evaluated. Can be a string with the value
+        ``'standard'``,  ``'all'`` or  ``'universal'``, which constructs the corresponding combinations automatically.
+        Default is ``'standard'``.
 
     control_group : str
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.

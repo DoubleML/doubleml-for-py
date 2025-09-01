@@ -23,7 +23,8 @@ body:
     attributes:
       label: Minimum reproducible code snippet
       description: |
-        Please provide a short reproducible code snippet. Example:        ```python
+        Please provide a short reproducible code snippet. Example:
+        ```python
         import numpy as np
         import doubleml as dml
         from doubleml.plm.datasets import make_plr_CCDDHNR2018

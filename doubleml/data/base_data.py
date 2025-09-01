@@ -233,7 +233,9 @@ class DoubleMLData(DoubleMLBaseData):
             Array of the outcome variable.
 
         d : :class:`numpy.ndarray`
-            Array of treatment variables.        z : None or :class:`numpy.ndarray`
+            Array of treatment variables.
+
+        z : None or :class:`numpy.ndarray`
             Array of instrumental variables.
             Default is ``None``.
 

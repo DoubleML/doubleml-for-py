@@ -100,7 +100,7 @@ def test_exception_learners():
 
 @pytest.mark.ci
 def test_exception_gt_combinations():
-    msg = r"gt_combinations must be one of \['standard', 'all'\]. test was passed."
+    msg = r"gt_combinations must be one of \['standard', 'all', 'universal'\]. test was passed."
     with pytest.raises(ValueError, match=msg):
         invalid_arguments = {"gt_combinations": "test"}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))

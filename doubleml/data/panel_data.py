@@ -67,7 +67,8 @@ class DoubleMLPanelData(DoubleMLData):
     ...     y_col="y",
     ...     d_cols="d",
     ...     id_col="id",
-    ...     t_col="t",    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
+    ...     t_col="t",
+    ...     x_cols=["Z1", "Z2", "Z3", "Z4"],
     ...     datetime_unit="M"
     ... )
     """
