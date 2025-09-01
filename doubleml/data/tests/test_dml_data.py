@@ -3,15 +3,16 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.datasets import (
+from doubleml.did.datasets import make_did_SZ2020
+from doubleml.irm.datasets import make_ssm_data
+from doubleml.plm.datasets import (
     _make_pliv_data,
     make_pliv_CHS2015,
     make_plr_CCDDHNR2018,
     make_ssm_data,
 )
-from doubleml.did.datasets import make_did_SZ2020
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -474,15 +475,10 @@ def test_disjoint_sets():
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", t_col="zz")
 
     # score or selection variable
-    msg = (
-        r"At least one variable/column is set as outcome variable \(``y_col``\) and score or selection variable \(``s_col``\)."
-    )
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
-    msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
-        r"and score or selection variable \(``s_col``\)."
-    )
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
+    msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) " r"and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
     msg = r"At least one variable/column is set as covariate \(``x_cols``\) and score or selection variable \(``s_col``\)."
@@ -497,6 +493,8 @@ def test_disjoint_sets():
     msg = r"At least one variable/column is set as time variable \(``t_col``\) and score or selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", s_col="tt")
+
+
 
 
 @pytest.mark.ci

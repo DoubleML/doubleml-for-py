@@ -124,6 +124,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         _check_score(self.score, ["missing-at-random", "nonignorable"])
 
         # for both score function stratification by d and s is viable

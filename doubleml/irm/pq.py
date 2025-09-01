@@ -132,6 +132,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
 
         self._normalize_ipw = normalize_ipw
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         valid_score = ["PQ"]
         _check_score(self.score, valid_score, allow_callable=False)

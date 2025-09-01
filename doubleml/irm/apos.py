@@ -36,8 +36,8 @@ class DoubleMLAPOS:
         draw_sample_splitting=True,
     ):
         self._dml_data = obj_dml_data
-        self._is_cluster_data = isinstance(obj_dml_data, DoubleMLClusterData)
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         self._all_treatment_levels = np.unique(self._dml_data.d)
 

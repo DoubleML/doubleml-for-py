@@ -106,6 +106,7 @@ class DoubleMLPanelData(DoubleMLData):
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=False,
         )
+
         # reset index to ensure a simple RangeIndex
         self.data.reset_index(drop=True, inplace=True)
         if self.n_treat != 1:
@@ -227,7 +228,9 @@ class DoubleMLPanelData(DoubleMLData):
         The treatment variable indicating the time of treatment exposure.
         """
         return self._d_cols[0]
+        return self._d_cols[0]
 
+    @DoubleMLData.d_cols.setter
     @DoubleMLData.d_cols.setter
     def d_cols(self, value):
         super(self.__class__, self.__class__).d_cols.__set__(self, value)

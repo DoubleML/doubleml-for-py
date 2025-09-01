@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml.data import DoubleMLData, DoubleMLPanelData
+from doubleml.data import DoubleMLDIDData, DoubleMLPanelData
 from doubleml.did import DoubleMLDID, DoubleMLDIDBinary, DoubleMLDIDCS, DoubleMLDIDCSBinary
 from doubleml.did.datasets import make_did_CS2021, make_did_cs_CS2021, make_did_SZ2020
 from doubleml.utils._check_return_types import (
@@ -37,8 +37,8 @@ datasets["did_cs"] = make_did_SZ2020(n_obs=N_OBS, cross_sectional_data=True)
 (x, y, d, t) = make_did_SZ2020(n_obs=N_OBS, cross_sectional_data=True, return_type="array")
 binary_outcome = np.random.binomial(n=1, p=0.5, size=N_OBS)
 
-datasets["did_binary_outcome"] = DoubleMLData.from_arrays(x, binary_outcome, d)
-datasets["did_cs_binary_outcome"] = DoubleMLData.from_arrays(x, binary_outcome, d, t=t)
+datasets["did_binary_outcome"] = DoubleMLDIDData.from_arrays(x, binary_outcome, d)
+datasets["did_cs_binary_outcome"] = DoubleMLDIDData.from_arrays(x, binary_outcome, d, t=t)
 
 dml_objs = [
     (DoubleMLDID(datasets["did"], Lasso(), LogisticRegression(), **dml_args), DoubleMLDID),

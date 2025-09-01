@@ -117,6 +117,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         self._normalize_ipw = normalize_ipw
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_score = ["CVaR"]
         _check_score(self.score, valid_score, allow_callable=False)
         _check_quantile(self.quantile)

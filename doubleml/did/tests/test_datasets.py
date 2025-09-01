@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLDIDData
 from doubleml.did.datasets import make_did_CS2021, make_did_cs_CS2021, make_did_SZ2020
 
 msg_inv_return_type = "Invalid return_type."

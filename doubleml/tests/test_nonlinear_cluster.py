@@ -31,7 +31,7 @@ x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(
     omega_V=np.array([0.25, 0]),
     return_type="array",
 )
-obj_dml_oneway_cluster_data = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_oneway_cluster_data = DoubleMLData.from_arrays(x, y, d, cluster_vars=cluster_vars, is_cluster_data=True)
 
 # only the first cluster variable is relevant with the weight setting above
 obj_dml_oneway_cluster_data.cluster_cols = "cluster_var1"

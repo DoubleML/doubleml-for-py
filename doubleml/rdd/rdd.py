@@ -22,8 +22,8 @@ class RDFlex:
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLRDDData` object
+        The :class:`DoubleMLRDDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods and support ``sample_weights`` (e.g.
@@ -82,7 +82,12 @@ class RDFlex:
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(123)
     >>> data_dict = make_simple_rdd_data(fuzzy=True)
-    >>> obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> obj_dml_data = dml.DoubleMLRDDData.from_arrays(
+    ...     x=data_dict["X"],
+    ...     y=data_dict["Y"],
+    ...     d=data_dict["D"],
+    ...     s=data_dict["score"]
+    ... )
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
     >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
@@ -114,6 +119,7 @@ class RDFlex:
 
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         self._score = self._dml_data.s - cutoff
         self._cutoff = cutoff
