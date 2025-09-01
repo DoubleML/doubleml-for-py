@@ -1362,7 +1362,6 @@ def test_doubleml_cluster_not_yet_implemented():
         x_cols=["X1", "X5"],
         z_cols="Z",
         cluster_cols=["cluster_var_i", "cluster_var_j", "cluster_var_k"],
-        is_cluster_data=True,
     )
     assert dml_cluster_data_multiway.n_cluster_vars == 3
     msg = r"Multi-way \(n_ways > 2\) clustering not yet implemented."

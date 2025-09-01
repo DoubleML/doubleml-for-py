@@ -164,7 +164,7 @@ def test_duplicates():
 
     msg = r"Invalid cluster variable\(s\) cluster_cols: Contains duplicate values."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(dml_cluster_data.data, y_col="Y", d_cols=["D"], cluster_cols=["X3", "X2", "X3"], is_cluster_data=True)
+        _ = DoubleMLData(dml_cluster_data.data, y_col="Y", d_cols=["D"], cluster_cols=["X3", "X2", "X3"])
     with pytest.raises(ValueError, match=msg):
         dml_cluster_data.cluster_cols = ["X3", "X2", "X3"]
 

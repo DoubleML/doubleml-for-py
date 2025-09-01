@@ -112,10 +112,6 @@ class DoubleMLData(DoubleMLBaseData):
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
 
-    is_cluster_data : bool
-        Flag indicating whether this data object is being used for cluster data.
-        Default is ``False``.
-
     force_all_x_finite : bool or str
         Indicates whether to raise an error on infinite values and / or missings in the covariates ``x``.
         Possible values are: ``True`` (neither missings ``np.nan``, ``pd.NA`` nor infinite values ``np.inf`` are
@@ -156,7 +152,6 @@ class DoubleMLData(DoubleMLBaseData):
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         force_all_d_finite=True,
-        is_cluster_data=False,
     ):
         DoubleMLBaseData.__init__(self, data)
 
@@ -165,7 +160,6 @@ class DoubleMLData(DoubleMLBaseData):
         self.z_cols = z_cols
         self.cluster_cols = cluster_cols
         self.x_cols = x_cols
-        self.is_cluster_data = is_cluster_data
         self._check_disjoint_sets()
         self.use_other_treat_as_covariate = use_other_treat_as_covariate
         self.force_all_x_finite = force_all_x_finite
@@ -219,7 +213,6 @@ class DoubleMLData(DoubleMLBaseData):
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         force_all_d_finite=True,
-        is_cluster_data=False,
     ):
         """
         Initialize :class:`DoubleMLData` from :class:`numpy.ndarray`'s.
@@ -349,7 +342,6 @@ class DoubleMLData(DoubleMLBaseData):
             use_other_treat_as_covariate,
             force_all_x_finite,
             force_all_d_finite,
-            is_cluster_data,
         )
 
     @property
@@ -414,6 +406,8 @@ class DoubleMLData(DoubleMLBaseData):
             self._cluster_cols = value
         else:
             self._cluster_cols = None
+
+        self._is_cluster_data = self._cluster_cols is not None
 
         if reset_value:
             self._check_disjoint_sets()
@@ -807,9 +801,3 @@ class DoubleMLData(DoubleMLBaseData):
         Flag indicating whether this data object is being used for cluster data.
         """
         return self._is_cluster_data
-
-    @is_cluster_data.setter
-    def is_cluster_data(self, value):
-        if not isinstance(value, bool):
-            raise TypeError(f"is_cluster_data must be True or False. Got {str(value)}.")
-        self._is_cluster_data = value

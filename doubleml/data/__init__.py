@@ -13,9 +13,9 @@ from .ssm_data import DoubleMLSSMData
 
 class DoubleMLClusterData(DoubleMLData):
     """
-    Backwards compatibility wrapper for DoubleMLData with is_cluster_data=True.
+    Backwards compatibility wrapper for DoubleMLData with cluster_cols.
     This class is deprecated and will be removed in a future version.
-    Use DoubleMLData with is_cluster_data=True instead.
+    Use DoubleMLData with cluster_cols instead.
     """
 
     def __init__(
@@ -33,7 +33,7 @@ class DoubleMLClusterData(DoubleMLData):
     ):
         warnings.warn(
             "DoubleMLClusterData is deprecated and will be removed with version 0.12.0. "
-            "Use DoubleMLData with is_cluster_data=True instead.",
+            "Use DoubleMLData with cluster_cols instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -47,7 +47,6 @@ class DoubleMLClusterData(DoubleMLData):
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=True,
-            is_cluster_data=True,
         )
 
     @classmethod
@@ -57,11 +56,11 @@ class DoubleMLClusterData(DoubleMLData):
         """
         Initialize :class:`DoubleMLClusterData` from :class:`numpy.ndarray`'s.
         This method is deprecated and will be removed with version 0.12.0,
-        use DoubleMLData.from_arrays with is_cluster_data=True instead.
+        use DoubleMLData.from_arrays with cluster_vars instead.
         """
         warnings.warn(
             "DoubleMLClusterData is deprecated and will be removed with version 0.12.0. "
-            "Use DoubleMLData.from_arrays with is_cluster_data=True instead.",
+            "Use DoubleMLData.from_arrays with cluster_vars instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -74,7 +73,6 @@ class DoubleMLClusterData(DoubleMLData):
             use_other_treat_as_covariate=use_other_treat_as_covariate,
             force_all_x_finite=force_all_x_finite,
             force_all_d_finite=True,
-            is_cluster_data=True,
         )
 
 

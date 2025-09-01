@@ -195,7 +195,7 @@ def make_pliv_multiway_cluster_CKMS2021(N=25, M=25, dim_X=100, theta=1.0, return
             return data
         else:
             return DoubleMLData(
-                data, y_col="Y", d_cols="D", cluster_cols=cluster_cols, x_cols=x_cols, z_cols="Z", is_cluster_data=True
+                data, y_col="Y", d_cols="D", cluster_cols=cluster_cols, x_cols=x_cols, z_cols="Z"
             )
     else:
         raise ValueError("Invalid return_type.")
