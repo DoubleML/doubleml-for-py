@@ -189,7 +189,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
                 return data
             else:
                 return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols)
-        elif return_type == "DoubleMLPanelData":
+        elif return_type in _dml_panel_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             df0 = (
                 pd.DataFrame(
