@@ -10,6 +10,7 @@ _array_alias = _get_array_alias()
 _data_frame_alias = _get_data_frame_alias()
 _dml_data_alias = _get_dml_data_alias()
 
+
 def _generate_features(n_obs, c, dim_x=4):
     cov_mat = toeplitz([np.power(c, k) for k in range(dim_x)])
     x = np.random.multivariate_normal(np.zeros(dim_x), cov_mat, size=n_obs)

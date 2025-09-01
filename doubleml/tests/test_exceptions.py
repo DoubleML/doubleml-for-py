@@ -55,7 +55,10 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or DoubleMLSSMData or DoubleMLRDDData type."
+    msg = (
+        "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or "
+        "DoubleMLSSMData or DoubleMLRDDData type."
+    )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 

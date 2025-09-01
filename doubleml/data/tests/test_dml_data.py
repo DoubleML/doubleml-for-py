@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.did.datasets import make_did_SZ2020
 from doubleml.irm.datasets import make_ssm_data
@@ -493,8 +493,6 @@ def test_disjoint_sets():
     msg = r"At least one variable/column is set as time variable \(``t_col``\) and score or selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", s_col="tt")
-
-
 
 
 @pytest.mark.ci
