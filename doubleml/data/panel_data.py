@@ -309,9 +309,6 @@ class DoubleMLPanelData(DoubleMLData):
         self._check_disjoint_sets_t_col()
 
     def _check_disjoint_sets_id_col(self):
-        # The call to super()._check_disjoint_sets() is removed from here as it's redundant
-        # and called in the main _check_disjoint_sets method of this class.
-
         # special checks for the additional id variable (and the time variable)
         id_col_set = {self.id_col}
         y_col_set = {self.y_col}

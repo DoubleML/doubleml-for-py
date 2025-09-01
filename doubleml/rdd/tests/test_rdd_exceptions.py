@@ -63,6 +63,13 @@ def test_rdd_exception_data():
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex([], ml_g)
 
+    # Clusters not implemented
+    msg = "Clustered data is not supported for RDFlex yet."
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_data_clusters = copy.deepcopy(dml_data)
+        dml_data_clusters._is_cluster_data = True
+        _ = RDFlex(dml_data_clusters, ml_g, ml_m)
+
     # score column
     msg = "Incompatible data. Score variable has not been set. "
     with pytest.raises(ValueError, match=msg):

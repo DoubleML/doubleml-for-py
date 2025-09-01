@@ -509,6 +509,9 @@ class RDFlex:
                 f"The data must be of DoubleMLRDDData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
 
+        if obj_dml_data.is_cluster_data:
+            raise NotImplementedError("Clustered data is not supported for RDFlex yet.")
+
         # score checks
         if obj_dml_data.score_col is None:
             raise ValueError("Incompatible data. " + "Score variable has not been set. ")
