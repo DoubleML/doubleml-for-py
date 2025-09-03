@@ -115,13 +115,15 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                  n_folds_inner=5,
                  n_rep=1,
                  score='nuisance_space',
-                 draw_sample_splitting=True):
+                 draw_sample_splitting=True,
+                 error_on_convergence_failure=False,):
         self.n_folds_inner = n_folds_inner
         super().__init__(obj_dml_data,
                          n_folds,
                          n_rep,
                          score,
                          draw_sample_splitting)
+        self._error_on_convergence_failure = error_on_convergence_failure
         self._coef_bounds = (-1e-2, 1e2)
         self._coef_start_val = 1.0
 
