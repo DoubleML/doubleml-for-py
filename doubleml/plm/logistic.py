@@ -143,9 +143,11 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         if ml_a is not None:
             ml_a_is_classifier = self._check_learner(ml_a, 'ml_a', regressor=True, classifier=True)
             self._learner['ml_a'] = ml_a
+            self._ml_a_provided = True
         else:
             self._learner['ml_a'] = clone(ml_m)
             ml_a_is_classifier = ml_m_is_classifier
+            self._ml_a_provided = False
 
         self._predict_method = {'ml_t': 'predict', 'ml_M': 'predict_proba'}
 
@@ -449,8 +451,82 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
     def _sensitivity_element_est(self, preds):
        pass
 
-    def _nuisance_tuning(self):
-        pass
+    def _nuisance_tuning(self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv,
+                         search_mode, n_iter_randomized_search):
+        # TODO: test
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y,
+                         force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d,
+                         force_all_finite=False)
+        x_d_concat = np.hstack((d.reshape(-1, 1), x))
+
+        if scoring_methods is None:
+            scoring_methods = {'ml_m': None,
+                               'ml_M': None,
+                               'ml_a': None,
+                               'ml_t': None}
+
+        train_inds = [train_index for (train_index, _) in smpls]
+        M_tune_res = _dml_tune(y, x_d_concat, train_inds,
+                               self._learner['ml_M'], param_grids['ml_M'], scoring_methods['ml_M'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        if self.score == 'nuisance_space':
+            filtered_smpls = []
+            for train, test in smpls:
+                train_filtered = train[y[train] == 0]
+                filtered_smpls.append(train_filtered)
+            filtered_train_inds = [train_index for (train_index, _) in smpls]
+        elif self.score == 'instrument':
+            filtered_train_inds = train_inds
+        else:
+            raise NotImplementedError
+        m_tune_res = _dml_tune(d, x, filtered_train_inds,
+                               self._learner['ml_m'], param_grids['ml_m'], scoring_methods['ml_m'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        a_tune_res = _dml_tune(d, x, train_inds,
+                                   self._learner['ml_a'], param_grids['ml_a'], scoring_methods['ml_a'],
+                                   n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+
+        M_best_params = [xx.best_params_ for xx in M_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        a_best_params = [xx.best_params_ for xx in a_tune_res]
+
+        # Create targets for tuning ml_t
+        M_hat = (self._double_dml_cv_predict(self._learner['ml_M'], 'ml_M', x_d_concat, y, smpls=smpls,
+                                             smpls_inner=self.__smpls__inner,
+                                             n_jobs=n_jobs_cv,
+                                             est_params=M_best_params, method=self._predict_method['ml_M']))
+
+        W_inner = []
+        for i, (train, test) in enumerate(smpls):
+            M_iteration = M_hat['preds_inner'][i][train]
+            M_iteration = np.clip(M_iteration, 1e-8, 1 - 1e-8)
+            w = scipy.special.logit(M_iteration)
+            W_inner.append(w)
+
+        t_tune_res = _dml_tune(W_inner, x, train_inds,
+                               self._learner['ml_t'], param_grids['ml_t'], scoring_methods['ml_t'],
+                               n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
+        t_best_params = [xx.best_params_ for xx in t_tune_res]
+
+
+
+        # Update params and tune_res to include ml_a and ml_t
+        params = {'ml_M': M_best_params,
+                  'ml_m': m_best_params,
+                  'ml_a': a_best_params,
+                  'ml_t': t_best_params}
+        tune_res = {'M_tune': M_tune_res,
+                    'm_tune': m_tune_res,
+                    'a_tune': a_tune_res,
+                    't_tune': t_tune_res}
+
+        res = {'params': params,
+               'tune_res': tune_res}
+
+        return res
 
     @property
     def __smpls__inner(self):

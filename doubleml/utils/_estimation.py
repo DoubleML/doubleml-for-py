@@ -149,25 +149,25 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
     return res
 
 
-def _dml_tune(
-    y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
-):
+def _dml_tune(y, x, train_inds,
+              learner, param_grid, scoring_method,
+              n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search, fold_specific_target=False):
     tune_res = list()
-    for train_index in train_inds:
+    for i, train_index in enumerate(train_inds):
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         if search_mode == "grid_search":
             g_grid_search = GridSearchCV(learner, param_grid, scoring=scoring_method, cv=tune_resampling, n_jobs=n_jobs_cv)
         else:
-            assert search_mode == "randomized_search"
-            g_grid_search = RandomizedSearchCV(
-                learner,
-                param_grid,
-                scoring=scoring_method,
-                cv=tune_resampling,
-                n_jobs=n_jobs_cv,
-                n_iter=n_iter_randomized_search,
-            )
-        tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
+            assert search_mode == 'randomized_search'
+            g_grid_search = RandomizedSearchCV(learner, param_grid,
+                                               scoring=scoring_method,
+                                               cv=tune_resampling,
+                                               n_jobs=n_jobs_cv,
+                                               n_iter=n_iter_randomized_search)
+        if fold_specific_target:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[i]))
+        else:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
     return tune_res
 
