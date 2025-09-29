@@ -1651,7 +1651,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     return resul_dict
 
 
-def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', **kwargs):
+def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', balanced_r0=True, **kwargs):
     """
     Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
     designed for use in double/debiased machine learning applications.
@@ -1705,16 +1705,28 @@ def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLD
 
     """
 
-    def r_0(X):
-        return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
-            0.1 * X[:, 3] * X[:, 4] + \
-            0.1 * X[:, 5] ** 3 + \
-            -0.5 * np.sin(X[:, 6]) ** 2 + \
-            0.5 * np.cos(X[:, 7]) + \
-            1 / (1 + X[:, 8] ** 2) + \
-            -1 / (1 + np.exp(X[:, 9])) + \
-            0.25 * np.where(X[:, 10] > 0, 1, 0) + \
-            -0.25 * np.where(X[:, 12] > 0, 1, 0)
+    if balanced_r0:
+        def r_0(X):
+            return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
+                0.1 * X[:, 3] * X[:, 4] + \
+                0.1 * X[:, 5] ** 3 + \
+                -0.5 * np.sin(X[:, 6]) ** 2 + \
+                0.5 * np.cos(X[:, 7]) + \
+                1 / (1 + X[:, 8] ** 2) + \
+                -1 / (1 + np.exp(X[:, 9])) + \
+                0.25 * np.where(X[:, 10] > 0, 1, 0) + \
+                -0.25 * np.where(X[:, 12] > 0, 1, 0)
+    else:
+        def r_0(X):
+            return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
+                0.1 * X[:, 3] * X[:, 4] + \
+                0.1 * X[:, 5] ** 3 + \
+                -0.5 * np.sin(X[:, 6]) ** 2 + \
+                0.5 * np.cos(X[:, 7]) + \
+                3 / (1 + X[:, 8] ** 2) + \
+                -1 / (1 + np.exp(X[:, 9])) + \
+                0.5 * np.where(X[:, 10] > 0, 1, 0) + \
+                -0.25 * np.where(X[:, 12] > 0, 1, 0)
 
     def a_0(X):
         return 2 / (1 + np.exp(X[:, 0])) + \
