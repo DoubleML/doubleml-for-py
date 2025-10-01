@@ -440,74 +440,223 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_pi": None, "ml_m": None}
 
-        # nuisance training sets conditional on d
-        _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
-        train_inds = [train_index for (train_index, _) in smpls]
-        train_inds_d0_s1 = [train_index for (train_index, _) in smpls_d0_s1]
-        train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
+        if self._score == "nonignorable":
 
-        # hyperparameter tuning for ML
-        g_d0_tune_res = _dml_tune(
-            y,
-            x,
-            train_inds_d0_s1,
-            self._learner["ml_g"],
-            param_grids["ml_g"],
-            scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        g_d1_tune_res = _dml_tune(
-            y,
-            x,
-            train_inds_d1_s1,
-            self._learner["ml_g"],
-            param_grids["ml_g"],
-            scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        pi_tune_res = _dml_tune(
-            s,
-            dx,
-            train_inds,
-            self._learner["ml_pi"],
-            param_grids["ml_pi"],
-            scoring_methods["ml_pi"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        m_tune_res = _dml_tune(
-            d,
-            x,
-            train_inds,
-            self._learner["ml_m"],
-            param_grids["ml_m"],
-            scoring_methods["ml_m"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
+            train_inds = [train_index for (train_index, _) in smpls]
 
-        g_d0_best_params = [xx.best_params_ for xx in g_d0_tune_res]
-        g_d1_best_params = [xx.best_params_ for xx in g_d1_tune_res]
-        pi_best_params = [xx.best_params_ for xx in pi_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+            # inner folds: split train set into two halves (pi-tuning vs. m/g-tuning)
+            def get_inner_train_inds(train_inds, d, s, random_state=42):
+                inner_train0_inds = []
+                inner_train1_inds = []
 
-        params = {"ml_g_d0": g_d0_best_params, "ml_g_d1": g_d1_best_params, "ml_pi": pi_best_params, "ml_m": m_best_params}
+                for train_index in train_inds:
+                    d_fold = d[train_index]
+                    s_fold = s[train_index]
+                    stratify_vec = d_fold + 2 * s_fold
 
-        tune_res = {"g_d0_tune": g_d0_tune_res, "g_d1_tune": g_d1_tune_res, "pi_tune": pi_tune_res, "m_tune": m_tune_res}
+                    inner0, inner1 = train_test_split(
+                        train_index, test_size=0.5, stratify=stratify_vec, random_state=random_state
+                    )
 
-        res = {"params": params, "tune_res": tune_res}
+                    inner_train0_inds.append(inner0)
+                    inner_train1_inds.append(inner1)
 
-        return res
+                return inner_train0_inds, inner_train1_inds
+
+            inner_train0_inds, inner_train1_inds = get_inner_train_inds(train_inds, d, s)
+
+            # split inner1 by (d,s) to build g-models for treated/control
+            def filter_inner1_by_ds(inner_train1_inds, d, s):
+                inner1_d0_s1 = []
+                inner1_d1_s1 = []
+
+                for inner1 in inner_train1_inds:
+                    d_fold = d[inner1]
+                    s_fold = s[inner1]
+
+                    mask_d0_s1 = (d_fold == 0) & (s_fold == 1)
+                    mask_d1_s1 = (d_fold == 1) & (s_fold == 1)
+
+                    inner1_d0_s1.append(inner1[mask_d0_s1])
+                    inner1_d1_s1.append(inner1[mask_d1_s1])
+
+                return inner1_d0_s1, inner1_d1_s1
+
+            inner_train1_d0_s1, inner_train1_d1_s1 = filter_inner1_by_ds(inner_train1_inds, d, s)
+
+            x_d_z = np.concatenate([x, d.reshape(-1, 1), z.reshape(-1, 1)], axis=1)
+
+            # ml_pi: tune on inner0, predict pi-hat on inner1
+            pi_hat_list = []
+            pi_tune_res_nonignorable = []
+
+            for inner0, inner1 in zip(inner_train0_inds, inner_train1_inds):
+
+                # tune pi on inner0
+                pi_tune_res = _dml_tune(
+                    s,
+                    x_d_z,
+                    [inner0],
+                    self._learner["ml_pi"],
+                    param_grids["ml_pi"],
+                    scoring_methods["ml_pi"],
+                    n_folds_tune,
+                    n_jobs_cv,
+                    search_mode,
+                    n_iter_randomized_search,
+                )
+                best_params = pi_tune_res[0].best_params_
+
+                # fit tuned model
+                ml_pi_temp = clone(self._learner["ml_pi"])
+                ml_pi_temp.set_params(**best_params)
+                ml_pi_temp.fit(x_d_z[inner0], s[inner0])
+
+                # predict proba on inner1
+                pi_hat_all = _predict_zero_one_propensity(ml_pi_temp, x_d_z)
+                pi_hat = pi_hat_all[inner1]
+                pi_hat_list.append((inner1, pi_hat))  # (index, value) tuple
+
+                # save best params
+                pi_tune_res_nonignorable.append(pi_tune_res[0])
+
+            pi_hat_full = np.full(shape=s.shape, fill_value=np.nan)
+
+            for inner1, pi_hat in pi_hat_list:
+                pi_hat_full[inner1] = pi_hat
+
+            # ml_m: tune with x + pi-hats
+            x_pi = np.concatenate([x, pi_hat_full.reshape(-1, 1)], axis=1)
+
+            m_tune_res = _dml_tune(
+                d,
+                x_pi,
+                inner_train1_inds,
+                self._learner["ml_m"],
+                param_grids["ml_m"],
+                scoring_methods["ml_m"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+
+            # ml_g: tune with x + d + pi-hats for d=0, d=1
+            x_pi_d = np.concatenate([x, d.reshape(-1, 1), pi_hat_full.reshape(-1, 1)], axis=1)
+
+            g_d0_tune_res = _dml_tune(
+                y,
+                x_pi_d,
+                inner_train1_d0_s1,
+                self._learner["ml_g"],
+                param_grids["ml_g"],
+                scoring_methods["ml_g"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+            g_d1_tune_res = _dml_tune(
+                y,
+                x_pi_d,
+                inner_train1_d1_s1,
+                self._learner["ml_g"],
+                param_grids["ml_g"],
+                scoring_methods["ml_g"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+
+            g_d0_best_params = [xx.best_params_ for xx in g_d0_tune_res]
+            g_d1_best_params = [xx.best_params_ for xx in g_d1_tune_res]
+            pi_best_params = [xx.best_params_ for xx in pi_tune_res_nonignorable]
+            m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+            params = {"ml_g_d0": g_d0_best_params, "ml_g_d1": g_d1_best_params, "ml_pi": pi_best_params, "ml_m": m_best_params}
+
+            tune_res = {
+                "g_d0_tune": g_d0_tune_res,
+                "g_d1_tune": g_d1_tune_res,
+                "pi_tune": pi_tune_res_nonignorable,
+                "m_tune": m_tune_res,
+            }
+
+            res = {"params": params, "tune_res": tune_res}
+
+            return res
+
+        else:
+
+            # nuisance training sets conditional on d
+            _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
+            train_inds = [train_index for (train_index, _) in smpls]
+            train_inds_d0_s1 = [train_index for (train_index, _) in smpls_d0_s1]
+            train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
+
+            # hyperparameter tuning for ML
+            g_d0_tune_res = _dml_tune(
+                y,
+                x,
+                train_inds_d0_s1,
+                self._learner["ml_g"],
+                param_grids["ml_g"],
+                scoring_methods["ml_g"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+            g_d1_tune_res = _dml_tune(
+                y,
+                x,
+                train_inds_d1_s1,
+                self._learner["ml_g"],
+                param_grids["ml_g"],
+                scoring_methods["ml_g"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+            pi_tune_res = _dml_tune(
+                s,
+                dx,
+                train_inds,
+                self._learner["ml_pi"],
+                param_grids["ml_pi"],
+                scoring_methods["ml_pi"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+            m_tune_res = _dml_tune(
+                d,
+                x,
+                train_inds,
+                self._learner["ml_m"],
+                param_grids["ml_m"],
+                scoring_methods["ml_m"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
+
+            g_d0_best_params = [xx.best_params_ for xx in g_d0_tune_res]
+            g_d1_best_params = [xx.best_params_ for xx in g_d1_tune_res]
+            pi_best_params = [xx.best_params_ for xx in pi_tune_res]
+            m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+            params = {"ml_g_d0": g_d0_best_params, "ml_g_d1": g_d1_best_params, "ml_pi": pi_best_params, "ml_m": m_best_params}
+
+            tune_res = {"g_d0_tune": g_d0_tune_res, "g_d1_tune": g_d1_tune_res, "pi_tune": pi_tune_res, "m_tune": m_tune_res}
+
+            res = {"params": params, "tune_res": tune_res}
+
+            return res
 
     def _sensitivity_element_est(self, preds):
         pass
