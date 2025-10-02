@@ -150,7 +150,7 @@ class DoubleMLQTE(SampleSplittingMixin):
         if draw_sample_splitting:
             self.draw_sample_splitting()
             # initialize all models
-            self._modellist_0, self._modellist_1 = self._initialize_models()
+            self._initialize_dml_model()
 
     def __str__(self):
         class_name = self.__class__.__name__

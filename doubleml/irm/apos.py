@@ -94,7 +94,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
             self.draw_sample_splitting()
 
             # initialize all models if splits are known
-            self._modellist = self._initialize_models()
+            self._initialize_dml_model()
 
     def __str__(self):
         class_name = self.__class__.__name__
