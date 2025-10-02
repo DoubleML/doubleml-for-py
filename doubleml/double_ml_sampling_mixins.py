@@ -1,6 +1,7 @@
 from abc import abstractmethod
-from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
+
 from doubleml.utils._checks import _check_sample_splitting
+from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 
 class SampleSplittingMixin:

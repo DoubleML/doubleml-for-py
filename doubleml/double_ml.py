@@ -1248,7 +1248,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     def _initialize_dml_model(self):
         self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
         self._initialize_arrays()
-        if self._learner: # for calling in __init__ of subclasses, we need to check if _learner is already set
+        if self._learner:  # for calling in __init__ of subclasses, we need to check if _learner is already set
             self._initialize_ml_nuisance_params()
         return self
 
