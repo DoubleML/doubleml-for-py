@@ -10,16 +10,16 @@ from sklearn.base import is_classifier, is_regressor
 from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
-from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
 
 
-class DoubleML(ABC):
+class DoubleML(SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
     def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
@@ -1247,33 +1247,6 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-        if self._is_cluster_data:
-            obj_dml_resampling = DoubleMLClusterResampling(
-                n_folds=self._n_folds_per_cluster,
-                n_rep=self.n_rep,
-                n_obs=self._n_obs_sample_splitting,
-                n_cluster_vars=self._dml_data.n_cluster_vars,
-                cluster_vars=self._dml_data.cluster_vars,
-            )
-            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
-        else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
-            )
-            self._smpls = obj_dml_resampling.split_samples()
-
-        return self
 
     def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
         """

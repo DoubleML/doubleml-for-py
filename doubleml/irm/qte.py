@@ -5,16 +5,16 @@ from sklearn.base import clone
 
 from doubleml.data import DoubleMLData
 from doubleml.double_ml_framework import concat
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ
 from doubleml.irm.pq import DoubleMLPQ
 from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._estimation import _default_kde
-from doubleml.utils.resampling import DoubleMLResampling
 
 
-class DoubleMLQTE:
+class DoubleMLQTE(SampleSplittingMixin):
     """Double machine learning for quantile treatment effects
 
     Parameters
@@ -145,6 +145,7 @@ class DoubleMLQTE:
 
         # perform sample splitting
         self._smpls = None
+        self._n_obs_sample_splitting = self._dml_data.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
             # initialize all models
@@ -437,26 +438,6 @@ class DoubleMLQTE:
         if self._framework is None:
             raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
-
-        return self
-
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-        obj_dml_resampling = DoubleMLResampling(
-            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._dml_data.d
-        )
-        self._smpls = obj_dml_resampling.split_samples()
-        # initialize all models
-        self._modellist_0, self._modellist_1 = self._initialize_models()
 
         return self
 

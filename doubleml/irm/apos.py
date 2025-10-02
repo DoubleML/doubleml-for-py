@@ -9,15 +9,15 @@ from sklearn.base import clone
 from doubleml.data import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.apo import DoubleMLAPO
 from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
-from doubleml.utils.resampling import DoubleMLResampling
 
 
-class DoubleMLAPOS:
+class DoubleMLAPOS(SampleSplittingMixin):
     """Double machine learning for interactive regression models with multiple discrete treatments."""
 
     def __init__(
@@ -624,24 +624,6 @@ class DoubleMLAPOS:
         benchmark_dict = gain_statistics(dml_long=self, dml_short=dml_short)
         df_benchmark = pd.DataFrame(benchmark_dict, index=self.treatment_levels)
         return df_benchmark
-
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-        obj_dml_resampling = DoubleMLResampling(
-            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._dml_data.d
-        )
-        self._smpls = obj_dml_resampling.split_samples()
-
-        return self
 
     def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
         """
