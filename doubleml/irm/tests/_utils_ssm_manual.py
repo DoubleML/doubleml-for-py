@@ -273,17 +273,14 @@ def var_selection(theta, psi_a, psi_b, n_obs):
     return var
 
 
-def tune_nuisance_ssm(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, score, n_folds_tune, param_grid_g, param_grid_pi, param_grid_m):
+def tune_nuisance_ssm_mar(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_pi, param_grid_m):
     d0_s1 = np.intersect1d(np.where(d == 0)[0], np.where(s == 1)[0])
     d1_s1 = np.intersect1d(np.where(d == 1)[0], np.where(s == 1)[0])
 
     g0_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=d0_s1)
     g1_tune_res = tune_grid_search(y, x, ml_g, smpls, param_grid_g, n_folds_tune, train_cond=d1_s1)
 
-    if score == "nonignorable":
-        dx = np.column_stack((x, d, z))
-    else:
-        dx = np.column_stack((x, d))
+    dx = np.column_stack((x, d))
 
     pi_tune_res = tune_grid_search(s, dx, ml_pi, smpls, param_grid_pi, n_folds_tune)
 
@@ -293,5 +290,46 @@ def tune_nuisance_ssm(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, score, n_folds_tu
     g1_best_params = [xx.best_params_ for xx in g1_tune_res]
     pi_best_params = [xx.best_params_ for xx in pi_tune_res]
     m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+    return g0_best_params, g1_best_params, pi_best_params, m_best_params
+
+
+def tune_nuisance_ssm_nonignorable(
+    y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_pi, param_grid_m
+):
+
+    train_inds = [tr for (tr, _) in smpls]
+
+    inner0_list, inner1_list = [], []
+    for tr in train_inds:
+        i0, i1 = train_test_split(tr, test_size=0.5, stratify=d[tr] + 2 * s[tr], random_state=42)
+        inner0_list.append(i0)
+        inner1_list.append(i1)
+
+    X_dz = np.c_[x, d.reshape(-1, 1), z.reshape(-1, 1)]
+    pi_tune_res = tune_grid_search(s, X_dz, ml_pi, [(i0, np.array([])) for i0 in inner0_list], param_grid_pi, n_folds_tune)
+    pi_best_params = [gs.best_params_ for gs in pi_tune_res]
+
+    pi_hat_full = np.full_like(s, np.nan, dtype=float)
+    for i0, i1, gs in zip(inner0_list, inner1_list, pi_tune_res):
+        ml_pi_temp = clone(ml_pi)
+        ml_pi_temp.set_params(**gs.best_params_)
+        ml_pi_temp.fit(X_dz[i0], s[i0])
+        ph = _predict_zero_one_propensity(ml_pi_temp, X_dz)
+        pi_hat_full[i1] = ph[i1]
+
+    X_pi = np.c_[x, pi_hat_full]
+    m_tune_res = tune_grid_search(d, X_pi, ml_m, [(i1, np.array([])) for i1 in inner1_list], param_grid_m, n_folds_tune)
+    m_best_params = [gs.best_params_ for gs in m_tune_res]
+
+    X_pi_d = np.c_[x, d.reshape(-1, 1), pi_hat_full.reshape(-1, 1)]
+    inner1_d0_s1 = [i1[(d[i1] == 0) & (s[i1] == 1)] for i1 in inner1_list]
+    inner1_d1_s1 = [i1[(d[i1] == 1) & (s[i1] == 1)] for i1 in inner1_list]
+
+    g0_tune_res = tune_grid_search(y, X_pi_d, ml_g, [(idx, np.array([])) for idx in inner1_d0_s1], param_grid_g, n_folds_tune)
+    g1_tune_res = tune_grid_search(y, X_pi_d, ml_g, [(idx, np.array([])) for idx in inner1_d1_s1], param_grid_g, n_folds_tune)
+
+    g0_best_params = [gs.best_params_ for gs in g0_tune_res]
+    g1_best_params = [gs.best_params_ for gs in g1_tune_res]
 
     return g0_best_params, g1_best_params, pi_best_params, m_best_params
