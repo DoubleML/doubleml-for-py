@@ -120,4 +120,3 @@ class SampleSplittingMixin:
         Updates model dimensions to (n_folds, n_rep).
         This method needs to be implemented in the child class.
         """
-        pass
