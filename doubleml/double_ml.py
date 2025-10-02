@@ -11,7 +11,7 @@ from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, D
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
-from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
@@ -110,7 +110,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
-
+        self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
         self._initialize_dml_model()
 
         # initialize instance attributes which are later used for iterating
@@ -1248,7 +1248,8 @@ class DoubleML(SampleSplittingMixin, ABC):
     def _initialize_dml_model(self):
         self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
         self._initialize_arrays()
-        self._initialize_ml_nuisance_params()
+        if self._learner:
+            self._initialize_ml_nuisance_params()
         return self
 
     def _est_causal_pars(self, psi_elements):

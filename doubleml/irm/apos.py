@@ -11,7 +11,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
 from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.apo import DoubleMLAPO
-from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_weights
+from doubleml.utils._checks import _check_score, _check_trimming, _check_weights
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
@@ -627,62 +627,8 @@ class DoubleMLAPOS(SampleSplittingMixin):
         df_benchmark = pd.DataFrame(benchmark_dict, index=self.treatment_levels)
         return df_benchmark
 
-    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
-        """
-        Set the sample splitting for DoubleML models.
-
-        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
-
-        Parameters
-        ----------
-        all_smpls : list or tuple
-            If nested list of lists of tuples:
-                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
-                ``n_rep``).
-                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition for each inner list.
-            If list of tuples:
-                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
-            If tuple:
-                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
-                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
-                ``n_folds=1`` and ``n_rep=1`` is always set.
-
-        Returns
-        -------
-        self : object
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> import doubleml as dml
-        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
-        >>> np.random.seed(3141)
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = learner
-        >>> ml_m = learner
-        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> # sample splitting with two folds and cross-fitting
-        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
-        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
-        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
-        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        """
-        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
-        )
-
+    def _initialize_dml_model(self):
         self._modellist = self._initialize_models()
-
         return self
 
     def causal_contrast(self, reference_levels):
