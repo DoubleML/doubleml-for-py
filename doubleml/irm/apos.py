@@ -89,7 +89,7 @@ class DoubleMLAPOS(SampleSplittingMixin):
         # perform sample splitting
         self._smpls = None
         self._n_obs_sample_splitting = self._dml_data.n_obs
-        self._strata = None
+        self._strata = self._dml_data.d
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
