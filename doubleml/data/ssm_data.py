@@ -295,7 +295,7 @@ class DoubleMLSSMData(DoubleMLData):
     def _set_selection_var(self):
         """Set the selection variable array."""
         if hasattr(self, "_data") and self.s_col in self.data.columns:
-            self._s = self.data.loc[:, [self.s_col]]
+            self._s = self.data.loc[:, [self.s_col]].squeeze()
 
     def _set_y_z_s(self):
         def _set_attr(col):
