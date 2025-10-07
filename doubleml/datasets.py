@@ -1651,7 +1651,7 @@ def make_irm_data_discrete_treatments(n_obs=200, n_levels=3, linear=False, rando
     return resul_dict
 
 
-def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', balanced_r0=True, **kwargs):
+def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', balanced_r0=True, treatment="continuous", **kwargs):
     """
     Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
     designed for use in double/debiased machine learning applications.
@@ -1745,7 +1745,14 @@ def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLD
     x = np.random.multivariate_normal(np.zeros(dim_x), sigma, size=n_obs)
     np.clip(x, -2, 2, out=x)
 
-    d = a_0(x)
+    if treatment == "continuous":
+        d = a_0(x)
+    elif treatment == "binary":
+        d_cont = a_0(x)
+        d = np.random.binomial(1, expit(d_cont - d_cont.mean()))
+    elif treatment == "binary_unbalanced":
+        d_cont = a_0(x)
+        d = np.random.binomial(1, expit(d_cont))
 
     p = expit(alpha * d[:] + r_0(x))
 
