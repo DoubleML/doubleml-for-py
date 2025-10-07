@@ -1723,9 +1723,9 @@ def make_logistic_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLD
                 0.1 * X[:, 5] ** 3 + \
                 -0.5 * np.sin(X[:, 6]) ** 2 + \
                 0.5 * np.cos(X[:, 7]) + \
-                3 / (1 + X[:, 8] ** 2) + \
+                4 / (1 + X[:, 8] ** 2) + \
                 -1 / (1 + np.exp(X[:, 9])) + \
-                0.5 * np.where(X[:, 10] > 0, 1, 0) + \
+                1.5 * np.where(X[:, 10] > 0, 1, 0) + \
                 -0.25 * np.where(X[:, 12] > 0, 1, 0)
 
     def a_0(X):
