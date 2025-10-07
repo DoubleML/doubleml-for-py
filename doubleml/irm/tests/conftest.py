@@ -4,7 +4,7 @@ import pytest
 from scipy.linalg import toeplitz
 from sklearn.datasets import make_spd_matrix
 
-from doubleml.datasets import make_iivm_data, make_irm_data
+from doubleml.irm.datasets import make_iivm_data, make_irm_data
 
 
 def _g(x):

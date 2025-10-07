@@ -3,18 +3,18 @@ import pandas as pd
 from joblib import Parallel, delayed
 from sklearn.base import clone
 
-from doubleml.data import DoubleMLClusterData, DoubleMLData
+from doubleml.data import DoubleMLData
 from doubleml.double_ml_framework import concat
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ
 from doubleml.irm.pq import DoubleMLPQ
-from doubleml.utils._checks import _check_sample_splitting, _check_score, _check_trimming, _check_zero_one_treatment
+from doubleml.utils._checks import _check_score, _check_trimming, _check_zero_one_treatment
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._estimation import _default_kde
-from doubleml.utils.resampling import DoubleMLResampling
 
 
-class DoubleMLQTE:
+class DoubleMLQTE(SampleSplittingMixin):
     """Double machine learning for quantile treatment effects
 
     Parameters
@@ -72,7 +72,7 @@ class DoubleMLQTE:
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
+    >>> from doubleml.irm.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
@@ -124,10 +124,8 @@ class DoubleMLQTE:
         _check_score(self.score, valid_scores, allow_callable=False)
 
         # check data
-        self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
-            self._is_cluster_data = True
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
@@ -147,10 +145,12 @@ class DoubleMLQTE:
 
         # perform sample splitting
         self._smpls = None
+        self._n_obs_sample_splitting = self._dml_data.n_obs
+        self._strata = self._dml_data.d
         if draw_sample_splitting:
             self.draw_sample_splitting()
             # initialize all models
-            self._modellist_0, self._modellist_1 = self._initialize_models()
+            self._initialize_dml_model()
 
     def __str__(self):
         class_name = self.__class__.__name__
@@ -439,94 +439,11 @@ class DoubleMLQTE:
         if self._framework is None:
             raise ValueError("Apply fit() before bootstrap().")
         self._framework.bootstrap(method=method, n_rep_boot=n_rep_boot)
-
         return self
 
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-        obj_dml_resampling = DoubleMLResampling(
-            n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._dml_data.n_obs, stratify=self._dml_data.d
-        )
-        self._smpls = obj_dml_resampling.split_samples()
+    def _initialize_dml_model(self):
         # initialize all models
         self._modellist_0, self._modellist_1 = self._initialize_models()
-
-        return self
-
-    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
-        """
-        Set the sample splitting for DoubleML models.
-
-        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
-
-        Parameters
-        ----------
-        all_smpls : list or tuple
-            If nested list of lists of tuples:
-                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
-                ``n_rep``).
-                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition for each inner list.
-            If list of tuples:
-                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
-            If tuple:
-                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
-                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
-                ``n_folds=1`` and ``n_rep=1`` is always set.
-
-        all_smpls_cluster : list or None
-            Nested list or ``None``. The first level of nesting corresponds to the number of repetitions. The second level
-            of nesting corresponds to the number of folds. The third level of nesting contains a tuple of training and
-            testing lists. Both training and testing contain an array for each cluster variable, which form a partition of
-            the clusters.
-            Default is ``None``.
-
-        Returns
-        -------
-        self : object
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_CCDDHNR2018
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
-        >>> np.random.seed(3141)
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = learner
-        >>> ml_m = learner
-        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and cross-fitting
-        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
-        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
-        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
-        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        """
-        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data
-        )
-
-        # initialize all models
-        self._modellist_0, self._modellist_1 = self._initialize_models()
-
         return self
 
     def confint(self, joint=False, level=0.95):

@@ -8,11 +8,11 @@ from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import (
     DoubleMLBLP,
-    DoubleMLClusterData,
     DoubleMLCVAR,
     DoubleMLData,
     DoubleMLDID,
     DoubleMLDIDCS,
+    DoubleMLDIDData,
     DoubleMLIIVM,
     DoubleMLIRM,
     DoubleMLLPQ,
@@ -21,14 +21,9 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLQTE,
 )
-from doubleml.datasets import (
-    make_iivm_data,
-    make_irm_data,
-    make_pliv_CHS2015,
-    make_pliv_multiway_cluster_CKMS2021,
-    make_plr_CCDDHNR2018,
-)
 from doubleml.did.datasets import make_did_SZ2020
+from doubleml.irm.datasets import make_iivm_data, make_irm_data
+from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
 
 from ._utils import DummyDataClass
 
@@ -47,6 +42,7 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, ml_l, ml_m, ml_r)
 
 dml_data_irm = make_irm_data(n_obs=n)
 dml_data_iivm = make_iivm_data(n_obs=n)
+dml_data_iivm_did = DoubleMLDIDData(dml_data_iivm.data, y_col="y", d_cols="d", z_cols="z")
 dml_cluster_data_pliv = make_pliv_multiway_cluster_CKMS2021(N=10, M=10)
 dml_data_did = make_did_SZ2020(n_obs=n)
 dml_data_did_cs = make_did_SZ2020(n_obs=n, cross_sectional_data=True)
@@ -59,7 +55,10 @@ dml_data_iivm_binary_outcome = DoubleMLData.from_arrays(x, y, d, z)
 
 @pytest.mark.ci
 def test_doubleml_exception_data():
-    msg = "The data must be of DoubleMLData or DoubleMLClusterData type."
+    msg = (
+        "The data must be of DoubleMLData or DoubleMLClusterData or DoubleMLDIDData or "
+        "DoubleMLSSMData or DoubleMLRDDData type."
+    )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLPLR(pd.DataFrame(), ml_l, ml_m)
 
@@ -80,10 +79,10 @@ def test_doubleml_exception_data():
         _ = DoubleMLCVAR(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m, treatment=1)
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLQTE(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
-    msg = "For repeated outcomes the data must be of DoubleMLData type."
+    msg = "For repeated outcomes the data must be of DoubleMLDIDData type."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDID(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
-    msg = "For repeated cross sections the data must be of DoubleMLData type. "
+    msg = "For repeated cross sections the data must be of DoubleMLDIDData type. "
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDIDCS(DummyDataClass(pd.DataFrame(np.zeros((100, 10)))), ml_g, ml_m)
 
@@ -241,7 +240,7 @@ def test_doubleml_exception_data():
     # DID with IV
     msg = r"Incompatible data. z have been set as instrumental variable\(s\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDID(dml_data_iivm, Lasso(), LogisticRegression())
+        _ = DoubleMLDID(dml_data_iivm_did, Lasso(), LogisticRegression())
     msg = (
         "Incompatible data. To fit an DID model with DML exactly one binary variable with values 0 and 1 "
         "needs to be specified as treatment variable."
@@ -250,16 +249,16 @@ def test_doubleml_exception_data():
     df_irm["d"] = df_irm["d"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for DID
-        _ = DoubleMLDID(DoubleMLData(df_irm, "y", "d"), Lasso(), LogisticRegression())
+        _ = DoubleMLDID(DoubleMLDIDData(df_irm, "y", "d"), Lasso(), LogisticRegression())
     df_irm = dml_data_irm.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for DID
-        _ = DoubleMLDID(DoubleMLData(df_irm, "y", ["d", "X1"]), Lasso(), LogisticRegression())
+        _ = DoubleMLDID(DoubleMLDIDData(df_irm, "y", ["d", "X1"]), Lasso(), LogisticRegression())
 
     # DIDCS with IV
     msg = r"Incompatible data. z have been set as instrumental variable\(s\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDIDCS(dml_data_iivm, Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(dml_data_iivm_did, Lasso(), LogisticRegression())
 
     # DIDCS treatment exceptions
     msg = (
@@ -270,11 +269,11 @@ def test_doubleml_exception_data():
     df_did_cs["d"] = df_did_cs["d"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
     df_did_cs = dml_data_did_cs.data.copy()
     with pytest.raises(ValueError, match=msg):
         # multiple D for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols=["d", "Z1"], t_col="t"), Lasso(), LogisticRegression())
 
     # DIDCS time exceptions
     msg = (
@@ -285,7 +284,7 @@ def test_doubleml_exception_data():
     df_did_cs["t"] = df_did_cs["t"] * 2
     with pytest.raises(ValueError, match=msg):
         # non-binary t for DIDCS
-        _ = DoubleMLDIDCS(DoubleMLData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
+        _ = DoubleMLDIDCS(DoubleMLDIDData(df_did_cs, y_col="y", d_cols="d", t_col="t"), Lasso(), LogisticRegression())
 
 
 @pytest.mark.ci
@@ -1356,7 +1355,7 @@ def test_doubleml_cluster_not_yet_implemented():
 
     df = dml_cluster_data_pliv.data.copy()
     df["cluster_var_k"] = df["cluster_var_i"] + df["cluster_var_j"] - 2
-    dml_cluster_data_multiway = DoubleMLClusterData(
+    dml_cluster_data_multiway = DoubleMLData(
         df,
         y_col="Y",
         d_cols="D",

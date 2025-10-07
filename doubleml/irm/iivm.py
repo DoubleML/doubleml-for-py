@@ -80,7 +80,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_iivm_data
+    >>> from doubleml.irm.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -142,6 +142,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["LATE"]
         _check_score(self.score, valid_scores, allow_callable=True)
 

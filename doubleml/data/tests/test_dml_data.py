@@ -3,15 +3,15 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLPLR, DoubleMLSSM
+from doubleml import DoubleMLData, DoubleMLDIDCS, DoubleMLDIDData, DoubleMLPLR, DoubleMLSSM, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
-from doubleml.datasets import (
+from doubleml.did.datasets import make_did_SZ2020
+from doubleml.irm.datasets import make_ssm_data
+from doubleml.plm.datasets import (
     _make_pliv_data,
     make_pliv_CHS2015,
     make_plr_CCDDHNR2018,
-    make_ssm_data,
 )
-from doubleml.did.datasets import make_did_SZ2020
 
 
 class DummyDataClass(DoubleMLBaseData):
@@ -66,7 +66,7 @@ def test_obj_vs_from_arrays():
     dml_data_from_array = DoubleMLData.from_arrays(
         dml_data.data[dml_data.x_cols], dml_data.data[dml_data.y_col], dml_data.data[dml_data.d_cols]
     )
-    assert dml_data_from_array.data.equals(dml_data.data)
+    assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
     dml_data = _make_pliv_data(n_obs=100)
     dml_data_from_array = DoubleMLData.from_arrays(
@@ -75,7 +75,7 @@ def test_obj_vs_from_arrays():
         dml_data.data[dml_data.d_cols],
         dml_data.data[dml_data.z_cols],
     )
-    assert dml_data_from_array.data.equals(dml_data.data)
+    assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
     dml_data = make_pliv_CHS2015(n_obs=100, dim_z=5)
     dml_data_from_array = DoubleMLData.from_arrays(
@@ -102,7 +102,7 @@ def test_obj_vs_from_arrays():
     assert np.array_equal(dml_data_from_array.data, dml_data.data)
 
     dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
-    dml_data_from_array = DoubleMLData.from_arrays(
+    dml_data_from_array = DoubleMLDIDData.from_arrays(
         x=dml_data.data[dml_data.x_cols],
         y=dml_data.data[dml_data.y_col],
         d=dml_data.data[dml_data.d_cols],
@@ -113,7 +113,7 @@ def test_obj_vs_from_arrays():
     # check with instrument and time variable
     dml_data = make_did_SZ2020(n_obs=100, cross_sectional_data=True)
     dml_data.data["z"] = dml_data.data["t"]
-    dml_data_from_array = DoubleMLData.from_arrays(
+    dml_data_from_array = DoubleMLDIDData.from_arrays(
         x=dml_data.data[dml_data.x_cols],
         y=dml_data.data[dml_data.y_col],
         d=dml_data.data[dml_data.d_cols],
@@ -146,14 +146,11 @@ def test_dml_data_no_instr_no_time_no_selection():
     dml_data = make_plr_CCDDHNR2018(n_obs=100)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
-    assert dml_data.t is None
 
     x, y, d = make_plr_CCDDHNR2018(n_obs=100, return_type="array")
     dml_data = DoubleMLData.from_arrays(x, y, d)
     assert dml_data.z is None
     assert dml_data.n_instr == 0
-    assert dml_data.t is None
-    assert dml_data.s is None
 
 
 @pytest.mark.ci
@@ -193,32 +190,22 @@ def test_x_cols_setter_defaults():
 
     # without instrument with time
     df = pd.DataFrame(np.tile(np.arange(5), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "tt"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", t_col="tt")
+    dml_data = DoubleMLDIDData(df, y_col="yy", d_cols="dd", t_col="tt")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument with time
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", z_cols="zz", t_col="tt")
+    dml_data = DoubleMLDIDData(df, y_col="yy", d_cols="dd", z_cols="zz", t_col="tt")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # without instrument with selection
     df = pd.DataFrame(np.tile(np.arange(5), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "ss"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", s_col="ss")
+    dml_data = DoubleMLSSMData(df, y_col="yy", d_cols="dd", s_col="ss")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
     # with instrument with selection
     df = pd.DataFrame(np.tile(np.arange(6), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "ss"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", z_cols="zz", s_col="ss")
-    assert dml_data.x_cols == ["xx1", "xx2"]
-
-    # with selection and time
-    df = pd.DataFrame(np.tile(np.arange(6), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "tt", "ss"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", t_col="tt", s_col="ss")
-    assert dml_data.x_cols == ["xx1", "xx2"]
-
-    # with instrument, selection and time
-    df = pd.DataFrame(np.tile(np.arange(7), (4, 1)), columns=["yy", "dd", "xx1", "xx2", "zz", "tt", "ss"])
-    dml_data = DoubleMLData(df, y_col="yy", d_cols="dd", z_cols="zz", t_col="tt", s_col="ss")
+    dml_data = DoubleMLSSMData(df, y_col="yy", d_cols="dd", z_cols="zz", s_col="ss")
     assert dml_data.x_cols == ["xx1", "xx2"]
 
 
@@ -324,7 +311,7 @@ def test_t_col_setter():
     np.random.seed(3141)
     df = make_did_SZ2020(n_obs=100, cross_sectional_data=True, return_type=pd.DataFrame)
     df["t_new"] = np.ones(shape=(100,))
-    dml_data = DoubleMLData(df, "y", "d", [f"Z{i + 1}" for i in np.arange(4)], t_col="t")
+    dml_data = DoubleMLDIDData(df, "y", "d", x_cols=[f"Z{i + 1}" for i in np.arange(4)], t_col="t")
 
     # check that after changing t_col, the t array gets updated
     t_comp = dml_data.data["t_new"].values
@@ -349,18 +336,18 @@ def test_s_col_setter():
     np.random.seed(3141)
     df = make_ssm_data(n_obs=100, return_type=pd.DataFrame)
     df["s_new"] = np.ones(shape=(100,))
-    dml_data = DoubleMLData(df, "y", "d", [f"X{i + 1}" for i in np.arange(4)], s_col="s")
+    dml_data = DoubleMLSSMData(df, "y", "d", x_cols=[f"X{i + 1}" for i in np.arange(4)], s_col="s")
 
     # check that after changing s_col, the s array gets updated
     s_comp = dml_data.data["s_new"].values
     dml_data.s_col = "s_new"
     assert np.array_equal(dml_data.s, s_comp)
 
-    msg = r"Invalid score or selection variable s_col. a13 is no data column."
+    msg = r"Invalid selection variable s_col. a13 is no data column."
     with pytest.raises(ValueError, match=msg):
         dml_data.s_col = "a13"
 
-    msg = r"The score or selection variable s_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
+    msg = r"The selection variable s_col must be of str type \(or None\). " "5 of type <class 'int'> was passed."
     with pytest.raises(TypeError, match=msg):
         dml_data.s_col = 5
 
@@ -462,41 +449,33 @@ def test_disjoint_sets():
     # time variable
     msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="yy")
+        _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="yy")
     msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="dd1")
+        _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="dd1")
     msg = r"At least one variable/column is set as covariate \(``x_cols``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="xx2")
+        _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="xx2")
     msg = r"At least one variable/column is set as instrumental variable \(``z_cols``\) and time variable \(``t_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", t_col="zz")
+        _ = DoubleMLDIDData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", t_col="zz")
 
     # score or selection variable
-    msg = (
-        r"At least one variable/column is set as outcome variable \(``y_col``\) and score or selection variable \(``s_col``\)."
-    )
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
-    msg = (
-        r"At least one variable/column is set as treatment variable \(``d_cols``\) "
-        r"and score or selection variable \(``s_col``\)."
-    )
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="yy")
+    msg = r"At least one variable/column is set as treatment variable \(``d_cols``\) " r"and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
-    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and score or selection variable \(``s_col``\)."
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="dd1")
+    msg = r"At least one variable/column is set as covariate \(``x_cols``\) and selection variable \(``s_col``\)."
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="xx2")
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], s_col="xx2")
     msg = (
         r"At least one variable/column is set as instrumental variable \(``z_cols``\) "
-        r"and score or selection variable \(``s_col``\)."
+        r"and selection variable \(``s_col``\)."
     )
     with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", s_col="zz")
-    msg = r"At least one variable/column is set as time variable \(``t_col``\) and score or selection variable \(``s_col``\)."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], t_col="tt", s_col="tt")
+        _ = DoubleMLSSMData(df, y_col="yy", d_cols=["dd1"], x_cols=["xx1", "xx2"], z_cols="zz", s_col="zz")
 
 
 @pytest.mark.ci

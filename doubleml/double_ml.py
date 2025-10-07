@@ -7,19 +7,19 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
+from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
-from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
+from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
-from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
-_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
+_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
 
 
-class DoubleML(ABC):
+class DoubleML(SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
     def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
@@ -30,13 +30,22 @@ class DoubleML(ABC):
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
+        if obj_dml_data.is_cluster_data:
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
         self._is_panel_data = False
         if isinstance(obj_dml_data, DoubleMLPanelData):
             self._is_panel_data = True
+        self._is_did_data = False
+        if isinstance(obj_dml_data, DoubleMLDIDData):
+            self._is_did_data = True
+        self._is_ssm_data = False
+        if isinstance(obj_dml_data, DoubleMLSSMData):
+            self._is_ssm_data = True
+        self._is_rdd_data = False
+        if isinstance(obj_dml_data, DoubleMLRDDData):
+            self._is_rdd_data = True
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
@@ -101,10 +110,8 @@ class DoubleML(ABC):
         self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
-
         self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
-        # initialize arrays according to obj_dml_data and the resampling settings
-        self._initialize_arrays()
+        self._initialize_dml_model()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
@@ -1192,7 +1199,7 @@ class DoubleML(ABC):
         >>> import numpy as np
         >>> import doubleml as dml
         >>> from sklearn.metrics import mean_absolute_error
-        >>> from doubleml.datasets import make_irm_data
+        >>> from doubleml.irm.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
         >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -1238,103 +1245,11 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-        if self._is_cluster_data:
-            obj_dml_resampling = DoubleMLClusterResampling(
-                n_folds=self._n_folds_per_cluster,
-                n_rep=self.n_rep,
-                n_obs=self._n_obs_sample_splitting,
-                n_cluster_vars=self._dml_data.n_cluster_vars,
-                cluster_vars=self._dml_data.cluster_vars,
-            )
-            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
-        else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self._n_obs_sample_splitting, stratify=self._strata
-            )
-            self._smpls = obj_dml_resampling.split_samples()
-
-        return self
-
-    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
-        """
-        Set the sample splitting for DoubleML models.
-
-        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
-
-        Parameters
-        ----------
-        all_smpls : list or tuple
-            If nested list of lists of tuples:
-                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
-                ``n_rep``).
-                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition for each inner list.
-            If list of tuples:
-                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
-            If tuple:
-                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
-                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
-                ``n_folds=1`` and ``n_rep=1`` is always set.
-
-        all_smpls_cluster : list or None
-            Nested list or ``None``. The first level of nesting corresponds to the number of repetitions. The second level
-            of nesting corresponds to the number of folds. The third level of nesting contains a tuple of training and
-            testing lists. Both training and testing contain an array for each cluster variable, which form a partition of
-            the clusters.
-            Default is ``None``.
-
-        Returns
-        -------
-        self : object
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_CCDDHNR2018
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
-        >>> np.random.seed(3141)
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = learner
-        >>> ml_m = learner
-        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> # simple sample splitting with two folds and without cross-fitting
-        >>> smpls = ([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and cross-fitting
-        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
-        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
-        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
-        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        """
-        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self._n_obs_sample_splitting
-        )
-
-        # set sample splitting can update the number of repetitions
+    def _initialize_dml_model(self):
         self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
         self._initialize_arrays()
-        self._initialize_ml_nuisance_params()
-
+        if self._learner:  # for calling in __init__ of subclasses, we need to check if _learner is already set
+            self._initialize_ml_nuisance_params()
         return self
 
     def _est_causal_pars(self, psi_elements):

@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from ..plm.tests._utils_pliv_manual import compute_pliv_residuals, fit_pliv
 from ._utils import _clone
@@ -288,7 +288,7 @@ def dml_plr_cluster_with_index(generate_data1, learner):
     dml_plr_obj.fit()
 
     df = data.reset_index()
-    dml_cluster_data = dml.DoubleMLClusterData(df, y_col="y", d_cols="d", x_cols=x_cols, cluster_cols="index")
+    dml_cluster_data = dml.DoubleMLData(df, y_col="y", d_cols="d", x_cols=x_cols, cluster_cols="index")
     np.random.seed(3141)
     dml_plr_cluster_obj = dml.DoubleMLPLR(dml_cluster_data, ml_l, ml_m, n_folds=n_folds)
     np.random.seed(3141)

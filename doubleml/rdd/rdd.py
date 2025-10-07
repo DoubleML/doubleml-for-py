@@ -7,7 +7,7 @@ from scipy.stats import norm
 from sklearn.base import clone
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLRDDData
 from doubleml.double_ml import DoubleML
 from doubleml.rdd._utils import _is_rdrobust_available
 from doubleml.utils._checks import _check_resampling_specification, _check_supports_sample_weights
@@ -22,8 +22,8 @@ class RDFlex:
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLRDDData` object
+        The :class:`DoubleMLRDDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods and support ``sample_weights`` (e.g.
@@ -82,7 +82,12 @@ class RDFlex:
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(123)
     >>> data_dict = make_simple_rdd_data(fuzzy=True)
-    >>> obj_dml_data = dml.DoubleMLData.from_arrays(x=data_dict["X"], y=data_dict["Y"], d=data_dict["D"], s=data_dict["score"])
+    >>> obj_dml_data = dml.DoubleMLRDDData.from_arrays(
+    ...     x=data_dict["X"],
+    ...     y=data_dict["Y"],
+    ...     d=data_dict["D"],
+    ...     s=data_dict["score"]
+    ... )
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
     >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
@@ -114,8 +119,9 @@ class RDFlex:
 
         self._check_data(obj_dml_data, cutoff)
         self._dml_data = obj_dml_data
+        self._is_cluster_data = self._dml_data.is_cluster_data
 
-        self._score = self._dml_data.s - cutoff
+        self._score = self._dml_data.score - cutoff
         self._cutoff = cutoff
         self._intendend_treatment = (self._score >= 0).astype(bool)
         self._fuzzy = fuzzy
@@ -150,7 +156,6 @@ class RDFlex:
                     "Iterative bandwidth selection will be overwritten by provided values."
                 )
             )
-
         self.kwargs = kwargs
 
         self._smpls = DoubleMLResampling(
@@ -468,7 +473,11 @@ class RDFlex:
             )
         else:
             rdd_res = rdrobust.rdrobust(
-                y=self._M_Y[:, self._i_rep], x=self._score, fuzzy=None, c=0, **({"h": h, "b": b} | self.kwargs)
+                y=self._M_Y[:, self._i_rep],
+                x=self._score,
+                fuzzy=None,
+                c=0,
+                **({"h": h, "b": b} | self.kwargs),
             )
         return rdd_res
 
@@ -495,21 +504,24 @@ class RDFlex:
         return M_Y, M_D, h, rdd_obj, all_coef, all_se, all_ci
 
     def _check_data(self, obj_dml_data, cutoff):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLRDDData):
             raise TypeError(
-                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLRDDData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
 
+        if obj_dml_data.is_cluster_data:
+            raise NotImplementedError("Clustered data is not supported for RDFlex yet.")
+
         # score checks
-        if obj_dml_data.s_col is None:
+        if obj_dml_data.score_col is None:
             raise ValueError("Incompatible data. " + "Score variable has not been set. ")
-        is_continuous = type_of_target(obj_dml_data.s) == "continuous"
+        is_continuous = type_of_target(obj_dml_data.score) == "continuous"
         if not is_continuous:
             raise ValueError("Incompatible data. " + "Score variable has to be continuous. ")
 
         if not isinstance(cutoff, (int, float)):
             raise TypeError(f"Cutoff value has to be a float or int. Object of type {str(type(cutoff))} passed.")
-        if not (obj_dml_data.s.min() <= cutoff <= obj_dml_data.s.max()):
+        if not (obj_dml_data.score.min() <= cutoff <= obj_dml_data.score.max()):
             raise ValueError("Cutoff value is not within the range of the score variable. ")
 
         # treatment checks

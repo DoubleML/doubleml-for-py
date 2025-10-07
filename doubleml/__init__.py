@@ -1,6 +1,6 @@
 import importlib.metadata
 
-from .data import DoubleMLClusterData, DoubleMLData
+from .data import DoubleMLClusterData, DoubleMLData, DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from .did.did import DoubleMLDID
 from .did.did_cs import DoubleMLDIDCS
 from .double_ml_framework import DoubleMLFramework, concat
@@ -29,6 +29,10 @@ __all__ = [
     "DoubleMLIIVM",
     "DoubleMLData",
     "DoubleMLClusterData",
+    "DoubleMLDIDData",
+    "DoubleMLPanelData",
+    "DoubleMLRDDData",
+    "DoubleMLSSMData",
     "DoubleMLDID",
     "DoubleMLDIDCS",
     "DoubleMLPQ",

@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml.data.base_data import DoubleMLData
+from doubleml.data.did_data import DoubleMLDIDData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
@@ -17,8 +17,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLDIDData` object
+        The :class:`DoubleMLDIDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -63,16 +63,15 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``True``.
 
     Examples
-    --------
-    >>> import numpy as np
+    --------    >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_did_SZ2020
+    >>> from doubleml.did.datasets import make_did_SZ2020
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(42)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', t_col='t')
+    >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
            coef   std err         t     P>|t|      2.5 %     97.5 %
@@ -178,9 +177,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLDIDData):
             raise TypeError(
-                "For repeated cross sections the data must be of DoubleMLData type. "
+                "For repeated cross sections the data must be of DoubleMLDIDData type. "
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
