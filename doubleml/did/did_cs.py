@@ -74,8 +74,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
-           coef   std err         t     P>|t|      2.5 %     97.5 %
-    d -6.604603  8.725802 -0.756905  0.449107 -23.706862  10.497655
+         coef   std err         t     P>|t|      2.5 %    97.5 %
+    d -4.9944  7.561785 -0.660479  0.508947 -19.815226  9.826426
     """
 
     def __init__(
