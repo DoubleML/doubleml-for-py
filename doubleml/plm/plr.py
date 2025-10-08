@@ -70,7 +70,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit().summary
            coef   std err          t         P>|t|     2.5 %    97.5 %
-    d  0.482251  0.040629  11.869585  1.703108e-32  0.402619  0.561883
+    d  0.480691  0.040533  11.859129  1.929729e-32  0.401247  0.560135
 
     Notes
     -----
