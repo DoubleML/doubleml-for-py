@@ -91,7 +91,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_iivm_obj.fit().summary
            coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.378351  0.190648  1.984551  0.047194  0.004688  0.752015
+    d  0.362398  0.191578  1.891649  0.058538 -0.013088  0.737884
 
     Notes
     -----
