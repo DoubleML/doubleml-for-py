@@ -49,6 +49,22 @@ dev = [
     "pre-commit>=4.2.0",
 ]
 
+[project.urls]
+Documentation = "https://docs.doubleml.org"
+Source = "https://github.com/DoubleML/doubleml-for-py"
+"Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--doctest-modules",
+    "--doctest-ignore-import-errors"
+]
+doctest_optionflags = [
+    "NORMALIZE_WHITESPACE",
+    "IGNORE_EXCEPTION_DETAIL",
+    "ELLIPSIS"
+]
+
 [tool.black]
 line-length = 127
 target-version = ['py39', 'py310', 'py311', 'py312']
@@ -79,8 +95,3 @@ ignore = [
     # isinstance checks
     "E721",
 ]
-
-[project.urls]
-Documentation = "https://docs.doubleml.org"
-Source = "https://github.com/DoubleML/doubleml-for-py"
-"Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
