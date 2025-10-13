@@ -67,7 +67,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> import numpy as np
     >>> import doubleml as dml
     >>> from doubleml import DoubleMLSSMData
-    >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV()
+    >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV
     >>> from sklearn.base import clone
     >>> np.random.seed(3146)
     >>> n = 2000
@@ -88,10 +88,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> ml_g_sim = clone(learner)
     >>> ml_pi_sim = clone(learner_class)
     >>> ml_m_sim = clone(learner_class)
-    >>> obj_dml_sim = DoubleMLS(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
+    >>> obj_dml_sim = DoubleMLSSM(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
     >>> obj_dml_sim.fit().summary
-          coef   std err         t         P>|t|     2.5 %    97.5 %
-    d  0.49135  0.070534  6.966097  3.258541e-12  0.353105  0.629595
+           coef   std err         t         P>|t|    2.5 %    97.5 %
+    d  0.518517  0.065535  7.912033  2.532202e-15  0.39007  0.646963
 
     Notes
     -----

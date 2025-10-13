@@ -94,7 +94,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
     >>> dml_irm_obj.fit().summary
            coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.414073  0.238529  1.735941  0.082574 -0.053436  0.881581
+    d  0.371972  0.206802  1.798685  0.072069 -0.033353  0.777297
 
     Notes
     -----
