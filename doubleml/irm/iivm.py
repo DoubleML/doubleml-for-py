@@ -446,7 +446,15 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
@@ -473,6 +481,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
         g1_tune_res = _dml_tune(
             y,
@@ -485,6 +494,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
         m_tune_res = _dml_tune(
             z,
@@ -497,6 +507,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         if self.subgroups["always_takers"]:
@@ -511,6 +522,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
             r0_best_params = [xx.best_params_ for xx in r0_tune_res]
         else:
@@ -528,6 +540,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
             r1_best_params = [xx.best_params_ for xx in r1_tune_res]
         else:

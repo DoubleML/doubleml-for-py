@@ -736,6 +736,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         n_jobs_cv=None,
         set_as_params=True,
         return_tune_res=False,
+        optuna_settings=None,
     ):
         """
         Hyperparameter-tuning for DoubleML models.
@@ -764,8 +765,9 @@ class DoubleML(SampleSplittingMixin, ABC):
             Default is ``5``.
 
         search_mode : str
-            A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are optimized via
-            :class:`sklearn.model_selection.GridSearchCV` or :class:`sklearn.model_selection.RandomizedSearchCV`.
+            A str (``'grid_search'``, ``'randomized_search'`` or ``'optuna'``) specifying whether hyperparameters are
+            optimized via :class:`sklearn.model_selection.GridSearchCV`,
+            :class:`sklearn.model_selection.RandomizedSearchCV`, or an Optuna study.
             Default is ``'grid_search'``.
 
         n_iter_randomized_search : int
@@ -783,6 +785,12 @@ class DoubleML(SampleSplittingMixin, ABC):
         return_tune_res : bool
             Indicates whether detailed tuning results should be returned.
             Default is ``False``.
+
+        optuna_settings : None or dict
+            Optional configuration passed to the Optuna tuner when ``search_mode == 'optuna'``. Supports global settings
+            as well as learner-specific overrides (using the learner name as a key). The dictionary can contain keys
+            corresponding to Optuna's study and optimize configuration such as ``n_trials``, ``timeout``, ``sampler``,
+            ``pruner``, ``study_kwargs`` and ``optimize_kwargs``. Defaults to ``None``.
 
         Returns
         -------
@@ -828,20 +836,23 @@ class DoubleML(SampleSplittingMixin, ABC):
         if n_folds_tune < 2:
             raise ValueError(f"The number of folds used for tuning must be at least two. {str(n_folds_tune)} was passed.")
 
-        if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search"]):
-            raise ValueError(f'search_mode must be "grid_search" or "randomized_search". Got {str(search_mode)}.')
+        if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search", "optuna"]):
+            raise ValueError(f'search_mode must be "grid_search", "randomized_search" or "optuna". Got {str(search_mode)}.')
 
-        if not isinstance(n_iter_randomized_search, int):
+        if search_mode == "randomized_search" and not isinstance(n_iter_randomized_search, int):
             raise TypeError(
                 "The number of parameter settings sampled for the randomized search must be of int type. "
                 f"{str(n_iter_randomized_search)} of type "
                 f"{str(type(n_iter_randomized_search))} was passed."
             )
-        if n_iter_randomized_search < 2:
+        if search_mode == "randomized_search" and n_iter_randomized_search < 2:
             raise ValueError(
                 "The number of parameter settings sampled for the randomized search must be at least two. "
                 f"{str(n_iter_randomized_search)} was passed."
             )
+
+        if optuna_settings is not None and not isinstance(optuna_settings, dict):
+            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
 
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
@@ -881,6 +892,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                         n_jobs_cv,
                         search_mode,
                         n_iter_randomized_search,
+                        optuna_settings,
                     )
 
                     tuning_res[i_rep][i_d] = res
@@ -895,7 +907,14 @@ class DoubleML(SampleSplittingMixin, ABC):
                 smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
-                    smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                    smpls,
+                    param_grids,
+                    scoring_methods,
+                    n_folds_tune,
+                    n_jobs_cv,
+                    search_mode,
+                    n_iter_randomized_search,
+                    optuna_settings,
                 )
                 tuning_res[i_d] = res
 
@@ -970,7 +989,15 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     @abstractmethod
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings,
     ):
         pass
 

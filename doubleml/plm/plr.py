@@ -285,7 +285,15 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         return element_dict
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -305,6 +313,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
         m_tune_res = _dml_tune(
             d,
@@ -317,6 +326,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
@@ -344,6 +354,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
 
             g_best_params = [xx.best_params_ for xx in g_tune_res]

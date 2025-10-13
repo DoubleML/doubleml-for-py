@@ -425,7 +425,15 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -450,6 +458,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
 
         def split_inner_folds(train_inds, d, s, random_state=42):

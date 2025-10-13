@@ -619,7 +619,15 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
         _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
@@ -641,6 +649,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             "n_jobs_cv": n_jobs_cv,
             "search_mode": search_mode,
             "n_iter_randomized_search": n_iter_randomized_search,
+            "optuna_settings": optuna_settings,
         }
 
         g_d0_t0_tune_res = _dml_tune(

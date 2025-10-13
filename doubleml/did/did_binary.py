@@ -568,7 +568,15 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
         x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
@@ -593,6 +601,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
         g1_tune_res = _dml_tune(
             y,
@@ -605,6 +614,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
@@ -622,6 +632,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
             m_best_params = [xx.best_params_ for xx in m_tune_res]
             params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}

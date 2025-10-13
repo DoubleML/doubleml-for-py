@@ -3,7 +3,6 @@ import warnings
 import numpy as np
 from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 from sklearn.utils import check_X_y
 
 from ..data.base_data import DoubleMLData
@@ -229,20 +228,49 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_tuning(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         if self.partialX & (not self.partialZ):
             res = self._nuisance_tuning_partial_x(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+                optuna_settings,
             )
         elif (not self.partialX) & self.partialZ:
             res = self._nuisance_tuning_partial_z(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+                optuna_settings,
             )
         else:
             assert self.partialX & self.partialZ
             res = self._nuisance_tuning_partial_xz(
-                smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+                smpls,
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+                optuna_settings,
             )
 
         return res
@@ -514,7 +542,15 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_tuning_partial_x(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -534,6 +570,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         if self._dml_data.n_instr > 1:
@@ -553,6 +590,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     n_jobs_cv,
                     search_mode,
                     n_iter_randomized_search,
+                    optuna_settings,
                 )
         else:
             # one instrument: just identified
@@ -568,6 +606,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+                optuna_settings,
             )
 
         r_tune_res = _dml_tune(
@@ -581,6 +620,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
@@ -616,6 +656,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     n_jobs_cv,
                     search_mode,
                     n_iter_randomized_search,
+                    optuna_settings,
                 )
                 g_best_params = [xx.best_params_ for xx in g_tune_res]
 
@@ -630,7 +671,15 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return res
 
     def _nuisance_tuning_partial_z(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
 
@@ -649,6 +698,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
 
         m_best_params = [xx.best_params_ for xx in m_tune_res]
@@ -662,7 +712,15 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return res
 
     def _nuisance_tuning_partial_xz(
-        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+        self,
+        smpls,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        search_mode,
+        n_iter_randomized_search,
+        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
@@ -683,6 +741,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
         m_tune_res = _dml_tune(
             d,
@@ -695,31 +754,27 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            optuna_settings,
         )
-
         r_tune_res = list()
         for idx, (train_index, _) in enumerate(smpls):
             m_hat = m_tune_res[idx].predict(xz[train_index, :])
-            r_tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
-            if search_mode == "grid_search":
-                r_grid_search = GridSearchCV(
-                    self._learner["ml_r"],
-                    param_grids["ml_r"],
-                    scoring=scoring_methods["ml_r"],
-                    cv=r_tune_resampling,
-                    n_jobs=n_jobs_cv,
-                )
-            else:
-                assert search_mode == "randomized_search"
-                r_grid_search = RandomizedSearchCV(
-                    self._learner["ml_r"],
-                    param_grids["ml_r"],
-                    scoring=scoring_methods["ml_r"],
-                    cv=r_tune_resampling,
-                    n_jobs=n_jobs_cv,
-                    n_iter=n_iter_randomized_search,
-                )
-            r_tune_res.append(r_grid_search.fit(x[train_index, :], m_hat))
+            pseudo_target = np.full(x.shape[0], np.nan)
+            pseudo_target[train_index] = m_hat
+            fold_tune_res = _dml_tune(
+                pseudo_target,
+                x,
+                [train_index],
+                self._learner["ml_r"],
+                param_grids["ml_r"],
+                scoring_methods["ml_r"],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+                optuna_settings,
+            )[0]
+            r_tune_res.append(fold_tune_res)
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
         m_best_params = [xx.best_params_ for xx in m_tune_res]

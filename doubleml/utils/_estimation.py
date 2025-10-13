@@ -5,7 +5,7 @@ from joblib import Parallel, delayed
 from scipy.optimize import minimize_scalar
 from sklearn.base import clone
 from sklearn.metrics import log_loss, root_mean_squared_error
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cross_val_predict
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV, cross_val_predict, cross_validate
 from sklearn.preprocessing import LabelEncoder
 from statsmodels.nonparametric.kde import KDEUnivariate
 
@@ -147,9 +147,54 @@ def _dml_cv_predict(
     return res
 
 
+class _OptunaSearchResult:
+    """Lightweight container mimicking selected GridSearchCV attributes."""
+
+    def __init__(self, estimator, best_params, best_score, study, trials_dataframe):
+        self.best_estimator_ = estimator
+        self.best_params_ = best_params
+        self.best_score_ = best_score
+        self.study_ = study
+        self.trials_dataframe_ = trials_dataframe
+
+    def predict(self, X):
+        return self.best_estimator_.predict(X)
+
+    def predict_proba(self, X):
+        if not hasattr(self.best_estimator_, "predict_proba"):
+            raise AttributeError("The wrapped estimator does not support predict_proba().")
+        return self.best_estimator_.predict_proba(X)
+
+    def score(self, X, y):
+        return self.best_estimator_.score(X, y)
+
+
 def _dml_tune(
-    y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    y,
+    x,
+    train_inds,
+    learner,
+    param_grid,
+    scoring_method,
+    n_folds_tune,
+    n_jobs_cv,
+    search_mode,
+    n_iter_randomized_search,
+    optuna_settings,
 ):
+    if search_mode == "optuna":
+        return _dml_tune_optuna(
+            y,
+            x,
+            train_inds,
+            learner,
+            param_grid,
+            scoring_method,
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+        )
+
     tune_res = list()
     for train_index in train_inds:
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
@@ -166,6 +211,309 @@ def _dml_tune(
                 n_iter=n_iter_randomized_search,
             )
         tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
+
+    return tune_res
+
+
+def _resolve_optuna_settings(optuna_settings):
+    default_settings = {
+        "n_trials": 100,
+        "timeout": None,
+        "direction": "maximize",
+        "study_kwargs": {},
+        "optimize_kwargs": {},
+        "sampler": None,
+        "pruner": None,
+        "callbacks": None,
+        "catch": (),
+        "show_progress_bar": False,
+        "gc_after_trial": False,
+        "search_space": None,
+        "study_factory": None,
+        "study": None,
+        "n_jobs_optuna": None,  # Parallel trial execution
+        "verbosity": None,  # Optuna logging verbosity level
+    }
+
+    if optuna_settings is None:
+        return default_settings
+
+    if not isinstance(optuna_settings, dict):
+        raise TypeError("optuna_settings must be a dict or None.")
+
+    resolved = default_settings.copy()
+    resolved.update(optuna_settings)
+    if not isinstance(resolved["study_kwargs"], dict):
+        raise TypeError("optuna_settings['study_kwargs'] must be a dict.")
+    if not isinstance(resolved["optimize_kwargs"], dict):
+        raise TypeError("optuna_settings['optimize_kwargs'] must be a dict.")
+    if resolved["callbacks"] is not None and not isinstance(resolved["callbacks"], (list, tuple)):
+        raise TypeError("optuna_settings['callbacks'] must be a sequence of callables or None.")
+    if resolved["study"] is not None and resolved["study_factory"] is not None:
+        raise ValueError("Provide only one of 'study' or 'study_factory' in optuna_settings.")
+    if resolved["search_space"] is not None and not isinstance(resolved["search_space"], dict):
+        if not callable(resolved["search_space"]):
+            raise TypeError("optuna_settings['search_space'] must be callable, a dict, or None.")
+    return resolved
+
+
+def _select_optuna_settings(optuna_settings, learner_name):
+    if optuna_settings is None:
+        return _resolve_optuna_settings(None)
+
+    if not isinstance(optuna_settings, dict):
+        raise TypeError("optuna_settings must be a dict or None.")
+
+    base_keys = {
+        "n_trials",
+        "timeout",
+        "direction",
+        "study_kwargs",
+        "optimize_kwargs",
+        "sampler",
+        "pruner",
+        "callbacks",
+        "catch",
+        "show_progress_bar",
+        "gc_after_trial",
+        "search_space",
+        "study_factory",
+        "study",
+        "n_jobs_optuna",
+        "verbosity",
+    }
+
+    base_settings = {key: value for key, value in optuna_settings.items() if key in base_keys}
+
+    learner_specific = optuna_settings.get(learner_name)
+    if learner_specific is None:
+        return _resolve_optuna_settings(base_settings)
+
+    if not isinstance(learner_specific, dict):
+        raise TypeError(f"optuna_settings for learner '{learner_name}' must be a dict or None.")
+
+    merged = base_settings.copy()
+    merged.update(learner_specific)
+    return _resolve_optuna_settings(merged)
+
+
+def _suggest_from_grid(trial, param_name, param_spec, search_space_config, optuna_module):
+    """
+    Suggest a parameter value from a grid specification.
+
+    Parameters
+    ----------
+    trial : optuna.Trial
+        The trial object.
+    param_name : str
+        The name of the parameter.
+    param_spec : various
+        The parameter specification (list, dict, distribution, etc.).
+    search_space_config : callable, dict, or None
+        Optional search space configuration override.
+    optuna_module : module
+        The optuna module.
+
+    Returns
+    -------
+    value
+        The suggested parameter value.
+    """
+    # Handle search_space overrides first
+    if search_space_config is not None:
+        if callable(search_space_config):
+            return search_space_config(trial, param_name, param_spec)
+        if isinstance(search_space_config, dict) and param_name in search_space_config:
+            override = search_space_config[param_name]
+            if callable(override):
+                return override(trial, param_spec)
+            if hasattr(optuna_module, "distributions") and isinstance(override, optuna_module.distributions.BaseDistribution):
+                return trial._suggest(param_name, override)
+            if isinstance(override, (list, tuple)):
+                return _suggest_from_grid(trial, param_name, override, None, optuna_module)
+            raise TypeError(f"Unsupported search_space override type for parameter '{param_name}'. "
+                           f"Expected callable, Optuna distribution, or list/tuple, got {type(override)}.")
+
+    # Handle Optuna distributions directly
+    if hasattr(optuna_module, "distributions") and isinstance(param_spec, optuna_module.distributions.BaseDistribution):
+        return trial._suggest(param_name, param_spec)
+
+    # Handle dict with 'suggest' callable
+    if isinstance(param_spec, dict) and "suggest" in param_spec:
+        suggest_func = param_spec["suggest"]
+        if not callable(suggest_func):
+            raise TypeError(f"The 'suggest' entry for parameter '{param_name}' must be callable, got {type(suggest_func)}.")
+        return suggest_func(trial)
+
+    # Handle list/tuple specifications
+    if isinstance(param_spec, (list, tuple)):
+        if len(param_spec) == 0:
+            raise ValueError(f"Parameter grid for '{param_name}' is empty.")
+
+        # Check for numeric range: [low, high] or [low, high, step]
+        if len(param_spec) in (2, 3) and all(isinstance(v, (int, float)) for v in param_spec):
+            low, high = param_spec[0], param_spec[1]
+            step = param_spec[2] if len(param_spec) == 3 else None
+
+            if low >= high:
+                raise ValueError(f"Parameter '{param_name}': low ({low}) must be less than high ({high}).")
+
+            if step is not None and step <= 0:
+                raise ValueError(f"Step must be positive for parameter '{param_name}', got {step}.")
+
+            # Use int if all values are integers, otherwise float
+            if all(isinstance(v, int) for v in param_spec):
+                if step is not None:
+                    return trial.suggest_int(param_name, int(low), int(high), step=int(step))
+                return trial.suggest_int(param_name, int(low), int(high))
+            else:
+                if step is not None:
+                    return trial.suggest_float(param_name, float(low), float(high), step=float(step))
+                return trial.suggest_float(param_name, float(low), float(high))
+
+        # Categorical choice
+        return trial.suggest_categorical(param_name, list(param_spec))
+
+    raise TypeError(
+        f"Unsupported parameter specification for '{param_name}' in optuna tuning. "
+        f"Provide a list/tuple, optuna distribution, or a dict with a 'suggest' callable. "
+        f"Got {type(param_spec)}."
+    )
+
+
+def _dml_tune_optuna(y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, optuna_settings):
+    try:
+        import optuna  # pylint: disable=import-error
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "Optuna is not installed. Please install Optuna (e.g., pip install optuna) to use search_mode='optuna'."
+        ) from exc
+
+    if isinstance(param_grid, list):
+        raise ValueError("Param grids provided as a list of dicts are not supported for optuna tuning.")
+    if not isinstance(param_grid, dict):
+        raise TypeError("Param grid for optuna tuning must be a dict.")
+
+    # Validate param_grid before starting optimization
+    if not param_grid:
+        raise ValueError("param_grid cannot be empty for optuna tuning.")
+
+    tune_res = list()
+
+    for train_index in train_inds:
+        learner_key = learner.__class__.__name__ if hasattr(learner, "__class__") else ""
+        settings = _select_optuna_settings(optuna_settings, learner_key)
+
+        # Set Optuna logging verbosity if specified
+        if settings.get("verbosity") is not None:
+            optuna.logging.set_verbosity(settings["verbosity"])
+
+        X_train = x[train_index, :]
+        y_train = y[train_index]
+
+        # Pre-create KFold object outside objective to ensure consistent splitting with fixed random state
+        cv = KFold(n_splits=n_folds_tune, shuffle=True, random_state=42)
+
+        def objective(trial):
+            params = {}
+            for param_name, param_spec in param_grid.items():
+                params[param_name] = _suggest_from_grid(
+                    trial,
+                    param_name,
+                    param_spec,
+                    settings.get("search_space"),
+                    optuna,
+                )
+
+            estimator = clone(learner).set_params(**params)
+            scores = cross_validate(
+                estimator,
+                X_train,
+                y_train,
+                cv=cv,
+                scoring=scoring_method,
+                n_jobs=n_jobs_cv,
+                return_train_score=False,
+                error_score="raise",
+            )
+            test_scores = scores["test_score"]
+            return np.nanmean(test_scores)
+
+        study_kwargs = settings.get("study_kwargs", {}).copy()
+        direction = settings.get("direction", "maximize")
+        if "direction" not in study_kwargs:
+            study_kwargs["direction"] = direction
+
+        sampler = settings.get("sampler")
+        if sampler is not None:
+            study_kwargs["sampler"] = sampler
+        pruner = settings.get("pruner")
+        if pruner is not None:
+            study_kwargs["pruner"] = pruner
+
+        optimize_kwargs = {
+            "n_trials": settings.get("n_trials"),
+            "timeout": settings.get("timeout"),
+            "callbacks": settings.get("callbacks"),
+            "catch": settings.get("catch"),
+            "show_progress_bar": settings.get("show_progress_bar", False),
+            "gc_after_trial": settings.get("gc_after_trial", False),
+        }
+
+        # Add n_jobs support for parallel trial execution if available in Optuna version
+        n_jobs_optuna = settings.get("n_jobs_optuna")
+        if n_jobs_optuna is not None:
+            optimize_kwargs["n_jobs"] = n_jobs_optuna
+
+        optimize_kwargs.update(settings.get("optimize_kwargs", {}))
+        optimize_kwargs = {
+            key: value
+            for key, value in optimize_kwargs.items()
+            if value is not None or key in ["show_progress_bar", "gc_after_trial"]
+        }
+
+        study_instance = settings.get("study")
+        if study_instance is not None:
+            study = study_instance
+        else:
+            factory = settings.get("study_factory")
+            if callable(factory):
+                try:
+                    maybe_study = factory(study_kwargs)
+                except TypeError:
+                    maybe_study = factory()
+                if maybe_study is None:
+                    study = optuna.create_study(**study_kwargs)
+                elif isinstance(maybe_study, optuna.study.Study):
+                    study = maybe_study
+                else:
+                    raise TypeError("study_factory must return an optuna.study.Study or None.")
+            else:
+                study = optuna.create_study(**study_kwargs)
+
+        study.optimize(objective, **optimize_kwargs)
+
+        # Check if optimization found any successful trials
+        if study.best_trial is None:
+            raise RuntimeError(
+                f"Optuna optimization failed to find any successful trials. "
+                f"Total trials: {len(study.trials)}, "
+                f"Complete trials: {len([t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE])}"
+            )
+
+        best_params = study.best_trial.params
+        best_estimator = clone(learner).set_params(**best_params)
+        best_estimator.fit(X_train, y_train)
+
+        tune_res.append(
+            _OptunaSearchResult(
+                estimator=best_estimator,
+                best_params=best_params,
+                best_score=study.best_value,
+                study=study,
+                trials_dataframe=study.trials_dataframe(attrs=("number", "value", "params", "state")),
+            )
+        )
 
     return tune_res
 

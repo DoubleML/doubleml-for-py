@@ -914,19 +914,19 @@ def test_doubleml_exception_tune():
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, n_folds_tune=1.0)
 
-    msg = 'search_mode must be "grid_search" or "randomized_search". Got gridsearch.'
+    msg = 'search_mode must be "grid_search", "randomized_search" or "optuna". Got gridsearch.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune(param_grids, search_mode="gridsearch")
 
     msg = "The number of parameter settings sampled for the randomized search must be at least two. 1 was passed."
     with pytest.raises(ValueError, match=msg):
-        dml_plr.tune(param_grids, n_iter_randomized_search=1)
+        dml_plr.tune(param_grids, search_mode="randomized_search", n_iter_randomized_search=1)
     msg = (
         "The number of parameter settings sampled for the randomized search must be of int type. "
         "1.0 of type <class 'float'> was passed."
     )
     with pytest.raises(TypeError, match=msg):
-        dml_plr.tune(param_grids, n_iter_randomized_search=1.0)
+        dml_plr.tune(param_grids, search_mode="randomized_search", n_iter_randomized_search=1.0)
 
     msg = "The number of CPUs used to fit the learners must be of int type. 5 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -939,6 +939,10 @@ def test_doubleml_exception_tune():
     msg = "return_tune_res must be True or False. Got 1."
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, return_tune_res=1)
+
+    msg = "optuna_settings must be a dict or None. Got <class 'list'>."
+    with pytest.raises(TypeError, match=msg):
+        dml_plr.tune(param_grids, search_mode="optuna", optuna_settings=[1, 2, 3])
 
 
 @pytest.mark.ci
