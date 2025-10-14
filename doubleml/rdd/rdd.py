@@ -86,7 +86,7 @@ class RDFlex:
     ...     x=data_dict["X"],
     ...     y=data_dict["Y"],
     ...     d=data_dict["D"],
-    ...     s=data_dict["score"]
+    ...     score=data_dict["score"]
     ... )
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
@@ -94,8 +94,12 @@ class RDFlex:
     >>> print(rdflex_obj.fit())
     Method             Coef.     S.E.     t-stat       P>|t|           95% CI
     -------------------------------------------------------------------------
-    Conventional      0.935     0.220     4.244    2.196e-05  [0.503, 1.367]
-    Robust                 -        -     3.635    2.785e-04  [0.418, 1.396]
+    Conventional      0.950     0.225     4.230    2.333e-05  [0.510, 1.391]
+    Robust                 -        -     3.653    2.589e-04  [0.431, 1.429]
+    Design Type:        Fuzzy
+    Cutoff:             0
+    First Stage Kernel: triangular
+    Final Bandwidth:    [0.74746872]
 
     """
 

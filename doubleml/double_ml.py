@@ -1234,14 +1234,12 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
-        >>> dml_irm_obj.fit()
+        >>> _ = dml_irm_obj.fit()
         >>> def mae(y_true, y_pred):
-        >>>     subset = np.logical_not(np.isnan(y_true))
-        >>>     return mean_absolute_error(y_true[subset], y_pred[subset])
+        ...     subset = np.logical_not(np.isnan(y_true))
+        ...     return mean_absolute_error(y_true[subset], y_pred[subset])
         >>> dml_irm_obj.evaluate_learners(metric=mae)
-        {'ml_g0': array([[0.85974356]]),
-         'ml_g1': array([[0.85280376]]),
-         'ml_m': array([[0.35365143]])}
+        {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:

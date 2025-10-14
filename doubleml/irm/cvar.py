@@ -91,8 +91,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_cvar_obj = dml.DoubleMLCVAR(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
     >>> dml_cvar_obj.fit().summary
-           coef   std err          t         P>|t|     2.5 %    97.5 %
-    d  1.591441  0.095781  16.615498  5.382582e-62  1.403715  1.779167
+           coef   std err         t         P>|t|     2.5 %    97.5 %
+    d  1.588364  0.096616  16.43989  9.909942e-61  1.398999  1.777728
+
     """
 
     def __init__(

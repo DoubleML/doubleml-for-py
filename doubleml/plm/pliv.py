@@ -73,8 +73,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_l, ml_m, ml_r)
     >>> dml_pliv_obj.fit().summary
-           coef   std err         t         P>|t|     2.5 %    97.5 %
-    d  0.522753  0.082263  6.354688  2.088504e-10  0.361521  0.683984
+           coef   std err         t         P>|t|     2.5 %  97.5 %
+    d  0.511722  0.087184  5.869427  4.373034e-09  0.340844  0.6826
 
     Notes
     -----

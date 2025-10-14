@@ -61,14 +61,17 @@ class DoubleMLRDDData(DoubleMLData):
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import pandas as pd
     >>> from doubleml import DoubleMLRDDData
-    >>> from doubleml.rdd.datasets import make_rdd_data
+    >>> from doubleml.rdd.datasets import make_simple_rdd_data
     >>> # initialization from pandas.DataFrame
-    >>> df = make_rdd_data(return_type='DataFrame')
-    >>> obj_dml_data_from_df = DoubleMLRDDData(df, 'y', 'd', 's')
+    >>> data = make_simple_rdd_data(return_type='DataFrame')
+    >>> columns = ["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])]
+    >>> df = pd.DataFrame(np.column_stack((data["Y"], data["D"], data["score"], data["X"])), columns=columns)
+    >>> obj_dml_data_from_df = DoubleMLRDDData(df, 'y', 'd', score_col='s')
     >>> # initialization from np.ndarray
-    >>> (x, y, d, s) = make_rdd_data(return_type='array')
-    >>> obj_dml_data_from_array = DoubleMLRDDData.from_arrays(x, y, d, s=s)
+    >>> obj_dml_data_from_array = DoubleMLRDDData.from_arrays(data["X"], data["Y"], data["D"], score=data["score"])
     """
 
     def __init__(
@@ -160,10 +163,13 @@ class DoubleMLRDDData(DoubleMLData):
 
         Examples
         --------
+        >>> import numpy as np
+        >>> import pandas as pd
         >>> from doubleml import DoubleMLRDDData
-        >>> from doubleml.rdd.datasets import make_rdd_data
-        >>> (x, y, d, s) = make_rdd_data(return_type='array')
-        >>> obj_dml_data_from_array = DoubleMLRDDData.from_arrays(x, y, d, s=s)
+        >>> from doubleml.rdd.datasets import make_simple_rdd_data
+        >>> # initialization from pandas.DataFrame
+        >>> data = make_simple_rdd_data(return_type='DataFrame')
+        >>> obj_dml_data_from_array = DoubleMLRDDData.from_arrays(data["X"], data["Y"], data["D"], score=data["score"])
         """
         # Prepare score variable
         score = check_array(score, ensure_2d=False, allow_nd=False)

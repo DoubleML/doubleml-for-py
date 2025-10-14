@@ -63,7 +63,7 @@ class DoubleMLDIDData(DoubleMLData):
     >>> from doubleml.did.datasets import make_did_SZ2020
     >>> # initialization from pandas.DataFrame
     >>> df = make_did_SZ2020(return_type='DataFrame')
-    >>> obj_dml_data_from_df = DoubleMLDIDData(df, 'y', 'd', 't')
+    >>> obj_dml_data_from_df = DoubleMLDIDData(df, 'y', 'd')
     >>> # initialization from np.ndarray
     >>> (x, y, d, t) = make_did_SZ2020(return_type='array')
     >>> obj_dml_data_from_array = DoubleMLDIDData.from_arrays(x, y, d, t=t)

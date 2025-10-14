@@ -66,9 +66,9 @@ class DoubleMLSSMData(DoubleMLData):
     >>> from doubleml.irm.datasets import make_ssm_data
     >>> # initialization from pandas.DataFrame
     >>> df = make_ssm_data(return_type='DataFrame')
-    >>> obj_dml_data_from_df = DoubleMLSSMData(df, 'y', 'd', 's')
+    >>> obj_dml_data_from_df = DoubleMLSSMData(df, 'y', 'd', s_col='s')
     >>> # initialization from np.ndarray
-    >>> (x, y, d, s) = make_ssm_data(return_type='array')
+    >>> (x, y, d, _, s) = make_ssm_data(return_type='array')
     >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
     """
 
@@ -186,7 +186,7 @@ class DoubleMLSSMData(DoubleMLData):
         --------
         >>> from doubleml import DoubleMLSSMData
         >>> from doubleml.irm.datasets import make_ssm_data
-        >>> (x, y, d, s) = make_ssm_data(return_type='array')
+        >>> (x, y, d, _, s) = make_ssm_data(return_type='array')
         >>> obj_dml_data_from_array = DoubleMLSSMData.from_arrays(x, y, d, s=s)
         """
         # Prepare selection variable
