@@ -314,6 +314,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_l",
         )
         m_tune_res = _dml_tune(
             d,
@@ -327,6 +328,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_m",
         )
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
@@ -355,6 +357,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 search_mode,
                 n_iter_randomized_search,
                 optuna_settings,
+                learner_name="ml_g",
             )
 
             g_best_params = [xx.best_params_ for xx in g_tune_res]

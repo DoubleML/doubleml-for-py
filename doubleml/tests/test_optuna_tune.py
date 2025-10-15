@@ -51,8 +51,14 @@ def test_doubleml_plr_optuna_tune(generate_data1, sampler_name, optuna_sampler):
     dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
 
     param_grids = {
-        "ml_l": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-        "ml_m": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
+        "ml_l": {
+            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
+            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 2),
+        },
+        "ml_m": {
+            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
+            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 2),
+        },
     }
 
     tune_res = dml_plr.tune(
@@ -94,8 +100,14 @@ def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
     dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2)
 
     param_grids = {
-        "ml_g": {"max_depth": [1, 2], "min_samples_leaf": [1, 3]},
-        "ml_m": {"max_depth": [1, 2], "min_samples_leaf": [1, 3]},
+        "ml_g": {
+            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
+            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 3),
+        },
+        "ml_m": {
+            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
+            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 3),
+        },
     }
 
     per_ml_settings = {

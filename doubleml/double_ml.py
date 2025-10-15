@@ -750,6 +750,18 @@ class DoubleML(SampleSplittingMixin, ABC):
         param_grids : dict
             A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
 
+            For ``search_mode='grid_search'`` or ``'randomized_search'``, provide lists of parameter values.
+
+                        For ``search_mode='optuna'``, specify each parameter as a callable of the form
+                        ``lambda trial, name: trial.suggest_*``. For example:
+
+                        - ``lambda trial, name: trial.suggest_float(name, 0.01, 1.0, log=True)``
+                        - ``lambda trial, name: trial.suggest_int(name, 10, 1000, log=True)``
+                        - ``lambda trial, name: trial.suggest_categorical(name, ['gini', 'entropy'])``
+
+            When using Optuna, tuning is performed once on the whole dataset using cross-validation,
+            and the same optimal hyperparameters are used for all folds.
+
         tune_on_folds : bool
             Indicates whether the tuning should be done fold-specific or globally.
             Default is ``False``.
@@ -788,9 +800,9 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         optuna_settings : None or dict
             Optional configuration passed to the Optuna tuner when ``search_mode == 'optuna'``. Supports global settings
-            as well as learner-specific overrides (using the learner name as a key). The dictionary can contain keys
-            corresponding to Optuna's study and optimize configuration such as ``n_trials``, ``timeout``, ``sampler``,
-            ``pruner``, ``study_kwargs`` and ``optimize_kwargs``. Defaults to ``None``.
+            as well as learner-specific overrides (using the keys from ``param_grids``). The dictionary can contain
+            entries corresponding to Optuna's study and optimize configuration such as ``n_trials``, ``timeout``,
+            ``sampler``, ``pruner``, ``study_kwargs`` and ``optimize_kwargs``. Defaults to ``None``.
 
         Returns
         -------

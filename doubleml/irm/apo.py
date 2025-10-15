@@ -396,6 +396,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_g",
         )
         g_d_lvl1_tune_res = _dml_tune(
             y,
@@ -409,6 +410,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_g",
         )
 
         m_tune_res = _dml_tune(
@@ -423,6 +425,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_m",
         )
 
         g_d_lvl0_best_params = [xx.best_params_ for xx in g_d_lvl0_tune_res]

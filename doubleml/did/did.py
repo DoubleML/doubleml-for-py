@@ -403,6 +403,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_g",
         )
         g1_tune_res = _dml_tune(
             y,
@@ -416,6 +417,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_g",
         )
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
@@ -434,6 +436,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                 search_mode,
                 n_iter_randomized_search,
                 optuna_settings,
+                learner_name="ml_m",
             )
             m_best_params = [xx.best_params_ for xx in m_tune_res]
             params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}

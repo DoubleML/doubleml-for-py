@@ -364,6 +364,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_g",
         )
 
         m_tune_res = _dml_tune(
@@ -378,6 +379,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             search_mode,
             n_iter_randomized_search,
             optuna_settings,
+            learner_name="ml_m",
         )
 
         g_best_params = [xx.best_params_ for xx in g_tune_res]

@@ -652,6 +652,8 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             "optuna_settings": optuna_settings,
         }
 
+        tune_args_g = {**tune_args, "learner_name": "ml_g"}
+
         g_d0_t0_tune_res = _dml_tune(
             y,
             x,
@@ -659,7 +661,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args,
+            **tune_args_g,
         )
 
         g_d0_t1_tune_res = _dml_tune(
@@ -669,7 +671,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args,
+            **tune_args_g,
         )
 
         g_d1_t0_tune_res = _dml_tune(
@@ -679,7 +681,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args,
+            **tune_args_g,
         )
 
         g_d1_t1_tune_res = _dml_tune(
@@ -689,7 +691,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args,
+            **tune_args_g,
         )
 
         m_tune_res = list()
@@ -701,7 +703,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
                 self._learner["ml_m"],
                 param_grids["ml_m"],
                 scoring_methods["ml_m"],
-                **tune_args,
+                **{**tune_args, "learner_name": "ml_m"},
             )
 
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]
