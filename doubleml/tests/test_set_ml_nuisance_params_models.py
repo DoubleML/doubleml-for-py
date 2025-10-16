@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
-from doubleml import DoubleMLCVAR, DoubleMLIIVM, DoubleMLIRM, DoubleMLLPQ, DoubleMLPLIV, DoubleMLPLR, DoubleMLPQ
+from doubleml import DoubleMLAPO, DoubleMLCVAR, DoubleMLIIVM, DoubleMLIRM, DoubleMLLPQ, DoubleMLPLIV, DoubleMLPLR, DoubleMLPQ
 from doubleml.irm.datasets import make_iivm_data, make_irm_data
 from doubleml.plm.datasets import make_pliv_CHS2015, make_plr_CCDDHNR2018
 
@@ -27,18 +27,21 @@ dml_pliv = DoubleMLPLIV(dml_data_pliv, reg_learner, reg_learner, reg_learner, n_
 dml_irm = DoubleMLIRM(dml_data_irm, reg_learner, class_learner, n_folds=n_folds)
 dml_iivm = DoubleMLIIVM(dml_data_iivm, reg_learner, class_learner, class_learner, n_folds=n_folds)
 dml_cvar = DoubleMLCVAR(dml_data_irm, ml_g=reg_learner, ml_m=class_learner, n_folds=n_folds)
+dml_apo = DoubleMLAPO(dml_data_irm, ml_g=reg_learner, ml_m=class_learner, n_folds=n_folds, treatment_level=1)
 
 dml_plr.set_ml_nuisance_params("ml_l", "d", {"n_estimators": n_est_test})
 dml_pliv.set_ml_nuisance_params("ml_l", "d", {"n_estimators": n_est_test})
 dml_irm.set_ml_nuisance_params("ml_g0", "d", {"n_estimators": n_est_test})
 dml_iivm.set_ml_nuisance_params("ml_g0", "d", {"n_estimators": n_est_test})
 dml_cvar.set_ml_nuisance_params("ml_g", "d", {"n_estimators": n_est_test})
+dml_apo.set_ml_nuisance_params("ml_g_d_lvl1", "d", {"n_estimators": n_est_test})
 
 dml_plr.fit(store_models=True)
 dml_pliv.fit(store_models=True)
 dml_irm.fit(store_models=True)
 dml_iivm.fit(store_models=True)
 dml_cvar.fit(store_models=True)
+dml_apo.fit(store_models=True)
 
 # nonlinear models
 dml_pq = DoubleMLPQ(dml_data_irm, ml_g=class_learner, ml_m=class_learner, n_folds=n_folds)
@@ -74,6 +77,11 @@ def test_pliv_params():
 @pytest.mark.ci
 def test_irm_params():
     _assert_nuisance_params(dml_irm, "ml_g0", "ml_g1")
+
+
+@pytest.mark.ci
+def test_apo_params():
+    _assert_nuisance_params(dml_apo, "ml_g_d_lvl1", "ml_m")
 
 
 @pytest.mark.ci
