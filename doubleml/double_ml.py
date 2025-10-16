@@ -946,18 +946,34 @@ class DoubleML(SampleSplittingMixin, ABC):
             )
 
         if params is None:
-            all_params = [None] * self.n_rep
+            new_params = [None] * self.n_rep
         elif isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
+            new_params = [[params] * self.n_folds] * self.n_rep
 
         else:
             # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            all_params = params
+            new_params = params
 
-        self._params[learner][treat_var] = all_params
+        existing_params = self._params[learner].get(treat_var, [None] * self.n_rep)
 
+        if existing_params == [None] * self.n_rep:
+            updated_params = new_params
+        elif new_params == [None] * self.n_rep:
+            updated_params = existing_params
+        else:
+            updated_params = []
+            for i_rep in range(self.n_rep):
+                rep_params = []
+                for i_fold in range(self.n_folds):
+                    existing_dict = existing_params[i_rep][i_fold]
+                    new_dict = new_params[i_rep][i_fold]
+                    updated_dict = existing_dict | new_dict
+                    rep_params.append(updated_dict)
+                updated_params.append(rep_params)
+
+        self._params[learner][treat_var] = updated_params
         return self
 
     @abstractmethod
