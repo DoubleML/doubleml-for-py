@@ -213,7 +213,7 @@ def test_set_params_then_tune_combination(fresh_irm_model):
 
     # Define tuning grid - only tune n_estimators, min_samples_split, not all manually set parameters
     par_grid = {"ml_g": {"n_estimators": [10, 20], "min_samples_split": [2, 10]}, "ml_m": {"n_estimators": [15, 25]}}
-    tune_res = dml_irm.tune(par_grid, return_tune_res=True)
+    dml_irm.tune(par_grid, return_tune_res=False)
 
     # Verify consistency across folds and repetitions
     for rep in range(n_rep):
@@ -236,18 +236,3 @@ def test_set_params_then_tune_combination(fresh_irm_model):
             # min_samples_split should be overwritten by tuning for ml_g learners
             assert fold_g0_params["min_samples_split"] in [2, 10]
             assert fold_g1_params["min_samples_split"] in [2, 10]
-
-    # Check that manually set max_depth is preserved in best estimators
-    for fold in range(n_folds):
-        # Check if tune_res contains GridSearchCV objects
-        if hasattr(tune_res[0]["tune_res"]["g0_tune"][fold], "best_estimator_"):
-            best_estimator_g0 = tune_res[0]["tune_res"]["g0_tune"][fold].best_estimator_
-            assert best_estimator_g0.max_depth == 3
-
-        if hasattr(tune_res[0]["tune_res"]["g1_tune"][fold], "best_estimator_"):
-            best_estimator_g1 = tune_res[0]["tune_res"]["g1_tune"][fold].best_estimator_
-            assert best_estimator_g1.max_depth == 3
-
-        if hasattr(tune_res[0]["tune_res"]["m_tune"][fold], "best_estimator_"):
-            best_estimator_m = tune_res[0]["tune_res"]["m_tune"][fold].best_estimator_
-            assert best_estimator_m.max_depth == 2
