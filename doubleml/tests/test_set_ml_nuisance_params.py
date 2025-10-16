@@ -198,3 +198,56 @@ def test_error_cases(fresh_irm_model):
     invalid_nested = [[{"n_estimators": 50}], [{"n_estimators": 60}]]  # Only 1 fold, should be 2  # Only 1 fold, should be 2
     with pytest.raises(AssertionError):
         dml_irm.set_ml_nuisance_params("ml_g0", "d", invalid_nested)
+
+
+@pytest.mark.ci
+def test_set_params_then_tune_combination(fresh_irm_model):
+    """Test that manually set parameters are preserved and combined with tuned parameters."""
+    dml_irm = fresh_irm_model
+
+    # Set initial parameters that should be preserved after tuning
+    initial_params = {"max_depth": 3, "min_samples_split": 5}
+    dml_irm.set_ml_nuisance_params("ml_g0", "d", initial_params)
+    dml_irm.set_ml_nuisance_params("ml_g1", "d", initial_params)
+    dml_irm.set_ml_nuisance_params("ml_m", "d", {"max_depth": 2})
+
+    # Define tuning grid - only tune n_estimators, min_samples_split, not all manually set parameters
+    par_grid = {"ml_g": {"n_estimators": [10, 20], "min_samples_split": [2, 10]}, "ml_m": {"n_estimators": [15, 25]}}
+    tune_res = dml_irm.tune(par_grid, return_tune_res=True)
+
+    # Verify consistency across folds and repetitions
+    for rep in range(n_rep):
+        for fold in range(n_folds):
+            # All should have the same combination of manually set + tuned parameters
+            fold_g0_params = dml_irm.params["ml_g0"]["d"][rep][fold]
+            fold_g1_params = dml_irm.params["ml_g1"]["d"][rep][fold]
+            fold_m_params = dml_irm.params["ml_m"]["d"][rep][fold]
+
+            # Manually set parameters that are not tuned should be preserved
+            assert fold_g0_params["max_depth"] == 3
+            assert fold_g1_params["max_depth"] == 3
+            assert fold_m_params["max_depth"] == 2
+
+            # Tuned parameters should overwrite manually set ones
+            assert fold_g0_params["n_estimators"] in [10, 20]
+            assert fold_g1_params["n_estimators"] in [10, 20]
+            assert fold_m_params["n_estimators"] in [15, 25]
+
+            # min_samples_split should be overwritten by tuning for ml_g learners
+            assert fold_g0_params["min_samples_split"] in [2, 10]
+            assert fold_g1_params["min_samples_split"] in [2, 10]
+
+    # Check that manually set max_depth is preserved in best estimators
+    for fold in range(n_folds):
+        # Check if tune_res contains GridSearchCV objects
+        if hasattr(tune_res[0]["tune_res"]["g0_tune"][fold], "best_estimator_"):
+            best_estimator_g0 = tune_res[0]["tune_res"]["g0_tune"][fold].best_estimator_
+            assert best_estimator_g0.max_depth == 3
+
+        if hasattr(tune_res[0]["tune_res"]["g1_tune"][fold], "best_estimator_"):
+            best_estimator_g1 = tune_res[0]["tune_res"]["g1_tune"][fold].best_estimator_
+            assert best_estimator_g1.max_depth == 3
+
+        if hasattr(tune_res[0]["tune_res"]["m_tune"][fold], "best_estimator_"):
+            best_estimator_m = tune_res[0]["tune_res"]["m_tune"][fold].best_estimator_
+            assert best_estimator_m.max_depth == 2
