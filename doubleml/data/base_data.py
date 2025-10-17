@@ -463,7 +463,9 @@ class DoubleMLData(DoubleMLBaseData):
     @x_cols.setter
     def x_cols(self, value):
         reset_value = hasattr(self, "_x_cols")
+
         if value is not None:
+            # Basic checks
             if isinstance(value, str):
                 value = [value]
             if not isinstance(value, list):
@@ -476,7 +478,17 @@ class DoubleMLData(DoubleMLBaseData):
             if not set(value).issubset(set(self.all_variables)):
                 raise ValueError("Invalid covariates x_cols. At least one covariate is no data column.")
             assert set(value).issubset(set(self.all_variables))
-            self._x_cols = value
+
+            if not reset_value:
+                self._x_cols = value
+            else:
+                previous_value = self._x_cols
+                self._x_cols = value
+                try:
+                    self._check_disjoint_sets()
+                except ValueError:
+                    self._x_cols = previous_value
+                    raise
 
         else:
             excluded_cols = {self.y_col} | set(self.d_cols)
@@ -486,8 +498,6 @@ class DoubleMLData(DoubleMLBaseData):
             self._x_cols = [col for col in self.data.columns if col not in excluded_cols]
 
         if reset_value:
-            self._check_disjoint_sets()
-            # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
     @property
@@ -500,6 +510,8 @@ class DoubleMLData(DoubleMLBaseData):
     @d_cols.setter
     def d_cols(self, value):
         reset_value = hasattr(self, "_d_cols")
+
+        # Basic checks
         if isinstance(value, str):
             value = [value]
         if not isinstance(value, list):
@@ -511,10 +523,19 @@ class DoubleMLData(DoubleMLBaseData):
             raise ValueError("Invalid treatment variable(s) d_cols: Contains duplicate values.")
         if not set(value).issubset(set(self.all_variables)):
             raise ValueError("Invalid treatment variable(s) d_cols. At least one treatment variable is no data column.")
-        self._d_cols = value
+
+        if not reset_value:
+            self._d_cols = value
+        else:
+            previous_value = self._d_cols
+            self._d_cols = value
+            try:
+                self._check_disjoint_sets()
+            except ValueError:
+                self._d_cols = previous_value
+                raise
+
         if reset_value:
-            self._check_disjoint_sets()
-            # by default, we initialize to the first treatment variable
             self.set_x_d(self.d_cols[0])
 
     @property
@@ -527,15 +548,27 @@ class DoubleMLData(DoubleMLBaseData):
     @y_col.setter
     def y_col(self, value):
         reset_value = hasattr(self, "_y_col")
+
+        # Basic checks
         if not isinstance(value, str):
             raise TypeError(
                 f"The outcome variable y_col must be of str type. {str(value)} of type {str(type(value))} was passed."
             )
         if value not in self.all_variables:
             raise ValueError(f"Invalid outcome variable y_col. {value} is no data column.")
-        self._y_col = value
+
+        if not reset_value:
+            self._y_col = value
+        else:
+            previous_value = self._y_col
+            self._y_col = value
+            try:
+                self._check_disjoint_sets()
+            except ValueError:
+                self._y_col = previous_value
+                raise
+
         if reset_value:
-            self._check_disjoint_sets()
             self._set_y_z()
 
     @property
@@ -548,7 +581,9 @@ class DoubleMLData(DoubleMLBaseData):
     @z_cols.setter
     def z_cols(self, value):
         reset_value = hasattr(self, "_z_cols")
+
         if value is not None:
+            # Basic validation
             if isinstance(value, str):
                 value = [value]
             if not isinstance(value, list):
@@ -562,12 +597,22 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError(
                     "Invalid instrumental variable(s) z_cols. At least one instrumental variable is no data column."
                 )
-            self._z_cols = value
+
+            if not reset_value:
+                self._z_cols = value
+            else:
+                previous_value = self._z_cols
+                self._z_cols = value
+                try:
+                    self._check_disjoint_sets()
+                except ValueError:
+                    self._z_cols = previous_value
+                    raise
+
         else:
             self._z_cols = None
 
         if reset_value:
-            self._check_disjoint_sets()
             self._set_y_z()
 
     @property
