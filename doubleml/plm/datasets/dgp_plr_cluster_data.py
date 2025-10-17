@@ -40,7 +40,7 @@ def make_plr_cluster_data(
         If None, only one-way clustering is used.
         Default is None.
     obs_per_cluster : int
-        Average number of observations per cluster combination.
+        Average number of observations per first cluster dimension.
         Default is 10.
     dim_x : int
         Number of covariates.
@@ -105,50 +105,24 @@ def make_plr_cluster_data(
 
         return sizes
 
-    # Determine total number of observations
+    # Generate observations for first clustering dimension
+    cluster_sizes = generate_cluster_sizes(n_clusters1, obs_per_cluster, cluster_size_variation)
+    n_obs = np.sum(cluster_sizes)
+    cluster1_ids = np.concatenate([np.full(size, i) for i, size in enumerate(cluster_sizes)])
+
+    # Generate cluster effects for first dimension
+    xi_d = np.random.normal(0, sigma_xi_d, n_clusters1)
+    xi_y = np.random.normal(0, sigma_xi_y, n_clusters1)
+
     if n_clusters2 is None:
-        # One-way clustering
-        cluster_sizes = generate_cluster_sizes(n_clusters1, obs_per_cluster, cluster_size_variation)
-        n_obs = np.sum(cluster_sizes)
-
-        # Create cluster IDs with variable sizes
-        cluster1_ids = np.concatenate([np.full(size, i) for i, size in enumerate(cluster_sizes)])
         cluster2_ids = None
-
-        # Generate cluster effects
-        xi_d = np.random.normal(0, sigma_xi_d, n_clusters1)
-        xi_y = np.random.normal(0, sigma_xi_y, n_clusters1)
         cluster_effects_d = xi_d[cluster1_ids]
         cluster_effects_y = xi_y[cluster1_ids]
-
     else:
-        # Two-way clustering with variable sizes
-        cluster1_sizes = generate_cluster_sizes(n_clusters1, obs_per_cluster, cluster_size_variation)
-        cluster2_sizes = generate_cluster_sizes(n_clusters2, obs_per_cluster, cluster_size_variation)
+        # Two-way clustering: randomly assign observations to second dimension clusters
+        cluster2_ids = np.random.choice(n_clusters2, size=n_obs)
 
-        # Create all combinations and their sizes
-        cluster1_ids_list = []
-        cluster2_ids_list = []
-
-        for c1, size1 in enumerate(cluster1_sizes):
-            for c2, size2 in enumerate(cluster2_sizes):
-                # Size for this (c1, c2) combination
-                combo_size = max(1, int(np.random.poisson(size1 * size2 / obs_per_cluster)))
-
-                cluster1_ids_list.extend([c1] * combo_size)
-                cluster2_ids_list.extend([c2] * combo_size)
-
-        cluster1_ids = np.array(cluster1_ids_list)
-        cluster2_ids = np.array(cluster2_ids_list)
-        n_obs = len(cluster1_ids)
-
-        # Create cluster IDs
-        cluster1_ids = np.tile(np.repeat(np.arange(n_clusters1), obs_per_cluster), n_clusters2)
-        cluster2_ids = np.repeat(np.arange(n_clusters2), n_clusters1 * obs_per_cluster)
-
-        # Generate cluster effects for both dimensions
-        xi_d = np.random.normal(0, sigma_xi_d, n_clusters1)
-        xi_y = np.random.normal(0, sigma_xi_y, n_clusters1)
+        # Generate cluster effects for second dimension
         zeta_d = np.random.normal(0, sigma_zeta_d, n_clusters2)
         zeta_y = np.random.normal(0, sigma_zeta_y, n_clusters2)
 
