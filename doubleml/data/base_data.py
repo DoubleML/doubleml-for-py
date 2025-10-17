@@ -702,8 +702,12 @@ class DoubleMLData(DoubleMLBaseData):
         def _set_attr(col):
             if col is None:
                 return None
-            assert_all_finite(self.data.loc[:, col])
-            return self.data.loc[:, col]
+            if isinstance(col, list):
+                converted_data = self.data.loc[:, col].apply(pd.to_numeric, errors="coerce")
+            else:
+                converted_data = pd.to_numeric(self.data.loc[:, col], errors="coerce")
+            assert_all_finite(converted_data)
+            return converted_data
 
         self._y = _set_attr(self.y_col)
         self._z = _set_attr(self.z_cols)
@@ -740,7 +744,7 @@ class DoubleMLData(DoubleMLBaseData):
             assert_all_finite(self.data.loc[:, self.d_cols], allow_nan=self.force_all_d_finite == "allow-nan")
         if self.force_all_x_finite:
             assert_all_finite(self.data.loc[:, xd_list], allow_nan=self.force_all_x_finite == "allow-nan")
-        self._d = self.data.loc[:, treatment_var]
+        self._d = pd.to_numeric(self.data.loc[:, treatment_var], errors="coerce")
         self._X = self.data.loc[:, xd_list]
 
     def _get_optional_col_sets(self):
