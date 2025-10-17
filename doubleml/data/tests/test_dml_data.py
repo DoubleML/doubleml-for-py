@@ -672,20 +672,23 @@ def test_dml_data_decimal_to_float_conversion():
     data = {
         "y": [Decimal(i * 0.1) for i in range(n_obs)],
         "d": [Decimal(i * 0.05) for i in range(n_obs)],
-        "X": [Decimal(i) for i in range(n_obs)],
+        "x": [Decimal(i) for i in range(n_obs)],
+        "z": [Decimal(i * 2) for i in range(n_obs)],
     }
     df = pd.DataFrame(data)
 
-    dml_data = DoubleMLData(df, y_col="y", d_cols="d", x_cols="X")
+    dml_data = DoubleMLData(df, y_col="y", d_cols="d", x_cols="x", z_cols="z")
 
     assert dml_data.y.dtype == np.float64, f"Expected y to be float64, got {dml_data.y.dtype}"
     assert dml_data.d.dtype == np.float64, f"Expected d to be float64, got {dml_data.d.dtype}"
-    assert dml_data.x.dtype == np.float64, f"Expected x to be float64, got {dml_data.x.dtype}"
+    assert dml_data.z.dtype == np.float64, f"Expected z to be float64, got {dml_data.z.dtype}"
+    # x is not converted to float, so its dtype remains Decimal
+    assert dml_data.x.dtype == Decimal
 
     expected_y = np.array([float(Decimal(i * 0.1)) for i in range(n_obs)])
     expected_d = np.array([float(Decimal(i * 0.05)) for i in range(n_obs)])
-    expected_x = np.array([float(Decimal(i)) for i in range(n_obs)]).reshape(-1, 1)
+    expected_z = np.array([float(Decimal(i * 2)) for i in range(n_obs)]).reshape(-1, 1)
 
     np.testing.assert_array_almost_equal(dml_data.y, expected_y)
     np.testing.assert_array_almost_equal(dml_data.d, expected_d)
-    np.testing.assert_array_almost_equal(dml_data.x, expected_x)
+    np.testing.assert_array_almost_equal(dml_data.z, expected_z)
