@@ -479,7 +479,9 @@ class DoubleMLData(DoubleMLBaseData):
                 raise ValueError("Invalid covariates x_cols. At least one covariate is no data column.")
             assert set(value).issubset(set(self.all_variables))
 
-            if reset_value:
+            if not reset_value:
+                self._x_cols = value
+            else:
                 previous_value = self._x_cols
                 self._x_cols = value
                 try:
@@ -487,8 +489,6 @@ class DoubleMLData(DoubleMLBaseData):
                 except ValueError:
                     self._x_cols = previous_value
                     raise
-            else:
-                self._x_cols = value
 
         else:
             excluded_cols = {self.y_col} | set(self.d_cols)
@@ -524,7 +524,9 @@ class DoubleMLData(DoubleMLBaseData):
         if not set(value).issubset(set(self.all_variables)):
             raise ValueError("Invalid treatment variable(s) d_cols. At least one treatment variable is no data column.")
 
-        if reset_value:
+        if not reset_value:
+            self._d_cols = value
+        else:
             previous_value = self._d_cols
             self._d_cols = value
             try:
@@ -532,8 +534,6 @@ class DoubleMLData(DoubleMLBaseData):
             except ValueError:
                 self._d_cols = previous_value
                 raise
-        else:
-            self._d_cols = value
 
         if reset_value:
             self.set_x_d(self.d_cols[0])
@@ -557,7 +557,9 @@ class DoubleMLData(DoubleMLBaseData):
         if value not in self.all_variables:
             raise ValueError(f"Invalid outcome variable y_col. {value} is no data column.")
 
-        if reset_value:
+        if not reset_value:
+            self._y_col = value
+        else:
             previous_value = self._y_col
             self._y_col = value
             try:
@@ -565,8 +567,6 @@ class DoubleMLData(DoubleMLBaseData):
             except ValueError:
                 self._y_col = previous_value
                 raise
-        else:
-            self._y_col = value
 
         if reset_value:
             self._set_y_z()
@@ -598,7 +598,9 @@ class DoubleMLData(DoubleMLBaseData):
                     "Invalid instrumental variable(s) z_cols. At least one instrumental variable is no data column."
                 )
 
-            if reset_value:
+            if not reset_value:
+                self._z_cols = value
+            else:
                 previous_value = self._z_cols
                 self._z_cols = value
                 try:
@@ -606,8 +608,6 @@ class DoubleMLData(DoubleMLBaseData):
                 except ValueError:
                     self._z_cols = previous_value
                     raise
-            else:
-                self._z_cols = value
 
         else:
             self._z_cols = None
