@@ -527,15 +527,27 @@ class DoubleMLData(DoubleMLBaseData):
     @y_col.setter
     def y_col(self, value):
         reset_value = hasattr(self, "_y_col")
+
+        # Basic checks
         if not isinstance(value, str):
             raise TypeError(
                 f"The outcome variable y_col must be of str type. {str(value)} of type {str(type(value))} was passed."
             )
         if value not in self.all_variables:
             raise ValueError(f"Invalid outcome variable y_col. {value} is no data column.")
-        self._y_col = value
+
         if reset_value:
-            self._check_disjoint_sets()
+            previous_value = self._y_col
+            self._y_col = value
+            try:
+                self._check_disjoint_sets()
+            except ValueError as e:
+                self._y_col = previous_value
+                raise e
+        else:
+            self._y_col = value
+
+        if reset_value:
             self._set_y_z()
 
     @property
