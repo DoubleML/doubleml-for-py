@@ -619,3 +619,45 @@ def test_dml_data_w_missing_d(generate_data1):
     assert dml_data.force_all_d_finite is False
     dml_data.force_all_d_finite = "allow-nan"
     assert dml_data.force_all_d_finite == "allow-nan"
+
+
+@pytest.mark.ci
+def test_property_setter_rollback_on_validation_failure():
+    """Test that property setters don't mutate the object if validation fails."""
+    np.random.seed(3141)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100)
+
+    # Store original values
+    original_y_col = dml_data.y_col
+    original_d_cols = dml_data.d_cols.copy()
+    original_x_cols = dml_data.x_cols.copy()
+    original_z_cols = dml_data.z_cols
+
+    # Test y_col setter - try to set y_col to a value that's already in d_cols
+    with pytest.raises(
+        ValueError, match=r"d cannot be set as outcome variable ``y_col`` and treatment variable in ``d_cols``"
+    ):
+        dml_data.y_col = "d"
+    # Object should remain unchanged
+    assert dml_data.y_col == original_y_col
+
+    # Test d_cols setter - try to set d_cols to include the outcome variable
+    with pytest.raises(
+        ValueError, match=r"y cannot be set as outcome variable ``y_col`` and treatment variable in ``d_cols``"
+    ):
+        dml_data.d_cols = ["y", "d"]
+    # Object should remain unchanged
+    assert dml_data.d_cols == original_d_cols
+
+    # Test x_cols setter - try to set x_cols to include the outcome variable
+    with pytest.raises(ValueError, match=r"y cannot be set as outcome variable ``y_col`` and covariate in ``x_cols``"):
+        dml_data.x_cols = ["X1", "y", "X2"]
+    # Object should remain unchanged
+    assert dml_data.x_cols == original_x_cols
+
+    # Test z_cols setter - try to set z_cols to include the outcome variable
+    msg = r"At least one variable/column is set as outcome variable \(``y_col``\) and instrumental variable \(``z_cols``\)"
+    with pytest.raises(ValueError, match=msg):
+        dml_data.z_cols = ["y"]
+    # Object should remain unchanged
+    assert dml_data.z_cols == original_z_cols
