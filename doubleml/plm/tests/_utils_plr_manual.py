@@ -153,7 +153,10 @@ def fit_nuisance_plr_classifier(
     y, x, d, learner_l, learner_m, learner_g, smpls, fit_g=True, l_params=None, m_params=None, g_params=None
 ):
     ml_l = clone(learner_l)
-    l_hat = fit_predict(y, x, ml_l, l_params, smpls)
+    if is_classifier(learner_l):
+        l_hat = fit_predict_proba(y, x, ml_l, l_params, smpls)
+    else:
+        l_hat = fit_predict(y, x, ml_l, l_params, smpls)
 
     ml_m = clone(learner_m)
     m_hat = fit_predict_proba(d, x, ml_m, m_params, smpls)

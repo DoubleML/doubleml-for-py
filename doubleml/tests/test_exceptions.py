@@ -986,7 +986,6 @@ class LogisticRegressionManipulatedPredict(LogisticRegression):
 @pytest.mark.ci
 def test_doubleml_exception_learner():
     err_msg_prefix = "Invalid learner provided for ml_l: "
-    warn_msg_prefix = "Learner provided for ml_l is probably invalid: "
 
     msg = err_msg_prefix + "provide an instance of a learner instead of a class."
     with pytest.raises(TypeError, match=msg):
@@ -1004,12 +1003,6 @@ def test_doubleml_exception_learner():
     # msg = 'Learner provided for ml_m is probably invalid: ' + r'_DummyNoClassifier\(\) is \(probably\) no classifier.'
     with pytest.warns(UserWarning):
         _ = DoubleMLIRM(dml_data_irm, Lasso(), _DummyNoClassifier())
-
-    # ToDo: Currently for ml_l (and others) we only check whether the learner can be identified as regressor. However,
-    # we do not check whether it can instead be identified as classifier, which could be used to throw an error.
-    msg = warn_msg_prefix + r"LogisticRegression\(\) is \(probably\) no regressor."
-    with pytest.warns(UserWarning, match=msg):
-        _ = DoubleMLPLR(dml_data, LogisticRegression(), Lasso())
 
     # we allow classifiers for ml_m in PLR, but only for binary treatment variables
     msg = (
