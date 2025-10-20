@@ -96,6 +96,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
+        if self.score == "IV-type" and obj_dml_data.binary_outcome:
+            raise ValueError("For score = 'IV-type', additive probability models (binary outcomes) are not supported.")
 
         ml_l_is_classifier = self._check_learner(ml_l, "ml_l", regressor=True, classifier=True)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)

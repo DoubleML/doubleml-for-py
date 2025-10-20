@@ -67,6 +67,12 @@ def test_dml_plr_binary_exceptions(generate_binary_data, learner_binary, score):
     with pytest.raises(ValueError, match=msg):
         _ = dml.DoubleMLPLR(obj_dml_data, clone(learner_binary), clone(learner_binary), score=score)
 
+    # IV-type not possible with binary outcome
+    obj_dml_data = dml.DoubleMLData(data, "y", ["d"])
+    msg = r"For score = 'IV-type', additive probability models \(binary outcomes\) are not supported."
+    with pytest.raises(ValueError, match=msg):
+        _ = dml.DoubleMLPLR(obj_dml_data, clone(learner_binary), clone(learner_binary), score="IV-type")
+
 
 @pytest.fixture(scope="module")
 def dml_plr_binary_fixture(generate_binary_data, learner_binary, score):
