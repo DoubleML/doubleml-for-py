@@ -94,12 +94,12 @@ class RDFlex:
     >>> print(rdflex_obj.fit())
     Method             Coef.     S.E.     t-stat       P>|t|           95% CI
     -------------------------------------------------------------------------
-    Conventional      0.950     0.225     4.230    2.333e-05  [0.510, 1.391]
-    Robust                 -        -     3.653    2.589e-04  [0.431, 1.429]
+    Conventional      0.939     0.225     4.168    3.071e-05  [0.498, 1.381]
+    Robust                 -        -     3.589    3.316e-04  [0.416, 1.417]
     Design Type:        Fuzzy
     Cutoff:             0
     First Stage Kernel: triangular
-    Final Bandwidth:    [0.74746872]
+    Final Bandwidth:    [0.74754257]
 
     """
 
