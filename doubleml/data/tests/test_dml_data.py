@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -661,3 +663,32 @@ def test_property_setter_rollback_on_validation_failure():
         dml_data.z_cols = ["y"]
     # Object should remain unchanged
     assert dml_data.z_cols == original_z_cols
+
+
+@pytest.mark.ci
+def test_dml_data_decimal_to_float_conversion():
+    """Test that Decimal type columns are converted to float for y and d."""
+    n_obs = 100
+    data = {
+        "y": [Decimal(i * 0.1) for i in range(n_obs)],
+        "d": [Decimal(i * 0.05) for i in range(n_obs)],
+        "x": [Decimal(i) for i in range(n_obs)],
+        "z": [Decimal(i * 2) for i in range(n_obs)],
+    }
+    df = pd.DataFrame(data)
+
+    dml_data = DoubleMLData(df, y_col="y", d_cols="d", x_cols="x", z_cols="z")
+
+    assert dml_data.y.dtype == np.float64, f"Expected y to be float64, got {dml_data.y.dtype}"
+    assert dml_data.d.dtype == np.float64, f"Expected d to be float64, got {dml_data.d.dtype}"
+    assert dml_data.z.dtype == np.float64, f"Expected z to be float64, got {dml_data.z.dtype}"
+    # x is not converted to float, so its dtype remains Decimal
+    assert dml_data.x.dtype == Decimal
+
+    expected_y = np.array([float(Decimal(i * 0.1)) for i in range(n_obs)])
+    expected_d = np.array([float(Decimal(i * 0.05)) for i in range(n_obs)])
+    expected_z = np.array([float(Decimal(i * 2)) for i in range(n_obs)]).reshape(-1, 1)
+
+    np.testing.assert_array_almost_equal(dml_data.y, expected_y)
+    np.testing.assert_array_almost_equal(dml_data.d, expected_d)
+    np.testing.assert_array_almost_equal(dml_data.z, expected_z)
