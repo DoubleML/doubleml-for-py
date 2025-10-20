@@ -120,6 +120,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if ml_l_is_classifier:
             if obj_dml_data.binary_outcome:
                 self._predict_method = {"ml_g": "predict_proba"}
+                warnings.warn(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier. Fitting an additive probability model."
+                )
             else:
                 raise ValueError(
                     f"The ml_l learner {str(ml_l)} was identified as classifier "

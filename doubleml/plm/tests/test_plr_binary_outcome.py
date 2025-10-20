@@ -54,7 +54,7 @@ def generate_binary_data():
 def test_dml_plr_binary_warnings(generate_binary_data, learner_binary, score):
     data = generate_binary_data
     obj_dml_data = dml.DoubleMLData(data, "y", ["d"])
-    msg = "The ml_l learner {str(ml_l)} was identified as classifier"
+    msg = "The ml_l learner .+ was identified as classifier. Fitting an additive probability model."
     with pytest.warns(UserWarning, match=msg):
         _ = dml.DoubleMLPLR(obj_dml_data, clone(learner_binary), clone(learner_binary), score=score)
 
