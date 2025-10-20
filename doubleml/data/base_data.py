@@ -286,8 +286,8 @@ class DoubleMLData(DoubleMLBaseData):
         elif not isinstance(force_all_d_finite, bool):
             raise TypeError("Invalid force_all_d_finite. " + "force_all_d_finite must be True, False or 'allow-nan'.")
 
-        x = check_array(x, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
-        d = check_array(d, ensure_2d=False, allow_nd=False, force_all_finite=force_all_x_finite)
+        x = check_array(x, ensure_2d=False, allow_nd=False, ensure_all_finite=force_all_x_finite)
+        d = check_array(d, ensure_2d=False, allow_nd=False, ensure_all_finite=force_all_x_finite)
         y = column_or_1d(y, warn=True)
 
         x = _assure_2d_array(x)
