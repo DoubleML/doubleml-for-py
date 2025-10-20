@@ -703,9 +703,9 @@ class DoubleMLData(DoubleMLBaseData):
             if col is None:
                 return None
             if isinstance(col, list):
-                converted_data = self.data.loc[:, col].apply(pd.to_numeric, errors="coerce")
+                converted_data = self.data.loc[:, col].apply(pd.to_numeric, errors="raise")
             else:
-                converted_data = pd.to_numeric(self.data.loc[:, col], errors="coerce")
+                converted_data = pd.to_numeric(self.data.loc[:, col], errors="raise")
             assert_all_finite(converted_data)
             return converted_data
 
@@ -750,7 +750,7 @@ class DoubleMLData(DoubleMLBaseData):
         if pd.api.types.is_datetime64_any_dtype(treatment_data):
             self._d = treatment_data
         else:
-            self._d = pd.to_numeric(treatment_data, errors="coerce")
+            self._d = pd.to_numeric(treatment_data, errors="raise")
         self._X = self.data.loc[:, xd_list]
 
     def _get_optional_col_sets(self):
