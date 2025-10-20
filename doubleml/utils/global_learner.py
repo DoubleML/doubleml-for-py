@@ -1,17 +1,6 @@
-from sklearn import __version__ as sklearn_version
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, clone, is_classifier, is_regressor
 from sklearn.utils.multiclass import unique_labels
-from sklearn.utils.validation import _check_sample_weight, check_is_fitted
-
-
-def parse_version(version):
-    return tuple(map(int, version.split(".")[:2]))
-
-
-# TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-sklearn_supports_validation = parse_version(sklearn_version) >= (1, 6)
-if sklearn_supports_validation:
-    from sklearn.utils.validation import validate_data
+from sklearn.utils.validation import _check_sample_weight, check_is_fitted, validate_data
 
 
 class GlobalRegressor(RegressorMixin, BaseEstimator):
@@ -45,11 +34,7 @@ class GlobalRegressor(RegressorMixin, BaseEstimator):
         if not is_regressor(self.base_estimator):
             raise ValueError(f"base_estimator must be a regressor. Got {self.base_estimator.__class__.__name__} instead.")
 
-        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-        if sklearn_supports_validation:
-            X, y = validate_data(self, X, y)
-        else:
-            X, y = self._validate_data(X, y)
+        X, y = validate_data(self, X, y)
         _check_sample_weight(sample_weight, X)
         self._fitted_learner = clone(self.base_estimator)
         self._fitted_learner.fit(X, y)
@@ -101,11 +86,7 @@ class GlobalClassifier(ClassifierMixin, BaseEstimator):
         if not is_classifier(self.base_estimator):
             raise ValueError(f"base_estimator must be a classifier. Got {self.base_estimator.__class__.__name__} instead.")
 
-        # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-        if sklearn_supports_validation:
-            X, y = validate_data(self, X, y)
-        else:
-            X, y = self._validate_data(X, y)
+        X, y = validate_data(self, X, y)
         _check_sample_weight(sample_weight, X)
         self.classes_ = unique_labels(y)
         self._fitted_learner = clone(self.base_estimator)
