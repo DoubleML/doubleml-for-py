@@ -744,7 +744,13 @@ class DoubleMLData(DoubleMLBaseData):
             assert_all_finite(self.data.loc[:, self.d_cols], allow_nan=self.force_all_d_finite == "allow-nan")
         if self.force_all_x_finite:
             assert_all_finite(self.data.loc[:, xd_list], allow_nan=self.force_all_x_finite == "allow-nan")
-        self._d = pd.to_numeric(self.data.loc[:, treatment_var], errors="coerce")
+
+        treatment_data = self.data.loc[:, treatment_var]
+        # For panel data, preserve datetime type for treatment variables
+        if pd.api.types.is_datetime64_any_dtype(treatment_data):
+            self._d = treatment_data
+        else:
+            self._d = pd.to_numeric(treatment_data, errors="coerce")
         self._X = self.data.loc[:, xd_list]
 
     def _get_optional_col_sets(self):
