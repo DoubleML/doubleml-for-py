@@ -54,9 +54,17 @@ def generate_binary_data():
 def test_dml_plr_binary_warnings(generate_binary_data, learner_binary, score):
     data = generate_binary_data
     obj_dml_data = dml.DoubleMLData(data, "y", ["d"])
-    msg = "The ml_m learner {str(ml_m)} was identified as classifier ' \
-                          'but at least one treatment variable is not binary with values 0 and 1.'"
+    msg = "The ml_l learner {str(ml_l)} was identified as classifier"
     with pytest.warns(UserWarning, match=msg):
+        _ = dml.DoubleMLPLR(obj_dml_data, clone(learner_binary), clone(learner_binary), score=score)
+
+
+@pytest.mark.ci
+def test_dml_plr_binary_exceptions(generate_binary_data, learner_binary, score):
+    data = generate_binary_data
+    obj_dml_data = dml.DoubleMLData(data, "X1", ["d"])
+    msg = "The ml_l learner .+ was identified as classifier but the outcome variable is not binary with values 0 and 1."
+    with pytest.raises(ValueError, match=msg):
         _ = dml.DoubleMLPLR(obj_dml_data, clone(learner_binary), clone(learner_binary), score=score)
 
 
