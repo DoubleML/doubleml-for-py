@@ -96,8 +96,10 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
+        if self.score == "IV-type" and obj_dml_data.binary_outcome:
+            raise ValueError("For score = 'IV-type', additive probability models (binary outcomes) are not supported.")
 
-        _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
+        ml_l_is_classifier = self._check_learner(ml_l, "ml_l", regressor=True, classifier=True)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
 
@@ -117,7 +119,20 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l)."))
             self._learner["ml_g"] = clone(ml_l)
 
-        self._predict_method = {"ml_l": "predict"}
+        if ml_l_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {"ml_l": "predict_proba"}
+                warnings.warn(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier. Fitting an additive probability model."
+                )
+            else:
+                raise ValueError(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
+        else:
+            self._predict_method = {"ml_l": "predict"}
+
         if "ml_g" in self._learner:
             self._predict_method["ml_g"] = "predict"
         if ml_m_is_classifier:

@@ -287,22 +287,22 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models in form of a dictinary.
-        Each key refers to a nuisance element with a array of values of shape ``(n_obs, n_rep, n_coefs)``.
+        The predictions of the nuisance models in form of a dictionary.
+        Each key refers to a nuisance element with a array of values (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._predictions
 
     @property
     def nuisance_targets(self):
         """
-        The outcome of the nuisance models.
+        The outcome of the nuisance models (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._nuisance_targets
 
     @property
     def nuisance_loss(self):
         """
-        The losses of the nuisance models (root-mean-squared-errors or logloss).
+        The losses of the nuisance models (root-mean-squared-errors or logloss) (shape (``n_rep``, ``n_coefs``)).
         """
         return self._nuisance_loss
 
@@ -392,7 +392,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         Values of the score function components after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter) a dictionary with entries ``psi_a``
-        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
+        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)` (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._psi_elements
 
@@ -400,8 +400,8 @@ class DoubleML(SampleSplittingMixin, ABC):
     def sensitivity_elements(self):
         """
         Values of the sensitivity components after calling :meth:`fit`;
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
-        and ``riesz_rep``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2`` (shape (``1``, ``n_rep``, ``n_coefs``)),
+        ``psi_sigma2``, ``psi_nu2`` and ``riesz_rep`` (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._sensitivity_elements
 
@@ -421,7 +421,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def coef(self):
         """
-        Estimates for the causal parameter(s) after calling :meth:`fit`.
+        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         return self._coef
 
@@ -432,7 +432,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def se(self):
         """
-        Standard errors for the causal parameter(s) after calling :meth:`fit`.
+        Standard errors for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         return self._se
 
@@ -443,7 +443,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def t_stat(self):
         """
-        t-statistics for the causal parameter(s) after calling :meth:`fit`.
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         t_stat = self.coef / self.se
         return t_stat
@@ -451,7 +451,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def pval(self):
         """
-        p-values for the causal parameter(s) after calling :meth:`fit`.
+        p-values for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
@@ -459,7 +459,8 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def boot_t_stat(self):
         """
-        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
+        (shape (``n_rep_boot``, ``n_coefs``, ``n_rep``)).
         """
         if self._framework is None:
             boot_t_stat = None
@@ -470,14 +471,16 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def all_coef(self):
         """
-        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+        (shape (``n_coefs``, ``n_rep``)).
         """
         return self._all_coef
 
     @property
     def all_se(self):
         """
-        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+        (shape (``n_coefs``, ``n_rep``)).
         """
         return self._all_se
 
@@ -1170,18 +1173,34 @@ class DoubleML(SampleSplittingMixin, ABC):
             )
 
         if params is None:
-            all_params = [None] * self.n_rep
+            new_params = [None] * self.n_rep
         elif isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
+            new_params = [[params] * self.n_folds] * self.n_rep
 
         else:
             # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            all_params = params
+            new_params = params
 
-        self._params[learner][treat_var] = all_params
+        existing_params = self._params[learner].get(treat_var, [None] * self.n_rep)
 
+        if existing_params == [None] * self.n_rep:
+            updated_params = new_params
+        elif new_params == [None] * self.n_rep:
+            updated_params = existing_params
+        else:
+            updated_params = []
+            for i_rep in range(self.n_rep):
+                rep_params = []
+                for i_fold in range(self.n_folds):
+                    existing_dict = existing_params[i_rep][i_fold]
+                    new_dict = new_params[i_rep][i_fold]
+                    updated_dict = existing_dict | new_dict
+                    rep_params.append(updated_dict)
+                updated_params.append(rep_params)
+
+        self._params[learner][treat_var] = updated_params
         return self
 
     @abstractmethod
