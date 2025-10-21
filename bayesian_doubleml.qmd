@@ -1,0 +1,536 @@
+---
+title: "Bayesian Double Machine Learning"
+format:
+  revealjs:
+    theme: [default, custom.scss]
+    slide-number: true
+    chalkboard: true
+    preview-links: auto
+    footer: "Bayesian Double Machine Learning"
+    transition: slide
+    incremental: false
+    math: true
+    smaller: true
+    scrollable: true
+jupyter: python3
+bibliography: references.bib
+---
+
+# Introduction
+
+## Motivation
+
+::: {.incremental}
+- **Double Machine Learning (DML)**: Powerful framework for causal inference with high-dimensional confounders
+- Relies on asymptotic normality for inference
+- **Key limitations of frequentist DML:**
+  - No finite-sample uncertainty quantification
+  - No principled way to incorporate prior information
+  - Limited to point estimates and confidence intervals
+- **Naive ML methods:** Suffer from **regularization-induced confounding**
+- **Bayesian DML**: Natural extension providing full posterior distributions while addressing these issues
+:::
+
+
+# Bayesian Inference Foundations
+
+## Notation Guide: Bayesian vs. Frequentist
+
+**Understanding the symbols:**
+
+- **$\theta$**: Parameter of interest (e.g., causal effect in DML: $\theta_0$)
+- **$\mathcal{D} = \{(Y_i, D_i, X_i)\}_{i=1}^n$**: Our observed **data** (outcomes, treatments, covariates)
+- **$\pi(\cdot)$**: Probability **density** (Bayesian notation for distributions)
+  - Used for parameters (which are random in Bayesian view)
+- **$p(\cdot)$**: Probability density for data (given parameters)
+
+**Key difference:**
+
+- **Frequentist:** $\theta_0$ is fixed, $\mathcal{D}$ is random compute $P(\mathcal{D} \mid \theta_0)$
+- **Bayesian:** $\mathcal{D}$ is observed, $\theta$ is random compute $\pi(\theta \mid \mathcal{D})$
+
+## Bayes Theorem
+
+**Fundamental principle:**
+
+$$
+\pi(\theta \mid \mathcal{D}) = \frac{p(\mathcal{D} \mid \theta) \pi(\theta)}{p(\mathcal{D})} \propto p(\mathcal{D} \mid \theta) \pi(\theta)
+$$
+
+- **$\pi(\theta)$:** Prior distribution = what we believe about $\theta$ **before** seeing data
+- **$p(\mathcal{D} \mid \theta)$:** Likelihood = how likely is our data given parameter $\theta$
+- **$\pi(\theta \mid \mathcal{D})$:** Posterior = what we believe about $\theta$ **after** seeing data
+- **$p(\mathcal{D})$:** Marginal likelihood = normalizing constant (often ignored)
+
+**Key insight:** Posterior combines prior beliefs with data evidence
+
+$$
+\underbrace{\pi(\theta \mid \mathcal{D})}_{\text{Updated belief}} \propto \underbrace{p(\mathcal{D} \mid \theta)}_{\text{Data evidence}} \times \underbrace{\pi(\theta)}_{\text{Prior belief}}
+$$
+
+## Posterior Inference
+
+**Given posterior $\pi(\theta \mid \mathcal{D})$, we can compute:**
+
+**1. Point estimates**:
+
+- Posterior mean: $\mathbb{E}[\theta \mid \mathcal{D}]$ (Bayesian "estimator")
+- Posterior median: $\text{median}(\theta \mid \mathcal{D})$
+
+**2. Uncertainty quantification:**
+
+- Posterior std. dev.: $\sqrt{\text{Var}(\theta \mid \mathcal{D})}$ 
+  - *Like standard error in DML but exact for finite samples?*
+- Credible intervals: $[\theta_{\alpha/2}, \theta_{1-\alpha/2}]$
+  - *Like confidence intervals but with direct probability interpretation*
+
+**3. Probabilistic statements** (Bayesian):
+
+- $P(\theta > 0 \mid \mathcal{D})$ = "What's the probability the effect is positive?"
+- $P(\theta \in A \mid \mathcal{D})$ for any set $A$
+
+## Gibbs Sampling
+
+**What?**: MCMC (Markov Chain Monte Carlo) method to sample from complex posteriors
+
+**Why needed?** Often $\pi(\theta \mid \mathcal{D})$ is complex, but $\pi(\theta_j \mid \theta_{-j}, \mathcal{D})$ is simple
+
+**Algorithm:** Sample from conditional distributions iteratively
+
+1. Initialize $\theta^{(0)} = (\theta_1^{(0)}, \ldots, \theta_p^{(0)})$
+2. For $t = 1, \ldots, T$:
+   - Sample $\theta_1^{(t)} \sim \pi(\theta_1 \mid \theta_2^{(t-1)}, \ldots, \theta_p^{(t-1)}, \mathcal{D})$
+   - Sample $\theta_2^{(t)} \sim \pi(\theta_2 \mid \theta_1^{(t)}, \theta_3^{(t-1)}, \ldots, \theta_p^{(t-1)}, \mathcal{D})$
+   - $\vdots$
+
+**Properties:**
+
+- Markov chain converges to posterior $\pi(\theta \mid \mathcal{D})$
+- **Burn-in:** Discard early iterations (not yet converged)
+- **Thinning:** Keep every $k$-th draw (reduce correlation)
+- **Output:** $\{\theta^{(t)}\}$ are samples from posterior
+  - *bootstrap samples from posterior*
+
+# Bayesian Double Machine Learning
+
+## BDML
+
+**Question:** Can we obtain **posterior distributions** for $\theta_0$ in DML setting?
+
+**Challenges:**
+
+- Nuisance functions $g_0(X)$, $m_0(X)$ high-dimensional
+- **Regularization-induced confounding:** Naive ML creates spurious correlation
+
+**BDML Solution (DiTraglia & Liu, 2025):**
+
+- Work with **reduced-form representation**
+- Finite-dimensional conjugate priors
+- Efficient Gibbs sampling
+- Recover causal parameter via covariance ratio
+- Avoids regularization-induced confounding
+
+## Reduced-Form Representation
+
+PLR model implies reduced-form system (that expresses variables directly in terms of observables and their residuals, without explicitly modeling structural causal relationships)
+
+$$
+\begin{aligned}
+Y &= X\delta_0 + U\\
+D &= X\gamma_0 + V
+\end{aligned}
+$$
+
+- $X\delta_0$, $X\gamma_0$: BLPs (like fitted values from regression)
+- $(U, V)$: **Innovations** = residual components given $X$
+  - $U = Y - \mathbb{E}[Y \mid X]$ (like residuals from $Y$ regression)
+  - $V = D - \mathbb{E}[D \mid X]$ (like residuals from $D$ regression)
+
+**Connection to DML residuals:** DML computes $\hat{U}_i = Y_i - \hat{\ell}(X_i)$ and $\hat{V}_i = D_i - \hat{m}(X_i)$ where $\hat{\ell}$ and $\hat{m}$ estimate $\mathbb{E}[Y \mid X]$ and $\mathbb{E}[D \mid X]$. BDML, $(U, V)$ are the "innovations" for inference
+
+## Terminology
+
+"Innovations" = new information not explained by $X$
+
+**In DML context:**
+- $U$: Part of outcome $Y$ not predictable from confounders $X$
+- $V$: Part of treatment $D$ not predictable from confounders $X$
+
+**Properties:**
+- $\mathbb{E}[U \mid X] = 0$, $\mathbb{E}[V \mid X] = 0$
+- $(U, V)$ capture all variation **after controlling for $X$**
+
+**Why this matters:** The causal effect $\theta_0$ is encoded in how $U$ and $V$ cov:
+
+$$
+\theta_0 = \frac{\text{Cov}(U, V)}{\text{Var}(V)} = \frac{\Sigma_{UV}}{\Sigma_{VV}}
+$$
+
+## Why the Reduced Form Works
+
+**From structural to reduced form:**
+
+**Structural model:** 
+$$
+Y = D\theta_0 + g_0(X) + \zeta \\
+D = m_0(X) + V
+$$
+
+Rearrange: $Y - g_0(X) = D\theta_0 + \zeta$
+
+Define innovations: $U = Y - g_0(X) = Y - \mathbb{E}[Y \mid X]$
+
+Then: $U = D\theta_0 + \zeta$ where $\mathbb{E}[\zeta \mid D, X] = 0$
+
+Multiply by $V = D - m_0(X)$ and take expectations:
+
+$$
+\begin{aligned}
+\mathbb{E}[UV] &= \mathbb{E}[(D\theta_0 + \zeta) \cdot V]\\
+&= \theta_0 \mathbb{E}[DV] + \mathbb{E}[\zeta V]\\
+&= \theta_0 \mathbb{E}[V^2] + 0 \quad \text{(since $\mathbb{E}[\zeta \mid X] = 0$)}
+\end{aligned}
+$$
+
+Therefore:
+$$
+\theta_0 = \frac{\mathbb{E}[UV]}{\mathbb{E}[V^2]} = \frac{\Sigma_{UV}}{\Sigma_{VV}}
+$$
+
+**Compare DML-PLR with partialling out score:** $\hat{\theta}_{\text{DML}} = \frac{\sum \hat{V}_i\hat{U}_i}{\sum \hat{V}_i^2}$
+
+## BDML Prior Specification
+
+**Regression coefficients** (how $X$ predicts $Y$ and $D$):
+
+$$
+\begin{aligned}
+\delta \mid \Sigma &\sim \mathcal{N}(0, \Sigma_{UU} T_\delta^{-1})\\
+\gamma \mid \Sigma &\sim \mathcal{N}(0, \Sigma_{VV} T_\gamma^{-1})
+\end{aligned}
+$$
+
+- $\delta$: Coefficients for $Y \sim X$
+- $\gamma$: Coefficients for $D \sim X$
+- $T_\delta, T_\gamma$: Diagonal precision matrices for regularization
+
+**Innovation covariance**:
+
+$$
+\Sigma = \begin{pmatrix} \Sigma_{UU} & \Sigma_{UV}\\ \Sigma_{UV} & \Sigma_{VV} \end{pmatrix} \sim \mathcal{IW}(\nu_0, S_0)
+$$
+
+- $\Sigma_{UU}$: Variance of $U$ (outcome innovation)
+- $\Sigma_{VV}$: Variance of $V$ (treatment innovation)  
+- $\Sigma_{UV}$: **Covariance** between $U$ and $V$
+- $\mathcal{IW}$: **Inverse-Wishart distribution** - conjugate prior for covariance matrices
+  - Parameters: $\nu_0$ = degrees of freedom, $S_0$ = scale matrix
+
+**Prior on $\theta$:** Implicitly defined via $\theta = \Sigma_{UV}/\Sigma_{VV}$
+
+- No direct prior on causal parameter
+- Emerges from innovation covariance structure
+
+## Why These Priors?
+
+**1. Conjugacy:** 
+
+- Normal priors + Normal likelihood = Normal posterior
+- Allows efficient Gibbs sampling
+- Closed-form conditional distributions
+
+**2. Intuitive hyperparameters:**
+
+- $\tau_{\delta,j}, \tau_{\gamma,j}$: Prior precision (like Ridge penalty)
+  - Larger values = more shrinkage toward zero
+  - Controls how much we regularize the $X$ coefficients
+- $\nu_0$: Degrees of freedom for $\Sigma$ (strength of prior belief)
+- $S_0$: Prior scale matrix (expected size of variances)
+
+**3. Weak informativeness** (data weighted more than prior):
+
+- Default: $\tau_{\delta,j} = \tau_{\gamma,j} = 1$ (mild shrinkage), $\nu_0 = 4$ (just above minimum of 2 for proper prior), $S_0 = I_2$ (identity matrix - no prior correlation structure)
+
+**4. Data dominates:** For moderate $n$, posterior driven by likelihood (similar to using small penalty in regularized regression and prior mainly helps with numerical stability)
+
+## BDML Posterior
+
+**Joint posterior:**
+
+$$
+\pi(\delta, \gamma, \Sigma \mid \mathcal{D}) \propto p(\mathcal{D} \mid \delta, \gamma, \Sigma) \pi(\delta, \gamma \mid \Sigma) \pi(\Sigma)
+$$
+
+**Conditional posteriors (key for Gibbs):**
+
+$$
+\begin{aligned}
+\delta, \gamma \mid \Sigma, \mathcal{D} &\sim \mathcal{N}(\mu_{\text{post}}, V_{\text{post}})\\
+\Sigma \mid \delta, \gamma, \mathcal{D} &\sim \mathcal{IW}(\nu_0 + n, S_0 + RSS)
+\end{aligned}
+$$
+
+**Posterior for $\theta$:** Generated via transformation $\theta^{(t)} = \Sigma_{UV}^{(t)}/\Sigma_{VV}^{(t)}$
+
+**Important:** Each Gibbs iteration produces one draw from the joint posterior
+
+## Gibbs Sampler for BDML
+
+**Algorithm:**
+
+1. **Initialize:** $\Sigma^{(0)}$
+
+2. **Repeat** for $t = 1, \ldots, T$:
+
+   - Sample coefficients: $(\delta^{(t)}, \gamma^{(t)}) \sim \pi(\delta, \gamma \mid \Sigma^{(t-1)}, \mathcal{D})$
+   - Sample covariance: $\Sigma^{(t)} \sim \pi(\Sigma \mid \delta^{(t)}, \gamma^{(t)}, \mathcal{D})$
+   - Compute causal parameter: $\theta^{(t)} = \Sigma_{UV}^{(t)}/\Sigma_{VV}^{(t)}$
+
+3. **Output:** After burn-in and thinning, $\{\theta^{(t)}\}$ are draws from $\pi(\theta \mid \mathcal{D})$
+
+## Conditional Posteriors
+
+**Coefficients:** $(\delta, \gamma) \mid \Sigma, \mathcal{D} \sim \mathcal{N}(\mu_{\text{post}}, V_{\text{post}})$
+
+$$
+V_{\text{post}}^{-1} = \Sigma^{-1} \otimes (X^\top X) + \begin{pmatrix} T_\delta & 0 \\ 0 & T_\gamma \end{pmatrix} \otimes I_p, \quad
+\mu_{\text{post}} = V_{\text{post}} \left(\Sigma^{-1} \otimes X^\top\right) \text{vec}\begin{pmatrix} Y \\ D \end{pmatrix}
+$$
+
+**Covariance:** $\Sigma \mid \delta, \gamma, \mathcal{D} \sim \mathcal{IW}(\nu_0 + n, S_0 + RSS)$
+
+$$
+RSS = \sum_{i=1}^n \begin{pmatrix} Y_i - X_i'\delta \\ D_i - X_i'\gamma \end{pmatrix} \begin{pmatrix} Y_i - X_i'\delta \\ D_i - X_i'\gamma \end{pmatrix}'
+$$
+
+## BDML in `doubleml-for-py`
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+from doubleml.plm.datasets import make_plr_CCDDHNR2018
+from doubleml.plm import DoubleMLBayesPLR
+import numpy as np
+
+# Generate data using CCDDHNR2018 DGP
+np.random.seed(42)
+dml_data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData')
+
+# Initialize Bayesian DML
+bdml = DoubleMLBayesPLR(
+    dml_data,
+    tau_delta=1.0,      # Prior precision for outcome eq.
+    tau_gamma=1.0,      # Prior precision for treatment eq.
+    nu0=4.0,            # Prior degrees of freedom
+    draws=2000,         # Posterior draws to keep
+    burn_in=1000,       # Burn-in iterations
+    center=True         # Demean variables
+)
+
+# Fit model (run Gibbs sampler)
+bdml.fit()
+```
+
+## BDML Output
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+# Posterior summary
+print(bdml.summary)
+```
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+# Credible interval
+print(bdml.confint(level=0.95))
+```
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+# Full posterior visualization
+import matplotlib.pyplot as plt
+theta_draws = bdml.posterior_draws
+plt.hist(theta_draws, bins=50, density=True, alpha=0.7, edgecolor='black')
+plt.axvline(bdml.coef['d'], color='red', linewidth=2, label='Posterior mean')
+plt.axvline(0.5, color='green', linewidth=2, linestyle='--', label='True value')
+plt.xlabel(r'$\theta$')
+plt.ylabel('Posterior density')
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+## Theoretical Properties
+
+**Bernstein-von Mises Theorem:**
+
+Under regularity conditions:
+
+$$
+\pi(\theta \mid \mathcal{D}) \rightsquigarrow \mathcal{N}(\hat{\theta}_{\text{eff}}, n^{-1}V_{\text{eff}})
+$$
+
+- $\hat{\theta}_{\text{eff}}$: semiparametrically efficient estimator
+- $V_{\text{eff}}$: semiparametric efficiency bound
+
+**Implications:** Posterior inference asymptotically valid even if model misspecified, achieves semiparametric efficiency bound, and Bayesian and frequentist inference coincide asymptotically
+
+# Comparison: Bayesian vs. Frequentist
+
+## Inference Paradigms
+
+| **Aspect** | **Frequentist DML** | **Bayesian DML** |
+|------------|---------------------|------------------|
+| **Output** | Point estimate $\hat{\theta}$ | Posterior $\pi(\theta \mid \mathcal{D})$ |
+| **Uncertainty** | Standard error | Posterior std. dev. |
+| **Intervals** | Confidence interval | Credible interval |
+| **Interpretation** | "95% of CIs contain $\theta_0$" | "$P(\theta \in [a,b] \mid \mathcal{D}) = 0.95$" |
+| **Prior info** | Not incorporated | Naturally incorporated |
+| **Finite sample** | Asymptotic approx. | Exact posterior |
+| **Regularization** | Cross-fitting | Prior regularization |
+
+## Probabilistic Statements
+
+**Frequentist DML:**
+
+- Cannot say $P(\theta > 0) = ?$ from data
+- Only: "Reject $H_0: \theta = 0$ at level $\alpha$"
+- Confidence intervals are **procedure-based**
+
+**Bayesian DML:**
+- Direct probability: $P(\theta > 0 \mid \mathcal{D})$
+- Credible intervals are **belief statements**
+- More intuitive for decision-making
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+# Bayesian DML
+prob_positive = np.mean(bdml.posterior_draws > 0)
+print(f"P(θ > 0 | Data) = {prob_positive:.4f}")
+
+prob_positive = np.mean(bdml.posterior_draws < 0.5)
+print(f"P(θ < 0.5 | Data) = {prob_positive:.4f}")
+```
+
+## Nuisance Functions
+
+**Frequentist DML:**
+
+- **Fully nonparametric:** $g_0(X)$, $m_0(X)$ unrestricted
+- ML methods approximate nuisances
+- Cross-fitting eliminates overfitting bias
+- Requires $n^{-1/4}$ convergence rates
+
+**Bayesian DML:**
+
+- **Reduced form:** Best linear predictors $X\delta_0$, $X\gamma_0$
+- Parametric for $\delta, \gamma$, but $X$ can include transformations, interactions, basis functions, pre-processed features
+- Conjugate priors provide natural regularization
+- **Avoids regularization-induced confounding**
+
+## Computational Comparison
+
+**Frequentist DML:**
+
+- Train $2K$ ML models ($K$ folds)
+- Each fold: fit $\hat{\ell}_k$ and $\hat{m}_k$
+- Closed-form aggregation: $\hat{\theta} = \sum \hat{V}_i\hat{U}_i / \sum \hat{V}_i^2$
+- **Typical runtime:** Minutes (depends on ML method)
+
+**Bayesian DML:**
+
+- Run Gibbs sampler ($T$ iterations)
+- Each iteration: sample from multivariate normal + inverse Wishart
+- **Typical runtime:** Seconds to minutes (depends on $n$, $p$, $T$)
+- No ML training overhead
+
+**Trade-off:** BDML faster if $p$ moderate, but requires linearity assumption for reduced form
+
+## Example Comparison
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+from doubleml.plm.datasets import make_plr_CCDDHNR2018
+from doubleml import DoubleMLPLR
+from doubleml.plm import DoubleMLBayesPLR
+from sklearn.ensemble import RandomForestRegressor
+import numpy as np
+
+# Generate data using CCDDHNR2018 DGP
+np.random.seed(42)
+data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData')
+
+# Frequentist DML
+ml_l = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+ml_m = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+dml_freq = DoubleMLPLR(data, ml_l, ml_m, n_folds=5)
+dml_freq.fit()
+
+# Bayesian DML
+bdml_comp = DoubleMLBayesPLR(data, draws=2000, burn_in=1000)
+bdml_comp.fit()
+
+print(f"True value: 0.5")
+print(f"Frequentist: {dml_freq.coef[0]:.4f} ± {dml_freq.se[0]:.4f}")
+print(f"Bayesian: {bdml_comp.coef['d']:.4f} ± {bdml_comp.se['d']:.4f}")
+```
+
+## When to Use Each Approach?
+
+**Use Frequentist DML when:**
+
+- Nuisance functions highly nonlinear
+- Large $n$, very high-dimensional $X$
+- Want maximum flexibility in ML methods
+- Asymptotic guarantees sufficient
+
+**Use Bayesian DML when:**
+
+- Want full posterior distribution
+- Need finite-sample uncertainty quantification
+- Have informative priors
+- Linear approximation reasonable (or X pre-processed)
+- Want direct probability statements
+
+
+## Sensitivity Analysis
+
+**Bayesian DML:** Prior analysis
+
+```{python}
+#| echo: true
+#| eval: true
+#| output: true
+
+# Try different priors
+priors = [0.1, 1.0, 10.0]  # Different precisions
+results = []
+
+for tau in priors:
+    bdml_sens = DoubleMLBayesPLR(data, tau_delta=tau, tau_gamma=tau, draws=2000, burn_in=1000)
+    bdml_sens.fit()
+    results.append(bdml_sens.coef['d'])
+
+# Check robustness
+print("Prior sensitivity:")
+for tau, coef in zip(priors, results):
+    print(f"  tau = {tau:4.1f}: θ = {coef:.4f}")
+print(f"\nTrue value: 0.5")
+```
