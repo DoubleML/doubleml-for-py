@@ -24,20 +24,24 @@ ml_m = DecisionTreeClassifier(random_state=456)
 
 dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
 
-param_grids = {
-    "ml_l": {
-        "max_depth": lambda trial, name: trial.suggest_int(name, 1, 5),
-        "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 10),
-    },
-    "ml_m": {
-        "max_depth": lambda trial, name: trial.suggest_int(name, 1, 5),
-        "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 10),
-    },
-}
+def ml_l_params(trial):
+    return {
+        "max_depth": trial.suggest_int("ml_l_max_depth", 1, 5),
+        "min_samples_leaf": trial.suggest_int("ml_l_min_samples_leaf", 1, 10),
+    }
 
-dml_plr.tune(
+
+def ml_m_params(trial):
+    return {
+        "max_depth": trial.suggest_int("ml_m_max_depth", 1, 5),
+        "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 10),
+    }
+
+
+param_grids = {"ml_l": ml_l_params, "ml_m": ml_m_params}
+
+dml_plr.tune_optuna(
     param_grids=param_grids,
-    search_mode="optuna",
     optuna_settings={
         "n_trials": 5,
         "show_progress_bar": False,

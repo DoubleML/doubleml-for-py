@@ -378,7 +378,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -402,7 +401,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g",
         )
         g1_tune_res = _dml_tune(
@@ -416,7 +414,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g",
         )
 
@@ -435,7 +432,6 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                optuna_settings,
                 learner_name="ml_m",
             )
             m_best_params = [xx.best_params_ for xx in m_tune_res]
@@ -448,6 +444,90 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g": None, "ml_m": None}
+
+        mask_d0 = d == 0
+        mask_d1 = d == 1
+
+        x_d0 = x[mask_d0, :]
+        y_d0 = y[mask_d0]
+        train_inds_d0 = [np.arange(x_d0.shape[0])]
+        g0_param_grid = param_grids.get("ml_g0", param_grids["ml_g"])
+        g0_scoring = scoring_methods.get("ml_g0", scoring_methods["ml_g"])
+        g0_tune_res = _dml_tune_optuna(
+            y_d0,
+            x_d0,
+            train_inds_d0,
+            self._learner["ml_g"],
+            g0_param_grid,
+            g0_scoring,
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name=("ml_g0", "ml_g"),
+        )
+
+        x_d1 = x[mask_d1, :]
+        y_d1 = y[mask_d1]
+        train_inds_d1 = [np.arange(x_d1.shape[0])]
+        g1_param_grid = param_grids.get("ml_g1", param_grids["ml_g"])
+        g1_scoring = scoring_methods.get("ml_g1", scoring_methods["ml_g"])
+        g1_tune_res = _dml_tune_optuna(
+            y_d1,
+            x_d1,
+            train_inds_d1,
+            self._learner["ml_g"],
+            g1_param_grid,
+            g1_scoring,
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name=("ml_g1", "ml_g"),
+        )
+
+        full_train_inds = [np.arange(x.shape[0])]
+        m_tune_res = None
+        if self.score == "observational":
+            m_tune_res = _dml_tune_optuna(
+                d,
+                x,
+                full_train_inds,
+                self._learner["ml_m"],
+                param_grids["ml_m"],
+                scoring_methods["ml_m"],
+                n_folds_tune,
+                n_jobs_cv,
+                optuna_settings,
+                learner_name="ml_m",
+            )
+
+        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
+        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+
+        if self.score == "observational":
+            m_best_params = [xx.best_params_ for xx in m_tune_res]
+            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
+            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
+        else:
+            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params}
+            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res}
+
+        return {"params": params, "tune_res": tune_res}
 
     def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
         """

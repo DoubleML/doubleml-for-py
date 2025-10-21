@@ -336,7 +336,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -363,7 +362,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g",
         )
 
@@ -378,7 +376,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_m",
         )
 
@@ -391,6 +388,67 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g": None, "ml_m": None}
+
+        mask_treat = d == self.treatment
+
+        quantile_approx = np.quantile(y[mask_treat], self.quantile)
+        g_target_1 = np.full_like(y, quantile_approx, dtype=float)
+        g_target_2 = (y - self.quantile * quantile_approx) / (1 - self.quantile)
+        g_target_approx = np.maximum(g_target_1, g_target_2)
+
+        x_treat = x[mask_treat, :]
+        target_treat = g_target_approx[mask_treat]
+        train_inds_treat = [np.arange(x_treat.shape[0])]
+        g_tune_res = _dml_tune_optuna(
+            target_treat,
+            x_treat,
+            train_inds_treat,
+            self._learner["ml_g"],
+            param_grids["ml_g"],
+            scoring_methods["ml_g"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_g",
+        )
+
+        full_train_inds = [np.arange(x.shape[0])]
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            full_train_inds,
+            self._learner["ml_m"],
+            param_grids["ml_m"],
+            scoring_methods["ml_m"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m",
+        )
+
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+        params = {"ml_g": g_best_params, "ml_m": m_best_params}
+        tune_res = {"g_tune": g_tune_res, "m_tune": m_tune_res}
+
+        return {"params": params, "tune_res": tune_res}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

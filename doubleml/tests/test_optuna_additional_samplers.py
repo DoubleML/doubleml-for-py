@@ -43,12 +43,20 @@ def test_doubleml_plr_qmc_sampler(generate_data1):
     plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
 
     sampler = _qmc_sampler()(seed=3141)
-    tune_res = plr.tune(
-        param_grids={
-            "ml_l": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-            "ml_m": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-        },
-        search_mode="optuna",
+    def ml_l_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_l_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_l_min_samples_leaf", 1, 2),
+        }
+
+    def ml_m_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 2),
+        }
+
+    tune_res = plr.tune_optuna(
+        param_grids={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
     )
@@ -77,12 +85,20 @@ def test_doubleml_plr_partial_fixed_sampler(generate_data1):
     sampler_cls = _partial_fixed_sampler()
     sampler = sampler_cls(base_sampler=base_sampler, fixed_params={"max_depth": 2})
 
-    tune_res = plr.tune(
-        param_grids={
-            "ml_l": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-            "ml_m": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-        },
-        search_mode="optuna",
+    def ml_l_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_l_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_l_min_samples_leaf", 1, 2),
+        }
+
+    def ml_m_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 2),
+        }
+
+    tune_res = plr.tune_optuna(
+        param_grids={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
     )
@@ -110,12 +126,20 @@ def test_doubleml_plr_gp_sampler(generate_data1):
     sampler_cls = _gp_sampler()
     sampler = sampler_cls(seed=3141)
 
-    plr.tune(
-        param_grids={
-            "ml_l": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-            "ml_m": {"max_depth": [1, 2], "min_samples_leaf": [1, 2]},
-        },
-        search_mode="optuna",
+    def ml_l_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_l_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_l_min_samples_leaf", 1, 2),
+        }
+
+    def ml_m_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 2),
+        }
+
+    plr.tune_optuna(
+        param_grids={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
     )
 

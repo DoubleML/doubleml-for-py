@@ -563,7 +563,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -590,7 +589,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_m_z",
         )
         m_d_z0_tune_res = _dml_tune(
@@ -604,7 +602,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_m_d_z0",
         )
         m_d_z1_tune_res = _dml_tune(
@@ -618,7 +615,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_m_d_z1",
         )
         g_du_z0_tune_res = _dml_tune(
@@ -632,7 +628,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g_du_z0",
         )
         g_du_z1_tune_res = _dml_tune(
@@ -646,7 +641,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g_du_z1",
         )
 
@@ -674,6 +668,130 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {
+                "ml_m_z": None,
+                "ml_m_d_z0": None,
+                "ml_m_d_z1": None,
+                "ml_g_du_z0": None,
+                "ml_g_du_z1": None,
+            }
+
+        approx_quant = np.quantile(y[d == self.treatment], self.quantile)
+        du = (d == self.treatment) * (y <= approx_quant)
+
+        full_train_inds = [np.arange(x.shape[0])]
+        m_z_tune_res = _dml_tune_optuna(
+            z,
+            x,
+            full_train_inds,
+            self._learner["ml_m_z"],
+            param_grids["ml_m_z"],
+            scoring_methods["ml_m_z"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m_z",
+        )
+
+        mask_z0 = z == 0
+        mask_z1 = z == 1
+
+        x_z0 = x[mask_z0, :]
+        d_z0 = d[mask_z0]
+        du_z0 = du[mask_z0]
+        train_inds_z0 = [np.arange(x_z0.shape[0])]
+        m_d_z0_tune_res = _dml_tune_optuna(
+            d_z0,
+            x_z0,
+            train_inds_z0,
+            self._learner["ml_m_d_z0"],
+            param_grids["ml_m_d_z0"],
+            scoring_methods["ml_m_d_z0"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m_d_z0",
+        )
+        g_du_z0_tune_res = _dml_tune_optuna(
+            du_z0,
+            x_z0,
+            train_inds_z0,
+            self._learner["ml_g_du_z0"],
+            param_grids.get("ml_g_du_z0", param_grids["ml_g_du"]),
+            scoring_methods.get("ml_g_du_z0", scoring_methods.get("ml_g_du")),
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_g_du_z0",
+        )
+
+        x_z1 = x[mask_z1, :]
+        d_z1 = d[mask_z1]
+        du_z1 = du[mask_z1]
+        train_inds_z1 = [np.arange(x_z1.shape[0])]
+        m_d_z1_tune_res = _dml_tune_optuna(
+            d_z1,
+            x_z1,
+            train_inds_z1,
+            self._learner["ml_m_d_z1"],
+            param_grids["ml_m_d_z1"],
+            scoring_methods["ml_m_d_z1"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m_d_z1",
+        )
+        g_du_z1_tune_res = _dml_tune_optuna(
+            du_z1,
+            x_z1,
+            train_inds_z1,
+            self._learner["ml_g_du_z1"],
+            param_grids.get("ml_g_du_z1", param_grids["ml_g_du"]),
+            scoring_methods.get("ml_g_du_z1", scoring_methods.get("ml_g_du")),
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_g_du_z1",
+        )
+
+        m_z_best_params = [xx.best_params_ for xx in m_z_tune_res]
+        m_d_z0_best_params = [xx.best_params_ for xx in m_d_z0_tune_res]
+        m_d_z1_best_params = [xx.best_params_ for xx in m_d_z1_tune_res]
+        g_du_z0_best_params = [xx.best_params_ for xx in g_du_z0_tune_res]
+        g_du_z1_best_params = [xx.best_params_ for xx in g_du_z1_tune_res]
+
+        params = {
+            "ml_m_z": m_z_best_params,
+            "ml_m_d_z0": m_d_z0_best_params,
+            "ml_m_d_z1": m_d_z1_best_params,
+            "ml_g_du_z0": g_du_z0_best_params,
+            "ml_g_du_z1": g_du_z1_best_params,
+        }
+        tune_res = {
+            "ml_m_z": m_z_tune_res,
+            "ml_m_d_z0": m_d_z0_tune_res,
+            "ml_m_d_z1": m_d_z1_tune_res,
+            "ml_g_du_z0": g_du_z0_tune_res,
+            "ml_g_du_z1": g_du_z1_tune_res,
+        }
+
+        return {"params": params, "tune_res": tune_res}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

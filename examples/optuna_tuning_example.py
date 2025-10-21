@@ -46,28 +46,32 @@ print("=" * 80)
 print("Callable specification for Optuna parameters")
 print("=" * 80)
 
-param_grids_callable = {
-    "ml_l": {
-        "n_estimators": lambda trial, name: trial.suggest_int(name, 10, 200, log=True),
-        "max_depth": lambda trial, name: trial.suggest_int(name, 2, 20),
-        "min_samples_split": lambda trial, name: trial.suggest_int(name, 2, 20),
-        "max_features": lambda trial, name: trial.suggest_categorical(name, ["sqrt", "log2", None]),
-    },
-    "ml_m": {
-        "n_estimators": lambda trial, name: trial.suggest_int(name, 10, 200, log=True),
-        "max_depth": lambda trial, name: trial.suggest_int(name, 2, 20),
-        "min_samples_split": lambda trial, name: trial.suggest_int(name, 2, 20),
-        "max_features": lambda trial, name: trial.suggest_categorical(name, ["sqrt", "log2", None]),
-    },
-}
+def ml_l_params(trial):
+    return {
+        "n_estimators": trial.suggest_int("ml_l_n_estimators", 10, 200, log=True),
+        "max_depth": trial.suggest_int("ml_l_max_depth", 2, 20),
+        "min_samples_split": trial.suggest_int("ml_l_min_samples_split", 2, 20),
+        "max_features": trial.suggest_categorical("ml_l_max_features", ["sqrt", "log2", None]),
+    }
+
+
+def ml_m_params(trial):
+    return {
+        "n_estimators": trial.suggest_int("ml_m_n_estimators", 10, 200, log=True),
+        "max_depth": trial.suggest_int("ml_m_max_depth", 2, 20),
+        "min_samples_split": trial.suggest_int("ml_m_min_samples_split", 2, 20),
+        "max_features": trial.suggest_categorical("ml_m_max_features", ["sqrt", "log2", None]),
+    }
+
+
+param_grids_callable = {"ml_l": ml_l_params, "ml_m": ml_m_params}
 
 try:
     import optuna
 
     # Tune with Optuna using callable specs
-    tune_res = dml_plr.tune(
+    tune_res = dml_plr.tune_optuna(
         param_grids=param_grids_callable,
-        search_mode="optuna",
         optuna_settings={
             "n_trials": 30,
             "sampler": optuna.samplers.RandomSampler(seed=42),

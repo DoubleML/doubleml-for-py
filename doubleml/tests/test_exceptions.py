@@ -914,7 +914,7 @@ def test_doubleml_exception_tune():
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, n_folds_tune=1.0)
 
-    msg = 'search_mode must be "grid_search", "randomized_search" or "optuna". Got gridsearch.'
+    msg = 'search_mode must be "grid_search" or "randomized_search". Got gridsearch.'
     with pytest.raises(ValueError, match=msg):
         dml_plr.tune(param_grids, search_mode="gridsearch")
 
@@ -940,9 +940,23 @@ def test_doubleml_exception_tune():
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, return_tune_res=1)
 
+    def optuna_ml_l(trial):
+        return {
+            "max_depth": trial.suggest_int("exc_ml_l_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("exc_ml_l_min_samples_leaf", 1, 2),
+        }
+
+    def optuna_ml_m(trial):
+        return {
+            "max_depth": trial.suggest_int("exc_ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("exc_ml_m_min_samples_leaf", 1, 2),
+        }
+
+    param_grids_optuna = {"ml_l": optuna_ml_l, "ml_m": optuna_ml_m}
+
     msg = "optuna_settings must be a dict or None. Got <class 'list'>."
     with pytest.raises(TypeError, match=msg):
-        dml_plr.tune(param_grids, search_mode="optuna", optuna_settings=[1, 2, 3])
+        dml_plr.tune_optuna(param_grids_optuna, optuna_settings=[1, 2, 3])
 
 
 @pytest.mark.ci

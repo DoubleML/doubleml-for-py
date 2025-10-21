@@ -367,7 +367,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -395,7 +394,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g",
         )
         g_d_lvl1_tune_res = _dml_tune(
@@ -409,7 +407,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_g",
         )
 
@@ -424,7 +421,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
             learner_name="ml_m",
         )
 
@@ -438,6 +434,90 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        dx = np.column_stack((d, x))
+        treated_indicator = self.treated.astype(bool)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g": None, "ml_m": None}
+
+        mask_lvl1 = treated_indicator
+        mask_lvl0 = np.logical_not(mask_lvl1)
+
+        dx_lvl0 = dx[mask_lvl0, :]
+        y_lvl0 = y[mask_lvl0]
+        train_inds_lvl0 = [np.arange(dx_lvl0.shape[0])]
+        g_lvl0_param_grid = param_grids.get("ml_g_d_lvl0", param_grids["ml_g"])
+        g_lvl0_scoring = scoring_methods.get("ml_g_d_lvl0", scoring_methods["ml_g"])
+        g_d_lvl0_tune_res = _dml_tune_optuna(
+            y_lvl0,
+            dx_lvl0,
+            train_inds_lvl0,
+            self._learner["ml_g"],
+            g_lvl0_param_grid,
+            g_lvl0_scoring,
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name=("ml_g_d_lvl0", "ml_g"),
+        )
+
+        x_lvl1 = x[mask_lvl1, :]
+        y_lvl1 = y[mask_lvl1]
+        train_inds_lvl1 = [np.arange(x_lvl1.shape[0])]
+        g_lvl1_param_grid = param_grids.get("ml_g_d_lvl1", param_grids["ml_g"])
+        g_lvl1_scoring = scoring_methods.get("ml_g_d_lvl1", scoring_methods["ml_g"])
+        g_d_lvl1_tune_res = _dml_tune_optuna(
+            y_lvl1,
+            x_lvl1,
+            train_inds_lvl1,
+            self._learner["ml_g"],
+            g_lvl1_param_grid,
+            g_lvl1_scoring,
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name=("ml_g_d_lvl1", "ml_g"),
+        )
+
+        train_inds_full = [np.arange(x.shape[0])]
+        m_tune_res = _dml_tune_optuna(
+            treated_indicator.astype(float),
+            x,
+            train_inds_full,
+            self._learner["ml_m"],
+            param_grids["ml_m"],
+            scoring_methods["ml_m"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m",
+        )
+
+        g_d_lvl0_best_params = [xx.best_params_ for xx in g_d_lvl0_tune_res]
+        g_d_lvl1_best_params = [xx.best_params_ for xx in g_d_lvl1_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+        params = {
+            "ml_g_d_lvl0": g_d_lvl0_best_params,
+            "ml_g_d_lvl1": g_d_lvl1_best_params,
+            "ml_m": m_best_params,
+        }
+        tune_res = {"g_d_lvl0_tune": g_d_lvl0_tune_res, "g_d_lvl1_tune": g_d_lvl1_tune_res, "m_tune": m_tune_res}
+
+        return {"params": params, "tune_res": tune_res}
 
     def _check_data(self, obj_dml_data):
         if len(obj_dml_data.d_cols) > 1:

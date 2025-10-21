@@ -293,7 +293,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -313,8 +312,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
-            learner_name="ml_l",
         )
         m_tune_res = _dml_tune(
             d,
@@ -327,8 +324,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            optuna_settings,
-            learner_name="ml_m",
         )
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
@@ -356,6 +351,90 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
+            )
+
+            g_best_params = [xx.best_params_ for xx in g_tune_res]
+            params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_g": g_best_params}
+            tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "g_tune": g_tune_res}
+        else:
+            params = {"ml_l": l_best_params, "ml_m": m_best_params}
+            tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res}
+
+        res = {"params": params, "tune_res": tune_res}
+
+        return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning for PLR nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}
+
+        # For Optuna, we use the full dataset (single "fold" for tuning)
+        train_inds = [np.arange(len(y))]
+        
+        l_tune_res = _dml_tune_optuna(
+            y,
+            x,
+            train_inds,
+            self._learner["ml_l"],
+            param_grids["ml_l"],
+            scoring_methods["ml_l"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_l",
+        )
+        m_tune_res = _dml_tune_optuna(
+            d,
+            x,
+            train_inds,
+            self._learner["ml_m"],
+            param_grids["ml_m"],
+            scoring_methods["ml_m"],
+            n_folds_tune,
+            n_jobs_cv,
+            optuna_settings,
+            learner_name="ml_m",
+        )
+
+        l_best_params = [xx.best_params_ for xx in l_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
+
+        # an ML model for g is obtained for the IV-type score and callable scores
+        if "ml_g" in self._learner:
+            # construct an initial theta estimate from the tuned models using the partialling out score
+            l_hat = l_tune_res[0].predict(x)
+            m_hat = m_tune_res[0].predict(x)
+            psi_a = -np.multiply(d - m_hat, d - m_hat)
+            psi_b = np.multiply(d - m_hat, y - l_hat)
+            theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
+            
+            g_tune_res = _dml_tune_optuna(
+                y - theta_initial * d,
+                x,
+                train_inds,
+                self._learner["ml_g"],
+                param_grids["ml_g"],
+                scoring_methods["ml_g"],
+                n_folds_tune,
+                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g",
             )

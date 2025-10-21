@@ -17,10 +17,10 @@ The Optuna tuning integration in DoubleML now follows a simple, consistent desig
 - Re-fits the best estimator on each fold's training data to mimic the GridSearchCV API.
 - Shares the study object and trial history across folds for downstream inspection.
 
-### 2. `_suggest_param_optuna()`
-- Enforces callable parameter specifications.
-- Provides a clear error message with example usage when a non-callable is supplied.
-- Removes legacy dict/list conversion code paths which added maintenance overhead and edge cases.
+### 2. Search-space callables
+- Users provide one function per learner that maps a trial to a parameter dictionary.
+- Simplifies the API compared with nested dictionaries of lambdas.
+- Keeps Optuna's sampling logic in user land while DoubleML handles evaluation.
 
 ### 3. Learner-specific Optuna settings
 - `_dml_tune` forwards an explicit `learner_name` so overrides can be keyed by the entries in `param_grids` (for example `"ml_l"`, `"ml_m"`).
@@ -34,18 +34,23 @@ The Optuna tuning integration in DoubleML now follows a simple, consistent desig
 ## Example
 
 ```python
-param_grids = {
-    "ml_l": {
-        "n_estimators": lambda trial, name: trial.suggest_int(name, 100, 500),
-        "max_depth": lambda trial, name: trial.suggest_int(name, 3, 15),
-        "max_features": lambda trial, name: trial.suggest_categorical(name, ["sqrt", 0.5, 0.7]),
-    },
-    "ml_m": {
-        "n_estimators": lambda trial, name: trial.suggest_int(name, 100, 500),
-        "max_depth": lambda trial, name: trial.suggest_int(name, 3, 15),
-        "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 20),
-    },
-}
+def ml_l_params(trial):
+    return {
+        "n_estimators": trial.suggest_int("ml_l_n_estimators", 100, 500),
+        "max_depth": trial.suggest_int("ml_l_max_depth", 3, 15),
+        "max_features": trial.suggest_categorical("ml_l_max_features", ["sqrt", 0.5, 0.7]),
+    }
+
+
+def ml_m_params(trial):
+    return {
+        "n_estimators": trial.suggest_int("ml_m_n_estimators", 100, 500),
+        "max_depth": trial.suggest_int("ml_m_max_depth", 3, 15),
+        "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 20),
+    }
+
+
+param_grids = {"ml_l": ml_l_params, "ml_m": ml_m_params}
 
 optuna_settings = {
     "n_trials": 50,
@@ -54,9 +59,8 @@ optuna_settings = {
     "ml_l": {"n_trials": 40},  # learner-specific override via param_grids key
 }
 
-dml_plr.tune(
+dml_plr.tune_optuna(
     param_grids=param_grids,
-    search_mode="optuna",
     optuna_settings=optuna_settings,
     n_folds_tune=3,
 )

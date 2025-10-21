@@ -736,7 +736,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         n_jobs_cv=None,
         set_as_params=True,
         return_tune_res=False,
-        optuna_settings=None,
     ):
         """
         Hyperparameter-tuning for DoubleML models.
@@ -749,18 +748,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         ----------
         param_grids : dict
             A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
-
             For ``search_mode='grid_search'`` or ``'randomized_search'``, provide lists of parameter values.
-
-                        For ``search_mode='optuna'``, specify each parameter as a callable of the form
-                        ``lambda trial, name: trial.suggest_*``. For example:
-
-                        - ``lambda trial, name: trial.suggest_float(name, 0.01, 1.0, log=True)``
-                        - ``lambda trial, name: trial.suggest_int(name, 10, 1000, log=True)``
-                        - ``lambda trial, name: trial.suggest_categorical(name, ['gini', 'entropy'])``
-
-            When using Optuna, tuning is performed once on the whole dataset using cross-validation,
-            and the same optimal hyperparameters are used for all folds.
+            For Optuna-based tuning, use the :meth:`tune_optuna` method instead.
 
         tune_on_folds : bool
             Indicates whether the tuning should be done fold-specific or globally.
@@ -777,9 +766,10 @@ class DoubleML(SampleSplittingMixin, ABC):
             Default is ``5``.
 
         search_mode : str
-            A str (``'grid_search'``, ``'randomized_search'`` or ``'optuna'``) specifying whether hyperparameters are
-            optimized via :class:`sklearn.model_selection.GridSearchCV`,
-            :class:`sklearn.model_selection.RandomizedSearchCV`, or an Optuna study.
+            A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are
+            optimized via :class:`sklearn.model_selection.GridSearchCV` or
+            :class:`sklearn.model_selection.RandomizedSearchCV`.
+            For Optuna-based tuning, use the :meth:`tune_optuna` method instead.
             Default is ``'grid_search'``.
 
         n_iter_randomized_search : int
@@ -797,12 +787,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         return_tune_res : bool
             Indicates whether detailed tuning results should be returned.
             Default is ``False``.
-
-        optuna_settings : None or dict
-            Optional configuration passed to the Optuna tuner when ``search_mode == 'optuna'``. Supports global settings
-            as well as learner-specific overrides (using the keys from ``param_grids``). The dictionary can contain
-            entries corresponding to Optuna's study and optimize configuration such as ``n_trials``, ``timeout``,
-            ``sampler``, ``pruner``, ``study_kwargs`` and ``optimize_kwargs``. Defaults to ``None``.
 
         Returns
         -------
@@ -848,8 +832,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         if n_folds_tune < 2:
             raise ValueError(f"The number of folds used for tuning must be at least two. {str(n_folds_tune)} was passed.")
 
-        if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search", "optuna"]):
-            raise ValueError(f'search_mode must be "grid_search", "randomized_search" or "optuna". Got {str(search_mode)}.')
+        if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search"]):
+            raise ValueError(f'search_mode must be "grid_search" or "randomized_search". Got {str(search_mode)}.')
 
         if search_mode == "randomized_search" and not isinstance(n_iter_randomized_search, int):
             raise TypeError(
@@ -862,9 +846,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                 "The number of parameter settings sampled for the randomized search must be at least two. "
                 f"{str(n_iter_randomized_search)} was passed."
             )
-
-        if optuna_settings is not None and not isinstance(optuna_settings, dict):
-            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
 
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
@@ -904,7 +885,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                         n_jobs_cv,
                         search_mode,
                         n_iter_randomized_search,
-                        optuna_settings,
                     )
 
                     tuning_res[i_rep][i_d] = res
@@ -926,7 +906,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                     n_jobs_cv,
                     search_mode,
                     n_iter_randomized_search,
-                    optuna_settings,
                 )
                 tuning_res[i_d] = res
 
@@ -934,6 +913,220 @@ class DoubleML(SampleSplittingMixin, ABC):
                     for nuisance_model in res["params"].keys():
                         params = res["params"][nuisance_model]
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params[0])
+
+        if return_tune_res:
+            return tuning_res
+        else:
+            return self
+
+    def tune_optuna(
+        self,
+        param_grids,
+        scoring_methods=None,
+        n_folds_tune=5,
+        n_jobs_cv=None,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """
+        Hyperparameter-tuning for DoubleML models using Optuna.
+
+        The hyperparameter-tuning is performed using Optuna's Bayesian optimization.
+        Unlike grid/randomized search, Optuna tuning is performed once on the whole dataset
+        using cross-validation, and the same optimal hyperparameters are used for all folds.
+
+        Parameters
+        ----------
+        param_grids : dict
+            A dict with a parameter grid function for each nuisance model / learner 
+            (see attribute ``learner_names``).
+
+            Each parameter grid must be specified as a callable function that takes an Optuna trial 
+            and returns a dictionary of hyperparameters. For example:
+
+            .. code-block:: python
+
+                def ml_l_params(trial):
+                    return {
+                        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+                        'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
+                        'num_leaves': trial.suggest_int('num_leaves', 20, 256),
+                        'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
+                    }
+
+                param_grids = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+
+            Note: Optuna tuning is performed globally (not fold-specific) to ensure consistent
+            hyperparameters across all folds.
+
+        scoring_methods : None or dict
+            The scoring method used to evaluate the predictions. The scoring method must be set per 
+            nuisance model via a dict (see attribute ``learner_names`` for the keys).
+            If None, the estimator's score method is used.
+            Default is ``None``.
+
+        n_folds_tune : int
+            Number of folds used for cross-validation during tuning.
+            Default is ``5``.
+
+        n_jobs_cv : None or int
+            The number of CPUs to use for cross-validation during tuning. ``None`` means ``1``.
+            Default is ``None``.
+
+        set_as_params : bool
+            Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
+            Default is ``True``.
+
+        return_tune_res : bool
+            Indicates whether detailed tuning results should be returned.
+            Default is ``False``.
+
+        optuna_settings : None or dict
+            Optional configuration passed to the Optuna tuner. Supports global settings
+            as well as learner-specific overrides (using the keys from ``param_grids``). 
+            The dictionary can contain entries corresponding to Optuna's study and optimize 
+            configuration such as:
+            
+            - ``n_trials`` (int): Number of optimization trials (default: 100)
+            - ``timeout`` (float): Time limit in seconds for the study (default: None)
+            - ``direction`` (str): Optimization direction, 'maximize' or 'minimize' (default: 'maximize')
+            - ``sampler`` (optuna.samplers.BaseSampler): Optuna sampler instance (default: None, uses TPE)
+            - ``pruner`` (optuna.pruners.BasePruner): Optuna pruner instance (default: None)
+            - ``callbacks`` (list): List of callback functions (default: None)
+            - ``show_progress_bar`` (bool): Show progress bar during optimization (default: False)
+            - ``n_jobs_optuna`` (int): Number of parallel trials (default: None)
+            - ``verbosity`` (int): Optuna logging verbosity level (default: None)
+            - ``study`` (optuna.study.Study): Pre-created study instance (default: None)
+            - ``study_factory`` (callable): Factory function to create study (default: None)
+            - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
+            - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
+            
+            Defaults to ``None``.
+
+        Returns
+        -------
+        self : object
+            Returned if ``return_tune_res`` is ``False``.
+
+        tune_res: list
+            A list containing detailed tuning results and the proposed hyperparameters.
+            Returned if ``return_tune_res`` is ``True``.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> from doubleml import DoubleMLData, DoubleMLPLR
+        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> from lightgbm import LGBMRegressor
+        >>> import optuna
+        >>> # Generate data
+        >>> np.random.seed(42)
+        >>> data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, return_type='DataFrame')
+        >>> dml_data = DoubleMLData(data, 'y', 'd')
+        >>> # Initialize model
+        >>> dml_plr = DoubleMLPLR(dml_data, LGBMRegressor(), LGBMRegressor())
+        >>> # Define parameter grid functions
+        >>> def ml_l_params(trial):
+        ...     return {
+        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
+        ...     }
+        >>> def ml_m_params(trial):
+        ...     return {
+        ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
+        ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
+        ...     }
+        >>> param_grids = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+        >>> # Tune with TPE sampler
+        >>> optuna_settings = {
+        ...     'n_trials': 20,
+        ...     'sampler': optuna.samplers.TPESampler(seed=42),
+        ... }
+        >>> dml_plr.tune_optuna(param_grids, optuna_settings=optuna_settings)
+        >>> # Fit and get results
+        >>> dml_plr.fit()
+        """
+        # Validation
+        if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
+            raise ValueError(
+                "Invalid param_grids " + str(param_grids) + ". "
+                "param_grids must be a dictionary with keys " + " and ".join(self.learner_names) + "."
+            )
+        
+        # Validate that all parameter grids are callables
+        for learner_name, param_grid in param_grids.items():
+            if not callable(param_grid):
+                raise TypeError(
+                    f"Parameter grid for '{learner_name}' must be a callable function that takes a trial "
+                    f"and returns a dict. Got {type(param_grid).__name__}. "
+                    f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
+                )
+
+        if scoring_methods is not None:
+            if (not isinstance(scoring_methods, dict)) | (not all(k in self.learner_names for k in scoring_methods)):
+                raise ValueError(
+                    "Invalid scoring_methods "
+                    + str(scoring_methods)
+                    + ". "
+                    + "scoring_methods must be a dictionary. "
+                    + "Valid keys are "
+                    + " and ".join(self.learner_names)
+                    + "."
+                )
+            if not all(k in scoring_methods for k in self.learner_names):
+                # if there are learners for which no scoring_method was set, we fall back to None
+                for learner in self.learner_names:
+                    if learner not in scoring_methods:
+                        scoring_methods[learner] = None
+
+        if not isinstance(n_folds_tune, int):
+            raise TypeError(
+                "The number of folds used for tuning must be of int type. "
+                f"{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed."
+            )
+        if n_folds_tune < 2:
+            raise ValueError(f"The number of folds used for tuning must be at least two. {str(n_folds_tune)} was passed.")
+
+        if optuna_settings is not None and not isinstance(optuna_settings, dict):
+            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
+
+        if n_jobs_cv is not None:
+            if not isinstance(n_jobs_cv, int):
+                raise TypeError(
+                    "The number of CPUs used to fit the learners must be of int type. "
+                    f"{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed."
+                )
+
+        if not isinstance(set_as_params, bool):
+            raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
+
+        if not isinstance(return_tune_res, bool):
+            raise TypeError(f"return_tune_res must be True or False. Got {str(return_tune_res)}.")
+
+        # Optuna tuning is always global (not fold-specific)
+        tuning_res = [None] * self._dml_data.n_treat
+
+        for i_d in range(self._dml_data.n_treat):
+            self._i_treat = i_d
+            # this step could be skipped for the single treatment variable case
+            if self._dml_data.n_treat > 1:
+                self._dml_data.set_x_d(self._dml_data.d_cols[i_d])
+
+            # tune hyperparameters (globally, not fold-specific)
+            res = self._nuisance_tuning_optuna(
+                param_grids,
+                scoring_methods,
+                n_folds_tune,
+                n_jobs_cv,
+                optuna_settings,
+            )
+            tuning_res[i_d] = res
+
+            if set_as_params:
+                for nuisance_model in res["params"].keys():
+                    params = res["params"][nuisance_model]
+                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params[0])
 
         if return_tune_res:
             return tuning_res
@@ -1009,9 +1202,23 @@ class DoubleML(SampleSplittingMixin, ABC):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings,
     ):
         pass
+    
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        """
+        Optuna-based hyperparameter tuning hook.
+
+        Subclasses should override this method to provide Optuna tuning support.
+        """
+        raise NotImplementedError(f"Optuna tuning not implemented for {self.__class__.__name__}.")
 
     @staticmethod
     def _check_learner(learner, learner_name, regressor, classifier):

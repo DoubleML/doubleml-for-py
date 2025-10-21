@@ -627,7 +627,6 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         search_mode,
         n_iter_randomized_search,
-        optuna_settings=None,
     ):
         x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
         _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
@@ -649,7 +648,6 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             "n_jobs_cv": n_jobs_cv,
             "search_mode": search_mode,
             "n_iter_randomized_search": n_iter_randomized_search,
-            "optuna_settings": optuna_settings,
         }
 
         tune_args_g = {**tune_args, "learner_name": "ml_g"}
@@ -744,6 +742,80 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
+
+    def _nuisance_tuning_optuna(
+        self,
+        param_grids,
+        scoring_methods,
+        n_folds_tune,
+        n_jobs_cv,
+        optuna_settings,
+    ):
+        from ..utils._tune_optuna import _dml_tune_optuna
+
+        x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
+        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
+
+        if scoring_methods is None:
+            scoring_methods = {"ml_g": None, "ml_m": None}
+
+        masks = {
+            "d0_t0": (d == 0) & (t == 0),
+            "d0_t1": (d == 0) & (t == 1),
+            "d1_t0": (d == 1) & (t == 0),
+            "d1_t1": (d == 1) & (t == 1),
+        }
+
+        g_tune_results = {}
+        for key, mask in masks.items():
+            x_subset = x[mask, :]
+            y_subset = y[mask]
+            train_inds = [np.arange(x_subset.shape[0])]
+            learner_key = f"ml_g_{key}"
+            param_grid = param_grids.get(learner_key, param_grids["ml_g"])
+            scoring = scoring_methods.get(learner_key, scoring_methods["ml_g"])
+            g_tune_results[key] = _dml_tune_optuna(
+                y_subset,
+                x_subset,
+                train_inds,
+                self._learner["ml_g"],
+                param_grid,
+                scoring,
+                n_folds_tune,
+                n_jobs_cv,
+                optuna_settings,
+                learner_name=(learner_key, "ml_g"),
+            )
+
+        m_tune_res = None
+        if self.score == "observational":
+            full_train_inds = [np.arange(x.shape[0])]
+            m_tune_res = _dml_tune_optuna(
+                d,
+                x,
+                full_train_inds,
+                self._learner["ml_m"],
+                param_grids["ml_m"],
+                scoring_methods["ml_m"],
+                n_folds_tune,
+                n_jobs_cv,
+                optuna_settings,
+                learner_name="ml_m",
+            )
+
+        params = {}
+        tune_res = {}
+        for key, res_list in g_tune_results.items():
+            learner_key = f"ml_g_{key}"
+            params[learner_key] = [xx.best_params_ for xx in res_list]
+            tune_res[f"g_{key}_tune"] = res_list
+
+        if self.score == "observational":
+            params["ml_m"] = [xx.best_params_ for xx in m_tune_res]
+            tune_res["m_tune"] = m_tune_res
+
+        return {"params": params, "tune_res": tune_res}
 
     def _sensitivity_element_est(self, preds):
         y = self._y_data_subset

@@ -50,20 +50,22 @@ def test_doubleml_plr_optuna_tune(generate_data1, sampler_name, optuna_sampler):
     dml_data = DoubleMLData(data, "y", ["d"], x_cols)
     dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
 
-    param_grids = {
-        "ml_l": {
-            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
-            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 2),
-        },
-        "ml_m": {
-            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
-            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 2),
-        },
-    }
+    def ml_l_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_l_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_l_min_samples_leaf", 1, 2),
+        }
 
-    tune_res = dml_plr.tune(
+    def ml_m_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 2),
+        }
+
+    param_grids = {"ml_l": ml_l_params, "ml_m": ml_m_params}
+
+    tune_res = dml_plr.tune_optuna(
         param_grids=param_grids,
-        search_mode="optuna",
         optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler}),
         return_tune_res=True,
     )
@@ -99,16 +101,19 @@ def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
 
     dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2)
 
-    param_grids = {
-        "ml_g": {
-            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
-            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 3),
-        },
-        "ml_m": {
-            "max_depth": lambda trial, name: trial.suggest_int(name, 1, 2),
-            "min_samples_leaf": lambda trial, name: trial.suggest_int(name, 1, 3),
-        },
-    }
+    def ml_g_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_g_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_g_min_samples_leaf", 1, 3),
+        }
+
+    def ml_m_params(trial):
+        return {
+            "max_depth": trial.suggest_int("ml_m_max_depth", 1, 2),
+            "min_samples_leaf": trial.suggest_int("ml_m_min_samples_leaf", 1, 3),
+        }
+
+    param_grids = {"ml_g": ml_g_params, "ml_m": ml_m_params}
 
     per_ml_settings = {
         "ml_m": {"sampler": optuna_sampler, "n_trials": 1},
@@ -119,7 +124,7 @@ def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler, **per_ml_settings})
 
-    dml_irm.tune(param_grids=param_grids, search_mode="optuna", optuna_settings=optuna_settings)
+    dml_irm.tune_optuna(param_grids=param_grids, optuna_settings=optuna_settings)
 
     tuned_params_g0 = dml_irm.params["ml_g0"]["d"][0][0]
     tuned_params_g1 = dml_irm.params["ml_g1"]["d"][0][0]
