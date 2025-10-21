@@ -31,3 +31,4 @@ MANIFEST
 *.vscode
 .flake8
 .coverage
+examples/
