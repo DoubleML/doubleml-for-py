@@ -33,3 +33,10 @@ def test_eq_different_config():
     processor1 = PropensityScoreProcessor(clipping_threshold=0.05)
     processor2 = PropensityScoreProcessor(clipping_threshold=0.1)
     assert processor1 != processor2
+
+
+@pytest.mark.ci
+def test_eq_different_type():
+    """Test inequality with different object type."""
+    processor = PropensityScoreProcessor()
+    assert processor != "NotAPropensityScoreProcessor"

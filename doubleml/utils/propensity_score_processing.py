@@ -2,6 +2,7 @@ import warnings
 from typing import Any, Dict, Optional
 
 import numpy as np
+from sklearn.utils.multiclass import type_of_target
 
 
 class PropensityScoreProcessor:
@@ -23,10 +24,11 @@ class PropensityScoreProcessor:
     --------
     >>> import numpy as np
     >>> from doubleml.utils import PropensityScoreProcessor
-    >>> raw_scores = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
+    >>> ps_scores = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
+    >>> treatment = np.array([0, 1, 1, 0, 1])
     >>> processor = PropensityScoreProcessor(clipping_threshold=0.01)
-    >>> clipped_scores = processor.adjust(raw_scores)
-    >>> print(clipped_scores)
+    >>> adj_scores = processor.adjust(ps_scores, treatment)
+    >>> print(adj_scores)
     [0.01 0.2  0.5  0.8  0.99]
     """
 
@@ -98,14 +100,16 @@ class PropensityScoreProcessor:
     # -------------------------------------------------------------------------
     # Core functionality
     # -------------------------------------------------------------------------
-    def adjust(self, propensity_scores: np.ndarray, learner_name: Optional[str] = None) -> np.ndarray:
+    def adjust(self, propensity_scores: np.ndarray, treatment: np.ndarray, learner_name: Optional[str] = None) -> np.ndarray:
         """
         Adjust propensity scores via validation, clipping, and warnings.
 
         Parameters
         ----------
-        propensity_scores : array-like
+        propensity_scores : np.ndarray
             Raw propensity score predictions.
+        treatment : np.ndarray
+            Treatment assignments (1 for treated, 0 for control).
         learner_name : str, optional
             Name of the learner providing the propensity scores, used in warnings.
 
@@ -118,6 +122,7 @@ class PropensityScoreProcessor:
             propensity_scores,
             learner_name,
         )
+        self._validate_treatment(treatment)
         clipped_scores = np.clip(propensity_scores, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
 
         return clipped_scores
@@ -145,6 +150,19 @@ class PropensityScoreProcessor:
                 f"Propensity predictions {learner_msg} " f"are close to zero or one (eps={self.extreme_threshold}).",
                 UserWarning,
             )
+
+    def _validate_treatment(self, treatment: np.ndarray) -> None:
+        """Validate treatment vector."""
+        if not isinstance(treatment, np.ndarray):
+            raise TypeError(f"Treatment assignments must be of type np.ndarray. " f"Type {type(treatment)} found.")
+
+        if treatment.ndim != 1:
+            raise ValueError(f"Treatment assignments must be 1-dimensional. " f"Shape {treatment.shape} found.")
+
+        binary_treat = type_of_target(treatment) == "binary"
+        zero_one_treat = np.all((np.power(treatment, 2) - treatment) == 0)
+        if not (binary_treat and zero_one_treat):
+            raise ValueError("Treatment vector must be binary (0 and 1).")
 
     # -------------------------------------------------------------------------
     # Representations
