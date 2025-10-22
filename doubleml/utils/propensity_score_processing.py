@@ -2,12 +2,14 @@ import warnings
 from typing import Any, Dict, Optional
 
 import numpy as np
+from sklearn.isotonic import IsotonicRegression
+from sklearn.model_selection import cross_val_predict
 from sklearn.utils.multiclass import type_of_target
 
 
 class PropensityScoreProcessor:
     """
-    Processor for propensity score validation, clipping, and warnings.
+    Processor for propensity score calibration, clipping, and validation.
 
     Parameters
     ----------
@@ -35,7 +37,11 @@ class PropensityScoreProcessor:
     _DEFAULT_CONFIG: Dict[str, Any] = {
         "clipping_threshold": 1e-2,
         "extreme_threshold": 1e-12,
+        "calibration_method": None,
+        "cv_calibration": False,
     }
+
+    _VALID_CALIBRATION_METHODS = {None, "isotonic"}
 
     def __init__(self, **config: Any) -> None:
 
@@ -62,6 +68,17 @@ class PropensityScoreProcessor:
         if not (0 < config["extreme_threshold"] < 0.5):
             raise ValueError("extreme_threshold must be between 0 and 0.5.")
 
+        calibration_method = config["calibration_method"]
+        if calibration_method not in self._VALID_CALIBRATION_METHODS:
+            raise ValueError(
+                f"calibration_method must be one of {self._VALID_CALIBRATION_METHODS}. " f"Got {calibration_method}."
+            )
+
+        if not isinstance(config["cv_calibration"], bool):
+            raise TypeError("cv_calibration must be of bool type.")
+        if config["cv_calibration"] and config["calibration_method"] is None:
+            raise ValueError("cv_calibration can only be used with a calibration_method.")
+
     @property
     def clipping_threshold(self) -> float:
         """Get the clipping threshold."""
@@ -71,6 +88,16 @@ class PropensityScoreProcessor:
     def extreme_threshold(self) -> float:
         """Get the extreme threshold."""
         return self._config["extreme_threshold"]
+
+    @property
+    def calibration_method(self) -> Optional[str]:
+        """Get the calibration method."""
+        return self._config["calibration_method"]
+
+    @property
+    def cv_calibration(self) -> bool:
+        """Get whether cross-validation calibration is used."""
+        return self._config["cv_calibration"]
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
@@ -100,7 +127,13 @@ class PropensityScoreProcessor:
     # -------------------------------------------------------------------------
     # Core functionality
     # -------------------------------------------------------------------------
-    def adjust(self, propensity_scores: np.ndarray, treatment: np.ndarray, learner_name: Optional[str] = None) -> np.ndarray:
+    def adjust(
+        self,
+        propensity_scores: np.ndarray,
+        treatment: np.ndarray,
+        cv: Optional[int | list] = None,
+        learner_name: Optional[str] = None,
+    ) -> np.ndarray:
         """
         Adjust propensity scores via validation, clipping, and warnings.
 
@@ -110,6 +143,8 @@ class PropensityScoreProcessor:
             Raw propensity score predictions.
         treatment : np.ndarray
             Treatment assignments (1 for treated, 0 for control).
+        cv : int or list, optional
+            Cross-validation strategy for calibration. Used only if calibration is applied.
         learner_name : str, optional
             Name of the learner providing the propensity scores, used in warnings.
 
@@ -123,13 +158,47 @@ class PropensityScoreProcessor:
             learner_name,
         )
         self._validate_treatment(treatment)
-        clipped_scores = np.clip(propensity_scores, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
+
+        if self.cv_calibration:
+            cv = cv
+        else:
+            cv = None
+        calibrated_ps = self._apply_calibration(propensity_scores, treatment, cv=cv)
+        clipped_scores = np.clip(calibrated_ps, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
 
         return clipped_scores
 
     # -------------------------------------------------------------------------
     # Private helper methods
     # -------------------------------------------------------------------------
+    def _apply_calibration(
+        self,
+        propensity_scores: np.ndarray,
+        treatment: np.ndarray,
+        cv: Optional[int | list] = None,
+    ) -> np.ndarray:
+        """Apply calibration method to propensity scores if specified."""
+        if self.calibration_method is None:
+            calibrated_ps = propensity_scores
+        elif self.calibration_method == "isotonic":
+            calibration_model = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+
+            if cv is None:
+                calibration_model.fit(propensity_scores.reshape(-1, 1), treatment)
+                calibrated_ps = calibration_model.predict(propensity_scores.reshape(-1, 1))
+            else:
+                calibrated_ps = cross_val_predict(
+                    estimator=calibration_model, X=propensity_scores.reshape(-1, 1), y=treatment, cv=cv, method="predict"
+                )
+
+        else:
+            # This point should never be reached due to prior validation
+            raise ValueError(
+                f"Unsupported calibration method: {self.calibration_method}. "
+                f"Valid methods are: {self._VALID_CALIBRATION_METHODS}"
+            )
+
+        return calibrated_ps
 
     def _validate_propensity_scores(
         self,

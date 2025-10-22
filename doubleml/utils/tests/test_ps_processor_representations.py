@@ -7,7 +7,10 @@ from doubleml.utils import PropensityScoreProcessor
 def test_repr_default_config():
     """Test __repr__ with default configuration."""
     processor = PropensityScoreProcessor()
-    expected = "PropensityScoreProcessor(clipping_threshold=0.01, extreme_threshold=1e-12)"
+    expected = (
+        "PropensityScoreProcessor(calibration_method=None, clipping_threshold=0.01, "
+        "cv_calibration=False, extreme_threshold=1e-12)"
+    )
     assert repr(processor) == expected
 
 
@@ -15,7 +18,10 @@ def test_repr_default_config():
 def test_repr_custom_config():
     """Test __repr__ with custom configuration."""
     processor = PropensityScoreProcessor(clipping_threshold=0.05, extreme_threshold=1e-6)
-    expected = "PropensityScoreProcessor(clipping_threshold=0.05, extreme_threshold=1e-06)"
+    expected = (
+        "PropensityScoreProcessor(calibration_method=None, clipping_threshold=0.05, "
+        "cv_calibration=False, extreme_threshold=1e-06)"
+    )
     assert repr(processor) == expected
 
 

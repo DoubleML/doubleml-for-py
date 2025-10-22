@@ -42,6 +42,27 @@ def test_init_extreme_threshold_value_error():
         PropensityScoreProcessor(extreme_threshold=0.6)  # above 0.5
 
 
+@pytest.mark.ci
+def test_init_calibration_method_value_error():
+    """Test that invalid calibration_method raises ValueError."""
+    with pytest.raises(ValueError, match="calibration_method must be one of"):
+        PropensityScoreProcessor(calibration_method="invalid_method")
+
+
+@pytest.mark.ci
+def test_init_cv_calibration_type_error():
+    """Test that non-bool cv_calibration raises TypeError."""
+    with pytest.raises(TypeError, match="cv_calibration must be of bool type."):
+        PropensityScoreProcessor(cv_calibration="True")
+
+
+@pytest.mark.ci
+def test_init_cv_calibration_value_error():
+    """Test that cv_calibration True with None calibration_method raises ValueError."""
+    with pytest.raises(ValueError, match="cv_calibration can only be used with a calibration_method."):
+        PropensityScoreProcessor(calibration_method=None, cv_calibration=True)
+
+
 # -------------------------------------------------------------------------
 # Tests for update_config method
 # -------------------------------------------------------------------------
@@ -95,7 +116,7 @@ def test_update_config_defaults():
 
 
 # -------------------------------------------------------------------------
-# Tests for propensity score validation
+# Tests for propensity score & treatment validation
 # -------------------------------------------------------------------------
 
 
@@ -145,3 +166,21 @@ def test_validate_treatment_binary_error():
     processor = PropensityScoreProcessor()
     with pytest.raises(ValueError, match="must be binary"):
         processor.adjust(np.array([0.2, 0.8]), np.array([0, 2]))
+
+
+# -------------------------------------------------------------------------
+# Other exception tests
+# -------------------------------------------------------------------------
+
+
+@pytest.mark.ci
+def test_apply_calibration_unsupported_method_error():
+    """Test that unsupported calibration method raises ValueError."""
+    processor = PropensityScoreProcessor()
+    processor._config["calibration_method"] = "unsupported_method"
+
+    propensity_scores = np.array([0.2, 0.8])
+    treatment = np.array([0, 1])
+
+    with pytest.raises(ValueError, match="Unsupported calibration method: unsupported_method"):
+        processor._apply_calibration(propensity_scores, treatment)
