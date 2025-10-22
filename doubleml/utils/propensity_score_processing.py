@@ -1,15 +1,15 @@
 import warnings
-import numpy as np
 from typing import Any, Dict, List, Optional
 
-from doubleml.utils._checks import _check_is_propensity, _check_trimming
-from doubleml.utils._propensity_score import _trimm
+import numpy as np
+
+from doubleml.utils._checks import _check_is_propensity
 
 
 class PropensityScoreProcessor:
     """
     Processor for propensity score validation, clipping, and warnings.
-    
+
     Parameters
     ----------
     clipping_threshold : float, default=1e-2
@@ -20,7 +20,7 @@ class PropensityScoreProcessor:
         Threshold for extreme value warnings.
     warning_proportion : float, default=0.1
         Proportion threshold for triggering extreme value warnings.
-    
+
     Examples
     --------
     >>> processor = PropensityScoreProcessor(clipping_threshold=0.01)
@@ -35,28 +35,38 @@ class PropensityScoreProcessor:
     }
 
     def __init__(self, **config: Any) -> None:
-        
+
         unknown_params = set(config.keys()) - set(self._DEFAULT_CONFIG.keys())
         if unknown_params:
             raise ValueError(f"Unknown parameters: {unknown_params}")
 
-        self._config: Dict[str, Any] = {**self._DEFAULT_CONFIG, **config}
-        self._validate_params()
+        updated_config = {**self._DEFAULT_CONFIG, **config}
+        self._validate_config(updated_config)
+        self._config = updated_config
 
     # -------------------------------------------------------------------------
     # Configuration methods
     # -------------------------------------------------------------------------
-    def _validate_params(self) -> None:
+    def _validate_config(self, config: Dict[str, Any]) -> None:
         """Validate configuration parameters."""
-        _check_trimming("truncate", self._config["clipping_threshold"])
 
-        if not isinstance(self._config["warn_extreme_values"], bool):
+        clipping_threshold = config["clipping_threshold"]
+        if not isinstance(clipping_threshold, float):
+            raise TypeError("clipping_threshold must be of float type. " f"Object of type {type(clipping_threshold)} passed.")
+        if (clipping_threshold <= 0) or (clipping_threshold >= 0.5):
+            raise ValueError(f"clipping_threshold must be between 0 and 0.5. " f"{clipping_threshold} was passed.")
+
+        if not isinstance(config["warn_extreme_values"], bool):
             raise TypeError("warn_extreme_values must be boolean.")
 
-        if not (0 < self._config["extreme_threshold"] < 0.5):
+        if not (0 < config["extreme_threshold"] < 0.5):
             raise ValueError("extreme_threshold must be between 0 and 0.5.")
 
-        if not (0 < self._config["warning_proportion"] < 1):
+        if not isinstance(config["warning_proportion"], float):
+            raise TypeError(
+                "warning_proportion must be of float type. " f"Object of type {type(config['warning_proportion'])} passed."
+            )
+        if not (0 < config["warning_proportion"] < 1):
             raise ValueError("warning_proportion must be between 0 and 1.")
 
     @property
@@ -92,11 +102,17 @@ class PropensityScoreProcessor:
         """
         Update configuration parameters.
 
-        Reinitializes the instance to ensure all validation and defaults
-        are applied consistently.
+        Validates the new configuration before applying changes to ensure
+        the object remains in a consistent state.
         """
-        updated = {**self._config, **new_config}
-        self.__init__(**updated)
+
+        unknown_params = set(new_config.keys()) - set(self._DEFAULT_CONFIG.keys())
+        if unknown_params:
+            raise ValueError(f"Unknown parameters: {unknown_params}")
+
+        updated_config = {**self._config, **new_config}
+        self._validate_config(updated_config)
+        self._config = updated_config
 
     # -------------------------------------------------------------------------
     # Core functionality
@@ -138,11 +154,7 @@ class PropensityScoreProcessor:
             self._warn_extreme_values(propensity_scores)
 
         # Clipping
-        clipped_scores = _trimm(
-            propensity_scores,
-            "truncate",
-            self.clipping_threshold,
-        )
+        clipped_scores = np.clip(propensity_scores, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
 
         return np.asarray(clipped_scores)
 
@@ -195,9 +207,7 @@ class PropensityScoreProcessor:
     # Representations
     # -------------------------------------------------------------------------
     def __repr__(self) -> str:
-        config_str = ", ".join(
-            [f"{k}={v}" for k, v in sorted(self._config.items())]
-        )
+        config_str = ", ".join([f"{k}={v}" for k, v in sorted(self._config.items())])
         return f"{self.__class__.__name__}({config_str})"
 
     def __eq__(self, other: object) -> bool:
