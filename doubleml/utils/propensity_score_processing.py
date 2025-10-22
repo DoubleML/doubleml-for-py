@@ -1,9 +1,7 @@
 import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
-
-from doubleml.utils._checks import _check_is_propensity
 
 
 class PropensityScoreProcessor:
@@ -23,15 +21,18 @@ class PropensityScoreProcessor:
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from doubleml.utils import PropensityScoreProcessor
+    >>> raw_scores = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
     >>> processor = PropensityScoreProcessor(clipping_threshold=0.01)
     >>> clipped_scores = processor.adjust(raw_scores)
+    >>> print(clipped_scores)
+    [0.01 0.2  0.5  0.8  0.99]
     """
 
     _DEFAULT_CONFIG: Dict[str, Any] = {
         "clipping_threshold": 1e-2,
-        "warn_extreme_values": True,
-        "extreme_threshold": 0.05,
-        "warning_proportion": 0.1,
+        "extreme_threshold": 1e-12,
     }
 
     def __init__(self, **config: Any) -> None:
@@ -56,18 +57,8 @@ class PropensityScoreProcessor:
         if (clipping_threshold <= 0) or (clipping_threshold >= 0.5):
             raise ValueError(f"clipping_threshold must be between 0 and 0.5. " f"{clipping_threshold} was passed.")
 
-        if not isinstance(config["warn_extreme_values"], bool):
-            raise TypeError("warn_extreme_values must be boolean.")
-
         if not (0 < config["extreme_threshold"] < 0.5):
             raise ValueError("extreme_threshold must be between 0 and 0.5.")
-
-        if not isinstance(config["warning_proportion"], float):
-            raise TypeError(
-                "warning_proportion must be of float type. " f"Object of type {type(config['warning_proportion'])} passed."
-            )
-        if not (0 < config["warning_proportion"] < 1):
-            raise ValueError("warning_proportion must be between 0 and 1.")
 
     @property
     def clipping_threshold(self) -> float:
@@ -75,19 +66,9 @@ class PropensityScoreProcessor:
         return self._config["clipping_threshold"]
 
     @property
-    def warn_extreme_values(self) -> bool:
-        """Get the warn extreme values setting."""
-        return self._config["warn_extreme_values"]
-
-    @property
     def extreme_threshold(self) -> float:
         """Get the extreme threshold."""
         return self._config["extreme_threshold"]
-
-    @property
-    def warning_proportion(self) -> float:
-        """Get the warning proportion."""
-        return self._config["warning_proportion"]
 
     @classmethod
     def get_default_config(cls) -> Dict[str, Any]:
@@ -117,12 +98,7 @@ class PropensityScoreProcessor:
     # -------------------------------------------------------------------------
     # Core functionality
     # -------------------------------------------------------------------------
-    def adjust(
-        self,
-        propensity_scores: np.ndarray,
-        learner_name: str = "ml_m",
-        smpls: Optional[List[Any]] = None,
-    ) -> np.ndarray:
+    def adjust(self, propensity_scores: np.ndarray, learner_name: Optional[str] = None) -> np.ndarray:
         """
         Adjust propensity scores via validation, clipping, and warnings.
 
@@ -130,76 +106,43 @@ class PropensityScoreProcessor:
         ----------
         propensity_scores : array-like
             Raw propensity score predictions.
-        learner_name : str, default="ml_m"
-            Name of the learner for error messages.
-        smpls : list, optional
-            Sample splits for validation.
+        learner_name : str, optional
+            Name of the learner providing the propensity scores, used in warnings.
 
         Returns
         -------
         np.ndarray
             Clipped and validated propensity scores.
         """
-        # Validation
-        _check_is_propensity(
+        self._validate_propensity_scores(
             propensity_scores,
             learner_name,
-            learner_name,
-            smpls,
-            eps=1e-12,
         )
-
-        # Warnings for extreme values
-        if self.warn_extreme_values:
-            self._warn_extreme_values(propensity_scores)
-
-        # Clipping
         clipped_scores = np.clip(propensity_scores, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
 
-        return np.asarray(clipped_scores)
+        return clipped_scores
 
     # -------------------------------------------------------------------------
     # Private helper methods
     # -------------------------------------------------------------------------
-    def _warn_extreme_values(self, propensity_scores: np.ndarray) -> None:
-        """Emit warnings for extreme or clipped propensity scores."""
-        min_prop = np.min(propensity_scores)
-        max_prop = np.max(propensity_scores)
 
-        extreme_low = np.mean(propensity_scores < self.extreme_threshold)
-        extreme_high = np.mean(propensity_scores > (1 - self.extreme_threshold))
+    def _validate_propensity_scores(
+        self,
+        preds: np.ndarray,
+        learner_name: Optional[str] = None,
+    ) -> None:
+        """Validate if propensity predictions are valid."""
+        learner_msg = f" from learner {learner_name}" if learner_name is not None else ""
 
-        if extreme_low > self.warning_proportion:
+        if not isinstance(preds, np.ndarray):
+            raise TypeError(f"Propensity predictions {learner_msg} must be of type np.ndarray. " f"Type {type(preds)} found.")
+
+        if preds.ndim != 1:
+            raise ValueError(f"Propensity predictions {learner_msg} must be 1-dimensional. " f"Shape {preds.shape} found.")
+
+        if any((preds < self.extreme_threshold) | (preds > 1 - self.extreme_threshold)):
             warnings.warn(
-                f"Large proportion ({extreme_low:.1%}) of propensity scores "
-                f"below {self.extreme_threshold}. This may indicate poor overlap. "
-                f"Consider adjusting the model or increasing clipping_threshold "
-                f"(current: {self.clipping_threshold}).",
-                UserWarning,
-            )
-
-        if extreme_high > self.warning_proportion:
-            warnings.warn(
-                f"Large proportion ({extreme_high:.1%}) of propensity scores "
-                f"above {1 - self.extreme_threshold}. This may indicate poor overlap. "
-                f"Consider adjusting the model or increasing clipping_threshold "
-                f"(current: {self.clipping_threshold}).",
-                UserWarning,
-            )
-
-        if min_prop <= self.clipping_threshold:
-            warnings.warn(
-                f"Minimum propensity score ({min_prop:.6f}) is at or below "
-                f"clipping threshold ({self.clipping_threshold}). "
-                f"Some observations may be heavily clipped.",
-                UserWarning,
-            )
-
-        if max_prop >= (1 - self.clipping_threshold):
-            warnings.warn(
-                f"Maximum propensity score ({max_prop:.6f}) is at or above "
-                f"clipping threshold ({1 - self.clipping_threshold}). "
-                f"Some observations may be heavily clipped.",
+                f"Propensity predictions {learner_msg} " f"are close to zero or one (eps={self.extreme_threshold}).",
                 UserWarning,
             )
 

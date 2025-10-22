@@ -7,21 +7,15 @@ from doubleml.utils import PropensityScoreProcessor
 def test_repr_default_config():
     """Test __repr__ with default configuration."""
     processor = PropensityScoreProcessor()
-    expected = (
-        "PropensityScoreProcessor(clipping_threshold=0.01, extreme_threshold=0.05, "
-        "warn_extreme_values=True, warning_proportion=0.1)"
-    )
+    expected = "PropensityScoreProcessor(clipping_threshold=0.01, extreme_threshold=1e-12)"
     assert repr(processor) == expected
 
 
 @pytest.mark.ci
 def test_repr_custom_config():
     """Test __repr__ with custom configuration."""
-    processor = PropensityScoreProcessor(clipping_threshold=0.05, warn_extreme_values=False, warning_proportion=0.2)
-    expected = (
-        "PropensityScoreProcessor(clipping_threshold=0.05, extreme_threshold=0.05, "
-        "warn_extreme_values=False, warning_proportion=0.2)"
-    )
+    processor = PropensityScoreProcessor(clipping_threshold=0.05, extreme_threshold=1e-6)
+    expected = "PropensityScoreProcessor(clipping_threshold=0.05, extreme_threshold=1e-06)"
     assert repr(processor) == expected
 
 

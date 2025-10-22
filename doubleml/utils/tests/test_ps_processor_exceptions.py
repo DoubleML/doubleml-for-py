@@ -32,13 +32,6 @@ def test_init_clipping_threshold_value_error():
 
 
 @pytest.mark.ci
-def test_init_warn_extreme_values_type_error():
-    """Test that non-bool warn_extreme_values raises TypeError."""
-    with pytest.raises(TypeError, match="warn_extreme_values must be boolean"):
-        PropensityScoreProcessor(warn_extreme_values="True")
-
-
-@pytest.mark.ci
 def test_init_extreme_threshold_value_error():
     """Test that invalid extreme_threshold values raise ValueError."""
     with pytest.raises(ValueError, match="extreme_threshold must be between 0 and 0.5"):
@@ -46,23 +39,6 @@ def test_init_extreme_threshold_value_error():
 
     with pytest.raises(ValueError, match="extreme_threshold must be between 0 and 0.5"):
         PropensityScoreProcessor(extreme_threshold=0.6)  # above 0.5
-
-
-@pytest.mark.ci
-def test_init_warning_proportion_type_error():
-    """Test that invalid warning_proportion values raise TypeError."""
-    with pytest.raises(TypeError, match="warning_proportion must be of float type"):
-        PropensityScoreProcessor(warning_proportion="0.0")
-
-
-@pytest.mark.ci
-def test_init_warning_proportion_value_error():
-    """Test that invalid warning_proportion values raise ValueError."""
-    with pytest.raises(ValueError, match="warning_proportion must be between 0 and 1"):
-        PropensityScoreProcessor(warning_proportion=0.0)  # exactly 0
-
-    with pytest.raises(ValueError, match="warning_proportion must be between 0 and 1"):
-        PropensityScoreProcessor(warning_proportion=1.1)  # above 1
 
 
 # -------------------------------------------------------------------------
