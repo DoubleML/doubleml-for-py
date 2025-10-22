@@ -15,7 +15,7 @@ def test_adjust_basic_clipping():
 
     scores = np.array([0.05, 0.2, 0.8, 0.95])
     treatment = np.array([0, 1, 1, 0])
-    adjusted = processor.adjust(scores, treatment)
+    adjusted = processor.adjust_ps(scores, treatment)
 
     expected = np.array([0.1, 0.2, 0.8, 0.9])
     np.testing.assert_array_equal(adjusted, expected)
@@ -28,7 +28,7 @@ def test_adjust_no_clipping_needed():
 
     scores = np.array([0.2, 0.3, 0.7, 0.8])
     treatment = np.array([0, 1, 1, 0])
-    adjusted = processor.adjust(scores, treatment)
+    adjusted = processor.adjust_ps(scores, treatment)
 
     np.testing.assert_array_equal(adjusted, scores)
 
@@ -51,7 +51,7 @@ def test_isotonic_calibration_without_cv():
     expected_ps_manual = isotonic_manual.predict(ps.reshape(-1, 1))
     expected_ps_manual = np.clip(expected_ps_manual, clipping_threshold, 1 - clipping_threshold)
 
-    adjusted_ps = processor.adjust(ps, treatment)
+    adjusted_ps = processor.adjust_ps(ps, treatment)
     np.testing.assert_array_equal(adjusted_ps, expected_ps_manual)
 
 
@@ -82,7 +82,7 @@ def test_isotonic_calibration_with_cv(cv):
     ps_cv = cross_val_predict(isotonic_manual, ps.reshape(-1, 1), treatment, cv=cv)
     expected_ps_manual = np.clip(ps_cv, clipping_threshold, 1 - clipping_threshold)
 
-    adjusted_ps = processor.adjust(ps, treatment, cv=cv)
+    adjusted_ps = processor.adjust_ps(ps, treatment, cv=cv)
     np.testing.assert_array_equal(adjusted_ps, expected_ps_manual)
 
 
@@ -96,7 +96,7 @@ def test_no_calibration():
 
     # Should not call any calibration methods
     with patch("sklearn.isotonic.IsotonicRegression") as mock_isotonic:
-        adjusted = processor.adjust(scores, treatment)
+        adjusted = processor.adjust_ps(scores, treatment)
         mock_isotonic.assert_not_called()
 
     np.testing.assert_array_equal(adjusted, scores)

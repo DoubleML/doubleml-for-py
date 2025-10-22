@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import numpy as np
 from sklearn.isotonic import IsotonicRegression
@@ -14,120 +14,71 @@ class PropensityScoreProcessor:
     Parameters
     ----------
     clipping_threshold : float, default=1e-2
-        Threshold used for clipping propensity scores.
-    warn_extreme_values : bool, default=True
-        Whether to warn about extreme propensity score values.
-    extreme_threshold : float, default=0.05
-        Threshold for extreme value warnings.
-    warning_proportion : float, default=0.1
-        Proportion threshold for triggering extreme value warnings.
+        Minimum and maximum bound for propensity scores after clipping.
+
+    extreme_threshold : float, default=1e-12
+        Threshold below which propensity scores are considered extreme.
+        Used for generating warnings.
+
+    calibration_method : {'isotonic', None}, optional
+        If provided, applies the specified calibration method to
+        the propensity scores before clipping.
+
+    cv_calibration : bool, default=False
+        Whether to use cross-validation for calibration.
+        Only applies if a calibration method is specified.
 
     Examples
     --------
     >>> import numpy as np
-    >>> from doubleml.utils import PropensityScoreProcessor
-    >>> ps_scores = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
+    >>> ps = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
     >>> treatment = np.array([0, 1, 1, 0, 1])
     >>> processor = PropensityScoreProcessor(clipping_threshold=0.01)
-    >>> adj_scores = processor.adjust(ps_scores, treatment)
-    >>> print(adj_scores)
+    >>> adjusted = processor.adjust_ps(ps, treatment)
+    >>> print(np.round(adjusted, 3))
     [0.01 0.2  0.5  0.8  0.99]
     """
 
-    _DEFAULT_CONFIG: Dict[str, Any] = {
-        "clipping_threshold": 1e-2,
-        "extreme_threshold": 1e-12,
-        "calibration_method": None,
-        "cv_calibration": False,
-    }
-
     _VALID_CALIBRATION_METHODS = {None, "isotonic"}
 
-    def __init__(self, **config: Any) -> None:
+    def __init__(
+        self,
+        clipping_threshold: float = 1e-2,
+        extreme_threshold: float = 1e-12,
+        calibration_method: Optional[str] = None,
+        cv_calibration: bool = False,
+    ):
+        self._clipping_threshold = clipping_threshold
+        self._extreme_threshold = extreme_threshold
+        self._calibration_method = calibration_method
+        self._cv_calibration = cv_calibration
 
-        unknown_params = set(config.keys()) - set(self._DEFAULT_CONFIG.keys())
-        if unknown_params:
-            raise ValueError(f"Unknown parameters: {unknown_params}")
-
-        updated_config = {**self._DEFAULT_CONFIG, **config}
-        self._validate_config(updated_config)
-        self._config = updated_config
-
-    # -------------------------------------------------------------------------
-    # Configuration methods
-    # -------------------------------------------------------------------------
-    def _validate_config(self, config: Dict[str, Any]) -> None:
-        """Validate configuration parameters."""
-
-        clipping_threshold = config["clipping_threshold"]
-        if not isinstance(clipping_threshold, float):
-            raise TypeError("clipping_threshold must be of float type. " f"Object of type {type(clipping_threshold)} passed.")
-        if (clipping_threshold <= 0) or (clipping_threshold >= 0.5):
-            raise ValueError(f"clipping_threshold must be between 0 and 0.5. " f"{clipping_threshold} was passed.")
-
-        if not (0 < config["extreme_threshold"] < 0.5):
-            raise ValueError("extreme_threshold must be between 0 and 0.5.")
-
-        calibration_method = config["calibration_method"]
-        if calibration_method not in self._VALID_CALIBRATION_METHODS:
-            raise ValueError(
-                f"calibration_method must be one of {self._VALID_CALIBRATION_METHODS}. " f"Got {calibration_method}."
-            )
-
-        if not isinstance(config["cv_calibration"], bool):
-            raise TypeError("cv_calibration must be of bool type.")
-        if config["cv_calibration"] and config["calibration_method"] is None:
-            raise ValueError("cv_calibration can only be used with a calibration_method.")
+        self._validate_config()
 
     @property
     def clipping_threshold(self) -> float:
         """Get the clipping threshold."""
-        return self._config["clipping_threshold"]
+        return self._clipping_threshold
 
     @property
     def extreme_threshold(self) -> float:
         """Get the extreme threshold."""
-        return self._config["extreme_threshold"]
+        return self._extreme_threshold
 
     @property
     def calibration_method(self) -> Optional[str]:
         """Get the calibration method."""
-        return self._config["calibration_method"]
+        return self._calibration_method
 
     @property
     def cv_calibration(self) -> bool:
         """Get whether cross-validation calibration is used."""
-        return self._config["cv_calibration"]
-
-    @classmethod
-    def get_default_config(cls) -> Dict[str, Any]:
-        """Return the default configuration dictionary."""
-        return cls._DEFAULT_CONFIG.copy()
-
-    def get_config(self) -> Dict[str, Any]:
-        """Return a copy of the current configuration dictionary."""
-        return self._config.copy()
-
-    def update_config(self, **new_config: Any) -> None:
-        """
-        Update configuration parameters.
-
-        Validates the new configuration before applying changes to ensure
-        the object remains in a consistent state.
-        """
-
-        unknown_params = set(new_config.keys()) - set(self._DEFAULT_CONFIG.keys())
-        if unknown_params:
-            raise ValueError(f"Unknown parameters: {unknown_params}")
-
-        updated_config = {**self._config, **new_config}
-        self._validate_config(updated_config)
-        self._config = updated_config
+        return self._cv_calibration
 
     # -------------------------------------------------------------------------
     # Core functionality
     # -------------------------------------------------------------------------
-    def adjust(
+    def adjust_ps(
         self,
         propensity_scores: np.ndarray,
         treatment: np.ndarray,
@@ -159,10 +110,6 @@ class PropensityScoreProcessor:
         )
         self._validate_treatment(treatment)
 
-        if self.cv_calibration:
-            cv = cv
-        else:
-            cv = None
         calibrated_ps = self._apply_calibration(propensity_scores, treatment, cv=cv)
         clipped_scores = np.clip(calibrated_ps, a_min=self.clipping_threshold, a_max=1 - self.clipping_threshold)
 
@@ -183,14 +130,13 @@ class PropensityScoreProcessor:
         elif self.calibration_method == "isotonic":
             calibration_model = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
 
-            if cv is None:
-                calibration_model.fit(propensity_scores.reshape(-1, 1), treatment)
-                calibrated_ps = calibration_model.predict(propensity_scores.reshape(-1, 1))
-            else:
+            if self.cv_calibration and cv is not None:
                 calibrated_ps = cross_val_predict(
                     estimator=calibration_model, X=propensity_scores.reshape(-1, 1), y=treatment, cv=cv, method="predict"
                 )
-
+            else:
+                calibration_model.fit(propensity_scores.reshape(-1, 1), treatment)
+                calibrated_ps = calibration_model.predict(propensity_scores.reshape(-1, 1))
         else:
             # This point should never be reached due to prior validation
             raise ValueError(
@@ -199,6 +145,24 @@ class PropensityScoreProcessor:
             )
 
         return calibrated_ps
+
+    def _validate_config(self) -> None:
+        """Validate configuration parameters."""
+        if not isinstance(self.clipping_threshold, float):
+            raise TypeError("clipping_threshold must be a float.")
+        if not (0 < self.clipping_threshold < 0.5):
+            raise ValueError("clipping_threshold must be between 0 and 0.5.")
+
+        if not (0 < self.extreme_threshold < 0.5):
+            raise ValueError("extreme_threshold must be between 0 and 0.5.")
+
+        if self.calibration_method not in self._VALID_CALIBRATION_METHODS:
+            raise ValueError(f"calibration_method must be one of {self._VALID_CALIBRATION_METHODS}.")
+
+        if not isinstance(self.cv_calibration, bool):
+            raise TypeError("cv_calibration must be of bool type.")
+        if self.cv_calibration and self.calibration_method is None:
+            raise ValueError("cv_calibration=True requires a calibration_method.")
 
     def _validate_propensity_scores(
         self,
@@ -232,15 +196,3 @@ class PropensityScoreProcessor:
         zero_one_treat = np.all((np.power(treatment, 2) - treatment) == 0)
         if not (binary_treat and zero_one_treat):
             raise ValueError("Treatment vector must be binary (0 and 1).")
-
-    # -------------------------------------------------------------------------
-    # Representations
-    # -------------------------------------------------------------------------
-    def __repr__(self) -> str:
-        config_str = ", ".join([f"{k}={v}" for k, v in sorted(self._config.items())])
-        return f"{self.__class__.__name__}({config_str})"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, PropensityScoreProcessor):
-            return False
-        return self._config == other._config
