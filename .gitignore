@@ -32,5 +32,4 @@ MANIFEST
 .flake8
 .coverage
 examples/
-bayesian_doubleml.html
 custom.scss
