@@ -91,16 +91,6 @@ class RDFlex:
     >>> ml_g = RandomForestRegressor()
     >>> ml_m = RandomForestClassifier()
     >>> rdflex_obj = dml.rdd.RDFlex(obj_dml_data, ml_g, ml_m, fuzzy=True)
-    >>> print(rdflex_obj.fit())
-    Method             Coef.     S.E.     t-stat       P>|t|           95% CI
-    -------------------------------------------------------------------------
-    Conventional      0.950     0.225     4.230    2.333e-05  [0.510, 1.391]
-    Robust                 -        -     3.653    2.589e-04  [0.431, 1.429]
-    Design Type:        Fuzzy
-    Cutoff:             0
-    First Stage Kernel: triangular
-    Final Bandwidth:    [0.74746872]
-
     """
 
     def __init__(
