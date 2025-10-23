@@ -1,11 +1,34 @@
 from unittest.mock import patch
+import warnings
 
 import numpy as np
 import pytest
 from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import KFold, cross_val_predict
 
-from doubleml.utils.propensity_score_processing import PSProcessor, PSProcessorConfig
+from doubleml.utils.propensity_score_processing import (
+    PSProcessorConfig, PSProcessor, init_ps_processor
+)
+
+
+# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+@pytest.mark.ci
+def test_init_ps_processor_with_deprecated():
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        cfg, proc = init_ps_processor(None, "truncate", 0.02)
+        assert any("deprecated" in str(warn.message) for warn in w)
+        assert isinstance(cfg, PSProcessorConfig)
+        assert proc.clipping_threshold == 0.02
+
+
+@pytest.mark.ci
+def test_init_ps_processor_with_config():
+    config = PSProcessorConfig(clipping_threshold=0.05)
+    cfg, proc = init_ps_processor(config, None, None)
+    assert isinstance(cfg, PSProcessorConfig)
+    assert isinstance(proc, PSProcessor)
+    assert proc.clipping_threshold == 0.05
 
 
 @pytest.mark.ci
