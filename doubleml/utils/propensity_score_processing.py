@@ -1,4 +1,5 @@
 import warnings
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -7,7 +8,15 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.utils.multiclass import type_of_target
 
 
-class PropensityScoreProcessor:
+@dataclass
+class PSProcessorConfig:
+    clipping_threshold: float = 1e-2
+    extreme_threshold: float = 1e-12
+    calibration_method: Optional[str] = None
+    cv_calibration: bool = False
+
+
+class PSProcessor:
     """
     Processor for propensity score calibration, clipping, and validation.
 
@@ -54,6 +63,19 @@ class PropensityScoreProcessor:
         self._cv_calibration = cv_calibration
 
         self._validate_config()
+
+    @classmethod
+    def from_config(cls, config: PSProcessorConfig):
+        return cls(
+            clipping_threshold=config.clipping_threshold,
+            extreme_threshold=config.extreme_threshold,
+            calibration_method=config.calibration_method,
+            cv_calibration=config.cv_calibration,
+        )
+
+    # -------------------------------------------------------------------------
+    # Properties
+    # -------------------------------------------------------------------------
 
     @property
     def clipping_threshold(self) -> float:
@@ -130,7 +152,7 @@ class PropensityScoreProcessor:
         elif self.calibration_method == "isotonic":
             calibration_model = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
 
-            if self.cv_calibration and cv is not None:
+            if self.cv_calibration:
                 calibrated_ps = cross_val_predict(
                     estimator=calibration_model, X=propensity_scores.reshape(-1, 1), y=treatment, cv=cv, method="predict"
                 )

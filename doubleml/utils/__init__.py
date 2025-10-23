@@ -7,7 +7,7 @@ from .dummy_learners import DMLDummyClassifier, DMLDummyRegressor
 from .gain_statistics import gain_statistics
 from .global_learner import GlobalClassifier, GlobalRegressor
 from .policytree import DoubleMLPolicyTree
-from .propensity_score_processing import PropensityScoreProcessor
+from .propensity_score_processing import PSProcessor, PSProcessorConfig
 from .resampling import DoubleMLClusterResampling, DoubleMLResampling
 
 __all__ = [
@@ -20,5 +20,6 @@ __all__ = [
     "gain_statistics",
     "GlobalClassifier",
     "GlobalRegressor",
-    "PropensityScoreProcessor",
+    "PSProcessor",
+    "PSProcessorConfig",
 ]

@@ -5,13 +5,29 @@ import pytest
 from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import KFold, cross_val_predict
 
-from doubleml.utils.propensity_score_processing import PropensityScoreProcessor
+from doubleml.utils.propensity_score_processing import PSProcessor, PSProcessorConfig
+
+
+@pytest.mark.ci
+def test_from_config_initialization():
+    """Test initialization of PSProcessor from PSProcessorConfig."""
+    config = PSProcessorConfig(
+        clipping_threshold=0.05,
+        extreme_threshold=1e-8,
+        calibration_method="isotonic",
+        cv_calibration=True,
+    )
+    processor = PSProcessor.from_config(config)
+    assert processor.clipping_threshold == 0.05
+    assert processor.extreme_threshold == 1e-8
+    assert processor.calibration_method == "isotonic"
+    assert processor.cv_calibration is True
 
 
 @pytest.mark.ci
 def test_adjust_basic_clipping():
     """Test basic clipping functionality."""
-    processor = PropensityScoreProcessor(clipping_threshold=0.1)
+    processor = PSProcessor(clipping_threshold=0.1)
 
     scores = np.array([0.05, 0.2, 0.8, 0.95])
     treatment = np.array([0, 1, 1, 0])
@@ -24,7 +40,7 @@ def test_adjust_basic_clipping():
 @pytest.mark.ci
 def test_adjust_no_clipping_needed():
     """Test when no clipping is needed."""
-    processor = PropensityScoreProcessor(clipping_threshold=0.01)
+    processor = PSProcessor(clipping_threshold=0.01)
 
     scores = np.array([0.2, 0.3, 0.7, 0.8])
     treatment = np.array([0, 1, 1, 0])
@@ -40,7 +56,7 @@ def test_isotonic_calibration_without_cv():
     treatment = np.random.binomial(1, 0.5, size=100)
 
     clipping_threshold = 0.01
-    processor = PropensityScoreProcessor(
+    processor = PSProcessor(
         calibration_method="isotonic",
         cv_calibration=False,
         clipping_threshold=clipping_threshold,
@@ -55,7 +71,7 @@ def test_isotonic_calibration_without_cv():
     np.testing.assert_array_equal(adjusted_ps, expected_ps_manual)
 
 
-@pytest.fixture(scope="module", params=[3, "iterable", "splitter"])
+@pytest.fixture(scope="module", params=[None, 3, "iterable", "splitter"])
 def cv(request):
     return request.param
 
@@ -74,7 +90,7 @@ def test_isotonic_calibration_with_cv(cv):
         cv = cv
 
     clipping_threshold = 0.01
-    processor = PropensityScoreProcessor(
+    processor = PSProcessor(
         calibration_method="isotonic", cv_calibration=True, clipping_threshold=clipping_threshold
     )
 
@@ -89,7 +105,7 @@ def test_isotonic_calibration_with_cv(cv):
 @pytest.mark.ci
 def test_no_calibration():
     """Test that no calibration is applied when calibration_method is None."""
-    processor = PropensityScoreProcessor(calibration_method=None, clipping_threshold=0.01)
+    processor = PSProcessor(calibration_method=None, clipping_threshold=0.01)
 
     scores = np.array([0.2, 0.3, 0.7, 0.8])
     treatment = np.array([0, 1, 1, 0])
