@@ -277,9 +277,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         }
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
 
         m_z = external_predictions["ml_m_z"] is not None
         m_d_d0 = external_predictions["ml_m_d_z0"] is not None
@@ -557,9 +557,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_m_z": None, "ml_m_d_z0": None, "ml_m_d_z1": None, "ml_g_du_z0": None, "ml_g_du_z1": None}

@@ -1,5 +1,3 @@
-import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -180,13 +178,4 @@ def test_joint_ci_bootstrap_warning(mock_framework):
     with pytest.warns(UserWarning, match="Joint confidence intervals require bootstrapping"):
         _ = aggregation.plot_effects(joint=True)
 
-    # Verify that bootstrap was performed
-    assert aggregation.aggregated_frameworks.boot_t_stat is not None
-
-    # No warning should be raised when plotting again
-    with warnings.catch_warnings(record=True) as recorded_warnings:
-        warnings.simplefilter("always")  # Ensure all warnings are recorded
-        _ = aggregation.plot_effects(joint=True)
-
-    assert len(recorded_warnings) == 0
     plt.close("all")

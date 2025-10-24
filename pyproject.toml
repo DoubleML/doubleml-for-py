@@ -15,15 +15,15 @@ maintainers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "joblib",
-    "numpy",
-    "pandas",
-    "scipy",
-    "scikit-learn>=1.4.0",
-    "statsmodels",
-    "matplotlib",
+    "joblib>=1.2.0",
+    "numpy>=2.0.0",
+    "pandas>=2.0.0",
+    "scipy>=1.7.0",
+    "scikit-learn>=1.6.0",
+    "statsmodels>=0.14.0",
+    "matplotlib>=3.9.0",
     "seaborn>=0.13",
-    "plotly"
+    "plotly>=5.0.0"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent"
 ]
@@ -42,8 +43,8 @@ rdd = [
 dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
-    "xgboost",
-    "lightgbm",
+    "xgboost>=2.1.0",
+    "lightgbm>=4.5.0",
     "black>=25.1.0",
     "ruff>=0.11.1",
     "pre-commit>=4.2.0",
@@ -67,7 +68,7 @@ doctest_optionflags = [
 
 [tool.black]
 line-length = 127
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
 preview = true
 exclude = '''
 /(
