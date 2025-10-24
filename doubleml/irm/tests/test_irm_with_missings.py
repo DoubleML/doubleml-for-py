@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from xgboost import XGBClassifier, XGBRegressor
 
 import doubleml as dml
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 from ...tests._utils import draw_smpls
 from ._utils_irm_manual import boot_irm, fit_irm
@@ -43,12 +44,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.01, 0.05])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, score, normalize_ipw, trimming_threshold):
+def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, score, normalize_ipw, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -66,7 +67,13 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
     np.random.seed(3141)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, force_all_x_finite="allow-nan")
     dml_irm_obj = dml.DoubleMLIRM(
-        obj_dml_data, ml_g, ml_m, n_folds, score=score, normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold
+        obj_dml_data,
+        ml_g,
+        ml_m,
+        n_folds,
+        score=score,
+        normalize_ipw=normalize_ipw,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
     )
     # synchronize the sample splitting
     dml_irm_obj.set_sample_splitting(all_smpls=all_smpls)
@@ -83,7 +90,7 @@ def dml_irm_w_missing_fixture(generate_data_irm_w_missings, learner_xgboost, sco
         all_smpls,
         score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {

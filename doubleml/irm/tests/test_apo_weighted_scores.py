@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 from ...tests._utils import draw_smpls
 
@@ -39,7 +40,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -49,7 +50,7 @@ def treatment_level(request):
 
 
 @pytest.fixture(scope="module")
-def weighted_apo_score_fixture(generate_data_irm, learner, score, n_rep, normalize_ipw, trimming_threshold, treatment_level):
+def weighted_apo_score_fixture(generate_data_irm, learner, score, n_rep, normalize_ipw, clipping_threshold, treatment_level):
     n_folds = 2
 
     # collect data
@@ -67,7 +68,7 @@ def weighted_apo_score_fixture(generate_data_irm, learner, score, n_rep, normali
         "n_rep": n_rep,
         "score": score,
         "normalize_ipw": normalize_ipw,
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=clipping_threshold),
         "draw_sample_splitting": False,
     }
 

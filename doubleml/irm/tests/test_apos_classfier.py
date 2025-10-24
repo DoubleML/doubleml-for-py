@@ -7,6 +7,7 @@ from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data_discrete_treatments
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 from ...tests._utils import confint_manual
 from ._utils_apos_manual import boot_apos, fit_apos
@@ -37,7 +38,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -47,7 +48,7 @@ def treatment_levels(request):
 
 
 @pytest.fixture(scope="module")
-def dml_apos_classifier_fixture(learner, n_rep, normalize_ipw, trimming_threshold, treatment_levels):
+def dml_apos_classifier_fixture(learner, n_rep, normalize_ipw, clipping_threshold, treatment_levels):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -71,8 +72,7 @@ def dml_apos_classifier_fixture(learner, n_rep, normalize_ipw, trimming_threshol
         "n_rep": n_rep,
         "score": "APO",
         "normalize_ipw": normalize_ipw,
-        "trimming_rule": "truncate",
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=clipping_threshold),
     }
 
     unfitted_apos_model = dml.DoubleMLAPOS(**input_args)
@@ -97,9 +97,8 @@ def dml_apos_classifier_fixture(learner, n_rep, normalize_ipw, trimming_threshol
         treatment_levels=treatment_levels,
         all_smpls=all_smpls,
         score="APO",
-        trimming_rule="truncate",
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     ci = dml_obj.confint(joint=False, level=0.95)

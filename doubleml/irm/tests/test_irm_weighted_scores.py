@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 
 def old_score_elements(y, d, g_hat0, g_hat1, m_hat, score, normalize_ipw):
@@ -65,12 +66,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def old_vs_weighted_score_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_threshold):
+def old_vs_weighted_score_fixture(generate_data_irm, learner, score, normalize_ipw, clipping_threshold):
     n_folds = 2
 
     # collect data
@@ -83,7 +84,13 @@ def old_vs_weighted_score_fixture(generate_data_irm, learner, score, normalize_i
 
     np.random.seed(3141)
     dml_irm_obj = dml.DoubleMLIRM(
-        obj_dml_data, ml_g, ml_m, n_folds, score=score, normalize_ipw=normalize_ipw, trimming_threshold=trimming_threshold
+        obj_dml_data,
+        ml_g,
+        ml_m,
+        n_folds,
+        score=score,
+        normalize_ipw=normalize_ipw,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
     )
     dml_irm_obj.fit()
 

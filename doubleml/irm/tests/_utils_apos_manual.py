@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.base import clone
 
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
+
 from ...data.base_data import DoubleMLData
 from ...tests._utils_boot import draw_weights
 from ..apo import DoubleMLAPO
@@ -16,9 +18,8 @@ def fit_apos(
     all_smpls,
     score,
     n_rep=1,
-    trimming_rule="truncate",
     normalize_ipw=False,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
 ):
     n_obs = len(y)
     n_treatments = len(treatment_levels)
@@ -39,8 +40,7 @@ def fit_apos(
             n_folds=n_folds,
             n_rep=n_rep,
             score=score,
-            trimming_rule=trimming_rule,
-            trimming_threshold=trimming_threshold,
+            ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
             normalize_ipw=normalize_ipw,
             draw_sample_splitting=False,
         )

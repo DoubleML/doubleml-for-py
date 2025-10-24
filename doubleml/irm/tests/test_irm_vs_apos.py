@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.utils._propensity_score import _propensity_score_adjustment
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 
 @pytest.fixture(
@@ -35,12 +36,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_threshold):
+def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, clipping_threshold):
 
     # collect data
     (x, y, d) = generate_data_irm
@@ -54,7 +55,7 @@ def dml_irm_apos_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimm
     kwargs = {
         "n_folds": n_folds,
         "n_rep": n_rep,
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=clipping_threshold),
         "normalize_ipw": normalize_ipw,
     }
 
@@ -159,7 +160,7 @@ def test_apos_vs_irm_sensitivity(dml_irm_apos_fixture):
 
 
 @pytest.fixture(scope="module")
-def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_ipw, trimming_threshold):
+def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_ipw, clipping_threshold):
 
     # collect data
     (x, y, d) = generate_data_irm
@@ -173,7 +174,7 @@ def dml_irm_apos_weighted_fixture(generate_data_irm, learner, n_rep, normalize_i
     kwargs = {
         "n_folds": n_folds,
         "n_rep": n_rep,
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=clipping_threshold),
         "normalize_ipw": normalize_ipw,
     }
 

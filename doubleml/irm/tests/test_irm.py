@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 from doubleml.utils.resampling import DoubleMLResampling
 
 from ...tests._utils import draw_smpls
@@ -40,12 +41,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_threshold):
+def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -62,6 +63,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
     all_smpls = draw_smpls(n_obs, n_folds, n_rep=1, groups=d)
     obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d)
 
+    ps_processor_config = PSProcessorConfig(clipping_threshold=clipping_threshold)
     np.random.seed(3141)
     dml_irm_obj = dml.DoubleMLIRM(
         obj_dml_data,
@@ -71,7 +73,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
         score=score,
         normalize_ipw=normalize_ipw,
         draw_sample_splitting=False,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=ps_processor_config,
     )
 
     # synchronize the sample splitting
@@ -88,7 +90,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
         all_smpls,
         score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     np.random.seed(3141)
@@ -101,7 +103,7 @@ def dml_irm_fixture(generate_data_irm, learner, score, normalize_ipw, trimming_t
         score=score,
         normalize_ipw=normalize_ipw,
         draw_sample_splitting=False,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=ps_processor_config,
     )
 
     # synchronize the sample splitting
@@ -235,8 +237,8 @@ def test_dml_irm_cate_gate(cov_type):
     # First stage estimation
     ml_g = RandomForestRegressor(n_estimators=10)
     ml_m = RandomForestClassifier(n_estimators=10)
-
-    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_m=ml_m, ml_g=ml_g, trimming_threshold=0.05, n_folds=5)
+    ps_processor_config = PSProcessorConfig(clipping_threshold=0.05)
+    dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_m=ml_m, ml_g=ml_g, ps_processor_config=ps_processor_config, n_folds=5)
 
     dml_irm_obj.fit()
     # create a random basis
@@ -279,7 +281,12 @@ def dml_irm_weights_fixture(n_rep):
     # collect data
     np.random.seed(42)
     obj_dml_data = make_irm_data(n_obs=n, dim_x=2)
-    kwargs = {"trimming_threshold": 0.05, "n_folds": 5, "n_rep": n_rep, "draw_sample_splitting": False}
+    kwargs = {
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=0.05),
+        "n_folds": 5,
+        "n_rep": n_rep,
+        "draw_sample_splitting": False,
+    }
 
     smpls = DoubleMLResampling(n_folds=5, n_rep=n_rep, n_obs=n, stratify=obj_dml_data.d).split_samples()
 
