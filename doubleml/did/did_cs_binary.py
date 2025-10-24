@@ -435,9 +435,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
 
         # Here: d is a binary treatment indicator
-        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
-        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
-        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, ensure_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, ensure_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, ensure_all_finite=False)
 
         # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
         # nuisance estimates of the uncond. treatment prob.
@@ -621,9 +621,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, force_all_finite=False)
-        _, d = check_X_y(x, self._g_data_subset, force_all_finite=False)  # (d is the G_indicator)
-        _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
+        x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, ensure_all_finite=False)
+        _, d = check_X_y(x, self._g_data_subset, ensure_all_finite=False)  # (d is the G_indicator)
+        _, t = check_X_y(x, self._t_data_subset, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}

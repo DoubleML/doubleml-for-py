@@ -1,8 +1,8 @@
-import inspect
 import warnings
 
 import numpy as np
 from sklearn.utils.multiclass import type_of_target
+from sklearn.utils.validation import has_fit_parameter
 
 
 def _check_in_zero_one(value, name, include_zero=True, include_one=True):
@@ -514,7 +514,7 @@ def _check_sample_splitting(all_smpls, all_smpls_cluster, dml_data, is_cluster_d
 
 
 def _check_supports_sample_weights(learner, learner_name):
-    if "sample_weight" not in inspect.signature(learner.fit).parameters:
+    if not has_fit_parameter(learner, "sample_weight"):
         raise ValueError(
             f"The {learner_name} learner {str(learner)} does not support sample weights. "
             "Please choose a learner that supports sample weights."
