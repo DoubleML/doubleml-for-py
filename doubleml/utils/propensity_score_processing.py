@@ -18,30 +18,26 @@ class PSProcessorConfig:
 
 # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 def init_ps_processor(
-    ps_processor_config: Optional[PSProcessorConfig],
-    trimming_rule: Optional[str],
-    trimming_threshold: Optional[float]
+    ps_processor_config: Optional[PSProcessorConfig], trimming_rule: Optional[str], trimming_threshold: Optional[float]
 ):
-    if trimming_rule is not None:
+    if trimming_rule != "truncate":
         warnings.warn(
             "'trimming_rule' is deprecated and will be removed in a future version. "
             "Use 'ps_processor_config' with 'clipping_threshold' instead.",
             DeprecationWarning,
-            stacklevel=3
+            stacklevel=3,
         )
-    if trimming_threshold is not None:
+    if trimming_threshold != 1e-2:
         warnings.warn(
             "'trimming_threshold' is deprecated and will be removed in a future version. "
             "Use 'ps_processor_config' with 'clipping_threshold' instead.",
             DeprecationWarning,
-            stacklevel=3
+            stacklevel=3,
         )
     if ps_processor_config is not None:
         config = ps_processor_config
     else:
-        config = PSProcessorConfig(
-            clipping_threshold=trimming_threshold if trimming_threshold is not None else 1e-2
-        )
+        config = PSProcessorConfig(clipping_threshold=trimming_threshold if trimming_threshold is not None else 1e-2)
     processor = PSProcessor.from_config(config)
     return config, processor
 
