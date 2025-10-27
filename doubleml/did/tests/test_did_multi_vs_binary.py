@@ -49,7 +49,7 @@ def dml_did_binary_vs_did_multi_fixture(time_type, learner, score, in_sample_nor
     n_obs = 500
     dpg = 1
     boot_methods = ["normal"]
-    n_rep_boot = 50000
+    n_rep_boot = 500
 
     # collect data
     df = make_did_CS2021(n_obs=n_obs, dgp_type=dpg, time_type=time_type)

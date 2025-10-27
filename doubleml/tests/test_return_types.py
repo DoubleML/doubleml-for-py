@@ -8,11 +8,10 @@ from sklearn.svm import LinearSVR
 
 from doubleml import (
     DoubleMLAPO,
-    DoubleMLClusterData,
     DoubleMLCVAR,
-    DoubleMLData,
     DoubleMLDID,
     DoubleMLDIDCS,
+    DoubleMLDIDData,
     DoubleMLFramework,
     DoubleMLIIVM,
     DoubleMLIRM,
@@ -23,15 +22,9 @@ from doubleml import (
     DoubleMLPQ,
     DoubleMLSSM,
 )
-from doubleml.datasets import (
-    make_iivm_data,
-    make_irm_data,
-    make_pliv_CHS2015,
-    make_pliv_multiway_cluster_CKMS2021,
-    make_plr_CCDDHNR2018,
-    make_ssm_data,
-)
 from doubleml.did.datasets import make_did_SZ2020
+from doubleml.irm.datasets import make_iivm_data, make_irm_data, make_ssm_data
+from doubleml.plm.datasets import make_pliv_CHS2015, make_pliv_multiway_cluster_CKMS2021, make_plr_CCDDHNR2018
 
 np.random.seed(3141)
 n_obs = 200
@@ -44,8 +37,8 @@ dml_data_did = make_did_SZ2020(n_obs=n_obs)
 dml_data_did_cs = make_did_SZ2020(n_obs=n_obs, cross_sectional_data=True)
 (x, y, d, t) = make_did_SZ2020(n_obs=n_obs, cross_sectional_data=True, return_type="array")
 binary_outcome = np.random.binomial(n=1, p=0.5, size=n_obs)
-dml_data_did_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d)
-dml_data_did_cs_binary_outcome = DoubleMLData.from_arrays(x, binary_outcome, d, t=t)
+dml_data_did_binary_outcome = DoubleMLDIDData.from_arrays(x, binary_outcome, d)
+dml_data_did_cs_binary_outcome = DoubleMLDIDData.from_arrays(x, binary_outcome, d, t=t)
 dml_data_ssm = make_ssm_data(n_obs=n_obs)
 
 dml_plr = DoubleMLPLR(dml_data_plr, Lasso(), Lasso())
@@ -92,14 +85,14 @@ def test_return_types(dml_obj, cls):
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers
     assert isinstance(dml_obj.summary, pd.DataFrame)  # called again after fit, now with numbers
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.bootstrap(), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.confint(), pd.DataFrame)
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.p_adjust(), pd.DataFrame)

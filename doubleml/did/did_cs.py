@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml.data.base_data import DoubleMLData
+from doubleml.data.did_data import DoubleMLDIDData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
@@ -17,8 +17,8 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLDIDData` object
+        The :class:`DoubleMLDIDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -37,7 +37,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -47,7 +47,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
@@ -63,20 +63,19 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         Default is ``True``.
 
     Examples
-    --------
-    >>> import numpy as np
+    --------    >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_did_SZ2020
+    >>> from doubleml.did.datasets import make_did_SZ2020
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(42)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> data = make_did_SZ2020(n_obs=500, cross_sectional_data=True, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', t_col='t')
+    >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd', t_col='t')
     >>> dml_did_obj = dml.DoubleMLDIDCS(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
-           coef   std err         t     P>|t|      2.5 %     97.5 %
-    d -6.604603  8.725802 -0.756905  0.449107 -23.706862  10.497655
+         coef   std err         t     P>|t|      2.5 %    97.5 %
+    d -4.9944  7.561785 -0.660479  0.508947 -19.815226  9.826426
     """
 
     def __init__(
@@ -178,9 +177,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLDIDData):
             raise TypeError(
-                "For repeated cross sections the data must be of DoubleMLData type. "
+                "For repeated cross sections the data must be of DoubleMLDIDData type. "
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
@@ -213,25 +212,23 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, t = check_X_y(x, self._dml_data.t, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, t = check_X_y(x, self._dml_data.t, ensure_all_finite=False)
 
         # THIS DIFFERS FROM THE PAPER due to stratified splitting this should be the same for each fold
         # nuisance estimates of the uncond. treatment prob.
-        p_hat = np.full_like(d, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            p_hat[test_index] = np.mean(d[train_index])
+        p_hat = np.full_like(d, d.mean(), dtype="float64")
 
         # nuisance estimates of the uncond. time prob.
-        lambda_hat = np.full_like(t, np.nan, dtype="float64")
-        for train_index, test_index in smpls:
-            lambda_hat[test_index] = np.mean(t[train_index])
+        lambda_hat = np.full_like(t, t.mean(), dtype="float64")
 
         # nuisance g
         smpls_d0_t0, smpls_d0_t1, smpls_d1_t0, smpls_d1_t1 = _get_cond_smpls_2d(smpls, d, t)
         if external_predictions["ml_g_d0_t0"] is not None:
-            g_hat_d0_t0 = {"preds": external_predictions["ml_g_d0_t0"], "targets": None, "models": None}
+            g_hat_d0_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d0_t0_targets[(d == 0) & (t == 0)] = y[(d == 0) & (t == 0)]
+            g_hat_d0_t0 = {"preds": external_predictions["ml_g_d0_t0"], "targets": g_hat_d0_t0_targets, "models": None}
         else:
             g_hat_d0_t0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -247,7 +244,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d0_t0["targets"] = g_hat_d0_t0["targets"].astype(float)
             g_hat_d0_t0["targets"][np.invert((d == 0) & (t == 0))] = np.nan
         if external_predictions["ml_g_d0_t1"] is not None:
-            g_hat_d0_t1 = {"preds": external_predictions["ml_g_d0_t1"], "targets": None, "models": None}
+            g_hat_d0_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d0_t1_targets[(d == 0) & (t == 1)] = y[(d == 0) & (t == 1)]
+            g_hat_d0_t1 = {"preds": external_predictions["ml_g_d0_t1"], "targets": g_hat_d0_t1_targets, "models": None}
         else:
             g_hat_d0_t1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -262,7 +261,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d0_t1["targets"] = g_hat_d0_t1["targets"].astype(float)
             g_hat_d0_t1["targets"][np.invert((d == 0) & (t == 1))] = np.nan
         if external_predictions["ml_g_d1_t0"] is not None:
-            g_hat_d1_t0 = {"preds": external_predictions["ml_g_d1_t0"], "targets": None, "models": None}
+            g_hat_d1_t0_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d1_t0_targets[(d == 1) & (t == 0)] = y[(d == 1) & (t == 0)]
+            g_hat_d1_t0 = {"preds": external_predictions["ml_g_d1_t0"], "targets": g_hat_d1_t0_targets, "models": None}
         else:
             g_hat_d1_t0 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -277,7 +278,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             g_hat_d1_t0["targets"] = g_hat_d1_t0["targets"].astype(float)
             g_hat_d1_t0["targets"][np.invert((d == 1) & (t == 0))] = np.nan
         if external_predictions["ml_g_d1_t1"] is not None:
-            g_hat_d1_t1 = {"preds": external_predictions["ml_g_d1_t1"], "targets": None, "models": None}
+            g_hat_d1_t1_targets = np.full_like(y, np.nan, dtype="float64")
+            g_hat_d1_t1_targets[(d == 1) & (t == 1)] = y[(d == 1) & (t == 1)]
+            g_hat_d1_t1 = {"preds": external_predictions["ml_g_d1_t1"], "targets": g_hat_d1_t1_targets, "models": None}
         else:
             g_hat_d1_t1 = _dml_cv_predict(
                 self._learner["ml_g"],
@@ -297,7 +300,7 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         if self.score == "observational":
             # nuisance m
             if external_predictions["ml_m"] is not None:
-                m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
+                m_hat = {"preds": external_predictions["ml_m"], "targets": d, "models": None}
             else:
                 m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
@@ -544,9 +547,9 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, t = check_X_y(x, self._dml_data.t, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, t = check_X_y(x, self._dml_data.t, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}

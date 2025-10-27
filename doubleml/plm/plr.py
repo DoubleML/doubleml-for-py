@@ -44,7 +44,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -60,7 +60,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_plr_CCDDHNR2018
+    >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
@@ -70,7 +70,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
     >>> dml_plr_obj.fit().summary
            coef   std err          t         P>|t|     2.5 %    97.5 %
-    d  0.482251  0.040629  11.869585  1.703108e-32  0.402619  0.561883
+    d  0.480691  0.040533  11.859129  1.929729e-32  0.401247  0.560135
 
     Notes
     -----
@@ -93,10 +93,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
+        if self.score == "IV-type" and obj_dml_data.binary_outcome:
+            raise ValueError("For score = 'IV-type', additive probability models (binary outcomes) are not supported.")
 
-        _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
+        ml_l_is_classifier = self._check_learner(ml_l, "ml_l", regressor=True, classifier=True)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_l": ml_l, "ml_m": ml_m}
 
@@ -116,7 +119,20 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             warnings.warn(("For score = 'IV-type', learners ml_l and ml_g should be specified. Set ml_g = clone(ml_l)."))
             self._learner["ml_g"] = clone(ml_l)
 
-        self._predict_method = {"ml_l": "predict"}
+        if ml_l_is_classifier:
+            if obj_dml_data.binary_outcome:
+                self._predict_method = {"ml_l": "predict_proba"}
+                warnings.warn(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier. Fitting an additive probability model."
+                )
+            else:
+                raise ValueError(
+                    f"The ml_l learner {str(ml_l)} was identified as classifier "
+                    "but the outcome variable is not binary with values 0 and 1."
+                )
+        else:
+            self._predict_method = {"ml_l": "predict"}
+
         if "ml_g" in self._learner:
             self._predict_method["ml_g"] = "predict"
         if ml_m_is_classifier:
@@ -150,8 +166,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         m_external = external_predictions["ml_m"] is not None
         l_external = external_predictions["ml_l"] is not None
         if "ml_g" in self._learner:
@@ -286,8 +302,8 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}

@@ -47,7 +47,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -84,7 +84,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
+    >>> from doubleml.irm.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -94,7 +94,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
     >>> dml_irm_obj.fit().summary
            coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.414073  0.238529  1.735941  0.082574 -0.053436  0.881581
+    d  0.371972  0.206802  1.798685  0.072069 -0.033353  0.777297
 
     Notes
     -----
@@ -138,6 +138,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["ATE", "ATTE"]
         _check_score(self.score, valid_scores, allow_callable=True)
 
@@ -260,8 +261,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
         g0_external = external_predictions["ml_g0"] is not None
@@ -400,8 +401,8 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 

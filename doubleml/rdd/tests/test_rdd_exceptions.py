@@ -6,7 +6,7 @@ import pytest
 from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
 from sklearn.linear_model import Lasso, LogisticRegression
 
-from doubleml import DoubleMLData
+from doubleml import DoubleMLRDDData
 from doubleml.rdd import RDFlex
 from doubleml.rdd.datasets import make_simple_rdd_data
 
@@ -17,7 +17,7 @@ df = pd.DataFrame(
     columns=["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])],
 )
 
-dml_data = DoubleMLData(df, y_col="y", d_cols="d", s_col="score")
+dml_data = DoubleMLRDDData(df, y_col="y", d_cols="d", score_col="score")
 
 ml_g = Lasso()
 ml_m = LogisticRegression()
@@ -58,21 +58,28 @@ class DummyClassifierNoSampleWeight(BaseEstimator, ClassifierMixin):
 
 @pytest.mark.ci_rdd
 def test_rdd_exception_data():
-    # DoubleMLData
-    msg = r"The data must be of DoubleMLData type. \[\] of type <class 'list'> was passed."
+    # DoubleMLRDDData
+    msg = r"The data must be of DoubleMLRDDData type. \[\] of type <class 'list'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = RDFlex([], ml_g)
+
+    # Clusters not implemented
+    msg = "Clustered data is not supported for RDFlex yet."
+    with pytest.raises(NotImplementedError, match=msg):
+        dml_data_clusters = copy.deepcopy(dml_data)
+        dml_data_clusters._is_cluster_data = True
+        _ = RDFlex(dml_data_clusters, ml_g, ml_m)
 
     # score column
     msg = "Incompatible data. Score variable has not been set. "
     with pytest.raises(ValueError, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s_col = None
+        tmp_dml_data._score_col = None
         _ = RDFlex(tmp_dml_data, ml_g)
     msg = "Incompatible data. Score variable has to be continuous. "
     with pytest.raises(ValueError, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s = tmp_dml_data._d
+        tmp_dml_data._score = tmp_dml_data._d
         _ = RDFlex(tmp_dml_data, ml_g)
 
     # existing instruments
@@ -128,7 +135,7 @@ def test_rdd_warning_treatment_assignment():
     )
     with pytest.warns(UserWarning, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._s = -1.0 * tmp_dml_data._s
+        tmp_dml_data._score = -1.0 * tmp_dml_data._score
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=True)
 
 
@@ -169,7 +176,7 @@ def test_rdd_exception_learner():
     )
     with pytest.warns(UserWarning, match=msg):
         tmp_dml_data = copy.deepcopy(dml_data)
-        tmp_dml_data._data["sharp_d"] = tmp_dml_data.s >= 0
+        tmp_dml_data._data["sharp_d"] = tmp_dml_data.score >= 0
         tmp_dml_data.d_cols = "sharp_d"
         _ = RDFlex(tmp_dml_data, ml_g, ml_m, fuzzy=False)
 
@@ -237,3 +244,22 @@ def test_rdd_exception_fit():
     msg = "The number of iterations for the iterative bandwidth fitting has to be positive. 0 was passed."
     with pytest.raises(ValueError, match=msg):
         rdd_model.fit(n_iterations=0)
+
+
+@pytest.mark.ci_rdd
+def test_rdd_warning_kwargs():
+    msg = r"Key-worded arguments contain: {'h'}.\n" "Iterative bandwidth selection will be overwritten by provided values."
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, h=0.1)
+
+    msg = r"Key-worded arguments contain: {'b'}.\n" "Iterative bandwidth selection will be overwritten by provided values."
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, b=0.1)
+
+    # The order in the set is not guaranteed
+    msg = (
+        r"Key-worded arguments contain: {'[hb]', '[hb]'}.\n"
+        "Iterative bandwidth selection will be overwritten by provided values."
+    )
+    with pytest.warns(UserWarning, match=msg):
+        _ = RDFlex(dml_data, ml_g, h=0.1, b=0.1)

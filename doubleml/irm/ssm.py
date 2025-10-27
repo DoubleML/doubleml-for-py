@@ -6,7 +6,7 @@ from sklearn.base import clone
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_X_y
 
-from doubleml.data.base_data import DoubleMLData
+from doubleml.data.ssm_data import DoubleMLSSMData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score, _check_trimming
@@ -19,8 +19,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLSSMData` object
+        The :class:`DoubleMLSSMData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -39,7 +39,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -66,8 +66,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml import DoubleMLData
-    >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV()
+    >>> from doubleml import DoubleMLSSMData
+    >>> from sklearn.linear_model import LassoCV, LogisticRegressionCV
     >>> from sklearn.base import clone
     >>> np.random.seed(3146)
     >>> n = 2000
@@ -82,16 +82,16 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     >>> s = np.where(np.dot(X, beta) + 0.25 * d + z + e[0] > 0, 1, 0)
     >>> y = np.dot(X, beta) + 0.5 * d + e[1]
     >>> y[s == 0] = 0
-    >>> simul_data = DoubleMLData.from_arrays(X, y, d, z=None, t=s)
+    >>> simul_data = DoubleMLSSMData.from_arrays(X, y, d, z=None, s=s)
     >>> learner = LassoCV()
     >>> learner_class = LogisticRegressionCV()
     >>> ml_g_sim = clone(learner)
     >>> ml_pi_sim = clone(learner_class)
     >>> ml_m_sim = clone(learner_class)
-    >>> obj_dml_sim = DoubleMLS(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
+    >>> obj_dml_sim = DoubleMLSSM(simul_data, ml_g_sim, ml_pi_sim, ml_m_sim)
     >>> obj_dml_sim.fit().summary
-          coef   std err         t         P>|t|     2.5 %    97.5 %
-    d  0.49135  0.070534  6.966097  3.258541e-12  0.353105  0.629595
+           coef   std err         t         P>|t|    2.5 %    97.5 %
+    d  0.518517  0.065535  7.912033  2.532202e-15  0.39007  0.646963
 
     Notes
     -----
@@ -124,6 +124,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         _check_trimming(self._trimming_rule, self._trimming_threshold)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         _check_score(self.score, ["missing-at-random", "nonignorable"])
 
         # for both score function stratification by d and s is viable
@@ -183,9 +184,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLSSMData):
             raise TypeError(
-                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLSSMData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None and self._score == "missing-at-random":
             warnings.warn(
@@ -202,12 +203,12 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, ensure_all_finite=False)
 
         if self._score == "nonignorable":
-            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
+            z, _ = check_X_y(self._dml_data.z, y, ensure_all_finite=False)
             dx = np.column_stack((x, d, z))
         else:
             dx = np.column_stack((x, d))
@@ -426,88 +427,116 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
-        # time indicator is used for selection (selection not available in DoubleMLData yet)
-        x, s = check_X_y(x, self._dml_data.s, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
+        x, s = check_X_y(x, self._dml_data.s, ensure_all_finite=False)
 
         if self._score == "nonignorable":
-            z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
-            dx = np.column_stack((x, d, z))
-        else:
-            dx = np.column_stack((x, d))
+            z, _ = check_X_y(self._dml_data.z, y, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_pi": None, "ml_m": None}
 
-        # nuisance training sets conditional on d
-        _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
-        train_inds = [train_index for (train_index, _) in smpls]
-        train_inds_d0_s1 = [train_index for (train_index, _) in smpls_d0_s1]
-        train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
+        # Nested helper functions
+        def tune_learner(target, features, train_indices, learner_key):
+            return _dml_tune(
+                target,
+                features,
+                train_indices,
+                self._learner[learner_key],
+                param_grids[learner_key],
+                scoring_methods[learner_key],
+                n_folds_tune,
+                n_jobs_cv,
+                search_mode,
+                n_iter_randomized_search,
+            )
 
-        # hyperparameter tuning for ML
-        g_d0_tune_res = _dml_tune(
-            y,
-            x,
-            train_inds_d0_s1,
-            self._learner["ml_g"],
-            param_grids["ml_g"],
-            scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        g_d1_tune_res = _dml_tune(
-            y,
-            x,
-            train_inds_d1_s1,
-            self._learner["ml_g"],
-            param_grids["ml_g"],
-            scoring_methods["ml_g"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        pi_tune_res = _dml_tune(
-            s,
-            dx,
-            train_inds,
-            self._learner["ml_pi"],
-            param_grids["ml_pi"],
-            scoring_methods["ml_pi"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
-        m_tune_res = _dml_tune(
-            d,
-            x,
-            train_inds,
-            self._learner["ml_m"],
-            param_grids["ml_m"],
-            scoring_methods["ml_m"],
-            n_folds_tune,
-            n_jobs_cv,
-            search_mode,
-            n_iter_randomized_search,
-        )
+        def split_inner_folds(train_inds, d, s, random_state=42):
+            inner_train0_inds, inner_train1_inds = [], []
+            for train_index in train_inds:
+                stratify_vec = d[train_index] + 2 * s[train_index]
+                inner0, inner1 = train_test_split(train_index, test_size=0.5, stratify=stratify_vec, random_state=random_state)
+                inner_train0_inds.append(inner0)
+                inner_train1_inds.append(inner1)
+            return inner_train0_inds, inner_train1_inds
 
-        g_d0_best_params = [xx.best_params_ for xx in g_d0_tune_res]
-        g_d1_best_params = [xx.best_params_ for xx in g_d1_tune_res]
-        pi_best_params = [xx.best_params_ for xx in pi_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        def filter_by_ds(inner_train1_inds, d, s):
+            inner1_d0_s1, inner1_d1_s1 = [], []
+            for inner1 in inner_train1_inds:
+                d_fold, s_fold = d[inner1], s[inner1]
+                mask_d0_s1 = (d_fold == 0) & (s_fold == 1)
+                mask_d1_s1 = (d_fold == 1) & (s_fold == 1)
 
-        params = {"ml_g_d0": g_d0_best_params, "ml_g_d1": g_d1_best_params, "ml_pi": pi_best_params, "ml_m": m_best_params}
+                inner1_d0_s1.append(inner1[mask_d0_s1])
+                inner1_d1_s1.append(inner1[mask_d1_s1])
+            return inner1_d0_s1, inner1_d1_s1
 
-        tune_res = {"g_d0_tune": g_d0_tune_res, "g_d1_tune": g_d1_tune_res, "pi_tune": pi_tune_res, "m_tune": m_tune_res}
+        if self._score == "nonignorable":
 
-        res = {"params": params, "tune_res": tune_res}
+            train_inds = [train_index for (train_index, _) in smpls]
 
-        return res
+            # inner folds: split train set into two halves (pi-tuning vs. m/g-tuning)
+            inner_train0_inds, inner_train1_inds = split_inner_folds(train_inds, d, s)
+            # split inner1 by (d,s) to build g-models for treated/control
+            inner_train1_d0_s1, inner_train1_d1_s1 = filter_by_ds(inner_train1_inds, d, s)
+
+            # Tune ml_pi
+            x_d_z = np.column_stack((x, d, z))
+            pi_tune_res = []
+            pi_hat_full = np.full(shape=s.shape, fill_value=np.nan)
+            for inner0, inner1 in zip(inner_train0_inds, inner_train1_inds):
+                res = tune_learner(s, x_d_z, [inner0], "ml_pi")
+                best_params = res[0].best_params_
+
+                # Fit tuned model and predict
+                ml_pi_temp = clone(self._learner["ml_pi"])
+                ml_pi_temp.set_params(**best_params)
+                ml_pi_temp.fit(x_d_z[inner0], s[inner0])
+                pi_hat_full[inner1] = _predict_zero_one_propensity(ml_pi_temp, x_d_z)[inner1]
+                pi_tune_res.append(res[0])
+
+            # Tune ml_m with x + pi-hats
+            x_pi = np.column_stack([x, pi_hat_full.reshape(-1, 1)])
+            m_tune_res = tune_learner(d, x_pi, inner_train1_inds, "ml_m")
+
+            # Tune ml_g for d=0 and d=1
+            x_pi_d = np.column_stack([x, d.reshape(-1, 1), pi_hat_full.reshape(-1, 1)])
+            g_d0_tune_res = tune_learner(y, x_pi_d, inner_train1_d0_s1, "ml_g")
+            g_d1_tune_res = tune_learner(y, x_pi_d, inner_train1_d1_s1, "ml_g")
+
+        else:
+            # nuisance training sets conditional on d
+            _, smpls_d0_s1, _, smpls_d1_s1 = _get_cond_smpls_2d(smpls, d, s)
+            train_inds = [train_index for (train_index, _) in smpls]
+            train_inds_d0_s1 = [train_index for (train_index, _) in smpls_d0_s1]
+            train_inds_d1_s1 = [train_index for (train_index, _) in smpls_d1_s1]
+
+            # Tune ml_g for d=0 and d=1
+            g_d0_tune_res = tune_learner(y, x, train_inds_d0_s1, "ml_g")
+            g_d1_tune_res = tune_learner(y, x, train_inds_d1_s1, "ml_g")
+
+            # Tune ml_pi and ml_m
+            x_d = np.column_stack((x, d))
+            pi_tune_res = tune_learner(s, x_d, train_inds, "ml_pi")
+            m_tune_res = tune_learner(d, x, train_inds, "ml_m")
+
+        # Collect results
+        params = {
+            "ml_g_d0": [res.best_params_ for res in g_d0_tune_res],
+            "ml_g_d1": [res.best_params_ for res in g_d1_tune_res],
+            "ml_pi": [res.best_params_ for res in pi_tune_res],
+            "ml_m": [res.best_params_ for res in m_tune_res],
+        }
+
+        tune_res = {
+            "g_d0_tune": g_d0_tune_res,
+            "g_d1_tune": g_d1_tune_res,
+            "pi_tune": pi_tune_res,
+            "m_tune": m_tune_res,
+        }
+
+        return {"params": params, "tune_res": tune_res}
 
     def _sensitivity_element_est(self, preds):
         pass

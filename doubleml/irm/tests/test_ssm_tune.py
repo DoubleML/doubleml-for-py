@@ -9,7 +9,7 @@ from sklearn.linear_model import LogisticRegression
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
-from ._utils_ssm_manual import fit_selection, tune_nuisance_ssm
+from ._utils_ssm_manual import fit_selection, tune_nuisance_ssm_mar, tune_nuisance_ssm_nonignorable
 
 
 @pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
@@ -76,7 +76,7 @@ def dml_ssm_fixture(
 
     np.random.seed(42)
     if score == "missing-at-random":
-        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=None, s=s)
+        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=None, s=s)
         dml_sel_obj = dml.DoubleMLSSM(
             obj_dml_data,
             ml_g,
@@ -89,7 +89,7 @@ def dml_ssm_fixture(
         )
     else:
         assert score == "nonignorable"
-        obj_dml_data = dml.DoubleMLData.from_arrays(x, y, d, z=z, s=s)
+        obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=z, s=s)
         dml_sel_obj = dml.DoubleMLSSM(
             obj_dml_data,
             ml_g,
@@ -115,41 +115,73 @@ def dml_ssm_fixture(
     np.random.seed(42)
     smpls = all_smpls[0]
     if tune_on_folds:
-        g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm(
-            y,
-            x,
-            d,
-            z,
-            s,
-            clone(learner_g),
-            clone(learner_m),
-            clone(learner_m),
-            smpls,
-            score,
-            n_folds_tune,
-            par_grid["ml_g"],
-            par_grid["ml_pi"],
-            par_grid["ml_m"],
-        )
+        if score == "missing-at-random":
+            g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm_mar(
+                y,
+                x,
+                d,
+                z,
+                s,
+                clone(learner_g),
+                clone(learner_m),
+                clone(learner_m),
+                smpls,
+                n_folds_tune,
+                par_grid["ml_g"],
+                par_grid["ml_pi"],
+                par_grid["ml_m"],
+            )
+        elif score == "nonignorable":
+            g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm_nonignorable(
+                y,
+                x,
+                d,
+                z,
+                s,
+                clone(learner_g),
+                clone(learner_m),
+                clone(learner_m),
+                smpls,
+                n_folds_tune,
+                par_grid["ml_g"],
+                par_grid["ml_pi"],
+                par_grid["ml_m"],
+            )
 
     else:
         xx = [(np.arange(len(y)), np.array([]))]
-        g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm(
-            y,
-            x,
-            d,
-            z,
-            s,
-            clone(learner_g),
-            clone(learner_m),
-            clone(learner_m),
-            xx,
-            score,
-            n_folds_tune,
-            par_grid["ml_g"],
-            par_grid["ml_pi"],
-            par_grid["ml_m"],
-        )
+        if score == "missing-at-random":
+            g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm_mar(
+                y,
+                x,
+                d,
+                z,
+                s,
+                clone(learner_g),
+                clone(learner_m),
+                clone(learner_m),
+                xx,
+                n_folds_tune,
+                par_grid["ml_g"],
+                par_grid["ml_pi"],
+                par_grid["ml_m"],
+            )
+        elif score == "nonignorable":
+            g0_best_params, g1_best_params, pi_best_params, m_best_params = tune_nuisance_ssm_nonignorable(
+                y,
+                x,
+                d,
+                z,
+                s,
+                clone(learner_g),
+                clone(learner_m),
+                clone(learner_m),
+                xx,
+                n_folds_tune,
+                par_grid["ml_g"],
+                par_grid["ml_pi"],
+                par_grid["ml_m"],
+            )
 
         g0_best_params = g0_best_params * n_folds
         g1_best_params = g1_best_params * n_folds

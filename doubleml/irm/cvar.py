@@ -54,7 +54,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -82,7 +82,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_irm_data
+    >>> from doubleml.irm.datasets import make_irm_data
     >>> from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=10, min_samples_leaf=2)
@@ -91,8 +91,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
     >>> dml_cvar_obj = dml.DoubleMLCVAR(obj_dml_data, ml_g, ml_m, treatment=1, quantile=0.5)
     >>> dml_cvar_obj.fit().summary
-           coef   std err          t         P>|t|     2.5 %    97.5 %
-    d  1.591441  0.095781  16.615498  5.382582e-62  1.403715  1.779167
+           coef   std err         t         P>|t|     2.5 %    97.5 %
+    d  1.588364  0.096616  16.43989  9.909942e-61  1.398999  1.777728
+
     """
 
     def __init__(
@@ -117,6 +118,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         self._normalize_ipw = normalize_ipw
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_score = ["CVaR"]
         _check_score(self.score, valid_score, allow_callable=False)
         _check_quantile(self.quantile)
@@ -202,8 +204,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ["ml_g", "ml_m"]}
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # initialize nuisance predictions, targets and models
         g_hat = {
@@ -328,8 +330,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}

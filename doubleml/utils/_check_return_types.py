@@ -3,7 +3,6 @@ import pandas as pd
 import plotly
 
 from doubleml import DoubleMLFramework
-from doubleml.data import DoubleMLClusterData
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 
 
@@ -15,14 +14,14 @@ def check_basic_return_types(dml_obj, cls):
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.set_sample_splitting(dml_obj.smpls), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.fit(), cls)
     assert isinstance(dml_obj.__str__(), str)  # called again after fit, now with numbers
     assert isinstance(dml_obj.summary, pd.DataFrame)  # called again after fit, now with numbers
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.bootstrap(), cls)
     else:
-        assert isinstance(dml_obj._dml_data, DoubleMLClusterData)
+        assert dml_obj._dml_data.is_cluster_data
     assert isinstance(dml_obj.confint(), pd.DataFrame)
     if not dml_obj._is_cluster_data:
         assert isinstance(dml_obj.p_adjust(), pd.DataFrame)
@@ -31,9 +30,13 @@ def check_basic_return_types(dml_obj, cls):
     assert isinstance(dml_obj._dml_data.__str__(), str)
 
 
-def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_folds, n_rep_boot):
+def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_folds, n_rep_boot, score_dim=None):
     # not checked: learner, learner_names, params, params_names, score
     # already checked: summary
+
+    # use default combination
+    if score_dim is None:
+        score_dim = (n_obs, n_rep, n_treat)
 
     # check that the setting is still in line with the hard-coded values
     assert dml_obj._dml_data.n_treat == n_treat
@@ -55,35 +58,21 @@ def check_basic_property_types_and_shapes(dml_obj, n_obs, n_treat, n_rep, n_fold
     assert dml_obj.coef.shape == (n_treat,)
 
     assert isinstance(dml_obj.psi, np.ndarray)
-    assert dml_obj.psi.shape == (
-        n_obs,
-        n_rep,
-        n_treat,
-    )
+    assert dml_obj.psi.shape == score_dim
 
+    assert isinstance(dml_obj.psi_deriv, np.ndarray)
+    assert dml_obj.psi_deriv.shape == score_dim
     is_nonlinear = isinstance(dml_obj, NonLinearScoreMixin)
     if is_nonlinear:
         for score_element in dml_obj._score_element_names:
             assert isinstance(dml_obj.psi_elements[score_element], np.ndarray)
-            assert dml_obj.psi_elements[score_element].shape == (
-                n_obs,
-                n_rep,
-                n_treat,
-            )
+            assert dml_obj.psi_elements[score_element].shape == score_dim
     else:
         assert isinstance(dml_obj.psi_elements["psi_a"], np.ndarray)
-        assert dml_obj.psi_elements["psi_a"].shape == (
-            n_obs,
-            n_rep,
-            n_treat,
-        )
+        assert dml_obj.psi_elements["psi_a"].shape == score_dim
 
         assert isinstance(dml_obj.psi_elements["psi_b"], np.ndarray)
-        assert dml_obj.psi_elements["psi_b"].shape == (
-            n_obs,
-            n_rep,
-            n_treat,
-        )
+        assert dml_obj.psi_elements["psi_b"].shape == score_dim
 
     assert isinstance(dml_obj.framework, DoubleMLFramework)
     assert isinstance(dml_obj.pval, np.ndarray)

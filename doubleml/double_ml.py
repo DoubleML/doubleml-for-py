@@ -7,19 +7,19 @@ import pandas as pd
 from scipy.stats import norm
 from sklearn.base import is_classifier, is_regressor
 
-from doubleml.data import DoubleMLClusterData, DoubleMLPanelData
+from doubleml.data import DoubleMLDIDData, DoubleMLPanelData, DoubleMLRDDData, DoubleMLSSMData
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.double_ml_framework import DoubleMLFramework
-from doubleml.utils._checks import _check_external_predictions, _check_sample_splitting
+from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
+from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
 from doubleml.utils.gain_statistics import gain_statistics
-from doubleml.utils.resampling import DoubleMLClusterResampling, DoubleMLResampling
 
-_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData"]
+_implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
 
 
-class DoubleML(ABC):
+class DoubleML(SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
     def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
@@ -30,13 +30,22 @@ class DoubleML(ABC):
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         self._is_cluster_data = False
-        if isinstance(obj_dml_data, DoubleMLClusterData):
+        if obj_dml_data.is_cluster_data:
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
         self._is_panel_data = False
         if isinstance(obj_dml_data, DoubleMLPanelData):
             self._is_panel_data = True
+        self._is_did_data = False
+        if isinstance(obj_dml_data, DoubleMLDIDData):
+            self._is_did_data = True
+        self._is_ssm_data = False
+        if isinstance(obj_dml_data, DoubleMLSSMData):
+            self._is_ssm_data = True
+        self._is_rdd_data = False
+        if isinstance(obj_dml_data, DoubleMLRDDData):
+            self._is_rdd_data = True
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
@@ -98,69 +107,97 @@ class DoubleML(ABC):
         # perform sample splitting
         self._smpls = None
         self._smpls_cluster = None
+        self._n_obs_sample_splitting = self.n_obs
         if draw_sample_splitting:
             self.draw_sample_splitting()
-
-        # initialize arrays according to obj_dml_data and the resampling settings
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
+        self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
+        self._initialize_dml_model()
 
         # initialize instance attributes which are later used for iterating
         self._i_rep = None
         self._i_treat = None
 
-    def __str__(self):
+    def _format_header_str(self):
         class_name = self.__class__.__name__
-        header = f"================== {class_name} Object ==================\n"
-        data_summary = self._dml_data._data_summary_str()
-        score_info = f"Score function: {str(self.score)}\n"
+        return f"================== {class_name} Object =================="
+
+    def _format_score_info_str(self):
+        return f"Score function: {str(self.score)}"
+
+    def _format_learner_info_str(self):
         learner_info = ""
-        for key, value in self.learner.items():
-            learner_info += f"Learner {key}: {str(value)}\n"
+        if self.learner is not None:
+            for key, value in self.learner.items():
+                learner_info += f"Learner {key}: {str(value)}\n"
         if self.nuisance_loss is not None:
             learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
-            is_regressor = [not value for value in is_classifier]
-            if any(is_regressor):
-                learner_info += "Regression:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
-            if any(is_classifier):
-                learner_info += "Classification:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
+            # Check if _is_classifier is populated, otherwise, it might be called before fit
+            if self._is_classifier:
+                is_classifier_any = any(self._is_classifier.values())
+                is_regressor_any = any(not v for v in self._is_classifier.values())
 
+                if is_regressor_any:
+                    learner_info += "Regression:\n"
+                    for learner_name in self.params_names:  # Iterate through known learners
+                        if not self._is_classifier.get(learner_name, True):  # Default to not regressor if not found
+                            loss_val = self.nuisance_loss.get(learner_name, "N/A")
+                            learner_info += f"Learner {learner_name} RMSE: {loss_val}\n"
+                if is_classifier_any:
+                    learner_info += "Classification:\n"
+                    for learner_name in self.params_names:  # Iterate through known learners
+                        if self._is_classifier.get(learner_name, False):  # Default to not classifier if not found
+                            loss_val = self.nuisance_loss.get(learner_name, "N/A")
+                            learner_info += f"Learner {learner_name} Log Loss: {loss_val}\n"
+            else:
+                learner_info += " (Run .fit() to see out-of-sample performance)\n"
+        return learner_info.strip()
+
+    def _format_resampling_info_str(self):
         if self._is_cluster_data:
-            resampling_info = (
+            return (
                 f"No. folds per cluster: {self._n_folds_per_cluster}\n"
                 f"No. folds: {self.n_folds}\n"
-                f"No. repeated sample splits: {self.n_rep}\n"
+                f"No. repeated sample splits: {self.n_rep}"
             )
         else:
-            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
-        fit_summary = str(self.summary)
-        res = (
-            header
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ Score & algorithm ------------------\n"
-            + score_info
-            + "\n------------------ Machine learner   ------------------\n"
-            + learner_info
-            + "\n------------------ Resampling        ------------------\n"
-            + resampling_info
-            + "\n------------------ Fit summary       ------------------\n"
-            + fit_summary
+            return f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}"
+
+    def _format_additional_info_str(self):
+        """
+        Hook for subclasses to add additional information to the string representation.
+        Returns an empty string by default.
+        Subclasses should override this method to provide content.
+        The content should not include the 'Additional Information' header itself.
+        """
+        return ""
+
+    def __str__(self):
+        header = self._format_header_str()
+        # Assumes self._dml_data._data_summary_str() exists and is well-formed
+        data_summary = self._dml_data._data_summary_str()
+        score_info = self._format_score_info_str()
+        learner_info = self._format_learner_info_str()
+        resampling_info = self._format_resampling_info_str()
+        fit_summary = str(self.summary)  # Assumes self.summary is well-formed
+
+        representation = (
+            f"{header}\n"
+            f"\n------------------ Data Summary      ------------------\n"
+            f"{data_summary}\n"
+            f"\n------------------ Score & Algorithm ------------------\n"
+            f"{score_info}\n"
+            f"\n------------------ Machine Learner   ------------------\n"
+            f"{learner_info}\n"
+            f"\n------------------ Resampling        ------------------\n"
+            f"{resampling_info}\n"
+            f"\n------------------ Fit Summary       ------------------\n"
+            f"{fit_summary}"
         )
-        return res
+
+        additional_info = self._format_additional_info_str()
+        if additional_info:
+            representation += f"\n\n------------------ Additional Information ------------------\n" f"{additional_info}"
+        return representation
 
     @property
     def n_folds(self):
@@ -250,22 +287,22 @@ class DoubleML(ABC):
     @property
     def predictions(self):
         """
-        The predictions of the nuisance models in form of a dictinary.
-        Each key refers to a nuisance element with a array of values of shape ``(n_obs, n_rep, n_coefs)``.
+        The predictions of the nuisance models in form of a dictionary.
+        Each key refers to a nuisance element with a array of values (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._predictions
 
     @property
     def nuisance_targets(self):
         """
-        The outcome of the nuisance models.
+        The outcome of the nuisance models (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._nuisance_targets
 
     @property
     def nuisance_loss(self):
         """
-        The losses of the nuisance models (root-mean-squared-errors or logloss).
+        The losses of the nuisance models (root-mean-squared-errors or logloss) (shape (``n_rep``, ``n_coefs``)).
         """
         return self._nuisance_loss
 
@@ -355,7 +392,7 @@ class DoubleML(ABC):
         """
         Values of the score function components after calling :meth:`fit`;
         For models (e.g., PLR, IRM, PLIV, IIVM) with linear score (in the parameter) a dictionary with entries ``psi_a``
-        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)`.
+        and ``psi_b`` for :math:`\\psi_a(W; \\eta)` and :math:`\\psi_b(W; \\eta)` (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._psi_elements
 
@@ -363,8 +400,8 @@ class DoubleML(ABC):
     def sensitivity_elements(self):
         """
         Values of the sensitivity components after calling :meth:`fit`;
-        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2``, ``psi_sigma2``, ``psi_nu2``
-        and ``riesz_rep``.
+        If available (e.g., PLR, IRM) a dictionary with entries ``sigma2``, ``nu2`` (shape (``1``, ``n_rep``, ``n_coefs``)),
+        ``psi_sigma2``, ``psi_nu2`` and ``riesz_rep`` (shape (``n_obs``, ``n_rep``, ``n_coefs``)).
         """
         return self._sensitivity_elements
 
@@ -384,7 +421,7 @@ class DoubleML(ABC):
     @property
     def coef(self):
         """
-        Estimates for the causal parameter(s) after calling :meth:`fit`.
+        Estimates for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         return self._coef
 
@@ -395,7 +432,7 @@ class DoubleML(ABC):
     @property
     def se(self):
         """
-        Standard errors for the causal parameter(s) after calling :meth:`fit`.
+        Standard errors for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         return self._se
 
@@ -406,7 +443,7 @@ class DoubleML(ABC):
     @property
     def t_stat(self):
         """
-        t-statistics for the causal parameter(s) after calling :meth:`fit`.
+        t-statistics for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         t_stat = self.coef / self.se
         return t_stat
@@ -414,7 +451,7 @@ class DoubleML(ABC):
     @property
     def pval(self):
         """
-        p-values for the causal parameter(s) after calling :meth:`fit`.
+        p-values for the causal parameter(s) after calling :meth:`fit` (shape (``n_coefs``,)).
         """
         pval = 2 * norm.cdf(-np.abs(self.t_stat))
         return pval
@@ -422,7 +459,8 @@ class DoubleML(ABC):
     @property
     def boot_t_stat(self):
         """
-        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`.
+        Bootstrapped t-statistics for the causal parameter(s) after calling :meth:`fit` and :meth:`bootstrap`
+        (shape (``n_rep_boot``, ``n_coefs``, ``n_rep``)).
         """
         if self._framework is None:
             boot_t_stat = None
@@ -433,14 +471,16 @@ class DoubleML(ABC):
     @property
     def all_coef(self):
         """
-        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        Estimates of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+        (shape (``n_coefs``, ``n_rep``)).
         """
         return self._all_coef
 
     @property
     def all_se(self):
         """
-        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`.
+        Standard errors of the causal parameter(s) for the ``n_rep`` different sample splits after calling :meth:`fit`
+        (shape (``n_coefs``, ``n_rep``)).
         """
         return self._all_se
 
@@ -855,7 +895,7 @@ class DoubleML(ABC):
                         self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params)
 
             else:
-                smpls = [(np.arange(self._dml_data.n_obs), np.arange(self._dml_data.n_obs))]
+                smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
                     smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
@@ -909,18 +949,34 @@ class DoubleML(ABC):
             )
 
         if params is None:
-            all_params = [None] * self.n_rep
+            new_params = [None] * self.n_rep
         elif isinstance(params, dict):
-            all_params = [[params] * self.n_folds] * self.n_rep
+            new_params = [[params] * self.n_folds] * self.n_rep
 
         else:
             # ToDo: Add meaningful error message for asserts and corresponding uni tests
             assert len(params) == self.n_rep
             assert np.all(np.array([len(x) for x in params]) == self.n_folds)
-            all_params = params
+            new_params = params
 
-        self._params[learner][treat_var] = all_params
+        existing_params = self._params[learner].get(treat_var, [None] * self.n_rep)
 
+        if existing_params == [None] * self.n_rep:
+            updated_params = new_params
+        elif new_params == [None] * self.n_rep:
+            updated_params = existing_params
+        else:
+            updated_params = []
+            for i_rep in range(self.n_rep):
+                rep_params = []
+                for i_fold in range(self.n_folds):
+                    existing_dict = existing_params[i_rep][i_fold]
+                    new_dict = new_params[i_rep][i_fold]
+                    updated_dict = existing_dict | new_dict
+                    rep_params.append(updated_dict)
+                updated_params.append(rep_params)
+
+        self._params[learner][treat_var] = updated_params
         return self
 
     @abstractmethod
@@ -1004,7 +1060,7 @@ class DoubleML(ABC):
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
                 valid_learners=self.params_names,
-                n_obs=self._dml_data.n_obs,
+                n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
         elif not self._external_predictions_implemented and external_predictions is not None:
@@ -1021,9 +1077,7 @@ class DoubleML(ABC):
             self._initialize_models()
 
         if self._sensitivity_implemented:
-            self._sensitivity_elements = self._initialize_sensitivity_elements(
-                (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
-            )
+            self._sensitivity_elements = self._initialize_sensitivity_elements(self._score_dim)
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
@@ -1076,30 +1130,24 @@ class DoubleML(ABC):
 
     def _initialize_arrays(self):
         # scores
-        psi = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_deriv = np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-        psi_elements = self._initialize_score_elements((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs))
+        self._psi = np.full(self._score_dim, np.nan)
+        self._psi_deriv = np.full(self._score_dim, np.nan)
+        self._psi_elements = self._initialize_score_elements(self._score_dim)
 
-        var_scaling_factors = np.full(self._dml_data.n_treat, np.nan)
+        n_rep = self._score_dim[1]
+        n_thetas = self._score_dim[2]
 
+        self._var_scaling_factors = np.full(n_thetas, np.nan)
         # coefficients and ses
-        coef = np.full(self._dml_data.n_coefs, np.nan)
-        se = np.full(self._dml_data.n_coefs, np.nan)
+        self._coef = np.full(n_thetas, np.nan)
+        self._se = np.full(n_thetas, np.nan)
 
-        all_coef = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-        all_se = np.full((self._dml_data.n_coefs, self.n_rep), np.nan)
-
-        return psi, psi_deriv, psi_elements, var_scaling_factors, coef, se, all_coef, all_se
+        self._all_coef = np.full((n_thetas, n_rep), np.nan)
+        self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
-        self._nuisance_targets = {
-            learner: np.full((self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs), np.nan)
-            for learner in self.params_names
-        }
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
@@ -1170,7 +1218,7 @@ class DoubleML(ABC):
         >>> import numpy as np
         >>> import doubleml as dml
         >>> from sklearn.metrics import mean_absolute_error
-        >>> from doubleml.datasets import make_irm_data
+        >>> from doubleml.irm.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
         >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -1178,14 +1226,12 @@ class DoubleML(ABC):
         >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
-        >>> dml_irm_obj.fit()
+        >>> _ = dml_irm_obj.fit()
         >>> def mae(y_true, y_pred):
-        >>>     subset = np.logical_not(np.isnan(y_true))
-        >>>     return mean_absolute_error(y_true[subset], y_pred[subset])
+        ...     subset = np.logical_not(np.isnan(y_true))
+        ...     return mean_absolute_error(y_true[subset], y_pred[subset])
         >>> dml_irm_obj.evaluate_learners(metric=mae)
-        {'ml_g0': array([[0.85974356]]),
-         'ml_g1': array([[0.85280376]]),
-         'ml_m': array([[0.35365143]])}
+        {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:
@@ -1216,116 +1262,11 @@ class DoubleML(ABC):
                 f"The learners have to be a subset of {str(self.params_names)}. Learners {str(learners)} provided."
             )
 
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Parameters
-        ----------
-        n_obs : int or None
-            The number of observations. If ``None``, the number of observations is set to the number of observations in
-            the data set.
-
-        Returns
-        -------
-        self : object
-        """
-        if self._is_cluster_data:
-            obj_dml_resampling = DoubleMLClusterResampling(
-                n_folds=self._n_folds_per_cluster,
-                n_rep=self.n_rep,
-                n_obs=self.n_obs,
-                n_cluster_vars=self._dml_data.n_cluster_vars,
-                cluster_vars=self._dml_data.cluster_vars,
-            )
-            self._smpls, self._smpls_cluster = obj_dml_resampling.split_samples()
-        else:
-            obj_dml_resampling = DoubleMLResampling(
-                n_folds=self.n_folds, n_rep=self.n_rep, n_obs=self.n_obs, stratify=self._strata
-            )
-            self._smpls = obj_dml_resampling.split_samples()
-
-        return self
-
-    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
-        """
-        Set the sample splitting for DoubleML models.
-
-        The  attributes ``n_folds`` and ``n_rep`` are derived from the provided partition.
-
-        Parameters
-        ----------
-        all_smpls : list or tuple
-            If nested list of lists of tuples:
-                The outer list needs to provide an entry per repeated sample splitting (length of list is set as
-                ``n_rep``).
-                The inner list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition for each inner list.
-            If list of tuples:
-                The list needs to provide a tuple (train_ind, test_ind) per fold (length of list is set as
-                ``n_folds``). test_ind must form a partition. ``n_rep=1`` is always set.
-            If tuple:
-                Must be a tuple with two elements train_ind and test_ind. Only viable option is to set
-                train_ind and test_ind to np.arange(n_obs), which corresponds to no sample splitting.
-                ``n_folds=1`` and ``n_rep=1`` is always set.
-
-        all_smpls_cluster : list or None
-            Nested list or ``None``. The first level of nesting corresponds to the number of repetitions. The second level
-            of nesting corresponds to the number of folds. The third level of nesting contains a tuple of training and
-            testing lists. Both training and testing contain an array for each cluster variable, which form a partition of
-            the clusters.
-            Default is ``None``.
-
-        Returns
-        -------
-        self : object
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> import doubleml as dml
-        >>> from doubleml.datasets import make_plr_CCDDHNR2018
-        >>> from sklearn.ensemble import RandomForestRegressor
-        >>> from sklearn.base import clone
-        >>> np.random.seed(3141)
-        >>> learner = RandomForestRegressor(max_depth=2, n_estimators=10)
-        >>> ml_g = learner
-        >>> ml_m = learner
-        >>> obj_dml_data = make_plr_CCDDHNR2018(n_obs=10, alpha=0.5)
-        >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-        >>> # simple sample splitting with two folds and without cross-fitting
-        >>> smpls = ([0, 1, 2, 3, 4], [5, 6, 7, 8, 9])
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and cross-fitting
-        >>> smpls = [([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>          ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        >>> # sample splitting with two folds and repeated cross-fitting with n_rep = 2
-        >>> smpls = [[([0, 1, 2, 3, 4], [5, 6, 7, 8, 9]),
-        >>>           ([5, 6, 7, 8, 9], [0, 1, 2, 3, 4])],
-        >>>          [([0, 2, 4, 6, 8], [1, 3, 5, 7, 9]),
-        >>>           ([1, 3, 5, 7, 9], [0, 2, 4, 6, 8])]]
-        >>> dml_plr_obj.set_sample_splitting(smpls)
-        """
-        self._smpls, self._smpls_cluster, self._n_rep, self._n_folds = _check_sample_splitting(
-            all_smpls, all_smpls_cluster, self._dml_data, self._is_cluster_data, n_obs=self.n_obs
-        )
-
-        (
-            self._psi,
-            self._psi_deriv,
-            self._psi_elements,
-            self._var_scaling_factors,
-            self._coef,
-            self._se,
-            self._all_coef,
-            self._all_se,
-        ) = self._initialize_arrays()
-        self._initialize_ml_nuisance_params()
-
+    def _initialize_dml_model(self):
+        self._score_dim = (self._score_dim[0], self._n_rep, self._score_dim[2])
+        self._initialize_arrays()
+        if self._learner:  # for calling in __init__ of subclasses, we need to check if _learner is already set
+            self._initialize_ml_nuisance_params()
         return self
 
     def _est_causal_pars(self, psi_elements):

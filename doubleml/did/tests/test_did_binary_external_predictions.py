@@ -40,7 +40,7 @@ def doubleml_did_fixture(did_score, n_rep):
     }
 
     dml_did = DoubleMLDIDBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    all_smpls = draw_smpls(n_obs, n_folds, n_rep=n_rep, groups=dml_did._g_panel)
+    all_smpls = draw_smpls(n_obs, n_folds, n_rep=n_rep, groups=dml_did._g_data_subset)
     dml_did.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)
@@ -112,7 +112,7 @@ def doubleml_did_panel_fixture(did_score, n_rep):
     }
 
     dml_did = DoubleMLDIDBinary(ml_g=LinearRegression(), ml_m=LogisticRegression(), **kwargs)
-    all_smpls = draw_smpls(n_obs=dml_did._n_subset, n_folds=n_folds, n_rep=n_rep, groups=dml_did._g_panel)
+    all_smpls = draw_smpls(n_obs=dml_did.n_obs_subset, n_folds=n_folds, n_rep=n_rep, groups=dml_did._g_data_subset)
     dml_did.set_sample_splitting(all_smpls)
 
     np.random.seed(3141)

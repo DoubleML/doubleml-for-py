@@ -15,7 +15,7 @@ df = pd.DataFrame(
     np.column_stack((data["Y"], data["D"], data["score"], data["X"])),
     columns=["y", "d", "score"] + ["x" + str(i) for i in range(data["X"].shape[1])],
 )
-dml_data = dml.DoubleMLData(df, y_col="y", d_cols="d", s_col="score")
+dml_data = dml.DoubleMLRDDData(df, y_col="y", d_cols="d", score_col="score")
 
 
 def _assert_return_types(dml_obj):

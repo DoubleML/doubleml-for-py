@@ -10,8 +10,10 @@ from matplotlib.lines import Line2D
 from sklearn.base import clone
 
 from doubleml.data import DoubleMLPanelData
+from doubleml.data.utils.panel_data_utils import _subtract_periods_safe
 from doubleml.did.did_aggregation import DoubleMLDIDAggregation
 from doubleml.did.did_binary import DoubleMLDIDBinary
+from doubleml.did.did_cs_binary import DoubleMLDIDCSBinary
 from doubleml.did.utils._aggregation import (
     _check_did_aggregation_dict,
     _compute_did_eventstudy_aggregation_weights,
@@ -31,7 +33,7 @@ from doubleml.did.utils._did_utils import (
 from doubleml.did.utils._plot import add_jitter
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_framework import concat
-from doubleml.utils._checks import _check_score, _check_trimming
+from doubleml.utils._checks import _check_bool, _check_score, _check_trimming
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils.gain_statistics import gain_statistics
 
@@ -56,8 +58,10 @@ class DoubleMLDIDMulti:
         :py:class:`sklearn.ensemble.RandomForestClassifier`) for the nuisance function :math:`m_0(X) = E[D=1|X]`.
         Only relevant for ``score='observational'``. Default is ``None``.
 
-    gt_combinations : array-like
-        A list of tuples with the group-time combinations to be evaluated.
+    gt_combinations : array-like or str
+        A list of tuples with the group-time combinations to be evaluated. Can be a string with the value
+        ``'standard'``,  ``'all'`` or  ``'universal'``, which constructs the corresponding combinations automatically.
+        Default is ``'standard'``.
 
     control_group : str
         Specifies the control group. Either ``'never_treated'`` or ``'not_yet_treated'``.
@@ -79,6 +83,10 @@ class DoubleMLDIDMulti:
         The ``'experimental'`` scores refers to an A/B setting, where the treatment is independent
         from the pretreatment covariates.
         Default is ``'observational'``.
+
+    panel : bool
+        Indicates whether to rely on panel data structure (``True``) or repeated cross sections (``False``).
+        Default is ``True``.
 
     in_sample_normalization : bool
         Indicates whether to use in-sample normalization of weights.
@@ -126,7 +134,22 @@ class DoubleMLDIDMulti:
     ...     gt_combinations="standard",
     ...     control_group="never_treated",
     ... )
-    >>> print(dml_did_obj.fit())
+    >>> print(dml_did_obj.fit().summary)
+                                      coef   std err  ...     2.5 %    97.5 %
+    ATT(2025-03,2025-01,2025-02) -0.797617  0.459617  ... -1.698450  0.103215
+    ATT(2025-03,2025-02,2025-03)  0.270311  0.456453  ... -0.624320  1.164941
+    ATT(2025-03,2025-02,2025-04)  0.628213  0.895275  ... -1.126494  2.382919
+    ATT(2025-03,2025-02,2025-05)  1.281360  1.327121  ... -1.319750  3.882470
+    ATT(2025-04,2025-01,2025-02) -0.078095  0.407758  ... -0.877287  0.721097
+    ATT(2025-04,2025-02,2025-03)  0.223625  0.479288  ... -0.715764  1.163013
+    ATT(2025-04,2025-03,2025-04)  1.008674  0.455564  ...  0.115785  1.901563
+    ATT(2025-04,2025-03,2025-05)  2.941047  0.832991  ...  1.308415  4.573679
+    ATT(2025-05,2025-01,2025-02) -0.102282  0.454129  ... -0.992359  0.787795
+    ATT(2025-05,2025-02,2025-03)  0.108742  0.547794  ... -0.964914  1.182399
+    ATT(2025-05,2025-03,2025-04)  0.253610  0.422984  ... -0.575423  1.082643
+    ATT(2025-05,2025-04,2025-05)  1.264255  0.487934  ...  0.307923  2.220587
+    <BLANKLINE>
+    [12 rows x 6 columns]
     """
 
     def __init__(
@@ -140,6 +163,7 @@ class DoubleMLDIDMulti:
         n_folds=5,
         n_rep=1,
         score="observational",
+        panel=True,
         in_sample_normalization=True,
         trimming_rule="truncate",
         trimming_threshold=1e-2,
@@ -178,6 +202,14 @@ class DoubleMLDIDMulti:
         self._score = score
         valid_scores = ["observational", "experimental"]
         _check_score(self.score, valid_scores, allow_callable=False)
+
+        _check_bool(panel, "panel")
+        self._panel = panel
+        # set score dim (n_elements, n_thetas, n_rep), just for checking purposes
+        if self.panel:
+            self._score_dim = (self._dml_data.n_ids, self.n_gt_atts, self.n_rep)
+        else:
+            self._score_dim = (self._dml_data.n_obs, self.n_gt_atts, self.n_rep)
 
         # initialize framework which is constructed after the fit method is called
         self._framework = None
@@ -331,6 +363,13 @@ class DoubleMLDIDMulti:
         The value indicating that a unit was never treated.
         """
         return self._never_treated_value
+
+    @property
+    def panel(self):
+        """
+        Indicates whether to rely on panel data structure (``True``) or repeated cross sections (``False``).
+        """
+        return self._panel
 
     @property
     def in_sample_normalization(self):
@@ -968,8 +1007,9 @@ class DoubleMLDIDMulti:
         first_treated_periods = sorted(df["First Treated"].unique())
         n_periods = len(first_treated_periods)
 
-        # Set up colors
-        colors = dict(zip(["pre", "post"], sns.color_palette(color_palette)[:2]))
+        # Set up colors - ensure 'post' always gets the second color
+        palette_colors = sns.color_palette(color_palette)
+        colors = {"pre": palette_colors[0], "post": palette_colors[1], "anticipation": palette_colors[2]}
 
         # Check if x-axis is datetime or convert to float
         is_datetime = pd.api.types.is_datetime64_any_dtype(df["Evaluation Period"])
@@ -1013,9 +1053,20 @@ class DoubleMLDIDMulti:
             Line2D([0], [0], color="red", linestyle=":", alpha=0.7, label="Treatment start"),
             Line2D([0], [0], color="black", linestyle="--", alpha=0.5, label="Zero effect"),
             Line2D([0], [0], marker="o", color=colors["pre"], linestyle="None", label="Pre-treatment", markersize=5),
-            Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5),
         ]
-        legend_ax.legend(handles=legend_elements, loc="center", ncol=4, mode="expand", borderaxespad=0.0)
+
+        if self.anticipation_periods > 0:
+            legend_elements.append(
+                Line2D(
+                    [0], [0], marker="o", color=colors["anticipation"], linestyle="None", label="Anticipation", markersize=5
+                )
+            )
+
+        legend_elements.append(
+            Line2D([0], [0], marker="o", color=colors["post"], linestyle="None", label="Post-treatment", markersize=5)
+        )
+
+        legend_ax.legend(handles=legend_elements, loc="center", ncol=len(legend_elements), mode="expand", borderaxespad=0.0)
 
         # Set title and layout
         plt.suptitle(title, y=1.02)
@@ -1036,7 +1087,7 @@ class DoubleMLDIDMulti:
         period : int or datetime
             Treatment period for this group.
         colors : dict
-            Dictionary with 'pre' and 'post' color values.
+            Dictionary with 'pre', 'anticipation' (if applicable), and 'post' color values.
         is_datetime : bool
             Whether the x-axis represents datetime values.
         jitter_value : float
@@ -1053,55 +1104,63 @@ class DoubleMLDIDMulti:
         ax.axvline(x=period, color="red", linestyle=":", alpha=0.7)
         ax.axhline(y=0, color="black", linestyle="--", alpha=0.5)
 
-        # Split and jitter data
-        pre_treatment = add_jitter(
-            period_df[period_df["Pre-Treatment"]],
-            "Evaluation Period",
-            is_datetime=is_datetime,
-            jitter_value=jitter_value,
-        )
-        post_treatment = add_jitter(
-            period_df[~period_df["Pre-Treatment"]],
-            "Evaluation Period",
-            is_datetime=is_datetime,
-            jitter_value=jitter_value,
-        )
-
-        # Plot pre-treatment points
-        if not pre_treatment.empty:
-            ax.scatter(pre_treatment["jittered_x"], pre_treatment["Estimate"], color=colors["pre"], alpha=0.8, s=30)
-            ax.errorbar(
-                pre_treatment["jittered_x"],
-                pre_treatment["Estimate"],
-                yerr=[
-                    pre_treatment["Estimate"] - pre_treatment["CI Lower"],
-                    pre_treatment["CI Upper"] - pre_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["pre"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
+        # Categorize periods
+        if is_datetime:
+            # For datetime, use safe period arithmetic that handles both timedelta-compatible and period-only units
+            anticipation_ge_mask = _subtract_periods_safe(
+                period_df["Evaluation Period"], period, self.anticipation_periods, self._dml_data.datetime_unit
+            )
+            anticipation_mask = (
+                (self.anticipation_periods > 0)
+                & period_df["Pre-Treatment"]
+                & anticipation_ge_mask
+                & (period_df["Evaluation Period"] < period)
+            )
+        else:
+            # For numeric periods, simple arithmetic works
+            anticipation_mask = (
+                (self.anticipation_periods > 0)
+                & period_df["Pre-Treatment"]
+                & (period_df["Evaluation Period"] >= period - self.anticipation_periods)
+                & (period_df["Evaluation Period"] < period)
             )
 
-        # Plot post-treatment points
-        if not post_treatment.empty:
-            ax.scatter(post_treatment["jittered_x"], post_treatment["Estimate"], color=colors["post"], alpha=0.8, s=30)
-            ax.errorbar(
-                post_treatment["jittered_x"],
-                post_treatment["Estimate"],
-                yerr=[
-                    post_treatment["Estimate"] - post_treatment["CI Lower"],
-                    post_treatment["CI Upper"] - post_treatment["Estimate"],
-                ],
-                fmt="o",
-                capsize=3,
-                color=colors["post"],
-                markersize=4,
-                markeredgewidth=1,
-                linewidth=1,
+        pre_treatment_mask = period_df["Pre-Treatment"] & ~anticipation_mask
+        post_treatment_mask = ~period_df["Pre-Treatment"]
+
+        # Define category mappings
+        categories = [("pre", pre_treatment_mask), ("anticipation", anticipation_mask), ("post", post_treatment_mask)]
+
+        # Plot each category
+        for category_name, mask in categories:
+            if not mask.any():
+                continue
+
+            category_data = add_jitter(
+                period_df[mask],
+                "Evaluation Period",
+                is_datetime=is_datetime,
+                jitter_value=jitter_value,
             )
+
+            if not category_data.empty:
+                ax.scatter(
+                    category_data["jittered_x"], category_data["Estimate"], color=colors[category_name], alpha=0.8, s=30
+                )
+                ax.errorbar(
+                    category_data["jittered_x"],
+                    category_data["Estimate"],
+                    yerr=[
+                        category_data["Estimate"] - category_data["CI Lower"],
+                        category_data["CI Upper"] - category_data["Estimate"],
+                    ],
+                    fmt="o",
+                    capsize=3,
+                    color=colors[category_name],
+                    markersize=4,
+                    markeredgewidth=1,
+                    linewidth=1,
+                )
 
         # Format axes
         if is_datetime:
@@ -1250,7 +1309,10 @@ class DoubleMLDIDMulti:
                 + f"Passed keys: {set(external_predictions.keys())}."
             )
 
-        expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
+        if self.panel:
+            expected_learner_keys = ["ml_g0", "ml_g1", "ml_m"]
+        else:
+            expected_learner_keys = ["ml_g_d0_t0", "ml_g_d0_t1", "ml_g_d1_t0", "ml_g_d1_t1", "ml_m"]
         for key, value in external_predictions.items():
             if not isinstance(value, dict):
                 raise TypeError(
@@ -1268,12 +1330,7 @@ class DoubleMLDIDMulti:
         d_col = self._dml_data.d_cols[0]
         ext_pred_dict = {gt_combination: {d_col: {}} for gt_combination in self.gt_labels}
         for gt_combination in self.gt_labels:
-            if "ml_g0" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_g0"] = external_predictions[gt_combination]["ml_g0"]
-            if "ml_g1" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_g1"] = external_predictions[gt_combination]["ml_g1"]
-            if "ml_m" in external_predictions[gt_combination]:
-                ext_pred_dict[gt_combination][d_col]["ml_m"] = external_predictions[gt_combination]["ml_m"]
+            ext_pred_dict[gt_combination][d_col].update(external_predictions[gt_combination])
 
         return ext_pred_dict
 
@@ -1304,9 +1361,15 @@ class DoubleMLDIDMulti:
             "draw_sample_splitting": True,
             "print_periods": self._print_periods,
         }
+        if self.panel:
+            ModelClass = DoubleMLDIDBinary
+        else:
+            ModelClass = DoubleMLDIDCSBinary
+
+        # iterate over all group-time combinations
         for i_model, (g_value, t_value_pre, t_value_eval) in enumerate(self.gt_combinations):
             # initialize models for all levels
-            model = DoubleMLDIDBinary(g_value=g_value, t_value_pre=t_value_pre, t_value_eval=t_value_eval, **kwargs)
+            model = ModelClass(g_value=g_value, t_value_pre=t_value_pre, t_value_eval=t_value_eval, **kwargs)
 
             modellist[i_model] = model
 

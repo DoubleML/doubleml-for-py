@@ -45,7 +45,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -80,7 +80,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_iivm_data
+    >>> from doubleml.irm.datasets import make_iivm_data
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(3141)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -91,7 +91,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     >>> dml_iivm_obj = dml.DoubleMLIIVM(obj_dml_data, ml_g, ml_m, ml_r)
     >>> dml_iivm_obj.fit().summary
            coef   std err         t     P>|t|     2.5 %    97.5 %
-    d  0.378351  0.190648  1.984551  0.047194  0.004688  0.752015
+    d  0.362398  0.191578  1.891649  0.058538 -0.013088  0.737884
 
     Notes
     -----
@@ -142,6 +142,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["LATE"]
         _check_score(self.score, valid_scores, allow_callable=True)
 
@@ -197,22 +198,13 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         self.subgroups = subgroups
         self._external_predictions_implemented = True
 
-    def __str__(self):
-        parent_str = super().__str__()
-
-        # add robust confset
+    def _format_additional_info_str(self):
         if self.framework is None:
-            confset_str = ""
+            return ""
         else:
             confset = self.robust_confset()
             formatted_confset = ", ".join([f"[{lower:.4f}, {upper:.4f}]" for lower, upper in confset])
-            confset_str = (
-                "\n\n--------------- Additional Information ----------------\n"
-                + f"Robust Confidence Set: {formatted_confset}\n"
-            )
-
-        res = parent_str + confset_str
-        return res
+            return f"Robust Confidence Set: {formatted_confset}"
 
     @property
     def normalize_ipw(self):
@@ -271,9 +263,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)
@@ -456,9 +448,9 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # get train indices for z == 0 and z == 1
         smpls_z0, smpls_z1 = _get_cond_smpls(smpls, z)

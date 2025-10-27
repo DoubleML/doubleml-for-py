@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
-from doubleml.datasets import make_irm_data
+from doubleml.irm.datasets import make_irm_data
 
 from ...tests._utils import confint_manual, draw_smpls
 from ...utils._estimation import _default_kde

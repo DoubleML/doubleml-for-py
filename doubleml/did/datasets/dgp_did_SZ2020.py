@@ -2,13 +2,14 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import toeplitz
 
-from ...data.base_data import DoubleMLData
+from ...data.did_data import DoubleMLDIDData
 from ...data.panel_data import DoubleMLPanelData
-from ...utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_data_alias
+from ...utils._aliases import _get_array_alias, _get_data_frame_alias, _get_dml_did_data_alias, _get_dml_panel_data_alias
 
 _array_alias = _get_array_alias()
 _data_frame_alias = _get_data_frame_alias()
-_dml_data_alias = _get_dml_data_alias()
+_dml_did_data_alias = _get_dml_did_data_alias()
+_dml_panel_data_alias = _get_dml_panel_data_alias()
 
 
 def _generate_features(n_obs, c, dim_x=4):
@@ -60,7 +61,7 @@ def _f_ps(w, xi):
     return res
 
 
-def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type="DoubleMLData", **kwargs):
+def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_type="DoubleMLDIDData", **kwargs):
     """
     Generates data from a difference-in-differences model used in Sant'Anna and Zhao (2020).
     The data generating process is defined as follows. For a generic :math:`W=(W_1, W_2, W_3, W_4)^T`, let
@@ -130,7 +131,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
     cross_sectional_data :
         Indicates whether the setting is uses cross-sectional or panel data. Default value is ``False``.
     return_type :
-        If ``'DoubleMLData'`` or ``DoubleMLData``, returns a ``DoubleMLData`` object.
+        If ``'DoubleMLDIDData'`` or ``DoubleMLDIDData``, returns a ``DoubleMLDIDData`` object.
 
         If ``'DataFrame'``, ``'pd.DataFrame'`` or ``pd.DataFrame``, returns a ``pd.DataFrame``.
 
@@ -181,14 +182,14 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         if return_type in _array_alias:
             return z, y, d, None
-        elif return_type in _data_frame_alias + _dml_data_alias:
+        elif return_type in _data_frame_alias + _dml_did_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d)), columns=z_cols + ["y", "d"])
             if return_type in _data_frame_alias:
                 return data
             else:
-                return DoubleMLData(data, "y", "d", z_cols)
-        elif return_type == "DoubleMLPanelData":
+                return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols)
+        elif return_type in _dml_panel_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             df0 = (
                 pd.DataFrame(
@@ -216,7 +217,7 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
             )
             df = pd.concat([df0, df1], axis=0)
 
-            return DoubleMLPanelData(df, "y", "d", t_col="t", id_col="id", x_cols=z_cols)
+            return DoubleMLPanelData(df, y_col="y", d_cols="d", t_col="t", id_col="id", x_cols=z_cols)
         else:
             raise ValueError("Invalid return_type.")
 
@@ -227,12 +228,13 @@ def make_did_SZ2020(n_obs=500, dgp_type=1, cross_sectional_data=False, return_ty
 
         if return_type in _array_alias:
             return z, y, d, t
-        elif return_type in _data_frame_alias + _dml_data_alias:
+        elif return_type in _data_frame_alias + _dml_did_data_alias:
             z_cols = [f"Z{i + 1}" for i in np.arange(dim_x)]
             data = pd.DataFrame(np.column_stack((z, y, d, t)), columns=z_cols + ["y", "d", "t"])
             if return_type in _data_frame_alias:
                 return data
-            else:
-                return DoubleMLData(data, "y", "d", z_cols, t_col="t")
+            elif return_type in _dml_did_data_alias:
+                return DoubleMLDIDData(data, y_col="y", d_cols="d", x_cols=z_cols, t_col="t")
         else:
             raise ValueError("Invalid return_type.")
+    return None

@@ -45,7 +45,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -62,7 +62,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_pliv_CHS2015
+    >>> from doubleml.plm.datasets import make_pliv_CHS2015
     >>> from sklearn.ensemble import RandomForestRegressor
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
@@ -74,8 +74,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_l, ml_m, ml_r)
     >>> dml_pliv_obj.fit().summary
-           coef   std err         t         P>|t|     2.5 %    97.5 %
-    d  0.522753  0.082263  6.354688  2.088504e-10  0.361521  0.683984
+           coef   std err         t         P>|t|     2.5 %  97.5 %
+    d  0.511722  0.087184  5.869427  4.373034e-09  0.340844  0.6826
 
     Notes
     -----
@@ -108,6 +108,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         self.partialX = True
         self.partialZ = False
         self._check_score(self.score)
@@ -247,8 +248,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return res
 
     def _nuisance_est_partial_x(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance l
         if external_predictions["ml_l"] is not None:
@@ -272,7 +273,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
-            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
             if external_predictions["ml_m"] is not None:
                 m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
             else:
@@ -298,7 +299,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             }
             for i_instr in range(self._dml_data.n_instr):
                 z = self._dml_data.z
-                x, this_z = check_X_y(x, z[:, i_instr], force_all_finite=False)
+                x, this_z = check_X_y(x, z[:, i_instr], ensure_all_finite=False)
                 if external_predictions["ml_m_" + self._dml_data.z_cols[i_instr]] is not None:
                     m_hat["preds"][:, i_instr] = external_predictions["ml_m_" + self._dml_data.z_cols[i_instr]]
                     predictions["ml_m_" + self._dml_data.z_cols[i_instr]] = external_predictions[
@@ -414,7 +415,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
     def _nuisance_est_partial_z(self, smpls, n_jobs_cv, return_models=False):
         y = self._dml_data.y
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
 
         # nuisance m
         r_hat = _dml_cv_predict(
@@ -447,9 +448,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_est_partial_xz(self, smpls, n_jobs_cv, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance l
         l_hat = _dml_cv_predict(
@@ -515,8 +516,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     def _nuisance_tuning_partial_x(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
@@ -540,7 +541,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             m_tune_res = {instr_var: list() for instr_var in self._dml_data.z_cols}
             z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
-                x, this_z = check_X_y(x, z[:, i_instr], force_all_finite=False)
+                x, this_z = check_X_y(x, z[:, i_instr], ensure_all_finite=False)
                 m_tune_res[self._dml_data.z_cols[i_instr]] = _dml_tune(
                     this_z,
                     x,
@@ -555,7 +556,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 )
         else:
             # one instrument: just identified
-            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
             m_tune_res = _dml_tune(
                 z,
                 x,
@@ -631,7 +632,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     def _nuisance_tuning_partial_z(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
@@ -663,9 +664,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     def _nuisance_tuning_partial_xz(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}

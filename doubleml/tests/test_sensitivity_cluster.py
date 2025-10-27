@@ -5,7 +5,7 @@ import pytest
 from sklearn.linear_model import LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import make_pliv_multiway_cluster_CKMS2021
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from ._utils_doubleml_sensitivity_manual import doubleml_sensitivity_benchmark_manual
 
@@ -17,7 +17,7 @@ dim_x = 10  # dimension of x
 
 
 (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
-obj_dml_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, cluster_vars=cluster_vars)
 
 (x, y, d, cluster_vars, z) = make_pliv_multiway_cluster_CKMS2021(
     N,
@@ -29,7 +29,7 @@ obj_dml_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars
     omega_V=np.array([0.25, 0]),
     return_type="array",
 )
-obj_dml_oneway_cluster_data = dml.DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_oneway_cluster_data = dml.DoubleMLData.from_arrays(x, y, d, cluster_vars=cluster_vars)
 # only the first cluster variable is relevant with the weight setting above
 obj_dml_oneway_cluster_data.cluster_cols = "cluster_var1"
 

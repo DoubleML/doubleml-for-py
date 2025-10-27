@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml.data.base_data import DoubleMLData
+from doubleml.data.did_data import DoubleMLDIDData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
@@ -17,8 +17,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
+    obj_dml_data : :class:`DoubleMLDIDData` object
+        The :class:`DoubleMLDIDData` object providing the data and specifying the variables for the causal model.
 
     ml_g : estimator implementing ``fit()`` and ``predict()``
         A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
@@ -37,7 +37,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str
@@ -47,7 +47,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Default is ``'observational'``.
 
     in_sample_normalization : bool
-        Indicates whether to use a sligthly different normalization from Sant'Anna and Zhao (2020).
+        Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
     trimming_rule : str
@@ -66,17 +66,18 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_did_SZ2020
+    >>> from doubleml.did.datasets import make_did_SZ2020
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> np.random.seed(42)
     >>> ml_g = RandomForestRegressor(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> ml_m = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_leaf=5)
     >>> data = make_did_SZ2020(n_obs=500, return_type='DataFrame')
-    >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
+    >>> obj_dml_data = dml.DoubleMLDIDData(data, 'y', 'd')
     >>> dml_did_obj = dml.DoubleMLDID(obj_dml_data, ml_g, ml_m)
     >>> dml_did_obj.fit().summary
-           coef   std err         t     P>|t|     2.5 %   97.5 %
-    d -2.685104  1.798071 -1.493325  0.135352 -6.209257  0.83905
+           coef   std err         t     P>|t|     2.5 %    97.5 %
+    d -2.840718  1.760386 -1.613691  0.106595 -6.291011  0.609575
+
     """
 
     def __init__(
@@ -177,9 +178,9 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in valid_learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLDIDData):
             raise TypeError(
-                "For repeated outcomes the data must be of DoubleMLData type. "
+                "For repeated outcomes the data must be of DoubleMLDIDData type. "
                 f"{str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
@@ -200,8 +201,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance g
         # get train indices for d == 0
@@ -371,8 +372,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 

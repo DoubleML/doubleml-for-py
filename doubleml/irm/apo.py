@@ -46,7 +46,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         Default is ``5``.
 
     n_rep : int
-        Number of repetitons for the sample splitting.
+        Number of repetitions for the sample splitting.
         Default is ``1``.
 
     score : str or callable
@@ -102,6 +102,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         self._treated = self._dml_data.d == self._treatment_level
 
         self._check_data(self._dml_data)
+        self._is_cluster_data = self._dml_data.is_cluster_data
         valid_scores = ["APO"]
         _check_score(self.score, valid_scores, allow_callable=False)
 
@@ -207,8 +208,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         return weights, weights_bar
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         dx = np.column_stack((d, x))
         # use the treated indicator to get the correct sample splits
         treated = self.treated
@@ -360,8 +361,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         dx = np.column_stack((d, x))
         # use the treated indicator to get the correct sample splits
         treated = self.treated

@@ -7,7 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Lasso, LinearRegression
 
 import doubleml as dml
-from doubleml.datasets import DoubleMLClusterData, make_pliv_multiway_cluster_CKMS2021
+from doubleml import DoubleMLData
+from doubleml.plm.datasets import make_pliv_multiway_cluster_CKMS2021
 
 from .test_nonlinear_score_mixin import DoubleMLPLRWithNonLinearScoreMixin
 
@@ -19,7 +20,7 @@ dim_x = 100  # dimension of x
 
 # create data without insturment for plr
 x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(N, M, dim_x, return_type="array")
-obj_dml_cluster_data = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_cluster_data = DoubleMLData.from_arrays(x, y, d, cluster_vars)
 
 x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(
     N,
@@ -31,7 +32,7 @@ x, y, d, cluster_vars, z = make_pliv_multiway_cluster_CKMS2021(
     omega_V=np.array([0.25, 0]),
     return_type="array",
 )
-obj_dml_oneway_cluster_data = DoubleMLClusterData.from_arrays(x, y, d, cluster_vars)
+obj_dml_oneway_cluster_data = DoubleMLData.from_arrays(x, y, d, cluster_vars=cluster_vars)
 
 # only the first cluster variable is relevant with the weight setting above
 obj_dml_oneway_cluster_data.cluster_cols = "cluster_var1"
@@ -195,7 +196,7 @@ def dml_plr_cluster_nonlinear_with_index(generate_data1, learner):
     dml_plr_obj.fit()
 
     df = data.reset_index()
-    dml_cluster_data = dml.DoubleMLClusterData(df, y_col="y", d_cols="d", x_cols=x_cols, cluster_cols="index")
+    dml_cluster_data = dml.DoubleMLData(df, y_col="y", d_cols="d", x_cols=x_cols, cluster_cols="index")
     np.random.seed(3141)
     dml_plr_cluster_obj = DoubleMLPLRWithNonLinearScoreMixin(dml_cluster_data, ml_l, ml_m, n_folds=n_folds)
     dml_plr_cluster_obj.fit()
