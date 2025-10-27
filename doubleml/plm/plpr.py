@@ -6,7 +6,6 @@ from sklearn.base import clone
 from sklearn.utils import check_X_y
 
 from ..data.base_data import DoubleMLData
-from ..data.cluster_data import DoubleMLClusterData
 from ..double_ml import DoubleML
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
@@ -182,10 +181,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     # DoubleML init check for type already?
+    # TODO: Ensure cluster usage
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLClusterData):
+        if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
-                f"The data must be of DoubleMLClusterData type. {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLData type. {str(type(obj_dml_data))} was passed."
             )
         if obj_dml_data.z_cols is not None:
             raise ValueError(
