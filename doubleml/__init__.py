@@ -13,7 +13,7 @@ from .irm.lpq import DoubleMLLPQ
 from .irm.pq import DoubleMLPQ
 from .irm.qte import DoubleMLQTE
 from .irm.ssm import DoubleMLSSM
-from doubleml.plm.logistic import DoubleMLLogit
+from doubleml.plm.lplr import DoubleMLLPLR
 
 from .plm.pliv import DoubleMLPLIV
 from .plm.plr import DoubleMLPLR
@@ -45,7 +45,7 @@ __all__ = [
     "DoubleMLBLP",
     "DoubleMLPolicyTree",
     "DoubleMLSSM",
-    "DoubleMLLogit",
+    "DoubleMLLPLR",
 ]
 
 __version__ = importlib.metadata.version("doubleml")

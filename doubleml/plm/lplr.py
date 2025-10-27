@@ -29,79 +29,64 @@ from doubleml.utils.resampling import DoubleMLDoubleResampling
 
 
 
-class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
-    """Double machine learning for partially linear regression models
+class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
+    """Double machine learning for partially logistic models (binary outcomes)
 
     Parameters
     ----------
-    obj_dml_data : :class:`DoubleMLData` object
-        The :class:`DoubleMLData` object providing the data and specifying the variables for the causal model.
-
-    ml_r : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`\\ell_0(X) = E[Y|X]`.
-
-    ml_m : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function :math:`m_0(X) = E[D|X]`.
-        For binary treatment variables :math:`D` (with values 0 and 1), a classifier implementing ``fit()`` and
-        ``predict_proba()`` can also be specified. If :py:func:`sklearn.base.is_classifier` returns ``True``,
-        ``predict_proba()`` is used otherwise ``predict()``.
-
-    ml_g : estimator implementing ``fit()`` and ``predict()``
-        A machine learner implementing ``fit()`` and ``predict()`` methods (e.g.
-        :py:class:`sklearn.ensemble.RandomForestRegressor`) for the nuisance function
-        :math:`g_0(X) = E[Y - D \\theta_0|X]`.
-        Note: The learner `ml_g` is only required for the score ``'IV-type'``. Optionally, it can be specified and
-        estimated for callable scores.
-
-    n_folds : int
-        Number of folds.
-        Default is ``5``.
-
-    n_rep : int
-        Number of repetitons for the sample splitting.
-        Default is ``1``.
-
-    score : str or callable
-        A str (``'nuisance_space'`` or ``'instrument'``) specifying the score function
-        or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
-        Default is ``'partialling out'``.
-
-    draw_sample_splitting : bool
-        Indicates whether the sample splitting should be drawn during initialization of the object.
-        Default is ``True``.
+    obj_dml_data : DoubleMLData
+        The DoubleMLData object providing the data and variable specification.
+        The outcome variable y must be binary with values {0, 1}.
+    ml_M : estimator
+        Classifier for M_0(D, X) = P[Y = 1 | D, X]. Must implement fit() and predict_proba().
+    ml_t : estimator
+        Regressor for the auxiliary regression used to predict log-odds. Must implement fit() and predict().
+    ml_m : estimator
+        Learner for m_0(X) = E[D | X]. For binary treatments a classifier with predict_proba() is expected;
+        for continuous treatments a regressor with predict() is expected.
+    ml_a : estimator, optional
+        Optional alternative learner for E[D | X]. If not provided, a clone of ml_m is used.
+        Must support the same prediction interface as ml_m.
+    n_folds : int, default=5
+        Number of outer cross-fitting folds.
+    n_folds_inner : int, default=5
+        Number of inner folds for nested resampling used internally.
+    n_rep : int, default=1
+        Number of repetitions for sample splitting.
+    score : {'nuisance_space', 'instrument'} or callable, default='nuisance_space'
+        Score to use. 'nuisance_space' estimates m on subsamples with y=0; 'instrument' uses an instrument-type score.
+    draw_sample_splitting : bool, default=True
+        Whether to draw sample splitting during initialization.
+    error_on_convergence_failure : bool, default=False
+        If True, raise an error on convergence failure of score.
 
     Examples
     --------
     >>> import numpy as np
     >>> import doubleml as dml
-    >>> from doubleml.datasets import make_plr_CCDDHNR2018
-    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> from doubleml.plm.datasets import make_lplr_LZZ2020
+    >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> from sklearn.base import clone
     >>> np.random.seed(3141)
-    >>> learner = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-    >>> ml_g = learner
-    >>> ml_m = learner
-    >>> obj_dml_data = make_plr_CCDDHNR2018(alpha=0.5, n_obs=500, dim_x=20)
-    >>> dml_plr_obj = dml.DoubleMLPLR(obj_dml_data, ml_g, ml_m)
-    >>> dml_plr_obj.fit().summary
-           coef  std err          t         P>|t|     2.5 %    97.5 %
-    d  0.462321  0.04107  11.256983  2.139582e-29  0.381826  0.542816
+    >>> ml_t = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> ml_M = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+    >>> obj_dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=500, dim_x=20)
+    >>> dml_lplr_obj = dml.DoubleMLPLR(obj_dml_data, ml_M, ml_t, ml_m)
+    >>> dml_lplr_obj.fit().summary
+           coef   std err          t         P>|t|     2.5 %    97.5 %
+    d  0.480691  0.040533  11.859129  1.929729e-32  0.401247  0.560135
 
     Notes
     -----
-    **Partially linear regression (PLR)** models take the form
+    **Partially logistic regression (PLR)** models take the form
 
     .. math::
 
-        Y = D \\theta_0 + g_0(X) + \\zeta, & &\\mathbb{E}(\\zeta | D,X) = 0,
-
-        D = m_0(X) + V, & &\\mathbb{E}(V | X) = 0,
+        Y =  \\text{expit} ( D \\theta_0 + r_0(X))
 
     where :math:`Y` is the outcome variable and :math:`D` is the policy variable of interest.
-    The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates,
-    and :math:`\\zeta` and :math:`V` are stochastic errors.
+    The high-dimensional vector :math:`X = (X_1, \\ldots, X_p)` consists of other confounding covariates.
     """
 
     def __init__(self,
@@ -122,13 +107,18 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                          n_rep,
                          score,
                          draw_sample_splitting)
+
+        # Ensure outcome only contains 0 and 1 (validate early in constructor)
+        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
+            raise TypeError("The outcome variable y must be binary with values 0 and 1.")
+
         self._error_on_convergence_failure = error_on_convergence_failure
         self._coef_bounds = (-1e-2, 1e2)
         self._coef_start_val = 1.0
 
         self._check_data(self._dml_data)
         valid_scores = ['nuisance_space', 'instrument']
-        _check_score(self.score, valid_scores, allow_callable=True)
+        _check_score(self.score, valid_scores, allow_callable=False)
 
         _ = self._check_learner(ml_t, 'ml_t', regressor=True, classifier=False)
         _ = self._check_learner(ml_M, 'ml_M', regressor=False, classifier=True)
@@ -208,7 +198,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                     res['preds'][smpls_single_split[1]] += model.predict_proba(x[smpls_single_split[1]])[:, 1]
                 else:
                     res['preds'][smpls_single_split[1]] += model.predict(x[smpls_single_split[1]])
-        res["preds_inner"]
         res["preds"] /= len(smpls)
         res['targets'] = np.copy(y)
         return res
@@ -216,7 +205,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        # TODO: How to deal with smpls_inner?
         x, y = check_X_y(self._dml_data.x, self._dml_data.y,
                          force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d,
@@ -278,9 +266,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                  'observed to be binary with values 0 and 1. Make sure that for classifiers '
                                  'probabilities and not labels are predicted.')
 
-
-
-
         if a_external:
             a_hat = {'preds': external_predictions['ml_a'],
                      'targets': None,
@@ -289,35 +274,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
             a_hat = (self._double_dml_cv_predict(self._learner['ml_a'], 'ml_a', x, d, smpls=smpls, smpls_inner=self.__smpls__inner,
                                                 n_jobs=n_jobs_cv,
                                     est_params=self._get_params('ml_a'), method=self._predict_method['ml_a']))
-
-
-        # r_legacy = np.zeros_like(y)
-        # smpls_inner = self.__smpls__inner
-        # M_hat_l = {}
-        # a_hat_l = {}
-        # M_hat_l['preds_inner'] = []
-        # M_hat_l['preds'] = np.full_like(y, np.nan)
-        # a_hat_l['preds_inner'] = []
-        # a_hat_l['preds'] = np.full_like(y, np.nan)
-        # for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
-        #     test = smpls_single_split[1]
-        #     train = smpls_single_split[0]
-        #     # r_legacy[test] =
-        #     Mleg, aleg, a_nf_leg = self.legacy_implementation(y[train], x[train], d[train], x[test], d[test],
-        #                                                       self._learner['ml_m'], self._learner['ml_M'],
-        #                                                       smpls_single_split, smpls_double_split, y, x, d,
-        #                                                       x_d_concat, n_jobs_cv)
-        #     Mtemp = np.full_like(y, np.nan)
-        #     Mtemp[train] = Mleg
-        #     Atemp = np.full_like(y, np.nan)
-        #     Atemp[train] = aleg
-        #     M_hat_l['preds_inner'].append(Mtemp)
-        #     a_hat_l['preds_inner'].append(Atemp)
-        #     a_hat_l['preds'][test] = a_nf_leg
-
-        #r_hat['preds'] = r_legacy
-
-
 
         W_inner = []
         beta = np.zeros(d.shape, dtype=float)
@@ -366,74 +322,6 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
 
         return psi_elements, preds
 
-
-    def legacy_implementation(self, Yfold: np.ndarray, Xfold: np.ndarray, Afold: np.ndarray, XnotFold: np.ndarray, AnotFold: np.ndarray,
-                    learner, learnerClassifier, smpls_single_split, smpls_double_split, yfull, xfull, afull, x_d_concat, n_jobs_cv, noFolds: int = 5, seed=None, )-> (np.ndarray, np.ndarray, np.ndarray):
-
-        def learn_predict(X, Y, Xpredict, learner, learnerClassifier, fit_args={}):
-            results = []
-            if len(np.unique(Y)) == 2:
-                learnerClassifier.fit(X, Y, **fit_args)
-                for x in Xpredict:
-                    results.append(learnerClassifier.predict_proba(x)[:, 1])
-            else:
-                learner.fit(X, Y, **fit_args)
-                for x in Xpredict:
-                    results.append(learner.predict(x))
-            return (*results,)
-
-        nFold = len(Yfold)
-        i = np.remainder(np.arange(nFold), noFolds)
-        np.random.default_rng(seed).shuffle(i)
-
-        M = np.zeros((nFold))
-        a_hat = np.zeros((nFold))
-        a_hat_notFold = np.zeros((len(XnotFold)))
-        M_notFold = np.zeros((len(XnotFold)))
-        loss = {}
-
-        a_hat_inner = _dml_cv_predict(self._learner['ml_a'], xfull, afull, smpls=smpls_double_split, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_a'), method=self._predict_method['ml_a'],
-                                    return_models=True, smpls_is_partition=True)
-        _check_finite_predictions(a_hat_inner['preds'], self._learner['ml_a'], 'ml_a', smpls_double_split)
-        a_hat_notFold = np.full_like(yfull, 0.)
-        for model in a_hat_inner['models']:
-            if self._predict_method['ml_a'] == 'predict_proba':
-                a_hat_notFold[smpls_single_split[1]] += model.predict_proba(xfull[smpls_single_split[1]])[:, 1]
-            else:
-                a_hat_notFold[smpls_single_split[1]] += model.predict(xfull[smpls_single_split[1]])
-
-        M_hat = _dml_cv_predict(self._learner['ml_M'], x_d_concat, yfull, smpls=smpls_double_split, n_jobs=n_jobs_cv,
-                                    est_params=self._get_params('ml_M'), method=self._predict_method['ml_M'],
-                                    return_models=True, smpls_is_partition=True)
-        _check_finite_predictions(M_hat['preds'], self._learner['ml_M'], 'ml_M', smpls_double_split)
-
-        M = M_hat['preds'][~np.isnan(M_hat['preds'])]
-        a_hat = a_hat_inner['preds'][~np.isnan(a_hat_inner['preds'])]
-        a_hat_notFold = a_hat_notFold[smpls_single_split[1]]
-
-        np.clip(M, 1e-8, 1 - 1e-8, out=M)
-#        loss["M"] = compute_loss(Yfold, M)
-#        loss["a_hat"] = compute_loss(Afold, a_hat)
-        a_hat_notFold /= noFolds
-      #  M_notFold /= noFolds
-        np.clip(M_notFold, 1e-8, 1 - 1e-8, out=M_notFold)
-
-        # Obtain preliminary estimate of beta based on M and residual of a
-        W = scipy.special.logit(M)
-        A_resid = Afold - a_hat
-        beta_notFold = sum(A_resid * W) / sum(A_resid ** 2)
-    #    print(beta_notFold)
-        t_notFold, = learn_predict(Xfold, W, [XnotFold], learner, learnerClassifier)
-        W_notFold = scipy.special.expit(M_notFold)
-#        loss["t"] = compute_loss(W_notFold, t_notFold)
-
-
-        # Compute r based on estimates for W=logit(M), beta and residual of A
-        r_notFold = t_notFold - beta_notFold * a_hat_notFold
-
-        return M, a_hat, a_hat_notFold #r_notFold #, a_hat_notFold, M_notFold, t_notFold
-
     def _score_elements(self, y, d, r_hat, m_hat):
         # compute residual
         d_tilde = d - m_hat
@@ -470,12 +358,11 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
                                self._learner['ml_M'], param_grids['ml_M'], scoring_methods['ml_M'],
                                n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search)
 
+        filtered_train_inds = []
         if self.score == 'nuisance_space':
-            filtered_smpls = []
             for train, test in smpls:
                 train_filtered = train[y[train] == 0]
-                filtered_smpls.append(train_filtered)
-            filtered_train_inds = [train_index for (train_index, _) in smpls]
+                filtered_train_inds.append(train_filtered)
         elif self.score == 'instrument':
             filtered_train_inds = train_inds
         else:
@@ -553,7 +440,7 @@ class DoubleMLLogit(NonLinearScoreMixin, DoubleML):
         return self
 
     def set_sample_splitting(self):
-        raise NotImplementedError('set_sample_splitting is not implemented for DoubleMLLogit.')
+        raise NotImplementedError('set_sample_splitting is not implemented for DoubleMLLPLR.')
 
     def _compute_score(self, psi_elements, coef):
 

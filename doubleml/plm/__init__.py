@@ -4,9 +4,10 @@ The :mod:`doubleml.plm` module implements double machine learning estimates base
 
 from .pliv import DoubleMLPLIV
 from .plr import DoubleMLPLR
+from .lplr import DoubleMLLPLR
 
 __all__ = [
     "DoubleMLPLR",
     "DoubleMLPLIV",
-    "DoubleMLLogit"
+    "DoubleMLLPLR"
 ]
