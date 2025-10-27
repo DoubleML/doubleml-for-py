@@ -585,12 +585,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         # construct framework for inference
         self._framework = self.construct_framework()
 
-
-
-
-
-
-
         return self
 
     def construct_framework(self):
