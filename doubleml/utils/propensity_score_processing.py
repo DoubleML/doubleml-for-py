@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from sklearn.isotonic import IsotonicRegression
@@ -131,7 +131,7 @@ class PSProcessor:
         self,
         propensity_scores: np.ndarray,
         treatment: np.ndarray,
-        cv: Optional[int | list] = None,
+        cv: Optional[Union[int, list]] = None,
         learner_name: Optional[str] = None,
     ) -> np.ndarray:
         """
