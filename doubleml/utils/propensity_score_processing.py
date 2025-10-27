@@ -171,7 +171,7 @@ class PSProcessor:
         self,
         propensity_scores: np.ndarray,
         treatment: np.ndarray,
-        cv: Optional[int | list] = None,
+        cv: Optional[Union[int, list]] = None,
     ) -> np.ndarray:
         """Apply calibration method to propensity scores if specified."""
         if self.calibration_method is None:
