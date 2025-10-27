@@ -7,6 +7,7 @@ from sklearn.linear_model import Lasso, LogisticRegression
 from doubleml import DoubleMLSSM
 from doubleml.data.base_data import DoubleMLBaseData
 from doubleml.irm.datasets import make_ssm_data
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 np.random.seed(3141)
 n = 100
@@ -184,7 +185,7 @@ class _DummyNoGetParams(_DummyNoSetParams):
         pass
 
 
-class _DummyNoClassifier(_DummyNoGetParams):
+class _DummyNoClassifier(_DummyNoGetParams, BaseEstimator):
     def get_params(self):
         pass
 
@@ -291,7 +292,7 @@ def test_double_ml_exception_evaluate_learner():
         ml_g=Lasso(),
         ml_pi=LogisticRegression(),
         ml_m=LogisticRegression(),
-        trimming_threshold=0.05,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
         n_folds=5,
         score="missing-at-random",
     )
