@@ -66,9 +66,10 @@ class PSProcessor:
     Examples
     --------
     >>> import numpy as np
+    >>> from doubleml.utils import PSProcessor
     >>> ps = np.array([0.001, 0.2, 0.5, 0.8, 0.999])
     >>> treatment = np.array([0, 1, 1, 0, 1])
-    >>> processor = PropensityScoreProcessor(clipping_threshold=0.01)
+    >>> processor = PSProcessor(clipping_threshold=0.01)
     >>> adjusted = processor.adjust_ps(ps, treatment)
     >>> print(np.round(adjusted, 3))
     [0.01 0.2  0.5  0.8  0.99]
