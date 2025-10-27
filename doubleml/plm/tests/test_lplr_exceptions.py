@@ -6,7 +6,6 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 from doubleml import DoubleMLLPLR
-from doubleml.data.base_data import DoubleMLBaseData, DoubleMLData
 from doubleml.plm.datasets import make_lplr_LZZ2020
 
 np.random.seed(3141)
@@ -18,6 +17,7 @@ ml_t = RandomForestRegressor()
 ml_m = RandomForestRegressor()
 dml_lplr = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m)
 dml_lplr_instrument = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="instrument")
+
 
 @pytest.mark.ci
 def test_lplr_exception_data():
@@ -44,6 +44,7 @@ def test_lplr_exception_scores():
     msg = "score should be string. 0 was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score=0)
+
 
 @pytest.mark.ci
 def test_ssm_exception_resampling():
@@ -74,6 +75,7 @@ def test_lplr_exception_get_params():
     with pytest.raises(ValueError, match=msg):
         dml_lplr.get_params("ml_x")
 
+
 @pytest.mark.ci
 def test_lplr_exception_smpls():
     msg = (
@@ -83,6 +85,7 @@ def test_lplr_exception_smpls():
     dml_plr_no_smpls = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, draw_sample_splitting=False)
     with pytest.raises(ValueError, match=msg):
         _ = dml_plr_no_smpls.smpls
+
 
 @pytest.mark.ci
 def test_lplr_exception_fit():
@@ -95,6 +98,7 @@ def test_lplr_exception_fit():
     msg = "store_models must be True or False. Got 1."
     with pytest.raises(TypeError, match=msg):
         dml_lplr.fit(store_models=1)
+
 
 @pytest.mark.ci
 def test_lplr_exception_bootstrap():

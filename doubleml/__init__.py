@@ -13,11 +13,9 @@ from .irm.lpq import DoubleMLLPQ
 from .irm.pq import DoubleMLPQ
 from .irm.qte import DoubleMLQTE
 from .irm.ssm import DoubleMLSSM
-from doubleml.plm.lplr import DoubleMLLPLR
-
+from .plm.lplr import DoubleMLLPLR
 from .plm.pliv import DoubleMLPLIV
 from .plm.plr import DoubleMLPLR
-from .logistic.logistic import DoubleMLLogit
 from .utils.blp import DoubleMLBLP
 from .utils.policytree import DoubleMLPolicyTree
 

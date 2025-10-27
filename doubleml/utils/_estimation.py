@@ -43,9 +43,19 @@ def _fit(estimator, x, y, train_index, idx=None):
     return estimator, idx
 
 
-def _dml_cv_predict(estimator, x, y, smpls=None,
-                    n_jobs=None, est_params=None, method='predict', return_train_preds=False, return_models=False,
-                    smpls_is_partition=None, sample_weights=None):
+def _dml_cv_predict(
+    estimator,
+    x,
+    y,
+    smpls=None,
+    n_jobs=None,
+    est_params=None,
+    method="predict",
+    return_train_preds=False,
+    return_models=False,
+    smpls_is_partition=None,
+    sample_weights=None,
+):
     n_obs = x.shape[0]
 
     # TODO: Better name for smples_is_partition
@@ -53,9 +63,15 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
         smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
-    manual_cv_predict = (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target \
-                        | return_models | bool(sample_weights)
-    #TODO: Check if cross_val_predict supports weights
+    manual_cv_predict = (
+        (not smpls_is_partition)
+        | return_train_preds
+        | fold_specific_params
+        | fold_specific_target
+        | return_models
+        | bool(sample_weights)
+    )
+    # TODO: Check if cross_val_predict supports weights
 
     res = {"models": None}
     if not manual_cv_predict:
@@ -149,21 +165,34 @@ def _dml_cv_predict(estimator, x, y, smpls=None,
     return res
 
 
-def _dml_tune(y, x, train_inds,
-              learner, param_grid, scoring_method,
-              n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search, fold_specific_target=False):
+def _dml_tune(
+    y,
+    x,
+    train_inds,
+    learner,
+    param_grid,
+    scoring_method,
+    n_folds_tune,
+    n_jobs_cv,
+    search_mode,
+    n_iter_randomized_search,
+    fold_specific_target=False,
+):
     tune_res = list()
     for i, train_index in enumerate(train_inds):
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         if search_mode == "grid_search":
             g_grid_search = GridSearchCV(learner, param_grid, scoring=scoring_method, cv=tune_resampling, n_jobs=n_jobs_cv)
         else:
-            assert search_mode == 'randomized_search'
-            g_grid_search = RandomizedSearchCV(learner, param_grid,
-                                               scoring=scoring_method,
-                                               cv=tune_resampling,
-                                               n_jobs=n_jobs_cv,
-                                               n_iter=n_iter_randomized_search)
+            assert search_mode == "randomized_search"
+            g_grid_search = RandomizedSearchCV(
+                learner,
+                param_grid,
+                scoring=scoring_method,
+                cv=tune_resampling,
+                n_jobs=n_jobs_cv,
+                n_iter=n_iter_randomized_search,
+            )
         if fold_specific_target:
             tune_res.append(g_grid_search.fit(x[train_index, :], y[i]))
         else:

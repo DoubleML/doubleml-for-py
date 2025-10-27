@@ -150,10 +150,12 @@ class NonLinearScoreMixin:
             theta_hat = root_res.root
             if not root_res.converged:
                 score_val = score(theta_hat)
-                msg = ('Could not find a root of the score function.\n '
-                              f'Flag: {root_res.flag}.\n'
-                              f'Score value found is {score_val} '
-                              f'for parameter theta equal to {theta_hat}.')
+                msg = (
+                    "Could not find a root of the score function.\n "
+                    f"Flag: {root_res.flag}.\n"
+                    f"Score value found is {score_val} "
+                    f"for parameter theta equal to {theta_hat}."
+                )
                 if self._error_on_convergence_failure:
                     raise ValueError(msg)
                 else:
@@ -185,15 +187,16 @@ class NonLinearScoreMixin:
                 else:
                     score_val_sign = np.sign(score(alt_coef_start))
                     if score_val_sign > 0:
-
                         theta_hat_array, score_val, _ = fmin_l_bfgs_b(
                             score, self._coef_start_val, approx_grad=True, bounds=[self._coef_bounds]
                         )
                         theta_hat = theta_hat_array.item()
-                        msg = ('Could not find a root of the score function.\n '
-                                      f'Minimum score value found is {score_val} '
-                                      f'for parameter theta equal to {theta_hat}.\n '
-                                      'No theta found such that the score function evaluates to a negative value.')
+                        msg = (
+                            "Could not find a root of the score function.\n "
+                            f"Minimum score value found is {score_val} "
+                            f"for parameter theta equal to {theta_hat}.\n "
+                            "No theta found such that the score function evaluates to a negative value."
+                        )
                         if self._error_on_convergence_failure:
                             raise ValueError(msg)
                         else:
@@ -208,10 +211,12 @@ class NonLinearScoreMixin:
                             neg_score, self._coef_start_val, approx_grad=True, bounds=[self._coef_bounds]
                         )
                         theta_hat = theta_hat_array.item()
-                        msg = ('Could not find a root of the score function. '
-                                      f'Maximum score value found is {-1*neg_score_val} '
-                                      f'for parameter theta equal to {theta_hat}. '
-                                      'No theta found such that the score function evaluates to a positive value.')
+                        msg = (
+                            "Could not find a root of the score function. "
+                            f"Maximum score value found is {-1 * neg_score_val} "
+                            f"for parameter theta equal to {theta_hat}. "
+                            "No theta found such that the score function evaluates to a positive value."
+                        )
                         if self._error_on_convergence_failure:
                             raise ValueError(msg)
                         else:

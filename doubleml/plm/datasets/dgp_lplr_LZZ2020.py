@@ -9,28 +9,32 @@ _array_alias = _get_array_alias()
 _data_frame_alias = _get_data_frame_alias()
 _dml_data_alias = _get_dml_data_alias()
 
-def make_lplr_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData', balanced_r0=True, treatment="continuous", **kwargs):
-    """
+
+def make_lplr_LZZ2020(
+    n_obs=500, dim_x=20, alpha=0.5, return_type="DoubleMLData", balanced_r0=True, treatment="continuous", **kwargs
+):
+    r"""
     Generates synthetic data for a logistic partially linear regression model, as in Liu et al. (2021),
     designed for use in double/debiased machine learning applications.
 
     The data generating process is defined as follows:
 
-    - Covariates \( x_i \sim \mathcal{N}(0, \Sigma) \), where \( \Sigma_{kj} = 0.7^{|j-k|} \).
-    - Treatment \( d_i = a_0(x_i) \).
-    - Propensity score \( p_i = \sigma(\alpha d_i + r_0(x_i)) \), where \( \sigma(\cdot) \) is the logistic function.
-    - Outcome \( y_i \sim \text{Bernoulli}(p_i) \).
+    - Covariates :math:`x_i \sim \mathcal{N}(0, \Sigma)`, where :math:`\Sigma_{kj} = 0.7^{|j-k|}`.
+    - Treatment :math:`d_i = a_0(x_i)`.
+    - Propensity score :math:`p_i = \sigma(\alpha d_i + r_0(x_i))`, where :math:`\sigma(\cdot)` is the logistic function.
+    - Outcome :math:`y_i \sim \text{Bernoulli}(p_i)`.
 
     The nuisance functions are defined as:
 
     .. math::
-
+        \begin{aligned}
         a_0(x_i) &= \frac{2}{1 + \exp(x_{i,1})} - \frac{2}{1 + \exp(x_{i,2})} + \sin(x_{i,3}) + \cos(x_{i,4}) \\
-        &+ 0.5 \cdot \mathbb{1}(x_{i,5} > 0) - 0.5 \cdot \mathbb{1}(x_{i,6} > 0) + 0.2 x_{i,7} x_{i,8} - 0.2 x_{i,9} x_{i,10} \\
-
-        r_0(x_i) &= 0.1 x_{i,1} x_{i,2} x_{i,3} + 0.1 x_{i,4} x_{i,5} + 0.1 x_{i,6}^3 - 0.5 \sin^2(x_{i,7}) \\
-        &+ 0.5 \cos(x_{i,8}) + \frac{1}{1 + x_{i,9}^2} - \frac{1}{1 + \exp(x_{i,10})} \\
-        &+ 0.25 \cdot \mathbb{1}(x_{i,11} > 0) - 0.25 \cdot \mathbb{1}(x_{i,13} > 0)
+                 &\quad + 0.5 \cdot \mathbb{1}(x_{i,5} > 0) - 0.5 \cdot \mathbb{1}(x_{i,6} > 0) + 0.2\, x_{i,7} x_{i,8}
+                 - 0.2\, x_{i,9} x_{i,10} \\
+        r_0(x_i) &= 0.1\, x_{i,1} x_{i,2} x_{i,3} + 0.1\, x_{i,4} x_{i,5} + 0.1\, x_{i,6}^3 - 0.5 \sin^2(x_{i,7}) \\
+                 &\quad + 0.5 \cos(x_{i,8}) + \frac{1}{1 + x_{i,9}^2} - \frac{1}{1 + \exp(x_{i,10})} \\
+                 &\quad + 0.25 \cdot \mathbb{1}(x_{i,11} > 0) - 0.25 \cdot \mathbb{1}(x_{i,13} > 0)
+        \end{aligned}
 
     Parameters
     ----------
@@ -73,38 +77,45 @@ def make_lplr_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData'
     """
 
     if balanced_r0:
+
         def r_0(X):
-            return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
-                0.1 * X[:, 3] * X[:, 4] + \
-                0.1 * X[:, 5] ** 3 + \
-                -0.5 * np.sin(X[:, 6]) ** 2 + \
-                0.5 * np.cos(X[:, 7]) + \
-                1 / (1 + X[:, 8] ** 2) + \
-                -1 / (1 + np.exp(X[:, 9])) + \
-                0.25 * np.where(X[:, 10] > 0, 1, 0) + \
-                -0.25 * np.where(X[:, 12] > 0, 1, 0)
+            return (
+                0.1 * X[:, 0] * X[:, 1] * X[:, 2]
+                + 0.1 * X[:, 3] * X[:, 4]
+                + 0.1 * X[:, 5] ** 3
+                + -0.5 * np.sin(X[:, 6]) ** 2
+                + 0.5 * np.cos(X[:, 7])
+                + 1 / (1 + X[:, 8] ** 2)
+                + -1 / (1 + np.exp(X[:, 9]))
+                + 0.25 * np.where(X[:, 10] > 0, 1, 0)
+                + -0.25 * np.where(X[:, 12] > 0, 1, 0)
+            )
     else:
+
         def r_0(X):
-            return 0.1 * X[:, 0] * X[:, 1] * X[:, 2] + \
-                0.1 * X[:, 3] * X[:, 4] + \
-                0.1 * X[:, 5] ** 3 + \
-                -0.5 * np.sin(X[:, 6]) ** 2 + \
-                0.5 * np.cos(X[:, 7]) + \
-                4 / (1 + X[:, 8] ** 2) + \
-                -1 / (1 + np.exp(X[:, 9])) + \
-                1.5 * np.where(X[:, 10] > 0, 1, 0) + \
-                -0.25 * np.where(X[:, 12] > 0, 1, 0)
+            return (
+                0.1 * X[:, 0] * X[:, 1] * X[:, 2]
+                + 0.1 * X[:, 3] * X[:, 4]
+                + 0.1 * X[:, 5] ** 3
+                + -0.5 * np.sin(X[:, 6]) ** 2
+                + 0.5 * np.cos(X[:, 7])
+                + 4 / (1 + X[:, 8] ** 2)
+                + -1 / (1 + np.exp(X[:, 9]))
+                + 1.5 * np.where(X[:, 10] > 0, 1, 0)
+                + -0.25 * np.where(X[:, 12] > 0, 1, 0)
+            )
 
     def a_0(X):
-        return 2 / (1 + np.exp(X[:, 0])) + \
-            -2 / (1 + np.exp(X[:, 1])) + \
-            1 * np.sin(X[:, 2]) + \
-            1 * np.cos(X[:, 3]) + \
-            0.5 * np.where(X[:, 4] > 0, 1, 0) + \
-            -0.5 * np.where(X[:, 5] > 0, 1, 0) + \
-            0.2 * X[:, 6] * X[:, 7] + \
-            -0.2 * X[:, 8] * X[:, 9]
-
+        return (
+            2 / (1 + np.exp(X[:, 0]))
+            + -2 / (1 + np.exp(X[:, 1]))
+            + 1 * np.sin(X[:, 2])
+            + 1 * np.cos(X[:, 3])
+            + 0.5 * np.where(X[:, 4] > 0, 1, 0)
+            + -0.5 * np.where(X[:, 5] > 0, 1, 0)
+            + 0.2 * X[:, 6] * X[:, 7]
+            + -0.2 * X[:, 8] * X[:, 9]
+        )
 
     sigma = np.full((dim_x, dim_x), 0.2)
     np.fill_diagonal(sigma, 1)
@@ -128,12 +139,11 @@ def make_lplr_LZZ2020(n_obs=500, dim_x=20, alpha=0.5, return_type='DoubleMLData'
     if return_type in _array_alias:
         return x, y, d, p
     elif return_type in _data_frame_alias + _dml_data_alias:
-        x_cols = [f'X{i + 1}' for i in np.arange(dim_x)]
-        data = pd.DataFrame(np.column_stack((x, y, d, p)),
-                            columns=x_cols + ['y', 'd', 'p'])
+        x_cols = [f"X{i + 1}" for i in np.arange(dim_x)]
+        data = pd.DataFrame(np.column_stack((x, y, d, p)), columns=x_cols + ["y", "d", "p"])
         if return_type in _data_frame_alias:
             return data
         else:
-            return DoubleMLData(data, 'y', 'd', x_cols)
+            return DoubleMLData(data, "y", "d", x_cols)
     else:
-        raise ValueError('Invalid return_type.')
+        raise ValueError("Invalid return_type.")

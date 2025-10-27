@@ -297,7 +297,6 @@ def tune_nuisance_ssm_mar(y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, n_folds_tune,
 def tune_nuisance_ssm_nonignorable(
     y, x, d, z, s, ml_g, ml_pi, ml_m, smpls, n_folds_tune, param_grid_g, param_grid_pi, param_grid_m
 ):
-
     train_inds = [tr for (tr, _) in smpls]
 
     inner0_list, inner1_list = [], []

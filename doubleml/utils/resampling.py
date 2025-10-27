@@ -26,12 +26,7 @@ class DoubleMLResampling:
 
 
 class DoubleMLDoubleResampling:
-    def __init__(self,
-                 n_folds,
-                 n_folds_inner,
-                 n_rep,
-                 n_obs,
-                 stratify=None):
+    def __init__(self, n_folds, n_folds_inner, n_rep, n_obs, stratify=None):
         self.n_folds = n_folds
         self.n_folds_inner = n_folds_inner
         self.n_rep = n_rep
@@ -39,12 +34,13 @@ class DoubleMLDoubleResampling:
         self.stratify = stratify
 
         if n_folds < 2:
-            raise ValueError('n_folds must be greater than 1. '
-                             'You can use set_sample_splitting with a tuple to only use one fold.')
+            raise ValueError(
+                "n_folds must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold."
+            )
         if n_folds_inner < 2:
-            raise ValueError('n_folds_inner must be greater than 1. '
-                             'You can use set_sample_splitting with a tuple to only use one fold.')
-
+            raise ValueError(
+                "n_folds_inner must be greater than 1. You can use set_sample_splitting with a tuple to only use one fold."
+            )
 
         if self.stratify is None:
             self.resampling = RepeatedKFold(n_splits=n_folds, n_repeats=n_rep)
@@ -55,17 +51,27 @@ class DoubleMLDoubleResampling:
 
     def split_samples(self):
         all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
-        smpls = [all_smpls[(i_repeat * self.n_folds):((i_repeat + 1) * self.n_folds)]
-                 for i_repeat in range(self.n_rep)]
+        smpls = [all_smpls[(i_repeat * self.n_folds) : ((i_repeat + 1) * self.n_folds)] for i_repeat in range(self.n_rep)]
         smpls_inner = []
         for _ in range(self.n_rep):
             smpls_inner_rep = []
             for train, test in all_smpls:
                 if self.stratify is None:
-                    smpls_inner_rep.append([(train[train_inner], train[test_inner]) for train_inner, test_inner in self.resampling_inner.split(X=train)])
+                    smpls_inner_rep.append(
+                        [
+                            (train[train_inner], train[test_inner])
+                            for train_inner, test_inner in self.resampling_inner.split(X=train)
+                        ]
+                    )
                 else:
-                    smpls_inner_rep.append([(train[train_inner], train[test_inner]) for train_inner, test_inner in
-                                            self.resampling_inner.split(X=np.zeros(len(train)), y=self.stratify[train])])
+                    smpls_inner_rep.append(
+                        [
+                            (train[train_inner], train[test_inner])
+                            for train_inner, test_inner in self.resampling_inner.split(
+                                X=np.zeros(len(train)), y=self.stratify[train]
+                            )
+                        ]
+                    )
             smpls_inner.append(smpls_inner_rep)
 
         return smpls, smpls_inner
