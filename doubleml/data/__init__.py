@@ -11,6 +11,7 @@ from .rdd_data import DoubleMLRDDData
 from .ssm_data import DoubleMLSSMData
 
 
+# TODO: Remove DoubleMLClusterData with version 0.12.0
 class DoubleMLClusterData(DoubleMLData):
     """
     Backwards compatibility wrapper for DoubleMLData with cluster_cols.

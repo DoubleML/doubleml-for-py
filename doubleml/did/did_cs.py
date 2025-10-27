@@ -11,6 +11,7 @@ from doubleml.utils._checks import _check_finite_predictions, _check_is_propensi
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d
 
 
+# TODO: Remove DoubleMLDIDData with version 0.12.0
 class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
     """Double machine learning for difference-in-difference with repeated cross-sections.
 
@@ -85,6 +86,11 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
         clipping_threshold=1e-2,
         draw_sample_splitting=True,
     ):
+        warnings.warn(
+            "DoubleMLDIDCS is deprecated and will be removed with version 0.12.0. " "Please use DoubleMLDIDCSBinary instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
