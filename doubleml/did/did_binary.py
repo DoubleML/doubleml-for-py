@@ -531,6 +531,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                     method=self._predict_method["ml_m"],
                     return_models=return_models,
                 )
+
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
             m_hat["preds"] = self._ps_processor.adjust_ps(m_hat["preds"], d, cv=smpls, learner_name="ml_m")
 

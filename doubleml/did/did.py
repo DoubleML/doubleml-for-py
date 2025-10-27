@@ -150,7 +150,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
     @property
     def clipping_threshold(self):
         """
-        Specifies the used trimming threshold.
+        Specifies the used clipping threshold.
         """
         return self._clipping_threshold
 
@@ -254,6 +254,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                     method=self._predict_method["ml_m"],
                     return_models=return_models,
                 )
+
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
             _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
             m_hat["preds"] = np.clip(m_hat["preds"], self.clipping_threshold, 1 - self.clipping_threshold)

@@ -362,7 +362,7 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             )
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
 
-        m_hat["preds"] = self._ps_processor.adjust_ps(m_hat["preds"], d, cv=smpls)
+        m_hat["preds"] = self._ps_processor.adjust_ps(m_hat["preds"], d, cv=smpls, learner_name="ml_m")
 
         psi_a, psi_b = self._score_elements(y, d, g_hat0["preds"], g_hat1["preds"], m_hat["preds"], smpls)
         psi_elements = {"psi_a": psi_a, "psi_b": psi_b}
