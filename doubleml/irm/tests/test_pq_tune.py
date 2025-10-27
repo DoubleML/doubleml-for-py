@@ -73,7 +73,7 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
         n_folds=n_folds,
         n_rep=1,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=0.01,
+        ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=0.01),
         draw_sample_splitting=False,
     )
 
@@ -132,7 +132,7 @@ def dml_pq_fixture(generate_data_quantiles, treatment, quantile, learner_g, lear
         all_smpls=all_smpls,
         treatment=treatment,
         n_rep=1,
-        trimming_threshold=0.01,
+        clipping_threshold=0.01,
         normalize_ipw=normalize_ipw,
         g_params=g_params,
         m_params=m_params,

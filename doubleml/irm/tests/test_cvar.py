@@ -42,12 +42,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.01, 0.05])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner, normalize_ipw, trimming_threshold):
+def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner, normalize_ipw, clipping_threshold):
     n_folds = 3
 
     # Set machine learning methods for m & g
@@ -71,7 +71,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner, norm
         n_folds=n_folds,
         n_rep=1,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         draw_sample_splitting=False,
     )
 
@@ -91,7 +91,7 @@ def dml_cvar_fixture(generate_data_quantiles, treatment, quantile, learner, norm
         treatment,
         normalize_ipw=normalize_ipw,
         n_rep=1,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {

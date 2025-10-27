@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data, make_irm_data_discrete_treatments
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import boot_apo, fit_apo, fit_sensitivity_elements_apo
@@ -34,7 +35,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -44,7 +45,7 @@ def treatment_level(request):
 
 
 @pytest.fixture(scope="module")
-def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level):
+def dml_apo_fixture(learner, normalize_ipw, clipping_threshold, treatment_level):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -76,7 +77,7 @@ def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level)
         score="APO",
         normalize_ipw=normalize_ipw,
         draw_sample_splitting=False,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
     )
 
     # synchronize the sample splitting
@@ -94,7 +95,7 @@ def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level)
         all_smpls=all_smpls,
         score="APO",
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     np.random.seed(3141)
@@ -108,7 +109,7 @@ def dml_apo_fixture(learner, normalize_ipw, trimming_threshold, treatment_level)
         score="APO",
         normalize_ipw=normalize_ipw,
         draw_sample_splitting=False,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
     )
 
     # synchronize the sample splitting
@@ -242,7 +243,12 @@ def test_dml_apo_capo_gapo(treatment_level, cov_type):
     ml_m = RandomForestClassifier(n_estimators=10)
 
     dml_obj = dml.DoubleMLAPO(
-        obj_dml_data, ml_m=ml_m, ml_g=ml_g, treatment_level=treatment_level, trimming_threshold=0.05, n_folds=5
+        obj_dml_data,
+        ml_m=ml_m,
+        ml_g=ml_g,
+        treatment_level=treatment_level,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
     )
 
     dml_obj.fit()

@@ -1,4 +1,5 @@
 import io
+import warnings
 
 import pandas as pd
 from sklearn.utils import assert_all_finite
@@ -7,6 +8,7 @@ from sklearn.utils.validation import check_consistent_length, column_or_1d
 from doubleml.data.base_data import DoubleMLData
 
 
+# TODO: Remove DoubleMLDIDData with version 0.12.0
 class DoubleMLDIDData(DoubleMLData):
     """Double machine learning data-backend for Difference-in-Differences models.
 
@@ -81,7 +83,13 @@ class DoubleMLDIDData(DoubleMLData):
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         force_all_d_finite=True,
-    ):  # Initialize _t_col to None first to avoid AttributeError during parent init
+    ):
+        warnings.warn(
+            "DoubleMLDIDData is deprecated and will be removed with version 0.12.0." "Use DoubleMLPanelData instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        # Initialize _t_col to None first to avoid AttributeError during parent init
         self._t_col = None
 
         # Store whether x_cols was originally None to reset it later

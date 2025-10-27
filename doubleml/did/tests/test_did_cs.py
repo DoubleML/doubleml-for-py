@@ -38,12 +38,12 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope="module", params=[0.1])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normalization, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -70,7 +70,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
         score=score,
         in_sample_normalization=in_sample_normalization,
         draw_sample_splitting=False,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     # synchronize the sample splitting
@@ -88,7 +88,7 @@ def dml_did_cs_fixture(generate_data_did_cs, learner, score, in_sample_normaliza
         all_smpls,
         score,
         in_sample_normalization,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {

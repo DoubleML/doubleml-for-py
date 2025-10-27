@@ -60,22 +60,6 @@ def test_apos_exception_scores():
 
 
 @pytest.mark.ci
-def test_apos_exception_trimming_rule():
-    msg = "Invalid trimming_rule discard. Valid trimming_rule truncate."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0, trimming_rule="discard")
-
-    # check the trimming_threshold exceptions
-    msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0, trimming_rule="truncate", trimming_threshold="0.1")
-
-    msg = "Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLAPOS(dml_data, ml_g, ml_m, treatment_levels=0, trimming_rule="truncate", trimming_threshold=0.6)
-
-
-@pytest.mark.ci
 def test_apos_exception_ipw_normalization():
     msg = "Normalization indicator has to be boolean. Object of type <class 'int'> passed."
     with pytest.raises(TypeError, match=msg):

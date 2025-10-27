@@ -30,7 +30,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.01])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -47,7 +47,7 @@ def subgroups(request):
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw, trimming_threshold, subgroups):
+def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw, clipping_threshold, subgroups):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 491
@@ -73,9 +73,10 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw
         ml_m,
         ml_r,
         n_folds,
+        score=score,
         subgroups=subgroups,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         draw_sample_splitting=False,
     )
     # synchronize the sample splitting
@@ -99,7 +100,7 @@ def dml_iivm_subgroups_fixture(generate_data_iivm, learner, score, normalize_ipw
         all_smpls,
         score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
         always_takers=subgroups["always_takers"],
         never_takers=subgroups["never_takers"],
     )

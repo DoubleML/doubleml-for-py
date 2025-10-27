@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 import doubleml as dml
 from doubleml.did.datasets import make_did_CS2021
 from doubleml.did.utils._did_utils import _get_id_positions
+from doubleml.utils import PSProcessorConfig
 
 
 @pytest.fixture(
@@ -36,7 +37,7 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope="module", params=[0.1])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -46,7 +47,7 @@ def time_type(request):
 
 
 @pytest.fixture(scope="module")
-def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normalization, clipping_threshold):
     n_obs = 500
     dpg = 1
 
@@ -65,7 +66,6 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
         "n_folds": 3,
         "score": score,
         "in_sample_normalization": in_sample_normalization,
-        "trimming_threshold": trimming_threshold,
         "draw_sample_splitting": True,
     }
 
@@ -74,6 +74,7 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
         g_value=dml_panel_data.g_values[0],
         t_value_pre=dml_panel_data.t_values[0],
         t_value_eval=dml_panel_data.t_values[1],
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
         **dml_args,
     )
     dml_did_binary_obj.fit()
@@ -82,6 +83,7 @@ def dml_did_binary_vs_did_fixture(time_type, learner, score, in_sample_normaliza
     dml_data = dml.data.DoubleMLDIDData(df_wide, y_col="y_diff", d_cols="G_indicator", x_cols=["Z1", "Z2", "Z3", "Z4"])
     dml_did_obj = dml.DoubleMLDID(
         dml_data,
+        clipping_threshold=clipping_threshold,
         **dml_args,
     )
 

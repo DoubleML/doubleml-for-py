@@ -62,22 +62,6 @@ def test_input():
         invalid_arguments = {"score": "test"}
         _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
 
-    # trimming
-    msg = "Invalid trimming_rule discard. Valid trimming_rule truncate."
-    with pytest.raises(ValueError, match=msg):
-        invalid_arguments = {"trimming_rule": "discard"}
-        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
-
-    msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        invalid_arguments = {"trimming_threshold": "test"}
-        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
-
-    msg = "Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5."
-    with pytest.raises(ValueError, match=msg):
-        invalid_arguments = {"trimming_threshold": 0.6}
-        _ = dml.did.DoubleMLDIDMulti(**(valid_arguments | invalid_arguments))
-
 
 @pytest.mark.ci
 def test_exception_learners():

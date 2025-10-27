@@ -21,7 +21,7 @@ def fit_did_cs(
     g_d1_t0_params=None,
     g_d1_t1_params=None,
     m_params=None,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
 ):
     n_obs = len(y)
 
@@ -54,7 +54,7 @@ def fit_did_cs(
                 g_d1_t0_params=g_d1_t0_params,
                 g_d1_t1_params=g_d1_t1_params,
                 m_params=m_params,
-                trimming_threshold=trimming_threshold,
+                clipping_threshold=clipping_threshold,
             )
         )
 
@@ -149,7 +149,7 @@ def fit_nuisance_did_cs(
     g_d1_t0_params=None,
     g_d1_t1_params=None,
     m_params=None,
-    trimming_threshold=1e-12,
+    clipping_threshold=1e-12,
 ):
     ml_g_d0_t0 = clone(learner_g)
     ml_g_d0_t1 = clone(learner_g)
@@ -169,7 +169,7 @@ def fit_nuisance_did_cs(
     g_hat_d1_t1_list = fit_predict(y, x, ml_g_d1_t1, g_d1_t1_params, smpls, train_cond=train_cond_d1_t1)
     if score == "observational":
         ml_m = clone(learner_m)
-        m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls, trimming_threshold=trimming_threshold)
+        m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls, clipping_threshold=clipping_threshold)
     else:
         assert score == "experimental"
         m_hat_list = list()

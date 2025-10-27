@@ -18,7 +18,7 @@ def fit_cvar(
     treatment,
     normalize_ipw=True,
     n_rep=1,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     g_params=None,
     m_params=None,
 ):
@@ -40,7 +40,7 @@ def fit_cvar(
             smpls,
             treatment,
             normalize_ipw=normalize_ipw,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
             g_params=g_params,
             m_params=m_params,
         )
@@ -56,7 +56,7 @@ def fit_cvar(
 
 
 def fit_nuisance_cvar(
-    y, x, d, quantile, learner_g, learner_m, smpls, treatment, normalize_ipw, trimming_threshold, g_params, m_params
+    y, x, d, quantile, learner_g, learner_m, smpls, treatment, normalize_ipw, clipping_threshold, g_params, m_params
 ):
     n_folds = len(smpls)
     n_obs = len(y)
@@ -95,7 +95,7 @@ def fit_nuisance_cvar(
         x_train_1 = x[train_inds_1, :]
         # todo change prediction method
         m_hat_prelim_list = fit_predict_proba(
-            d_train_1, x_train_1, ml_m, params=None, trimming_threshold=trimming_threshold, smpls=smpls_prelim
+            d_train_1, x_train_1, ml_m, params=None, clipping_threshold=clipping_threshold, smpls=smpls_prelim
         )
 
         m_hat_prelim = np.full_like(y_train_1, np.nan, dtype="float64")
@@ -104,8 +104,8 @@ def fit_nuisance_cvar(
 
         m_hat_prelim = _dml_cv_predict(ml_m, x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim)["preds"]
 
-        m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
-        m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
+        m_hat_prelim[m_hat_prelim < clipping_threshold] = clipping_threshold
+        m_hat_prelim[m_hat_prelim > 1 - clipping_threshold] = 1 - clipping_threshold
 
         if normalize_ipw:
             m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
@@ -141,8 +141,8 @@ def fit_nuisance_cvar(
         ml_m.fit(x[train_inds, :], d[train_inds])
         m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, 1]
 
-    m_hat[m_hat < trimming_threshold] = trimming_threshold
-    m_hat[m_hat > 1 - trimming_threshold] = 1 - trimming_threshold
+    m_hat[m_hat < clipping_threshold] = clipping_threshold
+    m_hat[m_hat > 1 - clipping_threshold] = 1 - clipping_threshold
 
     if normalize_ipw:
         m_hat = _normalize_ipw(m_hat, d)

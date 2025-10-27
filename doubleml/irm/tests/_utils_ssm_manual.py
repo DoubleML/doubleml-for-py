@@ -19,7 +19,7 @@ def fit_selection(
     all_smpls,
     score,
     trimming_rule="truncate",
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     normalize_ipw=True,
     n_rep=1,
     g_d0_params=None,
@@ -55,7 +55,7 @@ def fit_selection(
             smpls,
             score,
             trimming_rule=trimming_rule,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
             g_d0_params=g_d0_params,
             g_d1_params=g_d1_params,
             pi_params=pi_params,
@@ -108,7 +108,7 @@ def fit_nuisance_selection(
     smpls,
     score,
     trimming_rule="truncate",
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     g_d0_params=None,
     g_d1_params=None,
     pi_params=None,
@@ -125,7 +125,7 @@ def fit_nuisance_selection(
         dx = np.column_stack((d, x, z))
 
     if score == "missing-at-random":
-        pi_hat_list = fit_predict_proba(s, dx, ml_pi, pi_params, smpls, trimming_threshold=trimming_threshold)
+        pi_hat_list = fit_predict_proba(s, dx, ml_pi, pi_params, smpls, clipping_threshold=clipping_threshold)
 
         m_hat_list = fit_predict_proba(d, x, ml_m, m_params, smpls)
 
@@ -212,7 +212,7 @@ def fit_nuisance_selection(
             # predict conditional outcome
             g_hat_d0 = ml_g_d0.predict(xpi_test)
 
-            m_hat = _trimm(m_hat, trimming_rule, trimming_threshold)
+            m_hat = _trimm(m_hat, trimming_rule, clipping_threshold)
 
             # append predictions on test sample to final list of predictions
             g_hat_d1_list.append(g_hat_d1)

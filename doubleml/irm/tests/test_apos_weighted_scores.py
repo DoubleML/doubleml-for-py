@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 import doubleml as dml
 from doubleml.irm.datasets import make_irm_data_discrete_treatments
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 
 @pytest.fixture(
@@ -39,7 +40,7 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.2, 0.15])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -49,7 +50,7 @@ def treatment_levels(request):
 
 
 @pytest.fixture(scope="module")
-def weighted_apos_score_fixture(learner, score, n_rep, normalize_ipw, trimming_threshold, treatment_levels):
+def weighted_apos_score_fixture(learner, score, n_rep, normalize_ipw, clipping_threshold, treatment_levels):
     n_obs = 500
     n_folds = 2
 
@@ -71,8 +72,7 @@ def weighted_apos_score_fixture(learner, score, n_rep, normalize_ipw, trimming_t
         "n_rep": n_rep,
         "score": score,
         "normalize_ipw": normalize_ipw,
-        "trimming_threshold": trimming_threshold,
-        "trimming_rule": "truncate",
+        "ps_processor_config": PSProcessorConfig(clipping_threshold=clipping_threshold),
     }
 
     np.random.seed(42)

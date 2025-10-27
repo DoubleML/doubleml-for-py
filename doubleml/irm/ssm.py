@@ -1,5 +1,6 @@
 import copy
 import warnings
+from typing import Optional
 
 import numpy as np
 from sklearn.base import clone
@@ -9,11 +10,12 @@ from sklearn.utils import check_X_y
 from doubleml.data.ssm_data import DoubleMLSSMData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
-from doubleml.utils._checks import _check_finite_predictions, _check_score, _check_trimming
+from doubleml.utils._checks import _check_finite_predictions, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity
-from doubleml.utils._propensity_score import _trimm
+from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
+# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 class DoubleMLSSM(LinearScoreMixin, DoubleML):
     """Double machine learning for sample selection models
 
@@ -50,13 +52,16 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         Indicates whether the inverse probability weights are normalized.
         Default is ``False``.
 
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
+    trimming_rule : str, optional, deprecated
+        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Use `ps_processor_config` instead. Will be removed in a future version.
 
-    trimming_threshold : float
-        The threshold used for trimming.
-        Default is ``1e-2``.
+    trimming_threshold : float, optional, deprecated
+        (DEPRECATED) The threshold used for trimming.
+        Use `ps_processor_config` instead. Will be removed in a future version.
+
+    ps_processor_config : PSProcessorConfig, optional
+        Configuration for propensity score processing (clipping, calibration, etc.).
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -109,8 +114,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         n_rep=1,
         score="missing-at-random",
         normalize_ipw=False,
-        trimming_rule="truncate",
-        trimming_threshold=1e-2,
+        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
     ):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
@@ -119,9 +125,12 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = False
         self._normalize_ipw = normalize_ipw
 
+        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        self._ps_processor_config, self._ps_processor = init_ps_processor(
+            ps_processor_config, trimming_rule, trimming_threshold
+        )
         self._trimming_rule = trimming_rule
-        self._trimming_threshold = trimming_threshold
-        _check_trimming(self._trimming_rule, self._trimming_threshold)
+        self._trimming_threshold = self._ps_processor.clipping_threshold
 
         self._check_data(self._dml_data)
         self._is_cluster_data = self._dml_data.is_cluster_data
@@ -166,18 +175,43 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         return self._normalize_ipw
 
     @property
+    def ps_processor_config(self):
+        """
+        Configuration for propensity score processing (clipping, calibration, etc.).
+        """
+        return self._ps_processor_config
+
+    @property
+    def ps_processor(self):
+        """
+        Propensity score processor.
+        """
+        return self._ps_processor
+
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+    @property
     def trimming_rule(self):
         """
         Specifies the used trimming rule.
         """
+        warnings.warn(
+            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
+        )
         return self._trimming_rule
 
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
     @property
     def trimming_threshold(self):
         """
         Specifies the used trimming threshold.
         """
-        return self._trimming_threshold
+        warnings.warn(
+            "'trimming_threshold' is deprecated and will be removed in a future version. "
+            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._ps_processor.clipping_threshold
 
     def _initialize_ml_nuisance_params(self):
         valid_learner = ["ml_g_d0", "ml_g_d1", "ml_pi", "ml_m"]
@@ -369,7 +403,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     pi_hat["models"] = fitted_models["ml_pi"]
                     m_hat["models"] = fitted_models["ml_m"]
 
-        m_hat["preds"] = _trimm(m_hat["preds"], self._trimming_rule, self._trimming_threshold)
+        m_hat["preds"] = self._ps_processor.adjust_ps(m_hat["preds"], d, cv=smpls)
 
         # treatment indicator
         dtreat = d == 1

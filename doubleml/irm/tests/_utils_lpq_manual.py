@@ -20,7 +20,7 @@ def fit_lpq(
     treatment,
     n_rep=1,
     trimming_rule="truncate",
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     kde=_default_kde,
     normalize_ipw=True,
     m_z_params=None,
@@ -48,7 +48,7 @@ def fit_lpq(
             smpls,
             treatment,
             trimming_rule=trimming_rule,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
             normalize_ipw=normalize_ipw,
             m_z_params=m_z_params,
             m_d_z0_params=m_d_z0_params,
@@ -80,7 +80,7 @@ def fit_nuisance_lpq(
     smpls,
     treatment,
     trimming_rule,
-    trimming_threshold,
+    clipping_threshold,
     normalize_ipw,
     m_z_params,
     m_d_z0_params,
@@ -144,7 +144,7 @@ def fit_nuisance_lpq(
             "preds"
         ]
 
-        m_z_hat_prelim = _trimm(m_z_hat_prelim, trimming_rule, trimming_threshold)
+        m_z_hat_prelim = _trimm(m_z_hat_prelim, trimming_rule, clipping_threshold)
         if normalize_ipw:
             m_z_hat_prelim = _normalize_ipw(m_z_hat_prelim, z_train_1)
 
@@ -222,7 +222,7 @@ def fit_nuisance_lpq(
         m_d_z1_hat[test_inds] = ml_m_d_z1.predict_proba(x[test_inds, :])[:, 1]
 
     # clip propensities
-    m_z_hat = _trimm(m_z_hat, trimming_rule, trimming_threshold)
+    m_z_hat = _trimm(m_z_hat, trimming_rule, clipping_threshold)
 
     if normalize_ipw:
         m_z_hat = _normalize_ipw(m_z_hat, z)

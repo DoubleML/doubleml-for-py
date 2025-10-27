@@ -64,7 +64,12 @@ def doubleml_irm_fixture(irm_score, n_rep, set_ml_m_ext, set_ml_g_ext):
     np.random.seed(3141)
     dml_irm_ext.fit(external_predictions=ext_predictions)
 
-    res_dict = {"coef_normal": dml_irm.coef[0], "coef_ext": dml_irm_ext.coef[0]}
+    res_dict = {
+        "coef_normal": dml_irm.coef[0],
+        "coef_ext": dml_irm_ext.coef[0],
+        "se": dml_irm.se[0],
+        "se_ext": dml_irm_ext.se[0],
+    }
 
     return res_dict
 
@@ -72,3 +77,8 @@ def doubleml_irm_fixture(irm_score, n_rep, set_ml_m_ext, set_ml_g_ext):
 @pytest.mark.ci
 def test_doubleml_irm_coef(doubleml_irm_fixture):
     assert math.isclose(doubleml_irm_fixture["coef_normal"], doubleml_irm_fixture["coef_ext"], rel_tol=1e-9, abs_tol=1e-4)
+
+
+@pytest.mark.ci
+def test_doubleml_irm_se(doubleml_irm_fixture):
+    assert math.isclose(doubleml_irm_fixture["se"], doubleml_irm_fixture["se_ext"], rel_tol=1e-9, abs_tol=1e-4)

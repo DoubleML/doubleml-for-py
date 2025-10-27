@@ -35,7 +35,7 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope="module", params=[0.1])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -50,7 +50,7 @@ def lambda_t(request):
 
 
 @pytest.fixture(scope="module")
-def dml_did_binary_vs_did_multi_fixture(time_type, lambda_t, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_multi_fixture(time_type, lambda_t, learner, score, in_sample_normalization, clipping_threshold):
     n_obs = 500
     dpg = 1
     boot_methods = ["normal"]
@@ -66,7 +66,7 @@ def dml_did_binary_vs_did_multi_fixture(time_type, lambda_t, learner, score, in_
         "n_folds": 3,
         "score": score,
         "in_sample_normalization": in_sample_normalization,
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         "draw_sample_splitting": True,
     }
     gt_combination = [(dml_panel_data.g_values[0], dml_panel_data.t_values[0], dml_panel_data.t_values[1])]

@@ -34,12 +34,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.01, 0.05])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, normalize_ipw, trimming_threshold):
+def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, normalize_ipw, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 491
@@ -63,7 +63,7 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, norma
         ml_r,
         n_folds,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         draw_sample_splitting=False,
     )
     # synchronize the sample splitting
@@ -83,7 +83,7 @@ def dml_iivm_classifier_fixture(generate_data_iivm_binary, learner, score, norma
         all_smpls,
         score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {
