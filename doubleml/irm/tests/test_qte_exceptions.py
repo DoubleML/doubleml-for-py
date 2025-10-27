@@ -57,25 +57,6 @@ def test_exception_score():
 
 
 @pytest.mark.ci
-def test_exception_trimming_rule():
-    msg = "Invalid trimming_rule discard. Valid trimming_rule truncate."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="discard")
-
-    msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLQTE(
-            dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="truncate", trimming_threshold="0.1"
-        )
-
-    msg = "Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLQTE(
-            dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="truncate", trimming_threshold=0.6
-        )
-
-
-@pytest.mark.ci
 def test_exception_quantiles():
     msg = r"Quantiles have be between 0 or 1. Quantiles \[0.2 2. \] passed."
     with pytest.raises(ValueError, match=msg):

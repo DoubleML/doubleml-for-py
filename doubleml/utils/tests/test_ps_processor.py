@@ -1,14 +1,12 @@
-from unittest.mock import patch
 import warnings
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import KFold, cross_val_predict
 
-from doubleml.utils.propensity_score_processing import (
-    PSProcessorConfig, PSProcessor, init_ps_processor
-)
+from doubleml.utils.propensity_score_processing import PSProcessor, PSProcessorConfig, init_ps_processor
 
 
 # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
@@ -109,13 +107,9 @@ def test_isotonic_calibration_with_cv(cv):
         cv = [(train, test) for train, test in KFold(n_splits=3).split(ps)]
     elif cv == "splitter":
         cv = KFold(n_splits=3)
-    else:
-        cv = cv
 
     clipping_threshold = 0.01
-    processor = PSProcessor(
-        calibration_method="isotonic", cv_calibration=True, clipping_threshold=clipping_threshold
-    )
+    processor = PSProcessor(calibration_method="isotonic", cv_calibration=True, clipping_threshold=clipping_threshold)
 
     isotonic_manual = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
     ps_cv = cross_val_predict(isotonic_manual, ps.reshape(-1, 1), treatment, cv=cv)
