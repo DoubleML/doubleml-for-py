@@ -109,10 +109,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         _ = self._check_learner(ml_t, "ml_t", regressor=True, classifier=False)
         _ = self._check_learner(ml_M, "ml_M", regressor=False, classifier=True)
 
-        if np.array_equal(np.unique(obj_dml_data.d), [0, 1]):
-            ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
-        else:
-            ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=False)
+
+        ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_m": ml_m, "ml_t": ml_t, "ml_M": ml_M}
 
         if ml_a is not None:

@@ -3,7 +3,8 @@ import math
 import numpy as np
 import pytest
 from sklearn.base import clone
-from sklearn.linear_model import LassoCV, LogisticRegressionCV
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LassoCV, LogisticRegressionCV, LogisticRegression
 
 import doubleml as dml
 
@@ -11,38 +12,36 @@ from ...tests._utils import draw_smpls
 from ._utils_ssm_manual import fit_selection
 
 
-@pytest.fixture(scope="module", params=[[LassoCV(), LogisticRegressionCV(penalty="l1", solver="liblinear")]])
-def learner(request):
+@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
+def learner_M(request):
+    return request.param
+
+@pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
+def learner_t(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=["missing-at-random", "nonignorable"])
+@pytest.fixture(scope="module", params=[LogisticRegression(random_state=42)])
+def learner_m(request):
+    return request.param
+
+@pytest.fixture(scope="module", params=["nuisance_space", "instrument"])
 def score(request):
-    return request.param
-
-
-@pytest.fixture(scope="module", params=[True, False])
-def normalize_ipw(request):
-    return request.param
-
-
-@pytest.fixture(scope="module", params=[0.01])
-def trimming_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
 def dml_selection_fixture(
-    generate_data_selection_mar, generate_data_selection_nonignorable, learner, score, trimming_threshold, normalize_ipw
+    generate_data_selection, learner, score, learner_M,
+    learner_t,
+    learner_m,
 ):
     n_folds = 3
 
     # collect data
     np.random.seed(42)
-    if score == "missing-at-random":
-        (x, y, d, z, s) = generate_data_selection_mar
-    else:
-        (x, y, d, z, s) = generate_data_selection_nonignorable
+    (x, y, d, z, s) = generate_data_selection
+
 
     ml_g = clone(learner[0])
     ml_pi = clone(learner[1])

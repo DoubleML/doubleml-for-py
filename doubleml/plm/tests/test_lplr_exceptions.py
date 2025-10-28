@@ -11,7 +11,7 @@ from doubleml.plm.datasets import make_lplr_LZZ2020
 np.random.seed(3141)
 n = 100
 # create test data and basic learners
-dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=n, dim_x=10)
+dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=n, dim_x=20)
 ml_M = RandomForestClassifier()
 ml_t = RandomForestRegressor()
 ml_m = RandomForestRegressor()
@@ -22,13 +22,13 @@ dml_lplr_instrument = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="instrument
 @pytest.mark.ci
 def test_lplr_exception_data():
     msg = (
-        r"The data must be of DoubleMLData type\. .* of type "
+        r"The data must be of DoubleMLData.* type\.[\s\S]* of type "
         r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
     )
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(pd.DataFrame(), ml_M, ml_t, ml_m)
 
-    dml_data_nb = make_lplr_LZZ2020(alpha=0.5, n_obs=50, dim_x=5)
+    dml_data_nb = make_lplr_LZZ2020(alpha=0.5, n_obs=50, dim_x=20)
     dml_data_nb.data[dml_data_nb.y_col] = dml_data_nb.data[dml_data_nb.y_col] + 1
     dml_data_nb._set_y_z()
     with pytest.raises(TypeError, match="The outcome variable y must be binary with values 0 and 1."):
@@ -41,7 +41,7 @@ def test_lplr_exception_scores():
     msg = "Invalid score MAR"
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="MAR")
-    msg = "score should be string. 0 was passed."
+    msg = "score should be a string. 0 was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score=0)
 
@@ -71,7 +71,7 @@ def test_ssm_exception_resampling():
 
 @pytest.mark.ci
 def test_lplr_exception_get_params():
-    msg = "Invalid nuisance learner ml_x. Valid nuisance learner ml_M or ml_g_t or ml_m or ml_a."
+    msg = "Invalid nuisance learner ml_x. Valid nuisance learner ml_m or ml_t or ml_M or ml_a."
     with pytest.raises(ValueError, match=msg):
         dml_lplr.get_params("ml_x")
 
@@ -148,7 +148,7 @@ def test_lplr_exception_confint():
 @pytest.mark.ci
 def test_lplr_exception_set_ml_nuisance_params():
     # invalid learner name
-    msg = "Invalid nuisance learner g. Valid nuisance learner ml_M or ml_t or ml_m or ml_a."
+    msg = "Invalid nuisance learner g. Valid nuisance learner ml_m or ml_t or ml_M or ml_a."
     with pytest.raises(ValueError, match=msg):
         dml_lplr.set_ml_nuisance_params("g", "d", {"alpha": 0.1})
     # invalid treatment variable
@@ -171,7 +171,7 @@ class _DummyNoClassifier(_DummyNoGetParams):
     def get_params(self):
         pass
 
-    def predict_proba(self):
+    def predict(self):
         pass
 
 
@@ -216,7 +216,7 @@ def test_lplr_exception_learner():
     log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedType\(\) is \(probably\) "
-        r"no classifier\."
+        r"neither a regressor nor a classifier. Method predict is used for prediction\."
     )
     with pytest.warns(UserWarning, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, log_reg)
@@ -284,7 +284,7 @@ def test_double_ml_exception_evaluate_learner():
         dml_lplr_obj.evaluate_learners(metric="mse")
 
     msg = (
-        r"The learners have to be a subset of \['ml_M', 'ml_t', 'ml_m', 'ml_a'\]\. "
+        r"The learners have to be a subset of \['ml_m', 'ml_t', 'ml_M', 'ml_a'\]\. "
         r"Learners \['ml_mu', 'ml_p'\] provided."
     )
     with pytest.raises(ValueError, match=msg):
