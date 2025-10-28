@@ -44,16 +44,34 @@ def _fit(estimator, x, y, train_index, idx=None):
 
 
 def _dml_cv_predict(
-    estimator, x, y, smpls=None, n_jobs=None, est_params=None, method="predict", return_train_preds=False, return_models=False
+    estimator,
+    x,
+    y,
+    smpls=None,
+    n_jobs=None,
+    est_params=None,
+    method="predict",
+    return_train_preds=False,
+    return_models=False,
+    smpls_is_partition=None,
+    sample_weights=None,
 ):
     n_obs = x.shape[0]
 
-    smpls_is_partition = _check_is_partition(smpls, n_obs)
+    # TODO: Better name for smples_is_partition
+    if smpls_is_partition is None:
+        smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
     manual_cv_predict = (
-        (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target | return_models
+        (not smpls_is_partition)
+        | return_train_preds
+        | fold_specific_params
+        | fold_specific_target
+        | return_models
+        | bool(sample_weights)
     )
+    # TODO: Check if cross_val_predict supports weights
 
     res = {"models": None}
     if not manual_cv_predict:
@@ -148,10 +166,20 @@ def _dml_cv_predict(
 
 
 def _dml_tune(
-    y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
+    y,
+    x,
+    train_inds,
+    learner,
+    param_grid,
+    scoring_method,
+    n_folds_tune,
+    n_jobs_cv,
+    search_mode,
+    n_iter_randomized_search,
+    fold_specific_target=False,
 ):
     tune_res = list()
-    for train_index in train_inds:
+    for i, train_index in enumerate(train_inds):
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
         if search_mode == "grid_search":
             g_grid_search = GridSearchCV(learner, param_grid, scoring=scoring_method, cv=tune_resampling, n_jobs=n_jobs_cv)
@@ -165,7 +193,10 @@ def _dml_tune(
                 n_jobs=n_jobs_cv,
                 n_iter=n_iter_randomized_search,
             )
-        tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
+        if fold_specific_target:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[i]))
+        else:
+            tune_res.append(g_grid_search.fit(x[train_index, :], y[train_index]))
 
     return tune_res
 
@@ -300,7 +331,7 @@ def _var_est(psi, psi_deriv, smpls, is_cluster_data, cluster_vars=None, smpls_cl
                 J_l = test_cluster_inds[1]
                 const = np.divide(min(len(I_k), len(J_l)), (np.square(len(I_k) * len(J_l))))
                 for cluster_value in I_k:
-                    ind_cluster = (first_cluster_var == cluster_value) & np.isin(second_cluster_var, J_l)
+                    ind_cluster = (first_cluster_var == cluster_value) & np.in1d(second_cluster_var, J_l)
                     gamma_hat += const * np.sum(np.outer(psi[ind_cluster], psi[ind_cluster]))
                 for cluster_value in J_l:
                     ind_cluster = (second_cluster_var == cluster_value) & np.isin(first_cluster_var, I_k)
