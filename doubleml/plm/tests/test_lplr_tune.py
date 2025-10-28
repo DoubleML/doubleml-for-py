@@ -3,13 +3,14 @@ import math
 import numpy as np
 import pytest
 from sklearn.base import clone
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
 
 from ...tests._utils import draw_smpls
 from ._utils_lplr_manual import fit_selection, tune_nuisance
+
 
 @pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
 def learner_M(request):

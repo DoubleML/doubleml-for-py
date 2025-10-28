@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LassoCV, LogisticRegressionCV, LogisticRegression
+from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
 

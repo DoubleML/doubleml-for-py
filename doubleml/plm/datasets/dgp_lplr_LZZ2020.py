@@ -131,6 +131,8 @@ def make_lplr_LZZ2020(
     elif treatment == "binary_unbalanced":
         d_cont = a_0(x)
         d = np.random.binomial(1, expit(d_cont))
+    else:
+        raise ValueError("Invalid treatment type.")
 
     p = expit(alpha * d[:] + r_0(x))
 
