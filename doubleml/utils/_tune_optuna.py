@@ -112,7 +112,7 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
     return resolved
 
 
-def _create_study(settings):
+def _create_study(settings, learner_name):
     """
     Create or retrieve an Optuna study object.
 
@@ -163,7 +163,7 @@ def _create_study(settings):
     if settings.get("pruner") is not None:
         study_kwargs["pruner"] = settings["pruner"]
 
-    return optuna.create_study(**study_kwargs)
+    return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
 
 def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv):
@@ -300,7 +300,7 @@ def _dml_tune_optuna(
     cv = KFold(n_splits=n_folds_tune, shuffle=True, random_state=42)
 
     # Create the study
-    study = _create_study(settings)
+    study = _create_study(settings, learner_name)
 
     # Create the objective function
     objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv)
