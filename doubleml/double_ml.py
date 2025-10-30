@@ -14,6 +14,7 @@ from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
+from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS
 from doubleml.utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
@@ -1087,6 +1088,8 @@ class DoubleML(SampleSplittingMixin, ABC):
                 "params must be a dictionary with keys " + " and ".join(self.params_names) + "."
             )
 
+        self._validate_optuna_param_keys(params)
+
         # Validate that all parameter grids are callables
         for learner_name, param_fn in params.items():
             if not callable(param_fn):
@@ -1123,6 +1126,9 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         if optuna_settings is not None and not isinstance(optuna_settings, dict):
             raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
+
+        if optuna_settings is not None:
+            self._validate_optuna_setting_keys(optuna_settings)
 
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
@@ -1164,6 +1170,60 @@ class DoubleML(SampleSplittingMixin, ABC):
             return tuning_res
         else:
             return self
+
+    def _validate_optuna_setting_keys(self, optuna_settings):
+        """Validate learner-level keys provided in optuna_settings."""
+
+        if not optuna_settings:
+            return
+
+        allowed_learner_keys = set(self.params_names)
+
+        if self.learner is not None:
+            allowed_learner_keys.update(self.learner_names)
+            allowed_learner_keys.update(learner.__class__.__name__ for learner in self.learner.values())
+
+        invalid_keys = [
+            key for key in optuna_settings if key not in OPTUNA_GLOBAL_SETTING_KEYS and key not in allowed_learner_keys
+        ]
+
+        if invalid_keys:
+            if allowed_learner_keys:
+                valid_keys_msg = ", ".join(sorted(allowed_learner_keys))
+            else:
+                valid_keys_msg = "<none>"
+            raise ValueError(
+                "Invalid optuna_settings keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_keys))
+                + ". Valid learner-specific keys are: "
+                + valid_keys_msg
+                + "."
+            )
+
+    def _validate_optuna_param_keys(self, params):
+        """Validate learner keys provided in the Optuna params dictionary."""
+
+        allowed_param_keys = set(self.params_names)
+
+        if self.learner is not None:
+            allowed_param_keys.update(self.learner_names)
+            allowed_param_keys.update(learner.__class__.__name__ for learner in self.learner.values())
+
+        invalid_keys = [key for key in params if key not in allowed_param_keys]
+
+        if invalid_keys:
+            valid_keys_msg = ", ".join(sorted(allowed_param_keys)) if allowed_param_keys else "<none>"
+            raise ValueError(
+                "Invalid params keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_keys))
+                + ". Valid keys are: "
+                + valid_keys_msg
+                + "."
+            )
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """

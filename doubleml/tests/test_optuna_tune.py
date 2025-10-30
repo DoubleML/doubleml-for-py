@@ -140,6 +140,105 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     assert tune_res[0]["params"]["ml_l"][0]["max_depth"] == tuned_params_l["max_depth"]
 
 
+def test_doubleml_optuna_sets_params_for_all_folds():
+    np.random.seed(3153)
+    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=101, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeRegressor(random_state=202, max_depth=5, min_samples_leaf=4)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=3, n_rep=2)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    dml_plr.tune_optuna(params=optuna_params, optuna_settings=_basic_optuna_settings())
+
+    l_params = dml_plr.get_params("ml_l")
+    m_params = dml_plr.get_params("ml_m")
+
+    assert set(l_params.keys()) == {"d"}
+    assert set(m_params.keys()) == {"d"}
+
+    expected_l = dict(l_params["d"][0][0])
+    expected_m = dict(m_params["d"][0][0])
+
+    assert len(l_params["d"]) == dml_plr.n_rep
+    assert len(m_params["d"]) == dml_plr.n_rep
+
+    for rep_idx in range(dml_plr.n_rep):
+        assert len(l_params["d"][rep_idx]) == dml_plr.n_folds
+        assert len(m_params["d"][rep_idx]) == dml_plr.n_folds
+        for fold_idx in range(dml_plr.n_folds):
+            l_fold_params = l_params["d"][rep_idx][fold_idx]
+            m_fold_params = m_params["d"][rep_idx][fold_idx]
+            assert l_fold_params is not None
+            assert m_fold_params is not None
+            assert l_fold_params == expected_l
+            assert m_fold_params == expected_m
+
+
+def test_doubleml_optuna_fit_uses_tuned_params():
+    np.random.seed(3154)
+    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=303, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeRegressor(random_state=404, max_depth=5, min_samples_leaf=4)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, n_rep=1)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    dml_plr.tune_optuna(params=optuna_params, optuna_settings=_basic_optuna_settings())
+
+    expected_l = dict(dml_plr.get_params("ml_l")["d"][0][0])
+    expected_m = dict(dml_plr.get_params("ml_m")["d"][0][0])
+
+    dml_plr.fit(store_predictions=False, store_models=True)
+
+    for rep_idx in range(dml_plr.n_rep):
+        for fold_idx in range(dml_plr.n_folds):
+            ml_l_model = dml_plr.models["ml_l"]["d"][rep_idx][fold_idx]
+            ml_m_model = dml_plr.models["ml_m"]["d"][rep_idx][fold_idx]
+            assert ml_l_model is not None
+            assert ml_m_model is not None
+            for key, value in expected_l.items():
+                assert ml_l_model.get_params()[key] == value
+            for key, value in expected_m.items():
+                assert ml_m_model.get_params()[key] == value
+
+
+def test_doubleml_optuna_invalid_settings_key_raises():
+    np.random.seed(3155)
+    dml_data = make_irm_data(n_obs=80, dim_x=4)
+
+    ml_g = DecisionTreeRegressor(random_state=111, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeClassifier(random_state=222, max_depth=5, min_samples_leaf=4)
+
+    dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2)
+
+    optuna_params = {"ml_g0": _medium_tree_params, "ml_g1": _medium_tree_params, "ml_m": _medium_tree_params}
+    invalid_settings = _basic_optuna_settings({"ml_l": {"n_trials": 2}})
+
+    with pytest.raises(ValueError, match="ml_l"):
+        dml_irm.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+
+
+def test_doubleml_optuna_class_name_setting_allowed():
+    np.random.seed(3156)
+    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=515, max_depth=5, min_samples_leaf=3)
+    ml_m = DecisionTreeRegressor(random_state=616, max_depth=5, min_samples_leaf=3)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, n_rep=1)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+    class_key = ml_l.__class__.__name__
+    optuna_settings = _basic_optuna_settings({class_key: {"n_trials": 1}})
+
+    dml_plr.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+
+
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3142)

@@ -9,6 +9,46 @@ import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import KFold, cross_validate
 
+OPTUNA_GLOBAL_SETTING_KEYS = frozenset(
+    {
+        "n_trials",
+        "timeout",
+        "direction",
+        "study_kwargs",
+        "optimize_kwargs",
+        "sampler",
+        "pruner",
+        "callbacks",
+        "catch",
+        "show_progress_bar",
+        "gc_after_trial",
+        "study_factory",
+        "study",
+        "n_jobs_optuna",
+        "verbosity",
+    }
+)
+
+
+def _default_optuna_settings():
+    return {
+        "n_trials": 100,
+        "timeout": None,
+        "direction": "maximize",
+        "study_kwargs": {},
+        "optimize_kwargs": {},
+        "sampler": None,
+        "pruner": None,
+        "callbacks": None,
+        "catch": (),
+        "show_progress_bar": False,
+        "gc_after_trial": False,
+        "study_factory": None,
+        "study": None,
+        "n_jobs_optuna": None,
+        "verbosity": None,
+    }
+
 
 class _OptunaSearchResult:
     """Lightweight container mimicking selected GridSearchCV attributes."""
@@ -50,23 +90,7 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
     dict
         Resolved settings dictionary.
     """
-    default_settings = {
-        "n_trials": 100,
-        "timeout": None,
-        "direction": "maximize",
-        "study_kwargs": {},
-        "optimize_kwargs": {},
-        "sampler": None,
-        "pruner": None,
-        "callbacks": None,
-        "catch": (),
-        "show_progress_bar": False,
-        "gc_after_trial": False,
-        "study_factory": None,
-        "study": None,
-        "n_jobs_optuna": None,
-        "verbosity": None,
-    }
+    default_settings = _default_optuna_settings()
 
     if optuna_settings is None:
         return default_settings
@@ -75,7 +99,7 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
         raise TypeError("optuna_settings must be a dict or None.")
 
     # Base settings are the user-provided settings filtered by default keys
-    base_settings = {key: value for key, value in optuna_settings.items() if key in default_settings}
+    base_settings = {key: value for key, value in optuna_settings.items() if key in OPTUNA_GLOBAL_SETTING_KEYS}
 
     # Determine the search order for learner-specific settings
     learner_candidates = []
@@ -161,8 +185,10 @@ def _create_study(settings, learner_name):
         print(f"Optuna study direction set to '{study_kwargs['direction']}' for learner '{learner_name}'.")
     if settings.get("sampler") is not None:
         study_kwargs["sampler"] = settings["sampler"]
+        print(f"Using {settings['sampler']} for learner '{learner_name}'.")
     if settings.get("pruner") is not None:
         study_kwargs["pruner"] = settings["pruner"]
+        print(f"Using {settings['pruner']} for learner '{learner_name}'.")
 
     return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
@@ -309,8 +335,7 @@ def _dml_tune_optuna(
     objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name)
 
     if scoring_method is None:
-        print("No scoring method provided, using default scoring method of the estimator: "
-                f"{learner.criterion}")
+        print("No scoring method provided, using default scoring method of the estimator: " f"{learner.criterion}")
     else:
         print(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
 
