@@ -32,14 +32,18 @@ class _OptunaSearchResult:
         return self.best_estimator_.score(X, y)
 
 
-def _resolve_optuna_settings(optuna_settings):
+def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_name=None):
     """
-    Merge user-provided Optuna settings with defaults.
+    Get Optuna settings, considering defaults, user-provided values, and learner-specific overrides.
 
     Parameters
     ----------
     optuna_settings : dict or None
         User-provided Optuna settings.
+    learner_name : str or list or None
+        Name(s) of the learner to check for specific settings.
+    default_learner_name : str or None
+        A default learner name to use as a fallback.
 
     Returns
     -------
@@ -60,8 +64,8 @@ def _resolve_optuna_settings(optuna_settings):
         "gc_after_trial": False,
         "study_factory": None,
         "study": None,
-        "n_jobs_optuna": None,  # Parallel trial execution
-        "verbosity": None,  # Optuna logging verbosity level
+        "n_jobs_optuna": None,
+        "verbosity": None,
     }
 
     if optuna_settings is None:
@@ -70,80 +74,42 @@ def _resolve_optuna_settings(optuna_settings):
     if not isinstance(optuna_settings, dict):
         raise TypeError("optuna_settings must be a dict or None.")
 
+    # Base settings are the user-provided settings filtered by default keys
+    base_settings = {key: value for key, value in optuna_settings.items() if key in default_settings}
+
+    # Determine the search order for learner-specific settings
+    learner_candidates = []
+    if learner_name:
+        if isinstance(learner_name, (list, tuple)):
+            learner_candidates.extend(learner_name)
+        else:
+            learner_candidates.append(learner_name)
+    if default_learner_name:
+        learner_candidates.append(default_learner_name)
+
+    # Find the first matching learner-specific settings
+    learner_specific_settings = {}
+    for name in learner_candidates:
+        if name in optuna_settings and isinstance(optuna_settings[name], dict):
+            learner_specific_settings = optuna_settings[name]
+            break
+
+    # Merge settings: defaults < base < learner-specific
     resolved = default_settings.copy()
-    resolved.update(optuna_settings)
+    resolved.update(base_settings)
+    resolved.update(learner_specific_settings)
+
+    # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
-        raise TypeError("optuna_settings['study_kwargs'] must be a dict.")
+        raise TypeError("study_kwargs must be a dict.")
     if not isinstance(resolved["optimize_kwargs"], dict):
-        raise TypeError("optuna_settings['optimize_kwargs'] must be a dict.")
+        raise TypeError("optimize_kwargs must be a dict.")
     if resolved["callbacks"] is not None and not isinstance(resolved["callbacks"], (list, tuple)):
-        raise TypeError("optuna_settings['callbacks'] must be a sequence of callables or None.")
+        raise TypeError("callbacks must be a sequence of callables or None.")
     if resolved["study"] is not None and resolved["study_factory"] is not None:
         raise ValueError("Provide only one of 'study' or 'study_factory' in optuna_settings.")
+
     return resolved
-
-
-def _select_optuna_settings(optuna_settings, learner_names):
-    """
-    Select appropriate Optuna settings, considering learner-specific overrides.
-
-    Parameters
-    ----------
-    optuna_settings : dict or None
-        Optuna settings dictionary that may contain learner-specific overrides.
-    learner_names : str or list or None
-        Name(s) of the learner to check for specific settings.
-
-    Returns
-    -------
-    dict
-        Resolved settings for the learner.
-    """
-    if optuna_settings is None:
-        return _resolve_optuna_settings(None)
-
-    if not isinstance(optuna_settings, dict):
-        raise TypeError("optuna_settings must be a dict or None.")
-
-    base_keys = {
-        "n_trials",
-        "timeout",
-        "direction",
-        "study_kwargs",
-        "optimize_kwargs",
-        "sampler",
-        "pruner",
-        "callbacks",
-        "catch",
-        "show_progress_bar",
-        "gc_after_trial",
-        "study_factory",
-        "study",
-        "n_jobs_optuna",
-        "verbosity",
-    }
-
-    base_settings = {key: value for key, value in optuna_settings.items() if key in base_keys}
-
-    if learner_names is None:
-        learner_candidates = []
-    elif isinstance(learner_names, (list, tuple)):
-        learner_candidates = [name for name in learner_names if name is not None]
-    else:
-        learner_candidates = [learner_names]
-
-    for learner_name in learner_candidates:
-        learner_specific = optuna_settings.get(learner_name)
-        if learner_specific is None:
-            continue
-        if not isinstance(learner_specific, dict):
-            raise TypeError(f"optuna_settings for learner '{learner_name}' must be a dict or None.")
-
-        merged = base_settings.copy()
-        merged.update(learner_specific)
-        return _resolve_optuna_settings(merged)
-
-    return _resolve_optuna_settings(base_settings)
 
 
 def _create_study(settings):
@@ -176,19 +142,17 @@ def _create_study(settings):
     study_factory = settings.get("study_factory")
     if callable(study_factory):
         study_kwargs = settings.get("study_kwargs", {})
+        # Try to pass kwargs, but fall back to no-arg call if it fails
         try:
-            maybe_study = study_factory(study_kwargs)
+            maybe_study = study_factory(**study_kwargs)
         except TypeError:
-            # Factory doesn't accept kwargs, call without args
             maybe_study = study_factory()
 
-        if maybe_study is None:
-            # Factory returned None, create default study
-            return optuna.create_study(**study_kwargs)
-        elif isinstance(maybe_study, optuna.study.Study):
+        if isinstance(maybe_study, optuna.study.Study):
             return maybe_study
-        else:
+        elif maybe_study is not None:
             raise TypeError("study_factory must return an optuna.study.Study or None.")
+        # If factory returns None, proceed to create a default study below
 
     # Build study kwargs from settings
     study_kwargs = settings.get("study_kwargs", {}).copy()
@@ -237,7 +201,7 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
 
         if not isinstance(params, dict):
             raise TypeError(
-                f"param_grid function must return a dict. Got {type(params).__name__}. "
+                f"param function must return a dict. Got {type(params).__name__}. "
                 f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
             )
 
@@ -325,24 +289,7 @@ def _dml_tune_optuna(
     if not train_inds:
         raise ValueError("train_inds cannot be empty.")
 
-    # Get learner key (prefer logical learner name, fall back to estimator class)
-    candidate_names = []
-    if learner_name is not None:
-        if isinstance(learner_name, (list, tuple)):
-            candidate_names.extend(list(learner_name))
-        else:
-            candidate_names.append(learner_name)
-    candidate_names.append(learner.__class__.__name__)
-    # remove duplicates while preserving order
-    seen = set()
-    ordered_candidates = []
-    for name in candidate_names:
-        if name in seen:
-            continue
-        seen.add(name)
-        ordered_candidates.append(name)
-
-    settings = _select_optuna_settings(optuna_settings, ordered_candidates)
+    settings = _get_optuna_settings(optuna_settings, learner_name, learner.__class__.__name__)
 
     # Set Optuna logging verbosity if specified
     verbosity = settings.get("verbosity")
@@ -358,39 +305,29 @@ def _dml_tune_optuna(
     # Create the objective function
     objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv)
 
-    # Build optimize kwargs (filter out None values except for boolean flags)
+    # Build optimize kwargs
     optimize_kwargs = {
-        "n_trials": settings.get("n_trials"),
-        "timeout": settings.get("timeout"),
-        "callbacks": settings.get("callbacks"),
-        "catch": settings.get("catch"),
-        "show_progress_bar": settings.get("show_progress_bar", False),
-        "gc_after_trial": settings.get("gc_after_trial", False),
+        "n_trials": settings["n_trials"],
+        "timeout": settings["timeout"],
+        "callbacks": settings["callbacks"],
+        "catch": settings["catch"],
+        "show_progress_bar": settings["show_progress_bar"],
+        "gc_after_trial": settings["gc_after_trial"],
+        "n_jobs": settings["n_jobs_optuna"],
     }
-
-    # Add n_jobs for parallel trial execution if specified
-    n_jobs_optuna = settings.get("n_jobs_optuna")
-    if n_jobs_optuna is not None:
-        optimize_kwargs["n_jobs"] = n_jobs_optuna
-
-    # Update with any additional optimize_kwargs from settings
     optimize_kwargs.update(settings.get("optimize_kwargs", {}))
 
-    # Filter out None values (but keep boolean flags)
-    optimize_kwargs = {
+    # Filter out None values, but keep boolean flags
+    final_optimize_kwargs = {
         k: v for k, v in optimize_kwargs.items() if v is not None or k in ["show_progress_bar", "gc_after_trial"]
     }
 
     # Run optimization once on the full dataset
-    study.optimize(objective, **optimize_kwargs)
+    study.optimize(objective, **final_optimize_kwargs)
 
     # Validate optimization results
-    if study.best_trial is None:
-        complete_trials = sum(1 for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE)
-        raise RuntimeError(
-            f"Optuna optimization failed to find any successful trials. "
-            f"Total trials: {len(study.trials)}, Complete trials: {complete_trials}"
-        )
+    if not study.trials or all(t.state != optuna.trial.TrialState.COMPLETE for t in study.trials):
+        raise RuntimeError("Optuna optimization failed to produce any complete trials.")
 
     # Extract best parameters and score
     best_params = study.best_trial.params

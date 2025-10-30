@@ -924,7 +924,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def tune_optuna(
         self,
-        param_grids,
+        params,
         scoring_methods=None,
         n_folds_tune=5,
         n_jobs_cv=None,
@@ -941,12 +941,17 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         Parameters
         ----------
-        param_grids : dict
-            A dict with a parameter grid function for each nuisance model / learner 
-            (see attribute ``learner_names``).
+        params : dict
+            A dict with a parameter grid function for each nuisance model / learner
+            (see attribute ``params_names``).
 
-            Each parameter grid must be specified as a callable function that takes an Optuna trial 
-            and returns a dictionary of hyperparameters. For example:
+            Each parameter grid must be specified as a callable function that takes an Optuna trial
+            and returns a dictionary of hyperparameters.
+
+            For PLR models, keys should be: ``'ml_l'``, ``'ml_m'`` (and optionally ``'ml_g'`` for IV-type score).
+            For IRM models, keys should be: ``'ml_g0'``, ``'ml_g1'``, ``'ml_m'``.
+
+            Example:
 
             .. code-block:: python
 
@@ -958,14 +963,14 @@ class DoubleML(SampleSplittingMixin, ABC):
                         'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
                     }
 
-                param_grids = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+                params = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
 
             Note: Optuna tuning is performed globally (not fold-specific) to ensure consistent
             hyperparameters across all folds.
 
         scoring_methods : None or dict
-            The scoring method used to evaluate the predictions. The scoring method must be set per 
-            nuisance model via a dict (see attribute ``learner_names`` for the keys).
+            The scoring method used to evaluate the predictions. The scoring method must be set per
+            nuisance model via a dict (see attribute ``params_names`` for the keys).
             If None, the estimator's score method is used.
             Default is ``None``.
 
@@ -987,10 +992,10 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         optuna_settings : None or dict
             Optional configuration passed to the Optuna tuner. Supports global settings
-            as well as learner-specific overrides (using the keys from ``param_grids``). 
-            The dictionary can contain entries corresponding to Optuna's study and optimize 
+            as well as learner-specific overrides (using the keys from ``params``).
+            The dictionary can contain entries corresponding to Optuna's study and optimize
             configuration such as:
-            
+
             - ``n_trials`` (int): Number of optimization trials (default: 100)
             - ``timeout`` (float): Time limit in seconds for the study (default: None)
             - ``direction`` (str): Optimization direction, 'maximize' or 'minimize' (default: 'maximize')
@@ -1004,7 +1009,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             - ``study_factory`` (callable): Factory function to create study (default: None)
             - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
             - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
-            
+
             Defaults to ``None``.
 
         Returns
@@ -1040,46 +1045,46 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
         ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
         ...     }
-        >>> param_grids = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+        >>> params = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
         >>> # Tune with TPE sampler
         >>> optuna_settings = {
         ...     'n_trials': 20,
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
-        >>> dml_plr.tune_optuna(param_grids, optuna_settings=optuna_settings)
+        >>> dml_plr.tune_optuna(params, optuna_settings=optuna_settings)
         >>> # Fit and get results
         >>> dml_plr.fit()
         """
         # Validation
-        if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
+        if (not isinstance(params, dict)) | (not all(k in params for k in self.params_names)):
             raise ValueError(
-                "Invalid param_grids " + str(param_grids) + ". "
-                "param_grids must be a dictionary with keys " + " and ".join(self.learner_names) + "."
+                "Invalid params " + str(params) + ". "
+                "params must be a dictionary with keys " + " and ".join(self.params_names) + "."
             )
-        
+
         # Validate that all parameter grids are callables
-        for learner_name, param_grid in param_grids.items():
-            if not callable(param_grid):
+        for learner_name, param_fn in params.items():
+            if not callable(param_fn):
                 raise TypeError(
                     f"Parameter grid for '{learner_name}' must be a callable function that takes a trial "
-                    f"and returns a dict. Got {type(param_grid).__name__}. "
+                    f"and returns a dict. Got {type(param_fn).__name__}. "
                     f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
                 )
 
         if scoring_methods is not None:
-            if (not isinstance(scoring_methods, dict)) | (not all(k in self.learner_names for k in scoring_methods)):
+            if (not isinstance(scoring_methods, dict)) | (not all(k in self.params_names for k in scoring_methods)):
                 raise ValueError(
                     "Invalid scoring_methods "
                     + str(scoring_methods)
                     + ". "
                     + "scoring_methods must be a dictionary. "
                     + "Valid keys are "
-                    + " and ".join(self.learner_names)
+                    + " and ".join(self.params_names)
                     + "."
                 )
-            if not all(k in scoring_methods for k in self.learner_names):
+            if not all(k in scoring_methods for k in self.params_names):
                 # if there are learners for which no scoring_method was set, we fall back to None
-                for learner in self.learner_names:
+                for learner in self.params_names:
                     if learner not in scoring_methods:
                         scoring_methods[learner] = None
 
@@ -1118,7 +1123,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
             # tune hyperparameters (globally, not fold-specific)
             res = self._nuisance_tuning_optuna(
-                param_grids,
+                params,
                 scoring_methods,
                 n_folds_tune,
                 n_jobs_cv,
@@ -1127,9 +1132,8 @@ class DoubleML(SampleSplittingMixin, ABC):
             tuning_res[i_d] = res
 
             if set_as_params:
-                for nuisance_model in res["params"].keys():
-                    params = res["params"][nuisance_model]
-                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params[0])
+                for nuisance_model, param_list in res["params"].items():
+                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], param_list[0])
 
         if return_tune_res:
             return tuning_res
@@ -1223,10 +1227,10 @@ class DoubleML(SampleSplittingMixin, ABC):
         n_iter_randomized_search,
     ):
         pass
-    
+
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
         n_folds_tune,
         n_jobs_cv,

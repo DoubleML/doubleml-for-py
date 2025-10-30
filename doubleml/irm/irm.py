@@ -473,66 +473,72 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
         n_folds_tune,
         n_jobs_cv,
         optuna_settings,
     ):
+        """
+        Optuna-based hyperparameter tuning for IRM nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
         from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_m": None}
+            scoring_methods = {"ml_g0": None, "ml_g1": None, "ml_m": None}
 
+        # Separate data by treatment status for conditional mean tuning
         mask_d0 = d == 0
         mask_d1 = d == 1
 
         x_d0 = x[mask_d0, :]
         y_d0 = y[mask_d0]
         train_inds_d0 = [np.arange(x_d0.shape[0])]
-        g0_param_grid = param_grids.get("ml_g0", param_grids["ml_g"])
-        g0_scoring = scoring_methods.get("ml_g0", scoring_methods["ml_g"])
+
         g0_tune_res = _dml_tune_optuna(
             y_d0,
             x_d0,
             train_inds_d0,
             self._learner["ml_g"],
-            g0_param_grid,
-            g0_scoring,
+            optuna_params["ml_g0"],
+            scoring_methods["ml_g0"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g0", "ml_g"),
+            learner_name="ml_g0",
         )
 
         x_d1 = x[mask_d1, :]
         y_d1 = y[mask_d1]
         train_inds_d1 = [np.arange(x_d1.shape[0])]
-        g1_param_grid = param_grids.get("ml_g1", param_grids["ml_g"])
-        g1_scoring = scoring_methods.get("ml_g1", scoring_methods["ml_g"])
+
         g1_tune_res = _dml_tune_optuna(
             y_d1,
             x_d1,
             train_inds_d1,
             self._learner["ml_g"],
-            g1_param_grid,
-            g1_scoring,
+            optuna_params["ml_g1"],
+            scoring_methods["ml_g1"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g1", "ml_g"),
+            learner_name="ml_g1",
         )
 
+        # Tune propensity score on full dataset
         full_train_inds = [np.arange(x.shape[0])]
         m_tune_res = _dml_tune_optuna(
             d,
             x,
             full_train_inds,
             self._learner["ml_m"],
-            param_grids["ml_m"],
+            optuna_params["ml_m"],
             scoring_methods["ml_m"],
             n_folds_tune,
             n_jobs_cv,

@@ -381,7 +381,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
         n_folds_tune,
         n_jobs_cv,
@@ -403,13 +403,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
 
         # For Optuna, we use the full dataset (single "fold" for tuning)
         train_inds = [np.arange(len(y))]
-        
+
         l_tune_res = _dml_tune_optuna(
             y,
             x,
             train_inds,
             self._learner["ml_l"],
-            param_grids["ml_l"],
+            optuna_params["ml_l"],
             scoring_methods["ml_l"],
             n_folds_tune,
             n_jobs_cv,
@@ -421,7 +421,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             x,
             train_inds,
             self._learner["ml_m"],
-            param_grids["ml_m"],
+            optuna_params["ml_m"],
             scoring_methods["ml_m"],
             n_folds_tune,
             n_jobs_cv,
@@ -440,13 +440,13 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
-            
+
             g_tune_res = _dml_tune_optuna(
                 y - theta_initial * d,
                 x,
                 train_inds,
                 self._learner["ml_g"],
-                param_grids["ml_g"],
+                optuna_params["ml_g"],
                 scoring_methods["ml_g"],
                 n_folds_tune,
                 n_jobs_cv,

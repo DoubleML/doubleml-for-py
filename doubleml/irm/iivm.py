@@ -578,6 +578,12 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         n_jobs_cv,
         optuna_settings,
     ):
+        """
+        Optuna-based hyperparameter tuning for IIVM nuisance models.
+
+        Performs tuning once on the whole dataset using cross-validation,
+        returning the same optimal parameters for all folds.
+        """
         from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
@@ -585,47 +591,47 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_m": None, "ml_r": None}
+            scoring_methods = {"ml_g0": None, "ml_g1": None, "ml_m": None, "ml_r0": None, "ml_r1": None}
 
+        # Separate data by instrument status for conditional mean tuning
         mask_z0 = z == 0
         mask_z1 = z == 1
 
         x_z0 = x[mask_z0, :]
         y_z0 = y[mask_z0]
         train_inds_z0 = [np.arange(x_z0.shape[0])]
-        g0_param_grid = param_grids.get("ml_g0", param_grids["ml_g"])
-        g0_scoring = scoring_methods.get("ml_g0", scoring_methods["ml_g"])
+
         g0_tune_res = _dml_tune_optuna(
             y_z0,
             x_z0,
             train_inds_z0,
             self._learner["ml_g"],
-            g0_param_grid,
-            g0_scoring,
+            param_grids["ml_g0"],
+            scoring_methods["ml_g0"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g0", "ml_g"),
+            learner_name="ml_g0",
         )
 
         x_z1 = x[mask_z1, :]
         y_z1 = y[mask_z1]
         train_inds_z1 = [np.arange(x_z1.shape[0])]
-        g1_param_grid = param_grids.get("ml_g1", param_grids["ml_g"])
-        g1_scoring = scoring_methods.get("ml_g1", scoring_methods["ml_g"])
+
         g1_tune_res = _dml_tune_optuna(
             y_z1,
             x_z1,
             train_inds_z1,
             self._learner["ml_g"],
-            g1_param_grid,
-            g1_scoring,
+            param_grids["ml_g1"],
+            scoring_methods["ml_g1"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g1", "ml_g"),
+            learner_name="ml_g1",
         )
 
+        # Tune propensity score on full dataset
         full_train_inds = [np.arange(x.shape[0])]
         m_tune_res = _dml_tune_optuna(
             z,
@@ -645,37 +651,35 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         if self.subgroups["always_takers"]:
             d_z0 = d[mask_z0]
             train_inds_r0 = [np.arange(x_z0.shape[0])]
-            r0_param_grid = param_grids.get("ml_r0", param_grids["ml_r"])
-            r0_scoring = scoring_methods.get("ml_r0", scoring_methods["ml_r"])
+
             r0_tune_res = _dml_tune_optuna(
                 d_z0,
                 x_z0,
                 train_inds_r0,
                 self._learner["ml_r"],
-                r0_param_grid,
-                r0_scoring,
+                param_grids["ml_r0"],
+                scoring_methods["ml_r0"],
                 n_folds_tune,
                 n_jobs_cv,
                 optuna_settings,
-                learner_name=("ml_r0", "ml_r"),
+                learner_name="ml_r0",
             )
 
         if self.subgroups["never_takers"]:
             d_z1 = d[mask_z1]
             train_inds_r1 = [np.arange(x_z1.shape[0])]
-            r1_param_grid = param_grids.get("ml_r1", param_grids["ml_r"])
-            r1_scoring = scoring_methods.get("ml_r1", scoring_methods["ml_r"])
+
             r1_tune_res = _dml_tune_optuna(
                 d_z1,
                 x_z1,
                 train_inds_r1,
                 self._learner["ml_r"],
-                r1_param_grid,
-                r1_scoring,
+                param_grids["ml_r1"],
+                scoring_methods["ml_r1"],
                 n_folds_tune,
                 n_jobs_cv,
                 optuna_settings,
-                learner_name=("ml_r1", "ml_r"),
+                learner_name="ml_r1",
             )
 
         g0_best_params = [xx.best_params_ for xx in g0_tune_res]
