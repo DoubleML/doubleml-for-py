@@ -158,7 +158,7 @@ def _create_study(settings, learner_name):
     study_kwargs = settings.get("study_kwargs", {}).copy()
     if "direction" not in study_kwargs:
         study_kwargs["direction"] = settings.get("direction", "maximize")
-        print(f"Optuna study direction set to '{study_kwargs['direction']}'.")
+        print(f"Optuna study direction set to '{study_kwargs['direction']}' for learner '{learner_name}'.")
     if settings.get("sampler") is not None:
         study_kwargs["sampler"] = settings["sampler"]
     if settings.get("pruner") is not None:
@@ -216,12 +216,6 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
 
         # Clone learner and set parameters
         estimator = clone(learner).set_params(**learner_params)
-
-        if scoring_method is None:
-            print("No scoring method provided, using default scoring method of the estimator: "
-                  f"{estimator.criterion}")
-        else:
-            print(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
 
         # Perform cross-validation on full dataset
         cv_results = cross_validate(
@@ -319,6 +313,12 @@ def _dml_tune_optuna(
 
     # Create the objective function
     objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name)
+
+    if scoring_method is None:
+        print("No scoring method provided, using default scoring method of the estimator: "
+                f"{learner.criterion}")
+    else:
+        print(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
 
     # Build optimize kwargs
     optimize_kwargs = {
