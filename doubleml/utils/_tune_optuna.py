@@ -200,22 +200,16 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
     def objective(trial):
         """Objective function for Optuna optimization."""
         # Get parameters from the user-provided function
-        all_params = param_grid_func(trial)
+        params = param_grid_func(trial)
 
-        if not isinstance(all_params, dict):
+        if not isinstance(params, dict):
             raise TypeError(
-                f"param function must return a dict. Got {type(all_params).__name__}. "
+                f"param function must return a dict. Got {type(params).__name__}. "
                 f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
             )
 
-        # Filter and strip prefix for the current learner
-        prefix = f"{learner_name}_"
-        learner_params = {
-            key.replace(prefix, ""): value for key, value in all_params.items() if key.startswith(prefix)
-        }
-
         # Clone learner and set parameters
-        estimator = clone(learner).set_params(**learner_params)
+        estimator = clone(learner).set_params(**params)
 
         # Perform cross-validation on full dataset
         cv_results = cross_validate(
@@ -346,7 +340,12 @@ def _dml_tune_optuna(
 
     # Extract best parameters and score
     # drop learner_name prefix from keys and only keep parameters for the current learner
-    best_params = study.best_trial.params
+    prefix = f"{learner_name}_"
+    best_params = {
+        key.replace(prefix, ""): value
+        for key, value in study.best_trial.params.items()
+        if key.startswith(prefix)
+    }
     best_score = study.best_value
 
     # Cache trials dataframe (computed once and reused for all folds)
