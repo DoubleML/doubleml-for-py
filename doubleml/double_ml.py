@@ -998,7 +998,10 @@ class DoubleML(SampleSplittingMixin, ABC):
 
             - ``n_trials`` (int): Number of optimization trials (default: 100)
             - ``timeout`` (float): Time limit in seconds for the study (default: None)
-            - ``direction`` (str): Optimization direction, 'maximize' or 'minimize' (default: 'maximize')
+            - ``direction`` (str): Optimization direction, 'maximize' or 'minimize'.
+              For sklearn scorers, use 'maximize' for negative metrics like 'neg_mean_squared_error'
+              (since -0.1 > -0.2 means better performance). Can be set globally or per learner.
+              (default: 'maximize')
             - ``sampler`` (optuna.samplers.BaseSampler): Optuna sampler instance (default: None, uses TPE)
             - ``pruner`` (optuna.pruners.BasePruner): Optuna pruner instance (default: None)
             - ``callbacks`` (list): List of callback functions (default: None)
@@ -1009,6 +1012,17 @@ class DoubleML(SampleSplittingMixin, ABC):
             - ``study_factory`` (callable): Factory function to create study (default: None)
             - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
             - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
+
+            To set direction per learner (similar to ``scoring_methods``):
+
+            .. code-block:: python
+
+                optuna_settings = {
+                    'n_trials': 50,
+                    'direction': 'maximize',  # Global default
+                    'ml_g0': {'direction': 'maximize'},  # Per-learner override
+                    'ml_m': {'n_trials': 100, 'direction': 'maximize'}
+                }
 
             Defaults to ``None``.
 
@@ -1054,6 +1068,17 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> dml_plr.tune_optuna(params, optuna_settings=optuna_settings)
         >>> # Fit and get results
         >>> dml_plr.fit()
+        >>> # Example with scoring methods and directions
+        >>> scoring_methods = {
+        ...     'ml_l': 'neg_mean_squared_error',  # Negative metric
+        ...     'ml_m': 'neg_mean_squared_error'
+        ... }
+        >>> optuna_settings = {
+        ...     'n_trials': 50,
+        ...     'direction': 'maximize'  # Maximize negative MSE (minimize MSE)
+        ... }
+        >>> dml_plr.tune_optuna(params, scoring_methods=scoring_methods,
+        ...                     optuna_settings=optuna_settings)
         """
         # Validation
         if (not isinstance(params, dict)) | (not all(k in params for k in self.params_names)):
