@@ -346,11 +346,7 @@ def _dml_tune_optuna(
 
     # Extract best parameters and score
     # drop learner_name prefix from keys and only keep parameters for the current learner
-    best_params = {
-        key.replace(f"{learner_name}_", ""): value
-        for key, value in study.best_trial.params.items()
-        if key.startswith(f"{learner_name}_")
-    }
+    best_params = study.best_trial.params
     best_score = study.best_value
 
     # Cache trials dataframe (computed once and reused for all folds)
