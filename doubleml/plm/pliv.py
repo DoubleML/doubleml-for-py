@@ -612,12 +612,12 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     x_instr,
                     instr_train_inds,
                     self._learner["ml_m"],
-                    optuna_params["ml_m"],
-                    scoring_methods["ml_m"],
+                    optuna_params[f"ml_m_{instr_var}"],
+                    scoring_methods[f"ml_m_{instr_var}"],
                     n_folds_tune,
                     n_jobs_cv,
                     optuna_settings,
-                    learner_name="ml_m",
+                    learner_name=f"ml_m_{instr_var}",
                 )
             x_m_features = x  # keep reference for later when constructing params
             z_vector = None
