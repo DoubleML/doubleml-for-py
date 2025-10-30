@@ -166,7 +166,7 @@ def _create_study(settings, learner_name):
     return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
 
-def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv):
+def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name):
     """
     Create an Optuna objective function for hyperparameter optimization.
 
@@ -187,6 +187,8 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
         Scoring method for cross-validation.
     n_jobs_cv : int or None
         Number of parallel jobs for cross-validation.
+    learner_name : str
+        Name of the learner.
 
     Returns
     -------
@@ -197,16 +199,22 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
     def objective(trial):
         """Objective function for Optuna optimization."""
         # Get parameters from the user-provided function
-        params = param_grid_func(trial)
+        all_params = param_grid_func(trial)
 
-        if not isinstance(params, dict):
+        if not isinstance(all_params, dict):
             raise TypeError(
-                f"param function must return a dict. Got {type(params).__name__}. "
+                f"param function must return a dict. Got {type(all_params).__name__}. "
                 f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
             )
 
+        # Filter and strip prefix for the current learner
+        prefix = f"{learner_name}_"
+        learner_params = {
+            key.replace(prefix, ""): value for key, value in all_params.items() if key.startswith(prefix)
+        }
+
         # Clone learner and set parameters
-        estimator = clone(learner).set_params(**params)
+        estimator = clone(learner).set_params(**learner_params)
 
         # Perform cross-validation on full dataset
         cv_results = cross_validate(
@@ -303,7 +311,7 @@ def _dml_tune_optuna(
     study = _create_study(settings, learner_name)
 
     # Create the objective function
-    objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv)
+    objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name)
 
     # Build optimize kwargs
     optimize_kwargs = {
