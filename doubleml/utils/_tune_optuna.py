@@ -220,6 +220,8 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
         if scoring_method is None:
             print("No scoring method provided, using default scoring method of the estimator: "
                   f"{estimator.criterion}")
+        else:
+            print(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
 
         # Perform cross-validation on full dataset
         cv_results = cross_validate(
