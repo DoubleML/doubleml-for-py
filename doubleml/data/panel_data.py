@@ -41,6 +41,13 @@ class DoubleMLPanelData(DoubleMLData):
         The instrumental variable(s).
         Default is ``None``.
 
+    static_panel : bool
+        Indicates whether the data model corresponds to a static
+        panel data approach (``True``) or to staggered adoption panel data
+        (``False``). In the latter case, the treatment groups/values are defined in terms of the first time of
+        treatment exposure.
+        Default is ``False``.
+
     use_other_treat_as_covariate : bool
         Indicates whether in the multiple-treatment case the other treatment variables should be added as covariates.
         Default is ``True``.
@@ -56,12 +63,6 @@ class DoubleMLPanelData(DoubleMLData):
 
     datetime_unit : str
         The unit of the time and treatment variable (if datetime type).
-
-    static_panel : bool
-        Indicates whether the data model corresponds to the standard panel data, where the treatment variable(s) indicate
-        the treatment groups in terms of first time of treatment exposure, or if the data model corresponds to a static
-        panel data approach.
-        Default is ``False``.
 
     Examples
     --------
@@ -88,71 +89,51 @@ class DoubleMLPanelData(DoubleMLData):
         id_col,
         x_cols=None,
         z_cols=None,
+        static_panel=False,
         use_other_treat_as_covariate=True,
         force_all_x_finite=True,
         datetime_unit="M",
-        static_panel=False,
     ):
         DoubleMLBaseData.__init__(self, data)
 
-        self.static_panel = static_panel
+        self._static_panel = static_panel
 
-        if not static_panel: 
-            # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
-            self.id_col = id_col
-            self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
-            self._set_id_var()
+        # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
+        self.id_col = id_col
+        self._set_id_var()
+        # Set time column before calling parent constructor
+        self.t_col = t_col
+        self._datetime_unit = _is_valid_datetime_unit(datetime_unit)
 
-            # Set time column before calling parent constructor
-            self.t_col = t_col
-
-            # Call parent constructor
-            DoubleMLData.__init__(
-                self,
-                data=data,
-                y_col=y_col,
-                d_cols=d_cols,
-                x_cols=x_cols,
-                z_cols=z_cols,
-                use_other_treat_as_covariate=use_other_treat_as_covariate,
-                force_all_x_finite=force_all_x_finite,
-                force_all_d_finite=False,
-            )
-
-            # reset index to ensure a simple RangeIndex
-            self.data.reset_index(drop=True, inplace=True)
-
-            # Set time variable array after data is loaded
-            self._set_time_var()
-
-            self._check_disjoint_sets_id_col()
-
-            # intialize the unique values of g and t
-            self._g_values = np.sort(np.unique(self.d))  # unique values of g
-            self._t_values = np.sort(np.unique(self.t))  # unique values of t
-
+        if not self.static_panel:
+            cluster_cols = None
         else:
-            # static panel type data class, where id column is used as the cluster variable
+            cluster_cols = id_col
 
-            self.id_col = id_col
-            self._set_id_var()
-            self.t_col = t_col
-        
-            DoubleMLData.__init__(
-                self,
-                data=data,
-                y_col=y_col,
-                d_cols=d_cols,
-                x_cols=x_cols,
-                z_cols=z_cols,
-                cluster_cols=id_col,
-                use_other_treat_as_covariate=use_other_treat_as_covariate,
-                force_all_x_finite=force_all_x_finite,
-                force_all_d_finite=False,
-            )
+        DoubleMLData.__init__(
+            self,
+            data=data,
+            y_col=y_col,
+            d_cols=d_cols,
+            x_cols=x_cols,
+            z_cols=z_cols,
+            cluster_cols=cluster_cols,
+            use_other_treat_as_covariate=use_other_treat_as_covariate,
+            force_all_x_finite=force_all_x_finite,
+            force_all_d_finite=False,
+        )
 
-            if self.z_cols is not None:
-                raise ValueError("Static panel data currently does not support instrumental variables.")
+        # reset index to ensure a simple RangeIndex
+        self.data.reset_index(drop=True, inplace=True)
+
+        # Set time variable array after data is loaded
+        self._set_time_var()
+
+        self._check_disjoint_sets_id_col()
+
+        # intialize the unique values of g and t
+        self._g_values = np.sort(np.unique(self.d))  # unique values of g
+        self._t_values = np.sort(np.unique(self.t))  # unique values of t
 
         if self.n_treat != 1:
             raise ValueError("Only one treatment column is allowed for panel data.")
@@ -179,6 +160,7 @@ class DoubleMLPanelData(DoubleMLData):
             f"Instrument variable(s): {self.z_cols}\n"
             f"Time variable: {self.t_col}\n"
             f"Id variable: {self.id_col}\n"
+            f"Static panel data: {self.static_panel}\n"
         )
 
         data_summary += f"No. Unique Ids: {self.n_ids}\n" f"No. Observations: {self.n_obs}\n"
@@ -328,20 +310,11 @@ class DoubleMLPanelData(DoubleMLData):
         The number of time periods.
         """
         return len(self.t_values)
-    
+
     @property
     def static_panel(self):
-        """
-        Indicates whether the data model corresponds to the standard panel data or if the data model corresponds to a static
-        panel data approach.        
-        """
+        """Indicates whether the data model corresponds to a static panel data approach."""
         return self._static_panel
-
-    @static_panel.setter
-    def static_panel(self, value):
-        if not isinstance(value, bool):
-            raise TypeError(f"static_panel must be True or False. Got {str(value)}.")
-        self._static_panel = value
 
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
