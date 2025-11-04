@@ -135,7 +135,7 @@ class PSProcessor:
         learner_name: Optional[str] = None,
     ) -> np.ndarray:
         """
-        Adjust propensity scores via validation, clipping, and warnings.
+        Adjust propensity scores via calibration and clipping.
 
         Parameters
         ----------
