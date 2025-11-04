@@ -95,6 +95,8 @@ class DoubleMLPanelData(DoubleMLData):
     ):
         DoubleMLBaseData.__init__(self, data)
 
+        self.static_panel = static_panel
+
         if not static_panel: 
             # we need to set id_col (needs _data) before call to the super __init__ because of the x_cols setter
             self.id_col = id_col
@@ -123,9 +125,6 @@ class DoubleMLPanelData(DoubleMLData):
             # Set time variable array after data is loaded
             self._set_time_var()
 
-            if self.n_treat != 1:
-                raise ValueError("Only one treatment column is allowed for panel data.")
-
             self._check_disjoint_sets_id_col()
 
             # intialize the unique values of g and t
@@ -152,11 +151,11 @@ class DoubleMLPanelData(DoubleMLData):
                 force_all_d_finite=False,
             )
 
-            if self.n_treat != 1:
-                raise ValueError("Only one treatment column is allowed for panel data.")
-            
             if self.z_cols is not None:
                 raise ValueError("Static panel data currently does not support instrumental variables.")
+
+        if self.n_treat != 1:
+            raise ValueError("Only one treatment column is allowed for panel data.")
 
     def __str__(self):
         data_summary = self._data_summary_str()
@@ -329,6 +328,20 @@ class DoubleMLPanelData(DoubleMLData):
         The number of time periods.
         """
         return len(self.t_values)
+    
+    @property
+    def static_panel(self):
+        """
+        Indicates whether the data model corresponds to the standard panel data or if the data model corresponds to a static
+        panel data approach.        
+        """
+        return self._static_panel
+
+    @static_panel.setter
+    def static_panel(self, value):
+        if not isinstance(value, bool):
+            raise TypeError(f"static_panel must be True or False. Got {str(value)}.")
+        self._static_panel = value
 
     def _get_optional_col_sets(self):
         base_optional_col_sets = super()._get_optional_col_sets()
