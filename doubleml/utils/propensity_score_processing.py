@@ -49,6 +49,7 @@ class PSProcessorConfig:
     ... )
     >>> processor = PSProcessor.from_config(config)
     """
+
     clipping_threshold: float = 1e-2
     extreme_threshold: float = 1e-12
     calibration_method: Optional[str] = None
