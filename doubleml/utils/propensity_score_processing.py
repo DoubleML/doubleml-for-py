@@ -10,6 +10,45 @@ from sklearn.utils.multiclass import type_of_target
 
 @dataclass
 class PSProcessorConfig:
+    """
+    Configuration for propensity score processing.
+
+    This dataclass holds the configuration parameters used by PSProcessor
+    for propensity score calibration, clipping, and validation.
+
+    Parameters
+    ----------
+    clipping_threshold : float, default=1e-2
+        Minimum and maximum bound for propensity scores after clipping.
+        Must be between 0 and 0.5.
+
+    extreme_threshold : float, default=1e-12
+        Threshold below which propensity scores are considered extreme.
+        Propensity scores are clipped based on this value when scores are too close to 0 or 1
+        to avoid numerical instability.
+        Must be between 0 and 0.5.
+
+    calibration_method : {'isotonic', None}, optional
+        If provided, applies the specified calibration method to
+        the propensity scores before clipping. Currently supports:
+        - 'isotonic': Isotonic regression calibration
+        - None: No calibration applied
+
+    cv_calibration : bool, default=False
+        Whether to use cross-validation for calibration.
+        Only applies if a calibration method is specified.
+        Requires calibration_method to be set.
+
+    Examples
+    --------
+    >>> from doubleml.utils import PSProcessorConfig, PSProcessor
+    >>> config = PSProcessorConfig(
+    ...     clipping_threshold=0.05,
+    ...     calibration_method='isotonic',
+    ...     cv_calibration=True
+    ... )
+    >>> processor = PSProcessor.from_config(config)
+    """
     clipping_threshold: float = 1e-2
     extreme_threshold: float = 1e-12
     calibration_method: Optional[str] = None
