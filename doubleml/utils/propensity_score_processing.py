@@ -132,6 +132,7 @@ class PSProcessor:
 
     @classmethod
     def from_config(cls, config: PSProcessorConfig):
+        """Create PSProcessor from PSProcessorConfig."""
         return cls(
             clipping_threshold=config.clipping_threshold,
             extreme_threshold=config.extreme_threshold,
