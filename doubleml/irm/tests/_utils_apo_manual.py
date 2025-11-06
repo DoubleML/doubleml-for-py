@@ -21,7 +21,7 @@ def fit_apo(
     g1_params=None,
     m_params=None,
     normalize_ipw=False,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
 ):
     n_obs = len(y)
     treated = d == treatment_level
@@ -46,7 +46,7 @@ def fit_apo(
             g0_params=g0_params,
             g1_params=g1_params,
             m_params=m_params,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
         )
 
         all_g_hat0.append(g_hat0)
@@ -83,7 +83,7 @@ def fit_nuisance_apo(
     g0_params=None,
     g1_params=None,
     m_params=None,
-    trimming_threshold=1e-12,
+    clipping_threshold=1e-12,
 ):
     ml_g0 = clone(learner_g)
     ml_g1 = clone(learner_g)
@@ -102,7 +102,7 @@ def fit_nuisance_apo(
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls, train_cond=train_cond1)
 
     ml_m = clone(learner_m)
-    m_hat_list = fit_predict_proba(treated, x, ml_m, m_params, smpls, trimming_threshold=trimming_threshold)
+    m_hat_list = fit_predict_proba(treated, x, ml_m, m_params, smpls, clipping_threshold=clipping_threshold)
 
     return g_hat0_list, g_hat1_list, m_hat_list
 
