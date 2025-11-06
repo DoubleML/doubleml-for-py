@@ -5,12 +5,11 @@ import pandas as pd
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 
-from ..data.base_data import DoubleMLData
+from ..data.panel_data import DoubleMLPanelData
 from ..double_ml import DoubleML
 from ..double_ml_score_mixins import LinearScoreMixin
 from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
 from ..utils._estimation import _dml_cv_predict, _dml_tune
-# from ..utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLPR(LinearScoreMixin, DoubleML):
@@ -52,13 +51,16 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
-    pdml_approach : str
-        Panel DML approach (``'transform'``, ``'cre'``, ``'cre_general'``)
+    static_panel_approach : str
+        A str (``'cre_general'``, ``'cre_normal'``, ``'fd_exact'``, ``'wg_approx'``) specifying the type of
+        static panel approach in Clarke and Polselli (2025).
+        Default is ``'fd_exact'``.
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
         Default is ``True``.
 
+    TODO: include example and notes
     Examples
     --------
     >>> import numpy as np
@@ -72,17 +74,17 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
     """
 
     def __init__(
-        self, obj_dml_data, ml_l, ml_m, ml_g=None, n_folds=5, n_rep=1, score="partialling out", pdml_approach='transform', draw_sample_splitting=True):
+        self, obj_dml_data, ml_l, ml_m, ml_g=None, n_folds=5, n_rep=1, score="partialling out", static_panel_approach="fd_exact", draw_sample_splitting=True):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
-        # assert cluster?
+        # TODO: assert cluster?
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
 
-        valid_pdml_approach = ["transform", "cre", "cre_general"]
-        self._check_pdml_approach(pdml_approach, valid_pdml_approach)
-        self._pdml_approach = pdml_approach
+        valid_static_panel_approach = ["cre_general", "cre_normal", "fd_exact", "wg_approx"]
+        self._check_static_panel_approach(static_panel_approach, valid_static_panel_approach)
+        self._static_panel_approach = static_panel_approach
 
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
@@ -119,16 +121,19 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             self._predict_method["ml_m"] = "predict"
 
         self._initialize_ml_nuisance_params()
-        self._sensitivity_implemented = False ###
+        self._sensitivity_implemented = False
         self._external_predictions_implemented = True
+
+        # Get transformed data depending on approach
+        self._data_transform = self._transform_data(self._static_panel_approach)
 
     def __str__(self):
         class_name = self.__class__.__name__
         header = f"================== {class_name} Object ==================\n"
         data_summary = self._dml_data._data_summary_str()
-        score_pdml_approach_info = (
+        score_static_panel_approach_info = (
             f"Score function: {str(self.score)}\n"
-            f"Static panel model approach: {str(self.pdml_approach)}\n"
+            f"Static panel model approach: {str(self.static_panel_approach)}\n"
         )
         learner_info = ""
         for key, value in self.learner.items():
@@ -160,7 +165,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             + "\n------------------ Data summary      ------------------\n"
             + data_summary
             + "\n------------------ Score & algorithm ------------------\n"
-            + score_pdml_approach_info
+            + score_static_panel_approach_info
             + "\n------------------ Machine learner   ------------------\n"
             + learner_info
             + "\n------------------ Resampling        ------------------\n"
@@ -171,21 +176,30 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return res
     
     @property
-    def pdml_approach(self):
+    def static_panel_approach(self):
         """
         The score function.
         """
-        return self._pdml_approach
+        return self._static_panel_approach
+
+    @property
+    def data_transform(self):
+        """
+        The transformed static panel data.
+        """
+        return self._data_transform
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
-    # DoubleML init check for type already?
-    # TODO: Ensure cluster usage
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
+        if not isinstance(obj_dml_data, DoubleMLPanelData):
             raise TypeError(
-                f"The data must be of DoubleMLData type. {str(type(obj_dml_data))} was passed."
+                f"The data must be of DoubleMLPanelData type. {str(type(obj_dml_data))} was passed."
+            )
+        if not obj_dml_data.static_panel:
+            raise ValueError(
+                "For the PLPR model, the DoubleMLPanelData object requires the static_panel flag to be set to True."
             )
         if obj_dml_data.z_cols is not None:
             raise ValueError(
@@ -194,14 +208,52 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             )
         return
     
-    def _check_pdml_approach(self, pdml_approach, valid_pdml_approach):
-        if isinstance(pdml_approach, str):
-            if pdml_approach not in valid_pdml_approach:
-                raise ValueError("Invalid pdml_approach " + pdml_approach + ". " + "Valid approach " + " or ".join(valid_pdml_approach) + ".")
+    def _check_static_panel_approach(self, static_panel_approach, valid_static_panel_approach):
+        if isinstance(static_panel_approach, str):
+            if static_panel_approach not in valid_static_panel_approach:
+                raise ValueError("Invalid static_panel_approach " + static_panel_approach + ". " + "Valid approach " + " or ".join(valid_static_panel_approach) + ".")
         else:
-            raise TypeError(f"score should be a string. {str(pdml_approach)} was passed.")
+            raise TypeError(f"static_panel_approach should be a string. {str(static_panel_approach)} was passed.")
         return
+    
+    # TODO: preprocess and transform data based on static_panel_approach (cre, fd, wd)
+    def _transform_data(self, static_panel_approach):
+        df = self._dml_data.data.copy()
 
+        y_col = self._dml_data.y_col
+        d_cols = self._dml_data.d_cols
+        x_cols = self._dml_data.x_cols
+        t_col = self._dml_data.t_col
+        id_col = self._dml_data.id_col
+
+        if static_panel_approach in ["cre_general", "cre_normal"]:
+            # uses regular y_col, d_cols, x_cols + m_x_cols
+            df_id_means = df[[id_col] + d_cols + x_cols].groupby(id_col).transform("mean")
+            df_means = df_id_means.add_prefix("m_") 
+            data = pd.concat([df, df_means], axis=1)
+            # {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"m_{x}"" for x in x_cols]}
+        elif static_panel_approach == "fd_exact":
+            # TODO: potential issues with unbalanced panels/missing periods, right now the
+            # last available is used as the lag and for diff. Maybe reindex to a complete time grid per id.
+            # uses y_col_diff, d_cols_diff, x_cols + x_cols_lag
+            df = df.sort_values([id_col, t_col])
+            shifted = df[[id_col] + x_cols].groupby(id_col).shift(1).add_suffix("_lag")
+            first_diff = df[[id_col] + d_cols + [y_col]].groupby(id_col).diff().add_suffix("_diff")
+            df_fd = pd.concat([df, shifted, first_diff], axis=1)
+            data = df_fd.dropna(subset=[x_cols[0] + "_lag"]).reset_index(drop=True)
+            # {"y_col": f"{y_col}_diff", "d_cols": [f"{d}_diff" for d in d_cols], "x_cols": x_cols + [f"{x}_lag" for x in x_cols]}
+        elif static_panel_approach == "wg_approx":
+            # uses y_col, d_cols, x_cols
+            df_demean = df.drop(t_col, axis=1).groupby(id_col).transform(lambda x: x - x.mean())
+            # add grand means
+            grand_means = df.drop([id_col, t_col], axis=1).mean()
+            within_means = df_demean + grand_means
+            data = pd.concat([df[[id_col, t_col]], within_means], axis=1)
+            # {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols}
+        else:
+            raise ValueError(f"Invalid static_panel_approach.")
+
+        return data
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
@@ -235,10 +287,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         if m_external:
             m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
         else:
+            # TODO: update this section
             # cre using m_d + x for m_hat, otherwise only x
-            if self._pdml_approach == 'cre':
-                help_data = pd.DataFrame({'id': self._dml_data.cluster_vars[:, 0], 'd': d})
-                m_d = help_data.groupby(["id"]).transform('mean').values
+            if self._static_panel_approach == "cre_normal":
+                help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "d": d})
+                m_d = help_data.groupby(["id"]).transform("mean").values
                 x = np.column_stack((x, m_d))
 
             m_hat = _dml_cv_predict(
@@ -253,11 +306,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
                 )
 
             # general cre adjustment
-            if self._pdml_approach == 'cre_general':
-                help_data = pd.DataFrame({'id': self._dml_data.cluster_vars[:, 0], 'm_hat': m_hat['preds'], 'd': d})
-                group_means = help_data.groupby(['id'])[['m_hat', 'd']].transform('mean')
-                m_hat_star = m_hat['preds'] + group_means['d'] - group_means['m_hat']
-                m_hat['preds'] = m_hat_star
+            if self._static_panel_approach == "cre_general":
+                help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "m_hat": m_hat["preds"], "d": d})
+                group_means = help_data.groupby(["id"])[["m_hat", "d"]].transform("mean")
+                m_hat_star = m_hat["preds"] + group_means["d"] - group_means["m_hat"]
+                m_hat["preds"] = m_hat_star
                 
 
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
@@ -394,111 +447,3 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
-
-    # def cate(self, basis, is_gate=False, **kwargs):
-    #     """
-    #     Calculate conditional average treatment effects (CATE) for a given basis.
-
-    #     Parameters
-    #     ----------
-    #     basis : :class:`pandas.DataFrame`
-    #         The basis for estimating the best linear predictor. Has to have the shape ``(n_obs, d)``,
-    #         where ``n_obs`` is the number of observations and ``d`` is the number of predictors.
-
-    #     is_gate : bool
-    #         Indicates whether the basis is constructed for GATEs (dummy-basis).
-    #         Default is ``False``.
-
-    #     **kwargs: dict
-    #         Additional keyword arguments to be passed to :meth:`statsmodels.regression.linear_model.OLS.fit` e.g. ``cov_type``.
-
-    #     Returns
-    #     -------
-    #     model : :class:`doubleML.DoubleMLBLP`
-    #         Best linear Predictor model.
-    #     """
-    #     if self._dml_data.n_treat > 1:
-    #         raise NotImplementedError(
-    #             "Only implemented for single treatment. " + f"Number of treatments is {str(self._dml_data.n_treat)}."
-    #         )
-    #     if self.n_rep != 1:
-    #         raise NotImplementedError("Only implemented for one repetition. " + f"Number of repetitions is {str(self.n_rep)}.")
-
-    #     Y_tilde, D_tilde = self._partial_out()
-
-    #     D_basis = basis * D_tilde
-    #     model = DoubleMLBLP(
-    #         orth_signal=Y_tilde.reshape(-1),
-    #         basis=D_basis,
-    #         is_gate=is_gate,
-    #     )
-    #     model.fit(**kwargs)
-    #     return model
-
-    # def gate(self, groups, **kwargs):
-    #     """
-    #     Calculate group average treatment effects (GATE) for groups.
-
-    #     Parameters
-    #     ----------
-    #     groups : :class:`pandas.DataFrame`
-    #         The group indicator for estimating the best linear predictor. Groups should be mutually exclusive.
-    #         Has to be dummy coded with shape ``(n_obs, d)``, where ``n_obs`` is the number of observations
-    #         and ``d`` is the number of groups or ``(n_obs, 1)`` and contain the corresponding groups (as str).
-
-    #     **kwargs: dict
-    #         Additional keyword arguments to be passed to :meth:`statsmodels.regression.linear_model.OLS.fit` e.g. ``cov_type``.
-
-    #     Returns
-    #     -------
-    #     model : :class:`doubleML.DoubleMLBLP`
-    #         Best linear Predictor model for Group Effects.
-    #     """
-
-    #     if not isinstance(groups, pd.DataFrame):
-    #         raise TypeError(f"Groups must be of DataFrame type. Groups of type {str(type(groups))} was passed.")
-    #     if not all(groups.dtypes == bool) or all(groups.dtypes == int):
-    #         if groups.shape[1] == 1:
-    #             groups = pd.get_dummies(groups, prefix="Group", prefix_sep="_")
-    #         else:
-    #             raise TypeError(
-    #                 "Columns of groups must be of bool type or int type (dummy coded). "
-    #                 "Alternatively, groups should only contain one column."
-    #             )
-
-    #     if any(groups.sum(0) <= 5):
-    #         warnings.warn("At least one group effect is estimated with less than 6 observations.")
-
-    #     model = self.cate(groups, is_gate=True, **kwargs)
-    #     return model
-
-    # def _partial_out(self):
-    #     """
-    #     Helper function. Returns the partialled out quantities of Y and D.
-    #     Works with multiple repetitions.
-
-    #     Returns
-    #     -------
-    #     Y_tilde : :class:`numpy.ndarray`
-    #         The residual of the regression of Y on X.
-    #     D_tilde : :class:`numpy.ndarray`
-    #         The residual of the regression of D on X.
-    #     """
-    #     if self.predictions is None:
-    #         raise ValueError("predictions are None. Call .fit(store_predictions=True) to store the predictions.")
-
-    #     y = self._dml_data.y.reshape(-1, 1)
-    #     d = self._dml_data.d.reshape(-1, 1)
-    #     ml_m = self.predictions["ml_m"].squeeze(axis=2)
-
-    #     if self.score == "partialling out":
-    #         ml_l = self.predictions["ml_l"].squeeze(axis=2)
-    #         Y_tilde = y - ml_l
-    #         D_tilde = d - ml_m
-    #     else:
-    #         assert self.score == "IV-type"
-    #         ml_g = self.predictions["ml_g"].squeeze(axis=2)
-    #         Y_tilde = y - (self.coef * ml_m) - ml_g
-    #         D_tilde = d - ml_m
-
-    #     return Y_tilde, D_tilde
