@@ -389,6 +389,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
+        if self._i_rep is None:
+            raise ValueError("tune_on_folds must be True as targets have to be created for ml_t on folds.")
         # TODO: test
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -470,6 +472,13 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             w = scipy.special.logit(M_iteration)
             W_inner.append(w)
 
+        # Reshape W_inner into full-length arrays per fold: fill train indices, others are NaN
+        W_targets = []
+        for i, train in enumerate(train_inds):
+            wt = np.full(x.shape[0], np.nan, dtype=float)
+            wt[train] = W_inner[i]
+            W_targets.append(wt)
+
         t_tune_res = _dml_tune(
             W_inner,
             x,
@@ -481,6 +490,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
+            fold_specific_target=True
         )
         t_best_params = [xx.best_params_ for xx in t_tune_res]
 

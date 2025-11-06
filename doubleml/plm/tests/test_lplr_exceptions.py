@@ -295,3 +295,4 @@ def test_double_ml_exception_evaluate_learner():
 
     with pytest.raises(ValueError):
         dml_lplr_obj.evaluate_learners(metric=eval_fct)
+
