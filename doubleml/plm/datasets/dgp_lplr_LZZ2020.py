@@ -90,6 +90,7 @@ def make_lplr_LZZ2020(
                 + 0.25 * np.where(X[:, 10] > 0, 1, 0)
                 + -0.25 * np.where(X[:, 12] > 0, 1, 0)
             )
+
     else:
 
         def r_0(X):

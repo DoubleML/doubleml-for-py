@@ -6,8 +6,4 @@ from .lplr import DoubleMLLPLR
 from .pliv import DoubleMLPLIV
 from .plr import DoubleMLPLR
 
-__all__ = [
-    "DoubleMLPLR",
-    "DoubleMLPLIV",
-    "DoubleMLLPLR"
-]
+__all__ = ["DoubleMLPLR", "DoubleMLPLIV", "DoubleMLLPLR"]

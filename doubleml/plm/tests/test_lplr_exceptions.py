@@ -21,10 +21,7 @@ dml_lplr_instrument = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, score="instrument
 
 @pytest.mark.ci
 def test_lplr_exception_data():
-    msg = (
-        r"The data must be of DoubleMLData.* type\.[\s\S]* of type "
-        r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
-    )
+    msg = r"The data must be of DoubleMLData.* type\.[\s\S]* of type " r"<class 'pandas\.core\.frame\.DataFrame'> was passed\."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(pd.DataFrame(), ml_M, ml_t, ml_m)
 
@@ -284,8 +281,7 @@ def test_double_ml_exception_evaluate_learner():
         dml_lplr_obj.evaluate_learners(metric="mse")
 
     msg = (
-        r"The learners have to be a subset of \['ml_m', 'ml_t', 'ml_M', 'ml_a'\]\. "
-        r"Learners \['ml_mu', 'ml_p'\] provided."
+        r"The learners have to be a subset of \['ml_m', 'ml_t', 'ml_M', 'ml_a'\]\. " r"Learners \['ml_mu', 'ml_p'\] provided."
     )
     with pytest.raises(ValueError, match=msg):
         dml_lplr_obj.evaluate_learners(learners=["ml_mu", "ml_p"])
