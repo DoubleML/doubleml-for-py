@@ -18,7 +18,7 @@ def fit_pq(
     all_smpls,
     treatment,
     n_rep=1,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     normalize_ipw=True,
     g_params=None,
     m_params=None,
@@ -40,7 +40,7 @@ def fit_pq(
             learner_m,
             smpls,
             treatment,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
             normalize_ipw=normalize_ipw,
             g_params=g_params,
             m_params=m_params,
@@ -57,7 +57,7 @@ def fit_pq(
 
 
 def fit_nuisance_pq(
-    y, x, d, quantile, learner_g, learner_m, smpls, treatment, trimming_threshold, normalize_ipw, g_params, m_params
+    y, x, d, quantile, learner_g, learner_m, smpls, treatment, clipping_threshold, normalize_ipw, g_params, m_params
 ):
     n_folds = len(smpls)
     n_obs = len(y)
@@ -96,8 +96,8 @@ def fit_nuisance_pq(
         # todo change prediction method
         m_hat_prelim = _dml_cv_predict(clone(ml_m), x_train_1, d_train_1, method="predict_proba", smpls=smpls_prelim)["preds"]
 
-        m_hat_prelim[m_hat_prelim < trimming_threshold] = trimming_threshold
-        m_hat_prelim[m_hat_prelim > 1 - trimming_threshold] = 1 - trimming_threshold
+        m_hat_prelim[m_hat_prelim < clipping_threshold] = clipping_threshold
+        m_hat_prelim[m_hat_prelim > 1 - clipping_threshold] = 1 - clipping_threshold
 
         if normalize_ipw:
             m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
@@ -129,8 +129,8 @@ def fit_nuisance_pq(
         ml_m.fit(x[train_inds, :], d[train_inds])
         m_hat[test_inds] = ml_m.predict_proba(x[test_inds, :])[:, 1]
 
-    m_hat[m_hat < trimming_threshold] = trimming_threshold
-    m_hat[m_hat > 1 - trimming_threshold] = 1 - trimming_threshold
+    m_hat[m_hat < clipping_threshold] = clipping_threshold
+    m_hat[m_hat > 1 - clipping_threshold] = 1 - clipping_threshold
 
     if normalize_ipw:
         m_hat = _normalize_ipw(m_hat, d)

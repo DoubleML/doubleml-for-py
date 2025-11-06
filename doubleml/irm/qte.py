@@ -1,3 +1,6 @@
+import warnings
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
@@ -9,11 +12,13 @@ from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.irm.cvar import DoubleMLCVAR
 from doubleml.irm.lpq import DoubleMLLPQ
 from doubleml.irm.pq import DoubleMLPQ
-from doubleml.utils._checks import _check_score, _check_trimming, _check_zero_one_treatment
+from doubleml.utils._checks import _check_score, _check_zero_one_treatment
 from doubleml.utils._descriptive import generate_summary
 from doubleml.utils._estimation import _default_kde
+from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
+# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 class DoubleMLQTE(SampleSplittingMixin):
     """Double machine learning for quantile treatment effects
 
@@ -56,13 +61,16 @@ class DoubleMLQTE(SampleSplittingMixin):
         Default is ``'None'``, which uses :py:class:`statsmodels.nonparametric.kde.KDEUnivariate` with a
         gaussian kernel and silverman for bandwidth determination.
 
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
+    trimming_rule : str, optional, deprecated
+        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Use `ps_processor_config` instead. Will be removed in a future version.
 
-    trimming_threshold : float
-        The threshold used for trimming.
-        Default is ``1e-2``.
+    trimming_threshold : float, optional, deprecated
+        (DEPRECATED) The threshold used for trimming.
+        Use `ps_processor_config` instead. Will be removed in a future version.
+
+    ps_processor_config : PSProcessorConfig, optional
+        Configuration for propensity score processing (clipping, calibration, etc.).
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -98,8 +106,9 @@ class DoubleMLQTE(SampleSplittingMixin):
         score="PQ",
         normalize_ipw=True,
         kde=None,
-        trimming_rule="truncate",
-        trimming_threshold=1e-2,
+        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
     ):
         self._dml_data = obj_dml_data
@@ -130,10 +139,12 @@ class DoubleMLQTE(SampleSplittingMixin):
         # initialize framework which is constructed after the fit method is called
         self._framework = None
 
-        # initialize and check trimming
+        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        self._ps_processor_config, self._ps_processor = init_ps_processor(
+            ps_processor_config, trimming_rule, trimming_threshold
+        )
         self._trimming_rule = trimming_rule
-        self._trimming_threshold = trimming_threshold
-        _check_trimming(self._trimming_rule, self._trimming_threshold)
+        self._trimming_threshold = self._ps_processor.clipping_threshold
 
         if not isinstance(self.normalize_ipw, bool):
             raise TypeError(
@@ -251,18 +262,43 @@ class DoubleMLQTE(SampleSplittingMixin):
         return self._normalize_ipw
 
     @property
+    def ps_processor_config(self):
+        """
+        Configuration for propensity score processing (clipping, calibration, etc.).
+        """
+        return self._ps_processor_config
+
+    @property
+    def ps_processor(self):
+        """
+        Propensity score processor.
+        """
+        return self._ps_processor
+
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+    @property
     def trimming_rule(self):
         """
         Specifies the used trimming rule.
         """
+        warnings.warn(
+            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
+        )
         return self._trimming_rule
 
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
     @property
     def trimming_threshold(self):
         """
         Specifies the used trimming threshold.
         """
-        return self._trimming_threshold
+        warnings.warn(
+            "'trimming_threshold' is deprecated and will be removed in a future version. "
+            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._ps_processor.clipping_threshold
 
     @property
     def coef(self):
@@ -530,8 +566,7 @@ class DoubleMLQTE(SampleSplittingMixin):
             "ml_m": self._learner["ml_m"],
             "n_folds": self.n_folds,
             "n_rep": self.n_rep,
-            "trimming_rule": self.trimming_rule,
-            "trimming_threshold": self.trimming_threshold,
+            "ps_processor_config": self.ps_processor_config,
             "normalize_ipw": self.normalize_ipw,
             "draw_sample_splitting": False,
         }

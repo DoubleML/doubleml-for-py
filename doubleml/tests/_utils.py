@@ -44,7 +44,7 @@ def fit_predict(y, x, ml_model, params, smpls, train_cond=None):
     return y_hat
 
 
-def fit_predict_proba(y, x, ml_model, params, smpls, trimming_threshold=0, train_cond=None):
+def fit_predict_proba(y, x, ml_model, params, smpls, clipping_threshold=0, train_cond=None):
     y_hat = []
     for idx, (train_index, test_index) in enumerate(smpls):
         if params is not None:
@@ -55,9 +55,9 @@ def fit_predict_proba(y, x, ml_model, params, smpls, trimming_threshold=0, train
             train_index_cond = np.intersect1d(train_cond, train_index)
             preds = ml_model.fit(x[train_index_cond], y[train_index_cond]).predict_proba(x[test_index])[:, 1]
 
-        if trimming_threshold > 0:
-            preds[preds < trimming_threshold] = trimming_threshold
-            preds[preds > 1 - trimming_threshold] = 1 - trimming_threshold
+        if clipping_threshold > 0:
+            preds[preds < clipping_threshold] = clipping_threshold
+            preds[preds > 1 - clipping_threshold] = 1 - clipping_threshold
         y_hat.append(preds)
 
     return y_hat

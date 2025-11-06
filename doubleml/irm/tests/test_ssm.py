@@ -26,14 +26,14 @@ def normalize_ipw(request):
     return request.param
 
 
-@pytest.fixture(scope="module", params=[0.01])
-def trimming_threshold(request):
+@pytest.fixture(scope="module", params=[0.01, 0.05])
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
 def dml_selection_fixture(
-    generate_data_selection_mar, generate_data_selection_nonignorable, learner, score, trimming_threshold, normalize_ipw
+    generate_data_selection_mar, generate_data_selection_nonignorable, learner, score, clipping_threshold, normalize_ipw
 ):
     n_folds = 3
 
@@ -55,11 +55,27 @@ def dml_selection_fixture(
     np.random.seed(42)
     if score == "missing-at-random":
         obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=None, s=s)
-        dml_sel_obj = dml.DoubleMLSSM(obj_dml_data, ml_g, ml_pi, ml_m, n_folds=n_folds, score=score)
+        dml_sel_obj = dml.DoubleMLSSM(
+            obj_dml_data,
+            ml_g,
+            ml_pi,
+            ml_m,
+            n_folds=n_folds,
+            score=score,
+            ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
+        )
     else:
         assert score == "nonignorable"
         obj_dml_data = dml.DoubleMLSSMData.from_arrays(x, y, d, z=z, s=s)
-        dml_sel_obj = dml.DoubleMLSSM(obj_dml_data, ml_g, ml_pi, ml_m, n_folds=n_folds, score=score)
+        dml_sel_obj = dml.DoubleMLSSM(
+            obj_dml_data,
+            ml_g,
+            ml_pi,
+            ml_m,
+            n_folds=n_folds,
+            score=score,
+            ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
+        )
 
     np.random.seed(42)
     dml_sel_obj.set_sample_splitting(all_smpls=all_smpls)
@@ -78,7 +94,7 @@ def dml_selection_fixture(
         all_smpls,
         score,
         trimming_rule="truncate",
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
         normalize_ipw=normalize_ipw,
     )
 
