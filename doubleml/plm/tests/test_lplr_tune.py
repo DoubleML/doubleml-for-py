@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import pytest
 from sklearn.base import clone
@@ -7,11 +5,14 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
+
 from ..datasets import make_lplr_LZZ2020
+
 
 @pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
 def learner_M(request):
     return request.param
+
 
 @pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
 def learner_t(request):
@@ -22,14 +23,15 @@ def learner_t(request):
 def learner_m(request):
     return request.param
 
+
 @pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
 def learner_a(request):
     return request.param
 
+
 @pytest.fixture(scope="module", params=["nuisance_space", "instrument"])
 def score(request):
     return request.param
-
 
 
 def get_par_grid(learner):
@@ -50,11 +52,15 @@ def dml_lplr_fixture(
     score,
     tune_on_folds=True,
 ):
-    par_grid = {"ml_M": get_par_grid(learner_M), "ml_t": get_par_grid(learner_t), "ml_m": get_par_grid(learner_m), "ml_a": get_par_grid(learner_a)}
+    par_grid = {
+        "ml_M": get_par_grid(learner_M),
+        "ml_t": get_par_grid(learner_t),
+        "ml_m": get_par_grid(learner_m),
+        "ml_a": get_par_grid(learner_a),
+    }
     n_folds_tune = 4
     n_folds = 5
     alpha = 0.5
-
 
     ml_M = clone(learner_M)
     ml_t = clone(learner_t)
@@ -101,16 +107,21 @@ def test_lplr_exception_tuning(
     learner_M,
     learner_t,
     learner_m,
-    learner_a,):
+    learner_a,
+):
     # LPLR valid scores are 'nuisance_space' and 'instrument'
     obj_dml_data = make_lplr_LZZ2020(alpha=0.5)
     ml_M = clone(learner_M)
     ml_t = clone(learner_t)
     ml_m = clone(learner_m)
-    ml_a = clone(learner_a)
+
     dml_lplr_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m)
-    par_grid = {"ml_M": get_par_grid(learner_M), "ml_t": get_par_grid(learner_t), "ml_m": get_par_grid(learner_m),
-                "ml_a": get_par_grid(learner_a)}
+    par_grid = {
+        "ml_M": get_par_grid(learner_M),
+        "ml_t": get_par_grid(learner_t),
+        "ml_m": get_par_grid(learner_m),
+        "ml_a": get_par_grid(learner_a),
+    }
     msg = "tune_on_folds must be True as targets have to be created for ml_t on folds."
     with pytest.raises(ValueError, match=msg):
         dml_lplr_obj.tune(par_grid, tune_on_folds=False)

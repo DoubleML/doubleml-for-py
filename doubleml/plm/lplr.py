@@ -109,7 +109,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         _ = self._check_learner(ml_t, "ml_t", regressor=True, classifier=False)
         _ = self._check_learner(ml_M, "ml_M", regressor=False, classifier=True)
 
-
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_m": ml_m, "ml_t": ml_t, "ml_M": ml_M}
 
@@ -490,7 +489,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            fold_specific_target=True
+            fold_specific_target=True,
         )
         t_best_params = [xx.best_params_ for xx in t_tune_res]
 

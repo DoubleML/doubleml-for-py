@@ -4,12 +4,14 @@ from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
+
 from ..datasets import make_lplr_LZZ2020
 
 
 @pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
 def learner_M(request):
     return request.param
+
 
 @pytest.fixture(scope="module", params=[RandomForestRegressor(random_state=42)])
 def learner_t(request):
@@ -20,6 +22,7 @@ def learner_t(request):
 def learner_m(request):
     return request.param
 
+
 @pytest.fixture(scope="module", params=["nuisance_space", "instrument"])
 def score(request):
     return request.param
@@ -27,7 +30,10 @@ def score(request):
 
 @pytest.fixture(scope="module")
 def dml_lplr_fixture(
-    score, learner_M, learner_t, learner_m,
+    score,
+    learner_M,
+    learner_t,
+    learner_m,
 ):
     n_folds = 5
     alpha = 0.5
