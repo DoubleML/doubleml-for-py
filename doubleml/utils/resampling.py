@@ -31,7 +31,7 @@ class DoubleMLDoubleResampling:
         self.n_folds_inner = n_folds_inner
         self.n_rep = n_rep
         self.n_obs = n_obs
-        self.stratify = np.array(stratify)
+        self.stratify = np.array(stratify) if stratify is not None else None
 
         if n_folds < 2:
             raise ValueError(
