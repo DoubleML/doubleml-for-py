@@ -28,7 +28,7 @@ def test_DoubleMLDoubleResampling_stratify():
         assert len(smpls_inner[i_rep]) == n_folds
 
         for i_fold in range(n_folds):
-            train_ind, test_ind = smpls[i_rep][i_fold]
+            train_ind, _ = smpls[i_rep][i_fold]
             smpls_inner_rep_fold = smpls_inner[i_rep][i_fold]
             assert len(smpls_inner_rep_fold) == n_folds_inner
 
