@@ -127,53 +127,19 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         # Get transformed data depending on approach
         self._data_transform = self._transform_data(self._static_panel_approach)
 
-    def __str__(self):
-        class_name = self.__class__.__name__
-        header = f"================== {class_name} Object ==================\n"
-        data_summary = self._dml_data._data_summary_str()
+    def _format_score_info_str(self):
         score_static_panel_approach_info = (
             f"Score function: {str(self.score)}\n"
             f"Static panel model approach: {str(self.static_panel_approach)}\n"
         )
-        learner_info = ""
-        for key, value in self.learner.items():
-            learner_info += f"Learner {key}: {str(value)}\n"
-        if self.nuisance_loss is not None:
-            learner_info += "Out-of-sample Performance:\n"
-            is_classifier = [value for value in self._is_classifier.values()]
-            is_regressor = [not value for value in is_classifier]
-            if any(is_regressor):
-                learner_info += "Regression:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is False]:
-                    learner_info += f"Learner {learner} RMSE: {self.nuisance_loss[learner]}\n"
-            if any(is_classifier):
-                learner_info += "Classification:\n"
-                for learner in [key for key, value in self._is_classifier.items() if value is True]:
-                    learner_info += f"Learner {learner} Log Loss: {self.nuisance_loss[learner]}\n"
+        return score_static_panel_approach_info
 
-        if self._is_cluster_data:
-            resampling_info = (
-                f"No. folds per cluster: {self._n_folds_per_cluster}\n"
-                f"No. folds: {self.n_folds}\n"
-                f"No. repeated sample splits: {self.n_rep}\n"
-            )
-        else:
-            resampling_info = f"No. folds: {self.n_folds}\nNo. repeated sample splits: {self.n_rep}\n"
-        fit_summary = str(self.summary)
-        res = (
-            header
-            + "\n------------------ Data summary      ------------------\n"
-            + data_summary
-            + "\n------------------ Score & algorithm ------------------\n"
-            + score_static_panel_approach_info
-            + "\n------------------ Machine learner   ------------------\n"
-            + learner_info
-            + "\n------------------ Resampling        ------------------\n"
-            + resampling_info
-            + "\n------------------ Fit summary       ------------------\n"
-            + fit_summary
-        )
-        return res
+    def _format_additional_info_str(self):
+        """
+        Includes information on the transformed features based on the estimation approach.
+        """
+        # TODO: Add Information on features after transformation
+        return ""
     
     @property
     def static_panel_approach(self):
@@ -229,7 +195,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         if static_panel_approach in ["cre_general", "cre_normal"]:
             # uses regular y_col, d_cols, x_cols + m_x_cols
             df_id_means = df[[id_col] + d_cols + x_cols].groupby(id_col).transform("mean")
-            df_means = df_id_means.add_prefix("m_") 
+            df_means = df_id_means.add_prefix("mean_") 
             data = pd.concat([df, df_means], axis=1)
             # {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"m_{x}"" for x in x_cols]}
         elif static_panel_approach == "fd_exact":
