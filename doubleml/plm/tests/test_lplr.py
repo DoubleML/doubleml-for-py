@@ -28,19 +28,25 @@ def score(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=["continuous", "binary", "binary_unbalanced"])
+def treatment(request):
+    return request.param
+
+
 @pytest.fixture(scope="module")
 def dml_lplr_fixture(
     score,
     learner_M,
     learner_t,
     learner_m,
+    treatment,
 ):
     n_folds = 5
     alpha = 0.5
 
     # collect data
     np.random.seed(42)
-    obj_dml_data = make_lplr_LZZ2020(alpha=alpha)
+    obj_dml_data = make_lplr_LZZ2020(alpha=alpha, treatment=treatment)
 
     ml_M = clone(learner_M)
     ml_t = clone(learner_t)

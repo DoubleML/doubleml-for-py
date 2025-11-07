@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import Lasso, LogisticRegression
 
 import doubleml as dml
 
@@ -34,13 +33,8 @@ def score(request):
     return request.param
 
 
-def get_par_grid(learner):
-    if learner.__class__ in [RandomForestRegressor, RandomForestClassifier]:
-        par_grid = {"n_estimators": [5, 10, 20]}
-    else:
-        assert learner.__class__ in [LogisticRegression, Lasso]
-        par_grid = {"C": np.logspace(-2, 2, 10)}
-    return par_grid
+def get_par_grid():
+    return {"n_estimators": [5, 10, 20]}
 
 
 @pytest.fixture(scope="module")
@@ -53,10 +47,10 @@ def dml_lplr_fixture(
     tune_on_folds=True,
 ):
     par_grid = {
-        "ml_M": get_par_grid(learner_M),
-        "ml_t": get_par_grid(learner_t),
-        "ml_m": get_par_grid(learner_m),
-        "ml_a": get_par_grid(learner_a),
+        "ml_M": get_par_grid(),
+        "ml_t": get_par_grid(),
+        "ml_m": get_par_grid(),
+        "ml_a": get_par_grid(),
     }
     n_folds_tune = 4
     n_folds = 5

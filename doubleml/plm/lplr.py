@@ -414,7 +414,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         filtered_train_inds = []
         if self.score == "nuisance_space":
-            for train, test in smpls:
+            for train, _ in smpls:
                 train_filtered = train[y[train] == 0]
                 filtered_train_inds.append(train_filtered)
         elif self.score == "instrument":
@@ -528,7 +528,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         return self
 
-    def set_sample_splitting(self):
+    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
         raise NotImplementedError("set_sample_splitting is not implemented for DoubleMLLPLR.")
 
     def _compute_score(self, psi_elements, coef):
