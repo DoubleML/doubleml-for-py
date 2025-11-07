@@ -215,10 +215,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         m_external = external_predictions["ml_m"] is not None
         M_external = external_predictions["ml_M"] is not None
         t_external = external_predictions["ml_t"] is not None
-        if "ml_a" in self._learner:
-            a_external = external_predictions["ml_a"] is not None
-        else:
-            a_external = False
+        a_external = external_predictions["ml_a"] is not None
 
         if M_external:
             M_hat = {"preds": external_predictions["ml_M"], "targets": None, "models": None}
@@ -270,8 +267,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                     method=self._predict_method["ml_m"],
                     return_models=return_models,
                 )
-            else:
-                raise NotImplementedError
+
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
 
         if self._check_learner(self._learner["ml_m"], "ml_m", regressor=True, classifier=True):
@@ -383,7 +379,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         return ["y", "d", "d_tilde", "r_hat", "m_hat", "psi_hat", "score_const"]
 
     def _sensitivity_element_est(self, preds):
-        pass
+        raise NotImplementedError()
 
     def _nuisance_tuning(
         self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
@@ -419,8 +415,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 filtered_train_inds.append(train_filtered)
         elif self.score == "instrument":
             filtered_train_inds = train_inds
-        else:
-            raise NotImplementedError
+
         m_tune_res = _dml_tune(
             d,
             x,
@@ -539,8 +534,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             score = (psi_elements["y"] - scipy.special.expit(coef * psi_elements["d"] + psi_elements["r_hat"])) * psi_elements[
                 "d_tilde"
             ]
-        else:
-            raise NotImplementedError
 
         return score
 
@@ -551,7 +544,5 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         elif self.score == "instrument":
             expit = scipy.special.expit(coef * psi_elements["d"] + psi_elements["r_hat"])
             deriv = -psi_elements["d"] * expit * (1 - expit) * psi_elements["d_tilde"]
-        else:
-            raise NotImplementedError
 
         return deriv

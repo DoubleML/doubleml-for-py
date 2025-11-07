@@ -29,6 +29,7 @@ def score(request):
 
 
 @pytest.fixture(scope="module", params=["continuous", "binary", "binary_unbalanced"])
+# TODO: Error for continuous treatment?
 def treatment(request):
     return request.param
 

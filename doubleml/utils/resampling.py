@@ -31,7 +31,7 @@ class DoubleMLDoubleResampling:
         self.n_folds_inner = n_folds_inner
         self.n_rep = n_rep
         self.n_obs = n_obs
-        self.stratify = stratify
+        self.stratify = np.array(stratify)
 
         if n_folds < 2:
             raise ValueError(
@@ -53,9 +53,9 @@ class DoubleMLDoubleResampling:
         all_smpls = [(train, test) for train, test in self.resampling.split(X=np.zeros(self.n_obs), y=self.stratify)]
         smpls = [all_smpls[(i_repeat * self.n_folds) : ((i_repeat + 1) * self.n_folds)] for i_repeat in range(self.n_rep)]
         smpls_inner = []
-        for _ in range(self.n_rep):
+        for i_rep in range(self.n_rep):
             smpls_inner_rep = []
-            for train, test in all_smpls:
+            for train, test in smpls[i_rep]:
                 if self.stratify is None:
                     smpls_inner_rep.append(
                         [
@@ -67,9 +67,7 @@ class DoubleMLDoubleResampling:
                     smpls_inner_rep.append(
                         [
                             (train[train_inner], train[test_inner])
-                            for train_inner, test_inner in self.resampling_inner.split(
-                                X=np.zeros(len(train)), y=self.stratify[train]
-                            )
+                            for train_inner, test_inner in self.resampling_inner.split(X=train, y=self.stratify[train])
                         ]
                     )
             smpls_inner.append(smpls_inner_rep)
