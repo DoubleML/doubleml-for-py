@@ -111,10 +111,10 @@ def test_lplr_exception_tuning(
 
     dml_lplr_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m)
     par_grid = {
-        "ml_M": get_par_grid(learner_M),
-        "ml_t": get_par_grid(learner_t),
-        "ml_m": get_par_grid(learner_m),
-        "ml_a": get_par_grid(learner_a),
+        "ml_M": get_par_grid(),
+        "ml_t": get_par_grid(),
+        "ml_m": get_par_grid(),
+        "ml_a": get_par_grid(),
     }
     msg = "tune_on_folds must be True as targets have to be created for ml_t on folds."
     with pytest.raises(ValueError, match=msg):

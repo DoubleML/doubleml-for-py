@@ -465,7 +465,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         )
 
         W_inner = []
-        for i, (train, test) in enumerate(smpls):
+        for i, (train, _) in enumerate(smpls):
             M_iteration = M_hat["preds_inner"][i][train]
             M_iteration = np.clip(M_iteration, 1e-8, 1 - 1e-8)
             w = scipy.special.logit(M_iteration)
