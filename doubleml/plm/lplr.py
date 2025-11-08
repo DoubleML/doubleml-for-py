@@ -1,4 +1,5 @@
 import inspect
+import warnings
 
 import numpy as np
 import scipy
@@ -133,6 +134,11 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                     "but at least one treatment variable is not binary with values 0 and 1."
                 )
         else:
+            if self._dml_data.binary_treats.any():
+                warnings.warn(
+                    f"The ml_m learner {str(ml_m)} was identified as regressor "
+                    "but at least one treatment variable is binary with values 0 and 1."
+                )
             self._predict_method["ml_m"] = "predict"
 
         if ml_a_is_classifier:
@@ -144,6 +150,11 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                     "but at least one treatment variable is not binary with values 0 and 1."
                 )
         else:
+            if self._dml_data.binary_treats.any():
+                warnings.warn(
+                    f"The ml_a learner {str(ml_a)} was identified as regressor but at least one treatment variable is "
+                    f"binary with values 0 and 1."
+                )
             self._predict_method["ml_a"] = "predict"
 
         if score == "instrument":

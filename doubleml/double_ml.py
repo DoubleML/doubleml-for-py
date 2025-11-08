@@ -268,7 +268,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         The names of predictions for the nuisance functions.
         """
-        return list(self._learner.keys())
+        return list(self.params_names)
 
     @property
     def learner_names(self):

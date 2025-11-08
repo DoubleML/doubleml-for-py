@@ -22,6 +22,11 @@ def learner_m(request):
     return request.param
 
 
+@pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])
+def learner_m_classifier(request):
+    return request.param
+
+
 @pytest.fixture(scope="module", params=["nuisance_space", "instrument"])
 def score(request):
     return request.param
@@ -39,6 +44,7 @@ def dml_lplr_fixture(
     learner_M,
     learner_t,
     learner_m,
+    learner_m_classifier,
     treatment,
 ):
     n_folds = 5
@@ -50,7 +56,10 @@ def dml_lplr_fixture(
 
     ml_M = clone(learner_M)
     ml_t = clone(learner_t)
-    ml_m = clone(learner_m)
+    if treatment == "continuous":
+        ml_m = clone(learner_m)
+    else:
+        ml_m = clone(learner_m_classifier)
 
     dml_sel_obj = dml.DoubleMLLPLR(obj_dml_data, ml_M, ml_t, ml_m, n_folds=n_folds, score=score)
     dml_sel_obj.fit()

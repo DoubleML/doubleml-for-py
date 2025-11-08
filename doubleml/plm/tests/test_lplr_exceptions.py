@@ -12,6 +12,7 @@ np.random.seed(3141)
 n = 100
 # create test data and basic learners
 dml_data = make_lplr_LZZ2020(alpha=0.5, n_obs=n, dim_x=20)
+dml_data_binary = make_lplr_LZZ2020(alpha=0.5, n_obs=n, treatment="binary", dim_x=20)
 ml_M = RandomForestClassifier()
 ml_t = RandomForestRegressor()
 ml_m = RandomForestRegressor()
@@ -231,6 +232,18 @@ def test_lplr_exception_and_warning_learner():
     msg = "Invalid learner provided for ml_M: " + r"Lasso\(\) has no method .predict_proba\(\)."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, Lasso(), ml_t, ml_m)
+    msg = (
+        r"The ml_m learner RandomForestRegressor\(\) was identified as regressor but at least one treatment "
+        r"variable is binary with values 0 and 1."
+    )
+    with pytest.warns(match=msg):
+        _ = DoubleMLLPLR(dml_data_binary, ml_M, ml_t, ml_m)
+    msg = (
+        r"The ml_a learner RandomForestRegressor\(\) was identified as regressor but at least one treatment "
+        r"variable is binary with values 0 and 1."
+    )
+    with pytest.warns(match=msg):
+        _ = DoubleMLLPLR(dml_data_binary, ml_M, ml_t, ml_M, ml_a=ml_m)
 
 
 class LassoWithNanPred(Lasso):
