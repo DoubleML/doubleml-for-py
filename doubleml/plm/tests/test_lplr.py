@@ -4,8 +4,7 @@ from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import doubleml as dml
-
-from ..datasets import make_lplr_LZZ2020
+from doubleml.plm.datasets import make_lplr_LZZ2020
 
 
 @pytest.fixture(scope="module", params=[RandomForestClassifier(random_state=42)])

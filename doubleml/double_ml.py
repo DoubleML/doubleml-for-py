@@ -264,6 +264,13 @@ class DoubleML(SampleSplittingMixin, ABC):
         return self._learner
 
     @property
+    def predictions_names(self):
+        """
+        The names of predictions for the nuisance functions.
+        """
+        return list(self._learner.keys())
+
+    @property
     def learner_names(self):
         """
         The names of the learners.
@@ -1059,7 +1066,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             _check_external_predictions(
                 external_predictions=external_predictions,
                 valid_treatments=self._dml_data.d_cols,
-                valid_learners=self.params_names,
+                valid_learners=self.predictions_names,
                 n_obs=self.n_obs,
                 n_rep=self.n_rep,
             )
@@ -1146,8 +1153,10 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
-        self._nuisance_targets = {learner: np.full(self._score_dim, np.nan) for learner in self.params_names}
+        self._predictions = {learner: np.full(self._score_dim, np.nan, dtype=object) for learner in self.predictions_names}
+        self._nuisance_targets = {
+            learner: np.full(self._score_dim, np.nan, dtype=object) for learner in self.predictions_names
+        }
 
     def _initialize_nuisance_loss(self):
         self._nuisance_loss = {learner: np.full((self.n_rep, self._dml_data.n_coefs), np.nan) for learner in self.params_names}
@@ -1158,7 +1167,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         }
 
     def _store_predictions_and_targets(self, preds, targets):
-        for learner in self.params_names:
+        for learner in self.predictions_names:
             self._predictions[learner][:, self._i_rep, self._i_treat] = preds[learner]
             self._nuisance_targets[learner][:, self._i_rep, self._i_treat] = targets[learner]
 

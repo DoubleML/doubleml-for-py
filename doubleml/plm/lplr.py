@@ -111,6 +111,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_m": ml_m, "ml_t": ml_t, "ml_M": ml_M}
+        self._predictions_names = ["ml_r", "ml_m", "ml_a", "ml_t", "ml_M", "ml_M_inner", "ml_a_inner"]
 
         if ml_a is not None:
             ml_a_is_classifier = self._check_learner(ml_a, "ml_a", regressor=True, classifier=True)
@@ -181,6 +182,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         res = {}
         res["preds"] = np.zeros(y.shape, dtype=float)
         res["preds_inner"] = []
+        res["targets_inner"] = []
         res["models"] = []
         for smpls_single_split, smpls_double_split in zip(smpls, smpls_inner):
             res_inner = _dml_cv_predict(
@@ -198,6 +200,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
 
             res["preds_inner"].append(res_inner["preds"])
+            res["targets_inner"].append(res_inner["targets"])
             for model in res_inner["models"]:
                 res["models"].append(model)
                 if method == "predict_proba":
@@ -218,7 +221,10 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         a_external = external_predictions["ml_a"] is not None
 
         if M_external:
-            M_hat = {"preds": external_predictions["ml_M"], "targets": None, "models": None}
+            if "ml_M_inner" not in external_predictions.keys():
+                raise ValueError("When providing external predictions for ml_M, also inner predictions have to be provided.")
+            M_hat_inner = np.squeeze(np.array(external_predictions["ml_M_inner"].tolist())).T
+            M_hat = {"preds": external_predictions["ml_M"], "preds_inner": M_hat_inner, "targets": None, "models": None}
         else:
             M_hat = self._double_dml_cv_predict(
                 self._learner["ml_M"],
@@ -285,7 +291,10 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 )
 
         if a_external:
-            a_hat = {"preds": external_predictions["ml_a"], "targets": None, "models": None}
+            if "ml_a_inner" not in external_predictions.keys():
+                raise ValueError("When providing external predictions for ml_M, also inner predictions have to be provided.")
+            a_hat_inner = np.squeeze(np.array(external_predictions["ml_a_inner"].tolist())).T
+            a_hat = {"preds": external_predictions["ml_a"], "preds_inner": a_hat_inner, "targets": None, "models": None}
         else:
             a_hat = self._double_dml_cv_predict(
                 self._learner["ml_a"],
@@ -338,6 +347,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 "ml_a": a_hat["preds"],
                 "ml_t": t_hat["preds"],
                 "ml_M": M_hat["preds"],
+                "ml_M_inner": np.moveaxis(M_hat["preds_inner"], 0, -1).tolist(),
+                "ml_a_inner": np.moveaxis(a_hat["preds_inner"], 0, -1).tolist(),
             },
             "targets": {
                 "ml_r": None,
@@ -345,6 +356,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 "ml_a": a_hat["targets"],
                 "ml_t": t_hat["targets"],
                 "ml_M": M_hat["targets"],
+                "ml_M_inner": np.moveaxis(M_hat["targets_inner"], 0, -1).tolist() if not M_external else None,
+                "ml_a_inner": np.moveaxis(a_hat["targets_inner"], 0, -1).tolist() if not a_external else None,
             },
             "models": {
                 "ml_r": None,
@@ -356,6 +369,13 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         }
 
         return psi_elements, preds
+
+    @property
+    def predictions_names(self):
+        """
+        The names of predictions for the nuisance functions.
+        """
+        return self._predictions_names
 
     def _score_elements(self, y, d, r_hat, m_hat):
         # compute residual
