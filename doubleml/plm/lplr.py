@@ -90,10 +90,9 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         score="nuisance_space",
         draw_sample_splitting=True,
         error_on_convergence_failure=False,
-        double_sample_splitting=True,
     ):
         self.n_folds_inner = n_folds_inner
-        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
+        super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=True)
 
         self._error_on_convergence_failure = error_on_convergence_failure
         self._coef_bounds = (-1e-2, 1e2)

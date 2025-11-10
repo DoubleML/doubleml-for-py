@@ -17,6 +17,8 @@ class SampleSplittingMixin:
     `sample splitting <https://docs.doubleml.org/stable/guide/resampling.html>`_ in the DoubleML user guide.
     """
 
+    _double_sample_splitting = False
+
     def draw_sample_splitting(self):
         """
         Draw sample splitting for DoubleML models.

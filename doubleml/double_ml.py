@@ -109,8 +109,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._smpls_cluster = None
         self._n_obs_sample_splitting = self.n_obs
         self._double_sample_splitting = double_sample_splitting
-        if self._smpls_cluster is True:
-            self.__smpls__inner = None
+        if self._double_sample_splitting:
+            self._smpls_inner = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
         self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
