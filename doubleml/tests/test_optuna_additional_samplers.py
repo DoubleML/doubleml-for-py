@@ -57,7 +57,7 @@ def test_doubleml_plr_qmc_sampler(generate_data1):
         }
 
     tune_res = plr.tune_optuna(
-        params={"ml_l": ml_l_params, "ml_m": ml_m_params},
+        ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
     )
@@ -99,7 +99,7 @@ def test_doubleml_plr_partial_fixed_sampler(generate_data1):
         }
 
     tune_res = plr.tune_optuna(
-        params={"ml_l": ml_l_params, "ml_m": ml_m_params},
+        ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
     )
@@ -140,7 +140,7 @@ def test_doubleml_plr_gp_sampler(generate_data1):
         }
 
     plr.tune_optuna(
-        params={"ml_l": ml_l_params, "ml_m": ml_m_params},
+        ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
     )
 

@@ -582,9 +582,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
 
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
-        n_folds_tune,
+        cv,
         n_jobs_cv,
         optuna_settings,
     ):
@@ -606,7 +606,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             }
 
         def get_param_and_scoring(key):
-            return param_grids[key], scoring_methods[key]
+            return optuna_params[key], scoring_methods[key]
 
         if self._score == "nonignorable":
             train_index = np.arange(x.shape[0])
@@ -639,9 +639,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     x_inner0,
                     [np.arange(x_inner0.shape[0])],
                     self._learner["ml_pi"],
-                    param_grids["ml_pi"],
+                    optuna_params["ml_pi"],
                     scoring_methods["ml_pi"],
-                    n_folds_tune,
+                    cv,
                     n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_pi",
@@ -661,9 +661,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 m_subset,
                 [np.arange(m_subset.shape[0])],
                 self._learner["ml_m"],
-                param_grids["ml_m"],
+                optuna_params["ml_m"],
                 scoring_methods["ml_m"],
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",
@@ -684,7 +684,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     self._learner["ml_g"],
                     g_d0_param,
                     g_d0_scoring,
-                    n_folds_tune,
+                    cv,
                     n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_g_d0",
@@ -702,7 +702,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     self._learner["ml_g"],
                     g_d1_param,
                     g_d1_scoring,
-                    n_folds_tune,
+                    cv,
                     n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_g_d1",
@@ -738,7 +738,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 self._learner["ml_g"],
                 g_d0_param,
                 g_d0_scoring,
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g_d0",
@@ -753,7 +753,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 self._learner["ml_g"],
                 g_d1_param,
                 g_d1_scoring,
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g_d1",
@@ -766,9 +766,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 x_d_feat,
                 full_train,
                 self._learner["ml_pi"],
-                param_grids["ml_pi"],
+                optuna_params["ml_pi"],
                 scoring_methods["ml_pi"],
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_pi",
@@ -779,9 +779,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 x,
                 full_train,
                 self._learner["ml_m"],
-                param_grids["ml_m"],
+                optuna_params["ml_m"],
                 scoring_methods["ml_m"],
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",

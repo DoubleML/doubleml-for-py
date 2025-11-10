@@ -776,9 +776,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
-        n_folds_tune,
+        cv,
         n_jobs_cv,
         optuna_settings,
     ):
@@ -818,7 +818,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             y_subset = y[mask]
             train_inds = [np.arange(x_subset.shape[0])]
             learner_key = f"ml_g_{key}"
-            param_grid = param_grids[learner_key]
+            param_grid = optuna_params[learner_key]
             scoring = scoring_methods[learner_key]
             g_tune_results[key] = _dml_tune_optuna(
                 y_subset,
@@ -827,7 +827,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
                 self._learner["ml_g"],
                 param_grid,
                 scoring,
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name=learner_key,
@@ -841,9 +841,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
                 x,
                 full_train_inds,
                 self._learner["ml_m"],
-                param_grids["ml_m"],
+                optuna_params["ml_m"],
                 scoring_methods["ml_m"],
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",

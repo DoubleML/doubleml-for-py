@@ -675,9 +675,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
 
     def _nuisance_tuning_optuna(
         self,
-        param_grids,
+        optuna_params,
         scoring_methods,
-        n_folds_tune,
+        cv,
         n_jobs_cv,
         optuna_settings,
     ):
@@ -698,7 +698,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         x_d0 = x[mask_d0, :]
         y_d0 = y[mask_d0]
         train_inds_d0 = [np.arange(x_d0.shape[0])]
-        g0_param_grid = param_grids["ml_g0"]
+        g0_param_grid = optuna_params["ml_g0"]
         g0_scoring = scoring_methods["ml_g0"]
         g0_tune_res = _dml_tune_optuna(
             y_d0,
@@ -707,7 +707,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             g0_param_grid,
             g0_scoring,
-            n_folds_tune,
+            cv,
             n_jobs_cv,
             optuna_settings,
             learner_name="ml_g0",
@@ -716,7 +716,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         x_d1 = x[mask_d1, :]
         y_d1 = y[mask_d1]
         train_inds_d1 = [np.arange(x_d1.shape[0])]
-        g1_param_grid = param_grids["ml_g1"]
+        g1_param_grid = optuna_params["ml_g1"]
         g1_scoring = scoring_methods["ml_g1"]
         g1_tune_res = _dml_tune_optuna(
             y_d1,
@@ -725,7 +725,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             g1_param_grid,
             g1_scoring,
-            n_folds_tune,
+            cv,
             n_jobs_cv,
             optuna_settings,
             learner_name="ml_g1",
@@ -739,9 +739,9 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 x,
                 full_train_inds,
                 self._learner["ml_m"],
-                param_grids["ml_m"],
+                optuna_params["ml_m"],
                 scoring_methods["ml_m"],
-                n_folds_tune,
+                cv,
                 n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",

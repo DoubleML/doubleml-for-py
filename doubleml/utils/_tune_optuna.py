@@ -5,65 +5,49 @@ This module provides Optuna-specific functionality for hyperparameter optimizati
 decoupled from sklearn-based grid/randomized search.
 """
 
-# TODO: Use `_check_tuning_inputs` for input validation, put all checks in there.
-# TODO: Let allow to tune only a subset of learners, e.g., only ml_g or only ml_m.
-# TODO: Implement checks / tests if this is working
+from collections.abc import Iterable
+from copy import deepcopy
 
 import numpy as np
 from sklearn.base import clone
-from sklearn.model_selection import KFold, cross_validate
+from sklearn.model_selection import BaseCrossValidator, KFold, cross_validate
 
-# TODO:just the keys from below, use dict keys instead.
-OPTUNA_GLOBAL_SETTING_KEYS = frozenset(
-    {
-        "n_trials",
-        "timeout",
-        "direction",
-        "study_kwargs",
-        "optimize_kwargs",
-        "sampler",
-        "pruner",
-        "callbacks",
-        "catch",
-        "show_progress_bar",
-        "gc_after_trial",
-        "study_factory",
-        "study",
-        "n_jobs_optuna",
-        "verbosity",
-    }
-)
+_OPTUNA_DEFAULT_SETTINGS = {
+    "n_trials": 100,
+    "timeout": None,
+    "direction": "maximize",
+    "study_kwargs": {},
+    "optimize_kwargs": {},
+    "sampler": None,
+    "pruner": None,
+    "callbacks": None,
+    "catch": (),
+    "show_progress_bar": False,
+    "gc_after_trial": False,
+    "study_factory": None,
+    "study": None,
+    "n_jobs_optuna": None,
+    "verbosity": None,
+}
+
+
+OPTUNA_GLOBAL_SETTING_KEYS = frozenset(_OPTUNA_DEFAULT_SETTINGS.keys())
 
 
 def _default_optuna_settings():
-    return {
-        "n_trials": 100,
-        "timeout": None,
-        "direction": "maximize",
-        "study_kwargs": {},
-        "optimize_kwargs": {},
-        "sampler": None,
-        "pruner": None,
-        "callbacks": None,
-        "catch": (),
-        "show_progress_bar": False,
-        "gc_after_trial": False,
-        "study_factory": None,
-        "study": None,
-        "n_jobs_optuna": None,
-        "verbosity": None,
-    }
+    return deepcopy(_OPTUNA_DEFAULT_SETTINGS)
 
 
 class _OptunaSearchResult:
     """Lightweight container mimicking selected GridSearchCV attributes."""
 
-    def __init__(self, estimator, best_params, best_score, study, trials_dataframe):
+    def __init__(self, estimator, best_params, best_score, study, trials_dataframe, tuned=True):
         self.best_estimator_ = estimator
         self.best_params_ = best_params
         self.best_score_ = best_score
         self.study_ = study
         self.trials_dataframe_ = trials_dataframe
+        self.tuned_ = tuned
 
     def predict(self, X):
         return self.best_estimator_.predict(X)
@@ -75,6 +59,124 @@ class _OptunaSearchResult:
 
     def score(self, X, y):
         return self.best_estimator_.score(X, y)
+
+
+def resolve_optuna_cv(cv):
+    """Normalize the ``cv`` argument for Optuna-based tuning."""
+
+    if cv is None:
+        cv = 5
+
+    if isinstance(cv, int):
+        if cv < 2:
+            raise ValueError(f"The number of folds used for tuning must be at least two. {cv} was passed.")
+        return KFold(n_splits=cv, shuffle=True, random_state=42)
+
+    if isinstance(cv, BaseCrossValidator):
+        return cv
+
+    if isinstance(cv, str):
+        raise TypeError("cv must not be provided as a string. Pass an integer or a cross-validation splitter.")
+
+    split_attr = getattr(cv, "split", None)
+    if callable(split_attr):
+        return cv
+
+    if isinstance(cv, Iterable):
+        cv_list = list(cv)
+        if not cv_list:
+            raise ValueError("cv iterable must not be empty.")
+        for split in cv_list:
+            if not isinstance(split, (tuple, list)) or len(split) != 2:
+                raise TypeError("cv iterable must yield (train_indices, test_indices) pairs.")
+        return cv_list
+
+    raise TypeError(
+        "cv must be an integer >= 2, a scikit-learn cross-validation splitter, or an iterable of "
+        "(train_indices, test_indices) pairs."
+    )
+
+
+def _check_tuning_inputs(
+    y,
+    x,
+    train_inds,
+    learner,
+    param_grid_func,
+    scoring_method,
+    cv,
+    n_jobs_cv,
+    learner_name=None,
+):
+    """Validate Optuna tuning inputs and return a normalized cross-validation splitter."""
+
+    learner_label = learner_name or learner.__class__.__name__
+
+    if y.shape[0] != x.shape[0]:
+        raise ValueError(
+            f"Features and target must contain the same number of observations for learner '{learner_label}'."
+        )
+    if y.size == 0:
+        raise ValueError(f"Empty target passed to Optuna tuner for learner '{learner_label}'.")
+
+    if param_grid_func is not None and not callable(param_grid_func):
+        raise TypeError(
+            "param_grid must be a callable function that takes a trial and returns a dict. "
+            f"Got {type(param_grid_func).__name__} for learner '{learner_label}'."
+        )
+
+    if n_jobs_cv is not None and not isinstance(n_jobs_cv, int):
+        raise TypeError(
+            "The number of CPUs used to fit the learners must be of int type. "
+            f"{n_jobs_cv} of type {type(n_jobs_cv).__name__} was passed for learner '{learner_label}'."
+        )
+
+    if scoring_method is not None and not callable(scoring_method) and not isinstance(scoring_method, str):
+        if not isinstance(scoring_method, Iterable):
+            raise TypeError(
+                "scoring_method must be None, a string, a callable, or an iterable accepted by scikit-learn. "
+                f"Got {type(scoring_method).__name__} for learner '{learner_label}'."
+            )
+
+    if not hasattr(learner, "fit") or not hasattr(learner, "set_params"):
+        raise TypeError(
+            f"Learner '{learner_label}' must implement fit and set_params to be tuned with Optuna."
+        )
+
+    try:
+        train_ind_list = list(train_inds)
+    except TypeError as exc:
+        raise TypeError(
+            f"train_inds must be an iterable of index arrays for learner '{learner_label}'."
+        ) from exc
+
+    if not train_ind_list:
+        raise ValueError(f"train_inds cannot be empty for learner '{learner_label}'.")
+
+    n_obs = y.shape[0]
+    for idx, indices in enumerate(train_ind_list):
+        indices_arr = np.asarray(indices)
+        if indices_arr.ndim != 1:
+            raise TypeError(
+                "train_inds entries must be one-dimensional index arrays. "
+                f"Entry {idx} for learner '{learner_label}' has shape {indices_arr.shape}."
+            )
+        if np.issubdtype(indices_arr.dtype, np.bool_):
+            indices_arr = np.flatnonzero(indices_arr)
+        elif not np.issubdtype(indices_arr.dtype, np.integer):
+            raise TypeError(
+                "train_inds entries must contain integer indices. "
+                f"Entry {idx} for learner '{learner_label}' has dtype {indices_arr.dtype}."
+            )
+        if indices_arr.size == 0:
+            raise ValueError(f"train_inds entry {idx} is empty for learner '{learner_label}'.")
+        if indices_arr.min() < 0 or indices_arr.max() >= n_obs:
+            raise IndexError(
+                "train_inds entries must reference valid observation indices. "
+                f"Entry {idx} for learner '{learner_label}' contains values outside [0, {n_obs - 1}]."
+            )
+
+    return resolve_optuna_cv(cv)
 
 
 def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_name=None):
@@ -129,7 +231,6 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
     resolved.update(learner_specific_settings)
 
     # TODO: Check returns crazy valid values?
-
     # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
         raise TypeError("study_kwargs must be a dict.")
@@ -269,7 +370,7 @@ def _dml_tune_optuna(
     learner,
     param_grid_func,
     scoring_method,
-    n_folds_tune,
+    cv,
     n_jobs_cv,
     optuna_settings,
     learner_name=None,
@@ -295,8 +396,9 @@ def _dml_tune_optuna(
         Example: def params(trial): return {"learning_rate": trial.suggest_float("learning_rate", 0.01, 0.1)}
     scoring_method : str or callable
         Scoring method for cross-validation.
-    n_folds_tune : int
-        Number of folds for cross-validation during tuning.
+    cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
+        Cross-validation strategy used during tuning. If an integer is provided, a shuffled
+        :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
     n_jobs_cv : int or None
         Number of parallel jobs for cross-validation.
     optuna_settings : dict or None
@@ -309,21 +411,39 @@ def _dml_tune_optuna(
     _OptunaSearchResult
         A tuning result containing the fitted estimator with the optimal parameters.
     """
+    cv_splitter = _check_tuning_inputs(
+        y,
+        x,
+        train_inds,
+        learner,
+        param_grid_func,
+        scoring_method,
+        cv,
+        n_jobs_cv,
+        learner_name,
+    )
+
+    skip_tuning = param_grid_func is None
+
+    if skip_tuning:
+        estimator = clone(learner)
+        estimator.fit(x, y)
+        best_params = estimator.get_params(deep=False)
+        return _OptunaSearchResult(
+            estimator=estimator,
+            best_params=best_params,
+            best_score=np.nan,
+            study=None,
+            trials_dataframe=None,
+            tuned=False,
+        )
+
     try:
         import optuna
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
             "Optuna is not installed. Please install Optuna (e.g., pip install optuna) to use Optuna tuning."
         ) from exc
-
-    # Input validation
-    if not callable(param_grid_func):
-        raise TypeError(
-            "param_grid must be a callable function that takes a trial and returns a dict. "
-            "Example: def params(trial): return {'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}"
-        )
-    if not train_inds:
-        raise ValueError("train_inds cannot be empty.")
 
     settings = _get_optuna_settings(optuna_settings, learner_name, learner.__class__.__name__)
 
@@ -332,15 +452,11 @@ def _dml_tune_optuna(
     if verbosity is not None:
         optuna.logging.set_verbosity(verbosity)
 
-    # Pre-create KFold object for cross-validation during tuning (fixed random state for reproducibility)
-    # TODO: Allow passing custom CV splitter via settings, rename from n_folds_tune to cv, copy descr.
-    cv = KFold(n_splits=n_folds_tune, shuffle=True, random_state=42)
-
     # Create the study
     study = _create_study(settings, learner_name)
 
     # Create the objective function
-    objective = _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name)
+    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv, learner_name)
 
     if scoring_method is None:
         print("No scoring method provided, using default scoring method of the estimator: " f"{learner.criterion}")
@@ -389,4 +505,5 @@ def _dml_tune_optuna(
         best_score=best_score,
         study=study,
         trials_dataframe=trials_df,
+        tuned=True,
     )

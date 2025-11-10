@@ -14,7 +14,7 @@ from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
-from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS
+from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, resolve_optuna_cv
 from doubleml.utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
@@ -927,7 +927,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         self,
         ml_param_space,
         scoring_methods=None,
-        n_folds_tune=5, # TODO: RENAME TO `cv`, allow for integer (creates sklearn KFold) or custom CV splitter
+        cv=5,
         n_jobs_cv=None,
         set_as_params=True,
         return_tune_res=False,
@@ -977,9 +977,11 @@ class DoubleML(SampleSplittingMixin, ABC):
             If None, the estimator's score method is used.
             Default is ``None``.
 
-        n_folds_tune : int
-            Number of folds used for cross-validation during tuning.
-            Default is ``5``.
+        cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
+            Cross-validation strategy used for Optuna-based tuning. If an integer is provided, a shuffled
+            :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
+            Custom splitters must implement ``split`` (and ideally ``get_n_splits``), or be an iterable yielding
+            ``(train_indices, test_indices)`` pairs. Default is ``5``.
 
         n_jobs_cv : None or int
             The number of CPUs to use for cross-validation during tuning. ``None`` means ``1``.
@@ -1084,16 +1086,33 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...                     optuna_settings=optuna_settings)
         """
         # Validation
-        if (not isinstance(ml_param_space, dict)) | (not all(k in ml_param_space for k in self.params_names)):
+        if not isinstance(ml_param_space, dict) or not ml_param_space:
+            raise ValueError("ml_param_space must be a non-empty dictionary.")
+
+        invalid_param_keys = [key for key in ml_param_space if key not in self.params_names]
+        if invalid_param_keys:
             raise ValueError(
-                "Invalid ml_param_space " + str(ml_param_space) + ". "
-                "ml_param_space must be a dictionary with keys " + " and ".join(self.params_names) + "."
+                "Invalid ml_param_space keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_param_keys))
+                + ". Valid keys are: "
+                + ", ".join(self.params_names)
+                + "."
             )
 
         self._validate_optuna_param_keys(ml_param_space)
 
+        requested_learners = set(ml_param_space.keys())
+
+        expanded_param_space = dict(ml_param_space)
+        for learner_name in self.params_names:
+            expanded_param_space.setdefault(learner_name, None)
+
         # Validate that all parameter grids are callables
         for learner_name, param_fn in ml_param_space.items():
+            if param_fn is None:
+                continue
             if not callable(param_fn):
                 raise TypeError(
                     f"Parameter grid for '{learner_name}' must be a callable function that takes a trial "
@@ -1101,30 +1120,31 @@ class DoubleML(SampleSplittingMixin, ABC):
                     f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
                 )
 
+        resolved_scoring_methods = {}
         if scoring_methods is not None:
-            if (not isinstance(scoring_methods, dict)) | (not all(k in self.params_names for k in scoring_methods)):
+            if not isinstance(scoring_methods, dict):
+                raise ValueError("scoring_methods must be provided as a dictionary keyed by learner name.")
+
+            invalid_scoring_keys = [key for key in scoring_methods if key not in self.params_names]
+            if invalid_scoring_keys:
                 raise ValueError(
-                    "Invalid scoring_methods "
-                    + str(scoring_methods)
-                    + ". "
-                    + "scoring_methods must be a dictionary. "
-                    + "Valid keys are "
-                    + " and ".join(self.params_names)
+                    "Invalid scoring_methods keys for "
+                    + self.__class__.__name__
+                    + ": "
+                    + ", ".join(sorted(invalid_scoring_keys))
+                    + ". Valid keys are: "
+                    + ", ".join(self.params_names)
                     + "."
                 )
-            if not all(k in scoring_methods for k in self.params_names):
-                # if there are learners for which no scoring_method was set, we fall back to None
-                for learner in self.params_names:
-                    if learner not in scoring_methods:
-                        scoring_methods[learner] = None
 
-        if not isinstance(n_folds_tune, int):
-            raise TypeError(
-                "The number of folds used for tuning must be of int type. "
-                f"{str(n_folds_tune)} of type {str(type(n_folds_tune))} was passed."
-            )
-        if n_folds_tune < 2:
-            raise ValueError(f"The number of folds used for tuning must be at least two. {str(n_folds_tune)} was passed.")
+            resolved_scoring_methods.update(scoring_methods)
+
+        for learner_name in self.params_names:
+            resolved_scoring_methods.setdefault(learner_name, None)
+
+        scoring_methods = resolved_scoring_methods if resolved_scoring_methods else None
+
+        cv_splitter = resolve_optuna_cv(cv)
 
         if optuna_settings is not None and not isinstance(optuna_settings, dict):
             raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
@@ -1156,16 +1176,19 @@ class DoubleML(SampleSplittingMixin, ABC):
 
             # tune hyperparameters (globally, not fold-specific)
             res = self._nuisance_tuning_optuna(
-                ml_param_space,
+                expanded_param_space,
                 scoring_methods,
-                n_folds_tune,
+                cv_splitter,
                 n_jobs_cv,
                 optuna_settings,
             )
+
+            filtered_params = {key: value for key, value in res["params"].items() if key in requested_learners}
+            res = {**res, "params": filtered_params}
             tuning_res[i_d] = res
 
             if set_as_params:
-                for nuisance_model, tuned_params in res["params"].items():
+                for nuisance_model, tuned_params in filtered_params.items():
                     if isinstance(tuned_params, list):
                         if not tuned_params:
                             params_to_set = tuned_params
@@ -1350,7 +1373,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         self,
         optuna_params,
         scoring_methods,
-        n_folds_tune,
+        cv,
         n_jobs_cv,
         optuna_settings,
     ):

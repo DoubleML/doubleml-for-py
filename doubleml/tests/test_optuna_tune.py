@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 import doubleml as dml
@@ -124,6 +125,79 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     assert "params" in tune_res[0]
     assert "tune_res" in tune_res[0]
     assert tune_res[0]["params"]["ml_l"]["max_depth"] == tuned_params_l["max_depth"]
+
+
+def test_doubleml_optuna_cv_variants():
+    np.random.seed(3142)
+    dml_data = make_plr_CCDDHNR2018(n_obs=64, dim_x=5)
+
+    ml_l_int = DecisionTreeRegressor(random_state=10, max_depth=5, min_samples_leaf=4)
+    ml_m_int = DecisionTreeRegressor(random_state=11, max_depth=5, min_samples_leaf=4)
+    dml_plr_int = dml.DoubleMLPLR(dml_data, ml_l_int, ml_m_int, n_folds=2, score="partialling out")
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    dml_plr_int.tune_optuna(
+        ml_param_space=optuna_params,
+        cv=3,
+        optuna_settings=_basic_optuna_settings(),
+    )
+
+    int_l_params = dml_plr_int.get_params("ml_l")["d"][0][0]
+    int_m_params = dml_plr_int.get_params("ml_m")["d"][0][0]
+
+    assert int_l_params is not None
+    assert int_m_params is not None
+
+    ml_l_split = DecisionTreeRegressor(random_state=12, max_depth=5, min_samples_leaf=4)
+    ml_m_split = DecisionTreeRegressor(random_state=13, max_depth=5, min_samples_leaf=4)
+    dml_plr_split = dml.DoubleMLPLR(dml_data, ml_l_split, ml_m_split, n_folds=2, score="partialling out")
+
+    cv_splitter = KFold(n_splits=3, shuffle=True, random_state=3142)
+
+    dml_plr_split.tune_optuna(
+        ml_param_space=optuna_params,
+        cv=cv_splitter,
+        optuna_settings=_basic_optuna_settings(),
+    )
+
+    split_l_params = dml_plr_split.get_params("ml_l")["d"][0][0]
+    split_m_params = dml_plr_split.get_params("ml_m")["d"][0][0]
+
+    assert split_l_params is not None
+    assert split_m_params is not None
+
+
+def test_doubleml_optuna_partial_tuning_single_learner():
+    np.random.seed(3143)
+    dml_data = make_plr_CCDDHNR2018(n_obs=64, dim_x=5)
+
+    ml_l = DecisionTreeRegressor(random_state=20, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeRegressor(random_state=21, max_depth=5, min_samples_leaf=4)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, score="partialling out")
+
+    optuna_params = {"ml_l": _small_tree_params}
+
+    tune_res = dml_plr.tune_optuna(
+        ml_param_space=optuna_params,
+        optuna_settings=_basic_optuna_settings(),
+        return_tune_res=True,
+    )
+
+    tuned_l = dml_plr.get_params("ml_l")["d"][0][0]
+    untouched_m = dml_plr.get_params("ml_m")["d"][0]
+
+    assert tuned_l is not None
+    assert untouched_m is None
+
+    assert set(tune_res[0]["params"].keys()) == {"ml_l"}
+    assert "l_tune" in tune_res[0]["tune_res"]
+    assert tune_res[0]["tune_res"]["l_tune"].tuned_ is True
+
+    m_tune = tune_res[0]["tune_res"].get("m_tune")
+    if m_tune is not None:
+        assert not m_tune.tuned_
 
 
 def test_doubleml_optuna_sets_params_for_all_folds():
