@@ -491,7 +491,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name=learner_key,
             )
 
         def split_inner_folds(train_inds, d, s, random_state=42):

@@ -710,7 +710,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_l",
         )
 
         if self._dml_data.n_instr > 1:
@@ -730,7 +729,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     n_jobs_cv,
                     search_mode,
                     n_iter_randomized_search,
-                    learner_name="ml_m",
                 )
         else:
             # one instrument: just identified
@@ -746,7 +744,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name="ml_m",
             )
 
         r_tune_res = _dml_tune(
@@ -760,7 +757,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_r",
         )
 
         l_best_params = [xx.best_params_ for xx in l_tune_res]
@@ -796,7 +792,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     n_jobs_cv,
                     search_mode,
                     n_iter_randomized_search,
-                    learner_name="ml_g",
                 )
                 g_best_params = [xx.best_params_ for xx in g_tune_res]
 
@@ -872,7 +867,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_r",
         )
 
         m_best_params = [xx.best_params_ for xx in m_tune_res]
@@ -973,7 +967,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_l",
         )
         m_tune_res = _dml_tune(
             d,
@@ -986,7 +979,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m",
         )
         r_tune_res = list()
         for idx, (train_index, _) in enumerate(smpls):
@@ -1004,7 +996,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name="ml_r",
             )[0]
             r_tune_res.append(fold_tune_res)
 

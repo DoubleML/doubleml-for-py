@@ -626,7 +626,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m_z",
         )
         m_d_z0_tune_res = _dml_tune(
             d,
@@ -639,7 +638,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m_d_z0",
         )
         m_d_z1_tune_res = _dml_tune(
             d,
@@ -652,7 +650,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m_d_z1",
         )
         g_du_z0_tune_res = _dml_tune(
             du,
@@ -665,7 +662,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g_du_z0",
         )
         g_du_z1_tune_res = _dml_tune(
             du,
@@ -678,7 +674,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g_du_z1",
         )
 
         m_z_best_params = m_z_tune_res.best_params_

@@ -571,7 +571,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
 
         g_d0_t1_tune_res = _dml_tune(
@@ -585,7 +584,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
 
         g_d1_t0_tune_res = _dml_tune(
@@ -599,7 +597,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
 
         g_d1_t1_tune_res = _dml_tune(
@@ -613,7 +610,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
 
         m_tune_res = list()
@@ -629,7 +625,6 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name="ml_m",
             )
 
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]

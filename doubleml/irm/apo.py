@@ -426,7 +426,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
         g_d_lvl1_tune_res = _dml_tune(
             y,
@@ -439,7 +438,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_g",
         )
 
         m_tune_res = _dml_tune(
@@ -453,7 +451,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m",
         )
 
         g_d_lvl0_best_params = g_d_lvl0_tune_res.best_params_

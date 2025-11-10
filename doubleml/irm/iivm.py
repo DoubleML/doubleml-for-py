@@ -515,7 +515,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name=("ml_g0", "ml_g"),
         )
         g1_tune_res = _dml_tune(
             y,
@@ -528,7 +527,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name=("ml_g1", "ml_g"),
         )
         m_tune_res = _dml_tune(
             z,
@@ -541,7 +539,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             n_jobs_cv,
             search_mode,
             n_iter_randomized_search,
-            learner_name="ml_m",
         )
 
         if self.subgroups["always_takers"]:
@@ -556,7 +553,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name=("ml_r0", "ml_r"),
             )
             r0_best_params = [xx.best_params_ for xx in r0_tune_res]
         else:
@@ -574,7 +570,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 n_jobs_cv,
                 search_mode,
                 n_iter_randomized_search,
-                learner_name=("ml_r1", "ml_r"),
             )
             r1_best_params = [xx.best_params_ for xx in r1_tune_res]
         else:
