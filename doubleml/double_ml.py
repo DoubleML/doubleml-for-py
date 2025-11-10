@@ -22,7 +22,7 @@ _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDI
 class DoubleML(SampleSplittingMixin, ABC):
     """Double Machine Learning."""
 
-    def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting):
+    def __init__(self, obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=False):
         # check and pick up obj_dml_data
         if not isinstance(obj_dml_data, DoubleMLBaseData):
             raise TypeError(
@@ -108,6 +108,9 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._smpls = None
         self._smpls_cluster = None
         self._n_obs_sample_splitting = self.n_obs
+        self._double_sample_splitting = double_sample_splitting
+        if self._smpls_cluster is True:
+            self.__smpls__inner = None
         if draw_sample_splitting:
             self.draw_sample_splitting()
         self._score_dim = (self._dml_data.n_obs, self.n_rep, self._dml_data.n_coefs)
@@ -367,6 +370,21 @@ class DoubleML(SampleSplittingMixin, ABC):
         return self._smpls
 
     @property
+    def smpls_inner(self):
+        """
+        The partition used for cross-fitting.
+        """
+        if not self._double_sample_splitting:
+            raise ValueError("smpls_inner is only available for double sample splitting.")
+        if self._smpls is None:
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
+            raise ValueError(err_msg)
+        return self._smpls
+
+    @property
     def smpls_cluster(self):
         """
         The partition of clusters used for cross-fitting.
@@ -513,6 +531,12 @@ class DoubleML(SampleSplittingMixin, ABC):
     @property
     def __smpls(self):
         return self._smpls[self._i_rep]
+
+    @property
+    def __smpls__inner(self):
+        if not self._smpls_inner[self._i_rep]:
+            raise ValueError("smpls_inner is only available for double sample splitting.")
+        return self._smpls_inner[self._i_rep]
 
     @property
     def __smpls_cluster(self):

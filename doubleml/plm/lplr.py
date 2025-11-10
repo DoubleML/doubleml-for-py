@@ -15,7 +15,6 @@ from doubleml.utils._estimation import (
     _dml_cv_predict,
     _dml_tune,
 )
-from doubleml.utils.resampling import DoubleMLDoubleResampling
 
 
 class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
@@ -91,13 +90,10 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         score="nuisance_space",
         draw_sample_splitting=True,
         error_on_convergence_failure=False,
+        double_sample_splitting=True,
     ):
         self.n_folds_inner = n_folds_inner
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
-
-        # Ensure outcome only contains 0 and 1 (validate early in constructor)
-        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
-            raise TypeError("The outcome variable y must be binary with values 0 and 1.")
 
         self._error_on_convergence_failure = error_on_convergence_failure
         self._coef_bounds = (-1e-2, 1e2)
@@ -167,11 +163,15 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         self._initialize_ml_nuisance_params()
         self._external_predictions_implemented = True
+        self._sensitivity_implemented = False
 
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     def _check_data(self, obj_dml_data):
+        # Ensure outcome only contains 0 and 1 (validate early in constructor)
+        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
+            raise TypeError("The outcome variable y must be binary with values 0 and 1.")
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
                 f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
@@ -561,36 +561,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         res = {"params": params, "tune_res": tune_res}
 
         return res
-
-    @property
-    def __smpls__inner(self):
-        return self._smpls_inner[self._i_rep]
-
-    def draw_sample_splitting(self):
-        """
-        Draw sample splitting for DoubleML models.
-
-        The samples are drawn according to the attributes
-        ``n_folds`` and ``n_rep``.
-
-        Returns
-        -------
-        self : object
-        """
-
-        obj_dml_resampling = DoubleMLDoubleResampling(
-            n_folds=self.n_folds,
-            n_folds_inner=self.n_folds_inner,
-            n_rep=self.n_rep,
-            n_obs=self._dml_data.n_obs,
-            stratify=self._strata,
-        )
-        self._smpls, self._smpls_inner = obj_dml_resampling.split_samples()
-
-        return self
-
-    def set_sample_splitting(self, all_smpls, all_smpls_cluster=None):
-        raise NotImplementedError("set_sample_splitting is not implemented for DoubleMLLPLR.")
 
     def _compute_score(self, psi_elements, coef):
         if self.score == "nuisance_space":
