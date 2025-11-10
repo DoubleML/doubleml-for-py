@@ -125,12 +125,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._external_predictions_implemented = True
 
         # Get transformed data depending on approach
+        # TODO: get y, x, d cols, set additional properties for y_data, d_data, x_data to be used in
+        # nuisance
         self._data_transform = self._transform_data(self._static_panel_approach)
+
 
     def _format_score_info_str(self):
         score_static_panel_approach_info = (
             f"Score function: {str(self.score)}\n"
-            f"Static panel model approach: {str(self.static_panel_approach)}\n"
+            f"Static panel model approach: {str(self.static_panel_approach)}"
         )
         return score_static_panel_approach_info
 
