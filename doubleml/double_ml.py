@@ -744,6 +744,11 @@ class DoubleML(SampleSplittingMixin, ABC):
         """
         Hyperparameter-tuning for DoubleML models.
 
+        .. deprecated::
+           The ``tune`` method using grid/randomized search is maintained for backward compatibility.
+           For more efficient hyperparameter optimization, use :meth:`tune_ml_models` with Optuna,
+           which provides Bayesian optimization and better performance.
+
         The hyperparameter-tuning is performed using either an exhaustive search over specified parameter values
         implemented in :class:`sklearn.model_selection.GridSearchCV` or via a randomized search implemented in
         :class:`sklearn.model_selection.RandomizedSearchCV`.
@@ -802,6 +807,16 @@ class DoubleML(SampleSplittingMixin, ABC):
             requested learner names to Optuna search results exposing attributes such as ``best_params_``.
             Returned if ``return_tune_res`` is ``True``.
         """
+        # Deprecation warning for the tune method
+        warnings.warn(
+            "The 'tune' method using grid search or randomized search is maintained for backward compatibility. "
+            "It will be removed in future versions. "
+            "For more advanced hyperparameter optimization, consider using 'tune_ml_models' with Optuna, "
+            "which offers Bayesian optimization and is generally more efficient. "
+            "See the documentation for 'tune_ml_models' for usage examples.",
+            FutureWarning,
+            stacklevel=2
+        )
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
             raise ValueError(
