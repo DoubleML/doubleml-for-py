@@ -56,7 +56,7 @@ def test_doubleml_plr_qmc_sampler(generate_data1):
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 2),
         }
 
-    tune_res = plr.tune_optuna(
+    tune_res = plr.tune_ml_models(
         ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
@@ -98,7 +98,7 @@ def test_doubleml_plr_partial_fixed_sampler(generate_data1):
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 2),
         }
 
-    tune_res = plr.tune_optuna(
+    tune_res = plr.tune_ml_models(
         ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
         return_tune_res=True,
@@ -139,7 +139,7 @@ def test_doubleml_plr_gp_sampler(generate_data1):
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 2),
         }
 
-    plr.tune_optuna(
+    plr.tune_ml_models(
         ml_param_space={"ml_l": ml_l_params, "ml_m": ml_m_params},
         optuna_settings=_basic_optuna_settings(sampler),
     )

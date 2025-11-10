@@ -753,7 +753,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         param_grids : dict
             A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
             For ``search_mode='grid_search'`` or ``'randomized_search'``, provide lists of parameter values.
-            For Optuna-based tuning, use the :meth:`tune_optuna` method instead.
+            For Optuna-based tuning, use the :meth:`tune_ml_models` method instead.
 
         tune_on_folds : bool
             Indicates whether the tuning should be done fold-specific or globally.
@@ -773,7 +773,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are
             optimized via :class:`sklearn.model_selection.GridSearchCV` or
             :class:`sklearn.model_selection.RandomizedSearchCV`.
-            For Optuna-based tuning, use the :meth:`tune_optuna` method instead.
+            For Optuna-based tuning, use the :meth:`tune_ml_models` method instead.
             Default is ``'grid_search'``.
 
         n_iter_randomized_search : int
@@ -923,7 +923,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         else:
             return self
 
-    def tune_optuna(
+    def tune_ml_models(
         self,
         ml_param_space,
         scoring_methods=None,
@@ -933,8 +933,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         return_tune_res=False,
         optuna_settings=None,
     ):
-
-        # TODO: RENAME TO `tune_ml_models`
         """
         Hyperparameter-tuning for DoubleML models using Optuna.
 
@@ -1070,7 +1068,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'n_trials': 20,
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
-        >>> dml_plr.tune_optuna(ml_param_space, optuna_settings=optuna_settings)
+        >>> dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings)
         >>> # Fit and get results
         >>> dml_plr.fit()
         >>> # Example with scoring methods and directions
@@ -1082,8 +1080,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'n_trials': 50,
         ...     'direction': 'maximize'  # Maximize negative MSE (minimize MSE)
         ... }
-        >>> dml_plr.tune_optuna(ml_param_space, scoring_methods=scoring_methods,
-        ...                     optuna_settings=optuna_settings)
+        >>> dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
+        ...                       optuna_settings=optuna_settings)
         """
         # Validation
         if not isinstance(ml_param_space, dict) or not ml_param_space:
@@ -1211,6 +1209,34 @@ class DoubleML(SampleSplittingMixin, ABC):
             return tuning_res  # TODO: Return only container objects
         else:
             return self
+
+    def tune_optuna(
+        self,
+        ml_param_space,
+        scoring_methods=None,
+        cv=5,
+        n_jobs_cv=None,
+        set_as_params=True,
+        return_tune_res=False,
+        optuna_settings=None,
+    ):
+        """Deprecated alias for :meth:`tune_ml_models` (will be removed in a future release)."""
+
+        warnings.warn(
+            "'tune_optuna' is deprecated and will be removed in a future release. "
+            "Please use 'tune_ml_models' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.tune_ml_models(
+            ml_param_space=ml_param_space,
+            scoring_methods=scoring_methods,
+            cv=cv,
+            n_jobs_cv=n_jobs_cv,
+            set_as_params=set_as_params,
+            return_tune_res=return_tune_res,
+            optuna_settings=optuna_settings,
+        )
 
     def _validate_optuna_setting_keys(self, optuna_settings):
         """Validate learner-level keys provided in optuna_settings."""

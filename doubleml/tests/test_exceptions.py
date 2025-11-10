@@ -849,7 +849,7 @@ def test_doubleml_exception_tune():
 
     msg = "optuna_settings must be a dict or None. Got <class 'list'>."
     with pytest.raises(TypeError, match=msg):
-        dml_plr.tune_optuna(param_grids_optuna, optuna_settings=[1, 2, 3])
+        dml_plr.tune_ml_models(param_grids_optuna, optuna_settings=[1, 2, 3])
 
 
 @pytest.mark.ci
