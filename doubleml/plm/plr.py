@@ -429,8 +429,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        l_best_params = l_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
+        results = {"ml_l": l_tune_res, "ml_m": m_tune_res}
 
         # an ML model for g is obtained for the IV-type score and callable scores
         if "ml_g" in self._learner:
@@ -453,17 +452,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 optuna_settings,
                 learner_name="ml_g",
             )
+            results["ml_g"] = g_tune_res
 
-            g_best_params = g_tune_res.best_params_
-            params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_g": g_best_params}
-            tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "g_tune": g_tune_res}
-        else:
-            params = {"ml_l": l_best_params, "ml_m": m_best_params}
-            tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res}
-
-        res = {"params": params, "tune_res": tune_res}
-
-        return res
+        return results
 
     def cate(self, basis, is_gate=False, **kwargs):
         """

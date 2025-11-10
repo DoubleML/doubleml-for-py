@@ -538,18 +538,11 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        g_d_lvl0_best_params = g_d_lvl0_tune_res.best_params_
-        g_d_lvl1_best_params = g_d_lvl1_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
-
-        params = {
-            "ml_g_d_lvl0": g_d_lvl0_best_params,
-            "ml_g_d_lvl1": g_d_lvl1_best_params,
-            "ml_m": m_best_params,
+        return {
+            "ml_g_d_lvl0": g_d_lvl0_tune_res,
+            "ml_g_d_lvl1": g_d_lvl1_tune_res,
+            "ml_m": m_tune_res,
         }
-        tune_res = {"g_d_lvl0_tune": g_d_lvl0_tune_res, "g_d_lvl1_tune": g_d_lvl1_tune_res, "m_tune": m_tune_res}
-
-        return {"params": params, "tune_res": tune_res}
 
     def _check_data(self, obj_dml_data):
         if len(obj_dml_data.d_cols) > 1:

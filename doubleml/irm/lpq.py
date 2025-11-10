@@ -807,22 +807,13 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             learner_name="ml_g_du_z1",
         )
 
-        params = {
-            "ml_m_z": m_z_tune_res.best_params_,
-            "ml_m_d_z0": m_d_z0_tune_res.best_params_,
-            "ml_m_d_z1": m_d_z1_tune_res.best_params_,
-            "ml_g_du_z0": g_du_z0_tune_res.best_params_,
-            "ml_g_du_z1": g_du_z1_tune_res.best_params_,
-        }
-        tune_res = {
+        return {
             "ml_m_z": m_z_tune_res,
             "ml_m_d_z0": m_d_z0_tune_res,
             "ml_m_d_z1": m_d_z1_tune_res,
             "ml_g_du_z0": g_du_z0_tune_res,
             "ml_g_du_z1": g_du_z1_tune_res,
         }
-
-        return {"params": params, "tune_res": tune_res}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

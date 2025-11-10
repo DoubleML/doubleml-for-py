@@ -717,37 +717,15 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 learner_name="ml_r1",
             )
 
-        g0_best_params = g0_tune_res.best_params_
-        g1_best_params = g1_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
-
-        if r0_tune_res is not None:
-            r0_best_params = r0_tune_res.best_params_
-        else:
-            r0_best_params = None
-
-        if r1_tune_res is not None:
-            r1_best_params = r1_tune_res.best_params_
-        else:
-            r1_best_params = None
-
-        params = {
-            "ml_g0": g0_best_params,
-            "ml_g1": g1_best_params,
-            "ml_m": m_best_params,
-            "ml_r0": r0_best_params,
-            "ml_r1": r1_best_params,
+        results = {
+            "ml_g0": g0_tune_res,
+            "ml_g1": g1_tune_res,
+            "ml_m": m_tune_res,
+            "ml_r0": r0_tune_res,
+            "ml_r1": r1_tune_res,
         }
 
-        tune_res = {
-            "g0_tune": g0_tune_res,
-            "g1_tune": g1_tune_res,
-            "m_tune": m_tune_res,
-            "r0_tune": r0_tune_res,
-            "r1_tune": r1_tune_res,
-        }
-
-        return {"params": params, "tune_res": tune_res}
+        return results
 
     def _sensitivity_element_est(self, preds):
         pass

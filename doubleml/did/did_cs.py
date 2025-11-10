@@ -746,18 +746,12 @@ class DoubleMLDIDCS(LinearScoreMixin, DoubleML):
                 learner_name="ml_m",
             )
 
-        params = {}
-        tune_res = {}
-        for key, res_obj in g_tune_results.items():
-            learner_key = f"ml_g_{key}"
-            params[learner_key] = res_obj.best_params_
-            tune_res[f"g_{key}_tune"] = res_obj
+        results = {f"ml_g_{key}": res_obj for key, res_obj in g_tune_results.items()}
 
         if self.score == "observational":
-            params["ml_m"] = m_tune_res.best_params_
-            tune_res["m_tune"] = m_tune_res
+            results["ml_m"] = m_tune_res
 
-        return {"params": params, "tune_res": tune_res}
+        return results
 
     def sensitivity_benchmark(self, benchmarking_set, fit_args=None):
         """

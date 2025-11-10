@@ -747,18 +747,12 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 learner_name="ml_m",
             )
 
-        g0_best_params = g0_tune_res.best_params_
-        g1_best_params = g1_tune_res.best_params_
-
         if self.score == "observational":
-            m_best_params = m_tune_res.best_params_
-            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
-            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
+            results = {"ml_g0": g0_tune_res, "ml_g1": g1_tune_res, "ml_m": m_tune_res}
         else:
-            params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params}
-            tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res}
+            results = {"ml_g0": g0_tune_res, "ml_g1": g1_tune_res}
 
-        return {"params": params, "tune_res": tune_res}
+        return results
 
     def _sensitivity_element_est(self, preds):
         y = self._y_data_subset

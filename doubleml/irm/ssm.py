@@ -709,18 +709,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 )
                 g_d1_tune_res.append(res)
 
-            params = {
-                "ml_g_d0": [xx.best_params_ for xx in g_d0_tune_res],
-                "ml_g_d1": [xx.best_params_ for xx in g_d1_tune_res],
-                "ml_pi": [xx.best_params_ for xx in pi_tune_res],
-                "ml_m": m_tune_res.best_params_,
-            }
-
-            tune_res = {
-                "g_d0_tune": g_d0_tune_res,
-                "g_d1_tune": g_d1_tune_res,
-                "pi_tune": pi_tune_res,
-                "m_tune": m_tune_res,
+            results = {
+                "ml_g_d0": g_d0_tune_res,
+                "ml_g_d1": g_d1_tune_res,
+                "ml_pi": pi_tune_res,
+                "ml_m": m_tune_res,
             }
         else:
             mask_d0_s1 = np.logical_and(d == 0, s == 1)
@@ -787,21 +780,14 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 learner_name="ml_m",
             )
 
-            params = {
-                "ml_g_d0": g_d0_tune_res.best_params_,
-                "ml_g_d1": g_d1_tune_res.best_params_,
-                "ml_pi": pi_tune_res.best_params_,
-                "ml_m": m_tune_res.best_params_,
+            results = {
+                "ml_g_d0": g_d0_tune_res,
+                "ml_g_d1": g_d1_tune_res,
+                "ml_pi": pi_tune_res,
+                "ml_m": m_tune_res,
             }
 
-            tune_res = {
-                "g_d0_tune": g_d0_tune_res,
-                "g_d1_tune": g_d1_tune_res,
-                "pi_tune": pi_tune_res,
-                "m_tune": m_tune_res,
-            }
-
-        return {"params": params, "tune_res": tune_res}
+        return results
 
     def _sensitivity_element_est(self, preds):
         pass

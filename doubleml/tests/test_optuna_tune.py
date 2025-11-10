@@ -122,9 +122,12 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     _assert_tree_params(tuned_params_m, depth_range=(1, 2))
 
     # ensure results contain optuna objects and best params
-    assert "params" in tune_res[0]
-    assert "tune_res" in tune_res[0]
-    assert tune_res[0]["params"]["ml_l"]["max_depth"] == tuned_params_l["max_depth"]
+    assert isinstance(tune_res[0], dict)
+    assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
+    assert hasattr(tune_res[0]["ml_l"], "best_params_")
+    assert tune_res[0]["ml_l"].best_params_["max_depth"] == tuned_params_l["max_depth"]
+    assert hasattr(tune_res[0]["ml_m"], "best_params_")
+    assert tune_res[0]["ml_m"].best_params_["max_depth"] == tuned_params_m["max_depth"]
 
 
 def test_doubleml_optuna_cv_variants():
@@ -191,13 +194,12 @@ def test_doubleml_optuna_partial_tuning_single_learner():
     assert tuned_l is not None
     assert untouched_m is None
 
-    assert set(tune_res[0]["params"].keys()) == {"ml_l"}
-    assert "l_tune" in tune_res[0]["tune_res"]
-    assert tune_res[0]["tune_res"]["l_tune"].tuned_ is True
-
-    m_tune = tune_res[0]["tune_res"].get("m_tune")
-    if m_tune is not None:
-        assert not m_tune.tuned_
+    assert isinstance(tune_res[0], dict)
+    assert set(tune_res[0].keys()) == {"ml_l"}
+    l_tune = tune_res[0]["ml_l"]
+    assert hasattr(l_tune, "tuned_")
+    assert l_tune.tuned_ is True
+    assert "ml_m" not in tune_res[0]
 
 
 def test_doubleml_optuna_sets_params_for_all_folds():

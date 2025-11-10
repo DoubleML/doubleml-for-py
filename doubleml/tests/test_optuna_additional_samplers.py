@@ -67,8 +67,8 @@ def test_doubleml_plr_qmc_sampler(generate_data1):
 
     assert set(tuned_params_l.keys()) == {"max_depth", "min_samples_leaf"}
     assert set(tuned_params_m.keys()) == {"max_depth", "min_samples_leaf"}
-    assert "params" in tune_res[0]
-    assert "tune_res" in tune_res[0]
+    assert isinstance(tune_res[0], dict)
+    assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
 
 
 @pytest.mark.skipif(_partial_fixed_sampler() is None, reason="PartialFixedSampler not available in this Optuna version")
@@ -109,8 +109,8 @@ def test_doubleml_plr_partial_fixed_sampler(generate_data1):
 
     assert tuned_params_l["max_depth"] == 2
     assert tuned_params_m["max_depth"] == 2
-    assert "params" in tune_res[0]
-    assert "tune_res" in tune_res[0]
+    assert isinstance(tune_res[0], dict)
+    assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
 
 
 @pytest.mark.skipif(_gp_sampler() is None, reason="GPSampler not available in this Optuna version")

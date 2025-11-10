@@ -474,14 +474,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             optuna_settings,
             learner_name="ml_m",
         )
-
-        g_best_params = g_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
-
-        params = {"ml_g": g_best_params, "ml_m": m_best_params}
-        tune_res = {"g_tune": g_tune_res, "m_tune": m_tune_res}
-
-        return {"params": params, "tune_res": tune_res}
+        return {"ml_g": g_tune_res, "ml_m": m_tune_res}
 
     def _check_data(self, obj_dml_data):
         if not isinstance(obj_dml_data, DoubleMLData):

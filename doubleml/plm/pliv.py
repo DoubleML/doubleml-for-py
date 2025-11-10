@@ -650,16 +650,13 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_r",
         )
 
-        l_best_params = l_tune_res.best_params_
-        r_best_params = r_tune_res.best_params_
+        results = {"ml_l": l_tune_res, "ml_r": r_tune_res}
 
         if self._dml_data.n_instr > 1:
-            tuned_params = {"ml_l": l_best_params, "ml_r": r_best_params}
             for instr_var in self._dml_data.z_cols:
-                tuned_params["ml_m_" + instr_var] = m_tune_res[instr_var].best_params_
-            tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res}
+                results["ml_m_" + instr_var] = m_tune_res[instr_var]
         else:
-            m_best_params = m_tune_res.best_params_
+            results["ml_m"] = m_tune_res
             if "ml_g" in self._learner:
                 l_hat = l_tune_res.predict(x)
                 m_hat = m_tune_res.predict(x_m_features)
@@ -681,19 +678,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     learner_name="ml_g",
                 )
 
-                g_best_params = g_tune_res.best_params_
-                tuned_params = {
-                    "ml_l": l_best_params,
-                    "ml_m": m_best_params,
-                    "ml_r": r_best_params,
-                    "ml_g": g_best_params,
-                }
-                tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res, "g_tune": g_tune_res}
-            else:
-                tuned_params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_r": r_best_params}
-                tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res}
+                results["ml_g"] = g_tune_res
 
-        return {"params": tuned_params, "tune_res": tune_res}
+        return results
 
     def _nuisance_tuning_partial_x(
         self,
@@ -856,12 +843,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_settings,
             learner_name="ml_r",
         )
-
-        m_best_params = m_tune_res.best_params_
-        tuned_params = {"ml_r": m_best_params}
-        tune_res = {"r_tune": m_tune_res}
-
-        return {"params": tuned_params, "tune_res": tune_res}
+        return {"ml_r": m_tune_res}
 
     def _nuisance_tuning_partial_z(
         self,
@@ -960,15 +942,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_settings,
             learner_name="ml_r",
         )
-
-        l_best_params = l_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
-        r_best_params = r_tune_res.best_params_
-
-        tuned_params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_r": r_best_params}
-        tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res}
-
-        return {"params": tuned_params, "tune_res": tune_res}
+        return {"ml_l": l_tune_res, "ml_m": m_tune_res, "ml_r": r_tune_res}
 
     def _nuisance_tuning_partial_xz(
         self,

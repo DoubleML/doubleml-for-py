@@ -797,8 +797,9 @@ class DoubleML(SampleSplittingMixin, ABC):
         self : object
             Returned if ``return_tune_res`` is ``False``.
 
-        tune_res: list
-            A list containing detailed tuning results and the proposed hyperparameters.
+        tune_res : list
+            A list whose entries correspond to treatment variables. Each entry is a dictionary mapping the
+            requested learner names to Optuna search results exposing attributes such as ``best_params_``.
             Returned if ``return_tune_res`` is ``True``.
         """
 
@@ -1181,62 +1182,37 @@ class DoubleML(SampleSplittingMixin, ABC):
                 optuna_settings,
             )
 
-            filtered_params = {key: value for key, value in res["params"].items() if key in requested_learners}
-            res = {**res, "params": filtered_params}
-            tuning_res[i_d] = res
+            filtered_results = {key: value for key, value in res.items() if key in requested_learners}
+            tuning_res[i_d] = filtered_results
 
             if set_as_params:
-                for nuisance_model, tuned_params in filtered_params.items():
-                    if isinstance(tuned_params, list):
-                        if not tuned_params:
-                            params_to_set = tuned_params
+                for nuisance_model, tuned_result in filtered_results.items():
+                    if isinstance(tuned_result, list):
+                        if not tuned_result:
+                            params_to_set = tuned_result
                         else:
-                            first_entry = tuned_params[0]
-                            params_to_set = first_entry.best_params_ if hasattr(first_entry, "best_params_") else first_entry
-                    elif hasattr(tuned_params, "best_params_"):
-                        params_to_set = tuned_params.best_params_
-                    elif isinstance(tuned_params, dict) or tuned_params is None:
-                        params_to_set = tuned_params
+                            first_entry = tuned_result[0]
+                            params_to_set = (
+                                first_entry.best_params_
+                                if hasattr(first_entry, "best_params_")
+                                else first_entry
+                            )
+                    elif hasattr(tuned_result, "best_params_"):
+                        params_to_set = tuned_result.best_params_
+                    elif isinstance(tuned_result, dict) or tuned_result is None:
+                        params_to_set = tuned_result
                     else:
                         raise TypeError(
-                            "Unexpected parameter format returned from Optuna tuning. "
-                            "Expected dict-like or object with best_params_."
+                            "Unexpected tuning result returned from Optuna. "
+                            "Expected an object exposing 'best_params_' or a dict."
                         )
 
                     self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
         if return_tune_res:
-            return tuning_res  # TODO: Return only container objects
+            return tuning_res
         else:
             return self
-
-    def tune_optuna(
-        self,
-        ml_param_space,
-        scoring_methods=None,
-        cv=5,
-        n_jobs_cv=None,
-        set_as_params=True,
-        return_tune_res=False,
-        optuna_settings=None,
-    ):
-        """Deprecated alias for :meth:`tune_ml_models` (will be removed in a future release)."""
-
-        warnings.warn(
-            "'tune_optuna' is deprecated and will be removed in a future release. "
-            "Please use 'tune_ml_models' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.tune_ml_models(
-            ml_param_space=ml_param_space,
-            scoring_methods=scoring_methods,
-            cv=cv,
-            n_jobs_cv=n_jobs_cv,
-            set_as_params=set_as_params,
-            return_tune_res=return_tune_res,
-            optuna_settings=optuna_settings,
-        )
 
     def _validate_optuna_setting_keys(self, optuna_settings):
         """Validate learner-level keys provided in optuna_settings."""
