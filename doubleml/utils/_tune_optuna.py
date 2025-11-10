@@ -54,7 +54,26 @@ def _default_optuna_settings():
 
 
 def _resolve_optuna_scoring(scoring_method, learner, learner_name):
-    """Select a scoring method when Optuna tuning does not receive one explicitly."""
+    """Resolve the scoring argument for an Optuna-tuned learner.
+
+    Parameters
+    ----------
+    scoring_method : str, callable or None
+        Scoring argument supplied by the caller. ``None`` triggers automatic
+        fallback selection.
+    learner : estimator
+        Estimator instance that will be tuned.
+    learner_name : str
+        Identifier used for logging and error messages.
+
+    Returns
+    -------
+    tuple
+    A pair consisting of the scoring argument to pass to
+    :func:`sklearn.model_selection.cross_validate` (``None`` means use the
+    estimator's default ``score``) and a human-readable message describing
+    the decision for logging purposes.
+    """
 
     if scoring_method is not None:
         message = f"Using provided scoring method: {scoring_method} for learner '{learner_name}'"
@@ -161,7 +180,33 @@ def _check_tuning_inputs(
     n_jobs_cv,
     learner_name=None,
 ):
-    """Validate Optuna tuning inputs and return a normalized cross-validation splitter."""
+    """Validate Optuna tuning inputs and normalize the cross-validation splitter.
+
+    Parameters
+    ----------
+    y : np.ndarray
+        Target array used during tuning.
+    x : np.ndarray
+        Feature matrix used during tuning.
+    learner : estimator
+        Estimator that will be tuned.
+    param_grid_func : callable or None
+        Callback that samples hyperparameters from an Optuna trial.
+    scoring_method : str, callable or None
+    Scoring argument after applying :func:`doubleml.utils._tune_optuna._resolve_optuna_scoring`.
+    cv : int, cross-validation splitter or iterable
+        Cross-validation definition provided by the caller.
+    n_jobs_cv : int or None
+        Number of parallel jobs for the cross-validation routine.
+    learner_name : str or None
+        Optional name used to contextualise error messages.
+
+    Returns
+    -------
+    cross-validator or iterable
+        Cross-validation splitter compatible with
+        :func:`sklearn.model_selection.cross_validate`.
+    """
 
     learner_label = learner_name or learner.__class__.__name__
 
@@ -261,17 +306,19 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
 
 def _create_study(settings, learner_name):
     """
-    Create or retrieve an Optuna study object.
+    Create or retrieve an Optuna :class:`optuna.study.Study` instance.
 
     Parameters
     ----------
     settings : dict
         Resolved Optuna settings containing study configuration.
+    learner_name : str
+        Identifier used for logging the resolved study configuration.
 
     Returns
     -------
     optuna.study.Study
-        The Optuna study object.
+        The Optuna study object ready for optimization.
     """
     try:
         import optuna
@@ -333,8 +380,9 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
         Target variable (full dataset).
     cv : cross-validation generator
         KFold or similar cross-validation splitter.
-    scoring_method : str or callable
-        Scoring method for cross-validation.
+    scoring_method : str, callable or None
+        Scoring argument for cross-validation. ``None`` delegates to the
+        estimator's default ``score`` implementation.
     n_jobs_cv : int or None
         Number of parallel jobs for cross-validation.
     learner_name : str
@@ -406,8 +454,9 @@ def _dml_tune_optuna(
     param_grid_func : callable
         Function that takes an Optuna trial and returns a parameter dictionary.
         Example: def params(trial): return {"learning_rate": trial.suggest_float("learning_rate", 0.01, 0.1)}
-    scoring_method : str or callable
-        Scoring method for cross-validation.
+    scoring_method : str, callable or None
+        Scoring argument passed to cross-validation. ``None`` triggers an
+        automatic fallback chosen by :func:`_resolve_optuna_scoring`.
     cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
         Cross-validation strategy used during tuning. If an integer is provided, a shuffled
         :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
