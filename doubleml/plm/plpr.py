@@ -124,11 +124,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         self._sensitivity_implemented = False
         self._external_predictions_implemented = True
 
-        # Get transformed data depending on approach
-        # TODO: get y, x, d cols, set additional properties for y_data, d_data, x_data to be used in
-        # nuisance
+        # get transformed data depending on approach
         self._data_transform, self._transform_col_names, = self._transform_data(self._approach)
+        # save transformed data parts for ML estimation
+        # TODO: check d_cols dimension issue, for now as for panel data only one treatment allowed currently
+        self._y_data_transform = self.data_transform.loc[:, self.transform_col_names['y_col']].values
+        self._d_data_transform = self.data_transform.loc[:, self.transform_col_names['d_cols']].values.flatten()
+        self._x_data_transform = self.data_transform.loc[:, self.transform_col_names['x_cols']].values
 
+        # TODO: for fd_exact, n_obs changes, smpls originally drawn are not working anymore
 
     def _format_score_info_str(self):
         score_approach_info = (
@@ -164,7 +168,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         The column names of the transformed static panel data.
         """
         return self._transform_col_names
-    
+       
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
@@ -234,8 +238,8 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return data, col_names
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._x_data_transform, self._y_data_transform, force_all_finite=False)
+        x, d = check_X_y(x, self._d_data_transform, force_all_finite=False)
         m_external = external_predictions["ml_m"] is not None
         l_external = external_predictions["ml_l"] is not None
         if "ml_g" in self._learner:
@@ -268,9 +272,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             # TODO: update this section
             # cre using m_d + x for m_hat, otherwise only x
             if self._approach == "cre_normal":
-                help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "d": d})
-                m_d = help_data.groupby(["id"]).transform("mean").values
-                x = np.column_stack((x, m_d))
+                help_d_mean = pd.DataFrame({"id": self._dml_data.id_var, "d": d})
+                d_mean = help_d_mean.groupby(["id"]).transform("mean").values
+                x = np.column_stack((x, d_mean))
 
             m_hat = _dml_cv_predict(
                     self._learner["ml_m"],
@@ -285,12 +289,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
 
             # general cre adjustment
             if self._approach == "cre_general":
-                help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "m_hat": m_hat["preds"], "d": d})
+                help_data = pd.DataFrame({"id": self._dml_data.id_var, "m_hat": m_hat["preds"], "d": d})
                 group_means = help_data.groupby(["id"])[["m_hat", "d"]].transform("mean")
                 m_hat_star = m_hat["preds"] + group_means["d"] - group_means["m_hat"]
                 m_hat["preds"] = m_hat_star
                 
-
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
         if self._check_learner(self._learner["ml_m"], "ml_m", regressor=True, classifier=True):
             _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
