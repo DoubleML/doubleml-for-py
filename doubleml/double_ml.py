@@ -1192,11 +1192,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                             params_to_set = tuned_result
                         else:
                             first_entry = tuned_result[0]
-                            params_to_set = (
-                                first_entry.best_params_
-                                if hasattr(first_entry, "best_params_")
-                                else first_entry
-                            )
+                            params_to_set = first_entry.best_params_ if hasattr(first_entry, "best_params_") else first_entry
                     elif hasattr(tuned_result, "best_params_"):
                         params_to_set = tuned_result.best_params_
                     elif isinstance(tuned_result, dict) or tuned_result is None:

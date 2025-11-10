@@ -113,9 +113,7 @@ def _check_tuning_inputs(
     learner_label = learner_name or learner.__class__.__name__
 
     if y.shape[0] != x.shape[0]:
-        raise ValueError(
-            f"Features and target must contain the same number of observations for learner '{learner_label}'."
-        )
+        raise ValueError(f"Features and target must contain the same number of observations for learner '{learner_label}'.")
     if y.size == 0:
         raise ValueError(f"Empty target passed to Optuna tuner for learner '{learner_label}'.")
 
@@ -139,16 +137,12 @@ def _check_tuning_inputs(
             )
 
     if not hasattr(learner, "fit") or not hasattr(learner, "set_params"):
-        raise TypeError(
-            f"Learner '{learner_label}' must implement fit and set_params to be tuned with Optuna."
-        )
+        raise TypeError(f"Learner '{learner_label}' must implement fit and set_params to be tuned with Optuna.")
 
     try:
         train_ind_list = list(train_inds)
     except TypeError as exc:
-        raise TypeError(
-            f"train_inds must be an iterable of index arrays for learner '{learner_label}'."
-        ) from exc
+        raise TypeError(f"train_inds must be an iterable of index arrays for learner '{learner_label}'.") from exc
 
     if not train_ind_list:
         raise ValueError(f"train_inds cannot be empty for learner '{learner_label}'.")
