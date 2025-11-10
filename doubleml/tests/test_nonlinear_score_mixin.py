@@ -158,14 +158,7 @@ class DoubleMLPLRWithNonLinearScoreMixin(NonLinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self,
-        smpls,
-        param_grids,
-        scoring_methods,
-        n_folds_tune,
-        n_jobs_cv,
-        search_mode,
-        n_iter_randomized_search,
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         pass
 

@@ -813,13 +813,13 @@ def test_doubleml_exception_tune():
 
     msg = "The number of parameter settings sampled for the randomized search must be at least two. 1 was passed."
     with pytest.raises(ValueError, match=msg):
-        dml_plr.tune(param_grids, search_mode="randomized_search", n_iter_randomized_search=1)
+        dml_plr.tune(param_grids, n_iter_randomized_search=1)
     msg = (
         "The number of parameter settings sampled for the randomized search must be of int type. "
         "1.0 of type <class 'float'> was passed."
     )
     with pytest.raises(TypeError, match=msg):
-        dml_plr.tune(param_grids, search_mode="randomized_search", n_iter_randomized_search=1.0)
+        dml_plr.tune(param_grids, n_iter_randomized_search=1.0)
 
     msg = "The number of CPUs used to fit the learners must be of int type. 5 of type <class 'str'> was passed."
     with pytest.raises(TypeError, match=msg):
@@ -832,24 +832,6 @@ def test_doubleml_exception_tune():
     msg = "return_tune_res must be True or False. Got 1."
     with pytest.raises(TypeError, match=msg):
         dml_plr.tune(param_grids, return_tune_res=1)
-
-    def optuna_ml_l(trial):
-        return {
-            "max_depth": trial.suggest_int("exc_ml_l_max_depth", 1, 2),
-            "min_samples_leaf": trial.suggest_int("exc_ml_l_min_samples_leaf", 1, 2),
-        }
-
-    def optuna_ml_m(trial):
-        return {
-            "max_depth": trial.suggest_int("exc_ml_m_max_depth", 1, 2),
-            "min_samples_leaf": trial.suggest_int("exc_ml_m_min_samples_leaf", 1, 2),
-        }
-
-    param_grids_optuna = {"ml_l": optuna_ml_l, "ml_m": optuna_ml_m}
-
-    msg = "optuna_settings must be a dict or None. Got <class 'list'>."
-    with pytest.raises(TypeError, match=msg):
-        dml_plr.tune_ml_models(param_grids_optuna, optuna_settings=[1, 2, 3])
 
 
 @pytest.mark.ci

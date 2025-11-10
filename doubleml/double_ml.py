@@ -757,8 +757,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         ----------
         param_grids : dict
             A dict with a parameter grid for each nuisance model / learner (see attribute ``learner_names``).
-            For ``search_mode='grid_search'`` or ``'randomized_search'``, provide lists of parameter values.
-            For Optuna-based tuning, use the :meth:`tune_ml_models` method instead.
 
         tune_on_folds : bool
             Indicates whether the tuning should be done fold-specific or globally.
@@ -775,10 +773,8 @@ class DoubleML(SampleSplittingMixin, ABC):
             Default is ``5``.
 
         search_mode : str
-            A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are
-            optimized via :class:`sklearn.model_selection.GridSearchCV` or
-            :class:`sklearn.model_selection.RandomizedSearchCV`.
-            For Optuna-based tuning, use the :meth:`tune_ml_models` method instead.
+            A str (``'grid_search'`` or ``'randomized_search'``) specifying whether hyperparameters are optimized via
+            :class:`sklearn.model_selection.GridSearchCV` or :class:`sklearn.model_selection.RandomizedSearchCV`.
             Default is ``'grid_search'``.
 
         n_iter_randomized_search : int
@@ -802,9 +798,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         self : object
             Returned if ``return_tune_res`` is ``False``.
 
-        tune_res : list
-            A list whose entries correspond to treatment variables. Each entry is a dictionary mapping the
-            requested learner names to Optuna search results exposing attributes such as ``best_params_``.
+        tune_res: list
+            A list containing detailed tuning results and the proposed hyperparameters.
             Returned if ``return_tune_res`` is ``True``.
         """
         # Deprecation warning for the tune method
@@ -855,13 +850,13 @@ class DoubleML(SampleSplittingMixin, ABC):
         if (not isinstance(search_mode, str)) | (search_mode not in ["grid_search", "randomized_search"]):
             raise ValueError(f'search_mode must be "grid_search" or "randomized_search". Got {str(search_mode)}.')
 
-        if search_mode == "randomized_search" and not isinstance(n_iter_randomized_search, int):
+        if not isinstance(n_iter_randomized_search, int):
             raise TypeError(
                 "The number of parameter settings sampled for the randomized search must be of int type. "
                 f"{str(n_iter_randomized_search)} of type "
                 f"{str(type(n_iter_randomized_search))} was passed."
             )
-        if search_mode == "randomized_search" and n_iter_randomized_search < 2:
+        if n_iter_randomized_search < 2:
             raise ValueError(
                 "The number of parameter settings sampled for the randomized search must be at least two. "
                 f"{str(n_iter_randomized_search)} was passed."
@@ -919,13 +914,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                 smpls = [(np.arange(self.n_obs), np.arange(self.n_obs))]
                 # tune hyperparameters
                 res = self._nuisance_tuning(
-                    smpls,
-                    param_grids,
-                    scoring_methods,
-                    n_folds_tune,
-                    n_jobs_cv,
-                    search_mode,
-                    n_iter_randomized_search,
+                    smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
                 )
                 tuning_res[i_d] = res
 
