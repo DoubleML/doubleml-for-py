@@ -109,7 +109,7 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
 
     tune_res = dml_plr.tune_optuna(
-        params=optuna_params,
+        ml_param_space=optuna_params,
         optuna_settings=_basic_optuna_settings({"sampler": optuna_sampler}),
         return_tune_res=True,
     )
@@ -137,7 +137,7 @@ def test_doubleml_optuna_sets_params_for_all_folds():
 
     optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
 
-    dml_plr.tune_optuna(params=optuna_params, optuna_settings=_basic_optuna_settings())
+    dml_plr.tune_optuna(ml_param_space=optuna_params, optuna_settings=_basic_optuna_settings())
 
     l_params = dml_plr.get_params("ml_l")
     m_params = dml_plr.get_params("ml_m")
@@ -174,7 +174,7 @@ def test_doubleml_optuna_fit_uses_tuned_params():
 
     optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
 
-    dml_plr.tune_optuna(params=optuna_params, optuna_settings=_basic_optuna_settings())
+    dml_plr.tune_optuna(ml_param_space=optuna_params, optuna_settings=_basic_optuna_settings())
 
     expected_l = dict(dml_plr.get_params("ml_l")["d"][0][0])
     expected_m = dict(dml_plr.get_params("ml_m")["d"][0][0])
@@ -206,7 +206,7 @@ def test_doubleml_optuna_invalid_settings_key_raises():
     invalid_settings = _basic_optuna_settings({"ml_l": {"n_trials": 2}})
 
     with pytest.raises(ValueError, match="ml_l"):
-        dml_irm.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+        dml_irm.tune_optuna(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
 def test_doubleml_optuna_class_name_setting_allowed():
@@ -222,7 +222,7 @@ def test_doubleml_optuna_class_name_setting_allowed():
     class_key = ml_l.__class__.__name__
     optuna_settings = _basic_optuna_settings({class_key: {"n_trials": 1}})
 
-    dml_plr.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_plr.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
 
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
@@ -246,7 +246,7 @@ def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler, **per_ml_settings})
 
-    dml_irm.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_irm.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     tuned_params_g0 = _first_params(dml_irm, "ml_g0")
     tuned_params_g1 = _first_params(dml_irm, "ml_g1")
@@ -279,7 +279,7 @@ def test_doubleml_iivm_optuna_tune(sampler_name, optuna_sampler):
     }
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_iivm.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_iivm.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     tuned_params_g0 = _first_params(dml_iivm, "ml_g0")
     tuned_params_g1 = _first_params(dml_iivm, "ml_g1")
@@ -310,7 +310,7 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_pliv, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_pliv.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_pliv.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_pliv.params_names:
         tuned_params = _first_params(dml_pliv, learner_name)
@@ -330,7 +330,7 @@ def test_doubleml_cvar_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = {"ml_g": _medium_tree_params, "ml_m": _medium_tree_params}
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_cvar.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_cvar.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     tuned_params_g = _first_params(dml_cvar, "ml_g")
     tuned_params_m = _first_params(dml_cvar, "ml_m")
@@ -352,7 +352,7 @@ def test_doubleml_apo_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_apo, _medium_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_apo.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_apo.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_apo.params_names:
         tuned_params = _first_params(dml_apo, learner_name)
@@ -372,7 +372,7 @@ def test_doubleml_pq_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_pq, _medium_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_pq.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_pq.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_pq.params_names:
         tuned_params = _first_params(dml_pq, learner_name)
@@ -392,7 +392,7 @@ def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_lpq, _medium_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_lpq.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_lpq.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_lpq.params_names:
         tuned_params = _first_params(dml_lpq, learner_name)
@@ -413,7 +413,7 @@ def test_doubleml_ssm_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_ssm, _medium_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_ssm.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_ssm.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_ssm.params_names:
         tuned_params = _first_params(dml_ssm, learner_name)
@@ -438,7 +438,7 @@ def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):
     optuna_params = _build_param_grid(dml_did, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_did.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_did.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_did.params_names:
         tuned_params = _first_params(dml_did, learner_name)
@@ -466,7 +466,7 @@ def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     optuna_params = _build_param_grid(dml_did_cs, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_did_cs.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_did_cs.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_did_cs.params_names:
         tuned_params = _first_params(dml_did_cs, learner_name)
@@ -512,7 +512,7 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_did_binary, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_did_binary.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_did_binary.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_did_binary.params_names:
         tuned_params = _first_params(dml_did_binary, learner_name)
@@ -557,7 +557,7 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     optuna_params = _build_param_grid(dml_did_cs_binary, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
-    dml_did_cs_binary.tune_optuna(params=optuna_params, optuna_settings=optuna_settings)
+    dml_did_cs_binary.tune_optuna(ml_param_space=optuna_params, optuna_settings=optuna_settings)
 
     for learner_name in dml_did_cs_binary.params_names:
         tuned_params = _first_params(dml_did_cs_binary, learner_name)

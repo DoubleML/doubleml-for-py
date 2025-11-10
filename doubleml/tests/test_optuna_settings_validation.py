@@ -24,7 +24,7 @@ def test_optuna_settings_invalid_key_for_irm_raises():
     invalid_settings = {"ml_l": {"n_trials": 5}}
 
     with pytest.raises(ValueError, match="ml_l"):
-        dml_irm.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+        dml_irm.tune_optuna(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
 def test_optuna_settings_invalid_key_for_plr_raises():
@@ -39,7 +39,7 @@ def test_optuna_settings_invalid_key_for_plr_raises():
     invalid_settings = {"ml_g0": {"n_trials": 5}}
 
     with pytest.raises(ValueError, match="ml_g0"):
-        dml_plr.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+        dml_plr.tune_optuna(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
 def test_optuna_settings_invalid_key_for_pliv_raises():
@@ -51,15 +51,17 @@ def test_optuna_settings_invalid_key_for_pliv_raises():
     ml_r = DecisionTreeRegressor(random_state=77)
     dml_pliv = dml.DoubleMLPLIV(dml_data, ml_l, ml_m, ml_r, n_folds=2, n_rep=1)
 
-    optuna_params = {"ml_l": _constant_params,
-                     "ml_m_Z1": _constant_params,
-                     "ml_m_Z2": _constant_params,
-                     "ml_r": _constant_params}
+    optuna_params = {
+        "ml_l": _constant_params,
+        "ml_m_Z1": _constant_params,
+        "ml_m_Z2": _constant_params,
+        "ml_r": _constant_params,
+    }
 
     invalid_settings = {"ml_g": {"n_trials": 5}}
 
     with pytest.raises(ValueError, match="ml_g"):
-        dml_pliv.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+        dml_pliv.tune_optuna(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
 def test_optuna_settings_invalid_key_for_did_raises():
@@ -74,7 +76,7 @@ def test_optuna_settings_invalid_key_for_did_raises():
     invalid_settings = {"ml_l": {"n_trials": 5}}
 
     with pytest.raises(ValueError, match="ml_l"):
-        dml_did.tune_optuna(params=optuna_params, optuna_settings=invalid_settings)
+        dml_did.tune_optuna(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
 def test_optuna_params_invalid_key_for_irm_raises():
@@ -88,7 +90,7 @@ def test_optuna_params_invalid_key_for_irm_raises():
     optuna_params = {"ml_g0": _constant_params, "ml_g1": _constant_params, "ml_m": _constant_params, "ml_l": _constant_params}
 
     with pytest.raises(ValueError, match="ml_l"):
-        dml_irm.tune_optuna(params=optuna_params)
+        dml_irm.tune_optuna(ml_param_space=optuna_params)
 
 
 def test_optuna_params_invalid_key_for_plr_raises():
@@ -102,7 +104,7 @@ def test_optuna_params_invalid_key_for_plr_raises():
     optuna_params = {"ml_l": _constant_params, "ml_m": _constant_params, "ml_g0": _constant_params}
 
     with pytest.raises(ValueError, match="ml_g0"):
-        dml_plr.tune_optuna(params=optuna_params)
+        dml_plr.tune_optuna(ml_param_space=optuna_params)
 
 
 def test_optuna_params_invalid_key_for_pliv_raises():
@@ -117,7 +119,7 @@ def test_optuna_params_invalid_key_for_pliv_raises():
     optuna_params = {"ml_l": _constant_params, "ml_m": _constant_params, "ml_r": _constant_params, "ml_g": _constant_params}
 
     with pytest.raises(ValueError, match="ml_g"):
-        dml_pliv.tune_optuna(params=optuna_params)
+        dml_pliv.tune_optuna(ml_param_space=optuna_params)
 
 
 def test_optuna_params_invalid_key_for_did_raises():
@@ -130,4 +132,4 @@ def test_optuna_params_invalid_key_for_did_raises():
     optuna_params = {"ml_g0": _constant_params, "ml_g1": _constant_params, "ml_l": _constant_params}
 
     with pytest.raises(ValueError, match="ml_l"):
-        dml_did.tune_optuna(params=optuna_params)
+        dml_did.tune_optuna(ml_param_space=optuna_params)

@@ -925,16 +925,16 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def tune_optuna(
         self,
-        params, # TODO: RENAME TO `ml_param_space`
+        ml_param_space,
         scoring_methods=None,
-        n_folds_tune=5,
+        n_folds_tune=5, # TODO: RENAME TO `cv`, allow for integer (creates sklearn KFold) or custom CV splitter
         n_jobs_cv=None,
         set_as_params=True,
         return_tune_res=False,
         optuna_settings=None,
     ):
 
-    # TODO: RENAME TO `tune_ml_models`
+        # TODO: RENAME TO `tune_ml_models`
         """
         Hyperparameter-tuning for DoubleML models using Optuna.
 
@@ -944,7 +944,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         Parameters
         ----------
-        params : dict
+        ml_param_space : dict
             A dict with a parameter grid function for each nuisance model / learner
             (see attribute ``params_names``).
 
@@ -966,7 +966,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                         'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
                     }
 
-                params = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+                ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
 
             Note: Optuna tuning is performed globally (not fold-specific) to ensure consistent
             hyperparameters across all folds.
@@ -995,7 +995,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         optuna_settings : None or dict
             Optional configuration passed to the Optuna tuner. Supports global settings
-            as well as learner-specific overrides (using the keys from ``params``).
+            as well as learner-specific overrides (using the keys from ``ml_param_space``).
             The dictionary can contain entries corresponding to Optuna's study and optimize
             configuration such as:
 
@@ -1062,13 +1062,13 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
         ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
         ...     }
-        >>> params = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
+        >>> ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
         >>> # Tune with TPE sampler
         >>> optuna_settings = {
         ...     'n_trials': 20,
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
-        >>> dml_plr.tune_optuna(params, optuna_settings=optuna_settings)
+        >>> dml_plr.tune_optuna(ml_param_space, optuna_settings=optuna_settings)
         >>> # Fit and get results
         >>> dml_plr.fit()
         >>> # Example with scoring methods and directions
@@ -1080,25 +1080,25 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'n_trials': 50,
         ...     'direction': 'maximize'  # Maximize negative MSE (minimize MSE)
         ... }
-        >>> dml_plr.tune_optuna(params, scoring_methods=scoring_methods,
+        >>> dml_plr.tune_optuna(ml_param_space, scoring_methods=scoring_methods,
         ...                     optuna_settings=optuna_settings)
         """
         # Validation
-        if (not isinstance(params, dict)) | (not all(k in params for k in self.params_names)):
+        if (not isinstance(ml_param_space, dict)) | (not all(k in ml_param_space for k in self.params_names)):
             raise ValueError(
-                "Invalid params " + str(params) + ". "
-                "params must be a dictionary with keys " + " and ".join(self.params_names) + "."
+                "Invalid ml_param_space " + str(ml_param_space) + ". "
+                "ml_param_space must be a dictionary with keys " + " and ".join(self.params_names) + "."
             )
 
-        self._validate_optuna_param_keys(params)
+        self._validate_optuna_param_keys(ml_param_space)
 
         # Validate that all parameter grids are callables
-        for learner_name, param_fn in params.items():
+        for learner_name, param_fn in ml_param_space.items():
             if not callable(param_fn):
                 raise TypeError(
                     f"Parameter grid for '{learner_name}' must be a callable function that takes a trial "
                     f"and returns a dict. Got {type(param_fn).__name__}. "
-                    f"Example: def params(trial): return {{'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1)}}"
+                    f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
                 )
 
         if scoring_methods is not None:
@@ -1156,7 +1156,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
             # tune hyperparameters (globally, not fold-specific)
             res = self._nuisance_tuning_optuna(
-                params,
+                ml_param_space,
                 scoring_methods,
                 n_folds_tune,
                 n_jobs_cv,
@@ -1185,7 +1185,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                     self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
         if return_tune_res:
-            return tuning_res # TODO: Return only container objects
+            return tuning_res  # TODO: Return only container objects
         else:
             return self
 
@@ -1220,8 +1220,8 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + "."
             )
 
-    def _validate_optuna_param_keys(self, params):
-        """Validate learner keys provided in the Optuna params dictionary."""
+    def _validate_optuna_param_keys(self, ml_param_space):
+        """Validate learner keys provided in the Optuna parameter space dictionary."""
 
         allowed_param_keys = set(self.params_names)
 
@@ -1243,12 +1243,12 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         # allowed_param_keys.update(derived_keys)
 
-        invalid_keys = [key for key in params if key not in allowed_param_keys]
+        invalid_keys = [key for key in ml_param_space if key not in allowed_param_keys]
 
         if invalid_keys:
             valid_keys_msg = ", ".join(sorted(allowed_param_keys)) if allowed_param_keys else "<none>"
             raise ValueError(
-                "Invalid params keys for "
+                "Invalid ml_param_space keys for "
                 + self.__class__.__name__
                 + ": "
                 + ", ".join(sorted(invalid_keys))
