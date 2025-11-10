@@ -148,23 +148,8 @@ def _dml_cv_predict(
 
 
 def _dml_tune(
-    y,
-    x,
-    train_inds,
-    learner,
-    param_grid,
-    scoring_method,
-    n_folds_tune,
-    n_jobs_cv,
-    search_mode,
-    n_iter_randomized_search,
-    learner_name=None,
+    y, x, train_inds, learner, param_grid, scoring_method, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
 ):
-    """
-    Tune hyperparameters using sklearn's GridSearchCV or RandomizedSearchCV.
-
-    Note: Optuna tuning is now handled separately via the tune_optuna() method.
-    """
     tune_res = list()
     for train_index in train_inds:
         tune_resampling = KFold(n_splits=n_folds_tune, shuffle=True)
