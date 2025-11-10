@@ -366,11 +366,6 @@ def _set_external_predictions(external_predictions, learners, treatment, i_rep):
                 ext_prediction_dict[learner] = external_predictions[treatment][learner][:, i_rep].astype(float)
             else:
                 ext_prediction_dict[learner] = None
-            if f"{learner}_inner" in external_predictions[treatment].keys():
-                if isinstance(external_predictions[treatment][f"{learner}_inner"], np.ndarray):
-                    ext_prediction_dict[f"{learner}_inner"] = external_predictions[treatment][f"{learner}_inner"][:, i_rep]
-                else:
-                    ext_prediction_dict[learner] = None
         else:
             ext_prediction_dict[learner] = None
     return ext_prediction_dict

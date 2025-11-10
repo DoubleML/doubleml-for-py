@@ -1088,7 +1088,10 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def _fit_nuisance_and_score_elements(self, n_jobs_cv, store_predictions, external_predictions, store_models):
         ext_prediction_dict = _set_external_predictions(
-            external_predictions, learners=self.params_names, treatment=self._dml_data.d_cols[self._i_treat], i_rep=self._i_rep
+            external_predictions,
+            learners=self.predictions_names,
+            treatment=self._dml_data.d_cols[self._i_treat],
+            i_rep=self._i_rep,
         )
 
         # ml estimation of nuisance models and computation of score elements
@@ -1153,7 +1156,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         self._all_se = np.full((n_thetas, n_rep), np.nan)
 
     def _initialize_predictions_and_targets(self):
-        self._predictions = {learner: np.full(self._score_dim, np.nan, dtype=object) for learner in self.predictions_names}
+        self._predictions = {learner: np.full(self._score_dim, np.nan) for learner in self.predictions_names}
         self._nuisance_targets = {
             learner: np.full(self._score_dim, np.nan, dtype=object) for learner in self.predictions_names
         }

@@ -56,7 +56,9 @@ def doubleml_lplr_fixture(lplr_score, n_rep, set_ml_m_ext, set_ml_t_ext, set_ml_
     # prepare external predictions and dummy learners
     if set_ml_M_ext:
         ext_predictions["d"]["ml_M"] = dml_lplr.predictions["ml_M"][:, :, 0]
-        ext_predictions["d"]["ml_M_inner"] = dml_lplr.predictions["ml_M_inner"][:, :, 0]
+        # provide inner predictions per inner fold index
+        for i in range(dml_lplr.n_folds_inner):
+            ext_predictions["d"][f"ml_M_inner_{i}"] = dml_lplr.predictions[f"ml_M_inner_{i}"][:, :, 0]
         ml_M = DMLDummyClassifier()
     else:
         ml_M = LogisticRegression(max_iter=1000)
@@ -71,7 +73,8 @@ def doubleml_lplr_fixture(lplr_score, n_rep, set_ml_m_ext, set_ml_t_ext, set_ml_
         ext_predictions["d"]["ml_m"] = dml_lplr.predictions["ml_m"][:, :, 0]
         ml_m = DMLDummyRegressor()
         ext_predictions["d"]["ml_a"] = dml_lplr.predictions["ml_a"][:, :, 0]
-        ext_predictions["d"]["ml_a_inner"] = dml_lplr.predictions["ml_a_inner"][:, :, 0]
+        for i in range(dml_lplr.n_folds_inner):
+            ext_predictions["d"][f"ml_a_inner_{i}"] = dml_lplr.predictions[f"ml_a_inner_{i}"][:, :, 0]
     else:
         ml_m = LinearRegression()
 

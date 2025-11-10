@@ -112,7 +112,10 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
         self._learner = {"ml_m": ml_m, "ml_t": ml_t, "ml_M": ml_M}
-        self._predictions_names = ["ml_r", "ml_m", "ml_a", "ml_t", "ml_M", "ml_M_inner", "ml_a_inner"]
+        # replace aggregated inner names with per-inner-fold names
+        inner_M_names = [f"ml_M_inner_{i}" for i in range(self.n_folds_inner)]
+        inner_a_names = [f"ml_a_inner_{i}" for i in range(self.n_folds_inner)]
+        self._predictions_names = ["ml_r", "ml_m", "ml_a", "ml_t", "ml_M"] + inner_M_names + inner_a_names
 
         if ml_a is not None:
             ml_a_is_classifier = self._check_learner(ml_a, "ml_a", regressor=True, classifier=True)
@@ -232,9 +235,14 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         a_external = external_predictions["ml_a"] is not None
 
         if M_external:
-            if "ml_M_inner" not in external_predictions.keys():
-                raise ValueError("When providing external predictions for ml_M, also inner predictions have to be provided.")
-            M_hat_inner = np.squeeze(np.array(external_predictions["ml_M_inner"].tolist())).T
+            # expect per-inner-fold keys ml_M_inner_i
+            missing = [i for i in range(self.n_folds_inner) if f"ml_M_inner_{i}" not in external_predictions.keys()]
+            if len(missing) > 0:
+                raise ValueError(
+                    "When providing external predictions for ml_M, also inner predictions for all inner folds "
+                    f"have to be provided (missing: {', '.join([str(i) for i in missing])})."
+                )
+            M_hat_inner = [external_predictions[f"ml_M_inner_{i}"] for i in range(self.n_folds_inner)]
             M_hat = {"preds": external_predictions["ml_M"], "preds_inner": M_hat_inner, "targets": None, "models": None}
         else:
             M_hat = self._double_dml_cv_predict(
@@ -302,9 +310,14 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 )
 
         if a_external:
-            if "ml_a_inner" not in external_predictions.keys():
-                raise ValueError("When providing external predictions for ml_M, also inner predictions have to be provided.")
-            a_hat_inner = np.squeeze(np.array(external_predictions["ml_a_inner"].tolist())).T
+            # expect per-inner-fold keys ml_a_inner_i
+            missing = [i for i in range(self.n_folds_inner) if f"ml_a_inner_{i}" not in external_predictions.keys()]
+            if len(missing) > 0:
+                raise ValueError(
+                    "When providing external predictions for ml_a, also inner predictions for all inner folds "
+                    f"have to be provided (missing: {', '.join([str(i) for i in missing])})."
+                )
+            a_hat_inner = [external_predictions[f"ml_a_inner_{i}"] for i in range(self.n_folds_inner)]
             a_hat = {"preds": external_predictions["ml_a"], "preds_inner": a_hat_inner, "targets": None, "models": None}
         else:
             a_hat = self._double_dml_cv_predict(
@@ -358,8 +371,11 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 "ml_a": a_hat["preds"],
                 "ml_t": t_hat["preds"],
                 "ml_M": M_hat["preds"],
-                "ml_M_inner": np.moveaxis(M_hat["preds_inner"], 0, -1).tolist(),
-                "ml_a_inner": np.moveaxis(a_hat["preds_inner"], 0, -1).tolist(),
+                # store inner predictions as separate keys per inner fold
+                # ml_M inner
+                **{f"ml_M_inner_{i}": M_hat["preds_inner"][i] for i in range(len(M_hat["preds_inner"]))},
+                # ml_a inner
+                **{f"ml_a_inner_{i}": a_hat["preds_inner"][i] for i in range(len(a_hat["preds_inner"]))},
             },
             "targets": {
                 "ml_r": None,
@@ -367,8 +383,27 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 "ml_a": a_hat["targets"],
                 "ml_t": t_hat["targets"],
                 "ml_M": M_hat["targets"],
-                "ml_M_inner": np.moveaxis(M_hat["targets_inner"], 0, -1).tolist() if not M_external else None,
-                "ml_a_inner": np.moveaxis(a_hat["targets_inner"], 0, -1).tolist() if not a_external else None,
+                # store inner targets as separate keys per inner fold (None if external)
+                **(
+                    {
+                        f"ml_M_inner_{i}": (
+                            M_hat.get("targets_inner")[i]
+                            if M_hat.get("targets_inner") is not None and i < len(M_hat["targets_inner"])
+                            else None
+                        )
+                        for i in range(len(M_hat.get("preds_inner", [])))
+                    }
+                ),
+                **(
+                    {
+                        f"ml_a_inner_{i}": (
+                            a_hat.get("targets_inner")[i]
+                            if a_hat.get("targets_inner") is not None and i < len(a_hat["targets_inner"])
+                            else None
+                        )
+                        for i in range(len(a_hat.get("preds_inner", [])))
+                    }
+                ),
             },
             "models": {
                 "ml_r": None,
