@@ -51,7 +51,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         or a callable object / function with signature ``psi_a, psi_b = score(y, d, l_hat, m_hat, g_hat, smpls)``.
         Default is ``'partialling out'``.
 
-    static_panel_approach : str
+    approach : str
         A str (``'cre_general'``, ``'cre_normal'``, ``'fd_exact'``, ``'wg_approx'``) specifying the type of
         static panel approach in Clarke and Polselli (2025).
         Default is ``'fd_exact'``.
@@ -74,7 +74,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
     """
 
     def __init__(
-        self, obj_dml_data, ml_l, ml_m, ml_g=None, n_folds=5, n_rep=1, score="partialling out", static_panel_approach="fd_exact", draw_sample_splitting=True):
+        self, obj_dml_data, ml_l, ml_m, ml_g=None, n_folds=5, n_rep=1, score="partialling out", approach="fd_exact", draw_sample_splitting=True):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
@@ -82,9 +82,9 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         valid_scores = ["IV-type", "partialling out"]
         _check_score(self.score, valid_scores, allow_callable=True)
 
-        valid_static_panel_approach = ["cre_general", "cre_normal", "fd_exact", "wg_approx"]
-        self._check_static_panel_approach(static_panel_approach, valid_static_panel_approach)
-        self._static_panel_approach = static_panel_approach
+        valid_approach = ["cre_general", "cre_normal", "fd_exact", "wg_approx"]
+        self._check_approach(approach, valid_approach)
+        self._approach = approach
 
         _ = self._check_learner(ml_l, "ml_l", regressor=True, classifier=False)
         ml_m_is_classifier = self._check_learner(ml_m, "ml_m", regressor=True, classifier=True)
@@ -127,15 +127,15 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         # Get transformed data depending on approach
         # TODO: get y, x, d cols, set additional properties for y_data, d_data, x_data to be used in
         # nuisance
-        self._data_transform = self._transform_data(self._static_panel_approach)
+        self._data_transform, self._transform_col_names, = self._transform_data(self._approach)
 
 
     def _format_score_info_str(self):
-        score_static_panel_approach_info = (
+        score_approach_info = (
             f"Score function: {str(self.score)}\n"
-            f"Static panel model approach: {str(self.static_panel_approach)}"
+            f"Static panel model approach: {str(self.approach)}"
         )
-        return score_static_panel_approach_info
+        return score_approach_info
 
     def _format_additional_info_str(self):
         """
@@ -145,11 +145,11 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         return ""
     
     @property
-    def static_panel_approach(self):
+    def approach(self):
         """
         The score function.
         """
-        return self._static_panel_approach
+        return self._approach
 
     @property
     def data_transform(self):
@@ -157,7 +157,14 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         The transformed static panel data.
         """
         return self._data_transform
-
+    
+    @property
+    def transform_col_names(self):
+        """
+        The column names of the transformed static panel data.
+        """
+        return self._transform_col_names
+    
     def _initialize_ml_nuisance_params(self):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
@@ -177,16 +184,16 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
             )
         return
     
-    def _check_static_panel_approach(self, static_panel_approach, valid_static_panel_approach):
-        if isinstance(static_panel_approach, str):
-            if static_panel_approach not in valid_static_panel_approach:
-                raise ValueError("Invalid static_panel_approach " + static_panel_approach + ". " + "Valid approach " + " or ".join(valid_static_panel_approach) + ".")
+    def _check_approach(self, approach, valid_approach):
+        if isinstance(approach, str):
+            if approach not in valid_approach:
+                raise ValueError("Invalid approach " + approach + ". " + "Valid approach " + " or ".join(valid_approach) + ".")
         else:
-            raise TypeError(f"static_panel_approach should be a string. {str(static_panel_approach)} was passed.")
+            raise TypeError(f"approach should be a string. {str(approach)} was passed.")
         return
     
-    # TODO: preprocess and transform data based on static_panel_approach (cre, fd, wd)
-    def _transform_data(self, static_panel_approach):
+    # TODO: preprocess and transform data based on approach (cre, fd, wd)
+    def _transform_data(self, approach):
         df = self._dml_data.data.copy()
 
         y_col = self._dml_data.y_col
@@ -195,34 +202,36 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         t_col = self._dml_data.t_col
         id_col = self._dml_data.id_col
 
-        if static_panel_approach in ["cre_general", "cre_normal"]:
-            # uses regular y_col, d_cols, x_cols + m_x_cols
-            df_id_means = df[[id_col] + d_cols + x_cols].groupby(id_col).transform("mean")
-            df_means = df_id_means.add_prefix("mean_") 
+        if approach in ["cre_general", "cre_normal"]:
+            df_id_means = df[[id_col] + x_cols].groupby(id_col).transform("mean")
+            df_means = df_id_means.add_suffix("_mean") 
             data = pd.concat([df, df_means], axis=1)
-            # {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"m_{x}"" for x in x_cols]}
-        elif static_panel_approach == "fd_exact":
+            col_names = {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols + [f"{x}_mean" for x in x_cols]}
+        elif approach == "fd_exact":
             # TODO: potential issues with unbalanced panels/missing periods, right now the
-            # last available is used as the lag and for diff. Maybe reindex to a complete time grid per id.
-            # uses y_col_diff, d_cols_diff, x_cols + x_cols_lag
+            # last available is used for the lag and first difference. Maybe reindex to a complete time grid per id.
             df = df.sort_values([id_col, t_col])
             shifted = df[[id_col] + x_cols].groupby(id_col).shift(1).add_suffix("_lag")
-            first_diff = df[[id_col] + d_cols + [y_col]].groupby(id_col).diff().add_suffix("_diff")
-            df_fd = pd.concat([df, shifted, first_diff], axis=1)
+            first_diff = df[[id_col] + [y_col] + d_cols].groupby(id_col).diff().add_suffix("_diff")
+            df_fd = pd.concat([df, shifted], axis=1)
+            # replace original y and d columns for first-difference transformations, rename
+            df_fd[[y_col] + d_cols] = first_diff
+            cols_rename_dict = {y_col: f"{y_col}_diff"} | {col: f"{col}_diff" for col in d_cols}
+            df_fd = df_fd.rename(columns=cols_rename_dict)
+            # drop rows for first period
             data = df_fd.dropna(subset=[x_cols[0] + "_lag"]).reset_index(drop=True)
-            # {"y_col": f"{y_col}_diff", "d_cols": [f"{d}_diff" for d in d_cols], "x_cols": x_cols + [f"{x}_lag" for x in x_cols]}
-        elif static_panel_approach == "wg_approx":
-            # uses y_col, d_cols, x_cols
-            df_demean = df.drop(t_col, axis=1).groupby(id_col).transform(lambda x: x - x.mean())
-            # add grand means
-            grand_means = df.drop([id_col, t_col], axis=1).mean()
-            within_means = df_demean + grand_means
+            col_names = {"y_col": f"{y_col}_diff", "d_cols": [f"{d}_diff" for d in d_cols], "x_cols": x_cols + [f"{x}_lag" for x in x_cols]}
+        elif approach == "wg_approx":
+            cols_to_demean = [y_col] + d_cols + x_cols
+            # compute group and grand means for within means
+            group_means = df.groupby(id_col)[cols_to_demean].transform('mean')
+            grand_means = df[cols_to_demean].mean()
+            within_means = df[cols_to_demean] - group_means + grand_means
+            within_means = within_means.add_suffix("_demean")
             data = pd.concat([df[[id_col, t_col]], within_means], axis=1)
-            # {"y_col": y_col, "d_cols": d_cols, "x_cols": x_cols}
-        else:
-            raise ValueError(f"Invalid static_panel_approach.")
+            col_names = {"y_col": f"{y_col}_demean", "d_cols": [f"{d}_demean" for d in d_cols], "x_cols": [f"{x}_demean" for x in x_cols]}
 
-        return data
+        return data, col_names
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
@@ -258,7 +267,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         else:
             # TODO: update this section
             # cre using m_d + x for m_hat, otherwise only x
-            if self._static_panel_approach == "cre_normal":
+            if self._approach == "cre_normal":
                 help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "d": d})
                 m_d = help_data.groupby(["id"]).transform("mean").values
                 x = np.column_stack((x, m_d))
@@ -275,7 +284,7 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
                 )
 
             # general cre adjustment
-            if self._static_panel_approach == "cre_general":
+            if self._approach == "cre_general":
                 help_data = pd.DataFrame({"id": self._dml_data.cluster_vars[:, 0], "m_hat": m_hat["preds"], "d": d})
                 group_means = help_data.groupby(["id"])[["m_hat", "d"]].transform("mean")
                 m_hat_star = m_hat["preds"] + group_means["d"] - group_means["m_hat"]

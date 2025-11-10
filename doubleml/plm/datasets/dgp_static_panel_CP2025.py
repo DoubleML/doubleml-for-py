@@ -79,7 +79,7 @@ def make_static_panel_CP2025(num_n=250, num_t=10, dim_x=30, theta=0.5, dgp_type=
 
     x_cols = [f'x{i + 1}' for i in np.arange(dim_x)]
 
-    data = pd.DataFrame(np.column_stack((id, time, d_it, y_it, x_it)),
-                        columns=['id', 'time', 'd', 'y'] + x_cols).astype({'id': 'int64', 'time': 'int64'})
+    data = pd.DataFrame(np.column_stack((id, time, y_it, d_it, x_it)),
+                        columns=['id', 'time', 'y', 'd'] + x_cols).astype({'id': 'int64', 'time': 'int64'})
     
     return data
