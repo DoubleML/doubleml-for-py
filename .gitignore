@@ -31,4 +31,3 @@ MANIFEST
 *.vscode
 .flake8
 .coverage
-.serena
