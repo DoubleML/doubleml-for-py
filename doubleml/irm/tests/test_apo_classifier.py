@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 import doubleml as dml
+from doubleml.utils.propensity_score_processing import PSProcessorConfig
 
 from ...tests._utils import draw_smpls
 from ._utils_apo_manual import boot_apo, fit_apo
@@ -32,12 +33,12 @@ def normalize_ipw(request):
 
 
 @pytest.fixture(scope="module", params=[0.01, 0.05])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw, trimming_threshold):
+def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -64,7 +65,7 @@ def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw,
         n_folds=n_folds,
         score=score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        ps_processor_config=PSProcessorConfig(clipping_threshold=clipping_threshold),
         draw_sample_splitting=False,
     )
     # synchronize the sample splitting
@@ -82,7 +83,7 @@ def dml_apo_classifier_fixture(generate_data_irm_binary, learner, normalize_ipw,
         all_smpls,
         score,
         normalize_ipw=normalize_ipw,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {

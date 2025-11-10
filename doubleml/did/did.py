@@ -7,11 +7,11 @@ from sklearn.utils.multiclass import type_of_target
 from doubleml.data.did_data import DoubleMLDIDData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
-from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score, _check_trimming
+from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
-from doubleml.utils._propensity_score import _trimm
 
 
+# TODO: Remove DoubleMLDIDData with version 0.12.0
 class DoubleMLDID(LinearScoreMixin, DoubleML):
     """Double machine learning for difference-in-differences models with panel data (two time periods).
 
@@ -50,12 +50,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         Indicates whether to use a slightly different normalization from Sant'Anna and Zhao (2020).
         Default is ``True``.
 
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
-
-    trimming_threshold : float
-        The threshold used for trimming.
+    clipping_threshold : float
+        The threshold used for clipping.
         Default is ``1e-2``.
 
     draw_sample_splitting : bool
@@ -89,10 +85,14 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         n_rep=1,
         score="observational",
         in_sample_normalization=True,
-        trimming_rule="truncate",
-        trimming_threshold=1e-2,
+        clipping_threshold=1e-2,
         draw_sample_splitting=True,
     ):
+        warnings.warn(
+            "DoubleMLDID is deprecated and will be removed with version 0.12.0. " "Please use DoubleMLDIDBinary instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
 
         self._check_data(self._dml_data)
@@ -142,9 +142,7 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
             self._predict_method["ml_m"] = "predict_proba"
         self._initialize_ml_nuisance_params()
 
-        self._trimming_rule = trimming_rule
-        self._trimming_threshold = trimming_threshold
-        _check_trimming(self._trimming_rule, self._trimming_threshold)
+        self._clipping_threshold = clipping_threshold
         self._sensitivity_implemented = True
         self._external_predictions_implemented = True
 
@@ -156,18 +154,11 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         return self._in_sample_normalization
 
     @property
-    def trimming_rule(self):
+    def clipping_threshold(self):
         """
-        Specifies the used trimming rule.
+        Specifies the used clipping threshold.
         """
-        return self._trimming_rule
-
-    @property
-    def trimming_threshold(self):
-        """
-        Specifies the used trimming threshold.
-        """
-        return self._trimming_threshold
+        return self._clipping_threshold
 
     def _initialize_ml_nuisance_params(self):
         if self.score == "observational":
@@ -201,8 +192,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         return
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance g
         # get train indices for d == 0
@@ -269,9 +260,10 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
                     method=self._predict_method["ml_m"],
                     return_models=return_models,
                 )
+
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
             _check_is_propensity(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls, eps=1e-12)
-            m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
+            m_hat["preds"] = np.clip(m_hat["preds"], self.clipping_threshold, 1 - self.clipping_threshold)
 
         # nuisance estimates of the uncond. treatment prob.
         p_hat = np.full_like(d, d.mean(), dtype="float64")
@@ -379,8 +371,8 @@ class DoubleMLDID(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
         # get train indices for d == 0 and d == 1
         smpls_d0, smpls_d1 = _get_cond_smpls(smpls, d)
 

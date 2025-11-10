@@ -306,8 +306,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             )
 
     def _nuisance_est_partial_x(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance l
         if external_predictions["ml_l"] is not None:
@@ -331,7 +331,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         # nuisance m
         if self._dml_data.n_instr == 1:
             # one instrument: just identified
-            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
             if external_predictions["ml_m"] is not None:
                 m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
             else:
@@ -357,7 +357,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             }
             for i_instr in range(self._dml_data.n_instr):
                 z = self._dml_data.z
-                x, this_z = check_X_y(x, z[:, i_instr], force_all_finite=False)
+                x, this_z = check_X_y(x, z[:, i_instr], ensure_all_finite=False)
                 if external_predictions["ml_m_" + self._dml_data.z_cols[i_instr]] is not None:
                     m_hat["preds"][:, i_instr] = external_predictions["ml_m_" + self._dml_data.z_cols[i_instr]]
                     predictions["ml_m_" + self._dml_data.z_cols[i_instr]] = external_predictions[
@@ -473,7 +473,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
 
     def _nuisance_est_partial_z(self, smpls, n_jobs_cv, return_models=False):
         y = self._dml_data.y
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
 
         # nuisance m
         r_hat = _dml_cv_predict(
@@ -506,9 +506,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_est_partial_xz(self, smpls, n_jobs_cv, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # nuisance l
         l_hat = _dml_cv_predict(
@@ -705,8 +705,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
@@ -731,7 +731,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             m_tune_res = {instr_var: list() for instr_var in self._dml_data.z_cols}
             z = self._dml_data.z
             for i_instr in range(self._dml_data.n_instr):
-                x, this_z = check_X_y(x, z[:, i_instr], force_all_finite=False)
+                x, this_z = check_X_y(x, z[:, i_instr], ensure_all_finite=False)
                 m_tune_res[self._dml_data.z_cols[i_instr]] = _dml_tune(
                     this_z,
                     x,
@@ -747,7 +747,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 )
         else:
             # one instrument: just identified
-            x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
+            x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)
             m_tune_res = _dml_tune(
                 z,
                 x,
@@ -873,7 +873,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
@@ -980,9 +980,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        xz, d = check_X_y(np.hstack((self._dml_data.x, self._dml_data.z)), self._dml_data.d, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}

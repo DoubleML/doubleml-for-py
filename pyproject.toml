@@ -15,15 +15,15 @@ maintainers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "joblib",
-    "numpy",
-    "pandas",
-    "scipy",
-    "scikit-learn>=1.4.0",
-    "statsmodels",
-    "matplotlib",
+    "joblib>=1.2.0",
+    "numpy>=2.0.0",
+    "pandas>=2.0.0",
+    "scipy>=1.7.0",
+    "scikit-learn>=1.6.0",
+    "statsmodels>=0.14.0",
+    "matplotlib>=3.9.0",
     "seaborn>=0.13",
-    "plotly"
+    "plotly>=5.0.0"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent"
 ]
@@ -42,8 +43,8 @@ rdd = [
 dev = [
     "pytest>=8.3.0",
     "pytest-cov>=6.0.0",
-    "xgboost",
-    "lightgbm",
+    "xgboost>=2.1.0",
+    "lightgbm>=4.5.0",
     "black>=25.1.0",
     "ruff>=0.11.1",
     "pre-commit>=4.2.0",
@@ -55,6 +56,23 @@ Source = "https://github.com/DoubleML/doubleml-for-py"
 "Bug Tracker" = "https://github.com/DoubleML/doubleml-for-py/issues"
 
 [tool.pytest.ini_options]
+markers = [
+    "ci: mark a test as a continuous integration test which will be executed in github actions.",
+    "ci_rdd: mark a test as a continuous integration test which will be executed in github actions and is included in the rdd submodule."
+]
+filterwarnings = [
+    "ignore:.*A sharp RD design is being estimated, but the data indicate that the design is fuzzy.*:UserWarning",
+    "ignore:.*A learner ml_m has been provided for for a sharp design but will be ignored. A learner ml_m is not required for estimation.*:UserWarning",
+    "ignore:.*A learner ml_m has been provided for score = \"experimental\" but will be ignored.*:UserWarning",
+    "ignore:.*A learner ml_g has been provided for score = \"partialling out\" but will be ignored.*:UserWarning",
+    "ignore:.*Propensity predictions from learner RandomForestClassifier\\(n_estimators=10\\) for ml_m are close to zero or one \\(eps=1e-12\\).*:UserWarning",
+    "ignore:.*Returning pointwise confidence intervals for basis coefficients.*:UserWarning",
+    "ignore:.*Propensity score is close to 0 or 1. Trimming is at 0.01 and 0.99 is applied.*:UserWarning",
+    "ignore:.*Sensitivity analysis not implemented for callable scores.*:UserWarning",
+    "ignore:.*Subsample has not common support. Results are based on adjusted propensities.*:UserWarning",
+    "ignore:.*Treatment probability within bandwidth left from cutoff higher than right from cutoff.\\nTreatment assignment might be based on the wrong side of the cutoff.*:UserWarning",
+    "ignore:.*The estimated nu2 for d is not positive.*:UserWarning"
+]
 addopts = [
     "--doctest-modules",
     "--doctest-ignore-import-errors"
@@ -67,7 +85,7 @@ doctest_optionflags = [
 
 [tool.black]
 line-length = 127
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
 preview = true
 exclude = '''
 /(

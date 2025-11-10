@@ -1,3 +1,6 @@
+import warnings
+from typing import Optional
+
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -11,7 +14,6 @@ from doubleml.utils._checks import (
     _check_quantile,
     _check_score,
     _check_treatment,
-    _check_trimming,
     _check_zero_one_treatment,
 )
 from doubleml.utils._estimation import (
@@ -22,9 +24,11 @@ from doubleml.utils._estimation import (
     _predict_zero_one_propensity,
     _solve_ipw_score,
 )
-from doubleml.utils._propensity_score import _normalize_ipw, _trimm
+from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
+# TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
 class DoubleMLCVAR(LinearScoreMixin, DoubleML):
     """Double machine learning for conditional value at risk for potential outcomes
 
@@ -66,13 +70,16 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         Indicates whether the inverse probability weights are normalized.
         Default is ``True``.
 
-    trimming_rule : str
-        A str (``'truncate'`` is the only choice) specifying the trimming approach.
-        Default is ``'truncate'``.
+    trimming_rule : str, optional, deprecated
+        (DEPRECATED) A str (``'truncate'`` is the only choice) specifying the trimming approach.
+        Use `ps_processor_config` instead. Will be removed in a future version.
 
-    trimming_threshold : float
-        The threshold used for trimming.
-        Default is ``1e-2``.
+    trimming_threshold : float, optional, deprecated
+        (DEPRECATED) The threshold used for trimming.
+        Use `ps_processor_config` instead. Will be removed in a future version.
+
+    ps_processor_config : PSProcessorConfig, optional
+        Configuration for propensity score processing (clipping, calibration, etc.).
 
     draw_sample_splitting : bool
         Indicates whether the sample splitting should be drawn during initialization of the object.
@@ -107,8 +114,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         n_rep=1,
         score="CVaR",
         normalize_ipw=True,
-        trimming_rule="truncate",
-        trimming_threshold=1e-2,
+        trimming_rule="truncate",  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        trimming_threshold=1e-2,  # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        ps_processor_config: Optional[PSProcessorConfig] = None,
         draw_sample_splitting=True,
     ):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting)
@@ -139,10 +147,12 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         if draw_sample_splitting:
             self.draw_sample_splitting()
 
-        # initialize and check trimming
+        # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+        self._ps_processor_config, self._ps_processor = init_ps_processor(
+            ps_processor_config, trimming_rule, trimming_threshold
+        )
         self._trimming_rule = trimming_rule
-        self._trimming_threshold = trimming_threshold
-        _check_trimming(self._trimming_rule, self._trimming_threshold)
+        self._trimming_threshold = self._ps_processor.clipping_threshold
 
         _ = self._check_learner(ml_g, "ml_g", regressor=True, classifier=False)
         _ = self._check_learner(ml_m, "ml_m", regressor=False, classifier=True)
@@ -173,18 +183,43 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         return self._normalize_ipw
 
     @property
+    def ps_processor_config(self):
+        """
+        Configuration for propensity score processing (clipping, calibration, etc.).
+        """
+        return self._ps_processor_config
+
+    @property
+    def ps_processor(self):
+        """
+        Propensity score processor.
+        """
+        return self._ps_processor
+
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
+    @property
     def trimming_rule(self):
         """
         Specifies the used trimming rule.
         """
+        warnings.warn(
+            "'trimming_rule' is deprecated and will be removed in a future version. ", DeprecationWarning, stacklevel=2
+        )
         return self._trimming_rule
 
+    # TODO [v0.12.0]: Remove support for 'trimming_rule' and 'trimming_threshold' (deprecated).
     @property
     def trimming_threshold(self):
         """
         Specifies the used trimming threshold.
         """
-        return self._trimming_threshold
+        warnings.warn(
+            "'trimming_threshold' is deprecated and will be removed in a future version. "
+            "Use 'ps_processor_config.clipping_threshold' or 'ps_processor.clipping_threshold' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._ps_processor.clipping_threshold
 
     def _compute_ipw_score(self, theta, d, y, prop):
         score = (d == self.treatment) / prop * (y <= theta) - self.quantile
@@ -204,8 +239,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in ["ml_g", "ml_m"]}
 
     def _nuisance_est(self, smpls, n_jobs_cv, external_predictions, return_models=False):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         # initialize nuisance predictions, targets and models
         g_hat = {
@@ -254,7 +289,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
                 "preds"
             ]
 
-            m_hat_prelim = _trimm(m_hat_prelim, self.trimming_rule, self.trimming_threshold)
+            m_hat_prelim = self._ps_processor.adjust_ps(m_hat_prelim, d_train_1, cv=smpls_prelim)
 
             if self._normalize_ipw:
                 m_hat_prelim = _normalize_ipw(m_hat_prelim, d_train_1)
@@ -304,9 +339,7 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             g_hat["models"] = fitted_models["ml_g"]
             m_hat["models"] = fitted_models["ml_m"]
 
-        # clip propensities and normalize ipw weights
-        m_hat["preds"] = _trimm(m_hat["preds"], self.trimming_rule, self.trimming_threshold)
-
+        m_hat["preds"] = self._ps_processor.adjust_ps(m_hat["preds"], d, cv=smpls)
         # this is not done in the score to be equivalent to PQ models
         if self._normalize_ipw:
             m_hat_adj = _normalize_ipw(m_hat["preds"], d)
@@ -337,8 +370,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         search_mode,
         n_iter_randomized_search,
     ):
-        x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
-        x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
+        x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
+        x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
 
         if scoring_methods is None:
             scoring_methods = {"ml_g": None, "ml_m": None}
