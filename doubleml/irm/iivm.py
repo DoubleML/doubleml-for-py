@@ -481,14 +481,7 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self,
-        smpls,
-        param_grids,
-        scoring_methods,
-        n_folds_tune,
-        n_jobs_cv,
-        search_mode,
-        n_iter_randomized_search,
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z), ensure_all_finite=False)

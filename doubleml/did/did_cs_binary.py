@@ -650,14 +650,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         return psi_a, psi_b
 
     def _nuisance_tuning(
-        self,
-        smpls,
-        param_grids,
-        scoring_methods,
-        n_folds_tune,
-        n_jobs_cv,
-        search_mode,
-        n_iter_randomized_search,
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         x, y = check_X_y(X=self._x_data_subset, y=self._y_data_subset, ensure_all_finite=False)
         _, d = check_X_y(x, self._g_data_subset, ensure_all_finite=False)  # (d is the G_indicator)
@@ -681,8 +674,6 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             "n_iter_randomized_search": n_iter_randomized_search,
         }
 
-        tune_args_g = {**tune_args, "learner_name": "ml_g"}
-
         g_d0_t0_tune_res = _dml_tune(
             y,
             x,
@@ -690,7 +681,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args_g,
+            **tune_args,
         )
 
         g_d0_t1_tune_res = _dml_tune(
@@ -700,7 +691,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args_g,
+            **tune_args,
         )
 
         g_d1_t0_tune_res = _dml_tune(
@@ -710,7 +701,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args_g,
+            **tune_args,
         )
 
         g_d1_t1_tune_res = _dml_tune(
@@ -720,7 +711,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             self._learner["ml_g"],
             param_grids["ml_g"],
             scoring_methods["ml_g"],
-            **tune_args_g,
+            **tune_args,
         )
 
         m_tune_res = list()
@@ -732,7 +723,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
                 self._learner["ml_m"],
                 param_grids["ml_m"],
                 scoring_methods["ml_m"],
-                **{**tune_args, "learner_name": "ml_m"},
+                **tune_args,
             )
 
         g_d0_t0_best_params = [xx.best_params_ for xx in g_d0_t0_tune_res]

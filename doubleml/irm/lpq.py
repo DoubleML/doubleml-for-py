@@ -592,14 +592,7 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_tuning(
-        self,
-        smpls,
-        param_grids,
-        scoring_methods,
-        n_folds_tune,
-        n_jobs_cv,
-        search_mode,
-        n_iter_randomized_search,
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
@@ -676,11 +669,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             n_iter_randomized_search,
         )
 
-        m_z_best_params = m_z_tune_res.best_params_
-        m_d_z0_best_params = m_d_z0_tune_res.best_params_
-        m_d_z1_best_params = m_d_z1_tune_res.best_params_
-        g_du_z0_best_params = g_du_z0_tune_res.best_params_
-        g_du_z1_best_params = g_du_z1_tune_res.best_params_
+        m_z_best_params = [xx.best_params_ for xx in m_z_tune_res]
+        m_d_z0_best_params = [xx.best_params_ for xx in m_d_z0_tune_res]
+        m_d_z1_best_params = [xx.best_params_ for xx in m_d_z1_tune_res]
+        g_du_z0_best_params = [xx.best_params_ for xx in g_du_z0_tune_res]
+        g_du_z1_best_params = [xx.best_params_ for xx in g_du_z1_tune_res]
 
         params = {
             "ml_m_z": m_z_best_params,

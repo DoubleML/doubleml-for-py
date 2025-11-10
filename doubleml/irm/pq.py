@@ -431,14 +431,7 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
         return psi_elements, preds
 
     def _nuisance_tuning(
-        self,
-        smpls,
-        param_grids,
-        scoring_methods,
-        n_folds_tune,
-        n_jobs_cv,
-        search_mode,
-        n_iter_randomized_search,
+        self, smpls, param_grids, scoring_methods, n_folds_tune, n_jobs_cv, search_mode, n_iter_randomized_search
     ):
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, ensure_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, ensure_all_finite=False)
@@ -477,8 +470,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             n_iter_randomized_search,
         )
 
-        g_best_params = g_tune_res.best_params_
-        m_best_params = m_tune_res.best_params_
+        g_best_params = [xx.best_params_ for xx in g_tune_res]
+        m_best_params = [xx.best_params_ for xx in m_tune_res]
 
         params = {"ml_g": g_best_params, "ml_m": m_best_params}
         tune_res = {"g_tune": g_tune_res, "m_tune": m_tune_res}
