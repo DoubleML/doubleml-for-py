@@ -815,7 +815,7 @@ class DoubleML(SampleSplittingMixin, ABC):
             "which offers Bayesian optimization and is generally more efficient. "
             "See the documentation for 'tune_ml_models' for usage examples.",
             FutureWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         if (not isinstance(param_grids, dict)) | (not all(k in param_grids for k in self.learner_names)):
