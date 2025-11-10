@@ -636,7 +636,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 tuned = _dml_tune_optuna(
                     s_inner0,
                     x_inner0,
-                    [np.arange(x_inner0.shape[0])],
                     self._learner["ml_pi"],
                     optuna_params["ml_pi"],
                     scoring_methods["ml_pi"],
@@ -658,8 +657,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             m_tune_res = _dml_tune_optuna(
                 d_subset,
                 m_subset,
-                [np.arange(m_subset.shape[0])],
-                self._learner["ml_m"],
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
                 cv,
@@ -679,7 +676,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 res = _dml_tune_optuna(
                     y[subset],
                     x_pi_d[subset, :],
-                    [np.arange(subset.shape[0])],
                     self._learner["ml_g"],
                     g_d0_param,
                     g_d0_scoring,
@@ -697,7 +693,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 res = _dml_tune_optuna(
                     y[subset],
                     x_pi_d[subset, :],
-                    [np.arange(subset.shape[0])],
                     self._learner["ml_g"],
                     g_d1_param,
                     g_d1_scoring,
@@ -726,7 +721,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             g_d0_tune_res = _dml_tune_optuna(
                 y_d0,
                 x_d0,
-                [np.arange(x_d0.shape[0])],
                 self._learner["ml_g"],
                 g_d0_param,
                 g_d0_scoring,
@@ -741,7 +735,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             g_d1_tune_res = _dml_tune_optuna(
                 y_d1,
                 x_d1,
-                [np.arange(x_d1.shape[0])],
                 self._learner["ml_g"],
                 g_d1_param,
                 g_d1_scoring,
@@ -752,11 +745,9 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             )
 
             x_d_feat = np.column_stack((x, d))
-            full_train = [np.arange(x.shape[0])]
             pi_tune_res = _dml_tune_optuna(
                 s,
                 x_d_feat,
-                full_train,
                 self._learner["ml_pi"],
                 optuna_params["ml_pi"],
                 scoring_methods["ml_pi"],
@@ -769,7 +760,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             m_tune_res = _dml_tune_optuna(
                 d,
                 x,
-                full_train,
                 self._learner["ml_m"],
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],

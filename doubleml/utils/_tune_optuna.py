@@ -22,7 +22,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import BaseCrossValidator, KFold, cross_validate
 
 logger = logging.getLogger(__name__)
@@ -53,8 +53,47 @@ def _default_optuna_settings():
     return deepcopy(_OPTUNA_DEFAULT_SETTINGS)
 
 
+def _resolve_optuna_scoring(scoring_method, learner, learner_name):
+    """Select a scoring method when Optuna tuning does not receive one explicitly."""
+
+    if scoring_method is not None:
+        message = f"Using provided scoring method: {scoring_method} for learner '{learner_name}'"
+        return scoring_method, message
+
+    criterion = getattr(learner, "criterion", None)
+    if criterion is not None:
+        message = f"No scoring method provided, using estimator criterion '{criterion}' for learner '{learner_name}'."
+        return None, message
+
+    if is_regressor(learner):
+        message = (
+            "No scoring method provided and estimator has no criterion; using 'neg_root_mean_squared_error' (RMSE) "
+            f"for learner '{learner_name}'."
+        )
+        return "neg_root_mean_squared_error", message
+
+    if is_classifier(learner):
+        if hasattr(learner, "predict_proba"):
+            metric = "neg_log_loss"
+            readable = "log loss"
+        else:
+            metric = "accuracy"
+            readable = "accuracy"
+        message = (
+            f"No scoring method provided and estimator has no criterion; using '{metric}' ({readable}) "
+            f"for learner '{learner_name}'."
+        )
+        return metric, message
+
+    message = (
+        f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
+        f"'{learner_name}'."
+    )
+    return None, message
+
+
 class _OptunaSearchResult:
-    """Lightweight container mimicking selected GridSearchCV attributes."""
+    """Container for Optuna search results."""
 
     def __init__(self, estimator, best_params, best_score, study, trials_dataframe, tuned=True):
         self.best_estimator_ = estimator
@@ -115,7 +154,6 @@ def resolve_optuna_cv(cv):
 def _check_tuning_inputs(
     y,
     x,
-    train_inds,
     learner,
     param_grid_func,
     scoring_method,
@@ -153,37 +191,6 @@ def _check_tuning_inputs(
 
     if not hasattr(learner, "fit") or not hasattr(learner, "set_params"):
         raise TypeError(f"Learner '{learner_label}' must implement fit and set_params to be tuned with Optuna.")
-
-    try:
-        train_ind_list = list(train_inds)
-    except TypeError as exc:
-        raise TypeError(f"train_inds must be an iterable of index arrays for learner '{learner_label}'.") from exc
-
-    if not train_ind_list:
-        raise ValueError(f"train_inds cannot be empty for learner '{learner_label}'.")
-
-    n_obs = y.shape[0]
-    for idx, indices in enumerate(train_ind_list):
-        indices_arr = np.asarray(indices)
-        if indices_arr.ndim != 1:
-            raise TypeError(
-                "train_inds entries must be one-dimensional index arrays. "
-                f"Entry {idx} for learner '{learner_label}' has shape {indices_arr.shape}."
-            )
-        if np.issubdtype(indices_arr.dtype, np.bool_):
-            indices_arr = np.flatnonzero(indices_arr)
-        elif not np.issubdtype(indices_arr.dtype, np.integer):
-            raise TypeError(
-                "train_inds entries must contain integer indices. "
-                f"Entry {idx} for learner '{learner_label}' has dtype {indices_arr.dtype}."
-            )
-        if indices_arr.size == 0:
-            raise ValueError(f"train_inds entry {idx} is empty for learner '{learner_label}'.")
-        if indices_arr.min() < 0 or indices_arr.max() >= n_obs:
-            raise IndexError(
-                "train_inds entries must reference valid observation indices. "
-                f"Entry {idx} for learner '{learner_label}' contains values outside [0, {n_obs - 1}]."
-            )
 
     return resolve_optuna_cv(cv)
 
@@ -374,7 +381,6 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
 def _dml_tune_optuna(
     y,
     x,
-    train_inds,
     learner,
     param_grid_func,
     scoring_method,
@@ -395,8 +401,6 @@ def _dml_tune_optuna(
         Target variable (full dataset).
     x : np.ndarray
         Features (full dataset).
-    train_inds : list
-        List of training indices for each fold. The information is kept for API compatibility.
     learner : estimator
         The machine learning model to tune.
     param_grid_func : callable
@@ -419,16 +423,20 @@ def _dml_tune_optuna(
     _OptunaSearchResult
         A tuning result containing the fitted estimator with the optimal parameters.
     """
+    learner_label = learner_name or learner.__class__.__name__
+    scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, learner_label)
+    if scoring_message:
+        logger.info(scoring_message)
+
     cv_splitter = _check_tuning_inputs(
         y,
         x,
-        train_inds,
         learner,
         param_grid_func,
         scoring_method,
         cv,
         n_jobs_cv,
-        learner_name,
+        learner_label,
     )
 
     skip_tuning = param_grid_func is None
@@ -472,15 +480,10 @@ def _dml_tune_optuna(
             optuna.logging.set_verbosity(optuna.logging.ERROR)
 
     # Create the study
-    study = _create_study(settings, learner_name)
+    study = _create_study(settings, learner_label)
 
     # Create the objective function
-    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv, learner_name)
-
-    if scoring_method is None:
-        logger.info(f"No scoring method provided, using default scoring method of the estimator: {learner.criterion}")
-    else:
-        logger.info(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
+    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv, learner_label)
 
     # Build optimize kwargs
     optimize_kwargs = {

@@ -816,14 +816,12 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         for key, mask in masks.items():
             x_subset = x[mask, :]
             y_subset = y[mask]
-            train_inds = [np.arange(x_subset.shape[0])]
             learner_key = f"ml_g_{key}"
             param_grid = optuna_params[learner_key]
             scoring = scoring_methods[learner_key]
             g_tune_results[key] = _dml_tune_optuna(
                 y_subset,
                 x_subset,
-                train_inds,
                 self._learner["ml_g"],
                 param_grid,
                 scoring,
@@ -835,11 +833,9 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
         m_tune_res = None
         if self.score == "observational":
-            full_train_inds = [np.arange(x.shape[0])]
             m_tune_res = _dml_tune_optuna(
                 d,
                 x,
-                full_train_inds,
                 self._learner["ml_m"],
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],

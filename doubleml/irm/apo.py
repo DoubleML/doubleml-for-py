@@ -487,13 +487,11 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
 
         dx_lvl0 = dx[mask_lvl0, :]
         y_lvl0 = y[mask_lvl0]
-        train_inds_lvl0 = [np.arange(dx_lvl0.shape[0])]
         g_lvl0_param_grid = optuna_params["ml_g_d_lvl0"]
         g_lvl0_scoring = scoring_methods["ml_g_d_lvl0"]
         g_d_lvl0_tune_res = _dml_tune_optuna(
             y_lvl0,
             dx_lvl0,
-            train_inds_lvl0,
             self._learner["ml_g"],
             g_lvl0_param_grid,
             g_lvl0_scoring,
@@ -505,13 +503,11 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
 
         x_lvl1 = x[mask_lvl1, :]
         y_lvl1 = y[mask_lvl1]
-        train_inds_lvl1 = [np.arange(x_lvl1.shape[0])]
         g_lvl1_param_grid = optuna_params["ml_g_d_lvl1"]
         g_lvl1_scoring = scoring_methods["ml_g_d_lvl1"]
         g_d_lvl1_tune_res = _dml_tune_optuna(
             y_lvl1,
             x_lvl1,
-            train_inds_lvl1,
             self._learner["ml_g"],
             g_lvl1_param_grid,
             g_lvl1_scoring,
@@ -521,11 +517,9 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             learner_name="ml_g_d_lvl1",
         )
 
-        train_inds_full = [np.arange(x.shape[0])]
         m_tune_res = _dml_tune_optuna(
             treated_indicator.astype(float),
             x,
-            train_inds_full,
             self._learner["ml_m"],
             optuna_params["ml_m"],
             scoring_methods["ml_m"],

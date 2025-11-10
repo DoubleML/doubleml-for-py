@@ -529,12 +529,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         x_d0 = x[mask_d0, :]
         y_d0 = y[mask_d0]
-        train_inds_d0 = [np.arange(x_d0.shape[0])]
-
         g0_tune_res = _dml_tune_optuna(
             y_d0,
             x_d0,
-            train_inds_d0,
             self._learner["ml_g"],
             optuna_params["ml_g0"],
             scoring_methods["ml_g0"],
@@ -546,12 +543,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
 
         x_d1 = x[mask_d1, :]
         y_d1 = y[mask_d1]
-        train_inds_d1 = [np.arange(x_d1.shape[0])]
-
         g1_tune_res = _dml_tune_optuna(
             y_d1,
             x_d1,
-            train_inds_d1,
             self._learner["ml_g"],
             optuna_params["ml_g1"],
             scoring_methods["ml_g1"],
@@ -562,11 +556,9 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         )
 
         # Tune propensity score on full dataset
-        full_train_inds = [np.arange(x.shape[0])]
         m_tune_res = _dml_tune_optuna(
             d,
             x,
-            full_train_inds,
             self._learner["ml_m"],
             optuna_params["ml_m"],
             scoring_methods["ml_m"],

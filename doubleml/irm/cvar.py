@@ -445,11 +445,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
 
         x_treat = x[mask_treat, :]
         target_treat = g_target_approx[mask_treat]
-        train_inds_treat = [np.arange(x_treat.shape[0])]
         g_tune_res = _dml_tune_optuna(
             target_treat,
             x_treat,
-            train_inds_treat,
             self._learner["ml_g"],
             optuna_params["ml_g"],
             scoring_methods["ml_g"],
@@ -459,11 +457,9 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             learner_name="ml_g",
         )
 
-        full_train_inds = [np.arange(x.shape[0])]
         m_tune_res = _dml_tune_optuna(
             d,
             x,
-            full_train_inds,
             self._learner["ml_m"],
             optuna_params["ml_m"],
             scoring_methods["ml_m"],

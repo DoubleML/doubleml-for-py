@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
@@ -20,6 +21,7 @@ from doubleml.plm.datasets import (
     make_pliv_CHS2015,
     make_plr_CCDDHNR2018,
 )
+from doubleml.utils._tune_optuna import _resolve_optuna_scoring
 
 try:  # pragma: no cover - optional dependency
     import optuna
@@ -95,6 +97,37 @@ def _select_binary_periods(panel_data):
         if pre_candidates:
             return candidate, pre_candidates[-1], candidate
     raise RuntimeError("No valid treatment group found for binary DID data.")
+
+
+def test_resolve_optuna_scoring_regressor_default():
+    learner = LinearRegression()
+    scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
+    assert scoring == "neg_root_mean_squared_error"
+    assert "neg_root_mean_squared_error" in message
+
+
+def test_resolve_optuna_scoring_classifier_default():
+    learner = LogisticRegression()
+    scoring, message = _resolve_optuna_scoring(None, learner, "ml_m")
+    assert scoring == "neg_log_loss"
+    assert "neg_log_loss" in message
+
+
+def test_resolve_optuna_scoring_with_criterion_keeps_default():
+    learner = DecisionTreeRegressor(random_state=0)
+    scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
+    assert scoring is None
+    assert "criterion" in message
+
+
+def test_resolve_optuna_scoring_lightgbm_regressor_default():
+    pytest.importorskip("lightgbm")
+    from lightgbm import LGBMRegressor
+
+    learner = LGBMRegressor()
+    scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
+    assert scoring == "neg_root_mean_squared_error"
+    assert "neg_root_mean_squared_error" in message
 
 
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])

@@ -401,13 +401,9 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_g": None}
 
-        # For Optuna, we use the full dataset (single "fold" for tuning)
-        train_inds = [np.arange(len(y))]
-
         l_tune_res = _dml_tune_optuna(
             y,
             x,
-            train_inds,
             self._learner["ml_l"],
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
@@ -419,7 +415,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         m_tune_res = _dml_tune_optuna(
             d,
             x,
-            train_inds,
             self._learner["ml_m"],
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
@@ -443,7 +438,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             g_tune_res = _dml_tune_optuna(
                 y - theta_initial * d,
                 x,
-                train_inds,
                 self._learner["ml_g"],
                 optuna_params["ml_g"],
                 scoring_methods["ml_g"],

@@ -727,11 +727,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         approx_quant = np.quantile(y[d == self.treatment], self.quantile)
         du = (d == self.treatment) * (y <= approx_quant)
 
-        full_train_inds = [np.arange(x.shape[0])]
         m_z_tune_res = _dml_tune_optuna(
             z,
             x,
-            full_train_inds,
             self._learner["ml_m_z"],
             optuna_params["ml_m_z"],
             scoring_methods["ml_m_z"],
@@ -747,11 +745,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         x_z0 = x[mask_z0, :]
         d_z0 = d[mask_z0]
         du_z0 = du[mask_z0]
-        train_inds_z0 = [np.arange(x_z0.shape[0])]
         m_d_z0_tune_res = _dml_tune_optuna(
             d_z0,
             x_z0,
-            train_inds_z0,
             self._learner["ml_m_d_z0"],
             optuna_params["ml_m_d_z0"],
             scoring_methods["ml_m_d_z0"],
@@ -763,7 +759,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         g_du_z0_tune_res = _dml_tune_optuna(
             du_z0,
             x_z0,
-            train_inds_z0,
             self._learner["ml_g_du_z0"],
             optuna_params["ml_g_du_z0"],
             scoring_methods["ml_g_du_z0"],
@@ -776,11 +771,9 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         x_z1 = x[mask_z1, :]
         d_z1 = d[mask_z1]
         du_z1 = du[mask_z1]
-        train_inds_z1 = [np.arange(x_z1.shape[0])]
         m_d_z1_tune_res = _dml_tune_optuna(
             d_z1,
             x_z1,
-            train_inds_z1,
             self._learner["ml_m_d_z1"],
             optuna_params["ml_m_d_z1"],
             scoring_methods["ml_m_d_z1"],
@@ -792,7 +785,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         g_du_z1_tune_res = _dml_tune_optuna(
             du_z1,
             x_z1,
-            train_inds_z1,
             self._learner["ml_g_du_z1"],
             optuna_params["ml_g_du_z1"],
             scoring_methods["ml_g_du_z1"],

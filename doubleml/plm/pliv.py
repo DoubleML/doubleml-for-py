@@ -587,11 +587,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None, "ml_g": None}
 
-        full_train_inds = [np.arange(x.shape[0])]
         l_tune_res = _dml_tune_optuna(
             y,
             x,
-            full_train_inds,
             self._learner["ml_l"],
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
@@ -606,12 +604,10 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             z_all = self._dml_data.z
             for i_instr, instr_var in enumerate(self._dml_data.z_cols):
                 x_instr, this_z = check_X_y(x, z_all[:, i_instr], force_all_finite=False)
-                instr_train_inds = [np.arange(x_instr.shape[0])]
                 scoring_key = scoring_methods.get(f"ml_m_{instr_var}", scoring_methods.get("ml_m"))
                 m_tune_res[instr_var] = _dml_tune_optuna(
                     this_z,
                     x_instr,
-                    instr_train_inds,
                     self._learner["ml_m"],
                     optuna_params[f"ml_m_{instr_var}"],
                     scoring_key,
@@ -627,7 +623,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             m_tune_res = _dml_tune_optuna(
                 z_vector,
                 x_m_features,
-                full_train_inds,
                 self._learner["ml_m"],
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
@@ -640,7 +635,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         r_tune_res = _dml_tune_optuna(
             d,
             x,
-            full_train_inds,
             self._learner["ml_r"],
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
@@ -668,7 +662,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 g_tune_res = _dml_tune_optuna(
                     y - theta_initial * d,
                     x,
-                    full_train_inds,
                     self._learner["ml_g"],
                     optuna_params["ml_g"],
                     scoring_methods["ml_g"],
@@ -825,11 +818,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_r": None}
 
-        train_inds = [np.arange(xz.shape[0])]
         m_tune_res = _dml_tune_optuna(
             d,
             xz,
-            train_inds,
             self._learner["ml_r"],
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
@@ -896,11 +887,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         if scoring_methods is None:
             scoring_methods = {"ml_l": None, "ml_m": None, "ml_r": None}
 
-        train_inds = [np.arange(x.shape[0])]
         l_tune_res = _dml_tune_optuna(
             y,
             x,
-            train_inds,
             self._learner["ml_l"],
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
@@ -913,7 +902,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         m_tune_res = _dml_tune_optuna(
             d,
             xz,
-            train_inds,
             self._learner["ml_m"],
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
@@ -927,7 +915,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         r_tune_res = _dml_tune_optuna(
             pseudo_target,
             x,
-            train_inds,
             self._learner["ml_r"],
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
