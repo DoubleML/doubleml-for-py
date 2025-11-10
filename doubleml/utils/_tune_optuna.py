@@ -3,14 +3,29 @@ Optuna-based hyperparameter tuning utilities for DoubleML.
 
 This module provides Optuna-specific functionality for hyperparameter optimization,
 decoupled from sklearn-based grid/randomized search.
+
+Logging
+-------
+This module uses Python's logging module. The logger is synchronized with Optuna's logging
+system. You can control the verbosity by:
+1. Setting the logging level for 'doubleml.utils._tune_optuna'
+2. Passing 'verbosity' in optuna_settings (takes precedence)
+
+Example:
+    >>> import logging
+    >>> logging.basicConfig(level=logging.INFO)
+    >>> # Now you'll see tuning progress and information
 """
 
+import logging
 from collections.abc import Iterable
 from copy import deepcopy
 
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import BaseCrossValidator, KFold, cross_validate
+
+logger = logging.getLogger(__name__)
 
 _OPTUNA_DEFAULT_SETTINGS = {
     "n_trials": 100,
@@ -224,7 +239,6 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
     resolved.update(base_settings)
     resolved.update(learner_specific_settings)
 
-    # TODO: Check returns crazy valid values?
     # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
         raise TypeError("study_kwargs must be a dict.")
@@ -284,13 +298,13 @@ def _create_study(settings, learner_name):
     study_kwargs = settings.get("study_kwargs", {}).copy()
     if "direction" not in study_kwargs:
         study_kwargs["direction"] = settings.get("direction", "maximize")
-        print(f"Optuna study direction set to '{study_kwargs['direction']}' for learner '{learner_name}'.")
+        logger.info(f"Optuna study direction set to '{study_kwargs['direction']}' for learner '{learner_name}'.")
     if settings.get("sampler") is not None:
         study_kwargs["sampler"] = settings["sampler"]
-        print(f"Using {settings['sampler']} for learner '{learner_name}'.")
+        logger.info(f"Using sampler {settings['sampler'].__class__.__name__} for learner '{learner_name}'.")
     if settings.get("pruner") is not None:
         study_kwargs["pruner"] = settings["pruner"]
-        print(f"Using {settings['pruner']} for learner '{learner_name}'.")
+        logger.info(f"Using pruner {settings['pruner'].__class__.__name__} for learner '{learner_name}'.")
 
     return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
@@ -445,6 +459,17 @@ def _dml_tune_optuna(
     verbosity = settings.get("verbosity")
     if verbosity is not None:
         optuna.logging.set_verbosity(verbosity)
+    else:
+        # Sync DoubleML logger level with Optuna logger level
+        doubleml_level = logger.getEffectiveLevel()
+        if doubleml_level == logging.DEBUG:
+            optuna.logging.set_verbosity(optuna.logging.DEBUG)
+        elif doubleml_level == logging.INFO:
+            optuna.logging.set_verbosity(optuna.logging.INFO)
+        elif doubleml_level == logging.WARNING:
+            optuna.logging.set_verbosity(optuna.logging.WARNING)
+        elif doubleml_level >= logging.ERROR:
+            optuna.logging.set_verbosity(optuna.logging.ERROR)
 
     # Create the study
     study = _create_study(settings, learner_name)
@@ -453,9 +478,9 @@ def _dml_tune_optuna(
     objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv, learner_name)
 
     if scoring_method is None:
-        print("No scoring method provided, using default scoring method of the estimator: " f"{learner.criterion}")
+        logger.info(f"No scoring method provided, using default scoring method of the estimator: {learner.criterion}")
     else:
-        print(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
+        logger.info(f"Using provided scoring method: {scoring_method} for learner '{learner_name}'")
 
     # Build optimize kwargs
     optimize_kwargs = {

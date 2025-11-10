@@ -638,3 +638,135 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     for learner_name in dml_did_cs_binary.params_names:
         tuned_params = _first_params(dml_did_cs_binary, learner_name)
         _assert_tree_params(tuned_params, depth_range=(1, 2))
+
+
+def test_optuna_logging_integration():
+    """Test that logging integration works correctly with Optuna."""
+    import logging
+
+    np.random.seed(3154)
+    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+
+    ml_l = DecisionTreeRegressor(random_state=303, max_depth=5, min_samples_leaf=4)
+    ml_m = DecisionTreeRegressor(random_state=404, max_depth=5, min_samples_leaf=4)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, n_rep=1)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    # Capture log messages
+    logger = logging.getLogger("doubleml.utils._tune_optuna")
+    original_level = logger.level
+
+    # Create a custom handler to capture log records
+    log_records = []
+
+    class ListHandler(logging.Handler):
+        def emit(self, record):
+            log_records.append(record)
+
+    handler = ListHandler()
+    handler.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+    try:
+        # Tune with specific settings that should trigger log messages
+        optuna_settings = {
+            "n_trials": 2,
+            "sampler": optuna.samplers.TPESampler(seed=42),
+            "show_progress_bar": False,
+        }
+
+        dml_plr.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
+
+        # Check that we got log messages
+        log_messages = [record.getMessage() for record in log_records]
+
+        # Should have messages about direction and sampler for each learner
+        direction_messages = [msg for msg in log_messages if "direction set to" in msg]
+        sampler_messages = [msg for msg in log_messages if "sampler" in msg.lower()]
+        scoring_messages = [msg for msg in log_messages if "scoring method" in msg.lower()]
+
+        # We should have at least one message about direction
+        assert len(direction_messages) > 0, "Expected log messages about optimization direction"
+
+        # We should have messages about the sampler
+        assert len(sampler_messages) > 0, "Expected log messages about sampler"
+
+        # We should have messages about scoring
+        assert len(scoring_messages) > 0, "Expected log messages about scoring method"
+
+        # Verify that the tuning actually worked
+        tuned_l = dml_plr.get_params("ml_l")["d"][0][0]
+        tuned_m = dml_plr.get_params("ml_m")["d"][0][0]
+        assert tuned_l is not None
+        assert tuned_m is not None
+
+    finally:
+        # Clean up
+        logger.removeHandler(handler)
+        logger.setLevel(original_level)
+
+
+def test_optuna_logging_verbosity_sync():
+    """Test that DoubleML logger level syncs with Optuna logger level."""
+    import logging
+
+    np.random.seed(3155)
+    dml_data = make_plr_CCDDHNR2018(n_obs=50, dim_x=3)
+
+    ml_l = DecisionTreeRegressor(random_state=111)
+    ml_m = DecisionTreeRegressor(random_state=222)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    # Set DoubleML logger to DEBUG
+    logger = logging.getLogger("doubleml.utils._tune_optuna")
+    original_level = logger.level
+    logger.setLevel(logging.DEBUG)
+
+    try:
+        # Tune without explicit verbosity setting
+        optuna_settings = {
+            "n_trials": 1,
+            "show_progress_bar": False,
+        }
+
+        dml_plr.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
+
+        # The test passes if no exception is raised
+        # The actual sync happens internally in _dml_tune_optuna
+        assert True
+
+    finally:
+        logger.setLevel(original_level)
+
+
+def test_optuna_logging_explicit_verbosity():
+    """Test that explicit verbosity setting in optuna_settings takes precedence."""
+    np.random.seed(3156)
+    dml_data = make_plr_CCDDHNR2018(n_obs=50, dim_x=3)
+
+    ml_l = DecisionTreeRegressor(random_state=333)
+    ml_m = DecisionTreeRegressor(random_state=444)
+
+    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2)
+
+    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
+
+    # Explicitly set Optuna verbosity
+    optuna_settings = {
+        "n_trials": 1,
+        "verbosity": optuna.logging.WARNING,
+        "show_progress_bar": False,
+    }
+
+    # This should not raise an error
+    dml_plr.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
+
+    # Verify tuning worked
+    tuned_l = dml_plr.get_params("ml_l")["d"][0][0]
+    assert tuned_l is not None

@@ -1245,25 +1245,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         """Validate learner keys provided in the Optuna parameter space dictionary."""
 
         allowed_param_keys = set(self.params_names)
-
-        # if self.learner is not None:
-        #     allowed_param_keys.update(self.learner_names)
-
-        # Allow hierarchical parameter aliases (e.g., ml_m_Z1 -> ml_m_Z -> ml_m)
-        # derived_keys = set()
-        # for full_key in allowed_param_keys:
-        #     key_variant = full_key
-        #     while "_" in key_variant:
-        #         key_variant = key_variant.rsplit("_", 1)[0]
-        #         if key_variant and key_variant != "ml":
-        #             derived_keys.add(key_variant)
-
-        #     stripped_digits = full_key.rstrip("0123456789")
-        #     if stripped_digits != full_key and stripped_digits and stripped_digits != "ml":
-        #         derived_keys.add(stripped_digits)
-
-        # allowed_param_keys.update(derived_keys)
-
         invalid_keys = [key for key in ml_param_space if key not in allowed_param_keys]
 
         if invalid_keys:
