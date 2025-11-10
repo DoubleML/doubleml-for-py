@@ -81,22 +81,8 @@ def _first_params(dml_obj, learner):
 
 
 def _build_param_grid(dml_obj, param_fn):
+    """Build parameter grid using the actual params_names from the DML object."""
     param_grid = {learner_name: param_fn for learner_name in dml_obj.params_names}
-    # Ensure base learner aliases like "ml_m" remain available for fallback lookups
-    extra_names = set(getattr(dml_obj, "learner_names", []))
-    for full_name in dml_obj.params_names:
-        # iteratively drop trailing underscore suffixes (e.g., ml_g_d0_t0 -> ml_g_d0 -> ml_g)
-        base = full_name
-        while "_" in base:
-            base = base.rsplit("_", 1)[0]
-            if base and base != "ml":
-                extra_names.add(base)
-        # catch suffix digits without underscores (e.g., ml_g0 -> ml_g)
-        stripped_digits = full_name.rstrip("0123456789")
-        if stripped_digits != full_name and stripped_digits and stripped_digits != "ml":
-            extra_names.add(stripped_digits)
-    for base_name in extra_names:
-        param_grid.setdefault(base_name, param_fn)
     return param_grid
 
 
@@ -137,7 +123,7 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     # ensure results contain optuna objects and best params
     assert "params" in tune_res[0]
     assert "tune_res" in tune_res[0]
-    assert tune_res[0]["params"]["ml_l"][0]["max_depth"] == tuned_params_l["max_depth"]
+    assert tune_res[0]["params"]["ml_l"]["max_depth"] == tuned_params_l["max_depth"]
 
 
 def test_doubleml_optuna_sets_params_for_all_folds():
