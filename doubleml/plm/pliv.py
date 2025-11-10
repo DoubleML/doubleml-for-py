@@ -602,18 +602,19 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         )
 
         if self._dml_data.n_instr > 1:
-            m_tune_res = {instr_var: list() for instr_var in self._dml_data.z_cols}
+            m_tune_res = {}
             z_all = self._dml_data.z
             for i_instr, instr_var in enumerate(self._dml_data.z_cols):
                 x_instr, this_z = check_X_y(x, z_all[:, i_instr], force_all_finite=False)
                 instr_train_inds = [np.arange(x_instr.shape[0])]
+                scoring_key = scoring_methods.get(f"ml_m_{instr_var}", scoring_methods.get("ml_m"))
                 m_tune_res[instr_var] = _dml_tune_optuna(
                     this_z,
                     x_instr,
                     instr_train_inds,
                     self._learner["ml_m"],
                     optuna_params[f"ml_m_{instr_var}"],
-                    scoring_methods[f"ml_m_{instr_var}"],
+                    scoring_key,
                     n_folds_tune,
                     n_jobs_cv,
                     optuna_settings,
@@ -649,20 +650,20 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_r",
         )
 
-        l_best_params = [xx.best_params_ for xx in l_tune_res]
-        r_best_params = [xx.best_params_ for xx in r_tune_res]
+        l_best_params = l_tune_res.best_params_
+        r_best_params = r_tune_res.best_params_
 
         if self._dml_data.n_instr > 1:
             tuned_params = {"ml_l": l_best_params, "ml_r": r_best_params}
             for instr_var in self._dml_data.z_cols:
-                tuned_params["ml_m_" + instr_var] = [xx.best_params_ for xx in m_tune_res[instr_var]]
+                tuned_params["ml_m_" + instr_var] = m_tune_res[instr_var].best_params_
             tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res}
         else:
-            m_best_params = [xx.best_params_ for xx in m_tune_res]
+            m_best_params = m_tune_res.best_params_
             if "ml_g" in self._learner:
-                l_hat = l_tune_res[0].predict(x)
-                m_hat = m_tune_res[0].predict(x_m_features)
-                r_hat = r_tune_res[0].predict(x)
+                l_hat = l_tune_res.predict(x)
+                m_hat = m_tune_res.predict(x_m_features)
+                r_hat = r_tune_res.predict(x)
                 psi_a = -np.multiply(d - r_hat, z_vector - m_hat)
                 psi_b = np.multiply(z_vector - m_hat, y - l_hat)
                 theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -680,7 +681,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     learner_name="ml_g",
                 )
 
-                g_best_params = [xx.best_params_ for xx in g_tune_res]
+                g_best_params = g_tune_res.best_params_
                 tuned_params = {
                     "ml_l": l_best_params,
                     "ml_m": m_best_params,
@@ -856,7 +857,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_r",
         )
 
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        m_best_params = m_tune_res.best_params_
         tuned_params = {"ml_r": m_best_params}
         tune_res = {"r_tune": m_tune_res}
 
@@ -946,7 +947,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        pseudo_target = m_tune_res[0].predict(xz)
+        pseudo_target = m_tune_res.predict(xz)
         r_tune_res = _dml_tune_optuna(
             pseudo_target,
             x,
@@ -960,9 +961,9 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             learner_name="ml_r",
         )
 
-        l_best_params = [xx.best_params_ for xx in l_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
-        r_best_params = [xx.best_params_ for xx in r_tune_res]
+        l_best_params = l_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
+        r_best_params = r_tune_res.best_params_
 
         tuned_params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_r": r_best_params}
         tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "r_tune": r_tune_res}

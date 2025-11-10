@@ -429,14 +429,14 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        l_best_params = [xx.best_params_ for xx in l_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        l_best_params = l_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         # an ML model for g is obtained for the IV-type score and callable scores
         if "ml_g" in self._learner:
             # construct an initial theta estimate from the tuned models using the partialling out score
-            l_hat = l_tune_res[0].predict(x)
-            m_hat = m_tune_res[0].predict(x)
+            l_hat = l_tune_res.predict(x)
+            m_hat = m_tune_res.predict(x)
             psi_a = -np.multiply(d - m_hat, d - m_hat)
             psi_b = np.multiply(d - m_hat, y - l_hat)
             theta_initial = -np.nanmean(psi_b) / np.nanmean(psi_a)
@@ -454,7 +454,7 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 learner_name="ml_g",
             )
 
-            g_best_params = [xx.best_params_ for xx in g_tune_res]
+            g_best_params = g_tune_res.best_params_
             params = {"ml_l": l_best_params, "ml_m": m_best_params, "ml_g": g_best_params}
             tune_res = {"l_tune": l_tune_res, "m_tune": m_tune_res, "g_tune": g_tune_res}
         else:

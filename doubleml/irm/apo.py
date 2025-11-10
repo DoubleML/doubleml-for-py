@@ -424,9 +424,9 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        g_d_lvl0_best_params = [xx.best_params_ for xx in g_d_lvl0_tune_res]
-        g_d_lvl1_best_params = [xx.best_params_ for xx in g_d_lvl1_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        g_d_lvl0_best_params = g_d_lvl0_tune_res.best_params_
+        g_d_lvl1_best_params = g_d_lvl1_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         params = {"ml_g_d_lvl0": g_d_lvl0_best_params, "ml_g_d_lvl1": g_d_lvl1_best_params, "ml_m": m_best_params}
         tune_res = {"g_d_lvl0_tune": g_d_lvl0_tune_res, "g_d_lvl1_tune": g_d_lvl1_tune_res, "m_tune": m_tune_res}
@@ -451,7 +451,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         treated_indicator = self.treated.astype(bool)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_m": None}
+            scoring_methods = {"ml_g_d_lvl0": None, "ml_g_d_lvl1": None, "ml_m": None}
 
         mask_lvl1 = treated_indicator
         mask_lvl0 = np.logical_not(mask_lvl1)
@@ -459,8 +459,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         dx_lvl0 = dx[mask_lvl0, :]
         y_lvl0 = y[mask_lvl0]
         train_inds_lvl0 = [np.arange(dx_lvl0.shape[0])]
-        g_lvl0_param_grid = param_grids.get("ml_g_d_lvl0", param_grids["ml_g"])
-        g_lvl0_scoring = scoring_methods.get("ml_g_d_lvl0", scoring_methods["ml_g"])
+        g_lvl0_param_grid = param_grids["ml_g_d_lvl0"]
+        g_lvl0_scoring = scoring_methods["ml_g_d_lvl0"]
         g_d_lvl0_tune_res = _dml_tune_optuna(
             y_lvl0,
             dx_lvl0,
@@ -471,14 +471,14 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g_d_lvl0", "ml_g"),
+            learner_name="ml_g_d_lvl0",
         )
 
         x_lvl1 = x[mask_lvl1, :]
         y_lvl1 = y[mask_lvl1]
         train_inds_lvl1 = [np.arange(x_lvl1.shape[0])]
-        g_lvl1_param_grid = param_grids.get("ml_g_d_lvl1", param_grids["ml_g"])
-        g_lvl1_scoring = scoring_methods.get("ml_g_d_lvl1", scoring_methods["ml_g"])
+        g_lvl1_param_grid = param_grids["ml_g_d_lvl1"]
+        g_lvl1_scoring = scoring_methods["ml_g_d_lvl1"]
         g_d_lvl1_tune_res = _dml_tune_optuna(
             y_lvl1,
             x_lvl1,
@@ -489,7 +489,7 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g_d_lvl1", "ml_g"),
+            learner_name="ml_g_d_lvl1",
         )
 
         train_inds_full = [np.arange(x.shape[0])]
@@ -506,9 +506,9 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        g_d_lvl0_best_params = [xx.best_params_ for xx in g_d_lvl0_tune_res]
-        g_d_lvl1_best_params = [xx.best_params_ for xx in g_d_lvl1_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        g_d_lvl0_best_params = g_d_lvl0_tune_res.best_params_
+        g_d_lvl1_best_params = g_d_lvl1_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         params = {
             "ml_g_d_lvl0": g_d_lvl0_best_params,

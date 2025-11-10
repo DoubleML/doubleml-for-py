@@ -644,11 +644,11 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             learner_name="ml_g_du_z1",
         )
 
-        m_z_best_params = [xx.best_params_ for xx in m_z_tune_res]
-        m_d_z0_best_params = [xx.best_params_ for xx in m_d_z0_tune_res]
-        m_d_z1_best_params = [xx.best_params_ for xx in m_d_z1_tune_res]
-        g_du_z0_best_params = [xx.best_params_ for xx in g_du_z0_tune_res]
-        g_du_z1_best_params = [xx.best_params_ for xx in g_du_z1_tune_res]
+        m_z_best_params = m_z_tune_res.best_params_
+        m_d_z0_best_params = m_d_z0_tune_res.best_params_
+        m_d_z1_best_params = m_d_z1_tune_res.best_params_
+        g_du_z0_best_params = g_du_z0_tune_res.best_params_
+        g_du_z1_best_params = g_du_z1_tune_res.best_params_
 
         params = {
             "ml_m_z": m_z_best_params,
@@ -733,8 +733,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             x_z0,
             train_inds_z0,
             self._learner["ml_g_du_z0"],
-            param_grids.get("ml_g_du_z0", param_grids["ml_g_du"]),
-            scoring_methods.get("ml_g_du_z0", scoring_methods.get("ml_g_du")),
+            param_grids["ml_g_du_z0"],
+            scoring_methods["ml_g_du_z0"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
@@ -762,26 +762,20 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             x_z1,
             train_inds_z1,
             self._learner["ml_g_du_z1"],
-            param_grids.get("ml_g_du_z1", param_grids["ml_g_du"]),
-            scoring_methods.get("ml_g_du_z1", scoring_methods.get("ml_g_du")),
+            param_grids["ml_g_du_z1"],
+            scoring_methods["ml_g_du_z1"],
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
             learner_name="ml_g_du_z1",
         )
 
-        m_z_best_params = [xx.best_params_ for xx in m_z_tune_res]
-        m_d_z0_best_params = [xx.best_params_ for xx in m_d_z0_tune_res]
-        m_d_z1_best_params = [xx.best_params_ for xx in m_d_z1_tune_res]
-        g_du_z0_best_params = [xx.best_params_ for xx in g_du_z0_tune_res]
-        g_du_z1_best_params = [xx.best_params_ for xx in g_du_z1_tune_res]
-
         params = {
-            "ml_m_z": m_z_best_params,
-            "ml_m_d_z0": m_d_z0_best_params,
-            "ml_m_d_z1": m_d_z1_best_params,
-            "ml_g_du_z0": g_du_z0_best_params,
-            "ml_g_du_z1": g_du_z1_best_params,
+            "ml_m_z": m_z_tune_res.best_params_,
+            "ml_m_d_z0": m_d_z0_tune_res.best_params_,
+            "ml_m_d_z1": m_d_z1_tune_res.best_params_,
+            "ml_g_du_z0": g_du_z0_tune_res.best_params_,
+            "ml_g_du_z1": g_du_z1_tune_res.best_params_,
         }
         tune_res = {
             "ml_m_z": m_z_tune_res,

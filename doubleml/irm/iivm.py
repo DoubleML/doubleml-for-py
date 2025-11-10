@@ -682,19 +682,19 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 learner_name="ml_r1",
             )
 
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        g0_best_params = g0_tune_res.best_params_
+        g1_best_params = g1_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         if r0_tune_res is not None:
-            r0_best_params = [xx.best_params_ for xx in r0_tune_res]
+            r0_best_params = r0_tune_res.best_params_
         else:
-            r0_best_params = [None]
+            r0_best_params = None
 
         if r1_tune_res is not None:
-            r1_best_params = [xx.best_params_ for xx in r1_tune_res]
+            r1_best_params = r1_tune_res.best_params_
         else:
-            r1_best_params = [None]
+            r1_best_params = None
 
         params = {
             "ml_g0": g0_best_params,

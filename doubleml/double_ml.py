@@ -925,7 +925,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def tune_optuna(
         self,
-        params,
+        params, # TODO: RENAME TO `ml_param_space`
         scoring_methods=None,
         n_folds_tune=5,
         n_jobs_cv=None,
@@ -933,6 +933,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         return_tune_res=False,
         optuna_settings=None,
     ):
+
+    # TODO: RENAME TO `tune_ml_models`
         """
         Hyperparameter-tuning for DoubleML models using Optuna.
 
@@ -1163,11 +1165,27 @@ class DoubleML(SampleSplittingMixin, ABC):
             tuning_res[i_d] = res
 
             if set_as_params:
-                for nuisance_model, param_list in res["params"].items():
-                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], param_list[0])
+                for nuisance_model, tuned_params in res["params"].items():
+                    if isinstance(tuned_params, list):
+                        if not tuned_params:
+                            params_to_set = tuned_params
+                        else:
+                            first_entry = tuned_params[0]
+                            params_to_set = first_entry.best_params_ if hasattr(first_entry, "best_params_") else first_entry
+                    elif hasattr(tuned_params, "best_params_"):
+                        params_to_set = tuned_params.best_params_
+                    elif isinstance(tuned_params, dict) or tuned_params is None:
+                        params_to_set = tuned_params
+                    else:
+                        raise TypeError(
+                            "Unexpected parameter format returned from Optuna tuning. "
+                            "Expected dict-like or object with best_params_."
+                        )
+
+                    self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
         if return_tune_res:
-            return tuning_res
+            return tuning_res # TODO: Return only container objects
         else:
             return self
 
@@ -1207,9 +1225,23 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         allowed_param_keys = set(self.params_names)
 
-        if self.learner is not None:
-            allowed_param_keys.update(self.learner_names)
-            allowed_param_keys.update(learner.__class__.__name__ for learner in self.learner.values())
+        # if self.learner is not None:
+        #     allowed_param_keys.update(self.learner_names)
+
+        # Allow hierarchical parameter aliases (e.g., ml_m_Z1 -> ml_m_Z -> ml_m)
+        # derived_keys = set()
+        # for full_key in allowed_param_keys:
+        #     key_variant = full_key
+        #     while "_" in key_variant:
+        #         key_variant = key_variant.rsplit("_", 1)[0]
+        #         if key_variant and key_variant != "ml":
+        #             derived_keys.add(key_variant)
+
+        #     stripped_digits = full_key.rstrip("0123456789")
+        #     if stripped_digits != full_key and stripped_digits and stripped_digits != "ml":
+        #         derived_keys.add(stripped_digits)
+
+        # allowed_param_keys.update(derived_keys)
 
         invalid_keys = [key for key in params if key not in allowed_param_keys]
 
@@ -1313,6 +1345,7 @@ class DoubleML(SampleSplittingMixin, ABC):
     ):
         pass
 
+    @abstractmethod
     def _nuisance_tuning_optuna(
         self,
         optuna_params,

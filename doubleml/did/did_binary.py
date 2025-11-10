@@ -655,7 +655,10 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_m": None}
+            if self.score == "observational":
+                scoring_methods = {"ml_g0": None, "ml_g1": None, "ml_m": None}
+            else:
+                scoring_methods = {"ml_g0": None, "ml_g1": None}
 
         mask_d0 = d == 0
         mask_d1 = d == 1
@@ -663,8 +666,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         x_d0 = x[mask_d0, :]
         y_d0 = y[mask_d0]
         train_inds_d0 = [np.arange(x_d0.shape[0])]
-        g0_param_grid = param_grids.get("ml_g0", param_grids["ml_g"])
-        g0_scoring = scoring_methods.get("ml_g0", scoring_methods["ml_g"])
+        g0_param_grid = param_grids["ml_g0"]
+        g0_scoring = scoring_methods["ml_g0"]
         g0_tune_res = _dml_tune_optuna(
             y_d0,
             x_d0,
@@ -675,14 +678,14 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g0", "ml_g"),
+            learner_name="ml_g0",
         )
 
         x_d1 = x[mask_d1, :]
         y_d1 = y[mask_d1]
         train_inds_d1 = [np.arange(x_d1.shape[0])]
-        g1_param_grid = param_grids.get("ml_g1", param_grids["ml_g"])
-        g1_scoring = scoring_methods.get("ml_g1", scoring_methods["ml_g"])
+        g1_param_grid = param_grids["ml_g1"]
+        g1_scoring = scoring_methods["ml_g1"]
         g1_tune_res = _dml_tune_optuna(
             y_d1,
             x_d1,
@@ -693,7 +696,7 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             n_folds_tune,
             n_jobs_cv,
             optuna_settings,
-            learner_name=("ml_g1", "ml_g"),
+            learner_name="ml_g1",
         )
 
         full_train_inds = [np.arange(x.shape[0])]
@@ -712,11 +715,11 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 learner_name="ml_m",
             )
 
-        g0_best_params = [xx.best_params_ for xx in g0_tune_res]
-        g1_best_params = [xx.best_params_ for xx in g1_tune_res]
+        g0_best_params = g0_tune_res.best_params_
+        g1_best_params = g1_tune_res.best_params_
 
         if self.score == "observational":
-            m_best_params = [xx.best_params_ for xx in m_tune_res]
+            m_best_params = m_tune_res.best_params_
             params = {"ml_g0": g0_best_params, "ml_g1": g1_best_params, "ml_m": m_best_params}
             tune_res = {"g0_tune": g0_tune_res, "g1_tune": g1_tune_res, "m_tune": m_tune_res}
         else:

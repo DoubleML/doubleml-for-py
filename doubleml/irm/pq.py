@@ -444,8 +444,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        g_best_params = g_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         params = {"ml_g": g_best_params, "ml_m": m_best_params}
         tune_res = {"g_tune": g_tune_res, "m_tune": m_tune_res}
@@ -503,8 +503,8 @@ class DoubleMLPQ(NonLinearScoreMixin, DoubleML):
             learner_name="ml_m",
         )
 
-        g_best_params = [xx.best_params_ for xx in g_tune_res]
-        m_best_params = [xx.best_params_ for xx in m_tune_res]
+        g_best_params = g_tune_res.best_params_
+        m_best_params = m_tune_res.best_params_
 
         params = {"ml_g": g_best_params, "ml_m": m_best_params}
         tune_res = {"g_tune": g_tune_res, "m_tune": m_tune_res}

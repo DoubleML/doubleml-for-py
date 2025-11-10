@@ -5,10 +5,15 @@ This module provides Optuna-specific functionality for hyperparameter optimizati
 decoupled from sklearn-based grid/randomized search.
 """
 
+# TODO: Use `_check_tuning_inputs` for input validation, put all checks in there.
+# TODO: Let allow to tune only a subset of learners, e.g., only ml_g or only ml_m.
+# TODO: Implement checks / tests if this is working
+
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import KFold, cross_validate
 
+# TODO:just the keys from below, use dict keys instead.
 OPTUNA_GLOBAL_SETTING_KEYS = frozenset(
     {
         "n_trials",
@@ -122,6 +127,8 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
     resolved = default_settings.copy()
     resolved.update(base_settings)
     resolved.update(learner_specific_settings)
+
+    # TODO: Check returns crazy valid values?
 
     # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
@@ -271,7 +278,7 @@ def _dml_tune_optuna(
     Tune hyperparameters using Optuna on the whole dataset with cross-validation.
 
     Unlike the grid/randomized search which tunes separately for each fold, this function
-    tunes once on the full dataset and returns the same optimal parameters for all folds.
+    tunes once on the full dataset and returns a single tuning result per learner.
 
     Parameters
     ----------
@@ -280,7 +287,7 @@ def _dml_tune_optuna(
     x : np.ndarray
         Features (full dataset).
     train_inds : list
-        List of training indices for each fold (used only to determine number of folds to return).
+        List of training indices for each fold. The information is kept for API compatibility.
     learner : estimator
         The machine learning model to tune.
     param_grid_func : callable
@@ -299,8 +306,8 @@ def _dml_tune_optuna(
 
     Returns
     -------
-    list
-        List of tuning results (one per fold in train_inds), each containing the same optimal parameters.
+    _OptunaSearchResult
+        A tuning result containing the fitted estimator with the optimal parameters.
     """
     try:
         import optuna
@@ -326,6 +333,7 @@ def _dml_tune_optuna(
         optuna.logging.set_verbosity(verbosity)
 
     # Pre-create KFold object for cross-validation during tuning (fixed random state for reproducibility)
+    # TODO: Allow passing custom CV splitter via settings, rename from n_folds_tune to cv, copy descr.
     cv = KFold(n_splits=n_folds_tune, shuffle=True, random_state=42)
 
     # Create the study
@@ -371,23 +379,14 @@ def _dml_tune_optuna(
     # Cache trials dataframe (computed once and reused for all folds)
     trials_df = study.trials_dataframe(attrs=("number", "value", "params", "state"))
 
-    # Create tuning results for each fold
-    # All folds use the same optimal parameters, but each gets a fitted estimator on its training data
-    tune_res = []
-    for train_index in train_inds:
-        # Fit the best estimator on this fold's training data
-        best_estimator = clone(learner).set_params(**best_params)
-        best_estimator.fit(x[train_index, :], y[train_index])
+    # Fit the best estimator on the full dataset once
+    best_estimator = clone(learner).set_params(**best_params)
+    best_estimator.fit(x, y)
 
-        # Create result object (study and trials_df are shared across all folds)
-        tune_res.append(
-            _OptunaSearchResult(
-                estimator=best_estimator,
-                best_params=best_params,
-                best_score=best_score,
-                study=study,
-                trials_dataframe=trials_df,
-            )
-        )
-
-    return tune_res
+    return _OptunaSearchResult(
+        estimator=best_estimator,
+        best_params=best_params,
+        best_score=best_score,
+        study=study,
+        trials_dataframe=trials_df,
+    )

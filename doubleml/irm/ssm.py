@@ -564,10 +564,15 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             z, _ = check_X_y(self._dml_data.z, y, force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_pi": None, "ml_m": None}
+            scoring_methods = {
+                "ml_g_d0": None,
+                "ml_g_d1": None,
+                "ml_pi": None,
+                "ml_m": None,
+            }
 
-        def get_param_and_scoring(key, base_key):
-            return param_grids.get(key, param_grids[base_key]), scoring_methods.get(key, scoring_methods[base_key])
+        def get_param_and_scoring(key):
+            return param_grids[key], scoring_methods[key]
 
         if self._score == "nonignorable":
             train_index = np.arange(x.shape[0])
@@ -595,7 +600,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             for inner0_idx, inner1_idx in zip(inner_train0_inds, inner_train1_inds):
                 x_inner0 = x_d_z[inner0_idx, :]
                 s_inner0 = s[inner0_idx]
-                res = _dml_tune_optuna(
+                tuned = _dml_tune_optuna(
                     s_inner0,
                     x_inner0,
                     [np.arange(x_inner0.shape[0])],
@@ -607,7 +612,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     optuna_settings,
                     learner_name="ml_pi",
                 )
-                tuned = res[0]
                 pi_tune_res.append(tuned)
                 ml_pi_temp = clone(self._learner["ml_pi"])
                 ml_pi_temp.set_params(**tuned.best_params_)
@@ -635,7 +639,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             g_d0_tune_res = []
             g_d1_tune_res = []
 
-            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0", "ml_g")
+            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0")
             for subset in inner_train1_d0_s1:
                 if subset.size == 0:
                     continue
@@ -649,11 +653,11 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     n_folds_tune,
                     n_jobs_cv,
                     optuna_settings,
-                    learner_name=("ml_g_d0", "ml_g"),
+                    learner_name="ml_g_d0",
                 )
-                g_d0_tune_res.append(res[0])
+                g_d0_tune_res.append(res)
 
-            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1", "ml_g")
+            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1")
             for subset in inner_train1_d1_s1:
                 if subset.size == 0:
                     continue
@@ -667,15 +671,15 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     n_folds_tune,
                     n_jobs_cv,
                     optuna_settings,
-                    learner_name=("ml_g_d1", "ml_g"),
+                    learner_name="ml_g_d1",
                 )
-                g_d1_tune_res.append(res[0])
+                g_d1_tune_res.append(res)
 
             params = {
                 "ml_g_d0": [xx.best_params_ for xx in g_d0_tune_res],
                 "ml_g_d1": [xx.best_params_ for xx in g_d1_tune_res],
                 "ml_pi": [xx.best_params_ for xx in pi_tune_res],
-                "ml_m": [xx.best_params_ for xx in m_tune_res],
+                "ml_m": m_tune_res.best_params_,
             }
 
             tune_res = {
@@ -688,8 +692,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             mask_d0_s1 = np.logical_and(d == 0, s == 1)
             mask_d1_s1 = np.logical_and(d == 1, s == 1)
 
-            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0", "ml_g")
-            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1", "ml_g")
+            g_d0_param, g_d0_scoring = get_param_and_scoring("ml_g_d0")
+            g_d1_param, g_d1_scoring = get_param_and_scoring("ml_g_d1")
 
             x_d0 = x[mask_d0_s1, :]
             y_d0 = y[mask_d0_s1]
@@ -703,7 +707,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 n_folds_tune,
                 n_jobs_cv,
                 optuna_settings,
-                learner_name=("ml_g_d0", "ml_g"),
+                learner_name="ml_g_d0",
             )
 
             x_d1 = x[mask_d1_s1, :]
@@ -718,7 +722,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 n_folds_tune,
                 n_jobs_cv,
                 optuna_settings,
-                learner_name=("ml_g_d1", "ml_g"),
+                learner_name="ml_g_d1",
             )
 
             x_d_feat = np.column_stack((x, d))
@@ -750,10 +754,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             )
 
             params = {
-                "ml_g_d0": [xx.best_params_ for xx in g_d0_tune_res],
-                "ml_g_d1": [xx.best_params_ for xx in g_d1_tune_res],
-                "ml_pi": [xx.best_params_ for xx in pi_tune_res],
-                "ml_m": [xx.best_params_ for xx in m_tune_res],
+                "ml_g_d0": g_d0_tune_res.best_params_,
+                "ml_g_d1": g_d1_tune_res.best_params_,
+                "ml_pi": pi_tune_res.best_params_,
+                "ml_m": m_tune_res.best_params_,
             }
 
             tune_res = {

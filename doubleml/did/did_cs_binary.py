@@ -758,7 +758,21 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
         _, t = check_X_y(x, self._t_data_subset, force_all_finite=False)
 
         if scoring_methods is None:
-            scoring_methods = {"ml_g": None, "ml_m": None}
+            if self.score == "observational":
+                scoring_methods = {
+                    "ml_g_d0_t0": None,
+                    "ml_g_d0_t1": None,
+                    "ml_g_d1_t0": None,
+                    "ml_g_d1_t1": None,
+                    "ml_m": None,
+                }
+            else:
+                scoring_methods = {
+                    "ml_g_d0_t0": None,
+                    "ml_g_d0_t1": None,
+                    "ml_g_d1_t0": None,
+                    "ml_g_d1_t1": None,
+                }
 
         masks = {
             "d0_t0": (d == 0) & (t == 0),
@@ -773,8 +787,8 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
             y_subset = y[mask]
             train_inds = [np.arange(x_subset.shape[0])]
             learner_key = f"ml_g_{key}"
-            param_grid = param_grids.get(learner_key, param_grids["ml_g"])
-            scoring = scoring_methods.get(learner_key, scoring_methods["ml_g"])
+            param_grid = param_grids[learner_key]
+            scoring = scoring_methods[learner_key]
             g_tune_results[key] = _dml_tune_optuna(
                 y_subset,
                 x_subset,
@@ -785,7 +799,7 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
                 n_folds_tune,
                 n_jobs_cv,
                 optuna_settings,
-                learner_name=(learner_key, "ml_g"),
+                learner_name=learner_key,
             )
 
         m_tune_res = None
@@ -806,13 +820,13 @@ class DoubleMLDIDCSBinary(LinearScoreMixin, DoubleML):
 
         params = {}
         tune_res = {}
-        for key, res_list in g_tune_results.items():
+        for key, res_obj in g_tune_results.items():
             learner_key = f"ml_g_{key}"
-            params[learner_key] = [xx.best_params_ for xx in res_list]
-            tune_res[f"g_{key}_tune"] = res_list
+            params[learner_key] = res_obj.best_params_
+            tune_res[f"g_{key}_tune"] = res_obj
 
         if self.score == "observational":
-            params["ml_m"] = [xx.best_params_ for xx in m_tune_res]
+            params["ml_m"] = m_tune_res.best_params_
             tune_res["m_tune"] = m_tune_res
 
         return {"params": params, "tune_res": tune_res}
