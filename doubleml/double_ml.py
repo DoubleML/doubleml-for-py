@@ -1175,21 +1175,10 @@ class DoubleML(SampleSplittingMixin, ABC):
 
             if set_as_params:
                 for nuisance_model, tuned_result in filtered_results.items():
-                    if isinstance(tuned_result, list):
-                        if not tuned_result:
-                            params_to_set = tuned_result
-                        else:
-                            first_entry = tuned_result[0]
-                            params_to_set = first_entry.best_params_ if hasattr(first_entry, "best_params_") else first_entry
-                    elif hasattr(tuned_result, "best_params_"):
-                        params_to_set = tuned_result.best_params_
-                    elif isinstance(tuned_result, dict) or tuned_result is None:
-                        params_to_set = tuned_result
+                    if tuned_result is None:
+                        params_to_set = None
                     else:
-                        raise TypeError(
-                            "Unexpected tuning result returned from Optuna. "
-                            "Expected an object exposing 'best_params_' or a dict."
-                        )
+                        params_to_set = tuned_result.best_params_
 
                     self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
