@@ -530,7 +530,7 @@ def _dml_tune_optuna(
     study = _create_study(settings, learner_label)
 
     # Create the objective function
-    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv, learner_label)
+    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv)
 
     # Build optimize kwargs
     optimize_kwargs = {
