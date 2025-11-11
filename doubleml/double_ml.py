@@ -1135,30 +1135,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                     f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
                 )
 
-        resolved_scoring_methods = {}
-        if scoring_methods is not None:
-            if not isinstance(scoring_methods, dict):
-                raise ValueError("scoring_methods must be provided as a dictionary keyed by learner name.")
-
-            invalid_scoring_keys = [key for key in scoring_methods if key not in self.params_names]
-            if invalid_scoring_keys:
-                raise ValueError(
-                    "Invalid scoring_methods keys for "
-                    + self.__class__.__name__
-                    + ": "
-                    + ", ".join(sorted(invalid_scoring_keys))
-                    + ". Valid keys are: "
-                    + ", ".join(self.params_names)
-                    + "."
-                )
-
-            resolved_scoring_methods.update(scoring_methods)
-
-        for learner_name in self.params_names:
-            resolved_scoring_methods.setdefault(learner_name, None)
-
-        scoring_methods = resolved_scoring_methods if resolved_scoring_methods else None
-
+        scoring_methods = self._resolve_scoring_methods(scoring_methods)
         cv_splitter = resolve_optuna_cv(cv)
 
         if optuna_settings is not None and not isinstance(optuna_settings, dict):
@@ -1225,6 +1202,33 @@ class DoubleML(SampleSplittingMixin, ABC):
             return tuning_res
         else:
             return self
+
+    def _resolve_scoring_methods(self, scoring_methods):
+        """Resolve scoring methods to ensure all learners have an entry."""
+
+        if scoring_methods is None:
+            return None
+
+        if not isinstance(scoring_methods, dict):
+            raise TypeError("scoring_methods must be provided as a dictionary keyed by learner name.")
+
+        invalid_scoring_keys = [key for key in scoring_methods if key not in self.params_names]
+        if invalid_scoring_keys:
+            raise ValueError(
+                "Invalid scoring_methods keys for "
+                + self.__class__.__name__
+                + ": "
+                + ", ".join(sorted(invalid_scoring_keys))
+                + ". Valid keys are: "
+                + ", ".join(self.params_names)
+                + "."
+            )
+
+        resolved = dict(scoring_methods)
+        for learner_name in self.params_names:
+            resolved.setdefault(learner_name, None)
+
+        return resolved
 
     def _validate_optuna_setting_keys(self, optuna_settings):
         """Validate learner-level keys provided in optuna_settings."""
