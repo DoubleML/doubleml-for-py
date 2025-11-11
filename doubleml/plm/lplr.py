@@ -273,7 +273,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 self._learner["ml_m"],
                 x,
                 d,
-                smpls=smpls,
+                smpls=filtered_smpls,
                 n_jobs=n_jobs_cv,
                 est_params=self._get_params("ml_m"),
                 method=self._predict_method["ml_m"],
