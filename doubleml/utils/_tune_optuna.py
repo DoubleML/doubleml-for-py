@@ -363,7 +363,7 @@ def _create_study(settings, learner_name):
     return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
 
-def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv, learner_name):
+def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv):
     """
     Create an Optuna objective function for hyperparameter optimization.
 
@@ -385,8 +385,6 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
         estimator's default ``score`` implementation.
     n_jobs_cv : int or None
         Number of parallel jobs for cross-validation.
-    learner_name : str
-        Name of the learner.
 
     Returns
     -------
