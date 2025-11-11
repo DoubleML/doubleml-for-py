@@ -1221,11 +1221,6 @@ class DoubleML(SampleSplittingMixin, ABC):
             return
 
         allowed_learner_keys = set(self.params_names)
-
-        if self.learner is not None:
-            allowed_learner_keys.update(self.learner_names)
-            allowed_learner_keys.update(learner.__class__.__name__ for learner in self.learner.values())
-
         invalid_keys = [
             key for key in optuna_settings if key not in OPTUNA_GLOBAL_SETTING_KEYS and key not in allowed_learner_keys
         ]
