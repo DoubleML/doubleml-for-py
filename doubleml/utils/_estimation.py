@@ -40,7 +40,7 @@ def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
 
 def _fit(estimator, x, y, train_index, idx=None, sample_weights=None):
     if sample_weights is not None:
-        estimator.fit(x[train_index, :], y[train_index], sample_weights=sample_weights[train_index])
+        estimator.fit(x[train_index, :], y[train_index], sample_weight=sample_weights[train_index])
     else:
         estimator.fit(x[train_index, :], y[train_index])
     return estimator, idx
