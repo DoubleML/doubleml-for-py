@@ -55,7 +55,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     >>> from doubleml.plm.datasets import make_lplr_LZZ2020
     >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     >>> from sklearn.base import clone
-    >>> np.random.seed(3141)
+    >>> np.random.seed(42)
     >>> ml_t = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> ml_m = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
     >>> ml_M = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
@@ -95,7 +95,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=True)
 
         self._error_on_convergence_failure = error_on_convergence_failure
-        self._coef_bounds = (-1e-2, 1e2)
         self._coef_start_val = 1.0
 
         self._check_data(self._dml_data)
@@ -207,7 +206,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 est_params=est_params,
                 method=method,
                 return_models=True,
-                smpls_is_partition=True,
+                smpls_is_partition_manual_set=True,
                 sample_weights=sample_weights,
             )
             _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
@@ -261,36 +260,26 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             m_hat = {"preds": external_predictions["ml_m"], "targets": None, "models": None}
         else:
             if self.score == "instrument":
-                weights = []
-                for i, (train, test) in enumerate(smpls):
-                    weights.append(M_hat["preds_inner"][i][train] * (1 - M_hat["preds_inner"][i][train]))
-                m_hat = _dml_cv_predict(
-                    self._learner["ml_m"],
-                    x,
-                    d,
-                    smpls=smpls,
-                    n_jobs=n_jobs_cv,
-                    est_params=self._get_params("ml_m"),
-                    method=self._predict_method["ml_m"],
-                    return_models=return_models,
-                    sample_weights=weights,
-                )
-
+                weights = M_hat["preds"] * (1 - M_hat["preds"])
+                filtered_smpls = smpls
             elif self.score == "nuisance_space":
                 filtered_smpls = []
                 for train, test in smpls:
                     train_filtered = train[y[train] == 0]
                     filtered_smpls.append((train_filtered, test))
-                m_hat = _dml_cv_predict(
-                    self._learner["ml_m"],
-                    x,
-                    d,
-                    smpls=filtered_smpls,
-                    n_jobs=n_jobs_cv,
-                    est_params=self._get_params("ml_m"),
-                    method=self._predict_method["ml_m"],
-                    return_models=return_models,
-                )
+                weights = None
+
+            m_hat = _dml_cv_predict(
+                self._learner["ml_m"],
+                x,
+                d,
+                smpls=smpls,
+                n_jobs=n_jobs_cv,
+                est_params=self._get_params("ml_m"),
+                method=self._predict_method["ml_m"],
+                return_models=return_models,
+                sample_weights=weights,
+            )
 
             _check_finite_predictions(m_hat["preds"], self._learner["ml_m"], "ml_m", smpls)
 
@@ -341,6 +330,9 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
             W_inner.append(w)
             d_tilde = (d - a_hat["preds_inner"][i])[train]
             beta[test] = np.sum(d_tilde * w) / np.sum(d_tilde**2)
+
+        # Use preliminary beta estimates as starting value for root finding
+        self._coef_start_val = np.average(beta)
 
         # nuisance t
         if t_external:

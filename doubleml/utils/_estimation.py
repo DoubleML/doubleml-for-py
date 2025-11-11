@@ -38,8 +38,11 @@ def _get_cond_smpls_2d(smpls, bin_var1, bin_var2):
     return smpls_00, smpls_01, smpls_10, smpls_11
 
 
-def _fit(estimator, x, y, train_index, idx=None):
-    estimator.fit(x[train_index, :], y[train_index])
+def _fit(estimator, x, y, train_index, idx=None, sample_weights=None):
+    if sample_weights is not None:
+        estimator.fit(x[train_index, :], y[train_index], sample_weights=sample_weights[train_index])
+    else:
+        estimator.fit(x[train_index, :], y[train_index])
     return estimator, idx
 
 
@@ -53,36 +56,50 @@ def _dml_cv_predict(
     method="predict",
     return_train_preds=False,
     return_models=False,
-    smpls_is_partition=None,
+    smpls_is_partition_manual_set=None,
     sample_weights=None,
 ):
     n_obs = x.shape[0]
 
-    # TODO: Better name for smples_is_partition
-    if smpls_is_partition is None:
+    if smpls_is_partition_manual_set is None:
         smpls_is_partition = _check_is_partition(smpls, n_obs)
+    else:
+        smpls_is_partition = smpls_is_partition_manual_set
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
     manual_cv_predict = (
-        (not smpls_is_partition)
-        | return_train_preds
-        | fold_specific_params
-        | fold_specific_target
-        | return_models
-        | bool(sample_weights)
+        (not smpls_is_partition) | return_train_preds | fold_specific_params | fold_specific_target | return_models
     )
-    # TODO: Check if cross_val_predict supports weights
 
     res = {"models": None}
     if not manual_cv_predict:
+        # prepare fit_params for cross_val_predict
+        fit_params_for_cv = {"sample_weight": sample_weights} if sample_weights is not None else None
+
         if est_params is None:
             # if there are no parameters set we redirect to the standard method
-            preds = cross_val_predict(clone(estimator), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+            preds = cross_val_predict(
+                clone(estimator),
+                x,
+                y,
+                cv=smpls,
+                n_jobs=n_jobs,
+                method=method,
+                params=fit_params_for_cv,
+            )
         else:
             assert isinstance(est_params, dict)
             # if no fold-specific parameters we redirect to the standard method
             # warnings.warn("Using the same (hyper-)parameters for all folds")
-            preds = cross_val_predict(clone(estimator).set_params(**est_params), x, y, cv=smpls, n_jobs=n_jobs, method=method)
+            preds = cross_val_predict(
+                clone(estimator).set_params(**est_params),
+                x,
+                y,
+                cv=smpls,
+                n_jobs=n_jobs,
+                method=method,
+                params=fit_params_for_cv,
+            )
         if method == "predict_proba":
             res["preds"] = preds[:, 1]
         else:
@@ -113,19 +130,28 @@ def _dml_cv_predict(
 
         if est_params is None:
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator), x, y_list[idx], train_index, idx)
+                delayed(_fit)(clone(estimator), x, y_list[idx], train_index, idx, sample_weights=sample_weights)
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
         elif isinstance(est_params, dict):
             # warnings.warn("Using the same (hyper-)parameters for all folds")
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx)
+                delayed(_fit)(
+                    clone(estimator).set_params(**est_params), x, y_list[idx], train_index, idx, sample_weights=sample_weights
+                )
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
         else:
             assert len(est_params) == len(smpls), "provide one parameter setting per fold"
             fitted_models = parallel(
-                delayed(_fit)(clone(estimator).set_params(**est_params[idx]), x, y_list[idx], train_index, idx)
+                delayed(_fit)(
+                    clone(estimator).set_params(**est_params[idx]),
+                    x,
+                    y_list[idx],
+                    train_index,
+                    idx,
+                    sample_weights=sample_weights,
+                )
                 for idx, (train_index, test_index) in enumerate(smpls)
             )
 
