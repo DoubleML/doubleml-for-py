@@ -59,6 +59,7 @@ jobs:
         matrix.config.os != 'ubuntu-latest' ||
         matrix.config.python-version != '3.9'
       run: |
+        pytest --doctest-modules --ignore=tests/
         pytest -m ci
         pytest -m ci_rdd
 
