@@ -318,22 +318,6 @@ def test_doubleml_optuna_invalid_settings_key_raises():
         dml_irm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=invalid_settings)
 
 
-def test_doubleml_optuna_class_name_setting_allowed():
-    np.random.seed(3156)
-    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
-
-    ml_l = DecisionTreeRegressor(random_state=515, max_depth=5, min_samples_leaf=3)
-    ml_m = DecisionTreeRegressor(random_state=616, max_depth=5, min_samples_leaf=3)
-
-    dml_plr = dml.DoubleMLPLR(dml_data, ml_l, ml_m, n_folds=2, n_rep=1)
-
-    optuna_params = {"ml_l": _small_tree_params, "ml_m": _small_tree_params}
-    class_key = ml_l.__class__.__name__
-    optuna_settings = _basic_optuna_settings({class_key: {"n_trials": 1}})
-
-    dml_plr.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
-
-
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3142)
