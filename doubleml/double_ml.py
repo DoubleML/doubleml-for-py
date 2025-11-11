@@ -1137,12 +1137,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
         scoring_methods = self._resolve_scoring_methods(scoring_methods)
         cv_splitter = resolve_optuna_cv(cv)
-
-        if optuna_settings is not None and not isinstance(optuna_settings, dict):
-            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
-
-        if optuna_settings is not None:
-            self._validate_optuna_setting_keys(optuna_settings)
+        self._validate_optuna_setting_keys(optuna_settings)
 
         if n_jobs_cv is not None:
             if not isinstance(n_jobs_cv, int):
@@ -1232,6 +1227,9 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     def _validate_optuna_setting_keys(self, optuna_settings):
         """Validate learner-level keys provided in optuna_settings."""
+
+        if optuna_settings is not None and not isinstance(optuna_settings, dict):
+            raise TypeError(f"optuna_settings must be a dict or None. Got {str(type(optuna_settings))}.")
 
         if not optuna_settings:
             return
