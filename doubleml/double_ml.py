@@ -1047,7 +1047,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         --------
         >>> import numpy as np
         >>> from doubleml import DoubleMLData, DoubleMLPLR
-        >>> from doubleml.datasets import make_plr_CCDDHNR2018
+        >>> from doubleml.plm.datasets import make_plr_CCDDHNR2018
         >>> from lightgbm import LGBMRegressor
         >>> import optuna
         >>> # Generate data
