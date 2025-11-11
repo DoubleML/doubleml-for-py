@@ -1055,17 +1055,19 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> data = make_plr_CCDDHNR2018(n_obs=500, dim_x=20, return_type='DataFrame')
         >>> dml_data = DoubleMLData(data, 'y', 'd')
         >>> # Initialize model
-        >>> dml_plr = DoubleMLPLR(dml_data, LGBMRegressor(), LGBMRegressor())
+        >>> dml_plr = DoubleMLPLR(
+        ...    dml_data,
+        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42),
+        ...    LGBMRegressor(n_estimators=50, verbose=-1, random_state=42)
+        ... )
         >>> # Define parameter grid functions
         >>> def ml_l_params(trial):
         ...     return {
         ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
         ...     }
         >>> def ml_m_params(trial):
         ...     return {
         ...         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.3, log=True),
-        ...         'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
         ...     }
         >>> ml_param_space = {'ml_l': ml_l_params, 'ml_m': ml_m_params}
         >>> # Tune with TPE sampler
@@ -1073,9 +1075,13 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'n_trials': 20,
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
-        >>> dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings)
+        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
+        >>> print(tune_res[0]['ml_l'].best_params_)
+        {'learning_rate': 0.03907122389107094}
         >>> # Fit and get results
-        >>> dml_plr.fit()
+        >>> dml_plr.fit().summary
+              coef   std err          t         P>|t|     2.5 %    97.5 %
+        d  0.57436  0.045206  12.705519  5.510257e-37  0.485759  0.662961
         >>> # Example with scoring methods and directions
         >>> scoring_methods = {
         ...     'ml_l': 'neg_mean_squared_error',  # Negative metric
@@ -1083,10 +1089,16 @@ class DoubleML(SampleSplittingMixin, ABC):
         ... }
         >>> optuna_settings = {
         ...     'n_trials': 50,
-        ...     'direction': 'maximize'  # Maximize negative MSE (minimize MSE)
+        ...     'direction': 'maximize',  # Maximize negative MSE (minimize MSE)
+        ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
-        >>> dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
-        ...                       optuna_settings=optuna_settings)
+        >>> tune_res = dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
+        ...                                   optuna_settings=optuna_settings, return_tune_res=True)
+        >>> print(tune_res[0]['ml_l'].best_params_)
+        {'learning_rate': 0.04300012336462904}
+        >>> dml_plr.fit().summary
+               coef   std err          t         P>|t|     2.5 %    97.5 %
+        d  0.574796  0.045062  12.755721  2.896820e-37  0.486476  0.663115
         """
         # Validation
         if not isinstance(ml_param_space, dict) or not ml_param_space:
