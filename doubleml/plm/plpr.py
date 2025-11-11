@@ -272,12 +272,13 @@ class DoubleMLPLPR(LinearScoreMixin, DoubleML):
         if self._approach == "fd_exact":
             self._smpls = None
             self._smpls_cluster = None
-            # TODO: # overwrites data property _cluster_vars, but then data object can't be reused with other approach
-            # when using a new model specific _cluster_vars_fd, _se_causal_pars() does not run as it uses
-            # self._dml_data.cluster_vars, where n_obs dimension does not match psi arrays.
+            # TODO: currently overwrites data property _cluster_vars, but then the data object can't be reused with other approaches. 
+            # When using a new model specific _cluster_vars_fd, like
+            # self._cluster_vars_fd = self._data_transform.loc[:, self._dml_data.cluster_cols].values
+            # _se_causal_pars() does not run anymore as it uses self._dml_data.cluster_vars, where n_obs dimension does not match 
+            # dimension of psi arrays.
             # overwrite _se_causal_pars?
             self._dml_data._cluster_vars = self._data_transform.loc[:, self._dml_data.cluster_cols]
-            self._cluster_vars_fd = self._data_transform.loc[:, self._dml_data.cluster_cols].values
 
             # initialize model again
             self._score_dim = (self._data_transform.shape[0], self.n_rep, self._dml_data.n_coefs)
