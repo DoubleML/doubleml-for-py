@@ -34,18 +34,10 @@ class DoubleML(SampleSplittingMixin, ABC):
             if obj_dml_data.n_cluster_vars > 2:
                 raise NotImplementedError("Multi-way (n_ways > 2) clustering not yet implemented.")
             self._is_cluster_data = True
-        self._is_panel_data = False
-        if isinstance(obj_dml_data, DoubleMLPanelData):
-            self._is_panel_data = True
-        self._is_did_data = False
-        if isinstance(obj_dml_data, DoubleMLDIDData):
-            self._is_did_data = True
-        self._is_ssm_data = False
-        if isinstance(obj_dml_data, DoubleMLSSMData):
-            self._is_ssm_data = True
-        self._is_rdd_data = False
-        if isinstance(obj_dml_data, DoubleMLRDDData):
-            self._is_rdd_data = True
+        self._is_panel_data = isinstance(obj_dml_data, DoubleMLPanelData)
+        self._is_did_data = isinstance(obj_dml_data, DoubleMLDIDData)
+        self._is_ssm_data = isinstance(obj_dml_data, DoubleMLSSMData)
+        self._is_rdd_data = isinstance(obj_dml_data, DoubleMLRDDData)
 
         self._dml_data = obj_dml_data
         self._n_obs = self._dml_data.n_obs
