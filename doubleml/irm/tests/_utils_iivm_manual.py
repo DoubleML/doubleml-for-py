@@ -23,7 +23,7 @@ def fit_iivm(
     r0_params=None,
     r1_params=None,
     normalize_ipw=True,
-    trimming_threshold=1e-2,
+    clipping_threshold=1e-2,
     always_takers=True,
     never_takers=True,
 ):
@@ -53,7 +53,7 @@ def fit_iivm(
             m_params=m_params,
             r0_params=r0_params,
             r1_params=r1_params,
-            trimming_threshold=trimming_threshold,
+            clipping_threshold=clipping_threshold,
             always_takers=always_takers,
             never_takers=never_takers,
         )
@@ -98,7 +98,7 @@ def fit_nuisance_iivm(
     m_params=None,
     r0_params=None,
     r1_params=None,
-    trimming_threshold=1e-12,
+    clipping_threshold=1e-12,
     always_takers=True,
     never_takers=True,
 ):
@@ -117,7 +117,7 @@ def fit_nuisance_iivm(
         g_hat1_list = fit_predict(y, x, ml_g1, g1_params, smpls, train_cond=train_cond1)
 
     ml_m = clone(learner_m)
-    m_hat_list = fit_predict_proba(z, x, ml_m, m_params, smpls, trimming_threshold=trimming_threshold)
+    m_hat_list = fit_predict_proba(z, x, ml_m, m_params, smpls, clipping_threshold=clipping_threshold)
 
     ml_r0 = clone(learner_r)
     if always_takers:

@@ -37,12 +37,12 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope="module", params=[0.1])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
 @pytest.fixture(scope="module")
-def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_sample_normalization, trimming_threshold):
+def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_sample_normalization, clipping_threshold):
     boot_methods = ["normal"]
     n_folds = 2
     n_rep_boot = 499
@@ -68,7 +68,6 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         "n_folds": n_folds,
         "score": score,
         "in_sample_normalization": in_sample_normalization,
-        "trimming_threshold": trimming_threshold,
         "draw_sample_splitting": False,
     }
 
@@ -77,11 +76,13 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         g_value=1,
         t_value_pre=0,
         t_value_eval=1,
+        ps_processor_config=dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         **dml_args,
     )
 
     dml_did_obj = dml.DoubleMLDID(
         obj_dml_data,
+        clipping_threshold=clipping_threshold,
         **dml_args,
     )
 
@@ -107,7 +108,7 @@ def dml_did_binary_vs_did_fixture(generate_data_did_binary, learner, score, in_s
         all_smpls,
         score,
         in_sample_normalization,
-        trimming_threshold=trimming_threshold,
+        clipping_threshold=clipping_threshold,
     )
 
     res_dict = {

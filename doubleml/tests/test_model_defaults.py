@@ -92,8 +92,8 @@ def test_irm_defaults():
     _fit_bootstrap(dml_irm)
     _assert_resampling_default_settings(dml_irm)
     assert dml_irm.score == "ATE"
-    assert dml_irm.trimming_rule == "truncate"
-    assert dml_irm.trimming_threshold == 1e-2
+    assert isinstance(dml_irm.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_irm.ps_processor, dml.utils.PSProcessor)
     assert not dml_irm.normalize_ipw
     assert set(dml_irm.weights.keys()) == set(["weights"])
     assert np.array_equal(dml_irm.weights["weights"], np.ones((dml_irm._dml_data.n_obs,)))
@@ -106,8 +106,8 @@ def test_iivm_defaults():
     _assert_resampling_default_settings(dml_iivm)
     assert dml_iivm.score == "LATE"
     assert dml_iivm.subgroups == {"always_takers": True, "never_takers": True}
-    assert dml_iivm.trimming_rule == "truncate"
-    assert dml_iivm.trimming_threshold == 1e-2
+    assert isinstance(dml_iivm.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_iivm.ps_processor, dml.utils.PSProcessor)
     assert not dml_iivm.normalize_ipw
 
 
@@ -119,8 +119,8 @@ def test_cvar_defaults():
     assert dml_cvar.quantile == 0.5
     assert dml_cvar.treatment == 1
     assert dml_cvar.score == "CVaR"
-    assert dml_cvar.trimming_rule == "truncate"
-    assert dml_cvar.trimming_threshold == 1e-2
+    assert isinstance(dml_cvar.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_cvar.ps_processor, dml.utils.PSProcessor)
 
 
 @pytest.mark.ci
@@ -131,8 +131,8 @@ def test_pq_defaults():
     assert dml_pq.quantile == 0.5
     assert dml_pq.treatment == 1
     assert dml_pq.score == "PQ"
-    assert dml_pq.trimming_rule == "truncate"
-    assert dml_pq.trimming_threshold == 1e-2
+    assert isinstance(dml_pq.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_pq.ps_processor, dml.utils.PSProcessor)
     assert dml_pq.normalize_ipw
 
 
@@ -144,8 +144,8 @@ def test_lpq_defaults():
     assert dml_lpq.quantile == 0.5
     assert dml_lpq.treatment == 1
     assert dml_lpq.score == "LPQ"
-    assert dml_lpq.trimming_rule == "truncate"
-    assert dml_lpq.trimming_threshold == 1e-2
+    assert isinstance(dml_lpq.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_lpq.ps_processor, dml.utils.PSProcessor)
     assert dml_lpq.normalize_ipw
 
 
@@ -159,8 +159,8 @@ def test_qte_defaults():
     # not fix since its a differen object added in future versions _assert_resampling_default_settings(dml_qte)
     assert dml_qte.quantiles == 0.5
     assert dml_qte.score == "PQ"
-    assert dml_qte.trimming_rule == "truncate"
-    assert dml_qte.trimming_threshold == 1e-2
+    assert isinstance(dml_qte.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_qte.ps_processor, dml.utils.PSProcessor)
     assert dml_qte.normalize_ipw
 
 
@@ -171,8 +171,7 @@ def test_did_defaults():
     _assert_resampling_default_settings(dml_did)
     assert dml_did.score == "observational"
     assert dml_did.in_sample_normalization
-    assert dml_did.trimming_rule == "truncate"
-    assert dml_did.trimming_threshold == 1e-2
+    assert dml_did.clipping_threshold == 1e-2
 
 
 @pytest.mark.ci
@@ -182,8 +181,7 @@ def test_did_cs_defaults():
     _assert_resampling_default_settings(dml_did_cs)
     assert dml_did.score == "observational"
     assert dml_did_cs.in_sample_normalization
-    assert dml_did_cs.trimming_rule == "truncate"
-    assert dml_did_cs.trimming_threshold == 1e-2
+    assert dml_did_cs.clipping_threshold == 1e-2
 
 
 @pytest.mark.ci
@@ -192,8 +190,8 @@ def test_ssm_defaults():
     _fit_bootstrap(dml_ssm)
     _assert_resampling_default_settings(dml_ssm)
     assert dml_ssm.score == "missing-at-random"
-    assert dml_ssm.trimming_rule == "truncate"
-    assert dml_ssm.trimming_threshold == 1e-2
+    assert isinstance(dml_ssm.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_ssm.ps_processor, dml.utils.PSProcessor)
     assert not dml_ssm.normalize_ipw
 
 
@@ -203,8 +201,8 @@ def test_apo_defaults():
     _fit_bootstrap(dml_apo)
     _assert_resampling_default_settings(dml_apo)
     assert dml_apo.score == "APO"
-    assert dml_apo.trimming_rule == "truncate"
-    assert dml_apo.trimming_threshold == 1e-2
+    assert isinstance(dml_apo.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_apo.ps_processor, dml.utils.PSProcessor)
     assert not dml_apo.normalize_ipw
     assert set(dml_apo.weights.keys()) == set(["weights"])
     assert np.array_equal(dml_apo.weights["weights"], np.ones((dml_apo._dml_data.n_obs,)))
@@ -216,10 +214,10 @@ def test_apos_defaults():
     assert dml_apos.boot_method is None
     assert dml_apos.framework is None
     assert dml_apos.boot_t_stat is None
-    _fit_bootstrap(dml_qte)
+    _fit_bootstrap(dml_apos)
     assert dml_apos.score == "APO"
-    assert dml_apos.trimming_rule == "truncate"
-    assert dml_apos.trimming_threshold == 1e-2
+    assert isinstance(dml_apos.ps_processor_config, dml.utils.PSProcessorConfig)
+    assert isinstance(dml_apos.ps_processor, dml.utils.PSProcessor)
     assert not dml_apos.normalize_ipw
     assert np.array_equal(dml_apos.weights, np.ones((dml_apos._dml_data.n_obs,)))
 
