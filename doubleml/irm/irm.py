@@ -18,6 +18,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _propensity_score_adjustment
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.policytree import DoubleMLPolicyTree
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
@@ -499,7 +500,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         """
@@ -508,7 +508,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
         Performs tuning once on the whole dataset using cross-validation,
         returning the same optimal parameters for all folds.
         """
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -529,7 +528,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             optuna_params["ml_g0"],
             scoring_methods["ml_g0"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g0",
         )
@@ -543,7 +541,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             optuna_params["ml_g1"],
             scoring_methods["ml_g1"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g1",
         )
@@ -556,7 +553,6 @@ class DoubleMLIRM(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )

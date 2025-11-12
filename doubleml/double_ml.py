@@ -986,10 +986,6 @@ class DoubleML(SampleSplittingMixin, ABC):
             Custom splitters must implement ``split`` (and ideally ``get_n_splits``), or be an iterable yielding
             ``(train_indices, test_indices)`` pairs. Default is ``5``.
 
-        n_jobs_cv : None or int
-            The number of CPUs to use for cross-validation during tuning. ``None`` means ``1``.
-            Default is ``None``.
-
         set_as_params : bool
             Indicates whether the hyperparameters should be set in order to be used when :meth:`fit` is called.
             Default is ``True``.
@@ -1011,13 +1007,11 @@ class DoubleML(SampleSplittingMixin, ABC):
               (since -0.1 > -0.2 means better performance). Can be set globally or per learner.
               (default: 'maximize')
             - ``sampler`` (optuna.samplers.BaseSampler): Optuna sampler instance (default: None, uses TPE)
-            - ``pruner`` (optuna.pruners.BasePruner): Optuna pruner instance (default: None)
             - ``callbacks`` (list): List of callback functions (default: None)
             - ``show_progress_bar`` (bool): Show progress bar during optimization (default: False)
             - ``n_jobs_optuna`` (int): Number of parallel trials (default: None)
             - ``verbosity`` (int): Optuna logging verbosity level (default: None)
             - ``study`` (optuna.study.Study): Pre-created study instance (default: None)
-            - ``study_factory`` (callable): Factory function to create study (default: None)
             - ``study_kwargs`` (dict): Additional kwargs for study creation (default: {})
             - ``optimize_kwargs`` (dict): Additional kwargs for study.optimize() (default: {})
 
@@ -1101,50 +1095,11 @@ class DoubleML(SampleSplittingMixin, ABC):
         d  0.574796  0.045062  12.755721  2.896820e-37  0.486476  0.663115
         """
         # Validation
-        if not isinstance(ml_param_space, dict) or not ml_param_space:
-            raise ValueError("ml_param_space must be a non-empty dictionary.")
 
-        invalid_param_keys = [key for key in ml_param_space if key not in self.params_names]
-        if invalid_param_keys:
-            raise ValueError(
-                "Invalid ml_param_space keys for "
-                + self.__class__.__name__
-                + ": "
-                + ", ".join(sorted(invalid_param_keys))
-                + ". Valid keys are: "
-                + ", ".join(self.params_names)
-                + "."
-            )
-
-        self._validate_optuna_param_keys(ml_param_space)
-
-        requested_learners = set(ml_param_space.keys())
-
-        expanded_param_space = dict(ml_param_space)
-        for learner_name in self.params_names:
-            expanded_param_space.setdefault(learner_name, None)
-
-        # Validate that all parameter grids are callables
-        for learner_name, param_fn in ml_param_space.items():
-            if param_fn is None:
-                continue
-            if not callable(param_fn):
-                raise TypeError(
-                    f"Parameter grid for '{learner_name}' must be a callable function that takes a trial "
-                    f"and returns a dict. Got {type(param_fn).__name__}. "
-                    f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
-                )
-
+        requested_learners, expanded_param_space = self._validate_optuna_param_space(ml_param_space)
         scoring_methods = self._resolve_scoring_methods(scoring_methods)
         cv_splitter = resolve_optuna_cv(cv)
         self._validate_optuna_setting_keys(optuna_settings)
-
-        if n_jobs_cv is not None:
-            if not isinstance(n_jobs_cv, int):
-                raise TypeError(
-                    "The number of CPUs used to fit the learners must be of int type. "
-                    f"{str(n_jobs_cv)} of type {str(type(n_jobs_cv))} was passed."
-                )
 
         if not isinstance(set_as_params, bool):
             raise TypeError(f"set_as_params must be True or False. Got {str(set_as_params)}.")
@@ -1166,7 +1121,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                 expanded_param_space,
                 scoring_methods,
                 cv_splitter,
-                n_jobs_cv,
                 optuna_settings,
             )
 
@@ -1243,8 +1197,11 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + "."
             )
 
-    def _validate_optuna_param_keys(self, ml_param_space):
+    def _validate_optuna_param_space(self, ml_param_space):
         """Validate learner keys provided in the Optuna parameter space dictionary."""
+
+        if not isinstance(ml_param_space, dict) or not ml_param_space:
+            raise ValueError("ml_param_space must be a non-empty dictionary.")
 
         allowed_param_keys = set(self.params_names)
         invalid_keys = [key for key in ml_param_space if key not in allowed_param_keys]
@@ -1260,6 +1217,24 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + valid_keys_msg
                 + "."
             )
+        requested_learners = set(ml_param_space.keys())
+
+        expanded_param_space = dict(ml_param_space)
+        for learner_name in self.params_names:
+            expanded_param_space.setdefault(learner_name, None)
+
+        # Validate that all parameter spaces are callables
+        for learner_name, param_fn in ml_param_space.items():
+            if param_fn is None:
+                continue
+            if not callable(param_fn):
+                raise TypeError(
+                    f"Parameter space for '{learner_name}' must be a callable function that takes a trial "
+                    f"and returns a dict. Got {type(param_fn).__name__}. "
+                    f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
+                )
+        return requested_learners, expanded_param_space
+
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """
@@ -1355,7 +1330,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         """

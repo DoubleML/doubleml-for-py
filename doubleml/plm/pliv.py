@@ -6,11 +6,12 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 from sklearn.utils import check_X_y
 
-from ..data.base_data import DoubleMLData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_finite_predictions
-from ..utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.data.base_data import DoubleMLData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_finite_predictions
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 
 
 class DoubleMLPLIV(LinearScoreMixin, DoubleML):
@@ -277,7 +278,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         if self.partialX & (not self.partialZ):
@@ -285,7 +285,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 optuna_params,
                 scoring_methods,
                 cv,
-                n_jobs_cv,
                 optuna_settings,
             )
         elif (not self.partialX) & self.partialZ:
@@ -293,7 +292,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 optuna_params,
                 scoring_methods,
                 cv,
-                n_jobs_cv,
                 optuna_settings,
             )
         else:
@@ -302,7 +300,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 optuna_params,
                 scoring_methods,
                 cv,
-                n_jobs_cv,
                 optuna_settings,
             )
 
@@ -797,10 +794,8 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -815,7 +810,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_l",
         )
@@ -833,7 +827,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     optuna_params[f"ml_m_{instr_var}"],
                     scoring_key,
                     cv,
-                    n_jobs_cv,
                     optuna_settings,
                     learner_name=f"ml_m_{instr_var}",
                 )
@@ -848,7 +841,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",
             )
@@ -860,7 +852,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_r",
         )
@@ -887,7 +878,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
                     optuna_params["ml_g"],
                     scoring_methods["ml_g"],
                     cv,
-                    n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_g",
                 )
@@ -901,7 +891,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         from ..utils._tune_optuna import _dml_tune_optuna
@@ -918,7 +907,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_r",
         )
@@ -929,7 +917,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         from ..utils._tune_optuna import _dml_tune_optuna
@@ -948,7 +935,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_l",
         )
@@ -960,7 +946,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )
@@ -973,7 +958,6 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
             optuna_params["ml_r"],
             scoring_methods["ml_r"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_r",
         )

@@ -15,6 +15,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _cond_targets, _dml_cv_predict, _dml_tune, _get_cond_smpls
 from doubleml.utils._propensity_score import _propensity_score_adjustment
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.blp import DoubleMLBLP
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
@@ -462,10 +463,8 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -489,7 +488,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             g_lvl0_param_grid,
             g_lvl0_scoring,
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g_d_lvl0",
         )
@@ -505,7 +503,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             g_lvl1_param_grid,
             g_lvl1_scoring,
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g_d_lvl1",
         )
@@ -517,7 +514,6 @@ class DoubleMLAPO(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )

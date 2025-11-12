@@ -25,6 +25,7 @@ from doubleml.utils._estimation import (
     _solve_ipw_score,
 )
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -418,10 +419,8 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -445,7 +444,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             optuna_params["ml_g"],
             scoring_methods["ml_g"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g",
         )
@@ -457,7 +455,6 @@ class DoubleMLCVAR(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )

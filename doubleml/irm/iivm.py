@@ -17,6 +17,7 @@ from doubleml.utils._checks import (
 )
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls, _solve_quadratic_inequality
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -598,7 +599,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         """
@@ -607,7 +607,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
         Performs tuning once on the whole dataset using cross-validation,
         returning the same optimal parameters for all folds.
         """
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, z = check_X_y(x, np.ravel(self._dml_data.z), force_all_finite=False)
@@ -629,7 +628,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             optuna_params["ml_g0"],
             scoring_methods["ml_g0"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g0",
         )
@@ -643,7 +641,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             optuna_params["ml_g1"],
             scoring_methods["ml_g1"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g1",
         )
@@ -656,7 +653,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )
@@ -672,7 +668,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 optuna_params["ml_r0"],
                 scoring_methods["ml_r0"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_r0",
             )
@@ -686,7 +681,6 @@ class DoubleMLIIVM(LinearScoreMixin, DoubleML):
                 optuna_params["ml_r1"],
                 scoring_methods["ml_r1"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_r1",
             )

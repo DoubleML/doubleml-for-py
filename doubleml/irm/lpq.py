@@ -21,6 +21,7 @@ from doubleml.utils._estimation import (
     _solve_ipw_score,
 )
 from doubleml.utils._propensity_score import _normalize_ipw
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -699,10 +700,8 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -727,7 +726,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             optuna_params["ml_m_z"],
             scoring_methods["ml_m_z"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m_z",
         )
@@ -745,7 +743,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             optuna_params["ml_m_d_z0"],
             scoring_methods["ml_m_d_z0"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m_d_z0",
         )
@@ -756,7 +753,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             optuna_params["ml_g_du_z0"],
             scoring_methods["ml_g_du_z0"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g_du_z0",
         )
@@ -771,7 +767,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             optuna_params["ml_m_d_z1"],
             scoring_methods["ml_m_d_z1"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m_d_z1",
         )
@@ -782,7 +777,6 @@ class DoubleMLLPQ(NonLinearScoreMixin, DoubleML):
             optuna_params["ml_g_du_z1"],
             scoring_methods["ml_g_du_z1"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g_du_z1",
         )

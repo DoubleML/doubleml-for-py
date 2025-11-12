@@ -22,8 +22,9 @@ from collections.abc import Iterable
 from copy import deepcopy
 
 import numpy as np
+import optuna
 from sklearn.base import clone, is_classifier, is_regressor
-from sklearn.model_selection import BaseCrossValidator, KFold, cross_validate
+from sklearn.model_selection import BaseCrossValidator, KFold, cross_val_score
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,10 @@ _OPTUNA_DEFAULT_SETTINGS = {
     "study_kwargs": {},
     "optimize_kwargs": {},
     "sampler": None,
-    "pruner": None,
     "callbacks": None,
     "catch": (),
     "show_progress_bar": False,
     "gc_after_trial": False,
-    "study_factory": None,
     "study": None,
     "n_jobs_optuna": None,
     "verbosity": None,
@@ -70,7 +69,7 @@ def _resolve_optuna_scoring(scoring_method, learner, learner_name):
     -------
     tuple
     A pair consisting of the scoring argument to pass to
-    :func:`sklearn.model_selection.cross_validate` (``None`` means use the
+    :func:`sklearn.model_selection.cross_val_score` (``None`` means use the
     estimator's default ``score``) and a human-readable message describing
     the decision for logging purposes.
     """
@@ -177,7 +176,6 @@ def _check_tuning_inputs(
     param_grid_func,
     scoring_method,
     cv,
-    n_jobs_cv,
     learner_name=None,
 ):
     """Validate Optuna tuning inputs and normalize the cross-validation splitter.
@@ -196,8 +194,6 @@ def _check_tuning_inputs(
     Scoring argument after applying :func:`doubleml.utils._tune_optuna._resolve_optuna_scoring`.
     cv : int, cross-validation splitter or iterable
         Cross-validation definition provided by the caller.
-    n_jobs_cv : int or None
-        Number of parallel jobs for the cross-validation routine.
     learner_name : str or None
         Optional name used to contextualise error messages.
 
@@ -205,7 +201,7 @@ def _check_tuning_inputs(
     -------
     cross-validator or iterable
         Cross-validation splitter compatible with
-        :func:`sklearn.model_selection.cross_validate`.
+        :func:`sklearn.model_selection.cross_val_score`.
     """
 
     learner_label = learner_name or learner.__class__.__name__
@@ -221,12 +217,6 @@ def _check_tuning_inputs(
             f"Got {type(param_grid_func).__name__} for learner '{learner_label}'."
         )
 
-    if n_jobs_cv is not None and not isinstance(n_jobs_cv, int):
-        raise TypeError(
-            "The number of CPUs used to fit the learners must be of int type. "
-            f"{n_jobs_cv} of type {type(n_jobs_cv).__name__} was passed for learner '{learner_label}'."
-        )
-
     if scoring_method is not None and not callable(scoring_method) and not isinstance(scoring_method, str):
         if not isinstance(scoring_method, Iterable):
             raise TypeError(
@@ -240,7 +230,7 @@ def _check_tuning_inputs(
     return resolve_optuna_cv(cv)
 
 
-def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_name=None):
+def _get_optuna_settings(optuna_settings, learner_name=None):
     """
     Get Optuna settings, considering defaults, user-provided values, and learner-specific overrides.
 
@@ -276,8 +266,6 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
             learner_candidates.extend(learner_name)
         else:
             learner_candidates.append(learner_name)
-    if default_learner_name:
-        learner_candidates.append(default_learner_name)
 
     # Find the first matching learner-specific settings
     learner_specific_settings = {}
@@ -298,8 +286,6 @@ def _get_optuna_settings(optuna_settings, learner_name=None, default_learner_nam
         raise TypeError("optimize_kwargs must be a dict.")
     if resolved["callbacks"] is not None and not isinstance(resolved["callbacks"], (list, tuple)):
         raise TypeError("callbacks must be a sequence of callables or None.")
-    if resolved["study"] is not None and resolved["study_factory"] is not None:
-        raise ValueError("Provide only one of 'study' or 'study_factory' in optuna_settings.")
 
     return resolved
 
@@ -320,33 +306,11 @@ def _create_study(settings, learner_name):
     optuna.study.Study
         The Optuna study object ready for optimization.
     """
-    try:
-        import optuna
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "Optuna is not installed. Please install Optuna (e.g., pip install optuna) to use Optuna tuning."
-        ) from exc
 
     # Check if a study instance is provided directly
     study_instance = settings.get("study")
     if study_instance is not None:
         return study_instance
-
-    # Check if a study factory is provided
-    study_factory = settings.get("study_factory")
-    if callable(study_factory):
-        study_kwargs = settings.get("study_kwargs", {})
-        # Try to pass kwargs, but fall back to no-arg call if it fails
-        try:
-            maybe_study = study_factory(**study_kwargs)
-        except TypeError:
-            maybe_study = study_factory()
-
-        if isinstance(maybe_study, optuna.study.Study):
-            return maybe_study
-        elif maybe_study is not None:
-            raise TypeError("study_factory must return an optuna.study.Study or None.")
-        # If factory returns None, proceed to create a default study below
 
     # Build study kwargs from settings
     study_kwargs = settings.get("study_kwargs", {}).copy()
@@ -356,14 +320,11 @@ def _create_study(settings, learner_name):
     if settings.get("sampler") is not None:
         study_kwargs["sampler"] = settings["sampler"]
         logger.info(f"Using sampler {settings['sampler'].__class__.__name__} for learner '{learner_name}'.")
-    if settings.get("pruner") is not None:
-        study_kwargs["pruner"] = settings["pruner"]
-        logger.info(f"Using pruner {settings['pruner'].__class__.__name__} for learner '{learner_name}'.")
 
     return optuna.create_study(**study_kwargs, study_name=f"tune_{learner_name}")
 
 
-def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs_cv):
+def _create_objective(param_grid_func, learner, x, y, cv, scoring_method):
     """
     Create an Optuna objective function for hyperparameter optimization.
 
@@ -383,8 +344,6 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
     scoring_method : str, callable or None
         Scoring argument for cross-validation. ``None`` delegates to the
         estimator's default ``score`` implementation.
-    n_jobs_cv : int or None
-        Number of parallel jobs for cross-validation.
 
     Returns
     -------
@@ -407,19 +366,17 @@ def _create_objective(param_grid_func, learner, x, y, cv, scoring_method, n_jobs
         estimator = clone(learner).set_params(**params)
 
         # Perform cross-validation on full dataset
-        cv_results = cross_validate(
+        scores = cross_val_score(
             estimator,
             x,
             y,
             cv=cv,
             scoring=scoring_method,
-            n_jobs=n_jobs_cv,
-            return_train_score=False,
             error_score="raise",
         )
 
         # Return mean test score
-        return np.nanmean(cv_results["test_score"])
+        return np.nanmean(scores)
 
     return objective
 
@@ -431,7 +388,6 @@ def _dml_tune_optuna(
     param_grid_func,
     scoring_method,
     cv,
-    n_jobs_cv,
     optuna_settings,
     learner_name=None,
 ):
@@ -458,8 +414,6 @@ def _dml_tune_optuna(
     cv : int, cross-validation splitter, or iterable of (train_indices, test_indices)
         Cross-validation strategy used during tuning. If an integer is provided, a shuffled
         :class:`sklearn.model_selection.KFold` with the specified number of splits and ``random_state=42`` is used.
-    n_jobs_cv : int or None
-        Number of parallel jobs for cross-validation.
     optuna_settings : dict or None
         Optuna-specific settings.
     learner_name : str or None
@@ -470,8 +424,8 @@ def _dml_tune_optuna(
     _OptunaSearchResult
         A tuning result containing the fitted estimator with the optimal parameters.
     """
-    learner_label = learner_name or learner.__class__.__name__
-    scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, learner_label)
+    learner_name = learner_name or learner.__class__.__name__
+    scoring_method, scoring_message = _resolve_optuna_scoring(scoring_method, learner, learner_name)
     if scoring_message:
         logger.info(scoring_message)
 
@@ -482,16 +436,13 @@ def _dml_tune_optuna(
         param_grid_func,
         scoring_method,
         cv,
-        n_jobs_cv,
-        learner_label,
+        learner_name=learner_name,
     )
 
-    skip_tuning = param_grid_func is None
 
-    if skip_tuning:
+    if param_grid_func is None:
         estimator = clone(learner)
-        estimator.fit(x, y)
-        best_params = estimator.get_params(deep=False)
+        best_params = estimator.get_params(deep=True)
         return _OptunaSearchResult(
             estimator=estimator,
             best_params=best_params,
@@ -501,36 +452,19 @@ def _dml_tune_optuna(
             tuned=False,
         )
 
-    try:
-        import optuna
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "Optuna is not installed. Please install Optuna (e.g., pip install optuna) to use Optuna tuning."
-        ) from exc
-
-    settings = _get_optuna_settings(optuna_settings, learner_name, learner.__class__.__name__)
+    settings = _get_optuna_settings(optuna_settings, learner_name)
 
     # Set Optuna logging verbosity if specified
     verbosity = settings.get("verbosity")
     if verbosity is not None:
         optuna.logging.set_verbosity(verbosity)
-    else:
-        # Sync DoubleML logger level with Optuna logger level
-        doubleml_level = logger.getEffectiveLevel()
-        if doubleml_level == logging.DEBUG:
-            optuna.logging.set_verbosity(optuna.logging.DEBUG)
-        elif doubleml_level == logging.INFO:
-            optuna.logging.set_verbosity(optuna.logging.INFO)
-        elif doubleml_level == logging.WARNING:
-            optuna.logging.set_verbosity(optuna.logging.WARNING)
-        elif doubleml_level >= logging.ERROR:
-            optuna.logging.set_verbosity(optuna.logging.ERROR)
 
     # Create the study
-    study = _create_study(settings, learner_label)
+    study = _create_study(settings, learner_name)
+    study.set_metric_names([f"{scoring_method}_{learner_name}"])
 
     # Create the objective function
-    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method, n_jobs_cv)
+    objective = _create_objective(param_grid_func, learner, x, y, cv_splitter, scoring_method)
 
     # Build optimize kwargs
     optimize_kwargs = {

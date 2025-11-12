@@ -5,12 +5,13 @@ import pandas as pd
 from sklearn.base import clone
 from sklearn.utils import check_X_y
 
-from ..data.base_data import DoubleMLData
-from ..double_ml import DoubleML
-from ..double_ml_score_mixins import LinearScoreMixin
-from ..utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
-from ..utils._estimation import _dml_cv_predict, _dml_tune
-from ..utils.blp import DoubleMLBLP
+from doubleml.data.base_data import DoubleMLData
+from doubleml.double_ml import DoubleML
+from doubleml.double_ml_score_mixins import LinearScoreMixin
+from doubleml.utils._checks import _check_binary_predictions, _check_finite_predictions, _check_is_propensity, _check_score
+from doubleml.utils._estimation import _dml_cv_predict, _dml_tune
+from doubleml.utils._tune_optuna import _dml_tune_optuna
+from doubleml.utils.blp import DoubleMLBLP
 
 
 class DoubleMLPLR(LinearScoreMixin, DoubleML):
@@ -377,7 +378,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
         """
@@ -386,7 +386,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
         Performs tuning once on the whole dataset using cross-validation,
         returning the same optimal parameters for all folds.
         """
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -401,7 +400,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             optuna_params["ml_l"],
             scoring_methods["ml_l"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_l",
         )
@@ -412,7 +410,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
             optuna_params["ml_m"],
             scoring_methods["ml_m"],
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_m",
         )
@@ -435,7 +432,6 @@ class DoubleMLPLR(LinearScoreMixin, DoubleML):
                 optuna_params["ml_g"],
                 scoring_methods["ml_g"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g",
             )

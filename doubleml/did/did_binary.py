@@ -23,6 +23,7 @@ from doubleml.utils._checks import (
     _check_score,
 )
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -671,10 +672,8 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._x_data_subset, self._y_data_subset, force_all_finite=False)
         x, d = check_X_y(x, self._g_data_subset, force_all_finite=False)
@@ -699,7 +698,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             g0_param_grid,
             g0_scoring,
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g0",
         )
@@ -715,7 +713,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
             g1_param_grid,
             g1_scoring,
             cv,
-            n_jobs_cv,
             optuna_settings,
             learner_name="ml_g1",
         )
@@ -729,7 +726,6 @@ class DoubleMLDIDBinary(LinearScoreMixin, DoubleML):
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",
             )

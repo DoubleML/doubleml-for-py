@@ -12,6 +12,7 @@ from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import LinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_score
 from doubleml.utils._estimation import _dml_cv_predict, _dml_tune, _get_cond_smpls_2d, _predict_zero_one_propensity
+from doubleml.utils._tune_optuna import _dml_tune_optuna
 from doubleml.utils.propensity_score_processing import PSProcessorConfig, init_ps_processor
 
 
@@ -577,10 +578,8 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
         optuna_params,
         scoring_methods,
         cv,
-        n_jobs_cv,
         optuna_settings,
     ):
-        from ..utils._tune_optuna import _dml_tune_optuna
 
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
@@ -633,7 +632,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     optuna_params["ml_pi"],
                     scoring_methods["ml_pi"],
                     cv,
-                    n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_pi",
                 )
@@ -650,10 +648,10 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
             m_tune_res = _dml_tune_optuna(
                 d_subset,
                 m_subset,
+                self._learner["ml_m"],
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",
             )
@@ -673,7 +671,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     g_d0_param,
                     g_d0_scoring,
                     cv,
-                    n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_g_d0",
                 )
@@ -690,7 +687,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                     g_d1_param,
                     g_d1_scoring,
                     cv,
-                    n_jobs_cv,
                     optuna_settings,
                     learner_name="ml_g_d1",
                 )
@@ -718,7 +714,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 g_d0_param,
                 g_d0_scoring,
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g_d0",
             )
@@ -732,7 +727,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 g_d1_param,
                 g_d1_scoring,
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_g_d1",
             )
@@ -745,7 +739,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 optuna_params["ml_pi"],
                 scoring_methods["ml_pi"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_pi",
             )
@@ -757,7 +750,6 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 optuna_params["ml_m"],
                 scoring_methods["ml_m"],
                 cv,
-                n_jobs_cv,
                 optuna_settings,
                 learner_name="ml_m",
             )
