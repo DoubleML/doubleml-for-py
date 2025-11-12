@@ -526,7 +526,7 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     @property
     def __smpls__inner(self):
-        if not self._smpls_inner[self._i_rep]:
+        if not self.smpls_inner[self._i_rep]:
             raise ValueError("smpls_inner is only available for double sample splitting.")
         return self._smpls_inner[self._i_rep]
 

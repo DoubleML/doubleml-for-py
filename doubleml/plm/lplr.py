@@ -41,7 +41,7 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         Number of inner folds for nested resampling used internally.
     n_rep : int, default=1
         Number of repetitions for sample splitting.
-    score : {'nuisance_space', 'instrument'} or callable, default='nuisance_space'
+    score : {'nuisance_space', 'instrument'}, default='nuisance_space'
         Score to use. 'nuisance_space' estimates m on subsamples with y=0; 'instrument' uses an instrument-type score.
     draw_sample_splitting : bool, default=True
         Whether to draw sample splitting during initialization.
@@ -95,7 +95,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         super().__init__(obj_dml_data, n_folds, n_rep, score, draw_sample_splitting, double_sample_splitting=True)
 
         self._error_on_convergence_failure = error_on_convergence_failure
-        self._coef_start_val = 1.0
 
         self._check_data(self._dml_data)
         valid_scores = ["nuisance_space", "instrument"]
@@ -167,9 +166,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     def _check_data(self, obj_dml_data):
-        # Ensure outcome only contains 0 and 1 (validate early in constructor)
-        if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
-            raise TypeError("The outcome variable y must be binary with values 0 and 1.")
         if not isinstance(obj_dml_data, DoubleMLData):
             raise TypeError(
                 f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
@@ -234,7 +230,11 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         if M_external:
             # expect per-inner-fold keys ml_M_inner_i
-            missing = [i for i in range(self.n_folds_inner) if f"ml_M_inner_{i}" not in external_predictions.keys()]
+            missing = [
+                i
+                for i in range(self.n_folds_inner)
+                if f"ml_M_inner_{i}" not in external_predictions.keys() or external_predictions[f"ml_M_inner_{i}"] is None
+            ]
             if len(missing) > 0:
                 raise ValueError(
                     "When providing external predictions for ml_M, also inner predictions for all inner folds "
@@ -299,7 +299,11 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
 
         if a_external:
             # expect per-inner-fold keys ml_a_inner_i
-            missing = [i for i in range(self.n_folds_inner) if f"ml_a_inner_{i}" not in external_predictions.keys()]
+            missing = [
+                i
+                for i in range(self.n_folds_inner)
+                if f"ml_a_inner_{i}" not in external_predictions.keys() or external_predictions[f"ml_a_inner_{i}"] is None
+            ]
             if len(missing) > 0:
                 raise ValueError(
                     "When providing external predictions for ml_a, also inner predictions for all inner folds "

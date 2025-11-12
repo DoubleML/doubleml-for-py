@@ -4,6 +4,7 @@ import pytest
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.semi_supervised import LabelSpreading
 
 from doubleml import DoubleMLLPLR
 from doubleml.plm.datasets import make_lplr_LZZ2020
@@ -45,7 +46,7 @@ def test_lplr_exception_scores():
 
 
 @pytest.mark.ci
-def test_ssm_exception_resampling():
+def test_lplr_exception_resampling():
     msg = "The number of folds must be of int type. 1.5 of type <class 'float'> was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, n_folds=1.5)
@@ -208,10 +209,22 @@ def test_lplr_exception_learner():
     with pytest.raises(ValueError, match=msg):
         _ = DoubleMLLPLR(dml_data, ml_M, ml_t, LogisticRegression())
 
+    # ml_m may not be a classifier when treatment is not binary
+    msg = (
+        r"The ml_a learner LogisticRegression\(\) was identified as classifier "
+        r"but at least one treatment variable is not binary with values 0 and 1\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPLR(dml_data, ml_M, ml_t, ml_m, ml_a=LogisticRegression())
+
+    # ml_m may not be a classifier when treatment is not binary
+    dml_data_binary = make_lplr_LZZ2020(treatment="binary")
+    msg = 'Learner "ml_a" who supports sample_weight is required for score type "instrument"'
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPLR(dml_data_binary, ml_M, ml_t, ml_m, ml_a=LabelSpreading(), score="instrument")
+
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     log_reg = LogisticRegressionManipulatedType()
-    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-    log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedType\(\) is \(probably\) "
         r"neither a regressor nor a classifier. Method predict is used for prediction\."
@@ -262,6 +275,13 @@ class LassoWithInfPred(Lasso):
         return preds
 
 
+# Classifier that returns hard labels (0/1) via predict_proba to trigger the binary-predictions error
+class HardLabelPredictProba(LogisticRegression):
+    def predict_proba(self, X):
+        labels = super().predict(X).astype(int)
+        return np.column_stack((1 - labels, labels))
+
+
 @pytest.mark.ci
 def test_lplr_nan_prediction():
     msg = r"Predictions from learner LassoWithNanPred\(\) for ml_t are not finite."
@@ -304,3 +324,15 @@ def test_double_ml_exception_evaluate_learner():
 
     with pytest.raises(ValueError):
         dml_lplr_obj.evaluate_learners(metric=eval_fct)
+
+
+@pytest.mark.ci
+def test_lplr_exception_binary_predictions_from_classifier():
+    # Expect error because ml_m returns binary labels instead of probabilities for a binary treatment
+    msg = (
+        r"For the binary treatment variable d, predictions obtained with the ml_m learner "
+        r"HardLabelPredictProba\(\) are also observed to be binary with values 0 and 1\. "
+        r"Make sure that for classifiers probabilities and not labels are predicted\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        _ = DoubleMLLPLR(dml_data_binary, ml_M, ml_t, HardLabelPredictProba()).fit()

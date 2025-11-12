@@ -276,3 +276,11 @@ def test_doubleml_set_sample_splitting_shuffled_indices():
     # Since predictions are stored by observation index, they should be identical
     np.testing.assert_allclose(sorted_preds_l, shuffled_preds_l, rtol=1e-10)
     np.testing.assert_allclose(sorted_preds_m, shuffled_preds_m, rtol=1e-10)
+
+
+@pytest.mark.ci
+def test_doubleml_exceptions_double_sample_splitting():
+    smpls = (np.arange(n_obs), np.arange(n_obs))
+    msg = "set_sample_splitting not supported for double sample splitting."
+    with pytest.raises(ValueError, match=msg):
+        dml_plr.set_sample_splitting(smpls)
