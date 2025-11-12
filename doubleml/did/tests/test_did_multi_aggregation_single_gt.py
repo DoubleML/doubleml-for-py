@@ -38,7 +38,7 @@ def in_sample_normalization(request):
 
 
 @pytest.fixture(scope="module", params=[0.1])
-def trimming_threshold(request):
+def clipping_threshold(request):
     return request.param
 
 
@@ -48,7 +48,7 @@ def time_type(request):
 
 
 @pytest.fixture(scope="module")
-def dml_single_gt_aggregation(aggregation, time_type, learner, score, panel, in_sample_normalization, trimming_threshold):
+def dml_single_gt_aggregation(aggregation, time_type, learner, score, panel, in_sample_normalization, clipping_threshold):
     n_obs = 500
     dpg = 1
 
@@ -63,7 +63,7 @@ def dml_single_gt_aggregation(aggregation, time_type, learner, score, panel, in_
         "score": score,
         "panel": panel,
         "in_sample_normalization": in_sample_normalization,
-        "trimming_threshold": trimming_threshold,
+        "ps_processor_config": dml.utils.PSProcessorConfig(clipping_threshold=clipping_threshold),
         "draw_sample_splitting": True,
     }
     gt_combination = [(dml_panel_data.g_values[0], dml_panel_data.t_values[0], dml_panel_data.t_values[3])]

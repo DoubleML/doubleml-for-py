@@ -30,6 +30,7 @@ from doubleml.plm.datasets import (
     make_pliv_multiway_cluster_CKMS2021,
     make_plr_CCDDHNR2018,
 )
+from doubleml.utils import PSProcessorConfig
 
 from ._utils import DummyDataClass
 
@@ -382,114 +383,6 @@ def test_doubleml_exception_scores():
     msg = "score should be a string. 2 was passed."
     with pytest.raises(TypeError, match=msg):
         _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), score=2)
-
-
-@pytest.mark.ci
-def test_doubleml_exception_trimming_rule():
-    msg = "Invalid trimming_rule discard. Valid trimming_rule truncate."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIIVM(dml_data_iivm, Lasso(), LogisticRegression(), LogisticRegression(), trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPQ(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(dml_data_iivm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLCVAR(dml_data_irm, LogisticRegression(), LogisticRegression(), treatment=1, trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLQTE(dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule="discard")
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), trimming_rule="discard")
-
-    # check the trimming_threshold exceptions
-    msg = "trimming_threshold has to be a float. Object of type <class 'str'> passed."
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold="0.1")
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLIIVM(
-            dml_data_iivm,
-            Lasso(),
-            LogisticRegression(),
-            LogisticRegression(),
-            trimming_rule="truncate",
-            trimming_threshold="0.1",
-        )
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLPQ(
-            dml_data_irm,
-            LogisticRegression(),
-            LogisticRegression(),
-            treatment=1,
-            trimming_rule="truncate",
-            trimming_threshold="0.1",
-        )
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLLPQ(
-            dml_data_iivm,
-            LogisticRegression(),
-            LogisticRegression(),
-            treatment=1,
-            trimming_rule="truncate",
-            trimming_threshold="0.1",
-        )
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLCVAR(
-            dml_data_irm, Lasso(), LogisticRegression(), treatment=1, trimming_rule="truncate", trimming_threshold="0.1"
-        )
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLQTE(
-            dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="truncate", trimming_threshold="0.1"
-        )
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold="0.1")
-    with pytest.raises(TypeError, match=msg):
-        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold="0.1")
-
-    msg = "Invalid trimming_threshold 0.6. trimming_threshold has to be between 0 and 0.5."
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold=0.6)
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLIIVM(
-            dml_data_iivm,
-            Lasso(),
-            LogisticRegression(),
-            LogisticRegression(),
-            trimming_rule="truncate",
-            trimming_threshold=0.6,
-        )
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLPQ(
-            dml_data_irm,
-            LogisticRegression(),
-            LogisticRegression(),
-            treatment=1,
-            trimming_rule="truncate",
-            trimming_threshold=0.6,
-        )
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLLPQ(
-            dml_data_iivm,
-            LogisticRegression(),
-            LogisticRegression(),
-            treatment=1,
-            trimming_rule="truncate",
-            trimming_threshold=0.6,
-        )
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLCVAR(
-            dml_data_irm, Lasso(), LogisticRegression(), treatment=1, trimming_rule="truncate", trimming_threshold=0.6
-        )
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLQTE(
-            dml_data_irm, LogisticRegression(), LogisticRegression(), trimming_rule="truncate", trimming_threshold=0.6
-        )
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDID(dml_data_did, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold=0.6)
-    with pytest.raises(ValueError, match=msg):
-        _ = DoubleMLDIDCS(dml_data_did_cs, Lasso(), LogisticRegression(), trimming_rule="truncate", trimming_threshold=0.6)
 
 
 @pytest.mark.ci
@@ -987,9 +880,9 @@ class _DummyNoGetParams(_DummyNoSetParams):
         pass
 
 
-class _DummyNoClassifier(_DummyNoGetParams):
-    def get_params(self):
-        pass
+class _DummyNoClassifier(_DummyNoGetParams, BaseEstimator):
+    def get_params(self, deep=True):
+        return {}
 
     def predict_proba(self):
         pass
@@ -1089,28 +982,25 @@ def test_doubleml_exception_learner():
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     log_reg = LogisticRegressionManipulatedPredict()
-    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-    log_reg._estimator_type = None
-    msg = (
+    msg_warn = (
         r"Learner provided for ml_m is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
         "neither a regressor nor a classifier. Method predict is used for prediction."
     )
-    with pytest.warns(UserWarning, match=msg):
+    with pytest.warns(UserWarning, match=msg_warn):
         dml_plr_hidden_classifier = DoubleMLPLR(dml_data_irm, Lasso(), log_reg)
     msg = (
         r"For the binary variable d, predictions obtained with the ml_m learner LogisticRegressionManipulatedPredict\(\) "
         "are also observed to be binary with values 0 and 1. Make sure that for classifiers probabilities and not "
         "labels are predicted."
     )
-    with pytest.raises(ValueError, match=msg):
-        dml_plr_hidden_classifier.fit()
+    with pytest.warns(UserWarning, match=msg_warn):
+        with pytest.raises(ValueError, match=msg):
+            dml_plr_hidden_classifier.fit()
 
     # construct a classifier which is not identifiable as classifier via is_classifier by sklearn
     # it then predicts labels and therefore an exception will be thrown
     # whether predict() or predict_proba() is being called can also be manipulated via the unrelated max_iter variable
     log_reg = LogisticRegressionManipulatedPredict()
-    # TODO(0.11) can be removed if the sklearn dependency is bumped to 1.6.0
-    log_reg._estimator_type = None
     msg = (
         r"Learner provided for ml_g is probably invalid: LogisticRegressionManipulatedPredict\(\) is \(probably\) "
         "neither a regressor nor a classifier. Method predict is used for prediction."
@@ -1177,7 +1067,12 @@ def test_doubleml_sensitivity_not_yet_implemented():
 
 @pytest.mark.ci
 def test_doubleml_sensitivity_inputs():
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm = DoubleMLIRM(
+        dml_data_irm,
+        Lasso(),
+        LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+    )
     dml_irm.fit()
 
     # test cf_y
@@ -1257,7 +1152,9 @@ def test_doubleml_sensitivity_inputs():
 
 
 def test_doubleml_sensitivity_reestimation_warning():
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm = DoubleMLIRM(
+        dml_data_irm, Lasso(), LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)
+    )
     dml_irm.fit()
 
     dml_irm.sensitivity_elements["nu2"] = -1.0 * dml_irm.sensitivity_elements["nu2"]
@@ -1268,7 +1165,9 @@ def test_doubleml_sensitivity_reestimation_warning():
 
 
 def test_doubleml_sensitivity_summary():
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm = DoubleMLIRM(
+        dml_data_irm, Lasso(), LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)
+    )
     msg = r"Apply sensitivity_analysis\(\) before sensitivity_summary."
     with pytest.raises(ValueError, match=msg):
         _ = dml_irm.sensitivity_summary
@@ -1276,7 +1175,9 @@ def test_doubleml_sensitivity_summary():
 
 @pytest.mark.ci
 def test_doubleml_sensitivity_benchmark():
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm = DoubleMLIRM(
+        dml_data_irm, Lasso(), LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)
+    )
     dml_irm.fit()
 
     # test input
@@ -1298,7 +1199,12 @@ def test_doubleml_sensitivity_benchmark():
 
 @pytest.mark.ci
 def test_doubleml_sensitivity_plot_input():
-    dml_irm = DoubleMLIRM(dml_data_irm, Lasso(), LogisticRegression(), trimming_threshold=0.1)
+    dml_irm = DoubleMLIRM(
+        dml_data_irm,
+        Lasso(),
+        LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+    )
     dml_irm.fit()
 
     msg = r"Apply sensitivity_analysis\(\) to include senario in sensitivity_plot. "
@@ -1437,7 +1343,9 @@ def test_doubleml_warning_blp():
 
 @pytest.mark.ci
 def test_doubleml_exception_gate():
-    dml_irm_obj = DoubleMLIRM(dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5)
+    dml_irm_obj = DoubleMLIRM(
+        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), ps_processor_config=PSProcessorConfig(clipping_threshold=0.1)
+    )
     dml_irm_obj.fit()
 
     msg = "Groups must be of DataFrame type. Groups of type <class 'int'> was passed."
@@ -1452,7 +1360,12 @@ def test_doubleml_exception_gate():
         dml_irm_obj.gate(groups=groups)
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATTE"
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+        n_folds=5,
+        score="ATTE",
     )
     dml_irm_obj.fit()
     groups = pd.DataFrame(np.random.choice([True, False], size=dml_data_irm.n_obs))
@@ -1461,7 +1374,13 @@ def test_doubleml_exception_gate():
         dml_irm_obj.gate(groups=groups)
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATE", n_rep=2
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.1),
+        n_folds=5,
+        score="ATE",
+        n_rep=2,
     )
     dml_irm_obj.fit()
 
@@ -1473,7 +1392,12 @@ def test_doubleml_exception_gate():
 @pytest.mark.ci
 def test_doubleml_exception_cate():
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATTE"
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATTE",
     )
     dml_irm_obj.fit()
 
@@ -1482,7 +1406,13 @@ def test_doubleml_exception_cate():
         dml_irm_obj.cate(basis=2)
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATE", n_rep=2
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATE",
+        n_rep=2,
     )
     dml_irm_obj.fit()
     msg = "Only implemented for one repetition. Number of repetitions is 2."
@@ -1530,7 +1460,12 @@ def test_doubleml_exception_plr_gate():
 @pytest.mark.ci
 def test_double_ml_exception_evaluate_learner():
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATTE"
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATTE",
     )
 
     msg = r"Apply fit\(\) before evaluate_learners\(\)."
@@ -1558,7 +1493,13 @@ def test_double_ml_exception_evaluate_learner():
 
 @pytest.mark.ci
 def test_doubleml_exception_policytree():
-    dml_irm_obj = DoubleMLIRM(dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5)
+    dml_irm_obj = DoubleMLIRM(
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+    )
     dml_irm_obj.fit()
 
     msg = "Covariates must be of DataFrame type. Covariates of type <class 'int'> was passed."
@@ -1572,7 +1513,12 @@ def test_doubleml_exception_policytree():
         dml_irm_obj.policy_tree(features=pd.DataFrame(np.random.normal(0, 1, size=(dml_data_irm.n_obs, 3))), depth=0.1)
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATTE"
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATTE",
     )
     dml_irm_obj.fit()
 
@@ -1581,7 +1527,13 @@ def test_doubleml_exception_policytree():
         dml_irm_obj.policy_tree(features=2, depth=1)
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATE", n_rep=2
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATE",
+        n_rep=2,
     )
     dml_irm_obj.fit()
     msg = "Only implemented for one repetition. Number of repetitions is 2."
@@ -1592,7 +1544,13 @@ def test_doubleml_exception_policytree():
 @pytest.mark.ci
 def test_double_ml_external_predictions():
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATE", n_rep=2
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATE",
+        n_rep=2,
     )
 
     msg = "external_predictions must be a dictionary. ml_m of type <class 'str'> was passed."
@@ -1600,7 +1558,13 @@ def test_double_ml_external_predictions():
         dml_irm_obj.fit(external_predictions="ml_m")
 
     dml_irm_obj = DoubleMLIRM(
-        dml_data_irm, ml_g=Lasso(), ml_m=LogisticRegression(), trimming_threshold=0.05, n_folds=5, score="ATE", n_rep=1
+        dml_data_irm,
+        ml_g=Lasso(),
+        ml_m=LogisticRegression(),
+        ps_processor_config=PSProcessorConfig(clipping_threshold=0.05),
+        n_folds=5,
+        score="ATE",
+        n_rep=1,
     )
 
     predictions = {"d": "test", "d_f": "test"}
