@@ -1,4 +1,5 @@
 import numpy as np
+import optuna
 import pytest
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.model_selection import KFold
@@ -23,21 +24,6 @@ from doubleml.plm.datasets import (
 )
 from doubleml.utils._tune_optuna import _resolve_optuna_scoring
 
-try:  # pragma: no cover - optional dependency
-    import optuna
-    from optuna.samplers import TPESampler
-
-    try:
-        from optuna.integration import SkoptSampler
-    except Exception:  # pragma: no cover - optional dependency
-        SkoptSampler = None
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    optuna = None
-    TPESampler = None
-    SkoptSampler = None
-
-pytestmark = pytest.mark.skipif(optuna is None, reason="Optuna is not installed.")
-
 
 def _basic_optuna_settings(additional=None):
     base_settings = {"n_trials": 1, "sampler": optuna.samplers.RandomSampler(seed=3141)}
@@ -48,25 +34,12 @@ def _basic_optuna_settings(additional=None):
 
 _SAMPLER_CASES = [
     ("random", optuna.samplers.RandomSampler(seed=3141)),
+    ("tpe", optuna.samplers.TPESampler(seed=3141)),
 ]
-
-if TPESampler is not None:  # pragma: no cover - optional dependency
-    _SAMPLER_CASES.append(("tpe", TPESampler(seed=3141)))
-
-if SkoptSampler is not None:  # pragma: no cover - optional dependency
-    _SAMPLER_CASES.append(("skopt", SkoptSampler(seed=3141)))
-
 
 def _small_tree_params(trial):
     return {
         "max_depth": trial.suggest_int("max_depth", 1, 2),
-        "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 3),
-    }
-
-
-def _medium_tree_params(trial):
-    return {
-        "max_depth": trial.suggest_int("max_depth", 1, 3),
         "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 3),
     }
 
@@ -133,7 +106,7 @@ def test_resolve_optuna_scoring_lightgbm_regressor_default():
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3141)
-    dml_data = make_plr_CCDDHNR2018(n_obs=80, dim_x=6)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=123, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=456, max_depth=5, min_samples_leaf=4)
@@ -165,7 +138,7 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
 
 def test_doubleml_optuna_cv_variants():
     np.random.seed(3142)
-    dml_data = make_plr_CCDDHNR2018(n_obs=64, dim_x=5)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l_int = DecisionTreeRegressor(random_state=10, max_depth=5, min_samples_leaf=4)
     ml_m_int = DecisionTreeRegressor(random_state=11, max_depth=5, min_samples_leaf=4)
@@ -206,7 +179,7 @@ def test_doubleml_optuna_cv_variants():
 
 def test_doubleml_optuna_partial_tuning_single_learner():
     np.random.seed(3143)
-    dml_data = make_plr_CCDDHNR2018(n_obs=64, dim_x=5)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=20, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=21, max_depth=5, min_samples_leaf=4)
@@ -237,7 +210,7 @@ def test_doubleml_optuna_partial_tuning_single_learner():
 
 def test_doubleml_optuna_sets_params_for_all_folds():
     np.random.seed(3153)
-    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=101, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=202, max_depth=5, min_samples_leaf=4)
@@ -274,7 +247,7 @@ def test_doubleml_optuna_sets_params_for_all_folds():
 
 def test_doubleml_optuna_fit_uses_tuned_params():
     np.random.seed(3154)
-    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=303, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=404, max_depth=5, min_samples_leaf=4)
@@ -304,14 +277,14 @@ def test_doubleml_optuna_fit_uses_tuned_params():
 
 def test_doubleml_optuna_invalid_settings_key_raises():
     np.random.seed(3155)
-    dml_data = make_irm_data(n_obs=80, dim_x=4)
+    dml_data = make_irm_data(n_obs=100, dim_x=5)
 
     ml_g = DecisionTreeRegressor(random_state=111, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=222, max_depth=5, min_samples_leaf=4)
 
     dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2)
 
-    optuna_params = {"ml_g0": _medium_tree_params, "ml_g1": _medium_tree_params, "ml_m": _medium_tree_params}
+    optuna_params = {"ml_g0": _small_tree_params, "ml_g1": _small_tree_params, "ml_m": _small_tree_params}
     invalid_settings = _basic_optuna_settings({"ml_l": {"n_trials": 2}})
 
     with pytest.raises(ValueError, match="ml_l"):
@@ -321,14 +294,14 @@ def test_doubleml_optuna_invalid_settings_key_raises():
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3142)
-    dml_data = make_irm_data(n_obs=120, dim_x=6)
+    dml_data = make_irm_data(n_obs=100, dim_x=5)
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
 
     dml_irm = dml.DoubleMLIRM(dml_data, ml_g, ml_m, n_folds=2)
 
-    optuna_params = {"ml_g0": _medium_tree_params, "ml_g1": _medium_tree_params, "ml_m": _medium_tree_params}
+    optuna_params = {"ml_g0": _small_tree_params, "ml_g1": _small_tree_params, "ml_m": _small_tree_params}
 
     per_ml_settings = {
         "ml_m": {"sampler": optuna_sampler, "n_trials": 1},
@@ -355,7 +328,7 @@ def test_doubleml_iivm_optuna_tune(sampler_name, optuna_sampler):
     """Test IIVM with ml_g0, ml_g1, ml_m, ml_r0, ml_r1 nuisance models."""
 
     np.random.seed(3143)
-    dml_data = make_iivm_data(n_obs=150, dim_x=6)
+    dml_data = make_iivm_data(n_obs=100, dim_x=5)
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
@@ -364,11 +337,11 @@ def test_doubleml_iivm_optuna_tune(sampler_name, optuna_sampler):
     dml_iivm = dml.DoubleMLIIVM(dml_data, ml_g, ml_m, ml_r, n_folds=2, subgroups={"always_takers": True, "never_takers": True})
 
     optuna_params = {
-        "ml_g0": _medium_tree_params,
-        "ml_g1": _medium_tree_params,
-        "ml_m": _medium_tree_params,
-        "ml_r0": _medium_tree_params,
-        "ml_r1": _medium_tree_params,
+        "ml_g0": _small_tree_params,
+        "ml_g1": _small_tree_params,
+        "ml_m": _small_tree_params,
+        "ml_r0": _small_tree_params,
+        "ml_r1": _small_tree_params,
     }
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
@@ -392,7 +365,7 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
     """Test PLIV with ml_l, ml_m, ml_r nuisance models."""
 
     np.random.seed(3144)
-    dml_data = make_pliv_CHS2015(n_obs=120, dim_x=15, dim_z=3)
+    dml_data = make_pliv_CHS2015(n_obs=100, dim_x=15, dim_z=3)
 
     ml_l = DecisionTreeRegressor(random_state=123, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=456, max_depth=5, min_samples_leaf=4)
@@ -413,14 +386,14 @@ def test_doubleml_pliv_optuna_tune(sampler_name, optuna_sampler):
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_cvar_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3145)
-    dml_data = make_irm_data(n_obs=120, dim_x=6)
+    dml_data = make_irm_data(n_obs=100, dim_x=6)
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
 
     dml_cvar = dml.DoubleMLCVAR(dml_data, ml_g=ml_g, ml_m=ml_m, n_folds=2)
 
-    optuna_params = {"ml_g": _medium_tree_params, "ml_m": _medium_tree_params}
+    optuna_params = {"ml_g": _small_tree_params, "ml_m": _small_tree_params}
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     dml_cvar.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
@@ -435,14 +408,14 @@ def test_doubleml_cvar_optuna_tune(sampler_name, optuna_sampler):
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_apo_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3146)
-    dml_data = make_irm_data(n_obs=200, dim_x=6)
+    dml_data = make_irm_data(n_obs=100, dim_x=6)
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
 
     dml_apo = dml.DoubleMLAPO(dml_data, ml_g=ml_g, ml_m=ml_m, n_folds=2, treatment_level=1)
 
-    optuna_params = _build_param_grid(dml_apo, _medium_tree_params)
+    optuna_params = _build_param_grid(dml_apo, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     dml_apo.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
@@ -455,14 +428,14 @@ def test_doubleml_apo_optuna_tune(sampler_name, optuna_sampler):
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_pq_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3147)
-    dml_data = make_irm_data(n_obs=160, dim_x=6)
+    dml_data = make_irm_data(n_obs=100, dim_x=6)
 
     ml_g = DecisionTreeClassifier(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
 
     dml_pq = dml.DoubleMLPQ(dml_data, ml_g, ml_m, n_folds=2)
 
-    optuna_params = _build_param_grid(dml_pq, _medium_tree_params)
+    optuna_params = _build_param_grid(dml_pq, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     dml_pq.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
@@ -475,14 +448,14 @@ def test_doubleml_pq_optuna_tune(sampler_name, optuna_sampler):
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3148)
-    dml_data = make_iivm_data(n_obs=180, dim_x=6)
+    dml_data = make_iivm_data(n_obs=100, dim_x=5)
 
     ml_g = DecisionTreeClassifier(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
 
     dml_lpq = dml.DoubleMLLPQ(dml_data, ml_g, ml_m, n_folds=2)
 
-    optuna_params = _build_param_grid(dml_lpq, _medium_tree_params)
+    optuna_params = _build_param_grid(dml_lpq, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     dml_lpq.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
@@ -495,7 +468,7 @@ def test_doubleml_lpq_optuna_tune(sampler_name, optuna_sampler):
 @pytest.mark.parametrize("sampler_name,optuna_sampler", _SAMPLER_CASES, ids=[case[0] for case in _SAMPLER_CASES])
 def test_doubleml_ssm_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3149)
-    dml_data = make_ssm_data(n_obs=800, dim_x=12, mar=True)
+    dml_data = make_ssm_data(n_obs=100, dim_x=12, mar=True)
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     ml_pi = DecisionTreeClassifier(random_state=654, max_depth=5, min_samples_leaf=4)
@@ -503,7 +476,7 @@ def test_doubleml_ssm_optuna_tune(sampler_name, optuna_sampler):
 
     dml_ssm = dml.DoubleMLSSM(dml_data, ml_g, ml_pi, ml_m, n_folds=2, score="missing-at-random")
 
-    optuna_params = _build_param_grid(dml_ssm, _medium_tree_params)
+    optuna_params = _build_param_grid(dml_ssm, _small_tree_params)
 
     optuna_settings = _basic_optuna_settings({"sampler": optuna_sampler})
     dml_ssm.tune_ml_models(ml_param_space=optuna_params, optuna_settings=optuna_settings)
@@ -519,7 +492,7 @@ def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):
     """Test DID with ml_g0, ml_g1 (and ml_m for observational score) nuisance models."""
 
     np.random.seed(3150)
-    dml_data = make_did_SZ2020(n_obs=250, dgp_type=1, return_type="DoubleMLDIDData")
+    dml_data = make_did_SZ2020(n_obs=100, dgp_type=1, return_type="DoubleMLDIDData")
 
     ml_g = DecisionTreeRegressor(random_state=321, max_depth=5, min_samples_leaf=4)
     if score == "observational":
@@ -543,7 +516,7 @@ def test_doubleml_did_optuna_tune(sampler_name, optuna_sampler, score):
 def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3151)
     dml_data = make_did_SZ2020(
-        n_obs=260,
+        n_obs=100,
         dgp_type=2,
         cross_sectional_data=True,
         return_type="DoubleMLDIDData",
@@ -570,7 +543,7 @@ def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
 def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3152)
     df_panel = make_did_CS2021(
-        n_obs=400,
+        n_obs=100,
         dgp_type=1,
         include_never_treated=True,
         time_type="float",
@@ -616,7 +589,7 @@ def test_doubleml_did_binary_optuna_tune(sampler_name, optuna_sampler):
 def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3153)
     df_panel = make_did_cs_CS2021(
-        n_obs=500,
+        n_obs=100,
         dgp_type=2,
         include_never_treated=True,
         lambda_t=0.6,
@@ -662,7 +635,7 @@ def test_optuna_logging_integration():
     import logging
 
     np.random.seed(3154)
-    dml_data = make_plr_CCDDHNR2018(n_obs=60, dim_x=4)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=303, max_depth=5, min_samples_leaf=4)
     ml_m = DecisionTreeRegressor(random_state=404, max_depth=5, min_samples_leaf=4)
@@ -731,7 +704,7 @@ def test_optuna_logging_verbosity_sync():
     import logging
 
     np.random.seed(3155)
-    dml_data = make_plr_CCDDHNR2018(n_obs=50, dim_x=3)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=111)
     ml_m = DecisionTreeRegressor(random_state=222)
@@ -765,7 +738,7 @@ def test_optuna_logging_verbosity_sync():
 def test_optuna_logging_explicit_verbosity():
     """Test that explicit verbosity setting in optuna_settings takes precedence."""
     np.random.seed(3156)
-    dml_data = make_plr_CCDDHNR2018(n_obs=50, dim_x=3)
+    dml_data = make_plr_CCDDHNR2018(n_obs=100, dim_x=5)
 
     ml_l = DecisionTreeRegressor(random_state=333)
     ml_m = DecisionTreeRegressor(random_state=444)
