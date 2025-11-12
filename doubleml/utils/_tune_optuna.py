@@ -439,7 +439,6 @@ def _dml_tune_optuna(
         learner_name=learner_name,
     )
 
-
     if param_grid_func is None:
         estimator = clone(learner)
         best_params = estimator.get_params(deep=True)

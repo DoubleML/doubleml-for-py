@@ -933,7 +933,6 @@ class DoubleML(SampleSplittingMixin, ABC):
         ml_param_space,
         scoring_methods=None,
         cv=5,
-        n_jobs_cv=None,
         set_as_params=True,
         return_tune_res=False,
         optuna_settings=None,
@@ -1234,7 +1233,6 @@ class DoubleML(SampleSplittingMixin, ABC):
                     f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
                 )
         return requested_learners, expanded_param_space
-
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """
@@ -1567,8 +1565,8 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> from doubleml.irm.datasets import make_irm_data
         >>> from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         >>> np.random.seed(3141)
-        >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
-        >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2)
+        >>> ml_g = RandomForestRegressor(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2, random_state=42)
+        >>> ml_m = RandomForestClassifier(n_estimators=100, max_features=20, max_depth=5, min_samples_leaf=2, random_state=42)
         >>> data = make_irm_data(theta=0.5, n_obs=500, dim_x=20, return_type='DataFrame')
         >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd')
         >>> dml_irm_obj = dml.DoubleMLIRM(obj_dml_data, ml_g, ml_m)
@@ -1577,7 +1575,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     subset = np.logical_not(np.isnan(y_true))
         ...     return mean_absolute_error(y_true[subset], y_pred[subset])
         >>> dml_irm_obj.evaluate_learners(metric=mae)
-        {'ml_g0': array([[0.88173585]]), 'ml_g1': array([[0.83854057]]), 'ml_m': array([[0.35871235]])}
+        {'ml_g0': array([[0.88086873]]), 'ml_g1': array([[0.8452644]]), 'ml_m': array([[0.35789438]])}
         """
         # if no learners are provided try to evaluate all learners
         if learners is None:
