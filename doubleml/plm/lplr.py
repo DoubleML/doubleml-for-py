@@ -7,7 +7,6 @@ from sklearn.base import clone
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import type_of_target
 
-from doubleml import DoubleMLData
 from doubleml.double_ml import DoubleML
 from doubleml.double_ml_score_mixins import NonLinearScoreMixin
 from doubleml.utils._checks import _check_finite_predictions, _check_is_propensity, _check_score
@@ -166,13 +165,8 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
         self._params = {learner: {key: [None] * self.n_rep for key in self._dml_data.d_cols} for learner in self._learner}
 
     def _check_data(self, obj_dml_data):
-        if not isinstance(obj_dml_data, DoubleMLData):
-            raise TypeError(
-                f"The data must be of DoubleMLData type. {str(obj_dml_data)} of type {str(type(obj_dml_data))} was passed."
-            )
         if not np.array_equal(np.unique(obj_dml_data.y), [0, 1]):
             raise TypeError("The outcome variable y must be binary with values 0 and 1.")
-        return
 
     def _double_dml_cv_predict(
         self,
@@ -202,7 +196,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
                 est_params=est_params,
                 method=method,
                 return_models=True,
-                smpls_is_partition_manual_set=True,
                 sample_weights=sample_weights,
             )
             _check_finite_predictions(res_inner["preds"], estimator, estimator_name, smpls_double_split)
@@ -447,7 +440,6 @@ class DoubleMLLPLR(NonLinearScoreMixin, DoubleML):
     ):
         if self._i_rep is None:
             raise ValueError("tune_on_folds must be True as targets have to be created for ml_t on folds.")
-        # TODO: test
         x, y = check_X_y(self._dml_data.x, self._dml_data.y, force_all_finite=False)
         x, d = check_X_y(x, self._dml_data.d, force_all_finite=False)
         x_d_concat = np.hstack((d.reshape(-1, 1), x))

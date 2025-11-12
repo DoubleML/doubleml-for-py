@@ -21,3 +21,8 @@ def test_doubleml_exceptions_double_sample_splitting():
     msg = "set_sample_splitting not supported for double sample splitting."
     with pytest.raises(ValueError, match=msg):
         dml_lplr.set_sample_splitting(smpls)
+
+    dml_lplr._is_cluster_data = True
+    msg = "Cluster data not supported for double sample splitting."
+    with pytest.raises(ValueError, match=msg):
+        dml_lplr.draw_sample_splitting()

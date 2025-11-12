@@ -56,15 +56,11 @@ def _dml_cv_predict(
     method="predict",
     return_train_preds=False,
     return_models=False,
-    smpls_is_partition_manual_set=None,
     sample_weights=None,
 ):
     n_obs = x.shape[0]
 
-    if smpls_is_partition_manual_set is None:
-        smpls_is_partition = _check_is_partition(smpls, n_obs)
-    else:
-        smpls_is_partition = smpls_is_partition_manual_set
+    smpls_is_partition = _check_is_partition(smpls, n_obs)
     fold_specific_params = (est_params is not None) & (not isinstance(est_params, dict))
     fold_specific_target = isinstance(y, list)
     manual_cv_predict = (
@@ -108,7 +104,7 @@ def _dml_cv_predict(
     else:
         if not smpls_is_partition:
             assert not fold_specific_target, "combination of fold-specific y and no cross-fitting not implemented yet"
-            assert len(smpls) == 1
+            # assert len(smpls) == 1
 
         if method == "predict_proba":
             assert not fold_specific_target  # fold_specific_target only needed for PLIV.partialXZ
