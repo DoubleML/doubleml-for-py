@@ -22,10 +22,10 @@ from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass
 from pprint import pformat
+from typing import Callable, Union
 
 import numpy as np
 import optuna
-import pandas as pd
 from sklearn.base import clone, is_classifier, is_regressor
 from sklearn.model_selection import BaseCrossValidator, KFold, cross_val_score
 
@@ -77,7 +77,7 @@ class DMLOptunaResult:
     best_estimator: object
     best_params: dict
     best_score: float
-    scoring_method: str | callable
+    scoring_method: Union[str, Callable]
     study: optuna.study.Study
     tuned: bool
 
@@ -535,7 +535,7 @@ def _dml_tune_optuna(
     best_estimator = clone(learner).set_params(**best_params)
     best_estimator.fit(x, y)
 
-    return _OptunaSearchResult(
+    return DMLOptunaResult(
         estimator=best_estimator,
         best_params=best_params,
         best_score=best_score,
