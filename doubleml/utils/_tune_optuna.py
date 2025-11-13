@@ -230,7 +230,7 @@ def _check_tuning_inputs(
     return resolve_optuna_cv(cv)
 
 
-def _get_optuna_settings(optuna_settings, learner_name=None):
+def _get_optuna_settings(optuna_settings, params_name=None):
     """
     Get Optuna settings, considering defaults, user-provided values, and learner-specific overrides.
 
@@ -238,8 +238,8 @@ def _get_optuna_settings(optuna_settings, learner_name=None):
     ----------
     optuna_settings : dict or None
         User-provided Optuna settings.
-    learner_name : str or list or None
-        Name(s) of the learner to check for specific settings.
+    params_name : str
+        Name of the learner to check for specific setting, e.g. `ml_g0` or `ml_g1` for `DoubleMLIRM`.
     default_learner_name : str or None
         A default learner name to use as a fallback.
 
@@ -258,26 +258,24 @@ def _get_optuna_settings(optuna_settings, learner_name=None):
 
     # Base settings are the user-provided settings filtered by default keys
     base_settings = {key: value for key, value in optuna_settings.items() if key in OPTUNA_GLOBAL_SETTING_KEYS}
+    learner_or_params_keys = set(optuna_settings.keys()) - set(base_settings.keys())
 
-    # Determine the search order for learner-specific settings
-    learner_candidates = []
-    if learner_name:
-        if isinstance(learner_name, (list, tuple)):
-            learner_candidates.extend(learner_name)
-        else:
-            learner_candidates.append(learner_name)
+    # Find matching learner-specific settings, handles the case to match ml_g to ml_g0, ml_g1, etc.
+    if params_name in any(learner_or_params_keys):
+        for k in learner_or_params_keys:
+            if params_name in k and params_name != k:
+                learner_specific_settings = optuna_settings[k]
+    else:
+        learner_specific_settings = {}
 
-    # Find the first matching learner-specific settings
-    learner_specific_settings = {}
-    for name in learner_candidates:
-        if name in optuna_settings and isinstance(optuna_settings[name], dict):
-            learner_specific_settings = optuna_settings[name]
-            break
+    # set params specific settings
+    if params_name in learner_or_params_keys:
+        params_specific_settings = optuna_settings[params_name]
+    else:
+        params_specific_settings = {}
 
-    # Merge settings: defaults < base < learner-specific
-    resolved = default_settings.copy()
-    resolved.update(base_settings)
-    resolved.update(learner_specific_settings)
+    # Merge settings: defaults < base < learner-specific < params_specific
+    resolved = default_settings.copy() | base_settings | learner_specific_settings | params_specific_settings
 
     # Validate types
     if not isinstance(resolved["study_kwargs"], dict):
@@ -509,3 +507,10 @@ def _dml_tune_optuna(
         trials_dataframe=trials_df,
         tuned=True,
     )
+
+
+def _join_param_spaces(param_space_global, param_space_local):
+    def joined_param_space(trial):
+        return param_space_global(trial) | param_space_local(trial)
+
+    return joined_param_space

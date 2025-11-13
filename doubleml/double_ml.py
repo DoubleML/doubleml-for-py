@@ -14,7 +14,7 @@ from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
-from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, resolve_optuna_cv
+from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, _join_param_spaces, resolve_optuna_cv
 from doubleml.utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
@@ -1176,7 +1176,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         if not optuna_settings:
             return
 
-        allowed_learner_keys = set(self.params_names)
+        allowed_learner_keys = set(self.params_names) | set(self.learner_names)
         invalid_keys = [
             key for key in optuna_settings if key not in OPTUNA_GLOBAL_SETTING_KEYS and key not in allowed_learner_keys
         ]
@@ -1202,7 +1202,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         if not isinstance(ml_param_space, dict) or not ml_param_space:
             raise ValueError("ml_param_space must be a non-empty dictionary.")
 
-        allowed_param_keys = set(self.params_names)
+        allowed_param_keys = set(self.params_names) | set(self.learner_names)
         invalid_keys = [key for key in ml_param_space if key not in allowed_param_keys]
 
         if invalid_keys:
@@ -1217,10 +1217,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                 + "."
             )
         requested_learners = set(ml_param_space.keys())
-
-        expanded_param_space = dict(ml_param_space)
-        for learner_name in self.params_names:
-            expanded_param_space.setdefault(learner_name, None)
+        final_param_space = {k: None for k in self.params_names}
 
         # Validate that all parameter spaces are callables
         for learner_name, param_fn in ml_param_space.items():
@@ -1232,7 +1229,19 @@ class DoubleML(SampleSplittingMixin, ABC):
                     f"and returns a dict. Got {type(param_fn).__name__}. "
                     f"Example: def ml_params(trial): return {{'lr': trial.suggest_float('lr', 0.01, 0.1)}}"
                 )
-        return requested_learners, expanded_param_space
+
+        # Set Hyperparameter spaces for learners (global / learner_name level)
+        for learner_name in [ln for ln in self.learner_names if ln in ml_param_space.keys()]:
+            for param_key in [pk for pk in self.params_names if learner_name in pk]:
+                final_param_space[param_key] = ml_param_space[learner_name]
+        # Override if param_name specific space is provided
+        for param_key in [pk for pk in self.params_names if pk in ml_param_space.keys()]:
+            if final_param_space[param_key] is None:
+                final_param_space[param_key] = ml_param_space[param_key]
+            else:
+                final_param_space[param_key] = _join_param_spaces(final_param_space[param_key], ml_param_space[param_key])
+
+        return requested_learners, final_param_space
 
     def set_ml_nuisance_params(self, learner, treat_var, params):
         """
