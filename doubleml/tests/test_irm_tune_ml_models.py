@@ -35,9 +35,9 @@ def test_doubleml_irm_optuna_tune(sampler_name, optuna_sampler):
     dml_irm.fit()
     tuned_score = dml_irm.evaluate_learners()
 
-    tuned_params_g0 = tune_res[0]["ml_g0"].best_params_
-    tuned_params_g1 = tune_res[0]["ml_g1"].best_params_
-    tuned_params_m = tune_res[0]["ml_m"].best_params_
+    tuned_params_g0 = tune_res[0]["ml_g0"].best_params
+    tuned_params_g1 = tune_res[0]["ml_g1"].best_params
+    tuned_params_m = tune_res[0]["ml_m"].best_params
 
     _assert_tree_params(tuned_params_g0)
     _assert_tree_params(tuned_params_g1)

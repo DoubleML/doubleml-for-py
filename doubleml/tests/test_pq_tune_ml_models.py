@@ -35,7 +35,7 @@ def test_doubleml_pq_optuna_tune(sampler_name, optuna_sampler):
     tuned_score = dml_pq.evaluate_learners()
 
     for learner_name in dml_pq.params_names:
-        tuned_params = tune_res[0][learner_name].best_params_
+        tuned_params = tune_res[0][learner_name].best_params
         _assert_tree_params(tuned_params)
 
         # ensure tuning improved RMSE

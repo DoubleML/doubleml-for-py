@@ -22,7 +22,7 @@ from .test_dml_tune_optuna import (
 def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     np.random.seed(3151)
     dml_data = make_did_SZ2020(
-        n_obs=500,
+        n_obs=1000,
         dgp_type=2,
         cross_sectional_data=True,
         return_type="DoubleMLDIDData",
@@ -46,7 +46,7 @@ def test_doubleml_did_cs_optuna_tune(sampler_name, optuna_sampler, score):
     tuned_score = dml_did_cs.evaluate_learners()
 
     for learner_name in dml_did_cs.params_names:
-        tuned_params = tune_res[0][learner_name].best_params_
+        tuned_params = tune_res[0][learner_name].best_params
         _assert_tree_params(tuned_params)
 
         # ensure tuning improved RMSE

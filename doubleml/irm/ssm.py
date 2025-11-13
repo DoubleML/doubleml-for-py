@@ -638,7 +638,7 @@ class DoubleMLSSM(LinearScoreMixin, DoubleML):
                 )
                 pi_tune_res.append(tuned)
                 ml_pi_temp = clone(self._learner["ml_pi"])
-                ml_pi_temp.set_params(**tuned.best_params_)
+                ml_pi_temp.set_params(**tuned.best_params)
                 ml_pi_temp.fit(x_inner0, s_inner0)
                 pi_hat_full[inner1_idx] = _predict_zero_one_propensity(ml_pi_temp, x_d_z)[inner1_idx]
 

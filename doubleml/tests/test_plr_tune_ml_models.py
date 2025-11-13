@@ -37,8 +37,8 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     dml_plr.fit()
     tuned_score = dml_plr.evaluate_learners()
 
-    tuned_params_l = tune_res[0]["ml_l"].best_params_
-    tuned_params_m = tune_res[0]["ml_m"].best_params_
+    tuned_params_l = tune_res[0]["ml_l"].best_params
+    tuned_params_m = tune_res[0]["ml_m"].best_params
 
     _assert_tree_params(tuned_params_l)
     _assert_tree_params(tuned_params_m)
@@ -46,10 +46,10 @@ def test_doubleml_plr_optuna_tune(sampler_name, optuna_sampler):
     # ensure results contain optuna objects and best params
     assert isinstance(tune_res[0], dict)
     assert set(tune_res[0].keys()) == {"ml_l", "ml_m"}
-    assert hasattr(tune_res[0]["ml_l"], "best_params_")
-    assert tune_res[0]["ml_l"].best_params_["max_depth"] == tuned_params_l["max_depth"]
-    assert hasattr(tune_res[0]["ml_m"], "best_params_")
-    assert tune_res[0]["ml_m"].best_params_["max_depth"] == tuned_params_m["max_depth"]
+    assert hasattr(tune_res[0]["ml_l"], "best_params")
+    assert tune_res[0]["ml_l"].best_params["max_depth"] == tuned_params_l["max_depth"]
+    assert hasattr(tune_res[0]["ml_m"], "best_params")
+    assert tune_res[0]["ml_m"].best_params["max_depth"] == tuned_params_m["max_depth"]
 
     # ensure tuning improved RMSE
     assert tuned_score["ml_l"] < untuned_score["ml_l"]

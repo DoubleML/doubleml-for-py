@@ -67,7 +67,7 @@ def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     tuned_bias = np.abs(dml_did_cs_binary.coef - theta)
 
     for learner_name in dml_did_cs_binary.params_names:
-        tuned_params = tune_res[0][learner_name].best_params_
+        tuned_params = tune_res[0][learner_name].best_params
         _assert_tree_params(tuned_params)
 
         # ensure tuning improved RMSE

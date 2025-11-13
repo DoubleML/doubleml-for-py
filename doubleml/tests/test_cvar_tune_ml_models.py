@@ -33,8 +33,8 @@ def test_doubleml_cvar_optuna_tune(sampler_name, optuna_sampler):
     dml_cvar.fit()
     tuned_score = dml_cvar.evaluate_learners()
 
-    tuned_params_g = tune_res[0]["ml_g"].best_params_
-    tuned_params_m = tune_res[0]["ml_m"].best_params_
+    tuned_params_g = tune_res[0]["ml_g"].best_params
+    tuned_params_m = tune_res[0]["ml_m"].best_params
 
     _assert_tree_params(tuned_params_g)
     _assert_tree_params(tuned_params_m)

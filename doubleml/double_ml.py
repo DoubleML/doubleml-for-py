@@ -1069,7 +1069,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...     'sampler': optuna.samplers.TPESampler(seed=42),
         ... }
         >>> tune_res = dml_plr.tune_ml_models(ml_param_space, optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params_)
+        >>> print(tune_res[0]['ml_l'].best_params)
         {'learning_rate': 0.03907122389107094}
         >>> # Fit and get results
         >>> dml_plr.fit().summary
@@ -1087,7 +1087,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ... }
         >>> tune_res = dml_plr.tune_ml_models(ml_param_space, scoring_methods=scoring_methods,
         ...                                   optuna_settings=optuna_settings, return_tune_res=True)
-        >>> print(tune_res[0]['ml_l'].best_params_)
+        >>> print(tune_res[0]['ml_l'].best_params)
         {'learning_rate': 0.04300012336462904}
         >>> dml_plr.fit().summary
                coef   std err          t         P>|t|     2.5 %    97.5 %
@@ -1131,7 +1131,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                     if tuned_result is None:
                         params_to_set = None
                     else:
-                        params_to_set = tuned_result.best_params_
+                        params_to_set = tuned_result.best_params
 
                     self.set_ml_nuisance_params(nuisance_model, self._dml_data.d_cols[i_d], params_to_set)
 
