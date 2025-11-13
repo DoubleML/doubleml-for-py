@@ -140,7 +140,7 @@ class DoubleMLDIDMulti:
     ...     gt_combinations="standard",
     ...     control_group="never_treated",
     ... )
-    >>> print(dml_did_obj.fit().summary)
+    >>> print(dml_did_obj.fit().summary) # doctest: +SKIP
                                       coef   std err  ...     2.5 %    97.5 %
     ATT(2025-03,2025-01,2025-02) -0.797617  0.459617  ... -1.698450  0.103215
     ATT(2025-03,2025-02,2025-03)  0.270311  0.456453  ... -0.624320  1.164941

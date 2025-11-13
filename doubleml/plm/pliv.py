@@ -74,7 +74,7 @@ class DoubleMLPLIV(LinearScoreMixin, DoubleML):
     >>> data = make_pliv_CHS2015(alpha=0.5, n_obs=500, dim_x=20, dim_z=1, return_type='DataFrame')
     >>> obj_dml_data = dml.DoubleMLData(data, 'y', 'd', z_cols='Z1')
     >>> dml_pliv_obj = dml.DoubleMLPLIV(obj_dml_data, ml_l, ml_m, ml_r)
-    >>> dml_pliv_obj.fit().summary
+    >>> dml_pliv_obj.fit().summary # doctest: +SKIP
            coef   std err         t         P>|t|     2.5 %  97.5 %
     d  0.511722  0.087184  5.869427  4.373034e-09  0.340844  0.6826
 

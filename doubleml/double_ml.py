@@ -14,7 +14,7 @@ from doubleml.double_ml_sampling_mixins import SampleSplittingMixin
 from doubleml.utils._checks import _check_external_predictions
 from doubleml.utils._estimation import _aggregate_coefs_and_ses, _rmse, _set_external_predictions, _var_est
 from doubleml.utils._sensitivity import _compute_sensitivity_bias
-from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, _join_param_spaces, resolve_optuna_cv
+from doubleml.utils._tune_optuna import OPTUNA_GLOBAL_SETTING_KEYS, resolve_optuna_cv
 from doubleml.utils.gain_statistics import gain_statistics
 
 _implemented_data_backends = ["DoubleMLData", "DoubleMLClusterData", "DoubleMLDIDData", "DoubleMLSSMData", "DoubleMLRDDData"]
@@ -1236,10 +1236,7 @@ class DoubleML(SampleSplittingMixin, ABC):
                 final_param_space[param_key] = ml_param_space[learner_name]
         # Override if param_name specific space is provided
         for param_key in [pk for pk in self.params_names if pk in ml_param_space.keys()]:
-            if final_param_space[param_key] is None:
-                final_param_space[param_key] = ml_param_space[param_key]
-            else:
-                final_param_space[param_key] = _join_param_spaces(final_param_space[param_key], ml_param_space[param_key])
+            final_param_space[param_key] = ml_param_space[param_key]
 
         return requested_learners, final_param_space
 
