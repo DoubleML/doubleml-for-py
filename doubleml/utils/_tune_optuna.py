@@ -78,36 +78,25 @@ def _resolve_optuna_scoring(scoring_method, learner, learner_name):
         message = f"Using provided scoring method: {scoring_method} for learner '{learner_name}'"
         return scoring_method, message
 
-    criterion = getattr(learner, "criterion", None)
-    if criterion is not None:
-        message = f"No scoring method provided, using estimator criterion '{criterion}' for learner '{learner_name}'."
-        return None, message
-
     if is_regressor(learner):
         message = (
-            "No scoring method provided and estimator has no criterion; using 'neg_root_mean_squared_error' (RMSE) "
+            "No scoring method provided, using 'neg_root_mean_squared_error' (RMSE) "
             f"for learner '{learner_name}'."
         )
         return "neg_root_mean_squared_error", message
 
     if is_classifier(learner):
-        if hasattr(learner, "predict_proba"):
-            metric = "neg_log_loss"
-            readable = "log loss"
-        else:
-            metric = "accuracy"
-            readable = "accuracy"
         message = (
-            f"No scoring method provided and estimator has no criterion; using '{metric}' ({readable}) "
+            f"No scoring method provided, using 'neg_log_loss' "
             f"for learner '{learner_name}'."
         )
-        return metric, message
+        return "neg_log_loss", message
 
-    message = (
+
+    raise RuntimeError(
         f"No scoring method provided and estimator type could not be inferred. Please provide a scoring_method for learner "
         f"'{learner_name}'."
     )
-    return None, message
 
 
 class _OptunaSearchResult:
@@ -261,18 +250,16 @@ def _get_optuna_settings(optuna_settings, params_name=None):
     learner_or_params_keys = set(optuna_settings.keys()) - set(base_settings.keys())
 
     # Find matching learner-specific settings, handles the case to match ml_g to ml_g0, ml_g1, etc.
+    learner_specific_settings = {}
     if any(params_name in key for key in learner_or_params_keys):
         for k in learner_or_params_keys:
             if params_name in k and params_name != k:
                 learner_specific_settings = optuna_settings[k]
-    else:
-        learner_specific_settings = {}
 
     # set params specific settings
+    params_specific_settings = {}
     if params_name in learner_or_params_keys:
         params_specific_settings = optuna_settings[params_name]
-    else:
-        params_specific_settings = {}
 
     # Merge settings: defaults < base < learner-specific < params_specific
     resolved = default_settings.copy() | base_settings | learner_specific_settings | params_specific_settings
