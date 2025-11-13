@@ -20,7 +20,7 @@ from .test_dml_tune_optuna import (
 def test_doubleml_did_cs_binary_optuna_tune(sampler_name, optuna_sampler):
     np.random.seed(3153)
     df_panel = make_did_cs_CS2021(
-        n_obs=500,
+        n_obs=1000,
         dgp_type=2,
         include_never_treated=True,
         lambda_t=0.6,

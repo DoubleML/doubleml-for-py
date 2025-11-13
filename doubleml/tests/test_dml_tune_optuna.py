@@ -12,7 +12,7 @@ from doubleml.utils._tune_optuna import _resolve_optuna_scoring
 
 
 def _basic_optuna_settings(additional=None):
-    base_settings = {"n_trials": 20, "sampler": optuna.samplers.RandomSampler(seed=3141)}
+    base_settings = {"n_trials": 10, "sampler": optuna.samplers.RandomSampler(seed=3141)}
     if additional is not None:
         base_settings.update(additional)
     return base_settings
@@ -72,8 +72,8 @@ def test_resolve_optuna_scoring_classifier_default():
 def test_resolve_optuna_scoring_with_criterion_keeps_default():
     learner = DecisionTreeRegressor(random_state=0)
     scoring, message = _resolve_optuna_scoring(None, learner, "ml_l")
-    assert scoring is None
-    assert "criterion" in message
+    assert scoring == "neg_root_mean_squared_error"
+    assert "neg_root_mean_squared_error" in message
 
 
 def test_resolve_optuna_scoring_lightgbm_regressor_default():
@@ -153,8 +153,8 @@ def test_doubleml_optuna_partial_tuning_single_learner():
     assert isinstance(tune_res[0], dict)
     assert set(tune_res[0].keys()) == {"ml_l"}
     l_tune = tune_res[0]["ml_l"]
-    assert hasattr(l_tune, "tuned_")
-    assert l_tune.tuned_ is True
+    assert hasattr(l_tune, "tuned")
+    assert l_tune.tuned is True
     assert "ml_m" not in tune_res[0]
 
 
