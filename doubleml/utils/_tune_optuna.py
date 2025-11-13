@@ -540,7 +540,35 @@ def _dml_tune_optuna(
 
 
 def _join_param_spaces(param_space_global, param_space_local):
+    if param_space_global is None:
+        return param_space_local
+    if param_space_local is None:
+        return param_space_global
+
     def joined_param_space(trial):
-        return param_space_global(trial) | param_space_local(trial)
+        local_params = param_space_local(trial)
+
+        class _ProxyTrial:
+            def __init__(self, base_trial, overrides):
+                self._base_trial = base_trial
+                self._overrides = overrides
+
+            def __getattr__(self, name):
+                attr = getattr(self._base_trial, name)
+                if not callable(attr) or not name.startswith("suggest_"):
+                    return attr
+
+                def wrapped(*args, **kwargs):
+                    key = args[0] if args else kwargs.get("name")
+                    if key in self._overrides:
+                        return self._overrides[key]
+                    return attr(*args, **kwargs)
+
+                return wrapped
+
+        proxy_trial = _ProxyTrial(trial, local_params)
+        global_params = param_space_global(proxy_trial)
+
+        return {**global_params, **local_params}
 
     return joined_param_space
