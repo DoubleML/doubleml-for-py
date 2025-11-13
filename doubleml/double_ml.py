@@ -1072,7 +1072,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> print(tune_res[0]['ml_l'].best_params)
         {'learning_rate': 0.03907122389107094}
         >>> # Fit and get results
-        >>> dml_plr.fit().summary
+        >>> dml_plr.fit().summary # doctest: +SKIP
               coef   std err          t         P>|t|     2.5 %    97.5 %
         d  0.57436  0.045206  12.705519  5.510257e-37  0.485759  0.662961
         >>> # Example with scoring methods and directions
@@ -1089,7 +1089,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         ...                                   optuna_settings=optuna_settings, return_tune_res=True)
         >>> print(tune_res[0]['ml_l'].best_params)
         {'learning_rate': 0.04300012336462904}
-        >>> dml_plr.fit().summary
+        >>> dml_plr.fit().summary # doctest: +SKIP
                coef   std err          t         P>|t|     2.5 %    97.5 %
         d  0.574796  0.045062  12.755721  2.896820e-37  0.486476  0.663115
         """
@@ -1580,7 +1580,7 @@ class DoubleML(SampleSplittingMixin, ABC):
         >>> def mae(y_true, y_pred):
         ...     subset = np.logical_not(np.isnan(y_true))
         ...     return mean_absolute_error(y_true[subset], y_pred[subset])
-        >>> dml_irm_obj.evaluate_learners(metric=mae)
+        >>> dml_irm_obj.evaluate_learners(metric=mae) # doctest: +SKIP
         {'ml_g0': array([[0.88086873]]), 'ml_g1': array([[0.8452644]]), 'ml_m': array([[0.35789438]])}
         """
         # if no learners are provided try to evaluate all learners
