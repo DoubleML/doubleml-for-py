@@ -526,8 +526,14 @@ class DoubleML(SampleSplittingMixin, ABC):
 
     @property
     def __smpls__inner(self):
-        if self._smpls_inner is None:
+        if not self._double_sample_splitting:
             raise ValueError("smpls_inner is only available for double sample splitting.")
+        if self._smpls_inner is None:
+            err_msg = (
+                "Sample splitting not specified. Either draw samples via .draw_sample splitting() "
+                + "or set external samples via .set_sample_splitting()."
+            )
+            raise ValueError(err_msg)
         return self._smpls_inner[self._i_rep]
 
     @property
